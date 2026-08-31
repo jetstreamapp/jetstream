@@ -1,5 +1,13 @@
 import { css } from '@emotion/react';
-import { AutoFullHeightContainer, Page, PageHeader, PageHeaderRow, PageHeaderTitle, ScopedNotification } from '@jetstream/ui';
+import {
+  AutoFullHeightContainer,
+  focusContainer,
+  Page,
+  PageHeader,
+  PageHeaderRow,
+  PageHeaderTitle,
+  ScopedNotification,
+} from '@jetstream/ui';
 import {
   DataHistorySettingsSection,
   EditorSettingsSection,
@@ -66,7 +74,7 @@ export function AdditionalSettings() {
       const target = document.getElementById(hash.slice(1));
       if (target) {
         target.scrollIntoView?.({ block: 'start' });
-        target.focus();
+        focusContainer(target);
         return;
       }
       attemptsRemaining--;
