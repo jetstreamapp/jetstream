@@ -3,7 +3,6 @@ import { formatNumber, useGoBackShortcut, usePrimaryActionShortcut } from '@jets
 import { groupByFlat, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { ListItem } from '@jetstream/types';
 import {
-  AssistiveStatus,
   AutoFullHeightContainer,
   BadgePopover,
   BadgePopoverList,
@@ -17,6 +16,7 @@ import {
   Tooltip,
   getAriaKeyshortcuts,
   getModifierKey,
+  useAnnouncer,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, useAnalytics } from '@jetstream/ui-core';
 import { selectedOrgState, useOperationAccess } from '@jetstream/ui/app-state';
@@ -169,19 +169,14 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
     );
   }
 
-  const [rowStatusMessage, setRowStatusMessage] = useState('');
-
-  /** Clear-then-set so repeated adds/deletes each announce */
-  function announceRowChange(message: string) {
-    setRowStatusMessage('');
-    window.setTimeout(() => setRowStatusMessage(message), 100);
-  }
+  // Announces repeated adds/deletes to screen readers
+  const { announce, announcer } = useAnnouncer();
 
   // Focus deliberately STAYS on the New Field button (users often add several fields, then fill
   // them in) — the announcement is what tells screen reader users the row was appended above
   function handleAddRow() {
     addRow();
-    announceRowChange(`Field ${rows.length + 1} added`);
+    announce(`Field ${rows.length + 1} added`);
   }
 
   /** Clone appends a copy at the end of the list, out of view of the Clone button that was pressed */
@@ -195,7 +190,7 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
   function handleRemoveRow(key: number, index: number) {
     const countBefore = rows.length;
     removeRow(key);
-    announceRowChange('Field deleted');
+    announce('Field deleted');
     window.setTimeout(() => {
       const targetIndex = Math.min(index, countBefore - 2);
       document
@@ -284,7 +279,7 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
           </Tooltip>
         </ToolbarItemActions>
       </Toolbar>
-      <AssistiveStatus message={rowStatusMessage} />
+      {announcer}
       <div>
         <Grid className="slds-box_small slds-theme_default slds-is-relative" verticalAlign="center" wrap>
           <SelectedItemsBadge items={selectedSObjects} label="Object" />
