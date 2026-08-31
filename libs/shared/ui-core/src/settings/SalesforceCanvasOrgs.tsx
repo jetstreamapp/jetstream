@@ -11,27 +11,16 @@ import { getErrorMessage } from '@jetstream/shared/utils';
 import {
   CreateSalesforceCanvasOrgRequest,
   CreateSalesforceCanvasOrgRequestSchema,
-  ListItem,
   SALESFORCE_CANVAS_ORG_LIMIT,
   SalesforceCanvasOrg,
+  SalesforceOrgUi,
 } from '@jetstream/types';
-import {
-  Card,
-  ConfirmationModalPromise,
-  fireToast,
-  Grid,
-  GridCol,
-  Icon,
-  Input,
-  Modal,
-  Picklist,
-  ScopedNotification,
-  Spinner,
-} from '@jetstream/ui';
+import { Card, ConfirmationModalPromise, fireToast, Grid, GridCol, Icon, Input, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { OrgsCombobox } from '../orgs/OrgsCombobox';
 
 /**
  * Best-effort parse of the "My Domain" base from a connected org's instance URL, so we can prefill the
@@ -219,22 +208,10 @@ function AddCanvasOrgModal({
     }
   }
 
-  const connectedOrgItems = useMemo<ListItem[]>(
-    () =>
-      connectedOrgs.map((org) => ({
-        id: org.uniqueId,
-        label: org.label,
-        secondaryLabel: org.orgIsSandbox ? 'Sandbox' : 'Production',
-        value: org.uniqueId,
-      })),
-    [connectedOrgs],
-  );
+  const [prefillOrg, setPrefillOrg] = useState<SalesforceOrgUi | null>(null);
 
-  function handlePrefillFromOrg(selectedItems: ListItem[]) {
-    const selectedOrg = connectedOrgs.find((org) => org.uniqueId === selectedItems[0]?.id);
-    if (!selectedOrg) {
-      return;
-    }
+  function handlePrefillFromOrg(selectedOrg: SalesforceOrgUi) {
+    setPrefillOrg(selectedOrg);
     setValue('organizationId', selectedOrg.organizationId, { shouldValidate: true, shouldDirty: true });
     setValue('myDomainBase', parseMyDomainBaseFromInstanceUrl(selectedOrg.instanceUrl), { shouldValidate: true, shouldDirty: true });
     setValue('orgName', selectedOrg.orgName || selectedOrg.label, { shouldValidate: true, shouldDirty: true });
@@ -261,16 +238,17 @@ function AddCanvasOrgModal({
             {saveError}
           </ScopedNotification>
         )}
-        {connectedOrgItems.length > 0 && (
+        {connectedOrgs.length > 0 && (
           <>
-            <Picklist
-              className="slds-m-bottom_x-small"
+            <OrgsCombobox
+              containerClassName="slds-m-bottom_x-small"
               label="Prefill from a connected org"
+              hideLabel={false}
               placeholder="Select a connected org"
               helpText="Optional: fills in the fields below from an org you've already connected. You can still edit them."
-              items={connectedOrgItems}
-              allowDeselection
-              onChange={handlePrefillFromOrg}
+              orgs={connectedOrgs}
+              selectedOrg={prefillOrg}
+              onSelected={handlePrefillFromOrg}
             />
             <p className="slds-m-bottom_small slds-text-color_weak slds-text-body_small">Or enter the details manually.</p>
           </>
