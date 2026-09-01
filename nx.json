@@ -130,6 +130,13 @@
         "testTargetName": "test",
         "testMode": "watch"
       }
+    },
+    {
+      "plugin": "@nx/playwright/plugin",
+      "options": {
+        "targetName": "e2e",
+        "ciTargetName": "e2e-ci"
+      }
     }
   ],
   "defaultBase": "main",

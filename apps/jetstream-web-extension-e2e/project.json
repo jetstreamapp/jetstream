@@ -3,15 +3,11 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "sourceRoot": "apps/jetstream-web-extension-e2e/src",
-  "implicitDependencies": ["jetstream-web-extension"],
   "tags": ["scope:e2e"],
+  "implicitDependencies": ["jetstream-web-extension"],
   "targets": {
     "e2e": {
-      "executor": "@nx/playwright:playwright",
-      "outputs": ["{workspaceRoot}/dist/.playwright/apps/jetstream-web-extension-e2e"],
-      "options": {
-        "config": "apps/jetstream-web-extension-e2e/playwright.config.ts"
-      }
+      "outputs": ["{workspaceRoot}/dist/.playwright/apps/jetstream-web-extension-e2e"]
     }
   }
 }
