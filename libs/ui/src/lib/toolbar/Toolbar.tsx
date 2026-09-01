@@ -10,6 +10,7 @@ export const Toolbar: FunctionComponent<ToolbarProps> = ({ children }) => {
     <div
       className="slds-builder-toolbar"
       role="toolbar"
+      aria-label="Page toolbar"
       css={css`
         flex-wrap: wrap;
       `}

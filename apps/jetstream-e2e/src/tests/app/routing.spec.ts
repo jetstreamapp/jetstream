@@ -81,7 +81,7 @@ test.describe('Navbar navigation', () => {
           // Single-item entries render as a plain navigation <a> (role="link"); only dropdown menus expose role="menu"/"menuitem"
           await page.getByTestId('header').getByRole('link', { name: menu }).click();
         } else {
-          await page.getByTestId('header').getByRole('button', { name: menu }).click();
+          await page.getByTestId('header').getByRole('button', { name: menu, exact: true }).click();
         }
 
         // eslint-disable-next-line playwright/no-conditional-in-test
