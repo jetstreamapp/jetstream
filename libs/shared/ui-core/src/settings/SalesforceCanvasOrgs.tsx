@@ -253,25 +253,40 @@ function AddCanvasOrgModal({
             <p className="slds-m-bottom_small slds-text-color_weak slds-text-body_small">Or enter the details manually.</p>
           </>
         )}
+        {/* ids associate each <label> with its input; without them the required fields had no accessible name */}
         <Input
+          id="canvas-org-organization-id"
           label="Production Organization Id"
           errorMessage={errors.organizationId?.message}
           hasError={!!errors.organizationId}
           isRequired
         >
-          <input className="slds-input" type="text" {...register('organizationId')} placeholder="00Dxxxxxxxxxxxxxxx" />
+          <input
+            id="canvas-org-organization-id"
+            className="slds-input"
+            type="text"
+            {...register('organizationId')}
+            placeholder="00Dxxxxxxxxxxxxxxx"
+          />
         </Input>
         <Input
+          id="canvas-org-my-domain"
           className="slds-m-top_small"
           label="My Domain"
           errorMessage={errors.myDomainBase?.message}
           hasError={!!errors.myDomainBase}
           isRequired
         >
-          <input className="slds-input" type="text" {...register('myDomainBase')} placeholder="acme" />
+          <input id="canvas-org-my-domain" className="slds-input" type="text" {...register('myDomainBase')} placeholder="acme" />
         </Input>
-        <Input className="slds-m-top_small" label="Label (optional)" errorMessage={errors.orgName?.message} hasError={!!errors.orgName}>
-          <input className="slds-input" type="text" {...register('orgName')} placeholder="Acme Production" />
+        <Input
+          id="canvas-org-name"
+          className="slds-m-top_small"
+          label="Label (optional)"
+          errorMessage={errors.orgName?.message}
+          hasError={!!errors.orgName}
+        >
+          <input id="canvas-org-name" className="slds-input" type="text" {...register('orgName')} placeholder="Acme Production" />
         </Input>
         <p className="slds-m-top_small slds-text-color_weak">
           Enter your production org id and just the My Domain name (for example, <code>acme</code> for <code>acme.my.salesforce.com</code>).
