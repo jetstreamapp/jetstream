@@ -12,13 +12,15 @@ export interface NavbarItemProps {
 
 export const NavbarItem: FunctionComponent<NavbarItemProps> = ({ className, path, search, label, title }) => {
   const location = useLocation();
+  const isActive = location.pathname === path || location.pathname.startsWith(`${path}/`);
   return (
-    <li
-      className={classNames('slds-context-bar__item', className, {
-        'slds-is-active': location.pathname === path || location.pathname.startsWith(`${path}/`),
-      })}
-    >
-      <Link className="slds-context-bar__label-action" title={title} to={{ pathname: path, search }}>
+    <li className={classNames('slds-context-bar__item', className, { 'slds-is-active': isActive })}>
+      <Link
+        className="slds-context-bar__label-action"
+        title={title}
+        aria-current={isActive ? 'page' : undefined}
+        to={{ pathname: path, search }}
+      >
         <span className="slds-truncate" title={title}>
           {label}
         </span>

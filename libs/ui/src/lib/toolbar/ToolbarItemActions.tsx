@@ -6,7 +6,7 @@ export interface ToolbarItemActionsProps {
 
 export const ToolbarItemActions: FunctionComponent<ToolbarItemActionsProps> = ({ children }) => {
   return (
-    <div className="slds-builder-toolbar__actions" aria-label="Actions">
+    <div className="slds-builder-toolbar__actions" role="group" aria-label="Actions">
       {children}
     </div>
   );
