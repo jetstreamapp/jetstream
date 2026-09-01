@@ -2,6 +2,7 @@ import { css } from '@emotion/react';
 import { formatNumber, hasCtrlOrMeta, isEnterKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { Field, Maybe, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
 import { ChangeEvent, Fragment, FunctionComponent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ariaDisabledButtonProps } from '../form/button/aria-disabled-button.utils';
 import Checkbox from '../form/checkbox/Checkbox';
 import Input from '../form/input/Input';
 import SearchInput from '../form/search-input/SearchInput';
@@ -168,7 +169,11 @@ export function buildRecordChangeList(
   return { rows, editedColumns, changeCount };
 }
 
-/** Per-record status as a compact icon (the frozen Status column is narrow); message shown on hover. */
+/**
+ * Per-record status as a compact icon (the frozen Status column is narrow); message shown on hover.
+ * The text for screen readers sits beside the icon rather than in its `description`, which Icon also
+ * emits as a native `title` — a second, delayed tooltip on top of the real one.
+ */
 function StatusRenderer({ row }: DataTableCellProps<RowWithKey>): ReactNode {
   const { severity, status, _saved } = row as RecordChangeRow;
   if (_saved) {
@@ -180,6 +185,7 @@ function StatusRenderer({ row }: DataTableCellProps<RowWithKey>): ReactNode {
           className="slds-icon slds-icon_xx-small slds-icon-text-success"
           containerClassname="slds-icon_container"
         />
+        <span className="slds-assistive-text">Saved</span>
       </Tooltip>
     );
   }
@@ -192,6 +198,7 @@ function StatusRenderer({ row }: DataTableCellProps<RowWithKey>): ReactNode {
           className="slds-icon slds-icon_xx-small slds-icon-text-success"
           containerClassname="slds-icon_container"
         />
+        <span className="slds-assistive-text">Ready to save</span>
       </Tooltip>
     );
   }
@@ -213,6 +220,8 @@ function StatusRenderer({ row }: DataTableCellProps<RowWithKey>): ReactNode {
         className={`slds-icon slds-icon_xx-small ${severity === 'warning' ? 'slds-icon-text-warning' : 'slds-icon-text-error'}`}
         containerClassname="slds-icon_container"
       />
+      {/* The icon is the whole Status cell, so the cell must carry the message a keyboard user cannot hover for */}
+      <span className="slds-assistive-text">{severity === 'warning' ? `Warnings: ${status}` : status}</span>
     </Tooltip>
   );
 }
@@ -565,6 +574,15 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
     });
   };
 
+  // Save unmounts once everything is saved — hand focus to the (relabelled) Close button so it does
+  // not fall to <body>
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (allSaved && (document.activeElement === document.body || !document.activeElement)) {
+      closeButtonRef.current?.focus();
+    }
+  }, [allSaved]);
+
   function renderBanner() {
     if (allSaved) {
       return <ScopedNotification theme="success">All changes were saved successfully.</ScopedNotification>;
@@ -664,18 +682,25 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
                 Download Results
               </button>
             )}
-            <button className="slds-button slds-button_neutral" onClick={onClose} disabled={isSaving}>
+            <button ref={closeButtonRef} className="slds-button slds-button_neutral" onClick={onClose} disabled={isSaving}>
               {allSaved ? 'Close' : 'Cancel'}
             </button>
             {!allSaved && (
-              <button
-                className="slds-button slds-button_brand"
-                onClick={handleSave}
-                disabled={saveDisabled}
-                title={hasBlockingErrors ? 'Fix the highlighted errors before saving' : (batchSizeError ?? undefined)}
+              // The reason rides on a Tooltip rather than a title: an aria-disabled button has
+              // pointer-events:none, so hover never reaches it, while the tooltip's own wrapper still does
+              <Tooltip
+                // The wrapper breaks the footer's `.slds-button + .slds-button` spacing rule
+                className="slds-m-left_x-small"
+                content={hasBlockingErrors ? 'Fix the highlighted errors before saving' : batchSizeError}
               >
-                Save ({formatNumber(dirtyRows.length)})
-              </button>
+                <button
+                  className="slds-button slds-button_brand"
+                  // aria-disabled keeps focus on Save while it disables itself
+                  {...ariaDisabledButtonProps(saveDisabled, handleSave)}
+                >
+                  Save ({formatNumber(dirtyRows.length)})
+                </button>
+              </Tooltip>
             )}
           </div>
         </div>
