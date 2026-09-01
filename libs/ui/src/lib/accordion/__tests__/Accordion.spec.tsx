@@ -1,3 +1,4 @@
+import { axeScan } from '@jetstream/test-utils';
 import { UiSection } from '@jetstream/types';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { Accordion } from '../Accordion';
@@ -149,5 +150,104 @@ describe('Accordion', () => {
     render(<Accordion sections={sections} initOpenIds={['section-2']} />);
 
     expect(scrolledElements).toHaveLength(0);
+  });
+});
+
+describe('Accordion singleTabStop composite', () => {
+  function renderComposite({ singleTabStop = true, disabledIds = [] as string[], initOpenIds = [] as string[] } = {}) {
+    return render(
+      <Accordion
+        initOpenIds={initOpenIds}
+        allowMultiple={false}
+        singleTabStop={singleTabStop}
+        sections={['Contacts', 'Cases', 'Opportunities'].map((id) => ({
+          id,
+          title: id,
+          titleText: id,
+          disabled: disabledIds.includes(id),
+          content: <button type="button">{id} embedded control</button>,
+        }))}
+      />,
+    );
+  }
+
+  test('default mode keeps a tab stop per header', () => {
+    renderComposite({ singleTabStop: false });
+    const headers = screen.getAllByRole('button', { name: /Contacts|Cases|Opportunities/ });
+    headers.forEach((header) => expect(header.getAttribute('tabindex')).toBeNull());
+  });
+
+  test('exactly one header is in the page tab order', () => {
+    renderComposite();
+    expect(screen.getByRole('button', { name: 'Contacts' }).tabIndex).toBe(0);
+    expect(screen.getByRole('button', { name: 'Cases' }).tabIndex).toBe(-1);
+    expect(screen.getByRole('button', { name: 'Opportunities' }).tabIndex).toBe(-1);
+  });
+
+  test('the initially open section is the tab stop, so tabbing in lands where the user left off', () => {
+    renderComposite({ initOpenIds: ['Cases'] });
+    expect(screen.getByRole('button', { name: 'Cases' }).tabIndex).toBe(0);
+  });
+
+  test('ArrowDown/ArrowUp move focus between headers and wrap at the ends', () => {
+    renderComposite();
+    const contacts = screen.getByRole('button', { name: 'Contacts' });
+    const cases = screen.getByRole('button', { name: 'Cases' });
+    const opportunities = screen.getByRole('button', { name: 'Opportunities' });
+
+    contacts.focus();
+    fireEvent.keyDown(contacts, { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(cases);
+    expect(cases.tabIndex).toBe(0);
+    expect(contacts.tabIndex).toBe(-1);
+
+    fireEvent.keyDown(cases, { key: 'ArrowUp' });
+    fireEvent.keyDown(contacts, { key: 'ArrowUp' });
+    expect(document.activeElement).toBe(opportunities);
+
+    fireEvent.keyDown(opportunities, { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(contacts);
+  });
+
+  test('Home and End jump to the first and last enabled headers', () => {
+    renderComposite();
+    const contacts = screen.getByRole('button', { name: 'Contacts' });
+    contacts.focus();
+    fireEvent.keyDown(contacts, { key: 'End' });
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Opportunities' }));
+    fireEvent.keyDown(document.activeElement as Element, { key: 'Home' });
+    expect(document.activeElement).toBe(contacts);
+  });
+
+  test('disabled sections are skipped by arrow navigation', () => {
+    renderComposite({ disabledIds: ['Cases'] });
+    const contacts = screen.getByRole('button', { name: 'Contacts' });
+    contacts.focus();
+    fireEvent.keyDown(contacts, { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Opportunities' }));
+  });
+
+  test('clicking a header toggles it and moves the roving tab stop there', () => {
+    renderComposite();
+    const cases = screen.getByRole('button', { name: 'Cases' });
+    fireEvent.click(cases);
+    expect(cases.getAttribute('aria-expanded')).toBe('true');
+    expect(cases.tabIndex).toBe(0);
+    expect(screen.getByRole('button', { name: 'Contacts' }).tabIndex).toBe(-1);
+  });
+
+  test('arrow keys inside an open section content are left to the content', () => {
+    renderComposite();
+    fireEvent.click(screen.getByRole('button', { name: 'Contacts' }));
+    const embedded = screen.getByRole('button', { name: 'Contacts embedded control' });
+    embedded.focus();
+    fireEvent.keyDown(embedded, { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(embedded);
+  });
+
+  test('has no axe violations', async () => {
+    const { baseElement } = renderComposite({ initOpenIds: ['Contacts'] });
+    const results = await axeScan(baseElement);
+    expect(results.violations).toEqual([]);
   });
 });
