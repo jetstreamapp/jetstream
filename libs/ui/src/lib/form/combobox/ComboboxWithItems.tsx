@@ -105,9 +105,15 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
       setFocusedIndex(null);
     }, []);
 
+    // Enter from the input picks the first selectable option. Close explicitly: the close-on-selection
+    // effect only fires when the selected label CHANGES, so re-selecting the current item left the list open
     const onInputEnter = useCallback(() => {
-      if (visibleItems.length > 0) {
-        onSelected(visibleItems[0]);
+      const item = visibleItems.find((visibleItem) => !visibleItem.disabled);
+      if (item) {
+        onSelected(item);
+        if (!item.isDrillInItem) {
+          comboboxRef.current?.close();
+        }
       }
     }, [onSelected, visibleItems]);
 
@@ -152,6 +158,11 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
           break;
         }
         case 'enter': {
+          // A disabled option is announced as disabled and must not activate — mirrors the
+          // pointer guard in ComboboxListItem
+          if (isNumber(focusedIndex) && visibleItems[focusedIndex]?.disabled) {
+            return;
+          }
           if (isNumber(tempFocusedIndex)) {
             tempFocusedIndex = null;
             setFocusedIndex(tempFocusedIndex);
