@@ -93,8 +93,12 @@ export function useApexTestSuites(org: SalesforceOrgUi, apiVersion: string) {
       const currentClassIds = new Set(currentMemberships.map(({ ApexClassId }) => ApexClassId));
       const addClassIds = Array.from(classIds).filter((classId) => !currentClassIds.has(classId));
       const removeMembershipIds = currentMemberships.filter(({ ApexClassId }) => !classIds.has(ApexClassId)).map(({ Id }) => Id);
-      await updateTestSuiteMembership(org, apiVersion, suiteId, { addClassIds, removeMembershipIds });
-      await loadSuites();
+      try {
+        await updateTestSuiteMembership(org, apiVersion, suiteId, { addClassIds, removeMembershipIds });
+      } finally {
+        // Refresh even on failure so a partially-applied diff is recomputed against real org state on retry
+        await loadSuites();
+      }
     },
     [org, apiVersion, membershipsBySuiteId, loadSuites],
   );

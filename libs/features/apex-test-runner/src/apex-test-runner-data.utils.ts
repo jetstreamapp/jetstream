@@ -11,6 +11,7 @@ import type {
   ApexTestRunResultRecord,
   ApexTestSuiteRecord,
   ApexTriggerRecord,
+  CompositeResponse,
   RunTestsAsyncOptions,
   RunTestsAsyncPayload,
   SalesforceOrgUi,
@@ -389,6 +390,24 @@ export async function deleteTestSuite(org: SalesforceOrgUi, suiteId: string) {
 }
 
 /**
+ * Composite subrequests report failures per-item inside an overall 200 response, so a failed
+ * item must be surfaced manually or the operation silently reports success to the user.
+ */
+function throwIfCompositeItemsFailed(response: CompositeResponse<unknown>, fallbackMessage: string) {
+  const failedItems = response.compositeResponse.filter(({ httpStatusCode }) => httpStatusCode > 299);
+  if (failedItems.length === 0) {
+    return;
+  }
+  const errorMessages = failedItems
+    .flatMap(({ body }) => (Array.isArray(body) ? (body as { errorCode?: string; message?: string }[]) : []))
+    // With allOrNone, every sibling subrequest fails with a rollback notice that would drown out the real error
+    .filter(({ errorCode }) => errorCode !== 'PROCESSING_HALTED')
+    .map(({ message }) => message)
+    .filter(Boolean);
+  throw new Error(Array.from(new Set(errorMessages)).join(' ') || fallbackMessage);
+}
+
+/**
  * Apply suite membership changes as a diff — new classes are added, removed memberships are deleted.
  */
 export async function updateTestSuiteMembership(
@@ -413,7 +432,9 @@ export async function updateTestSuiteMembership(
   if (compositeRequests.length === 0) {
     return;
   }
-  await makeToolingRequests(org, compositeRequests, apiVersion);
+  // allOrNone so a rejected change rolls back the rest and a retry can re-apply the same diff cleanly
+  const response = await makeToolingRequests(org, compositeRequests, apiVersion, true);
+  throwIfCompositeItemsFailed(response, 'Unable to save the test suite changes. Please try again.');
 }
 
 /**
@@ -426,7 +447,8 @@ export async function abortTestRun(org: SalesforceOrgUi, apiVersion: string, par
   if (itemsToAbort.length === 0) {
     return 0;
   }
-  await makeToolingRequests(
+  // Not allOrNone — abort as many queue items as possible, then report any that failed
+  const response = await makeToolingRequests(
     org,
     itemsToAbort.map((item, i) => ({
       method: 'PATCH' as const,
@@ -436,5 +458,6 @@ export async function abortTestRun(org: SalesforceOrgUi, apiVersion: string, par
     })),
     apiVersion,
   );
+  throwIfCompositeItemsFailed(response, 'Some tests could not be aborted.');
   return itemsToAbort.length;
 }
