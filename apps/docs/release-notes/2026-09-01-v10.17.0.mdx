@@ -1,0 +1,47 @@
+---
+slug: v10.17.0
+title: 10.17.0 - Apex Test Runner
+date: '2026-09-01'
+tags: [web]
+versions:
+  web: 10.17.0
+summary: Adds the Apex Test Runner. Run Apex tests, monitor test runs in real time, and view code coverage with per-line highlighting.
+highlights:
+  - title: Apex Test Runner
+    description: Run Apex test classes, individual methods, or test suites, monitor runs in real time, and view code coverage with per-line highlighting.
+    docLink: /developer/apex-tests
+  - title: New progress indicator on Load Records
+    description: The steps sidebar is replaced by a compact progress indicator in the page header, leaving the full width for page content.
+    docLink: /load
+  - title: Consistent org dropdowns
+    description: The Data History filter and Salesforce Canvas org pickers now use the same org dropdown as the rest of the app, with org type labels and full usernames.
+  - title: Query history export fix
+    description: Choosing "All Queries" in the export options now exports all queries even when the Saved Queries tab is active.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Apex Test Runner
+
+A new Apex Test Runner page lets you run Apex tests without leaving Jetstream:
+
+- Select entire test classes or individual test methods, or run a test suite. A built-in suite manager lets you create suites and choose which classes belong to each one.
+- The Test Runs tab lists recent runs for the org, including runs started from other tools, and refreshes automatically while a run is in progress. Select a run to see each method's outcome, failure message, stack trace, and debug log, and abort a run that is still executing.
+- The Code Coverage tab shows org-wide, per-class, and per-trigger coverage, and opens class source with covered and uncovered lines highlighted.
+
+### New progress indicator on Load Records
+
+The vertical steps sidebar on Load Records is replaced by a compact "Step X of Y" indicator with progress dots in the page header, leaving the full page width for the load content. Click a completed dot to jump back to that step, the same as the Go Back button.
+
+### Consistent org dropdowns
+
+The org filter on Data History and the org picker in the Salesforce Canvas settings now use the same dropdown as the rest of the app, with org type labels, full usernames, and a wider panel. The Data History filter keeps its All Orgs option.
+
+### Other fixes
+
+- Choosing "All Queries" in the query history export options now exports all queries even when the Saved Queries tab is active.
+- In Deploy Metadata, the package download button stays disabled until at least one package name is selected or entered.
+- Object rows in the field usage analysis show their field and row counts on a second line instead of truncating after the object name.
+- The View Child Records modal no longer shows truncated group labels in the narrow expand column.
