@@ -294,7 +294,9 @@ jobs:
           name: a11y-results-${{ matrix.shardIndex }}
           path: apps/jetstream-e2e/a11y-results
           retention-days: 30
-          if-no-files-found: ignore
+          # Only the shard(s) that ran an a11y spec produce results; `warn` (not `ignore`) keeps a
+          # silently-not-running a11y spec visible in the job log.
+          if-no-files-found: warn
 
   # Playwright's _electron support needs a real BrowserWindow, which a headless GitHub-hosted
   # runner has no display server for — xvfb-run provides a virtual one. Single job, single worker
