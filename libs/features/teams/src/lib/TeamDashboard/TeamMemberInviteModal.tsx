@@ -110,7 +110,7 @@ export function TeamMemberInviteModal({ teamId, userRole, seatGate, ssoConfig, v
             aria-invalid={invalidEmail}
             aria-describedby={invalidEmail ? 'email-error' : undefined}
             name="email"
-            autoComplete="none"
+            autoComplete="off"
             required
           />
         </Input>

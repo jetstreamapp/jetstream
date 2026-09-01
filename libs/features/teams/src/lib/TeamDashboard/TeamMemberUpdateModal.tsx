@@ -112,7 +112,7 @@ export function TeamMemberUpdateModal({ teamId, teamMember, currentUserRole, sea
             disabled
             type="email"
             name="email"
-            autoComplete="none"
+            autoComplete="off"
           />
         </Input>
 
