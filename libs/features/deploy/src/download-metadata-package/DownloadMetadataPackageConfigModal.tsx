@@ -67,7 +67,7 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
       onClose={onClose}
       tagline={
         <div className="slds-align_absolute-center">
-          Your metadata will be downloaded from from <OrgLabelBadge org={destinationOrg} />
+          Your metadata will be downloaded from <OrgLabelBadge org={destinationOrg} />
         </div>
       }
     >

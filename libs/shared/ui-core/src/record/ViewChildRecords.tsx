@@ -163,7 +163,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
         name: 'Last Modified',
       },
       {
-        ...setColumnFromType('CreatedByName', 'date'),
+        ...setColumnFromType('CreatedByName', 'text'),
         key: 'CreatedByName',
         name: 'Created By',
       },
@@ -300,7 +300,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
         setExpandedGroupIds(new Set(_rows.map((row) => row._groupByLabel)));
 
         onChildrenData && onChildrenData(parentRecordId, record);
-        trackEvent(ANALYTICS_KEYS.record_modal_view_children, { subqueryCount: subqueries.length, childRecordCount: _rows });
+        trackEvent(ANALYTICS_KEYS.record_modal_view_children, { subqueryCount: subqueries.length, childRecordCount: _rows.length });
       } catch (ex) {
         logger.warn('Error loading records', ex);
         setHasFetchErrors((existing) => [...existing, getErrorMessage(ex)]);
