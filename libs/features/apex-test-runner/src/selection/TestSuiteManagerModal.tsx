@@ -14,7 +14,7 @@ import {
   Spinner,
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
-import { FunctionComponent, useEffect, useMemo, useState } from 'react';
+import { FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 import { validateTestSuiteName } from '../apex-test-runner-data.utils';
 import type { TestClassListItem } from '../apex-test-runner-types';
 import type { useApexTestSuites } from '../useApexTestSuites';
@@ -55,12 +55,19 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
     }
   }, [selectedSuiteId, suites]);
 
-  // Re-initialize the editor whenever a different suite is chosen or fresh data arrives
+  // Re-initialize the editor whenever a different suite is chosen. Membership checkboxes are only
+  // initialized when the suite id changes so unrelated refreshes (e.g. a rename, or the reload after
+  // a failed save) don't silently discard unsaved checkbox edits.
+  const initializedMembershipSuiteId = useRef<string | null>(null);
   useEffect(() => {
     if (selectedSuite) {
       setRenameValue(selectedSuite.TestSuiteName);
-      setMemberClassIds(new Set((membershipsBySuiteId.get(selectedSuite.Id) ?? []).map(({ ApexClassId }) => ApexClassId)));
+      if (initializedMembershipSuiteId.current !== selectedSuite.Id) {
+        initializedMembershipSuiteId.current = selectedSuite.Id;
+        setMemberClassIds(new Set((membershipsBySuiteId.get(selectedSuite.Id) ?? []).map(({ ApexClassId }) => ApexClassId)));
+      }
     } else {
+      initializedMembershipSuiteId.current = null;
       setRenameValue('');
       setMemberClassIds(new Set());
     }

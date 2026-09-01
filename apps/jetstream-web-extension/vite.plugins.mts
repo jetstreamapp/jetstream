@@ -69,6 +69,7 @@ const PLACEHOLDER_PAGES = [
   'formula-evaluator',
   'record-type-manager',
   'apex',
+  'apex-tests',
   'debug-logs',
   'object-export',
   'salesforce-api',

@@ -11,6 +11,7 @@ import type {
   ApexTestRunResultRecord,
   ApexTestSuiteRecord,
   ApexTriggerRecord,
+  CompositeResponse,
   RunTestsAsyncOptions,
   RunTestsAsyncPayload,
   SalesforceOrgUi,
@@ -332,19 +333,20 @@ export async function fetchOrgWideCoverage(org: SalesforceOrgUi): Promise<number
   return records[0]?.PercentCovered ?? null;
 }
 
-export async function fetchApexClassManifest(org: SalesforceOrgUi) {
-  return (await queryAll<ApexClassRecord>(org, getApexClassManifestQuery(), true)).queryResults.records;
+export async function fetchApexClassManifest(org: SalesforceOrgUi, signal?: AbortSignal) {
+  return (await queryAll<ApexClassRecord>(org, getApexClassManifestQuery(), true, false, undefined, signal)).queryResults.records;
 }
 
 export async function fetchSymbolTables(
   org: SalesforceOrgUi,
   classIds: string[],
   onProgress?: (fetchedCount: number, totalCount: number) => void,
+  signal?: AbortSignal,
 ): Promise<ApexClassRecord[]> {
   const results: ApexClassRecord[] = [];
   const chunks = splitArrayToMaxSize(classIds, SYMBOL_TABLE_CHUNK_SIZE);
   for (const chunk of chunks) {
-    const records = (await query<ApexClassRecord>(org, getApexClassSymbolTableQuery(chunk), true)).queryResults.records;
+    const records = (await query<ApexClassRecord>(org, getApexClassSymbolTableQuery(chunk), true, false, signal)).queryResults.records;
     results.push(...records);
     onProgress?.(results.length, classIds.length);
   }
@@ -389,6 +391,24 @@ export async function deleteTestSuite(org: SalesforceOrgUi, suiteId: string) {
 }
 
 /**
+ * Composite subrequests report failures per-item inside an overall 200 response, so a failed
+ * item must be surfaced manually or the operation silently reports success to the user.
+ */
+function throwIfCompositeItemsFailed(response: CompositeResponse<unknown>, fallbackMessage: string) {
+  const failedItems = response.compositeResponse.filter(({ httpStatusCode }) => httpStatusCode > 299);
+  if (failedItems.length === 0) {
+    return;
+  }
+  const errorMessages = failedItems
+    .flatMap(({ body }) => (Array.isArray(body) ? (body as { errorCode?: string; message?: string }[]) : []))
+    // With allOrNone, every sibling subrequest fails with a rollback notice that would drown out the real error
+    .filter(({ errorCode }) => errorCode !== 'PROCESSING_HALTED')
+    .map(({ message }) => message)
+    .filter(Boolean);
+  throw new Error(Array.from(new Set(errorMessages)).join(' ') || fallbackMessage);
+}
+
+/**
  * Apply suite membership changes as a diff — new classes are added, removed memberships are deleted.
  */
 export async function updateTestSuiteMembership(
@@ -413,7 +433,11 @@ export async function updateTestSuiteMembership(
   if (compositeRequests.length === 0) {
     return;
   }
-  await makeToolingRequests(org, compositeRequests, apiVersion);
+  // allOrNone so a rejected change rolls back its batch (requests are chunked into sets of 25) and a
+  // retry can re-apply the diff cleanly — the caller refreshes memberships so a partially-applied
+  // multi-batch save is recomputed against real org state
+  const response = await makeToolingRequests(org, compositeRequests, apiVersion, true);
+  throwIfCompositeItemsFailed(response, 'Unable to save the test suite changes. Please try again.');
 }
 
 /**
@@ -426,7 +450,8 @@ export async function abortTestRun(org: SalesforceOrgUi, apiVersion: string, par
   if (itemsToAbort.length === 0) {
     return 0;
   }
-  await makeToolingRequests(
+  // Not allOrNone — abort as many queue items as possible, then report any that failed
+  const response = await makeToolingRequests(
     org,
     itemsToAbort.map((item, i) => ({
       method: 'PATCH' as const,
@@ -436,5 +461,6 @@ export async function abortTestRun(org: SalesforceOrgUi, apiVersion: string, par
     })),
     apiVersion,
   );
+  throwIfCompositeItemsFailed(response, 'Some tests could not be aborted.');
   return itemsToAbort.length;
 }

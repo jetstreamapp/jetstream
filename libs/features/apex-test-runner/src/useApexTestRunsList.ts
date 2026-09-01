@@ -36,7 +36,11 @@ export function useApexTestRunsList(org: SalesforceOrgUi) {
   const isMounted = useRef(true);
   /** If multiple requests overlap, ignore results from any request that is no longer the latest */
   const currentFetchToken = useRef<number>(0);
-  const numPollErrors = useRef<number>(0);
+  /**
+   * Must be state, not a ref — a failed poll may not otherwise re-render (the error message is
+   * often unchanged between failures), and the cutoff below only engages on re-render.
+   */
+  const [numPollErrors, setNumPollErrors] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -58,7 +62,7 @@ export function useApexTestRunsList(org: SalesforceOrgUi) {
         setErrorMessage(null);
         const records = await fetchTestRuns(org);
         if (isMounted.current && fetchToken === currentFetchToken.current) {
-          numPollErrors.current = 0;
+          setNumPollErrors(0);
           if (clearPrevious) {
             setRuns(records);
           } else {
@@ -72,12 +76,11 @@ export function useApexTestRunsList(org: SalesforceOrgUi) {
           logger.info('[APEX TESTS][RUNS] ignoring results, currentFetchToken is not valid');
         }
       } catch (ex) {
-        if (isMounted.current) {
-          numPollErrors.current++;
-          if (fetchToken === currentFetchToken.current) {
-            setErrorMessage(getErrorMessage(ex));
-            setLoading(false);
-          }
+        // Only count failures from the latest request so a slow, superseded fetch cannot skew the cutoff
+        if (isMounted.current && fetchToken === currentFetchToken.current) {
+          setNumPollErrors((priorCount) => priorCount + 1);
+          setErrorMessage(getErrorMessage(ex));
+          setLoading(false);
         }
       }
     },
@@ -118,7 +121,8 @@ export function useApexTestRunsList(org: SalesforceOrgUi) {
   }, []);
 
   const hasRunsInProgress = runs.some(isTestRunInProgress);
-  const intervalDelay = numPollErrors.current >= MAX_POLL_ERRORS ? null : hasRunsInProgress ? ACTIVE_POLL_INTERVAL : IDLE_POLL_INTERVAL;
+  // Stop polling entirely after sustained failures (dead org/session) — a successful manual refresh resets the count
+  const intervalDelay = numPollErrors >= MAX_POLL_ERRORS ? null : hasRunsInProgress ? ACTIVE_POLL_INTERVAL : IDLE_POLL_INTERVAL;
 
   useInterval(handlePoll, intervalDelay);
 
@@ -128,8 +132,8 @@ export function useApexTestRunsList(org: SalesforceOrgUi) {
   }, [org]);
 
   useEffect(() => {
+    setNumPollErrors(0);
     fetchRuns();
-    numPollErrors.current = 0;
   }, [fetchRuns]);
 
   return { runs, loading, errorMessage, lastChecked, isPaused, togglePause, fetchRuns, addOptimisticRun, hasRunsInProgress };
