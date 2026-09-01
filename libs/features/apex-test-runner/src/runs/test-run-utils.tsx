@@ -1,5 +1,8 @@
 import type { ApexTestOutcome, ApexTestRunStatus, BadgeType } from '@jetstream/types';
 
+/** Rows holding a status/outcome Badge need more than the grid's 28.5px default or the badge crowds the row edges */
+export const BADGE_ROW_HEIGHT = 34;
+
 export function getRunStatusBadgeType(status: ApexTestRunStatus): BadgeType {
   switch (status) {
     case 'Completed':
