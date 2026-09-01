@@ -94,6 +94,8 @@ export const CoverageTable: FunctionComponent<CoverageTableProps> = ({ coverageR
         columns={columns}
         data={rows}
         getRowKey={getRowId}
+        // quickFilterText is inert without this flag — it gates the grid's global-filter machinery
+        includeQuickFilter
         quickFilterText={quickFilterText}
         initialSortColumns={[{ columnKey: 'name', direction: 'ASC' }]}
         defaultColumnOptions={{ sortable: true }}
