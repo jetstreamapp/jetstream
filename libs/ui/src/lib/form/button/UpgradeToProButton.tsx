@@ -25,7 +25,8 @@ export const UpgradeToProButton = ({ showOpenInNewTabIcon, source, trackEvent }:
       <Link
         to={APP_ROUTES.BILLING.ROUTE}
         css={css`
-          background-image: linear-gradient(to right, #14b8a6, #0891b2);
+          /* teal-700 → cyan-800: white 13px text on the old teal-500 → cyan-600 gradient was 2.5:1 at the left edge */
+          background-image: linear-gradient(to right, #0f766e, #155e75);
           border-color: transparent;
           text-wrap-mode: nowrap;
           /* Beat scoped-notification theme rules (e.g. slds-theme_info) that force links to a blue, underlined style */
@@ -37,7 +38,7 @@ export const UpgradeToProButton = ({ showOpenInNewTabIcon, source, trackEvent }:
             text-decoration: none !important;
           }
           &:hover {
-            background-image: linear-gradient(to right, #0d9488, #0e7490);
+            background-image: linear-gradient(to right, #115e59, #164e63);
           }
         `}
         className="slds-button slds-button_brand"
