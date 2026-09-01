@@ -247,7 +247,9 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
           className={buttonClassName || 'slds-button slds-button_icon slds-button_icon-border-filled'}
           aria-haspopup="true"
           aria-expanded={isOpen}
-          title={actionText}
+          // `description` (assistive text below) is the trigger's whole accessible name when given;
+          // otherwise the icon's actionText names it
+          title={description || actionText}
           onClick={() => setIsOpen(!isOpen)}
           disabled={disabled}
         >
@@ -264,7 +266,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
                   'slds-button__icon_x-small': !!leadingIcon,
                 })}
                 omitContainer={!!leadingIcon}
-                description={actionText}
+                description={description ? undefined : actionText}
               />
               {description && <span className="slds-assistive-text">{description}</span>}
             </Fragment>
@@ -289,7 +291,8 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
               )}
               style={usePortal ? floatingStyles : undefined}
             >
-              <ul className="slds-dropdown__list" role="menu" aria-label={actionText} ref={ulContainerEl}>
+              {/* The menu shares the trigger's name so "Actions for X" menu is distinguishable from its siblings */}
+              <ul className="slds-dropdown__list" role="menu" aria-label={description || actionText} ref={ulContainerEl}>
                 {items.map(({ id, subheader, value, icon, disabled, title, trailingDivider, metadata }, i) => (
                   <Fragment key={id}>
                     {subheader && (
