@@ -12,6 +12,7 @@ import {
 
 export function useApexTestSuites(org: SalesforceOrgUi, apiVersion: string) {
   const isMounted = useRef(true);
+  const currentFetchToken = useRef(0);
   const [suites, setSuites] = useState<ApexTestSuiteRecord[]>([]);
   const [memberships, setMemberships] = useState<TestSuiteMembershipRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,17 +26,21 @@ export function useApexTestSuites(org: SalesforceOrgUi, apiVersion: string) {
   }, []);
 
   const loadSuites = useCallback(async () => {
+    // This hook outlives an org switch (the page does not remount per org), so a slow response for the
+    // previous org must not land on top of the current org's suites — only the newest request may write
+    const fetchToken = ++currentFetchToken.current;
+    const isCurrent = () => isMounted.current && fetchToken === currentFetchToken.current;
     try {
       setLoading(true);
       setErrorMessage(null);
       const [suiteRecords, membershipRecords] = await Promise.all([fetchTestSuites(org), fetchTestSuiteMemberships(org)]);
-      if (isMounted.current) {
+      if (isCurrent()) {
         setSuites(suiteRecords);
         setMemberships(membershipRecords);
         setLoading(false);
       }
     } catch (ex) {
-      if (isMounted.current) {
+      if (isCurrent()) {
         setErrorMessage(getErrorMessage(ex));
         setLoading(false);
       }
