@@ -92,7 +92,7 @@ export function getColumnDefinitions(
     if (includeRecordActions) {
       parentColumns.unshift({
         key: ACTION_COLUMN_KEY,
-        name: '',
+        name: 'Actions',
         resizable: true,
         width: 116,
         minWidth: 100,
