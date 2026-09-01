@@ -6,6 +6,7 @@ import { getErrorMessage, multiWordObjectFilter, pluralizeFromNumber, splitArray
 import { ListItem, PermissionSetAssignmentRecord, RecordResult, SalesforceOrgUi } from '@jetstream/types';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ariaDisabledButtonProps } from '../form/button/aria-disabled-button.utils';
 import Checkbox from '../form/checkbox/Checkbox';
 import { ComboboxWithItemsTypeAhead } from '../form/combobox/ComboboxWithItemsTypeAhead';
 import SearchInput from '../form/search-input/SearchInput';
@@ -381,7 +382,10 @@ export const ManagePermissionSetAssignmentsModal: FunctionComponent<ManagePermis
             <button className="slds-button slds-button_neutral" onClick={onClose} disabled={saving}>
               Cancel
             </button>
-            <button className="slds-button slds-button_brand slds-is-relative" onClick={handleSave} disabled={!hasChanges || saving}>
+            <button
+              className="slds-button slds-button_brand slds-is-relative"
+              {...ariaDisabledButtonProps(!hasChanges || saving, handleSave)}
+            >
               Save Changes
               {saving && <Spinner className="slds-spinner slds-spinner_small" />}
             </button>
@@ -402,7 +406,7 @@ export const ManagePermissionSetAssignmentsModal: FunctionComponent<ManagePermis
             <ScopedNotification theme="error" className="slds-m-bottom_x-small">
               <Grid align="spread" verticalAlign="center">
                 <span>There was an error loading assignments. {loadErrorMessage}</span>
-                <button className="slds-button slds-button_neutral" onClick={() => loadAssignments()} disabled={loading}>
+                <button className="slds-button slds-button_neutral" {...ariaDisabledButtonProps(loading, () => loadAssignments())}>
                   Try Again
                 </button>
               </Grid>

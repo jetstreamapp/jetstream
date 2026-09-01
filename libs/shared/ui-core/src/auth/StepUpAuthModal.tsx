@@ -1,7 +1,7 @@
 import type { StepUpMethod, StepUpPurpose } from '@jetstream/auth/types';
 import { getStepUpMethods, initStepUpChallenge, verifyStepUp } from '@jetstream/shared/data';
 import { getErrorMessage } from '@jetstream/shared/utils';
-import { Input, Modal, Radio, RadioGroup, ScopedNotification, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Input, Modal, Radio, RadioGroup, ScopedNotification, Spinner } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { create, InstanceProps } from 'react-modal-promise';
 
@@ -35,6 +35,16 @@ export const StepUpAuthModal: FunctionComponent<StepUpAuthModalProps> = ({
   const [selectedMethod, setSelectedMethod] = useState<StepUpMethod | null>(null);
   const [value, setValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  // Focus the code input once, when the modal first shows it — NOT every time the verification method
+  // changes: the inputs remount per method, and an autoFocus there yanked focus out of the radio group
+  // while the user was still arrowing through the choices
+  const initialFocusDone = useRef(false);
+  const focusOnFirstMount = (element: HTMLInputElement | null) => {
+    if (element && !initialFocusDone.current) {
+      initialFocusDone.current = true;
+      element.focus();
+    }
+  };
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLockedOut, setIsLockedOut] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -160,7 +170,7 @@ export const StepUpAuthModal: FunctionComponent<StepUpAuthModalProps> = ({
           <button className="slds-button slds-button_neutral" onClick={() => onResolve({ cancelled: true })}>
             Cancel
           </button>
-          <button className="slds-button slds-button_brand" disabled={!canSubmit} onClick={submitStepUp} type="button">
+          <button className="slds-button slds-button_brand" {...ariaDisabledButtonProps(!canSubmit, submitStepUp)} type="button">
             Verify
           </button>
         </Fragment>
@@ -222,7 +232,7 @@ export const StepUpAuthModal: FunctionComponent<StepUpAuthModalProps> = ({
                   className="slds-input"
                   type="password"
                   autoComplete="current-password"
-                  autoFocus
+                  ref={focusOnFirstMount}
                   required
                   disabled={isLockedOut}
                   value={value}
@@ -241,7 +251,7 @@ export const StepUpAuthModal: FunctionComponent<StepUpAuthModalProps> = ({
                 pattern="[0-9]{6}"
                 maxLength={6}
                 autoComplete="one-time-code"
-                autoFocus
+                ref={focusOnFirstMount}
                 required
                 disabled={isLockedOut}
                 value={value}
@@ -260,7 +270,7 @@ export const StepUpAuthModal: FunctionComponent<StepUpAuthModalProps> = ({
                   pattern="[0-9]{6}"
                   maxLength={6}
                   autoComplete="one-time-code"
-                  autoFocus
+                  ref={focusOnFirstMount}
                   required
                   disabled={isLockedOut}
                   value={value}
