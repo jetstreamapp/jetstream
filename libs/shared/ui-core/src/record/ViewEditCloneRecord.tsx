@@ -22,6 +22,7 @@ import {
   SalesforceRecord,
 } from '@jetstream/types';
 import {
+  ariaDisabledButtonProps,
   Breadcrumbs,
   ButtonGroupContainer,
   DownloadFromServerOpts,
@@ -779,7 +780,10 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                       Cancel
                     </button>
                     <ButtonGroupContainer>
-                      <button className="slds-button slds-button_brand" onClick={() => handleSave()} disabled={isSaveButtonDisabled}>
+                      <button
+                        className="slds-button slds-button_brand"
+                        {...ariaDisabledButtonProps(isSaveButtonDisabled, () => handleSave())}
+                      >
                         Save
                       </button>
                       {showSaveWithErrorsButton && (
