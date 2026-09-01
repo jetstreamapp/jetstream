@@ -2,7 +2,7 @@ import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { DeployResultStatus } from '@jetstream/types';
 import { Grid, ProgressRing, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
-import { FunctionComponent, useEffect, useReducer } from 'react';
+import { FunctionComponent, useEffect, useId, useReducer } from 'react';
 
 type Action = { type: 'CHANGE'; payload: { status: DeployResultStatus; totalProcessed: number; totalErrors: number; totalItems: number } };
 
@@ -97,6 +97,7 @@ export const DeployMetadataProgressSummary: FunctionComponent<DeployMetadataProg
   totalErrors,
   totalItems,
 }) => {
+  const titleId = useId();
   const [{ fillPercent, componentSummary, theme, showPercentage, showSpinner }, dispatch] = useReducer(reducer, {
     fillPercent: 0,
     componentSummary: '',
@@ -119,8 +120,16 @@ export const DeployMetadataProgressSummary: FunctionComponent<DeployMetadataProg
 
   return (
     <Grid vertical className={className}>
-      <span className="slds-align-middle slds-text-title_caps">{title}</span>
-      <ProgressRing className="slds-m-vertical_x-small slds-align-middle" fillPercent={fillPercent} size={size} theme={theme}>
+      <span id={titleId} className="slds-align-middle slds-text-title_caps">
+        {title}
+      </span>
+      <ProgressRing
+        aria-labelledby={titleId}
+        className="slds-m-vertical_x-small slds-align-middle"
+        fillPercent={fillPercent}
+        size={size}
+        theme={theme}
+      >
         {showPercentage && (
           <small>
             <strong>{Math.round(fillPercent * 100)}%</strong>
