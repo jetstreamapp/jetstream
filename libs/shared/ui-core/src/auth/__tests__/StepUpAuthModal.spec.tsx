@@ -106,7 +106,8 @@ describe('StepUpAuthModal', () => {
     const passwordInput = await submitFailedPassword();
 
     await waitFor(() => expect(passwordInput.disabled).toBe(true));
-    expect((screen.getByRole('button', { name: 'Verify' }) as HTMLButtonElement).disabled).toBe(true);
+    // aria-disabled (not native disabled) so the button keeps keyboard focus while it disables itself
+    expect(screen.getByRole('button', { name: 'Verify' }).getAttribute('aria-disabled')).toBe('true');
     expect((screen.getByRole('radio', { name: 'Email me a code' }) as HTMLInputElement).disabled).toBe(true);
   });
 });

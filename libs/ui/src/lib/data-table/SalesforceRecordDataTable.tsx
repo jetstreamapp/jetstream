@@ -29,6 +29,7 @@ import {
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FileDownloadModal } from '../file-download-modal/FileDownloadModal';
+import { ariaDisabledButtonProps } from '../form/button/aria-disabled-button.utils';
 import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
@@ -825,6 +826,14 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     // Salesforce reports the query as incomplete when child records were truncated, but the records are what say
     // what is actually missing - this also covers a complete set of parents whose related records were cut short.
     const hasRecordsToLoad = useMemo(() => hasMoreRecords || !!records?.some(hasIncompleteSubqueries), [hasMoreRecords, records]);
+    // "Load All Records" unmounts once everything is loaded; if focus was on it, hand it to the record filter
+    const wasLoadingMoreRef = useRef(false);
+    useEffect(() => {
+      if (wasLoadingMoreRef.current && !isLoadingMore && !hasRecordsToLoad && document.activeElement === document.body) {
+        document.getElementById('record-filter')?.focus();
+      }
+      wasLoadingMoreRef.current = isLoadingMore;
+    }, [isLoadingMore, hasRecordsToLoad]);
 
     return records ? (
       <Fragment>
@@ -841,8 +850,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
                 >
                   <button
                     className="slds-button slds-button_brand slds-m-left_x-small slds-is-relative"
-                    onClick={loadRemaining}
-                    disabled={isLoadingMore}
+                    {...ariaDisabledButtonProps(isLoadingMore, loadRemaining)}
                   >
                     Load All Records
                     {isLoadingMore && <Spinner size="small" />}
