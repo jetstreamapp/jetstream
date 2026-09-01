@@ -100,13 +100,28 @@
     // Accessibility ratchet (docs/accessibility/README.md): each rule is promoted from `warn` to
     // `error` once its violation count reaches zero — see the lint census in
     // docs/accessibility/audit-2026/findings.md for current counts. Never demote a promoted rule.
-    "jsx-a11y/autocomplete-valid": "warn",
+    "jsx-a11y/autocomplete-valid": "error",
     "jsx-a11y/click-events-have-key-events": "warn",
-    "jsx-a11y/control-has-associated-label": "warn",
-    "jsx-a11y/interactive-supports-focus": "warn",
-    "jsx-a11y/label-has-associated-control": "warn",
+    // depth: SLDS blueprints nest a control's text several levels deep (li > div.slds-media >
+    // span.slds-media__body > span), beyond the default depth of 2
+    "jsx-a11y/control-has-associated-label": ["warn", { "depth": 5 }],
+    "jsx-a11y/interactive-supports-focus": "error",
+    // depth: the SLDS toggle's second <label> wraps the input plus the on/off state text two levels down
+    "jsx-a11y/label-has-associated-control": ["error", { "depth": 3 }],
     "jsx-a11y/no-noninteractive-element-interactions": "warn",
-    "jsx-a11y/no-noninteractive-element-to-interactive-role": "warn",
+    // The allowlist mirrors eslint-plugin-jsx-a11y's recommended config: APG composite widgets are
+    // built from list markup (ul[role=listbox] > li[role=option], role=tree/treeitem, role=tablist/tab)
+    "jsx-a11y/no-noninteractive-element-to-interactive-role": [
+      "warn",
+      {
+        "ul": ["listbox", "menu", "menubar", "radiogroup", "tablist", "tree", "treegrid"],
+        "ol": ["listbox", "menu", "menubar", "radiogroup", "tablist", "tree", "treegrid"],
+        "li": ["menuitem", "menuitemradio", "menuitemcheckbox", "option", "row", "tab", "treeitem"],
+        "table": ["grid"],
+        "td": ["gridcell"],
+        "fieldset": ["radiogroup", "presentation"]
+      }
+    ],
     "jsx-a11y/no-redundant-roles": "error",
     "jsx-a11y/no-static-element-interactions": "warn",
 

@@ -109,7 +109,7 @@ export function TeamMemberInviteModal({ teamId, hasManualBilling, userRole, onCl
             aria-invalid={invalidEmail}
             aria-describedby={invalidEmail ? 'email-error' : undefined}
             name="email"
-            autoComplete="none"
+            autoComplete="off"
             required
           />
         </Input>

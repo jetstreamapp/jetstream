@@ -335,6 +335,8 @@ export const UserFeedbackWidget = () => {
           ref={contextMenuRef}
           role="menu"
           aria-label="Widget position options"
+          // Focusable only programmatically: the menu items carry the roving tab stop
+          tabIndex={-1}
           onKeyDown={handleMenuKeyDown}
           css={css`
             position: fixed;
