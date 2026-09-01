@@ -1,7 +1,13 @@
 import { app, BrowserWindow } from 'electron';
 import logger from 'electron-log';
 
-const SMOKE_TEST_TIMEOUT_MS = 30_000;
+// Generous because the x64 build is smoke-tested under Rosetta 2 on GitHub's arm64 macOS
+// runners, where V8's JIT output must be translated at runtime — loading the full renderer
+// bundle can take minutes instead of seconds (the 30s original failed the 4.14.0 release with
+// the renderer still grinding). Genuinely broken builds still fail fast through the error
+// events below; only a silent hang waits out this timer. Must stay comfortably under the 300s
+// launch timeout in electron-builder.config.js, which starts earlier (at process spawn).
+const SMOKE_TEST_TIMEOUT_MS = 180_000;
 
 /**
  * Startup smoke test for the packaged build, driven by the afterPack hook in
@@ -18,16 +24,27 @@ const SMOKE_TEST_TIMEOUT_MS = 30_000;
  */
 export function initializeSmokeTest(browserWindow: BrowserWindow) {
   let finished = false;
+  const startedAt = Date.now();
+
+  const log = (message: string) => {
+    const line = `[SMOKE TEST] ${message} (+${((Date.now() - startedAt) / 1000).toFixed(1)}s)`;
+    console.log(line);
+    logger.info(line);
+  };
 
   const finish = (exitCode: number, message: string) => {
     if (finished) {
       return;
     }
     finished = true;
-    console.log(`[SMOKE TEST] ${message}`);
-    logger.info(`[SMOKE TEST] ${message}`);
+    log(message);
     app.exit(exitCode);
   };
+
+  // Progress markers so a timeout in CI shows how far the renderer got (distinguishes a
+  // slow-but-progressing load under Rosetta from a genuine hang).
+  browserWindow.webContents.on('did-start-loading', () => log('renderer started loading'));
+  browserWindow.webContents.on('dom-ready', () => log('renderer DOM ready'));
 
   // Electron's default uncaughtException behavior shows a dialog and keeps the process alive,
   // which would hang CI until the outer timeout instead of failing fast.
