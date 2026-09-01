@@ -754,6 +754,14 @@ export function useGridKeyboardNavigation<TRow extends object>({
 
   const handleKeyDown = useCallback(
     (event: ReactKeyboardEvent) => {
+      // React synthetic events bubble through PORTALS following the React tree, so keys pressed
+      // inside an overlay a cell renderer opened (record lookup popover) arrive here even though
+      // the overlay's DOM lives outside the grid. Those keys belong to the overlay — handling them
+      // as grid navigation re-activated the cell's control and toggle-closed the popover mid-press.
+      const rootElement = getRootElement();
+      if (rootElement && event.target instanceof Node && !rootElement.contains(event.target)) {
+        return;
+      }
       const rows = table.getRowModel().rows;
       const columns = table.getVisibleLeafColumns();
       if (!rows.length || !columns.length) {
@@ -1156,6 +1164,7 @@ export function useGridKeyboardNavigation<TRow extends object>({
       onUndo,
       onRedo,
       onClearSelection,
+      getRootElement,
     ],
   );
 
