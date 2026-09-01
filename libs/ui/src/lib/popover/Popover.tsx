@@ -18,7 +18,18 @@ import {
 } from '@floating-ui/react';
 import { FullWidth, sizeXLarge, SmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
-import { createElement, CSSProperties, memo, ReactNode, RefObject, useCallback, useEffect, useImperativeHandle, useState } from 'react';
+import {
+  createElement,
+  CSSProperties,
+  memo,
+  ReactNode,
+  RefObject,
+  useCallback,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useState,
+} from 'react';
 import { Tooltip, TooltipProps } from '../..';
 import { useEscapeToCloseLayer } from '../hooks/useEscapeToCloseLayer';
 import { usePortalContext } from '../modal/PortalContext';
@@ -140,6 +151,8 @@ const PopoverComponent = ({
     escapeKey: false,
   });
   const role = useRole(context);
+  // Names the dialog from its header content; header-less popovers pass `aria-label` via panelProps
+  const headerId = useId();
 
   const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role]);
 
@@ -228,6 +241,7 @@ const PopoverComponent = ({
               data-testid={testId}
               style={{ ...floatingStyles, ...panelStyle }}
               {...getFloatingProps()}
+              aria-labelledby={header ? headerId : undefined}
               className={classNames('slds-popover', size ? `slds-popover_${size}` : undefined, containerClassName)}
               css={css`
                 /* Pairs with the size() middleware max-height: header/footer stay pinned and the
@@ -329,7 +343,7 @@ const PopoverComponent = ({
                 <span className="slds-assistive-text">Close dialog</span>
               </button>
               {/* CONTENT */}
-              {header}
+              {header && <div id={headerId}>{header}</div>}
               <div css={bodyStyle} className={bodyClassName}>
                 {content}
               </div>
