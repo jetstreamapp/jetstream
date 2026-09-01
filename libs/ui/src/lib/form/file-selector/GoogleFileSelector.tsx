@@ -12,6 +12,7 @@ import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
 import Spinner from '../../widgets/Spinner';
 import Tooltip from '../../widgets/Tooltip';
+import { ariaDisabledButtonProps } from '../button/aria-disabled-button.utils';
 import { SCRIPT_LOAD_ERR_MESSAGE } from './file-selector-utils';
 import { useFilename } from './useFilename';
 
@@ -189,9 +190,10 @@ export const GoogleFileSelector: FunctionComponent<GoogleFileSelectorProps> = ({
         {selectedFile && (
           <Tooltip content={'Refresh file from Google'}>
             <button
+              type="button"
               className="slds-button slds-button_icon slds-button_icon-container"
-              disabled={loading}
-              onClick={() => handleDownloadFile(selectedFile)}
+              aria-label="Refresh file from Google"
+              {...ariaDisabledButtonProps(loading, () => handleDownloadFile(selectedFile))}
             >
               <Icon type="utility" icon="refresh" className="slds-button__icon" omitContainer />
             </button>
