@@ -3,29 +3,25 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/jetstream-e2e/src",
   "projectType": "application",
-  "implicitDependencies": ["jetstream"],
   "tags": ["scope:e2e"],
+  "implicitDependencies": ["jetstream"],
   "targets": {
     "e2e": {
-      "executor": "@nx/playwright:playwright",
-      "outputs": ["{workspaceRoot}/dist/.playwright/apps/jetstream-e2e"],
-      "options": {
-        "config": "apps/jetstream-e2e/playwright.config.ts"
-      }
+      "outputs": ["{workspaceRoot}/dist/.playwright/apps/jetstream-e2e"]
     },
     "e2e-ci": {
       "executor": "nx:run-commands",
       "outputs": ["{projectRoot}/playwright-report"],
-      "options": {
-        "command": "pnpm start-server-and-test --expect 200 'pnpm start:e2e' http://localhost:3333 'pnpm playwright:test'"
-      },
       "dependsOn": [
         {
           "target": "build",
           "params": "ignore",
           "dependencies": true
         }
-      ]
+      ],
+      "options": {
+        "command": "pnpm start-server-and-test --expect 200 'pnpm start:e2e' http://localhost:3333 'pnpm playwright:test'"
+      }
     }
   }
 }
