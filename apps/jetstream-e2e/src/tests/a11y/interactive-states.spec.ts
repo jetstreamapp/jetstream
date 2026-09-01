@@ -12,7 +12,7 @@ test.describe.configure({ mode: 'parallel' });
 test.describe('a11y interactive states', () => {
   test('home page with navigation menu open', async ({ page }, testInfo) => {
     await page.goto('/app');
-    await page.getByTestId('header').getByRole('button', { name: 'Load Records' }).click();
+    await page.getByTestId('header').getByRole('button', { name: 'Load Records', exact: true }).click();
     await expect(page.getByRole('menuitemcheckbox', { name: 'Load Records', exact: true })).toBeVisible();
 
     await runA11yScan(page, testInfo, 'state-nav-menu-open');
