@@ -9,6 +9,8 @@ import { FunctionComponent, ReactNode, useState } from 'react';
 
 export interface ProgressRingProps {
   className?: string;
+  /** id of the element naming the progressbar (axe aria-progressbar-name) */
+  'aria-labelledby'?: string;
   size?: 'medium' | 'large' | 'x-large';
   fillPercent: number;
   theme?: 'active-step' | 'warning' | 'expired' | 'complete' | null;
@@ -24,7 +26,14 @@ const progressRingRadius = 1;
 // // 24 pixels from the ring, minus 3px for the radius of the progress head
 // const progressHeadPlotRadius = 21 / 30;
 
-export const ProgressRing: FunctionComponent<ProgressRingProps> = ({ className, size, fillPercent, theme, children }) => {
+export const ProgressRing: FunctionComponent<ProgressRingProps> = ({
+  className,
+  'aria-labelledby': ariaLabelledby,
+  size,
+  fillPercent,
+  theme,
+  children,
+}) => {
   const [id] = useState(uniqueId('slds-progress-ring-path-'));
 
   fillPercent = Math.min(1, Math.max(0, fillPercent)); // ensure we do not go past 100% or below 0%
@@ -50,6 +59,7 @@ export const ProgressRing: FunctionComponent<ProgressRingProps> = ({ className, 
       <div
         className="slds-progress-ring__progress"
         role="progressbar"
+        aria-labelledby={ariaLabelledby}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={fillPercent * 100}
