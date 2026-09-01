@@ -71,7 +71,7 @@ describe('ManagePermissionSetAssignmentsModal', () => {
     renderModal();
     await screen.findByText('User 1');
 
-    expect(screen.getByRole('button', { name: 'Save Changes' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'Save Changes' }).getAttribute('aria-disabled')).toBe('true');
   });
 
   test('refuses to render the editor for a profile-owned permission set', async () => {
