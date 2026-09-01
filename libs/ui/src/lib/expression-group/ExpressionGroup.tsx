@@ -41,7 +41,12 @@ export const ExpressionGroup: FunctionComponent<ExpressionGroupProps> = React.me
             <span>{parentAction}</span>
             <span className="slds-assistive-text">{`Condition Group ${group}`}</span>
           </legend>
-          <ExpressionActionDropDown label="" value={rowAction || 'AND'} onChange={onActionChange} />
+          <ExpressionActionDropDown
+            label={`Condition group ${group} match`}
+            hideLabel
+            value={rowAction || 'AND'}
+            onChange={onActionChange}
+          />
           {children}
           <div className="slds-expression__buttons">
             <button className="slds-button slds-button_neutral" onClick={() => onAddCondition()}>
