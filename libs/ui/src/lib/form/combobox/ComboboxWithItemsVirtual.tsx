@@ -129,6 +129,11 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
         break;
       }
       case 'enter': {
+        // A disabled option is announced as disabled and must not activate — mirrors the
+        // pointer guard in ComboboxListItem
+        if (isNumber(focusedIndex) && visibleItems[focusedIndex]?.disabled) {
+          return;
+        }
         if (isNumber(tempFocusedIndex)) {
           tempFocusedIndex = null;
           setFocusedIndex(tempFocusedIndex);
@@ -170,7 +175,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
   };
 
   const onInputEnter = useCallback(() => {
-    const firstItem = visibleItems.find((item) => !item.isGroup);
+    const firstItem = visibleItems.find((item) => !item.isGroup && !item.disabled);
     if (firstItem) {
       handleSelection(firstItem);
     }

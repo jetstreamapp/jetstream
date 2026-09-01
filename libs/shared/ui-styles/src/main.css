@@ -101,6 +101,18 @@ html {
 .slds-button_icon-border-filled[aria-disabled='true']:is(:hover, :focus, :active) {
   background-color: var(--slds-g-color-disabled-container-1);
 }
+/* Combobox and picklist options carry aria-disabled on the focusable option li, while SLDS styles a disabled
+   option through the inner .slds-listbox__option — restate its disabled rules for that structure */
+.slds-listbox__item[aria-disabled='true'] > .slds-listbox__option {
+  color: var(--slds-g-color-disabled-1);
+}
+.slds-listbox__item[aria-disabled='true'] > .slds-listbox__option :is(.slds-listbox__option-icon, .slds-listbox__option-meta) {
+  color: currentColor;
+}
+.slds-listbox_vertical .slds-listbox__item[aria-disabled='true'] > .slds-listbox__option {
+  background-color: transparent;
+  cursor: default;
+}
 
 .app {
   /* brand styling */

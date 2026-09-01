@@ -109,10 +109,14 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
       }
     }, [groups, filterText, filterFn, groupFilterFn, allowGroupToMatchFilterText]);
 
+    // Enter from the input picks the first selectable option (see ComboboxWithItems for why it closes explicitly)
     const onInputEnter = useCallback(() => {
-      const items = visibleItems.flatMap((group) => group.items);
-      if (items.length > 0) {
-        onSelected(items[0]);
+      const item = visibleItems.flatMap((group) => group.items).find((groupItem) => !groupItem.disabled);
+      if (item) {
+        onSelected(item);
+        if (!item.isDrillInItem) {
+          comboboxRef.current?.close();
+        }
       }
     }, [onSelected, visibleItems]);
 
@@ -158,6 +162,11 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
           break;
         }
         case 'enter': {
+          // A disabled option is announced as disabled and must not activate — mirrors the
+          // pointer guard in ComboboxListItem
+          if (isNumber(focusedIndex) && items[focusedIndex]?.disabled) {
+            return;
+          }
           if (isNumber(tempFocusedIndex)) {
             tempFocusedIndex = null;
             setFocusedIndex(tempFocusedIndex);
