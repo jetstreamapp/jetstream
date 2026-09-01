@@ -104,6 +104,8 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
           {!hasMetadataAccess && (
             <Tooltip
               id={`limited-org-access`}
+              // The explanation is only in the tooltip, so keyboard users need to be able to reach it
+              triggerTabIndex={0}
               content={`Your user does not have the permission "Modify Metadata Through Metadata API Functions" Or "Modify All Data". Some Jetstream features will not work properly.`}
             >
               <div className={classNames('slds-col slds-p-around_xx-small')}>
