@@ -1,5 +1,33 @@
 [
   {
+    "slug": "v10.16.1",
+    "title": "10.16.1 - Apex Test Runner",
+    "date": "2026-09-01",
+    "tags": ["web"],
+    "versions": { "web": "10.16.1" },
+    "summary": "Adds the Apex Test Runner. Run Apex tests, monitor test runs in real time, and view code coverage with per-line highlighting.",
+    "highlights": [
+      {
+        "title": "Apex Test Runner",
+        "description": "Run Apex test classes, individual methods, or test suites, monitor runs in real time, and view code coverage with per-line highlighting.",
+        "docLink": "/developer/apex-tests"
+      },
+      {
+        "title": "New progress indicator on Load Records",
+        "description": "The steps sidebar is replaced by a compact progress indicator in the page header, leaving the full width for page content.",
+        "docLink": "/load"
+      },
+      {
+        "title": "Consistent org dropdowns",
+        "description": "The Data History filter and Salesforce Canvas org pickers now use the same org dropdown as the rest of the app, with org type labels and full usernames."
+      },
+      {
+        "title": "Query history export fix",
+        "description": "Choosing \"All Queries\" in the export options now exports all queries even when the Saved Queries tab is active."
+      }
+    ]
+  },
+  {
     "slug": "v10.16.0",
     "title": "10.16.0 - Org dropdown improvements and large load retry fix",
     "date": "2026-08-27",
