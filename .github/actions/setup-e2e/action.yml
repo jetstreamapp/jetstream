@@ -49,24 +49,30 @@ runs:
       shell: bash
       run: pnpm install --frozen-lockfile
 
+    # Inputs reach the script through env vars, never `${{ }}` interpolation inside `run:`, so a
+    # caller-supplied value can't inject shell commands (script-injection hardening for actions).
     - id: guard
       name: Check if ${{ inputs.suite-name }} is affected
       shell: bash
+      env:
+        EVENT_NAME: ${{ github.event_name }}
+        SUITE_NAME: ${{ inputs.suite-name }}
+        AFFECTED_PROJECTS: ${{ inputs.affected-projects }}
       run: |
-        if [ "${{ github.event_name }}" = "push" ]; then
+        if [ "$EVENT_NAME" = "push" ]; then
           echo "should_run=true" >> "$GITHUB_OUTPUT"
-          echo "::notice::Running ${{ inputs.suite-name }} — push event always runs the full suite"
+          echo "::notice::Running $SUITE_NAME — push event always runs the full suite"
           exit 0
         fi
         affected=$(pnpm nx show projects --affected --type=app)
         echo "Affected apps:"
         echo "$affected"
-        if echo "$affected" | grep -qE '^(${{ inputs.affected-projects }})$'; then
+        if echo "$affected" | grep -qE "^($AFFECTED_PROJECTS)$"; then
           echo "should_run=true" >> "$GITHUB_OUTPUT"
-          echo "::notice::Running ${{ inputs.suite-name }} — a matching project is affected"
+          echo "::notice::Running $SUITE_NAME — a matching project is affected"
         else
           echo "should_run=false" >> "$GITHUB_OUTPUT"
-          echo "::notice::Skipping ${{ inputs.suite-name }} — no matching project is affected"
+          echo "::notice::Skipping $SUITE_NAME — no matching project is affected"
         fi
 
     # Prisma client must be generated before building since the api build imports it
