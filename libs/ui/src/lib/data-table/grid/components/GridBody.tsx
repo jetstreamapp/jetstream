@@ -22,6 +22,8 @@ export interface GridBodyProps<TRow extends object> {
   gridTemplateColumns: string;
   /** Visible leaf-column indexes to render (windowed + always-on frozen), passed through to each row. */
   visibleColumnIndexes: number[];
+  /** The grid is a treegrid: every row (not just nested ones) exposes aria-level. */
+  treeGrid?: boolean;
   /** Fixed numeric height per row, or a per-row callback. This is the authoritative, deterministic row
    * height — each row's box is pinned to it. Rows are NOT DOM-measured: with column virtualization the
    * mounted-cell set changes during horizontal scroll, so a measured height would oscillate and reflow
@@ -74,6 +76,7 @@ export function GridBody<TRow extends object>({
   scrollRef,
   gridTemplateColumns,
   visibleColumnIndexes,
+  treeGrid,
   rowHeight,
   overscan = 8,
   summaryRowCount = 0,
@@ -321,6 +324,7 @@ export function GridBody<TRow extends object>({
         return (
           <GridRow
             key={row.id}
+            treeGrid={treeGrid}
             table={table}
             row={row}
             columns={leafColumns}
