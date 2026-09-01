@@ -500,17 +500,9 @@ export function useGridKeyboardNavigation<TRow extends object>({
       return Array.from(document.querySelectorAll(GRID_OVERLAY_SELECTOR)).some((overlay) => !root || !overlay.contains(root));
     };
 
-    // When focus moves into such an overlay, remember the active cell so we can restore it on close.
-    const handleFocusIn = (event: FocusEvent) => {
-      const target = event.target as HTMLElement | null;
-      const overlay = target?.closest?.(GRID_OVERLAY_SELECTOR);
-      const root = getRootElement();
-      if (overlay && (!root || !overlay.contains(root)) && activeCellRef.current) {
-        pendingReturnFocusCellRef.current = activeCellRef.current;
-      }
-    };
-
-    const handleFocusOut = () => {
+    // Deferred a frame so an overlay close/unmount settles first; while the overlay is still up
+    // (e.g. tabbing within it) the check is a no-op and the pending return stays armed.
+    const scheduleReturnFocusCheck = () => {
       if (!pendingReturnFocusCellRef.current) {
         return;
       }
@@ -519,7 +511,6 @@ export function useGridKeyboardNavigation<TRow extends object>({
         if (!cell) {
           return;
         }
-        // Wait while the overlay is still up (e.g. tabbing within it).
         if (hasForeignOverlayOpen()) {
           return;
         }
@@ -531,9 +522,35 @@ export function useGridKeyboardNavigation<TRow extends object>({
         // focus sits on the in-cell control and arrow navigation can't resume — the cell is the rover.
         const focusReturnedInsideCell = !!cellEl && !!active && active !== cellEl && cellEl.contains(active);
         if (!active || active === document.body || focusReturnedInsideCell) {
-          cellEl?.focus();
+          if (cellEl) {
+            cellEl.focus();
+          } else {
+            // The originating row is gone (the overlay's filter excluded it) — land on the header cell
+            // of the same column so navigation continues from a live coordinate.
+            interactionSourceRef.current = 'keyboard';
+            applySelection(HEADER_ROW_ID, cell.columnId, false);
+          }
         }
       });
+    };
+
+    // When focus moves into such an overlay, remember the active cell so we can restore it on close.
+    const handleFocusIn = (event: FocusEvent) => {
+      const target = event.target as HTMLElement | null;
+      const overlay = target?.closest?.(GRID_OVERLAY_SELECTOR);
+      const root = getRootElement();
+      if (overlay && (!root || !overlay.contains(root)) && activeCellRef.current) {
+        pendingReturnFocusCellRef.current = activeCellRef.current;
+        return;
+      }
+      // Focus landed OUTSIDE any overlay while a return is armed. When an overlay unmounts with focus
+      // still inside it, the browser fires no focusout for the removed node — the overlay's own
+      // returnFocus then lands on the trigger and this focusin is the only close signal we get.
+      scheduleReturnFocusCheck();
+    };
+
+    const handleFocusOut = () => {
+      scheduleReturnFocusCheck();
     };
 
     document.addEventListener('focusin', handleFocusIn);
@@ -542,7 +559,7 @@ export function useGridKeyboardNavigation<TRow extends object>({
       document.removeEventListener('focusin', handleFocusIn);
       document.removeEventListener('focusout', handleFocusOut);
     };
-  }, [getCellElement, getRootElement]);
+  }, [applySelection, getCellElement, getRootElement]);
 
   const handleRootFocus = useCallback(
     (event: ReactFocusEvent<HTMLElement>) => {
@@ -554,9 +571,16 @@ export function useGridKeyboardNavigation<TRow extends object>({
       }
       const rows = table.getRowModel().rows;
       const columns = table.getVisibleLeafColumns();
-      if (rows.length && columns.length) {
-        interactionSourceRef.current = 'keyboard';
+      if (!columns.length) {
+        return;
+      }
+      interactionSourceRef.current = 'keyboard';
+      if (rows.length) {
         applySelection(rows[0].id, columns[0].id, false);
+      } else {
+        // Empty body (e.g. a filter excluded every row): seed the header row instead — the column
+        // filters are the only interactive surface left and must stay keyboard-reachable.
+        applySelection(HEADER_ROW_ID, columns[0].id, false);
       }
     },
     [activeCell, table, applySelection],
@@ -764,19 +788,20 @@ export function useGridKeyboardNavigation<TRow extends object>({
       }
       const rows = table.getRowModel().rows;
       const columns = table.getVisibleLeafColumns();
-      if (!rows.length || !columns.length) {
+      if (!columns.length) {
         return;
       }
       interactionSourceRef.current = 'keyboard';
 
-      const current: ActiveCell = activeCell ?? { rowId: rows[0].id, columnId: columns[0].id };
+      // Null only while the body is empty — the empty-body branch below returns before it is used.
+      const current: ActiveCell | null = activeCell ?? (rows.length ? { rowId: rows[0].id, columnId: columns[0].id } : null);
       const rowIndex = Math.max(
         0,
-        rows.findIndex((row) => row.id === current.rowId),
+        rows.findIndex((row) => row.id === current?.rowId),
       );
       const colIndex = Math.max(
         0,
-        columns.findIndex((column) => column.id === current.columnId),
+        columns.findIndex((column) => column.id === current?.columnId),
       );
       const ctrlOrMeta = event.ctrlKey || event.metaKey;
       const extend = event.shiftKey;
@@ -963,6 +988,32 @@ export function useGridKeyboardNavigation<TRow extends object>({
             // Summary cells are never editable — activate their controls directly (no edit path).
             activateCell(activeCell);
             break;
+          default:
+            break;
+        }
+        return;
+      }
+
+      // ── Empty body (a filter excluded every row, or no data has loaded) ──
+      // The header and summary rows are the only live surface left — route navigation keys there so
+      // the column filters stay reachable and the user can broaden the filter again. Without this the
+      // grid went completely dead (every key returned early) the moment a filter matched zero rows.
+      if (!rows.length || !current) {
+        switch (event.key) {
+          case 'ArrowUp':
+          case 'ArrowDown':
+          case 'ArrowLeft':
+          case 'ArrowRight':
+          case 'Home':
+          case 'End':
+          case 'PageUp':
+          case 'PageDown': {
+            consume();
+            // Keep the column when the active cell references a row the filter just removed.
+            const columnId = current && columns.some((column) => column.id === current.columnId) ? current.columnId : columns[0].id;
+            applySelection(summaryRowCount > 0 ? getSummaryRowId(summaryRowCount - 1) : HEADER_ROW_ID, columnId, false);
+            break;
+          }
           default:
             break;
         }
