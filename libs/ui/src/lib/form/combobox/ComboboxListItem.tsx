@@ -130,7 +130,8 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
         aria-selected={selected}
         aria-disabled={disabled}
         className={classNames('slds-listbox__item slds-item', className)}
-        onClick={() => onSelection(id)}
+        // aria-disabled announces the state but does not block activation — guard it here
+        onClick={() => !disabled && onSelection(id)}
         tabIndex={-1}
         css={[
           css`
