@@ -1,5 +1,35 @@
 # Changelog
 
+## [10.17.0](https://github.com/jetstreamapp/jetstream/compare/v10.16.0...v10.17.0) (2026-09-01)
+
+### Features
+
+- **apex-tests:** add Apex test data layer, types, and SOQL builders ([2379573](https://github.com/jetstreamapp/jetstream/commit/2379573b9aa905710b32554f8a61bf742364209e)), references [#1256](https://github.com/jetstreamapp/jetstream/issues/1256)
+- **apex-tests:** add Code Coverage tab with source line highlighting ([d01618e](https://github.com/jetstreamapp/jetstream/commit/d01618e91f0acea273b556cdf2157b558dbdb084)), references [#1256](https://github.com/jetstreamapp/jetstream/issues/1256)
+- **apex-tests:** add Run Tests tab with class/method selection ([4f3f55f](https://github.com/jetstreamapp/jetstream/commit/4f3f55f0e762a85d807f1da1220f419acda32de2)), references [#1256](https://github.com/jetstreamapp/jetstream/issues/1256)
+- **apex-tests:** add Test Runs tab with live polling and run detail ([33f2d4b](https://github.com/jetstreamapp/jetstream/commit/33f2d4b66ae4cd9995f669c880a232c4335ca541)), references [#1256](https://github.com/jetstreamapp/jetstream/issues/1256)
+- **apex-tests:** add test suite manager and run-by-suite ([5bafaf8](https://github.com/jetstreamapp/jetstream/commit/5bafaf8ba5075e506c876d2fd6d03910bde65760)), references [#1256](https://github.com/jetstreamapp/jetstream/issues/1256)
+- **apex-tests:** apply review feedback on selection, suites, and tables ([be07b7b](https://github.com/jetstreamapp/jetstream/commit/be07b7bc424d67bc442f220f0fd35f5153218000)), references [#1256](https://github.com/jetstreamapp/jetstream/issues/1256)
+- **apex-tests:** scaffold Apex Test Runner feature and register routes ([4a8546c](https://github.com/jetstreamapp/jetstream/commit/4a8546c3c4e1614cd8d8f1b47218cf2dafd0bdbf)), references [#1256](https://github.com/jetstreamapp/jetstream/issues/1256)
+- **load:** replace steps sidebar with slim header progress indicator ([5e420b2](https://github.com/jetstreamapp/jetstream/commit/5e420b29d96e8743c7f7a4a6adc603504c238e6a))
+- **orgs:** use the shared org combobox for data history and canvas org pickers ([c99de1a](https://github.com/jetstreamapp/jetstream/commit/c99de1a3c8b533693211f423561a8426914af858))
+
+### Bug Fixes
+
+- address review follow-ups from grouped-row and package-download PRs ([6e2522d](https://github.com/jetstreamapp/jetstream/commit/6e2522d2281b95ee2ccabe4fd331a542c6001aa4)), references [#2019](https://github.com/jetstreamapp/jetstream/issues/2019) [#2023](https://github.com/jetstreamapp/jetstream/issues/2023)
+- **apex-tests:** cancel in-flight test class scanning when it is superseded ([c540fbd](https://github.com/jetstreamapp/jetstream/commit/c540fbdbd2ad4f12e0ce84f71d6699ae9f71b3e7)), references [#2005](https://github.com/jetstreamapp/jetstream/issues/2005)
+- **apex-tests:** correct issues found during live browser verification ([69c6648](https://github.com/jetstreamapp/jetstream/commit/69c66484f65ee4851e24f155a69c543c94c74847)), references [#1256](https://github.com/jetstreamapp/jetstream/issues/1256)
+- **apex-tests:** keep unsaved suite class selections when renaming a suite ([a645a02](https://github.com/jetstreamapp/jetstream/commit/a645a02dfa19ad83910b9367257102a0da62a7e7)), references [#2005](https://github.com/jetstreamapp/jetstream/issues/2005)
+- **apex-tests:** only count poll failures from the latest runs-list fetch ([6c7530f](https://github.com/jetstreamapp/jetstream/commit/6c7530f09830a48a1304e8a12b433c99fd75094c)), references [#2005](https://github.com/jetstreamapp/jetstream/issues/2005)
+- **apex-tests:** stop the runs-list poller after repeated fetch failures ([17eaaa4](https://github.com/jetstreamapp/jetstream/commit/17eaaa464d6ce1851b270e10c338a5df3139b35f)), references [#2005](https://github.com/jetstreamapp/jetstream/issues/2005)
+- **apex-tests:** surface Salesforce errors when suite saves or run aborts fail ([4a37c75](https://github.com/jetstreamapp/jetstream/commit/4a37c75312e491cfd848b788472feef480290fea)), references [#2005](https://github.com/jetstreamapp/jetstream/issues/2005)
+- **data-analysis:** stack field usage object counts under the label ([4d191b9](https://github.com/jetstreamapp/jetstream/commit/4d191b9795d2b376bee6d1b507f45cf641f8975d))
+- **data-table:** restore cell highlight colors in the web extension ([2a1b277](https://github.com/jetstreamapp/jetstream/commit/2a1b277217f65d51deff40c7e3accec7ba167d88)), closes [#2024](https://github.com/jetstreamapp/jetstream/issues/2024)
+- **deploy:** disable package download until a package is selected or entered ([6d4b4df](https://github.com/jetstreamapp/jetstream/commit/6d4b4df286607125668dd1e91d8960e11027f4e7))
+- **query:** honor the "All Queries" export option on the Saved Queries tab ([965c9c8](https://github.com/jetstreamapp/jetstream/commit/965c9c80057c1600f972bb3c05999ac53011fec3))
+- **record:** hide truncated group labels in the child records chevron column ([d8cdf20](https://github.com/jetstreamapp/jetstream/commit/d8cdf200038a86cbe29c345c9c72f2a94214c70d))
+- **web-extension:** emit the apex-tests placeholder page for deep links ([0df2731](https://github.com/jetstreamapp/jetstream/commit/0df2731241798b4f95836cf189f2f13893be681b)), references [#2005](https://github.com/jetstreamapp/jetstream/issues/2005)
+
 ## [10.16.0](https://github.com/jetstreamapp/jetstream/compare/v10.15.2...v10.16.0) (2026-08-27)
 
 ### Features
