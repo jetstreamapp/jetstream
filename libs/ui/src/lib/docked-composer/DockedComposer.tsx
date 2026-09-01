@@ -72,30 +72,45 @@ export const DockedComposer = forwardRef<any, DockedComposerProps>(
           className={classNames('slds-docked-composer slds-grid slds-grid_vertical', { 'slds-is-open': isOpen, 'slds-is-closed': !isOpen })}
           role="dialog"
           aria-labelledby={id}
-          aria-describedby={`${id}-content`}
+          // The body only exists once the composer has been opened; a dangling describedby is an axe violation
+          aria-describedby={isOpen || hasOpened ? `${id}-content` : undefined}
         >
-          <header className="slds-docked-composer__header slds-grid slds-shrink-none" aria-live="assertive" onClick={toggleOpen}>
+          {/* Pointer-only convenience: clicking the title bar toggles the composer. The keyboard path is the
+              always-rendered expand/minimize button below. */}
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-static-element-interactions */}
+          <header className="slds-docked-composer__header slds-grid slds-shrink-none" onClick={toggleOpen}>
             <div className="slds-media slds-media_center slds-no-space">
               <div className="slds-media__figure slds-m-right_x-small">
                 {!iconOverride && <Icon type="brand" icon="jetstream" className="slds-icon slds-icon_small slds-icon-text-default" />}
                 {!!iconOverride && iconOverride}
               </div>
               <div className="slds-media__body">
-                {!isOpen && <span className="slds-assistive-text">Minimized</span>}
+                {/* Persistent status region (not the whole header) so only the state change is announced */}
+                <span className="slds-assistive-text" role="status" aria-live="polite">
+                  {isOpen ? '' : 'Minimized'}
+                </span>
                 <h2 className="slds-truncate" id={id} title={label}>
                   {label}
                 </h2>
               </div>
             </div>
             <div className="slds-col_bump-left slds-shrink-none">
-              {allowMinimize && isOpen && (
-                <button className="slds-button slds-button_icon slds-button_icon" title="Minimize window" onClick={toggleOpen}>
+              {/* One stable button for both states: a minimize-only button unmounted under focus, leaving a
+                  keyboard user on <body> with no way to re-open the minimized composer */}
+              {allowMinimize && (
+                <button
+                  type="button"
+                  className="slds-button slds-button_icon slds-button_icon"
+                  title={isOpen ? 'Minimize window' : 'Expand window'}
+                  aria-expanded={isOpen}
+                  onClick={toggleOpen}
+                >
                   <Icon
                     type="utility"
-                    icon="minimize_window"
+                    icon={isOpen ? 'minimize_window' : 'expand_alt'}
                     className="slds-button__icon"
                     omitContainer
-                    description="Minimize Composer Panel"
+                    description={isOpen ? 'Minimize Composer Panel' : 'Expand Composer Panel'}
                   />
                 </button>
               )}
