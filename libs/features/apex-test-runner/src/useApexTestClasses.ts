@@ -39,6 +39,8 @@ async function writeCache(org: SalesforceOrgUi, cache: ApexClassCache) {
 export function useApexTestClasses(org: SalesforceOrgUi) {
   const isMounted = useRef(true);
   const currentFetchToken = useRef(0);
+  /** Cancels in-flight scanning (up to ~100 sequential queries on large orgs) on unmount or when a newer load supersedes it */
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [loading, setLoading] = useState(true);
   const [progressText, setProgressText] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -50,6 +52,7 @@ export function useApexTestClasses(org: SalesforceOrgUi) {
     isMounted.current = true;
     return () => {
       isMounted.current = false;
+      abortControllerRef.current?.abort();
     };
   }, []);
 
@@ -57,10 +60,13 @@ export function useApexTestClasses(org: SalesforceOrgUi) {
     async ({ skipCache }: { skipCache?: boolean } = {}) => {
       const fetchToken = new Date().getTime();
       currentFetchToken.current = fetchToken;
+      abortControllerRef.current?.abort();
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
       try {
         setLoading(true);
         setErrorMessage(null);
-        const manifest = await fetchApexClassManifest(org);
+        const manifest = await fetchApexClassManifest(org, abortController.signal);
         const manifestById = new Map(manifest.map((record) => [record.Id, record]));
         const cache = skipCache ? {} : await readCache(org);
 
@@ -69,11 +75,16 @@ export function useApexTestClasses(org: SalesforceOrgUi) {
           .map(({ Id }) => Id);
 
         if (missingIds.length) {
-          const symbolTableRecords = await fetchSymbolTables(org, missingIds, (fetchedCount, totalCount) => {
-            if (isMounted.current && fetchToken === currentFetchToken.current) {
-              setProgressText(`Analyzing classes ${fetchedCount.toLocaleString()} of ${totalCount.toLocaleString()}…`);
-            }
-          });
+          const symbolTableRecords = await fetchSymbolTables(
+            org,
+            missingIds,
+            (fetchedCount, totalCount) => {
+              if (isMounted.current && fetchToken === currentFetchToken.current) {
+                setProgressText(`Analyzing classes ${fetchedCount.toLocaleString()} of ${totalCount.toLocaleString()}…`);
+              }
+            },
+            abortController.signal,
+          );
           for (const record of symbolTableRecords) {
             const manifestRecord = manifestById.get(record.Id);
             if (manifestRecord) {
@@ -89,8 +100,12 @@ export function useApexTestClasses(org: SalesforceOrgUi) {
             prunedCache[classId] = entry;
           }
         }
-        await writeCache(org, prunedCache);
 
+        // A superseded load must not write its (older) view of the org over the newer load's cache
+        if (!isMounted.current || fetchToken !== currentFetchToken.current) {
+          return;
+        }
+        await writeCache(org, prunedCache);
         if (!isMounted.current || fetchToken !== currentFetchToken.current) {
           return;
         }

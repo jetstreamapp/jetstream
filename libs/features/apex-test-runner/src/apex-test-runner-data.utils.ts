@@ -333,19 +333,20 @@ export async function fetchOrgWideCoverage(org: SalesforceOrgUi): Promise<number
   return records[0]?.PercentCovered ?? null;
 }
 
-export async function fetchApexClassManifest(org: SalesforceOrgUi) {
-  return (await queryAll<ApexClassRecord>(org, getApexClassManifestQuery(), true)).queryResults.records;
+export async function fetchApexClassManifest(org: SalesforceOrgUi, signal?: AbortSignal) {
+  return (await queryAll<ApexClassRecord>(org, getApexClassManifestQuery(), true, false, undefined, signal)).queryResults.records;
 }
 
 export async function fetchSymbolTables(
   org: SalesforceOrgUi,
   classIds: string[],
   onProgress?: (fetchedCount: number, totalCount: number) => void,
+  signal?: AbortSignal,
 ): Promise<ApexClassRecord[]> {
   const results: ApexClassRecord[] = [];
   const chunks = splitArrayToMaxSize(classIds, SYMBOL_TABLE_CHUNK_SIZE);
   for (const chunk of chunks) {
-    const records = (await query<ApexClassRecord>(org, getApexClassSymbolTableQuery(chunk), true)).queryResults.records;
+    const records = (await query<ApexClassRecord>(org, getApexClassSymbolTableQuery(chunk), true, false, signal)).queryResults.records;
     results.push(...records);
     onProgress?.(results.length, classIds.length);
   }
