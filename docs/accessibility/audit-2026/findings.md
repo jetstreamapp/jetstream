@@ -154,3 +154,12 @@ Every page was covered in this pass; all findings below are fixed on `chore/wcag
 | M58 | Record lookup popover (query results): Enter/Space on the footer buttons closed the popover instead of acting — React synthetic keydowns bubble through portals into the grid's handler, which re-activated the cell control (grid now ignores key events targeting nodes outside its root); the View Record autoFocus also yanked focus from the close button when the record finished loading (removed — focus starts and stays on Close) | 2.1.1, 3.2.1        | fixed  |
 
 **Open from this pass:** AssistiveStatus rollout to any remaining Spinner-gated views (P3 — major flows covered); nested-interactive trailing-action rows design decision (P2, baselined — mitigated by ArrowRight access + hints, axe entries remain); `--jgrid-on-surface` references SLDS `on-surface-1` (#757575 grey) with a #181818 fallback that currently wins — retoken to on-surface-2/3 before SLDS vars resolve there (latent contrast risk); CopyToClipboard generic-name sweep (~35 call sites still announce "copy to clipboard"); VPAT finalization — both manual passes complete, ready to fill the TBDs in `vpat/jetstream-acr-DRAFT.md` and publish a dated ACR.
+
+**Automation Control deploy review modal (P2/P3, deferred to [#2029](https://github.com/jetstreamapp/jetstream/issues/2029) — pre-existing, not
+from this branch):** error rows carry no visual treatment beyond the icon + "Error" text, easy to
+miss at narrow widths (low-vision/reflow concern); the deployment error MESSAGE lives only in a
+hover/focus tooltip (1.4.13 — keyboard-reachable since the tooltip work, but hidden by default and
+unavailable on touch) — consider a visible error column with dynamic row height; no visible
+success-vs-error summary (the assistive message added on this branch already computes "N deployed,
+X with errors" — render the same string visibly so the visible and announced summaries share one
+source); plus a plain bug: a row can remain in "loading" state after the deployment completes.
