@@ -761,6 +761,14 @@ export function useGridKeyboardNavigation<TRow extends object>({
 
   const handleKeyDown = useCallback(
     (event: ReactKeyboardEvent) => {
+      // React synthetic events bubble through PORTALS following the React tree, so keys pressed
+      // inside an overlay a cell renderer opened (record lookup popover) arrive here even though
+      // the overlay's DOM lives outside the grid. Those keys belong to the overlay — handling them
+      // as grid navigation re-activated the cell's control and toggle-closed the popover mid-press.
+      const rootElement = getRootElement();
+      if (rootElement && event.target instanceof Node && !rootElement.contains(event.target)) {
+        return;
+      }
       // A focused text-entry control (the summary row's column filter input, a header filter's search
       // box, an open cell editor) owns every key it receives — caret movement, text selection and the
       // clipboard shortcuts. Without this the grid treated them as navigation and moved the active cell
@@ -1173,6 +1181,7 @@ export function useGridKeyboardNavigation<TRow extends object>({
       onUndo,
       onRedo,
       onClearSelection,
+      getRootElement,
     ],
   );
 
