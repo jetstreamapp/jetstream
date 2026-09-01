@@ -10,6 +10,7 @@ import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
 import { Popover } from '../popover/Popover';
 import ScopedNotification from '../scoped-notification/ScopedNotification';
+import AssistiveStatus from './AssistiveStatus';
 import Icon from './Icon';
 import { KeyboardShortcut } from './KeyboardShortcut';
 import { ManagePermissionSetAssignmentsModal } from './ManagePermissionSetAssignmentsModal';
@@ -228,6 +229,7 @@ export const ProfileOrPermSetPopover: FunctionComponent<ProfileOrPermSetPopoverP
         trapFocus
         onChange={setIsOpen}
         panelProps={{
+          'aria-label': headerInfo.label ? `${headerInfo.label} details` : 'Assignment details',
           onClick: (event) => event.stopPropagation(),
           onDoubleClick: (event) => event.stopPropagation(),
         }}
@@ -301,6 +303,13 @@ export const ProfileOrPermSetPopover: FunctionComponent<ProfileOrPermSetPopoverP
                 overflow-y: auto;
               `}
             >
+              <AssistiveStatus
+                message={
+                  loading
+                    ? 'Loading assigned users'
+                    : errorMessage || (users.length > 0 ? `${users.length} assigned users listed` : 'No assigned users listed')
+                }
+              />
               {loading && users.length === 0 && <Spinner size="small" />}
               {errorMessage && (
                 <ScopedNotification theme="error" className="slds-m-top_x-small">
