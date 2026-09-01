@@ -516,6 +516,10 @@ export function GridContainer<TRow extends object = RowWithKey>({
       if (!onPaste || !activeCell || editingCell) {
         return;
       }
+      // A text-entry control inside a cell (a summary-row filter input) owns its own paste
+      if (event.target instanceof HTMLElement && event.target.matches('input, textarea, [contenteditable="true"]')) {
+        return;
+      }
       const text = event.clipboardData?.getData('text/plain') ?? '';
       if (!text) {
         return;
@@ -857,7 +861,8 @@ export function GridContainer<TRow extends object = RowWithKey>({
             role={role}
             data-id={gridId}
             aria-label={ariaLabel || 'Data table'}
-            aria-rowcount={rowCount + 1 + (summaryRows?.length ?? 0)}
+            // Header + summary rows + body rows; with no data the "No data available" placeholder is a row
+            aria-rowcount={Math.max(rowCount, 1) + 1 + (summaryRows?.length ?? 0)}
             aria-colcount={leafColumns.length}
             aria-multiselectable={table.options.enableRowSelection ? true : undefined}
             className="jgrid"
@@ -886,6 +891,7 @@ export function GridContainer<TRow extends object = RowWithKey>({
             />
             <GridBody
               table={table}
+              treeGrid={role === 'treegrid'}
               scrollRef={scrollRef}
               gridTemplateColumns={gridTemplateColumns}
               visibleColumnIndexes={visibleColumnIndexes}
