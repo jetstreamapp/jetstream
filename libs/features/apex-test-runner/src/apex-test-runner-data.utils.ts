@@ -433,7 +433,9 @@ export async function updateTestSuiteMembership(
   if (compositeRequests.length === 0) {
     return;
   }
-  // allOrNone so a rejected change rolls back the rest and a retry can re-apply the same diff cleanly
+  // allOrNone so a rejected change rolls back its batch (requests are chunked into sets of 25) and a
+  // retry can re-apply the diff cleanly — the caller refreshes memberships so a partially-applied
+  // multi-batch save is recomputed against real org state
   const response = await makeToolingRequests(org, compositeRequests, apiVersion, true);
   throwIfCompositeItemsFailed(response, 'Unable to save the test suite changes. Please try again.');
 }

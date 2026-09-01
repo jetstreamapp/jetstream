@@ -76,12 +76,11 @@ export function useApexTestRunsList(org: SalesforceOrgUi) {
           logger.info('[APEX TESTS][RUNS] ignoring results, currentFetchToken is not valid');
         }
       } catch (ex) {
-        if (isMounted.current) {
+        // Only count failures from the latest request so a slow, superseded fetch cannot skew the cutoff
+        if (isMounted.current && fetchToken === currentFetchToken.current) {
           setNumPollErrors((priorCount) => priorCount + 1);
-          if (fetchToken === currentFetchToken.current) {
-            setErrorMessage(getErrorMessage(ex));
-            setLoading(false);
-          }
+          setErrorMessage(getErrorMessage(ex));
+          setLoading(false);
         }
       }
     },
