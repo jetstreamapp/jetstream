@@ -242,7 +242,9 @@ jobs:
         id: setup
         uses: ./.github/actions/setup-e2e
         with:
-          affected-projects: api|jetstream
+          # jetstream-e2e is listed so a change that only touches the suite itself (a spec, the a11y
+          # baseline, the shared page objects) still runs it — api/jetstream alone would skip those.
+          affected-projects: api|jetstream|jetstream-e2e
           suite-name: E2E
 
       # build:ci compiles all nine apps; E2E only reaches three of them. api/src/main.ts statically
