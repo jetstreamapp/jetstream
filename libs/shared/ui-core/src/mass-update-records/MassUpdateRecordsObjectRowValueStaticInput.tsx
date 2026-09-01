@@ -52,6 +52,7 @@ export const MassUpdateRecordsObjectRowValueStaticInput: FunctionComponent<MassU
           className="slds-button_last"
           dropDownClassName="slds-dropdown_actions"
           position="right"
+          description="Value input options"
           items={[{ id: 'manual-toggle', value: useManualInput ? 'Use Automatic Input' : 'Use Text Input' }]}
           disabled={disabled}
           onSelected={(_item) => setUseManualInput(!useManualInput)}

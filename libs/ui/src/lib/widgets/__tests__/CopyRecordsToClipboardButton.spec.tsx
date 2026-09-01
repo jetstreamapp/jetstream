@@ -43,7 +43,7 @@ describe('CopyRecordsToClipboardButton', () => {
   test('copies as the format picked from the dropdown', async () => {
     renderButton();
 
-    await userEvent.click(screen.getByRole('button', { name: 'action' }));
+    await userEvent.click(screen.getByRole('button', { name: 'More copy formats' }));
     await userEvent.click(screen.getByRole('menuitem', { name: 'Copy as CSV' }));
 
     expect(mockCopyRecordsToClipboard).toHaveBeenCalledWith(RECORDS, 'csv', FIELDS);
