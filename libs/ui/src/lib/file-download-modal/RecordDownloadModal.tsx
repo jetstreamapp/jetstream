@@ -817,6 +817,8 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               label="Filename"
               isRequired
               rightAddon={fileFormat !== RADIO_FORMAT_GDRIVE ? `.${fileExtension}` : undefined}
+              // Without hasError the required message could never render — an empty name only silently disabled Download
+              hasError={!fileName}
               errorMessage="This field is required"
               errorMessageId="filename-error"
             >

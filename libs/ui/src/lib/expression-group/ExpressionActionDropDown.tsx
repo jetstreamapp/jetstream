@@ -6,6 +6,8 @@ export interface ExpressionActionDropDownProps {
   label: string;
   helpText?: string;
   value: AndOr;
+  /** Keep the label for assistive technology only (condition groups show their number in a legend instead) */
+  hideLabel?: boolean;
   ancillaryOptions?: React.ReactNode;
   onChange: (value: AndOr) => void;
 }
@@ -26,6 +28,7 @@ function getInitSelected(value: AndOr) {
 
 export const ExpressionActionDropDown: FunctionComponent<ExpressionActionDropDownProps> = ({
   label,
+  hideLabel,
   helpText,
   value,
   ancillaryOptions,
@@ -37,6 +40,7 @@ export const ExpressionActionDropDown: FunctionComponent<ExpressionActionDropDow
     <div className="slds-expression__options slds-grid">
       <Picklist
         label={label}
+        hideLabel={hideLabel}
         labelHelp={helpText}
         items={items}
         selectedItems={selectedItem}
