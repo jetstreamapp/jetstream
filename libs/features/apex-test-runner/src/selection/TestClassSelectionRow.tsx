@@ -2,13 +2,21 @@ import { css } from '@emotion/react';
 import { Checkbox, Icon } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 import type { TestClassListItem } from '../apex-test-runner-types';
+import type { RovingCheckboxItemProps } from './useRovingCheckboxList';
 
 export type ClassSelection = Set<string> | 'ALL' | undefined;
+
+/** Composite-widget id for a method checkbox — class ids are Salesforce ids so ':' cannot collide */
+export function methodRovingId(classId: string, method: string) {
+  return `${classId}:${method}`;
+}
 
 export interface TestClassSelectionRowProps {
   item: TestClassListItem;
   selection: ClassSelection;
   expanded: boolean;
+  /** Roving-tabindex props for this row's checkboxes — the list is one tab stop, arrows move within it */
+  getItemProps: (rovingId: string) => RovingCheckboxItemProps;
   onToggleExpand: (classId: string) => void;
   onToggleClass: (classId: string) => void;
   onToggleMethod: (classId: string, method: string) => void;
@@ -18,6 +26,7 @@ export const TestClassSelectionRow: FunctionComponent<TestClassSelectionRowProps
   item,
   selection,
   expanded,
+  getItemProps,
   onToggleExpand,
   onToggleClass,
   onToggleMethod,
@@ -34,10 +43,14 @@ export const TestClassSelectionRow: FunctionComponent<TestClassSelectionRowProps
           align-items: center;
         `}
       >
+        {/* Mouse affordance only (tabIndex -1) — keyboard users expand/collapse with ArrowRight/ArrowLeft
+            from the class checkbox, keeping the list a single tab stop */}
         <button
           className="slds-button slds-button_icon slds-button_icon-x-small slds-m-right_xx-small"
           title={expanded ? 'Collapse methods' : 'Expand methods'}
           disabled={!canExpand}
+          tabIndex={-1}
+          aria-expanded={canExpand ? expanded : undefined}
           css={
             !canExpand
               ? css`
@@ -61,6 +74,7 @@ export const TestClassSelectionRow: FunctionComponent<TestClassSelectionRowProps
           indeterminate={isIndeterminate}
           label={item.name}
           onChange={() => onToggleClass(item.classId)}
+          {...getItemProps(item.classId)}
         />
         {item.symbolTableUnavailable && (
           <span
@@ -89,6 +103,7 @@ export const TestClassSelectionRow: FunctionComponent<TestClassSelectionRowProps
                 checked={selection === 'ALL' || (selection instanceof Set && selection.has(method))}
                 label={method}
                 onChange={() => onToggleMethod(item.classId, method)}
+                {...getItemProps(methodRovingId(item.classId, method))}
               />
             </li>
           ))}
