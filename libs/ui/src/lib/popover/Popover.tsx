@@ -18,7 +18,18 @@ import {
 } from '@floating-ui/react';
 import { FullWidth, sizeXLarge, SmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
-import { createElement, CSSProperties, memo, ReactNode, RefObject, useCallback, useEffect, useImperativeHandle, useState } from 'react';
+import {
+  createElement,
+  CSSProperties,
+  memo,
+  ReactNode,
+  RefObject,
+  useCallback,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useState,
+} from 'react';
 import { Tooltip, TooltipProps } from '../..';
 import { useEscapeToCloseLayer } from '../hooks/useEscapeToCloseLayer';
 import { usePortalContext } from '../modal/PortalContext';
@@ -64,6 +75,20 @@ export interface PopoverProps {
   triggerAfterContent?: ReactNode;
   children: ReactNode;
   onChange?: (isOpen: boolean) => void;
+}
+
+/**
+ * Height the panel takes with no max-height applied. The body is measured by `scrollHeight`, which is
+ * its full content height even while a cap clips it, so the measurement does not flip once the cap is
+ * on. The close button is pinned absolutely and takes no space.
+ */
+function getPopoverNaturalHeight(floating: HTMLElement): number {
+  return Array.from(floating.children).reduce((total, child) => {
+    if (!(child instanceof HTMLElement) || getComputedStyle(child).position === 'absolute') {
+      return total;
+    }
+    return total + (child.hasAttribute('data-popover-body') ? child.scrollHeight : child.offsetHeight);
+  }, 0);
 }
 
 const PopoverComponent = ({
@@ -115,11 +140,17 @@ const PopoverComponent = ({
       shift({ padding: 8 }),
       // Cap the popover to the viewport: at high zoom a popover taller than the screen clips its
       // header/close button off-screen no matter which side flip() picks — instead the panel gets a
-      // max-height and its body scrolls (see the flex/overflow rules on the section below)
+      // max-height and its body scrolls (see the flex/overflow rules on the section below).
+      // The cap is applied ONLY when the panel would not fit: a scrolling body clips any dropdown
+      // (picklist, date picker) that renders inside it without a portal, so it must stay a plain
+      // block in the common case.
       sizeMiddleware({
         padding: 8,
         apply({ availableHeight, elements }) {
-          elements.floating.style.maxHeight = `${Math.max(150, availableHeight)}px`;
+          const maxHeight = Math.max(150, availableHeight);
+          const constrained = getPopoverNaturalHeight(elements.floating) > maxHeight;
+          elements.floating.style.maxHeight = constrained ? `${maxHeight}px` : '';
+          elements.floating.toggleAttribute('data-popover-constrained', constrained);
         },
       }),
       arrow({
@@ -140,6 +171,8 @@ const PopoverComponent = ({
     escapeKey: false,
   });
   const role = useRole(context);
+  // Names the dialog from its header content; header-less popovers pass `aria-label` via panelProps
+  const headerId = useId();
 
   const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role]);
 
@@ -228,13 +261,15 @@ const PopoverComponent = ({
               data-testid={testId}
               style={{ ...floatingStyles, ...panelStyle }}
               {...getFloatingProps()}
+              aria-labelledby={header ? headerId : undefined}
               className={classNames('slds-popover', size ? `slds-popover_${size}` : undefined, containerClassName)}
               css={css`
                 /* Pairs with the size() middleware max-height: header/footer stay pinned and the
-                   body scrolls when the popover is taller than the viewport (high zoom) */
+                   body scrolls when the popover is taller than the viewport (high zoom). Scrolling is
+                   opted into per measurement — a scroll container clips non-portaled dropdowns. */
                 display: flex;
                 flex-direction: column;
-                & > .slds-popover__body {
+                &[data-popover-constrained] > [data-popover-body] {
                   overflow-y: auto;
                   min-height: 0;
                 }
@@ -329,8 +364,8 @@ const PopoverComponent = ({
                 <span className="slds-assistive-text">Close dialog</span>
               </button>
               {/* CONTENT */}
-              {header}
-              <div css={bodyStyle} className={bodyClassName}>
+              {header && <div id={headerId}>{header}</div>}
+              <div css={bodyStyle} className={bodyClassName} data-popover-body>
                 {content}
               </div>
               {footer}
