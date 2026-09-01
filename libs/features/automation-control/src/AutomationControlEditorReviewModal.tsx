@@ -3,11 +3,25 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import type { Column } from '@jetstream/ui';
-import { AssistiveStatus, AutoFullHeightContainer, DataTable, Icon, Modal, Spinner, ariaDisabledButtonProps } from '@jetstream/ui';
+import {
+  AssistiveStatus,
+  AutoFullHeightContainer,
+  DataTable,
+  Icon,
+  Modal,
+  Spinner,
+  ariaDisabledButtonProps,
+  getWrappedTextRowHeight,
+} from '@jetstream/ui';
 import { ConfirmPageChange, useAmplitude } from '@jetstream/ui-core';
+import classNames from 'classnames';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { deployMetadata, getAutomationTypeLabel, preparePayloads } from './automation-control-data-utils';
-import { AutomationDeployStatusRenderer, BooleanAndVersionRenderer } from './automation-control-table-renderers';
+import { deployMetadata, getAutomationTypeLabel, getDeploymentItemErrorMessage, preparePayloads } from './automation-control-data-utils';
+import {
+  AutomationDeployErrorRenderer,
+  AutomationDeployStatusRenderer,
+  BooleanAndVersionRenderer,
+} from './automation-control-table-renderers';
 import {
   AutomationControlDeploymentItem,
   AutomationMetadataType,
@@ -19,6 +33,8 @@ import {
 } from './automation-control-types';
 
 const REQUIRE_METADATA_API = new Set<AutomationMetadataType>(['ApexTrigger', 'DuplicateRule']);
+
+const ERROR_MESSAGE_COLUMN_WIDTH = 350;
 
 const COLUMNS: Column<DeploymentItemRow>[] = [
   {
@@ -56,6 +72,12 @@ const COLUMNS: Column<DeploymentItemRow>[] = [
     renderCell: AutomationDeployStatusRenderer,
     width: 200,
   },
+  {
+    name: 'Error Message',
+    key: 'errorMessage',
+    renderCell: AutomationDeployErrorRenderer,
+    width: ERROR_MESSAGE_COLUMN_WIDTH,
+  },
 ];
 
 function getDeploymentItemMap(rows: TableRowItem[]): DeploymentItemMap {
@@ -83,6 +105,14 @@ function getDeploymentItemMap(rows: TableRowItem[]): DeploymentItemMap {
 }
 
 const getRowId = (item: DeploymentItemRow) => item.key;
+
+// `save-error` is the grid's standard failed-row treatment (red row background) so error rows
+// are identifiable at a glance, not only by the status icon + text
+const getRowClass = (row: DeploymentItemRow) => (row.status === 'Error' ? 'save-error' : undefined);
+
+// Grow error rows so the full wrapped error message is visible; all other rows keep the default height
+const getRowHeight = ({ row, columnWidths }: { type: 'ROW' | 'GROUP'; row: DeploymentItemRow; columnWidths: Record<string, number> }) =>
+  getWrappedTextRowHeight(row.errorMessage, columnWidths?.['errorMessage'] ?? ERROR_MESSAGE_COLUMN_WIDTH);
 
 export interface AutomationControlEditorReviewModalProps {
   defaultApiVersion: string;
@@ -115,6 +145,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
         status,
         deploy,
         typeLabel: getAutomationTypeLabel(metadata.type),
+        errorMessage: getDeploymentItemErrorMessage({ status, deploy }),
         ...metadata,
       })),
     [deploymentItems],
@@ -124,19 +155,29 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
     setDeploymentItems(Object.values(deploymentItemMap));
   }, [deploymentItemMap]);
 
+  // One source for the visible results banner and the assistive live region, so the displayed
+  // and announced summaries can never drift apart
+  const deployResultsSummary = useMemo(() => {
+    if (!didDeploy || inProgress) {
+      return null;
+    }
+    const successCount = deploymentItems.filter(({ status }) => status === 'Deployed' || status === 'Rolled Back').length;
+    const errorCount = deploymentItems.filter(({ status }) => status === 'Error').length;
+    return { errorCount, message: `${successCount} succeeded, ${errorCount} failed.` };
+  }, [didDeploy, inProgress, deploymentItems]);
+
   // Mirrors what sighted users see (spinner, per-row status column, modal header) for each phase:
   // initial metadata retrieval, deploy/rollback progress, and the final outcome with counts
   const assistiveMessage = useMemo(() => {
     if (inProgress) {
       return currentStep === 0 ? 'Loading current automation metadata for review' : modalLabel;
     }
-    const errorCount = deploymentItems.filter(({ status }) => status === 'Error').length;
-    if (didDeploy) {
-      const successCount = deploymentItems.filter(({ status }) => status === 'Deployed' || status === 'Rolled Back').length;
-      return `${modalLabel}. ${successCount} succeeded, ${errorCount} failed.`;
+    if (deployResultsSummary) {
+      return `${modalLabel}. ${deployResultsSummary.message}`;
     }
+    const errorCount = deploymentItems.filter(({ status }) => status === 'Error').length;
     return `Ready to review. ${deploymentItems.length} changes loaded${errorCount ? `, ${errorCount} with errors` : ''}.`;
-  }, [inProgress, currentStep, modalLabel, deploymentItems, didDeploy]);
+  }, [inProgress, currentStep, modalLabel, deploymentItems, deployResultsSummary]);
 
   const handlePreparePayloads = useCallback(() => {
     return preparePayloads(defaultApiVersion, selectedOrg, deploymentItemMap).subscribe({
@@ -198,7 +239,10 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
 
         setDeploymentItemMap(
           Object.keys(deploymentItemMap).reduce((output: DeploymentItemMap, key) => {
-            output[key] = { ...deploymentItemMap[key], status: 'Deploying' };
+            const item = deploymentItemMap[key];
+            // Items that failed preparation are skipped by deployMetadata and never emit a result,
+            // so flipping them to 'Deploying' would strand them on a spinner forever
+            output[key] = item.status === 'Ready for Deploy' ? { ...item, status: 'Deploying' } : item;
             return output;
           }, {}),
         );
@@ -354,8 +398,28 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
         >
           <AssistiveStatus debounceMs={500} message={assistiveMessage} />
           {inProgress && <Spinner />}
+          {deployResultsSummary && (
+            <div className="slds-m-bottom_x-small">
+              <Icon
+                type="utility"
+                icon={deployResultsSummary.errorCount ? 'warning' : 'success'}
+                className={classNames('slds-icon slds-icon_x-small slds-m-right_x-small', {
+                  'slds-icon-text-error': deployResultsSummary.errorCount > 0,
+                  'slds-icon-text-success': deployResultsSummary.errorCount === 0,
+                })}
+              />
+              <span
+                className={classNames('slds-text-title_bold', {
+                  'slds-text-color_error': deployResultsSummary.errorCount > 0,
+                  'slds-text-color_success': deployResultsSummary.errorCount === 0,
+                })}
+              >
+                {deployResultsSummary.message}
+              </span>
+            </div>
+          )}
           <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={250}>
-            <DataTable columns={COLUMNS} data={deploymentItemRows} getRowKey={getRowId} />
+            <DataTable columns={COLUMNS} data={deploymentItemRows} getRowKey={getRowId} rowClass={getRowClass} rowHeight={getRowHeight} />
           </AutoFullHeightContainer>
         </div>
       </Modal>

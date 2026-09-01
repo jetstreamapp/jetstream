@@ -94,6 +94,8 @@ export interface DeploymentItemRow extends TableRowItem {
   status: DeploymentItemStatus;
   deploy: AutomationControlDeploymentItem;
   typeLabel: string;
+  /** Combined retrieve/deploy error text, rendered in the visible Error Message column */
+  errorMessage?: string;
 }
 
 export type MetadataCompositeResponseSuccessOrError = MetadataCompositeResponseSuccess | MetadataCompositeResponseError[];

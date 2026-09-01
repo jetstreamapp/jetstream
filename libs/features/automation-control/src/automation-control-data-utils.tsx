@@ -16,7 +16,7 @@ import {
   tracker,
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { CompositeRequest, CompositeRequestBody, CompositeResponse, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
+import { CompositeRequest, CompositeRequestBody, CompositeResponse, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { formatRelative } from 'date-fns/formatRelative';
 import JSZip from 'jszip';
 import isString from 'lodash/isString';
@@ -35,6 +35,7 @@ import {
   AutomationMetadataType,
   DeploymentItem,
   DeploymentItemMap,
+  DeploymentItemRow,
   DuplicateRuleRecord,
   FetchErrorPayload,
   FetchSuccessPayload,
@@ -74,6 +75,29 @@ export function isTableRowItem(item: TableRowOrItemOrChild): item is TableRowIte
 
 export function isTableRowChild(item: TableRowOrItemOrChild): item is TableRowItemChild {
   return item.path.length === 3;
+}
+
+/** A row can fail during metadata retrieval (retrieveError) or deployment (deployError) — whichever is set is the error to show */
+export function getDeploymentItemErrors({
+  deployError,
+  retrieveError,
+}: AutomationControlDeploymentItem): Maybe<MetadataCompositeResponseError[]> {
+  return Array.isArray(deployError) && deployError.length > 0 ? deployError : retrieveError;
+}
+
+/**
+ * Combined error text for a failed deployment row, shared by the visible Error Message column,
+ * the status tooltip, and copy-to-clipboard so they can never disagree.
+ */
+export function getDeploymentItemErrorMessage({ status, deploy }: Pick<DeploymentItemRow, 'status' | 'deploy'>): string | undefined {
+  if (status !== 'Error') {
+    return undefined;
+  }
+  const errors = getDeploymentItemErrors(deploy);
+  if (Array.isArray(errors) && errors.length > 0) {
+    return errors.map(({ message }) => message).join('\n\n');
+  }
+  return 'An unknown error has occurred';
 }
 
 export function isToolingApexRecord(type: AutomationMetadataType, _record: any): _record is ToolingApexTriggerRecord {

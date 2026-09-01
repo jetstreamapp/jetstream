@@ -158,11 +158,11 @@ Every page was covered in this pass; all findings below are fixed on `chore/wcag
 
 **Open from this pass:** AssistiveStatus rollout to any remaining Spinner-gated views (P3 — major flows covered); nested-interactive trailing-action rows design decision (P2, baselined — mitigated by ArrowRight access + hints, axe entries remain); `--jgrid-on-surface` references SLDS `on-surface-1` (#757575 grey) with a #181818 fallback that currently wins — retoken to on-surface-2/3 before SLDS vars resolve there (latent contrast risk); CopyToClipboard generic-name sweep (~35 call sites still announce "copy to clipboard"); VPAT finalization — both manual passes complete, ready to fill the TBDs in `vpat/jetstream-acr-DRAFT.md` and publish a dated ACR.
 
-**Automation Control deploy review modal (P2/P3, deferred to [#2029](https://github.com/jetstreamapp/jetstream/issues/2029) — pre-existing, not
-from this branch):** error rows carry no visual treatment beyond the icon + "Error" text, easy to
-miss at narrow widths (low-vision/reflow concern); the deployment error MESSAGE lives only in a
-hover/focus tooltip (1.4.13 — keyboard-reachable since the tooltip work, but hidden by default and
-unavailable on touch) — consider a visible error column with dynamic row height; no visible
-success-vs-error summary (the assistive message added on this branch already computes "N deployed,
-X with errors" — render the same string visibly so the visible and announced summaries share one
-source); plus a plain bug: a row can remain in "loading" state after the deployment completes.
+**Automation Control deploy review modal (P2/P3, RESOLVED via [#2029](https://github.com/jetstreamapp/jetstream/issues/2029) — pre-existing, not
+from this branch):** all four follow-ups fixed in a stand-alone PR branched from this one: error
+rows now get the grid's standard `save-error` red row treatment; the deployment error message is a
+visible, wrapping "Error Message" column with dynamic row height (tooltip + copy-to-clipboard kept
+as secondary affordances, now also covering retrieve errors that previously showed "unknown
+error"); a visible success-vs-error results banner shares one computed summary with the assistive
+live region; and rows that failed metadata retrieval are no longer flipped to "Deploying" (they
+never received a deploy result, which stranded them on a spinner after completion).

@@ -7,7 +7,7 @@ import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, ReactNode } from 'react';
-import { isTableRow, isTableRowItem } from './automation-control-data-utils';
+import { getDeploymentItemErrors, isTableRow, isTableRowItem } from './automation-control-data-utils';
 import { DeploymentItemRow, DeploymentItemStatus, MetadataCompositeResponseError, TableRowOrItemOrChild } from './automation-control-types';
 
 /**
@@ -170,11 +170,11 @@ export const BooleanAndVersionRenderer = ({ column, row }: RenderCellProps<Deplo
 
 const loadingStatuses: DeploymentItemStatus[] = ['Preparing', 'Deploying', 'Rolling Back'];
 
-function getErrorMessageContent(deployError: Maybe<MetadataCompositeResponseError[]>) {
-  if (Array.isArray(deployError) && deployError.length > 0) {
+function getErrorMessageContent(errors: Maybe<MetadataCompositeResponseError[]>) {
+  if (Array.isArray(errors) && errors.length > 0) {
     return (
       <ul>
-        {deployError.map((item, i) => (
+        {errors.map((item, i) => (
           <li key={i}>{item.message}</li>
         ))}
       </ul>
@@ -182,15 +182,39 @@ function getErrorMessageContent(deployError: Maybe<MetadataCompositeResponseErro
   }
 }
 
-function getErrorMessageContentString(deployError: Maybe<MetadataCompositeResponseError[]>) {
-  if (Array.isArray(deployError) && deployError.length > 0) {
-    return deployError.map((item, _i) => item.message).join('\n\n');
+function getErrorMessageContentString(errors: Maybe<MetadataCompositeResponseError[]>) {
+  if (Array.isArray(errors) && errors.length > 0) {
+    return errors.map((item) => item.message).join('\n\n');
   }
 }
 
+/**
+ * Visible error text for the review modal's Error Message column. Wraps onto multiple lines instead
+ * of truncating — pair with `getWrappedTextRowHeight` as the table's `rowHeight` so the row grows to fit.
+ */
+export const AutomationDeployErrorRenderer = ({ row }: RenderCellProps<DeploymentItemRow, unknown>): ReactNode => {
+  if (!row.errorMessage) {
+    return null;
+  }
+  return (
+    <div
+      className="slds-text-color_error"
+      title={row.errorMessage}
+      css={css`
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        line-height: normal;
+        overflow: hidden;
+      `}
+    >
+      {row.errorMessage}
+    </div>
+  );
+};
+
 export const AutomationDeployStatusRenderer = ({ row }: RenderCellProps<DeploymentItemRow, unknown>): ReactNode => {
   const { status, deploy } = row;
-  const { deployError } = deploy;
+  const errors = getDeploymentItemErrors(deploy);
   const isLoading = loadingStatuses.includes(status);
   const isSuccess = status === 'Deployed' || status === 'Rolled Back';
   const isError = status === 'Error';
@@ -224,10 +248,10 @@ export const AutomationDeployStatusRenderer = ({ row }: RenderCellProps<Deployme
             />
           )}
           {isError && (
-            <Tooltip id={`${uniqueId('deploy-error')}`} content={getErrorMessageContent(deployError) || 'An unknown error has occurred'}>
+            <Tooltip id={`${uniqueId('deploy-error')}`} content={getErrorMessageContent(errors) || 'An unknown error has occurred'}>
               <CopyToClipboard
                 icon={{ type: 'utility', icon: 'error', description: 'deployment error' }}
-                content={getErrorMessageContentString(deployError) || 'An unknown error has occurred'}
+                content={getErrorMessageContentString(errors) || 'An unknown error has occurred'}
                 className="slds-text-color_error"
               />
             </Tooltip>
