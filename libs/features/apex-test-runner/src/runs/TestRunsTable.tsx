@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import type { ApexTestRunResultRecord } from '@jetstream/types';
 import { AutoFullHeightContainer, Badge, ColumnWithFilter, DataTable, RenderCellProps, setColumnFromType } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useMemo } from 'react';
-import { formatTestTime, getRunStatusBadgeType } from './test-run-utils';
+import { BADGE_ROW_HEIGHT, formatTestTime, getRunStatusBadgeType } from './test-run-utils';
 
 type TestRunRow = ApexTestRunResultRecord & { 'User.Name': string | null; progress: string; testRunId: string };
 
@@ -108,6 +108,10 @@ export const TestRunsTable: FunctionComponent<TestRunsTableProps> = ({ runs, sel
               css={css`
                 width: 100%;
                 height: 100%;
+                /* The full-height click target defeats the cell's own flex centering — restore it
+                   so the Status badge (and text) sit centered in the row */
+                display: flex;
+                align-items: center;
               `}
               onClick={() => onRowSelection(props.row)}
             >
@@ -122,7 +126,14 @@ export const TestRunsTable: FunctionComponent<TestRunsTableProps> = ({ runs, sel
   return (
     // fillHeight sets a viewport-based min-height which beats max-height in CSS, so it must be off when the table is capped
     <AutoFullHeightContainer fillHeight={!maxHeight} setHeightAttr bottomBuffer={25} maxHeight={maxHeight} recalculateKey={maxHeight}>
-      <DataTable columns={columns} data={rows} getRowKey={getRowId} rowClass={rowClass} defaultColumnOptions={{ sortable: true }} />
+      <DataTable
+        columns={columns}
+        data={rows}
+        getRowKey={getRowId}
+        rowClass={rowClass}
+        rowHeight={BADGE_ROW_HEIGHT}
+        defaultColumnOptions={{ sortable: true }}
+      />
     </AutoFullHeightContainer>
   );
 };
