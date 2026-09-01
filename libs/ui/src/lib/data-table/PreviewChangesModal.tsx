@@ -2,6 +2,7 @@ import { css } from '@emotion/react';
 import { formatNumber, hasCtrlOrMeta, isEnterKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { Field, Maybe, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
 import { ChangeEvent, Fragment, FunctionComponent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ariaDisabledButtonProps } from '../form/button/aria-disabled-button.utils';
 import Checkbox from '../form/checkbox/Checkbox';
 import Input from '../form/input/Input';
 import SearchInput from '../form/search-input/SearchInput';
@@ -179,6 +180,7 @@ function StatusRenderer({ row }: DataTableCellProps<RowWithKey>): ReactNode {
           icon="check"
           className="slds-icon slds-icon_xx-small slds-icon-text-success"
           containerClassname="slds-icon_container"
+          description="Saved"
         />
       </Tooltip>
     );
@@ -191,6 +193,7 @@ function StatusRenderer({ row }: DataTableCellProps<RowWithKey>): ReactNode {
           icon="success"
           className="slds-icon slds-icon_xx-small slds-icon-text-success"
           containerClassname="slds-icon_container"
+          description="Ready to save"
         />
       </Tooltip>
     );
@@ -212,6 +215,8 @@ function StatusRenderer({ row }: DataTableCellProps<RowWithKey>): ReactNode {
         icon={severity === 'warning' ? 'warning' : 'error'}
         className={`slds-icon slds-icon_xx-small ${severity === 'warning' ? 'slds-icon-text-warning' : 'slds-icon-text-error'}`}
         containerClassname="slds-icon_container"
+        // The icon is the whole Status cell, so it must carry the message a keyboard user cannot hover for
+        description={severity === 'warning' ? `Warnings: ${status}` : status}
       />
     </Tooltip>
   );
@@ -565,6 +570,15 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
     });
   };
 
+  // Save unmounts once everything is saved — hand focus to the (relabelled) Close button so it does
+  // not fall to <body>
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (allSaved && (document.activeElement === document.body || !document.activeElement)) {
+      closeButtonRef.current?.focus();
+    }
+  }, [allSaved]);
+
   function renderBanner() {
     if (allSaved) {
       return <ScopedNotification theme="success">All changes were saved successfully.</ScopedNotification>;
@@ -664,14 +678,14 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
                 Download Results
               </button>
             )}
-            <button className="slds-button slds-button_neutral" onClick={onClose} disabled={isSaving}>
+            <button ref={closeButtonRef} className="slds-button slds-button_neutral" onClick={onClose} disabled={isSaving}>
               {allSaved ? 'Close' : 'Cancel'}
             </button>
             {!allSaved && (
               <button
                 className="slds-button slds-button_brand"
-                onClick={handleSave}
-                disabled={saveDisabled}
+                // aria-disabled keeps focus on Save while it disables itself, and keeps its title reachable
+                {...ariaDisabledButtonProps(saveDisabled, handleSave)}
                 title={hasBlockingErrors ? 'Fix the highlighted errors before saving' : (batchSizeError ?? undefined)}
               >
                 Save ({formatNumber(dirtyRows.length)})

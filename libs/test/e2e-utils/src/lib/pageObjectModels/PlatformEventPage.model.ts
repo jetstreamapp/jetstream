@@ -19,7 +19,7 @@ export class PlatformEventPage {
   }
 
   async goto() {
-    await this.page.getByRole('button', { name: 'Developer Tools' }).click();
+    await this.page.getByRole('button', { name: 'Developer Tools', exact: true }).click();
     await this.page.getByRole('menuitemcheckbox', { name: 'Platform Events' }).click();
     await this.page.waitForURL('**/platform-event-monitor');
   }
