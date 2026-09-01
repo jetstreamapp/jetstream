@@ -54,9 +54,12 @@ export const ComboboxWithItemsTypeAhead: FunctionComponent<ComboboxWithItemsType
       .catch(() => setLoading(false));
   }, [filterText, onSearch]);
 
+  // Enter from the input picks the first selectable option (see ComboboxWithItems for why it closes explicitly)
   const onInputEnter = useCallback(() => {
-    if (items.length > 0) {
-      onSelected(items[0]);
+    const item = items.find((listItem) => !listItem.disabled);
+    if (item) {
+      onSelected(item);
+      comboboxRef.current?.close();
     }
   }, [onSelected, items]);
 
@@ -93,6 +96,11 @@ export const ComboboxWithItemsTypeAhead: FunctionComponent<ComboboxWithItemsType
         break;
       }
       case 'enter': {
+        // A disabled option is announced as disabled and must not activate — mirrors the
+        // pointer guard in ComboboxListItem
+        if (isNumber(focusedIndex) && items[focusedIndex]?.disabled) {
+          return;
+        }
         if (isNumber(tempFocusedIndex)) {
           tempFocusedIndex = null;
           setFocusedIndex(tempFocusedIndex);
