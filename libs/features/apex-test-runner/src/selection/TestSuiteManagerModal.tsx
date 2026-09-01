@@ -1,23 +1,30 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, multiWordObjectFilter } from '@jetstream/shared/utils';
 import {
+  ariaDisabledButtonProps,
   Checkbox,
   ConfirmationModalPromise,
+  getAriaKeyshortcuts,
+  getModifierKey,
   Grid,
   Icon,
   Input,
+  KeyboardShortcut,
   List,
   Modal,
   ScopedNotification,
   SearchInput,
   Spinner,
+  Tooltip,
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 import { validateTestSuiteName } from '../apex-test-runner-data.utils';
 import type { TestClassListItem } from '../apex-test-runner-types';
 import type { useApexTestSuites } from '../useApexTestSuites';
+import { useRovingCheckboxList } from './useRovingCheckboxList';
 
 export interface TestSuiteManagerModalProps {
   suitesState: ReturnType<typeof useApexTestSuites>;
@@ -35,6 +42,8 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
   const [searchTerm, setSearchTerm] = useState('');
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [newSuiteNameFocused, setNewSuiteNameFocused] = useState(false);
 
   const selectedSuite = suites.find(({ Id }) => Id === selectedSuiteId) ?? null;
 
@@ -82,6 +91,19 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
   const allVisibleSelected = filteredClasses.length > 0 && visibleSelectedCount === filteredClasses.length;
   const someVisibleSelected = visibleSelectedCount > 0 && !allVisibleSelected;
 
+  // The membership list is one tab stop — ArrowUp/Down (and Home/End) move between the checkboxes
+  const memberClassList = useRovingCheckboxList({
+    ids: useMemo(() => filteredClasses.map(({ classId }) => classId), [filteredClasses]),
+  });
+
+  // Cmd/Ctrl+Enter saves the suite membership — the page-level run shortcut is suspended while
+  // this modal is open, so the two cannot both fire. It is also held off while the New Suite Name
+  // input has focus (the keystroke there reads as "create", not "save the other suite's classes")
+  // and while the delete confirmation is open above this modal.
+  usePrimaryActionShortcut(() => handleSaveMembership(), {
+    disabled: saving || !selectedSuite || confirmingDelete || newSuiteNameFocused,
+  });
+
   async function handleCreateSuite() {
     if (!newSuiteName.trim() || newSuiteNameError) {
       return;
@@ -120,12 +142,13 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
     if (!selectedSuite) {
       return;
     }
-    if (
-      await ConfirmationModalPromise({
-        content: `Are you sure you want to delete the suite "${selectedSuite.TestSuiteName}"?`,
-        confirm: 'Delete Suite',
-      })
-    ) {
+    setConfirmingDelete(true);
+    const confirmed = await ConfirmationModalPromise({
+      content: `Are you sure you want to delete the suite "${selectedSuite.TestSuiteName}"?`,
+      confirm: 'Delete Suite',
+    });
+    setConfirmingDelete(false);
+    if (confirmed) {
       try {
         setSaving(true);
         setActionError(null);
@@ -219,6 +242,8 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
                   value={newSuiteName}
                   maxLength={255}
                   onChange={(event) => setNewSuiteName(event.target.value)}
+                  onFocus={() => setNewSuiteNameFocused(true)}
+                  onBlur={() => setNewSuiteNameFocused(false)}
                 />
               </Input>
               <button
@@ -231,6 +256,7 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
             </Grid>
             <div className="slds-m-top_small">
               <List
+                ariaLabel="Test suites"
                 items={suites}
                 isActive={(suite) => suite.Id === selectedSuiteId}
                 onSelected={setSelectedSuiteId}
@@ -282,26 +308,51 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
                   <SearchInput id="suite-class-search" placeholder="Filter test classes" onChange={setSearchTerm} />
                   <span className="slds-m-left_small">{memberClassIds.size} selected</span>
                   <div className="slds-col_bump-left">
-                    <button className="slds-button slds-button_brand" disabled={saving} onClick={handleSaveMembership}>
-                      Save Suite Classes
-                    </button>
+                    <Tooltip
+                      openDelay={500}
+                      content={
+                        <div className="slds-p-bottom_small">
+                          <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                        </div>
+                      }
+                    >
+                      {/* Stays focusable while disabled so the shortcut tooltip stays reachable and
+                          focus survives the save */}
+                      <button
+                        type="button"
+                        className="slds-button slds-button_brand"
+                        aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                        {...ariaDisabledButtonProps(saving, () => handleSaveMembership())}
+                      >
+                        Save Suite Classes
+                      </button>
+                    </Tooltip>
                   </div>
                 </Grid>
-                <Checkbox
-                  id="suite-class-select-all"
-                  checked={allVisibleSelected}
-                  indeterminate={someVisibleSelected}
-                  disabled={filteredClasses.length === 0}
-                  label="Select All"
-                  onChange={handleSelectAllVisible}
-                />
+                <div className="slds-p-bottom_xx-small slds-m-bottom_xx-small slds-border_bottom">
+                  <Checkbox
+                    id="suite-class-select-all"
+                    checked={allVisibleSelected}
+                    indeterminate={someVisibleSelected}
+                    disabled={filteredClasses.length === 0}
+                    label="Select All"
+                    onChange={handleSelectAllVisible}
+                  />
+                </div>
                 <div
                   css={css`
                     max-height: 45vh;
                     overflow-y: auto;
+                    /* The scroll container clipped the checkbox focus rings at its left and top
+                       edges — pad the rings back into view; the negative margin keeps the rows
+                       aligned with the Select All checkbox above */
+                    padding: 0.25rem 0 0 0.25rem;
+                    margin-left: -0.25rem;
                   `}
                 >
-                  <ul>
+                  {/* Composite-widget pattern: the ul delegates keyboard handling for its checkboxes */}
+                  {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
+                  <ul {...memberClassList.containerProps}>
                     {filteredClasses.map((item) => (
                       <li key={item.classId}>
                         <Checkbox
@@ -309,6 +360,7 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
                           checked={memberClassIds.has(item.classId)}
                           label={item.name}
                           onChange={() => handleToggleMemberClass(item.classId)}
+                          {...memberClassList.getItemProps(item.classId)}
                         />
                       </li>
                     ))}
