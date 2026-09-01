@@ -102,13 +102,14 @@ export const ItemSelectionSummary: FunctionComponent<ItemSelectionSummaryProps> 
                   ) : (
                     <button
                       type="button"
-                      className="slds-button slds-button_reset slds-text-link slds-truncate w-100 slds-text-align_left"
+                      className="slds-button slds-button_reset slds-text-link w-100 slds-text-align_left"
                       title={item.label}
                       tabIndex={i === 0 ? 0 : -1}
                       onClick={() => handleClearItem(item.value, i)}
                     >
                       <span className="slds-assistive-text">Remove </span>
-                      {item.label}
+                      {/* slds-button is a flex container, where text-overflow does not apply — truncate a child */}
+                      <span className="slds-truncate">{item.label}</span>
                     </button>
                   )}
                 </li>
