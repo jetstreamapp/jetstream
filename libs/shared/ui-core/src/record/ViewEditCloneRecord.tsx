@@ -642,6 +642,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                         <span>Copy to Clipboard</span>
                       </button>
                       <DropDown
+                        description="More copy formats"
                         className="slds-button_last"
                         dropDownClassName="slds-dropdown_actions"
                         position="right"
@@ -788,6 +789,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                       </button>
                       {showSaveWithErrorsButton && (
                         <DropDown
+                          description="More save options"
                           className="slds-button_last"
                           dropDownClassName="slds-dropdown_actions"
                           position="right"
