@@ -11,8 +11,9 @@ export interface TestSuitesPopoverProps {
 }
 
 /**
- * Secondary entry point for suite-based runs. Suites live in a popover so the main toolbar stays focused on
- * class selection, while suite runs still share the run options (stop after failures / skip code coverage).
+ * Secondary entry point for suite-based runs. Suites live in a popover so the page header stays focused
+ * on the primary run action, while suite runs still share the run options (stop after failures / skip
+ * code coverage).
  */
 export const TestSuitesPopover: FunctionComponent<TestSuitesPopoverProps> = ({ suitesState, launching, onRunSuite, onOpenManager }) => {
   const popoverRef = useRef<PopoverRef>(null);
@@ -98,7 +99,20 @@ export const TestSuitesPopover: FunctionComponent<TestSuitesPopoverProps> = ({ s
           </Grid>
         </footer>
       }
-      buttonProps={{ className: 'slds-button slds-button_neutral slds-m-left_x-small', disabled: launching }}
+      buttonProps={{
+        className: 'slds-button slds-button_neutral',
+        // aria-disabled rather than native disabled: launching a suite closes this popover and returns
+        // focus to the trigger — a natively disabled trigger cannot take it, so focus fell to <body>
+        'aria-disabled': launching || undefined,
+        // Popover runs its own toggle before any buttonProps.onClick, so the guard has to stop the
+        // click in the capture phase to keep the panel closed while a run is launching
+        onClickCapture: (event) => {
+          if (launching) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+        },
+      }}
     >
       Test Suites
       <Icon type="utility" icon="chevrondown" className="slds-button__icon slds-button__icon_right" omitContainer />
