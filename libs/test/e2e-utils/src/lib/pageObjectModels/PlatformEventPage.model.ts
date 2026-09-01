@@ -45,6 +45,6 @@ export class PlatformEventPage {
     await this.publisherCard.getByRole('option', { name: eventName }).click();
     await this.publisherCard.getByLabel(`(${fieldName})`).fill(fieldValue);
     await this.publisherCard.getByRole('button', { name: 'Publish Event' }).click();
-    await expect(this.publisherCard.getByText(/informationEvent Id: [0-9a-fA-F-]+/)).toBeVisible();
+    await expect(this.publisherCard.getByText(/Event Id: [0-9a-fA-F-]+/)).toBeVisible();
   }
 }
