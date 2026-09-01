@@ -12,6 +12,9 @@ import {
 
 export function useApexTestSuites(org: SalesforceOrgUi, apiVersion: string) {
   const isMounted = useRef(true);
+  const currentFetchToken = useRef(0);
+  const currentOrgId = useRef(org.uniqueId);
+  currentOrgId.current = org.uniqueId;
   const [suites, setSuites] = useState<ApexTestSuiteRecord[]>([]);
   const [memberships, setMemberships] = useState<TestSuiteMembershipRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,17 +28,26 @@ export function useApexTestSuites(org: SalesforceOrgUi, apiVersion: string) {
   }, []);
 
   const loadSuites = useCallback(async () => {
+    // A create/rename/delete that settles after an org switch refreshes through its own closure, for the
+    // previous org — it must not claim the newest-request slot from the current org's load
+    if (org.uniqueId !== currentOrgId.current) {
+      return;
+    }
+    // This hook outlives an org switch (the page does not remount per org), so a slow response for the
+    // previous org must not land on top of the current org's suites — only the newest request may write
+    const fetchToken = ++currentFetchToken.current;
+    const isCurrent = () => isMounted.current && fetchToken === currentFetchToken.current;
     try {
       setLoading(true);
       setErrorMessage(null);
       const [suiteRecords, membershipRecords] = await Promise.all([fetchTestSuites(org), fetchTestSuiteMemberships(org)]);
-      if (isMounted.current) {
+      if (isCurrent()) {
         setSuites(suiteRecords);
         setMemberships(membershipRecords);
         setLoading(false);
       }
     } catch (ex) {
-      if (isMounted.current) {
+      if (isCurrent()) {
         setErrorMessage(getErrorMessage(ex));
         setLoading(false);
       }
