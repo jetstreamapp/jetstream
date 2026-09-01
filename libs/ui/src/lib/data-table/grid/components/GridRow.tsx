@@ -33,6 +33,8 @@ export interface GridRowProps<TRow extends object> {
   isExpanded: boolean;
   /** True for the last data row — lets its corner cells round to match the table's bottom corners. */
   isLastRow: boolean;
+  /** In a treegrid every row exposes its level (1-based); a plain grid has no levels. */
+  treeGrid?: boolean;
   /** Selection-rectangle spans intersecting this row (identity-stable per bounds), or null. */
   selectionSpans?: RowSelectionSpan[] | null;
   rowClass?: (row: TRow) => string | undefined;
@@ -60,6 +62,7 @@ function GridRowComponent<TRow extends object>({
   activeCell,
   isExpanded,
   isLastRow,
+  treeGrid,
   selectionSpans,
   rowClass,
   onCellMouseDown,
@@ -142,7 +145,7 @@ function GridRowComponent<TRow extends object>({
       ref={autoHeight ? measureRef : undefined}
       role="row"
       aria-rowindex={ariaRowIndex}
-      aria-level={row.depth > 0 ? row.depth + 1 : undefined}
+      aria-level={treeGrid ? row.depth + 1 : undefined}
       aria-expanded={row.getCanExpand() ? isExpanded : undefined}
       aria-selected={row.getCanSelect() ? isSelected : undefined}
       data-row-id={row.id}
