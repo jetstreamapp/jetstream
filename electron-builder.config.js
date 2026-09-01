@@ -184,9 +184,11 @@ async function verifyAsarDependencyClosure(context) {
 
 // Generous because the x64 slice runs under Rosetta 2 on GitHub's arm64 macOS runners, where
 // first-launch binary translation of the Electron framework alone can take well over a minute
-// (the 4.13.0 release run needed ~80s just to reach "App starting..."). Real post-boot hangs are
-// caught by the app's own 30s renderer timer (smoke-test.ts); this only guards a failure to boot.
-const SMOKE_TEST_LAUNCH_TIMEOUT_MS = 300_000;
+// (the 4.13.0 release run needed ~80s just to reach "App starting..."). The app's own renderer
+// timer (smoke-test.ts, 180s) starts later — at window creation — and catches post-boot hangs
+// with a specific message; this outer timer is the backstop for a failure to boot at all. Keep
+// it comfortably larger than boot time + the in-app timer so the inner one always fires first.
+const SMOKE_TEST_LAUNCH_TIMEOUT_MS = 420_000;
 
 /**
  * Launch the freshly packaged app binary with `--smoke-test` and require it to boot to a fully
