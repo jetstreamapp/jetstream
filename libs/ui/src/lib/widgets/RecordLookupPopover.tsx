@@ -219,7 +219,6 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
             <Grid align="spread">
               <div>
                 <button
-                  autoFocus
                   className="slds-button slds-button_neutral"
                   onClick={() => appActionObservable.next({ action: 'VIEW_RECORD', payload: { recordId } })}
                 >
