@@ -12,7 +12,7 @@ import {
 import { isEscapeKey } from '@jetstream/shared/ui-utils';
 import { Maybe, SizeSmMdLg } from '@jetstream/types';
 import classNames from 'classnames';
-import { KeyboardEvent, ReactNode, useEffect } from 'react';
+import { KeyboardEvent, ReactNode, RefObject, useEffect } from 'react';
 import Icon from '../widgets/Icon';
 import { PortalProvider } from './PortalContext';
 
@@ -37,6 +37,12 @@ export interface ModalProps {
   closeOnEsc?: boolean;
   closeOnBackdropClick?: boolean;
   overrideZIndex?: number;
+  /**
+   * Element to focus when the modal opens instead of its first tabbable element (the close button).
+   * Use this rather than `autoFocus` on a field: React applies `autoFocus` before floating-ui records which
+   * element opened the modal, so an autofocused field becomes the return-focus target and focus is lost on close.
+   */
+  initialFocus?: RefObject<HTMLElement | null>;
   children: ReactNode;
   onClose: () => void;
 }
@@ -70,6 +76,7 @@ export const Modal = ({
   closeOnEsc = true,
   closeOnBackdropClick = true,
   overrideZIndex,
+  initialFocus,
   children,
   onClose,
 }: ModalProps) => {
@@ -133,7 +140,7 @@ export const Modal = ({
           }}
           onClick={handleBackdropClick}
         >
-          <FloatingFocusManager context={context} modal returnFocus>
+          <FloatingFocusManager context={context} modal initialFocus={initialFocus} returnFocus>
             <section
               ref={refs.setFloating}
               {...getFloatingProps()}
