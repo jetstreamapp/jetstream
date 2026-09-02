@@ -131,22 +131,28 @@ export function GridBody<TRow extends object>({
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
+    // Heights are rounded up to whole pixels: a fractional row height lands alternate rows on half-pixel
+    // offsets, where their 1px borders render faint and uneven on 1x displays.
     estimateSize: (index) => {
       const current = rowHeightRef.current;
       if (typeof current === 'function') {
         const row = rows[index];
         if (row) {
-          return current({ type: row.getIsGrouped() ? 'GROUP' : 'ROW', row: row.original, columnWidths: columnWidthsRef.current });
+          return Math.ceil(
+            current({ type: row.getIsGrouped() ? 'GROUP' : 'ROW', row: row.original, columnWidths: columnWidthsRef.current }),
+          );
         }
         return DEFAULT_ROW_HEIGHT;
       }
-      return current ?? DEFAULT_ROW_HEIGHT;
+      return Math.ceil(current ?? DEFAULT_ROW_HEIGHT);
     },
     overscan,
     getItemKey: (index) => rows[index].id,
     // In auto-height mode the estimate above is only the initial guess; the virtualizer measures each
     // rendered row's real height (rows wrap to content) and corrects the offsets, keeping virtualization.
-    ...(autoRowHeight ? { measureElement: (el: Element | null) => el?.getBoundingClientRect().height ?? DEFAULT_ROW_HEIGHT } : {}),
+    ...(autoRowHeight
+      ? { measureElement: (el: Element | null) => Math.ceil(el?.getBoundingClientRect().height ?? DEFAULT_ROW_HEIGHT) }
+      : {}),
   });
   const measureRowRef = autoRowHeight ? rowVirtualizer.measureElement : undefined;
 
