@@ -59,6 +59,7 @@ import {
 } from './data-table-utils';
 import { DataTable } from './DataTable';
 import { FieldMetadataModal } from './FieldMetadataModal';
+import { DEFAULT_ROW_HEIGHT } from './grid/grid-constants';
 import { replaceSubqueryOnRecord } from './grid/grid-row-utils';
 import { RowsChangeData } from './grid/rdg-compat';
 import { getRowErrorMessages, mapSaveErrorsToRow, summarizeRowErrors, validateRow } from './grid/validate-cell-value';
@@ -970,7 +971,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
               includeQuickFilter
               quickFilterText={globalFilter}
               getRowKey={getRowId}
-              rowHeight={28.5}
+              rowHeight={DEFAULT_ROW_HEIGHT}
               selectedRows={selectedRows}
               rowClass={getRowClass}
               onReorderColumns={handleColumnReorder}
