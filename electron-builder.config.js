@@ -368,6 +368,14 @@ const config = {
 
   // NSIS Installer Configuration (replaces both WiX and Squirrel)
   nsis: {
+    /**
+     * electron-builder's NSIS default is "${productName} Setup ${version}.${ext}" - the space is
+     * hardcoded in its NsisTarget, not a Windows convention. Hyphens match the macOS artifacts
+     * (Jetstream-4.14.0.dmg, from a different electron-builder default) and keep the published URLs
+     * free of %20 for scripted/MDM downloads. Releases up to 4.14.0 used the spaced name; those
+     * artifacts keep it, and the auto-updater reads whatever name latest.yml carries.
+     */
+    artifactName: '${productName}-Setup-${version}.${ext}',
     oneClick: false,
     perMachine: false,
     allowToChangeInstallationDirectory: true,
@@ -387,12 +395,13 @@ const config = {
     requestExecutionLevel: 'user',
     unpackDirName: 'jetstream-portable',
     /**
-     * Pinned to what electron-builder's default template already produces ("Jetstream 4.14.0.exe").
      * The portable build is not listed in latest.yml, so the download API reconstructs this name
      * from the release version (apps/api/src/app/services/desktop-asset.service.ts) — changing it
-     * here without changing it there makes the portable download 404.
+     * here without changing it there makes the portable download 404. "Portable" is explicit
+     * because this artifact IS the app the user runs; electron-builder's default only distinguished
+     * it from the installer by the absence of the word "Setup" ("Jetstream 4.14.0.exe").
      */
-    artifactName: '${productName} ${version}.${ext}',
+    artifactName: '${productName}-Portable-${version}.${ext}',
   },
 
   // Protocol Handlers
