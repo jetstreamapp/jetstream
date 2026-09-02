@@ -5,7 +5,7 @@ import { fromQueryHistoryState, MonacoEditor, SoqlQueryFormatConfigPopover, useS
 import { formatQuery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import { OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
-import { FunctionComponent, useEffect, useReducer, useRef, useState } from 'react';
+import { FunctionComponent, RefObject, useEffect, useReducer, useRef, useState } from 'react';
 import SaveFavoriteSoql from '../QueryOptions/SaveFavoriteSoql';
 
 type Action =
@@ -57,6 +57,8 @@ export interface QueryResultsSoqlPanelProps {
   selectedOrg: SalesforceOrgUi;
   sObject: string;
   soqlQueryFormatOptions: SoqlQueryFormatOptions;
+  /** The toolbar button that toggles the panel, so closing can return focus to it */
+  returnFocusTo?: RefObject<HTMLElement | null>;
   onClosed: () => void;
   executeQuery: (soql: string, isTooling: boolean) => void;
   onOpenHistory: (type: fromQueryHistoryState.QueryHistoryType) => void;
@@ -70,6 +72,7 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
   selectedOrg,
   sObject,
   soqlQueryFormatOptions,
+  returnFocusTo,
   onClosed,
   executeQuery,
   onOpenHistory,
@@ -158,7 +161,15 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
   };
 
   return (
-    <Panel heading="SOQL Query" isOpen={isOpen} size="lg" fullHeight={false} position="left" onClosed={onClosed}>
+    <Panel
+      heading="SOQL Query"
+      isOpen={isOpen}
+      size="lg"
+      fullHeight={false}
+      position="left"
+      returnFocusTo={returnFocusTo}
+      onClosed={onClosed}
+    >
       <Textarea
         id="soql"
         labelClassName="w-100"

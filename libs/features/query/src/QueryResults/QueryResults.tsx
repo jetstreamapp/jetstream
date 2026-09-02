@@ -126,6 +126,7 @@ export const QueryResults = React.memo(() => {
     sobject?: { name: string; label: string };
   }>();
   const [soqlPanelOpen, setSoqlPanelOpen] = useState<boolean>(false);
+  const soqlPanelButtonRef = useRef<HTMLButtonElement>(null);
   const [soql, setSoql] = useState<string>('');
   const [sobject, setSobject] = useState<Maybe<string>>(null);
   const [parsedQuery, setParsedQuery] = useState<Maybe<Query>>(null);
@@ -735,6 +736,7 @@ export const QueryResults = React.memo(() => {
           </Tooltip>
           <ButtonGroupContainer>
             <button
+              ref={soqlPanelButtonRef}
               className={classNames('slds-button collapsible-button collapsible-button-md slds-button_first', {
                 'slds-button_neutral': !soqlPanelOpen,
                 'slds-button_brand': soqlPanelOpen,
@@ -818,6 +820,7 @@ export const QueryResults = React.memo(() => {
           isOpen={soqlPanelOpen}
           selectedOrg={selectedOrg}
           sObject={allowContentDownload.sobjectName || ''}
+          returnFocusTo={soqlPanelButtonRef}
           onClosed={() => setSoqlPanelOpen(false)}
           executeQuery={(soql, tooling) => executeQuery(soql, SOURCE_MANUAL, { isTooling: tooling })}
           onOpenHistory={handleOpenHistory}
