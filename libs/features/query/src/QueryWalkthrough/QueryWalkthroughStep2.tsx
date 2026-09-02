@@ -37,7 +37,7 @@ const Item3: FunctionComponent = () => {
 export const QueryWalkthroughStep2 = () => {
   return (
     <div>
-      <p className="slds-text-heading_small">Tips and Tricks</p>
+      <h3 className="slds-text-heading_small">Tips and Tricks</h3>
       <Item1 />
       <hr className="slds-m-vertical_small" />
       <Item2 />
