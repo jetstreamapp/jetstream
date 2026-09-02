@@ -118,7 +118,12 @@ export const TestResultDetailModal: FunctionComponent<TestResultDetailModalProps
                   <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Download
                 </button>
-                <CopyToClipboard type="button" content={logBody ?? ''} disabled={logBody === null || logLoading} />
+                <CopyToClipboard
+                  type="button"
+                  buttonText="Copy debug log"
+                  content={logBody ?? ''}
+                  disabled={logBody === null || logLoading}
+                />
               </div>
             </Grid>
             {logLoading && (
