@@ -1,0 +1,60 @@
+---
+id: accessibility
+title: Accessibility
+description: Jetstream's accessibility commitment, how to use the app with a keyboard or screen reader, and how to report an accessibility problem.
+keywords: [salesforce, accessibility, wcag, keyboard, screen reader, voiceover, nvda, jaws]
+sidebar_label: Accessibility
+slug: /accessibility
+---
+
+Jetstream is built to be usable by everyone, including people who rely on a keyboard, a screen reader, magnification, or other assistive technology.
+
+## Our commitment
+
+- Jetstream targets [WCAG 2.1 Level AA](https://www.w3.org/TR/WCAG21/) across the web app and the desktop app, which share the same interface.
+- Every release is scanned automatically with [axe-core](https://github.com/dequelabs/axe-core) across every page and key interactive states, and the number of known violations is only ever allowed to go down.
+- New features are reviewed for keyboard operation, accessible names and states, focus management, and screen reader announcements before they ship.
+- We complete a manual keyboard, screen reader (VoiceOver), and visual (zoom, reflow, text spacing) audit at least once a year and after major interface changes.
+- An Accessibility Conformance Report (ACR, using the VPAT 2.5 WCAG template) is available on request. Email [support@getjetstream.app](mailto:support@getjetstream.app?subject=Accessibility%20Conformance%20Report).
+
+Known gaps are tracked openly in the [accessibility program](https://github.com/jetstreamapp/jetstream/tree/main/docs/accessibility) in the Jetstream repository, alongside the audit findings and their status.
+
+## Keyboard use
+
+Everything in Jetstream can be done without a mouse. A few conventions are worth knowing because they are not always obvious:
+
+| Action                                                                                       | Keys                                                                                   |
+| -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Skip past the header to the page content                                                     | Press <kbd>Tab</kbd> once on any page, then <kbd>Enter</kbd> on "Skip to main content" |
+| Primary action on a page (run the query, save the record, start the load, deploy, run tests) | <kbd>Cmd</kbd>+<kbd>Enter</kbd> on Mac, <kbd>Ctrl</kbd>+<kbd>Enter</kbd> elsewhere     |
+| Go back to the previous step in a multi-step tool                                            | <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Enter</kbd>                       |
+| Open a record by Id from anywhere                                                            | <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>K</kbd>                                            |
+| Run a quick query from anywhere                                                              | <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>E</kbd>                                            |
+| Send feedback                                                                                | <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>.</kbd>                           |
+
+Buttons that have a shortcut show it in their tooltip, and screen readers announce it as part of the button.
+
+### Lists and tables
+
+Long lists (Salesforce objects, fields, test classes) and data tables are a single stop in the <kbd>Tab</kbd> order so you never have to tab through hundreds of rows:
+
+- **Object and field lists**: type in the filter box and press <kbd>↓</kbd> to move into the list. <kbd>↑</kbd> / <kbd>↓</kbd> move between rows, <kbd>Space</kbd> selects the row, <kbd>→</kbd> reaches a row's extra controls (such as "Where is this field used?") and <kbd>←</kbd> returns to the row. <kbd>Home</kbd> / <kbd>End</kbd> jump to the first or last row.
+- **Data tables** (query results, permissions, load results): arrow keys move between cells. <kbd>Enter</kbd> edits a cell or moves into the controls inside it; <kbd>Escape</kbd> returns to the cell. <kbd>Space</kbd> activates a cell's button or checkbox. Press <kbd>↑</kbd> from the first row to reach the column headers, where <kbd>Enter</kbd> sorts and <kbd>Space</kbd> opens the column filter.
+- **Comboboxes and picklists**: type to filter, <kbd>↑</kbd> / <kbd>↓</kbd> to move through the options, <kbd>Enter</kbd> to choose, <kbd>Escape</kbd> to close without choosing. <kbd>Tab</kbd> always leaves the control.
+- **Tabs, accordions, trees, and menus** follow the standard arrow-key patterns: arrows move between items, <kbd>Home</kbd> / <kbd>End</kbd> jump to the ends, <kbd>Escape</kbd> closes a menu and returns focus to the button that opened it.
+
+### Code editors
+
+The SOQL, Apex, and formula editors are the Monaco editor (the editor in VS Code). By default <kbd>Tab</kbd> indents inside the editor; press <kbd>Ctrl</kbd>+<kbd>M</kbd> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> on Mac) to make <kbd>Tab</kbd> move focus out of the editor instead, and <kbd>F1</kbd> to open the editor's command palette.
+
+## Screen readers
+
+Jetstream is tested with VoiceOver on macOS in Safari and Chrome. Names, roles, and states are exposed on every control, results of long-running actions (queries, loads, deployments, test runs) are announced when they finish, and error messages are read when they appear.
+
+If you use a screen reader, turn on **Optimize code editors for screen readers** in [Settings](/user-profile-and-settings/settings). It switches the code editors to their screen reader mode, which announces line content and enables assistive navigation.
+
+## Report an accessibility problem
+
+If something is hard or impossible to use with assistive technology, we want to know and we treat it as a bug. Email [support@getjetstream.app](mailto:support@getjetstream.app?subject=Accessibility%20issue) or [open a GitHub issue](https://github.com/jetstreamapp/jetstream/issues); the other ways to reach us are on the [Help & Feedback](/feedback) page.
+
+It helps to include the page you were on, what you were trying to do, and the browser and assistive technology you use (for example "Chrome with NVDA" or "Safari with VoiceOver").
