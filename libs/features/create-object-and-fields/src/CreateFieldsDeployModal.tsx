@@ -2,7 +2,17 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useFetchPageLayouts } from '@jetstream/shared/ui-utils';
 import { PermissionSetNoProfileRecord, PermissionSetWithProfileRecord, SalesforceOrgUi } from '@jetstream/types';
-import { Checkbox, ConfirmationModalPromise, FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
+import {
+  ariaDisabledButtonProps,
+  Checkbox,
+  ConfirmationModalPromise,
+  FileDownloadModal,
+  Grid,
+  Icon,
+  Modal,
+  ScopedNotification,
+  Spinner,
+} from '@jetstream/ui';
 import {
   ConfirmPageChange,
   FieldValues,
@@ -151,7 +161,8 @@ export const CreateFieldsDeployModal = ({
                 <button className="slds-button slds-button_neutral" onClick={() => handleCloseModal()} disabled={loading}>
                   Close
                 </button>
-                <button className="slds-button slds-button_brand" onClick={handleDeploy} disabled={loading}>
+                {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
+                <button className="slds-button slds-button_brand" {...ariaDisabledButtonProps(loading, () => handleDeploy())}>
                   Upsert Fields
                 </button>
               </div>
@@ -258,9 +269,9 @@ export const CreateFieldsDeployModal = ({
                   </div>
                 )}
                 {loadingLayouts && <Spinner />}
-                <div className="slds-text-heading_small slds-truncate" title="Add to Page Layouts">
+                <h3 className="slds-text-heading_small slds-truncate" title="Add to Page Layouts">
                   Add to Page Layouts
-                </div>
+                </h3>
                 {Object.keys(layoutsByObject).map((objectName) => (
                   <fieldset className="slds-form-element slds-m-top_small slds-p-right_x-small" key={`layout-heading-${objectName}`}>
                     <legend
