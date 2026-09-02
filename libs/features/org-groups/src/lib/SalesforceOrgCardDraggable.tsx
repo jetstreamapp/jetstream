@@ -26,7 +26,7 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
   const { ref, handleRef, isDragging } = useDraggable<DraggableSfdcCard>({
     id: org.uniqueId,
     type: 'SalesforceOrg',
-    data: { uniqueId: org.uniqueId, organizationId: org.jetstreamOrganizationId ?? null },
+    data: { uniqueId: org.uniqueId, organizationId: org.jetstreamOrganizationId ?? null, label: org.label },
   });
 
   return (
@@ -78,7 +78,7 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
               <button
                 ref={handleRef}
                 type="button"
-                aria-label={`Drag ${org.label}`}
+                aria-label={`Move ${org.label}`}
                 className="slds-button slds-button_icon slds-button_icon-x-small slds-m-right_xx-small"
                 css={css`
                   cursor: grab;
