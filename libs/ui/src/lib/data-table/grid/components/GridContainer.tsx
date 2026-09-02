@@ -385,7 +385,10 @@ export function GridContainer<TRow extends object = RowWithKey>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyboardNav.activeCell?.columnId]);
 
-  const cellHintIds = useMemo(() => ({ editable: `${gridId}-hint-editable`, controls: `${gridId}-hint-controls` }), [gridId]);
+  const cellHintIds = useMemo(
+    () => ({ editable: `${gridId}-hint-editable`, controls: `${gridId}-hint-controls`, link: `${gridId}-hint-link` }),
+    [gridId],
+  );
 
   const runtime: GridRuntime<TRow> = useMemo(
     () => ({ table, gridId, getRowKey, columns: orderedColumns }),
@@ -924,6 +927,9 @@ export function GridContainer<TRow extends object = RowWithKey>({
         </span>
         <span id={cellHintIds.controls} className="slds-assistive-text">
           Contains controls. Press Enter to interact with them and Escape to return to the cell.
+        </span>
+        <span id={cellHintIds.link} className="slds-assistive-text">
+          Contains a link. Press Enter to move to it and Escape to return to the cell.
         </span>
 
         {/* Screen-reader announcement of the current navigation/actionable mode. */}
