@@ -3,19 +3,24 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
 import { ORG_INACTIVITY_EXPIRATION_DAYS } from '@jetstream/shared/utils';
 import { AddOrgHandlerFn, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Badge, ConfirmationModalPromise, Grid, Icon, Spinner, Tooltip, fireToast } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Badge, ConfirmationModalPromise, fireToast, Grid, Icon, Spinner, Tooltip } from '@jetstream/ui';
 import {
   AddOrg,
-  OrgExpirationStatus,
   getOrgExpirationBadge,
   getOrgExpirationTooltip,
+  OrgExpirationStatus,
   useAmplitude,
   useOrgExpiration,
   useUpdateOrgs,
 } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useSetAtom } from 'jotai';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+/** Id of an org card's heading — the focus target when the card's connection controls disappear under the user */
+export function getOrgCardHeadingId(orgUniqueId: string) {
+  return `org-card-heading-${orgUniqueId}`;
+}
 
 interface SalesforceOrgCardConnectionRefreshProps {
   org: SalesforceOrgUi;
@@ -62,6 +67,20 @@ export function SalesforceOrgCardConnectionRefresh({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const setOrgs = useSetAtom(fromAppState.salesforceOrgsAsyncState);
 
+  const showsConnectionControls = orgExpiration.status !== 'connected';
+
+  // A successful refresh clears the expiry / error state, which removes this whole block — and the
+  // Refresh button the keyboard user just activated — so land focus on the card heading instead of
+  // letting it fall to <body>
+  const previouslyShowedControlsRef = useRef(showsConnectionControls);
+  useEffect(() => {
+    const controlsDisappeared = previouslyShowedControlsRef.current && !showsConnectionControls;
+    previouslyShowedControlsRef.current = showsConnectionControls;
+    if (controlsDisappeared && document.activeElement === document.body) {
+      document.getElementById(getOrgCardHeadingId(org.uniqueId))?.focus({ preventScroll: true });
+    }
+  }, [showsConnectionControls, org.uniqueId]);
+
   const handleRefreshOrg = async () => {
     setIsRefreshing(true);
     let success = true;
@@ -104,7 +123,7 @@ export function SalesforceOrgCardConnectionRefresh({
     }
   };
 
-  if (orgExpiration.status === 'connected') {
+  if (!showsConnectionControls) {
     return null;
   }
 
@@ -124,6 +143,8 @@ export function SalesforceOrgCardConnectionRefresh({
                 containerClassname="slds-icon_container slds-current-color"
               />
               {badge.label}
+              {/* The explanation is otherwise tooltip-only on an element that cannot take focus */}
+              {tooltip && <span className="slds-assistive-text"> {tooltip}</span>}
             </Badge>
           </Tooltip>
         </Grid>
@@ -131,12 +152,18 @@ export function SalesforceOrgCardConnectionRefresh({
 
       {refreshIcon.isVisible && (
         <Tooltip content={refreshIcon.tooltip}>
+          {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
           <button
             className="slds-button slds-button_icon slds-button_icon-container slds-m-left_xx-small"
-            onClick={handleRefreshOrg}
-            disabled={isRefreshing}
+            {...ariaDisabledButtonProps(isRefreshing, () => handleRefreshOrg())}
           >
-            <Icon type="utility" icon="refresh" description="Refresh org connection" className="slds-button__icon" omitContainer />
+            <Icon
+              type="utility"
+              icon="refresh"
+              description={`Refresh ${org.label} connection`}
+              className="slds-button__icon"
+              omitContainer
+            />
           </button>
         </Tooltip>
       )}
@@ -154,11 +181,11 @@ export function SalesforceOrgCardConnectionRefresh({
           />
           <button
             className="slds-button slds-button_icon slds-button_icon-border slds-button_icon-error slds-m-left_xx-small"
-            title="Remove Org"
+            title={`Remove ${org.label}`}
             onClick={handleRemoveOrg}
           >
             <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
-            <span className="slds-assistive-text">Remove Org</span>
+            <span className="slds-assistive-text">Remove {org.label}</span>
           </button>
         </>
       )}
