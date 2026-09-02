@@ -39,10 +39,8 @@ import { ChangeEvent, FunctionComponent, useCallback, useEffect, useMemo, useRef
 import LoadRecordsAssignmentRules from '../components/LoadRecordsAssignmentRules';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
-import { useAllowedLoadTypes } from '../useAllowedLoadTypes';
+import { LOAD_TYPE_NOT_ALLOWED_MESSAGE, useAllowedLoadTypes } from '../useAllowedLoadTypes';
 import { buildLoadRecordsHistoryConfig, LoadRecordsHistoryConfig, startLoadRecordsHistory } from '../utils/data-history-capture';
-
-const LOAD_TYPE_NOT_ALLOWED_MESSAGE = `Your Jetstream access does not include this type of data load.`;
 
 /**
  * The only Data History values that differ between an initial load, a trial run and a retry —
