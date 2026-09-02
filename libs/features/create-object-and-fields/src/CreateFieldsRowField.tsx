@@ -91,7 +91,11 @@ export const CreateFieldsRowField = forwardRef<unknown, CreateFieldsRowFieldProp
             {!!field.allowRefreshValues && (
               <Grid vertical verticalStretch align={fetchError ? 'center' : 'end'}>
                 <Tooltip content={'Refresh values from Salesforce'}>
-                  <button className="slds-button slds-button_icon slds-button_icon-container" onClick={() => fetchValues(null, true)}>
+                  <button
+                    className="slds-button slds-button_icon slds-button_icon-container"
+                    aria-label={`Refresh ${field.label} values from Salesforce`}
+                    onClick={() => fetchValues(null, true)}
+                  >
                     <Icon type="utility" icon="refresh" className="slds-button__icon" omitContainer />
                   </button>
                 </Tooltip>
@@ -151,7 +155,8 @@ export const CreateFieldsRowField = forwardRef<unknown, CreateFieldsRowFieldProp
                   key={_value.id}
                   idPrefix={id}
                   id={`${id}-${_value.id}`}
-                  name={field.label}
+                  // `id` is row-scoped; a bare field label would put every row's radios in one native group
+                  name={`${id}-${field.label}`}
                   label={_value.label}
                   value={_value.value}
                   checked={_value.value === value}
