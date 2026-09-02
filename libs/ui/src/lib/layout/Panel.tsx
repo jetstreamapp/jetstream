@@ -1,7 +1,8 @@
 import { css } from '@emotion/react';
 import { PositionLeftRight, SizeSmMdLgXlFull } from '@jetstream/types';
 import classNames from 'classnames';
-import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, RefObject, useEffect, useRef, useState } from 'react';
+import { focusContainer } from '../utils/focus-container';
 import Icon from '../widgets/Icon';
 
 export interface PanelProps {
@@ -33,6 +34,19 @@ export interface PanelProps {
    * Note: fullHeight panels use `position: fixed` and anchor to the viewport.
    */
   zIndex?: number;
+  /**
+   * The control that opens the panel. Focus returns to it on close when nothing was focused at open
+   * time — Safari does not focus a button on mouse click, so `document.activeElement` is `<body>` and
+   * there would otherwise be nowhere to return to. A focused element at open time still wins, so a
+   * keyboard shortcut used from inside a grid returns to the cell the user was on.
+   */
+  returnFocusTo?: RefObject<HTMLElement | null>;
+  /**
+   * Whether opening moves focus into the panel. Default: true. Pass false when the panel opened on its
+   * own rather than from a user action (e.g. after a request failed), so it does not pull focus away from
+   * wherever the user is working by then. Read when the panel opens.
+   */
+  focusOnOpen?: boolean;
   onClosed: () => void;
   children?: React.ReactNode;
 }
@@ -76,12 +90,22 @@ export const Panel: FunctionComponent<PanelProps> = ({
   closeOnEscape = false,
   closeOnOutsideClick = false,
   zIndex,
+  returnFocusTo,
+  focusOnOpen = true,
   onClosed,
   children,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  const focusOnOpenRef = useRef(focusOnOpen);
+
+  // Read when the panel opens rather than tracked by the effect below, which would otherwise hand focus
+  // back to the opener and re-run whenever the prop changes while the panel is open. Declared first so
+  // it has updated the ref by the time that effect runs in the same commit.
+  useEffect(() => {
+    focusOnOpenRef.current = focusOnOpen;
+  }, [focusOnOpen]);
 
   // Non-modal drawer focus contract: opening moves focus INTO the panel (announcing its heading),
   // closing returns focus to whatever opened it — unless the user closed it by moving focus
@@ -90,25 +114,47 @@ export const Panel: FunctionComponent<PanelProps> = ({
     if (!isOpen) {
       return;
     }
-    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const activeAtOpen = document.activeElement;
+    const focusedElementAtOpen = activeAtOpen instanceof HTMLElement && activeAtOpen !== document.body ? activeAtOpen : null;
+    returnFocusRef.current = focusedElementAtOpen ?? returnFocusTo?.current ?? null;
     const panelEl = panelRef.current;
-    panelEl?.querySelector<HTMLElement>('[data-panel-focus-target]')?.focus();
+    const focusTarget = panelEl?.querySelector<HTMLElement>('[data-panel-focus-target]');
+    if (focusTarget && focusOnOpenRef.current) {
+      focusContainer(focusTarget);
+    }
     return () => {
       const active = document.activeElement;
       const focusWasInsidePanel = !active || active === document.body || !!panelEl?.contains(active);
       const returnTarget = returnFocusRef.current;
       if (focusWasInsidePanel && returnTarget && document.contains(returnTarget)) {
         returnTarget.focus();
+        // A landmark the user was on (focused by a route change or the skip link) is only focusable while
+        // it holds that focus, so it has to be handed focus the same way again
+        if (document.activeElement !== returnTarget) {
+          focusContainer(returnTarget);
+        }
       }
     };
-  }, [isOpen]);
+  }, [isOpen, returnFocusTo]);
 
   // Escape with focus INSIDE the panel always closes it (a keyboard user must be able to leave the
   // drawer the way they entered); the closeOnEscape prop additionally closes on Escape from anywhere.
+  // Callers pass inline onClosed handlers, so it is read through a ref: re-subscribing on every parent
+  // render would also forget the last pointer press below.
+  const onClosedRef = useRef(onClosed);
+  useEffect(() => {
+    onClosedRef.current = onClosed;
+  });
   useEffect(() => {
     if (!isOpen) {
       return;
     }
+    // A click on the panel's text (or, in Safari, on any of its buttons) leaves focus on <body>, so the
+    // last pointer press stands in for focus when deciding whether the user is working in the panel
+    let pointerWasInsidePanel = false;
+    const trackPointer = (event: PointerEvent) => {
+      pointerWasInsidePanel = event.target instanceof Node && !!panelRef.current?.contains(event.target);
+    };
     const handler = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') {
         return;
@@ -122,15 +168,22 @@ export const Panel: FunctionComponent<PanelProps> = ({
       if (isSearchInputWithText || isInCodeEditor) {
         return;
       }
-      if (!event.defaultPrevented && panelRef.current?.contains(document.activeElement) && document.activeElement !== document.body) {
+      const active = document.activeElement;
+      const focusIsOnBody = !active || active === document.body;
+      const focusIsInsidePanel = !focusIsOnBody && !!panelRef.current?.contains(active);
+      if (!event.defaultPrevented && (focusIsInsidePanel || (focusIsOnBody && pointerWasInsidePanel))) {
         event.preventDefault();
         event.stopPropagation();
-        onClosed();
+        onClosedRef.current();
       }
     };
+    document.addEventListener('pointerdown', trackPointer, { capture: true });
     document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [isOpen, onClosed]);
+    return () => {
+      document.removeEventListener('pointerdown', trackPointer, { capture: true });
+      document.removeEventListener('keydown', handler);
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || !closeOnEscape) {
@@ -183,7 +236,6 @@ export const Panel: FunctionComponent<PanelProps> = ({
       <div
         role="region"
         aria-label={heading}
-        tabIndex={-1}
         data-panel-focus-target
         className={classNames('slds-panel slds-panel_docked slds-is-open', getPositionClass(position), getSizeClass(size))}
         aria-hidden="false"
