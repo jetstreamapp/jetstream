@@ -8,7 +8,7 @@ import type { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, OutsideClickHandler, Tabs } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue, useSetAtom } from 'jotai';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import browser from 'webextension-polyfill';
 import { useResolvedColorScheme } from '../hooks/useResolvedColorScheme';
 import '../sfdc-styles-shim.css';
@@ -114,6 +114,9 @@ export function SfdcPageButton() {
 
   const [sfHost, setSfHost] = useState<Maybe<string>>(null);
   const [isOpen, setIsOpen] = useState(false);
+  // OutsideClickHandler closes the panel on the mouseup of a click on the trigger itself, so a plain
+  // toggle would reopen it on the click that follows — remember whether it was open at pointerdown
+  const wasOpenAtPointerDownRef = useRef(false);
   const [recordId, setRecordId] = useState(() => getRecordPageRecordId(location.pathname));
   const [objectName, setObjectName] = useState(() => getRecordPageObject(location.pathname));
   const [org, setOrg] = useState<SalesforceOrgUi | null>(null);
@@ -190,16 +193,35 @@ export function SfdcPageButton() {
     }
   }, [isOnSalesforcePage, setSalesforceOrgs, setSelectedOrgId]);
 
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const restoreFocusToTriggerRef = useRef(false);
+
   // Close panel on escape key (quick view takes precedence via stopImmediatePropagation)
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && isOpen) {
+        // Only focus that is about to be orphaned with the panel is handed back to the trigger. This
+        // runs on a Salesforce page: a close from an outside click, or Escape pressed from a Salesforce
+        // field, must leave focus in the page control the user is working in.
+        restoreFocusToTriggerRef.current = !!panelRef.current?.contains(document.activeElement);
         setIsOpen(false);
       }
     };
 
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen]);
+
+  // Dialog focus management: land on the panel's first control when it opens; the trigger stays
+  // mounted while open so it can take focus back when Escape closes the panel from inside
+  useEffect(() => {
+    if (isOpen) {
+      panelRef.current?.querySelector<HTMLElement>('button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus();
+    } else if (restoreFocusToTriggerRef.current) {
+      triggerRef.current?.focus();
+    }
+    restoreFocusToTriggerRef.current = false;
   }, [isOpen]);
 
   if (!options.enabled || !authTokens?.loggedIn) {
@@ -218,16 +240,23 @@ export function SfdcPageButton() {
   return (
     <>
       <button
+        ref={triggerRef}
         data-testid="jetstream-ext-page-button"
+        aria-label="Open Jetstream"
+        aria-expanded={isOpen}
+        aria-haspopup="dialog"
         css={css`
           z-index: 1000;
-          display: ${isOpen ? 'none' : 'block'};
+          display: block;
           position: fixed;
           vertical-align: middle;
           pointer: cursor;
           top: clamp(1px, ${buttonPosition.position}px, 100vh);
           ${buttonPosition.location}: ${isOpen ? '0px' : '-5px'};
-          opacity: ${isOpen ? '1' : `${buttonPosition.opacity}`};
+          /* Hidden from the pointer while the panel is open (the panel covers it; a large or low button
+             would otherwise show beside the panel). It stays focusable: :focus-visible reveals it. */
+          opacity: ${isOpen ? '0' : `${buttonPosition.opacity}`};
+          pointer-events: ${isOpen ? 'none' : 'auto'};
           width: ${buttonPosition.inactiveSize}px;
           transition: transform 0.3s ease;
           transform: ${isOpen ? `scale(${buttonPosition.activeScale})` : 'scale(1)'};
@@ -246,8 +275,31 @@ export function SfdcPageButton() {
             ${buttonPosition.location}: 0px;
             transform: scale(${buttonPosition.activeScale});
           }
+          /* Keyboard focus shows a ring and brings the (dimmed, half off-screen) trigger fully into view,
+             like hover; programmatic focus on panel close keeps the quiet look */
+          &:focus-visible {
+            opacity: 1;
+            ${buttonPosition.location}: 0px;
+            transform: scale(${buttonPosition.activeScale});
+            outline: 2px solid #0176d3;
+            outline-offset: 2px;
+          }
         `}
-        onClick={() => setIsOpen(true)}
+        onPointerDown={() => {
+          wasOpenAtPointerDownRef.current = isOpen;
+        }}
+        onKeyDown={() => {
+          // A pointer press that never became a click (drag off) must not turn the next Enter into a close
+          wasOpenAtPointerDownRef.current = false;
+        }}
+        onClick={() => {
+          if (wasOpenAtPointerDownRef.current) {
+            wasOpenAtPointerDownRef.current = false;
+            setIsOpen(false);
+            return;
+          }
+          setIsOpen((open) => !open);
+        }}
       >
         <JetstreamIcon />
       </button>
@@ -273,6 +325,9 @@ export function SfdcPageButton() {
           onOutsideClick={() => setIsOpen(false)}
         >
           <div
+            ref={panelRef}
+            role="dialog"
+            aria-label="Jetstream"
             data-testid="jetstream-ext-popup-body"
             className="slds-popover__body slds-is-relative"
             css={css`
