@@ -106,7 +106,7 @@ export class OrgGroupPage {
     // controls, so dnd-kit's activator lives on the handle)
     const source = this.page
       .getByTestId(`salesforce-org-${salesforceOrgLabel}`)
-      .getByRole('button', { name: `Drag ${salesforceOrgLabel}` });
+      .getByRole('button', { name: `Move ${salesforceOrgLabel}` });
     const target = this.page.getByTestId(`org-group-card-${jetstreamOrgName}`);
 
     const sourceBox = await source.boundingBox();
