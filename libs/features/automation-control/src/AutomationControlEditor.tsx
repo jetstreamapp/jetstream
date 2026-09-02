@@ -4,6 +4,7 @@ import { formatNumber, useGoBackShortcut, usePrimaryActionShortcut, useTitle } f
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { FileExtAllTypes, ListMetadataResult, Maybe, MimeType, RetrievePackageFromListMetadataJob } from '@jetstream/types';
 import {
+  AssistiveStatus,
   AutoFullHeightContainer,
   Badge,
   ButtonGroupContainer,
@@ -44,10 +45,16 @@ import {
   isValidationRecord,
   isWorkflowRuleRecord,
 } from './automation-control-data-utils';
-import { TableRowItem } from './automation-control-types';
+import { TableRowItem, TableRowOrItemOrChild } from './automation-control-types';
 import { useAutomationControlData } from './useAutomationControlData';
 
 const HEIGHT_BUFFER = 170;
+
+/** Object group rows and version children are structure, not items — count only what the user asked to load */
+function getLoadedItemsMessage(rows: TableRowOrItemOrChild[]) {
+  const itemCount = rows.filter(isTableRowItem).length;
+  return `${formatNumber(itemCount)} automation ${pluralizeFromNumber('item', itemCount)} loaded`;
+}
 
 export const AutomationControlEditor = () => {
   useTitle(TITLES.AUTOMATION_CONTROL);
@@ -376,6 +383,9 @@ export const AutomationControlEditor = () => {
         <Grid>
           <Grid className="slds-grow slds-box_small slds-theme_default slds-is-relative" verticalAlign="center" wrap>
             {loading && <Spinner size="small"></Spinner>}
+            {/* The table mounts with its rows already loaded, so the grid's own count announcement (which
+                reacts to filter changes) never fires for the initial load */}
+            <AssistiveStatus message={loading ? 'Loading automation items' : getLoadedItemsMessage(rows)} />
             <SearchInput
               id="quick-filter"
               ariaLabel="Filter automation items"
