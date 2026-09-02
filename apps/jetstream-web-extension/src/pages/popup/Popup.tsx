@@ -87,7 +87,7 @@ export function Component() {
             />
             <Select id="color-scheme" className="slds-m-top_x-small" label="Theme">
               <select
-                id="color-scheme-select"
+                id="color-scheme"
                 aria-describedby="color-scheme"
                 className="slds-select"
                 value={colorScheme ?? 'light'}
