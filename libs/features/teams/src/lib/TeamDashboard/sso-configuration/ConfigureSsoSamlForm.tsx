@@ -170,6 +170,7 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
         <legend className="slds-text-heading_small slds-m-bottom_small">Configuration</legend>
 
         <Input
+          id="sso-saml-name"
           label="Connection Name"
           className="slds-m-bottom_x-small"
           isRequired
@@ -177,6 +178,7 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
           errorMessage={errors?.name?.message}
         >
           <input
+            id="sso-saml-name"
             className={classNames('slds-input', { 'active-item-yellow-bg': isEditing && dirtyFields.name })}
             placeholder="SAML Provider (Okta, Azure, etc..)"
             {...register('name')}
@@ -184,13 +186,14 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
         </Input>
 
         <Input
+          id="sso-saml-nameIdFormat"
           label="Name ID Format"
           isRequired
           labelHelp="Format for the NameID sent in SAML assertions - you can also leave this as 'unspecified' with your provider."
           hasError={!!errors?.nameIdFormat}
           errorMessage={errors?.nameIdFormat?.message}
         >
-          <input className="slds-input" readOnly {...register('nameIdFormat')} />
+          <input id="sso-saml-nameIdFormat" className="slds-input" readOnly {...register('nameIdFormat')} />
         </Input>
       </fieldset>
 
@@ -217,8 +220,9 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
                   </p>
                   <div className="slds-grid slds-gutters_x-small slds-grid_vertical-align-end">
                     <div className="slds-col">
-                      <Input label="Metadata URL" labelHelp="The URL to your IdP's SAML metadata XML document">
+                      <Input id="sso-saml-idpMetadataUrl" label="Metadata URL" labelHelp="The URL to your IdP's SAML metadata XML document">
                         <input
+                          id="sso-saml-idpMetadataUrl"
                           className={classNames('slds-input', { 'active-item-yellow-bg': isEditing && dirtyFields.idpMetadataUrl })}
                           placeholder="https://your-idp.example.com/metadata"
                           {...register('idpMetadataUrl')}
@@ -265,6 +269,7 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
                   <p className="slds-text-title slds-m-bottom_x-small">Option 3 — Paste XML</p>
                   <Textarea id="saml-metadata" label="IdP Metadata XML" helpText="Paste the SAML metadata XML from your identity provider">
                     <textarea
+                      id="saml-metadata"
                       className={classNames('slds-textarea', { 'active-item-yellow-bg': isEditing && dirtyFields.idpMetadataXml })}
                       rows={4}
                       placeholder="<EntityDescriptor...>"
@@ -287,15 +292,29 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
 
         <div className="slds-text-align_center slds-m-vertical_small slds-text-color_weak">— or enter the fields below manually —</div>
 
-        <Input label="IdP Entity ID" isRequired hasError={!!errors?.idpEntityId} errorMessage={errors?.idpEntityId?.message}>
+        <Input
+          id="sso-saml-idpEntityId"
+          label="IdP Entity ID"
+          isRequired
+          hasError={!!errors?.idpEntityId}
+          errorMessage={errors?.idpEntityId?.message}
+        >
           <input
+            id="sso-saml-idpEntityId"
             className={classNames('slds-input', { 'active-item-yellow-bg': isEditing && dirtyFields.idpEntityId })}
             {...register('idpEntityId')}
           />
         </Input>
 
-        <Input label="IdP SSO URL" isRequired hasError={!!errors?.idpSsoUrl} errorMessage={errors?.idpSsoUrl?.message}>
+        <Input
+          id="sso-saml-idpSsoUrl"
+          label="IdP SSO URL"
+          isRequired
+          hasError={!!errors?.idpSsoUrl}
+          errorMessage={errors?.idpSsoUrl?.message}
+        >
           <input
+            id="sso-saml-idpSsoUrl"
             className={classNames('slds-input', { 'active-item-yellow-bg': isEditing && dirtyFields.idpSsoUrl })}
             placeholder="https://idp.example.com/sso/saml"
             {...register('idpSsoUrl')}
@@ -303,6 +322,7 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
         </Input>
 
         <Input
+          id="sso-saml-idpCertificate"
           label="IdP Certificate"
           isRequired
           helpText="X.509 certificate"
@@ -310,6 +330,7 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
           errorMessage={errors?.idpCertificate?.message}
         >
           <textarea
+            id="sso-saml-idpCertificate"
             className={classNames('slds-textarea', { 'active-item-yellow-bg': isEditing && dirtyFields.idpCertificate })}
             rows={3}
             placeholder="MIIC..."
@@ -334,12 +355,14 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
       <fieldset className="slds-m-top_medium">
         <legend className="slds-text-heading_small slds-m-bottom_small">Attribute Mapping</legend>
         <Input
+          id="sso-saml-attributeMapping-email"
           label="Email Attribute"
           isRequired
           hasError={!!errors?.attributeMapping?.email}
           errorMessage={errors?.attributeMapping?.email?.message}
         >
           <input
+            id="sso-saml-attributeMapping-email"
             className={classNames('slds-input', { 'active-item-yellow-bg': isEditing && dirtyFields.attributeMapping?.email })}
             placeholder="email"
             {...register('attributeMapping.email')}
@@ -347,12 +370,14 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
         </Input>
 
         <Input
+          id="sso-saml-attributeMapping-userName"
           label="Username Attribute"
           labelHelp="Defaults to Email if not provided"
           hasError={!!errors?.attributeMapping?.userName}
           errorMessage={errors?.attributeMapping?.userName?.message}
         >
           <input
+            id="sso-saml-attributeMapping-userName"
             className={classNames('slds-input', { 'active-item-yellow-bg': isEditing && dirtyFields.attributeMapping?.userName })}
             placeholder="username"
             {...register('attributeMapping.userName')}
@@ -360,11 +385,13 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
         </Input>
 
         <Input
+          id="sso-saml-attributeMapping-firstName"
           label="First Name Attribute"
           hasError={!!errors?.attributeMapping?.firstName}
           errorMessage={errors?.attributeMapping?.firstName?.message}
         >
           <input
+            id="sso-saml-attributeMapping-firstName"
             className={classNames('slds-input', { 'active-item-yellow-bg': isEditing && dirtyFields.attributeMapping?.firstName })}
             placeholder="firstName"
             {...register('attributeMapping.firstName')}
@@ -372,11 +399,13 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
         </Input>
 
         <Input
+          id="sso-saml-attributeMapping-lastName"
           label="Last Name Attribute"
           hasError={!!errors?.attributeMapping?.lastName}
           errorMessage={errors?.attributeMapping?.lastName?.message}
         >
           <input
+            id="sso-saml-attributeMapping-lastName"
             className={classNames('slds-input', { 'active-item-yellow-bg': isEditing && dirtyFields.attributeMapping?.lastName })}
             placeholder="lastName"
             {...register('attributeMapping.lastName')}
