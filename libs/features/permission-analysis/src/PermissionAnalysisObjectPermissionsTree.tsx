@@ -124,7 +124,9 @@ function renderPermissionSetGroupCell(
       `}
       onClick={toggleGroup}
       title={exportLabel}
+      aria-expanded={isExpanded}
     >
+      {/* Decorative: the button's visible text names it and aria-expanded carries the state */}
       <Icon
         type="utility"
         icon={isExpanded ? 'chevrondown' : 'chevronright'}
@@ -134,7 +136,6 @@ function renderPermissionSetGroupCell(
           margin-top: 0.125rem;
         `}
         omitContainer
-        description={isExpanded ? 'Collapse' : 'Expand'}
       />
       <span
         css={css`
