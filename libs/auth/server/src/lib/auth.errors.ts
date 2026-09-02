@@ -2,6 +2,7 @@ type ErrorType =
   | 'AccountLocked'
   | 'AuthError'
   | 'EmailChangeNotAllowed'
+  | 'EmailDomainNotAllowed'
   | 'ExpiredVerificationToken'
   | 'IdentityLinkingNotAllowed'
   | 'InactiveUser'
@@ -126,6 +127,10 @@ export class InvalidOrExpiredEmailChangeToken extends AuthError {
 
 export class EmailChangeNotAllowed extends AuthError {
   static type: ErrorType = 'EmailChangeNotAllowed';
+}
+
+export class EmailDomainNotAllowed extends AuthError {
+  static type: ErrorType = 'EmailDomainNotAllowed';
 }
 
 export class TooManyVerificationAttempts extends AuthError {
