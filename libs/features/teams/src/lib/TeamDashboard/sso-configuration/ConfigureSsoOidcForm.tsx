@@ -91,7 +91,10 @@ export function ConfigureSsoOidcForm({ existingSsoConfig, onSave }: ConfigureSso
                 <strong className="slds-m-bottom_x-small slds-block">Configure this callback URL in your OIDC provider:</strong>
                 <div className="slds-m-top_xx-small">
                   {existingSsoConfig.callbackUrls.oidc}
-                  <CopyToClipboard content={existingSsoConfig.callbackUrls.oidc} />
+                  <CopyToClipboard
+                    content={existingSsoConfig.callbackUrls.oidc}
+                    icon={{ type: 'utility', icon: 'copy', description: 'Copy callback URL' }}
+                  />
                 </div>
               </div>
               {existingSsoConfig.callbackUrls.oidcInitiateLogin && (
@@ -101,7 +104,10 @@ export function ConfigureSsoOidcForm({ existingSsoConfig, onSave }: ConfigureSso
                   </strong>
                   <div className="slds-m-top_xx-small">
                     {existingSsoConfig.callbackUrls.oidcInitiateLogin}
-                    <CopyToClipboard content={existingSsoConfig.callbackUrls.oidcInitiateLogin} />
+                    <CopyToClipboard
+                      content={existingSsoConfig.callbackUrls.oidcInitiateLogin}
+                      icon={{ type: 'utility', icon: 'copy', description: 'Copy Initiate Login URI' }}
+                    />
                   </div>
                 </div>
               )}
