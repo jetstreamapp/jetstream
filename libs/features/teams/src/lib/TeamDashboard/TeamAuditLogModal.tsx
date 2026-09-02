@@ -1,6 +1,6 @@
 import { downloadTeamAuditLogsCsv, getTeamAuditLogs } from '@jetstream/shared/data';
 import { AuditLogPageResponse, AuditLogUserFacing } from '@jetstream/types';
-import { DatePicker, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, DatePicker, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { endOfMonth } from 'date-fns/endOfMonth';
 import { format } from 'date-fns/format';
 import { parseISO } from 'date-fns/parseISO';
@@ -129,7 +129,8 @@ export function TeamAuditLogModal({ teamId, onClose }: TeamAuditLogModalProps) {
       size="lg"
       className="slds-p-around_medium slds-is-relative"
       footer={
-        <button className="slds-button slds-button_neutral" disabled={csvLoading || loading} onClick={handleDownloadCsv}>
+        // Stays focusable while its own click disables it — native disabled would drop focus to <body>
+        <button className="slds-button slds-button_neutral" {...ariaDisabledButtonProps(csvLoading || loading, () => handleDownloadCsv())}>
           {csvLoading ? 'Downloading...' : 'Download CSV'}
         </button>
       }
