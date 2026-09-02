@@ -85,14 +85,20 @@ function renderItem(item: Item) {
             <strong>{item.label}</strong>
           </p>
           <p>
-            {item.allowCopy && <CopyToClipboard content={item.value} />} {item.value}
+            {item.allowCopy && (
+              <CopyToClipboard content={item.value} icon={{ type: 'utility', icon: 'copy', description: `Copy ${item.label}` }} />
+            )}{' '}
+            {item.value}
           </p>
         </Fragment>
       );
     case 'link':
       return (
         <p>
-          <strong>{item.label}</strong> {item.allowCopy && <CopyToClipboard content={item.value} />}
+          <strong>{item.label}</strong>{' '}
+          {item.allowCopy && (
+            <CopyToClipboard content={item.value} icon={{ type: 'utility', icon: 'copy', description: `Copy ${item.label}` }} />
+          )}
           <a href={item.link}>{item.value}</a>
         </p>
       );
