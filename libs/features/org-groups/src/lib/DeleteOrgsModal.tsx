@@ -1,9 +1,20 @@
-import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { deleteOrg } from '@jetstream/shared/data';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { Badge, Checkbox, Grid, Icon, Modal, RadioButton, RadioGroup, Spinner, fireToast } from '@jetstream/ui';
+import {
+  ariaDisabledButtonProps,
+  Badge,
+  Checkbox,
+  fireToast,
+  Grid,
+  Icon,
+  Modal,
+  RadioButton,
+  RadioGroup,
+  Spinner,
+  useAnnouncer,
+} from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import groupBy from 'lodash/groupBy';
@@ -64,9 +75,13 @@ export const DeleteOrgsModal = ({ orgs, onClose, onDeleted }: DeleteOrgsModalPro
     }
   }
 
+  // The delete button's label swap to "Are you sure?" is not announced on its own
+  const { announce, announcer } = useAnnouncer();
+
   async function handleConfirmOrDelete() {
     if (!confirmDelete) {
       setConfirmDelete(true);
+      announce(`Press again to confirm deleting ${selectedOrgIds.size} ${pluralizeFromNumber('org', selectedOrgIds.size)}`);
       return;
     }
     setIsDeleting(true);
@@ -131,8 +146,8 @@ export const DeleteOrgsModal = ({ orgs, onClose, onDeleted }: DeleteOrgsModalPro
                 'slds-button_text-destructive': !confirmDelete,
                 'slds-button_destructive': confirmDelete,
               })}
-              onClick={() => handleConfirmOrDelete()}
-              disabled={selectedOrgIds.size === 0 || isDeleting}
+              // aria-disabled keeps focus on the button while its second click disables it
+              {...ariaDisabledButtonProps(selectedOrgIds.size === 0 || isDeleting, () => handleConfirmOrDelete())}
             >
               <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" />
               {confirmDelete ? (
@@ -148,9 +163,11 @@ export const DeleteOrgsModal = ({ orgs, onClose, onDeleted }: DeleteOrgsModalPro
         </Grid>
       }
     >
+      {announcer}
       {orgsWithErrors.length > 0 && (
         <RadioGroup label="Filter Orgs" isButtonGroup className="slds-m-bottom_small">
           <RadioButton
+            id="delete-orgs-filter-all"
             name="filter-mode"
             label="All Orgs"
             value="all"
@@ -159,6 +176,7 @@ export const DeleteOrgsModal = ({ orgs, onClose, onDeleted }: DeleteOrgsModalPro
             onChange={(value) => setFilterMode(value as 'all' | 'errors')}
           />
           <RadioButton
+            id="delete-orgs-filter-errors"
             name="filter-mode"
             label="Orgs with Connection Error"
             value="errors"
@@ -219,42 +237,15 @@ const OrgCheckbox = ({
       id={`org-${org.uniqueId}`}
       checked={checked}
       label={org.username}
+      // Plain text: the details used to toggle the checkbox on click, a mouse-only path that
+      // duplicated the label's own click-to-toggle without a keyboard equivalent
       helpText={
         <div className="slds-m-left_large">
           <div className="slds-text-body_small slds-text-color_weak">
-            <div>
-              <span
-                css={css`
-                  cursor: default;
-                `}
-                onClick={() => onChange()}
-              >
-                Org Id: {org.organizationId}
-              </span>
-            </div>
-            <div>
-              <span
-                css={css`
-                  cursor: default;
-                `}
-                onClick={() => onChange()}
-              >
-                {org.instanceUrl}
-              </span>
-            </div>
+            <div>Org Id: {org.organizationId}</div>
+            <div>{org.instanceUrl}</div>
           </div>
-          {updatedAtText && (
-            <div className="slds-m-top_xx-small slds-text-body_small slds-text-color_weak">
-              <span
-                css={css`
-                  cursor: default;
-                `}
-                onClick={() => onChange()}
-              >
-                {updatedAtText}
-              </span>
-            </div>
-          )}
+          {updatedAtText && <div className="slds-m-top_xx-small slds-text-body_small slds-text-color_weak">{updatedAtText}</div>}
           {org.connectionError && <Badge type="error">Connection Error</Badge>}
         </div>
       }
