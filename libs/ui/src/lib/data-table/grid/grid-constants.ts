@@ -47,7 +47,9 @@ export const TABLE_CONTEXT_MENU_ITEMS: ContextMenuItem<ContextAction>[] = [
 ];
 
 /** Default fixed row height (px) for non-wrapped rows; also the virtualizer seed estimate. */
-export const DEFAULT_ROW_HEIGHT = 28.5;
+// Whole pixels only: rows are placed with translateY(start), and a fractional height puts every other
+// row's 1px border across two device pixels on 1x displays (faint, uneven lines).
+export const DEFAULT_ROW_HEIGHT = 29;
 export const DEFAULT_HEADER_ROW_HEIGHT = 35;
 export const DEFAULT_SUMMARY_ROW_HEIGHT = 34;
 export const DEFAULT_COLUMN_WIDTH = 200;
