@@ -106,7 +106,7 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
               }
             `}
           >
-            <h1 className="slds-text-heading_medium slds-m-bottom_small">Download from Package.xml manifest file</h1>
+            <h3 className="slds-text-heading_medium slds-m-bottom_small">Download from Package.xml manifest file</h3>
             <p>Provide a package.xml file that will be used to download a package</p>
             <FileSelector
               className="slds-m-top_x-small"
@@ -119,6 +119,7 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
             ></FileSelector>
             <button
               className="slds-button slds-button_brand slds-m-top_medium"
+              aria-label="Download from manifest"
               onClick={() => file && onDownloadFromManifest(destinationOrg, file)}
               disabled={!file}
             >
@@ -127,7 +128,7 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
           </GridCol>
           <GridCol className="slds-p-around_medium slds-is-relative" size={12} sizeMedium={6}>
             {loading && <Spinner />}
-            <h1 className="slds-text-heading_medium slds-m-bottom_small">Download from outbound changeset or unmanaged package</h1>
+            <h3 className="slds-text-heading_medium slds-m-bottom_small">Download from outbound changeset or unmanaged package</h3>
 
             <p>Choose packages from the list and/or manually enter the package names</p>
             <Picklist
@@ -152,7 +153,7 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
               helpText="One package name per line or comma delimited"
             >
               <textarea
-                id="changeset-description"
+                id="package-names"
                 className="slds-textarea"
                 value={packageNamesStr}
                 onChange={(event) => setPackageNamesStr(event.target.value)}
@@ -162,6 +163,7 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
 
             <button
               className="slds-button slds-button_brand slds-m-top_medium"
+              aria-label="Download selected packages"
               onClick={handleDownloadFromPackageNames}
               disabled={combinedPackageNames.length === 0}
             >
