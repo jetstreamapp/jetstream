@@ -1,5 +1,5 @@
 import { SalesforceOrgUi } from '@jetstream/types';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { atom } from 'jotai';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -142,6 +142,23 @@ describe('AddOrg', () => {
         expect.objectContaining({ loginUrl: 'https://acme--uat.sandbox.my.salesforce.com' }),
         expect.any(Function),
       );
+    });
+  });
+
+  describe('advanced options', () => {
+    // The toggle is a disclosure: a screen reader user hears expanded/collapsed on it and can jump
+    // to the region it controls, which stays in the DOM (empty) while collapsed so the id resolves
+    it('reports its expanded state and controls the region it reveals', () => {
+      renderOpen();
+      const toggle = screen.getByRole('checkbox', { name: /advanced options/i });
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      const region = document.getElementById(toggle.getAttribute('aria-controls') as string) as HTMLElement;
+      expect(region.textContent).toBe('');
+
+      fireEvent.click(toggle);
+
+      expect(toggle.getAttribute('aria-expanded')).toBe('true');
+      expect(within(region).getByLabelText(/login=true/)).toBeTruthy();
     });
   });
 });
