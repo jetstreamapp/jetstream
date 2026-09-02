@@ -47,7 +47,7 @@ export interface GridBodyProps<TRow extends object> {
    * Ids of the visually hidden hint elements (rendered by GridContainer) that describe what Enter does on
    * the focused cell. Attached via aria-describedby to the one cell that receives keyboard focus.
    */
-  cellHintIds: { editable: string; controls: string };
+  cellHintIds: { editable: string; controls: string; link: string };
   /** Resolved cell-selection rectangles (inclusive display-index bounds; empty when collapsed). */
   selectionBounds?: CellSelectionBounds[];
   onCellMouseDown?: (rowId: string, columnId: string, shiftKey: boolean, button?: number, ctrlOrMetaKey?: boolean) => void;
@@ -178,8 +178,13 @@ export function GridBody<TRow extends object>({
     if ((role === 'gridcell' || role === 'rowheader') && cellEl.getAttribute('aria-readonly') !== 'true') {
       hintIds.push(cellHintIds.editable);
     }
-    if (role === 'gridcell' && cellEl.querySelector(ACTIONABLE_FOCUSABLE_SELECTOR)) {
-      hintIds.push(cellHintIds.controls);
+    if (role === 'gridcell') {
+      const interactiveElements = Array.from(cellEl.querySelectorAll(ACTIONABLE_FOCUSABLE_SELECTOR));
+      if (interactiveElements.length > 0) {
+        // A cell holding only links (e.g. "open in Salesforce") is a navigation target, not a control
+        const onlyLinks = interactiveElements.every((element) => element.matches('a[href]'));
+        hintIds.push(onlyLinks ? cellHintIds.link : cellHintIds.controls);
+      }
     }
     if (hintIds.length > 0) {
       cellEl.setAttribute('aria-describedby', hintIds.join(' '));
