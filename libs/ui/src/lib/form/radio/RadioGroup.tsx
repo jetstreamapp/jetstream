@@ -54,6 +54,7 @@ export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
       role="radiogroup"
       aria-labelledby={label ? legendId : undefined}
       aria-describedby={ariaDescribedbyText}
+      aria-invalid={hasError || undefined}
     >
       {label && (
         <Fragment>
