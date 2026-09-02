@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { DesktopUserPreferences } from '@jetstream/desktop/types';
+import { DesktopUserPreferences, UpdatePolicy } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
@@ -28,6 +28,7 @@ export const Settings = () => {
   const [modifiedPreferences, setModifiedPreferences] = useState<DesktopUserPreferences>(() => ({ ...preferences }));
   const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
 
+  const [updatePolicy, setUpdatePolicy] = useState<UpdatePolicy | null>(null);
   const [resetSyncLoading, setResetSyncLoading] = useState(false);
   const [recentRecentItemLoading, setRecentRecentItemLoading] = useState<false | 'all' | 'current'>(false);
 
@@ -40,6 +41,19 @@ export const Settings = () => {
     return () => {
       isMounted.current = false;
     };
+  }, []);
+
+  useEffect(() => {
+    window.electronAPI
+      ?.getUpdatePolicy()
+      .then((policy) => {
+        if (isMounted.current) {
+          setUpdatePolicy(policy);
+        }
+      })
+      // Leaving the policy null just renders the toggle as an ordinary editable setting, which is
+      // the right fallback - better than an unhandled rejection over a purely informational read.
+      .catch((ex) => logger.warn('Unable to read the update policy', ex));
   }, []);
 
   const onKeydown = useCallback(
@@ -89,6 +103,12 @@ export const Settings = () => {
 
   function handleFrontdoorLoginChange(skipFrontdoorLogin: boolean) {
     const _modifiedPreferences = { ...preferences, skipFrontdoorLogin };
+    setModifiedPreferences(_modifiedPreferences);
+    handleSave(_modifiedPreferences);
+  }
+
+  function handleAutoUpdateChange(autoUpdateEnabled: boolean) {
+    const _modifiedPreferences = { ...preferences, autoUpdateEnabled };
     setModifiedPreferences(_modifiedPreferences);
     handleSave(_modifiedPreferences);
   }
@@ -215,6 +235,27 @@ export const Settings = () => {
               labelHelp="When enabled, Jetstream will not attempt to auto-login to Salesforce when you click a link in Jetstream. If you have issues with multi-factor authentication when clicking links, enable this."
               onChange={handleFrontdoorLoginChange}
             />
+
+            <CheckboxToggle
+              id="auto-update-toggle"
+              // A managed policy can pin updates on as well as off, so show what it decided rather than the stored preference
+              checked={updatePolicy?.managed ? updatePolicy.autoUpdateEnabled : (modifiedPreferences?.autoUpdateEnabled ?? true)}
+              disabled={updatePolicy?.managed ?? false}
+              label="Automatically Download Updates"
+              labelHelp="When enabled, Jetstream checks for new versions in the background and downloads them. When disabled, you can still update at any time with File > Check for Updates."
+              onChange={handleAutoUpdateChange}
+            />
+            {updatePolicy?.managed && (
+              <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
+                Updates are managed by your organization and cannot be changed here.
+              </p>
+            )}
+            {updatePolicy?.perMachineInstall && !updatePolicy.managed && (
+              <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
+                Jetstream is installed for all users on this computer, so installing an update requires administrator approval. Updates are
+                never installed automatically - you will be asked first.
+              </p>
+            )}
 
             <Grid verticalAlign="end">
               <Input

@@ -58,7 +58,11 @@ app.whenReady().then(async () => {
   if (ENV.SMOKE_TEST) {
     initializeSmokeTest(mainWindow);
   } else {
-    initializeAutoUpdater();
+    // Not awaited so window setup below is not delayed by the policy lookups. The menu is rebuilt
+    // once they land, because the resolved policy decides whether "Check for Updates" is offered.
+    initializeAutoUpdater()
+      .then(() => initAppMenu())
+      .catch((error) => logger.error('Failed to initialize auto-updater', error));
   }
 
   app.on('activate', function () {

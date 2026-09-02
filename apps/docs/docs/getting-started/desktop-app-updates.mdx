@@ -1,0 +1,139 @@
+---
+id: desktop-app-updates
+title: Desktop App Updates
+description: How the Jetstream Desktop App updates itself, how to turn automatic updates off, and how IT teams can manage updates for an entire organization.
+keywords:
+  [salesforce, jetstream, desktop app, automatic updates, auto update, disable updates, mdm, intune, group policy, enterprise deployment]
+sidebar_label: Desktop App Updates
+slug: /desktop-app-updates
+---
+
+The Jetstream Desktop App keeps itself up to date. This page explains how that works, how to turn it
+off, and what IT teams can do to manage updates across an organization.
+
+## How updates normally work
+
+Jetstream checks for a new version shortly after it starts and every four hours after that. When one
+is available it downloads in the background, and the update is applied the next time you close
+Jetstream. You can also check at any time from **File → Check for Updates** (**Jetstream → Check for
+Updates** on a Mac), or from the update icon in the top-right corner of the app.
+
+## Turning off automatic updates
+
+Go to **Settings** and turn off **Automatically Download Updates**.
+
+Jetstream will stop checking and downloading in the background, but **File → Check for Updates**
+still works whenever you want a new version. We recommend leaving automatic updates on so you get
+fixes and new features as they ship.
+
+:::note
+
+If the toggle is greyed out, your IT team manages updates for your organization. See
+[managing updates for an organization](#managing-updates-for-an-organization) below.
+
+:::
+
+## "Do you want to allow this app to make changes to your device?"
+
+On Windows, you may see a **User Account Control** prompt asking for an administrator username and
+password when Jetstream installs an update. This happens when Jetstream was installed **for all
+users** of the computer — usually because your IT team deployed it — because updating it means
+writing to a location outside your own user profile.
+
+If you see this prompt:
+
+- **If you have administrator rights**, approve it and the update installs normally.
+- **If you do not**, cancel it and contact your IT team. They will install the update for you.
+  Jetstream keeps working on your current version in the meantime.
+
+Jetstream never installs these updates silently in the background — the prompt only ever appears
+right after you choose to install an update, so you always know what it is for.
+
+:::tip
+
+Not sure which kind of install you have? If Jetstream lives in `C:\Program Files\Jetstream` it was
+installed for all users. If it lives under
+`C:\Users\<your-name>\AppData\Local\Programs\jetstream` it was installed just for you, and updates
+never require an administrator.
+
+:::
+
+## Managing updates for an organization
+
+If you deploy Jetstream with an MDM or software-distribution tool (Intune, Jamf, SCCM, Group Policy,
+and so on), you probably want to own the update schedule yourself rather than have each copy update
+independently.
+
+When updates are disabled by any of the methods below, Jetstream never checks for or downloads a new
+version, the in-app **Automatically Download Updates** toggle becomes read-only, and the
+**Check for Updates** menu item is replaced with **Updates Managed by Your Organization**. Deploying
+new versions is then entirely up to your distribution tool.
+
+:::info
+
+Setting the value to `0` instead of `1` does the opposite: it pins automatic updates **on** and
+prevents users from turning them off.
+
+:::
+
+Jetstream reads these in order and uses the first one that is set.
+
+### Command-line flag
+
+Add `--disable-auto-update` to the shortcut or launch command used to start Jetstream.
+
+```
+"C:\Program Files\Jetstream\Jetstream.exe" --disable-auto-update
+```
+
+### Environment variable
+
+Set `JETSTREAM_DISABLE_AUTO_UPDATE=1` in the environment Jetstream launches from.
+
+### Windows registry (Group Policy / Intune)
+
+Create a `DWORD` value named `DisableAutoUpdate` set to `1`:
+
+```
+HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Jetstream
+    DisableAutoUpdate    REG_DWORD    1
+```
+
+This is per-machine and applies to every user who signs in to the computer.
+
+### macOS configuration profile
+
+Deliver a configuration profile for the `app.getjetstream` preference domain with a
+`DisableAutoUpdate` boolean set to `true`. Jetstream reads only the MDM-managed locations, checking
+the computer-level profile first and then the signed-in user's:
+
+- `/Library/Managed Preferences/app.getjetstream.plist` (profile scoped to the computer)
+- `/Library/Managed Preferences/<username>/app.getjetstream.plist` (profile scoped to the user)
+
+A plist a user writes to their own `~/Library/Preferences` is ignored, so nobody can mark their own
+install as managed.
+
+### Policy file
+
+If none of the above fit your tooling, write a JSON file containing
+`{ "DisableAutoUpdate": true }` to:
+
+| Platform | Path                                                 |
+| -------- | ---------------------------------------------------- |
+| Windows  | `C:\ProgramData\Jetstream\policy.json`               |
+| macOS    | `/Library/Application Support/Jetstream/policy.json` |
+| Linux    | `/etc/jetstream/policy.json`                         |
+
+### Avoiding the update prompt on managed Windows machines
+
+If you deploy Jetstream for all users and do **not** disable updates, users without administrator
+rights will be prompted for administrator credentials whenever they choose to install an update,
+and they will not be able to complete it. On those deployments we recommend either:
+
+- **Disabling updates** with one of the methods above and pushing new versions through your
+  deployment tool, or
+- **Installing per-user** so each user's copy can update itself with no administrator involvement.
+
+There is also a **portable** Windows build that requires no installation at all, which is useful in
+locked-down environments. It is available on the
+[download page](https://getjetstream.app/desktop-app/).
