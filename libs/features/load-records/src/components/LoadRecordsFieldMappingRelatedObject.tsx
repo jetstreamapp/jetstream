@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { orderValues } from '@jetstream/shared/utils';
 import { FieldMappingItem, FieldMappingItemCsv, FieldRelatedEntity, ListItem, SalesforceOrgUi } from '@jetstream/types';
-import { ComboboxWithItems, Grid, Icon, Tooltip } from '@jetstream/ui';
+import { ariaDisabledButtonProps, ComboboxWithItems, Grid, Icon, Tooltip } from '@jetstream/ui';
 import { fetchRelatedFields, SELF_LOOKUP_KEY } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getComboboxFieldName } from '../utils/field-mapping-utils';
@@ -144,10 +144,10 @@ export const LoadRecordsFieldMappingRelatedObject: FunctionComponent<LoadRecords
             onSelected={(item) => handleRelatedSelectionChanged(item.meta)}
           />
           <Tooltip content="Reload related record fields">
+            {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
             <button
               className="slds-button slds-button_icon slds-m-left_x-small slds-m-top_x-large"
-              disabled={loading}
-              onClick={() => fetchData(true)}
+              {...ariaDisabledButtonProps(loading, () => fetchData(true))}
             >
               <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_small" omitContainer />
               <span className="slds-assistive-text">Reload related record fields</span>
