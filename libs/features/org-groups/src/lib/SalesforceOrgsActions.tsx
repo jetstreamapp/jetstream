@@ -31,6 +31,7 @@ export const SalesforceOrgsActions = ({ orgs, onOrgsDeleted }: SalesforceOrgsAct
       <DropDown
         className="slds-button_last"
         position="right"
+        description="Salesforce org actions"
         onSelected={handleAction}
         items={[
           {
