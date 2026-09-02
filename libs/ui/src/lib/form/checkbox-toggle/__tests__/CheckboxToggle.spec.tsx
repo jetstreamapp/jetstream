@@ -67,4 +67,23 @@ describe('CheckboxToggle', () => {
     const results = await axeScan(baseElement);
     expect(results.violations).toEqual([]);
   });
+
+  test('exposes disclosure state when it reveals content below it', () => {
+    const { rerender } = render(
+      <CheckboxToggle
+        id="toggle-2"
+        checked={false}
+        label="Advanced options"
+        ariaExpanded={false}
+        ariaControls="advanced"
+        onChange={vi.fn()}
+      />,
+    );
+    const checkbox = screen.getByRole('checkbox');
+    expect(checkbox.getAttribute('aria-expanded')).toBe('false');
+    expect(checkbox.getAttribute('aria-controls')).toBe('advanced');
+
+    rerender(<CheckboxToggle id="toggle-2" checked label="Advanced options" ariaExpanded ariaControls="advanced" onChange={vi.fn()} />);
+    expect(checkbox.getAttribute('aria-expanded')).toBe('true');
+  });
 });
