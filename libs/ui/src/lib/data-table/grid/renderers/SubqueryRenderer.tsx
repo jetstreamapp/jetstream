@@ -18,7 +18,7 @@ import Spinner from '../../../widgets/Spinner';
 import Tooltip from '../../../widgets/Tooltip';
 import { DataTableV2 } from '../DataTableV2';
 import { copySalesforceRecordTableDataToClipboard } from '../grid-clipboard';
-import { NON_DATA_COLUMN_KEYS, TABLE_CONTEXT_MENU_ITEMS } from '../grid-constants';
+import { DEFAULT_ROW_HEIGHT, NON_DATA_COLUMN_KEYS, TABLE_CONTEXT_MENU_ITEMS } from '../grid-constants';
 import { GridSubqueryContext } from '../grid-context';
 import { getRowId, getSubqueryModalTagline, replaceSubqueryOnRecord } from '../grid-row-utils';
 import { ContextAction, ContextMenuActionData, DataTableCellProps, RowWithKey, SubqueryContext, SubqueryLevel } from '../grid-types';
@@ -501,7 +501,7 @@ function SubqueryModal({
                   data={rows}
                   columns={columns}
                   getRowKey={getRowId}
-                  rowHeight={28.5}
+                  rowHeight={DEFAULT_ROW_HEIGHT}
                   enableRowSelection
                   rowSelection={rowSelection}
                   onRowSelectionChange={setRowSelection}
