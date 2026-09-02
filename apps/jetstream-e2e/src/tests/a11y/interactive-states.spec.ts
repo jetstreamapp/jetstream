@@ -5,9 +5,10 @@ test.describe.configure({ mode: 'parallel' });
 
 /**
  * Axe-core scans of interactive states that the page sweep can't see: open menus, populated
- * comboboxes/listboxes and the query results data grid. Page-level scans only evaluate the
- * closed/initial DOM, and most of the historically weak patterns (combobox listboxes, menu
- * roving focus, grid semantics) only exist in the DOM once opened.
+ * comboboxes/listboxes, open modals and the query results data grid. Page-level scans only
+ * evaluate the closed/initial DOM, and most of the historically weak patterns (combobox
+ * listboxes, menu roving focus, dialog labelling, grid semantics) only exist in the DOM once
+ * opened.
  *
  * Every state needs a `state-<name>` entry in a11y-baseline.json — a new state fails until it is
  * baselined explicitly (see a11y.utils.ts).
@@ -20,6 +21,17 @@ test.describe('a11y interactive states', () => {
     await page.goto('/app');
     await page.getByTestId('header').getByRole('button', { name: 'Load Records', exact: true }).click();
     await expect(page.getByRole('menuitemcheckbox', { name: 'Load Records', exact: true })).toBeVisible();
+
+    await runA11yScan(page, testInfo, scanKey);
+  });
+
+  test('header avatar dropdown menu open', async ({ page }, testInfo) => {
+    const scanKey = 'state-header-avatar-menu-open';
+    assertBaselineEntry(scanKey);
+
+    await page.goto('/app');
+    await page.getByRole('button', { name: 'Avatar' }).click();
+    await expect(page.getByRole('menuitem', { name: 'Profile' })).toBeVisible();
 
     await runA11yScan(page, testInfo, scanKey);
   });
@@ -55,6 +67,6 @@ test.describe('a11y interactive states', () => {
     await runA11yScan(page, testInfo, scanKey);
   });
 
-  // TODO(a11y): extend with modal-open, date-picker-open and load-wizard step states once the
-  // baseline for the sweep + these four states is established.
+  // TODO(a11y): extend with combobox-open (header org list), query-history modal, date-picker-open and
+  // load-wizard step states.
 });
