@@ -4,6 +4,7 @@ import { convertDateToLocale, filterLoadSobjects, formatNumber, tracker, useInte
 import { getErrorMessage, getRecordIdFromAttributes, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import {
+  ariaDisabledButtonProps,
   Checkbox,
   getWhichRecordsDefaultValue,
   Grid,
@@ -380,11 +381,13 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             <button className="slds-button slds-button_neutral" disabled={deployInProgress} onClick={handleClose}>
               Close
             </button>
+            {/* Both stay focusable while their own click disables them — native disabled would drop focus to <body> */}
             {mode === 'configure' && (
               <button
                 className="slds-button slds-button_brand"
-                onClick={handlePreview}
-                disabled={!isValid || loading || !!batchSizeError || deployInProgress || !!fatalError}
+                {...ariaDisabledButtonProps(!isValid || loading || !!batchSizeError || deployInProgress || !!fatalError, () =>
+                  handlePreview(),
+                )}
               >
                 Preview Proposed Changes
               </button>
@@ -392,8 +395,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             {mode === 'preview' && !didDeploy && (
               <button
                 className="slds-button slds-button_brand"
-                onClick={handleCommit}
-                disabled={loading || deployInProgress || !!batchSizeError || !!fatalError}
+                {...ariaDisabledButtonProps(loading || deployInProgress || !!batchSizeError || !!fatalError, () => handleCommit())}
               >
                 Update {formatNumber(impactedRecordCount)} {pluralizeFromNumber('Record', impactedRecordCount)}
               </button>
