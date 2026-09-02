@@ -151,7 +151,7 @@ function FlsItem({
     const result = flsResults[item.id];
     if (result.Errors) {
       icon = (
-        <Tooltip content={result.Errors}>
+        <Tooltip content={result.Errors} triggerTabIndex={0}>
           <Icon
             type="utility"
             icon="error"
@@ -211,7 +211,7 @@ function LayoutItem({
     const result = layoutResults[item.id];
     if (result.error) {
       icon = (
-        <Tooltip content={result.error}>
+        <Tooltip content={result.error} triggerTabIndex={0}>
           <Icon
             type="utility"
             icon="error"
