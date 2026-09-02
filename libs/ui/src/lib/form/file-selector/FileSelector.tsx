@@ -193,6 +193,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
               accept={accept ? accept.join(', ') : undefined}
               multiple={allowMultipleFiles}
               id={id}
+              aria-invalid={hasErrorState() ? true : undefined}
               aria-describedby={`${labelHelp && label && !hideLabel ? `${id}-label-help-text ` : ''}${id}-file-input-help ${id}-file-input-system-error ${id}-file-input-error ${id}-file-input-name`}
               aria-labelledby={`${labelPrimaryId} ${labelSecondaryId}`}
               disabled={disabled}
