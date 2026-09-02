@@ -26,6 +26,7 @@ export const QueryWalkthrough: FunctionComponent<QueryWalkthroughProps> = React.
     // eslint-disable-next-line react/jsx-no-useless-fragment
     <Fragment>
       <Modal
+        header="Query Builder Walkthrough"
         closeOnBackdropClick={false}
         closeOnEsc={false}
         footer={
