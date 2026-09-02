@@ -134,6 +134,7 @@ function renderUserGroupCell(
         `}
         onClick={toggleGroup}
         title={titleLabel}
+        aria-expanded={isExpanded}
       >
         <span
           css={css`
@@ -142,6 +143,7 @@ function renderUserGroupCell(
             align-items: flex-start;
           `}
         >
+          {/* Decorative: the button's visible text names it and aria-expanded carries the state */}
           <Icon
             type="utility"
             icon={isExpanded ? 'chevrondown' : 'chevronright'}
@@ -151,7 +153,6 @@ function renderUserGroupCell(
               margin-top: 0.125rem;
             `}
             omitContainer
-            description={isExpanded ? 'Collapse' : 'Expand'}
           />
           <span
             css={css`
@@ -226,7 +227,7 @@ function renderUserGroupCell(
           serverUrl={setupLogin.serverUrl}
           skipFrontDoorAuth={setupLogin.skipFrontDoorAuth}
           returnUrl={getSalesforceUserManageSetupUrl(userId)}
-          title="Open this user in Salesforce Setup"
+          title={`Open user ${display?.name ?? userId} in Salesforce Setup`}
           omitIcon
           className={OBJECT_TYPE_ACTION_BUTTON_CLASSNAME}
           onClick={(event) => {
@@ -579,7 +580,7 @@ export const PermissionAnalysisUserAssignmentsTree: FunctionComponent<Permission
               serverUrl={setupLogin.serverUrl}
               skipFrontDoorAuth={setupLogin.skipFrontDoorAuth}
               returnUrl={returnUrl}
-              title={recordType === 'Profile' ? 'Open this profile in Salesforce Setup' : 'Open this permission set in Salesforce Setup'}
+              title={`Open ${recordType === 'Profile' ? 'profile' : 'permission set'} ${label} in Salesforce Setup`}
               omitIcon
               className={OBJECT_TYPE_ACTION_BUTTON_CLASSNAME}
               onClick={(event) => {
@@ -627,7 +628,8 @@ export const PermissionAnalysisUserAssignmentsTree: FunctionComponent<Permission
                   <button
                     type="button"
                     className="slds-button slds-button_icon slds-button_icon-bare"
-                    title="View issues for this permission set"
+                    title={`View issues for ${label}`}
+                    aria-label={`View issues for ${label}`}
                     onClick={(event) => {
                       event.stopPropagation();
                       openFindingsForPermissionSet(permissionSetId);
@@ -640,7 +642,6 @@ export const PermissionAnalysisUserAssignmentsTree: FunctionComponent<Permission
                         severity === 'error' ? 'slds-button__icon slds-icon-text-error' : 'slds-button__icon slds-icon-text-warning'
                       }
                       omitContainer
-                      description="View issues"
                     />
                   </button>
                 )}
@@ -681,7 +682,7 @@ export const PermissionAnalysisUserAssignmentsTree: FunctionComponent<Permission
                   serverUrl={setupLogin.serverUrl}
                   skipFrontDoorAuth={setupLogin.skipFrontDoorAuth}
                   returnUrl={getPermissionSetGroupSetupUrl(groupId)}
-                  title="Open this permission set group in Salesforce Setup"
+                  title={`Open permission set group ${label} in Salesforce Setup`}
                   omitIcon
                   className={OBJECT_TYPE_ACTION_BUTTON_CLASSNAME}
                   onClick={(event) => {
@@ -732,7 +733,7 @@ export const PermissionAnalysisUserAssignmentsTree: FunctionComponent<Permission
                     serverUrl={setupLogin.serverUrl}
                     skipFrontDoorAuth={setupLogin.skipFrontDoorAuth}
                     returnUrl={returnUrl}
-                    title="Open this profile in Salesforce Setup"
+                    title={`Open profile ${profileName} in Salesforce Setup`}
                     omitIcon
                     className={OBJECT_TYPE_ACTION_BUTTON_CLASSNAME}
                     onClick={(event) => {
@@ -779,7 +780,7 @@ export const PermissionAnalysisUserAssignmentsTree: FunctionComponent<Permission
                     serverUrl={setupLogin.serverUrl}
                     skipFrontDoorAuth={setupLogin.skipFrontDoorAuth}
                     returnUrl={returnUrl}
-                    title="Open this permission set license in Salesforce"
+                    title={`Open permission set license ${label} in Salesforce`}
                     omitIcon
                     className={OBJECT_TYPE_ACTION_BUTTON_CLASSNAME}
                     onClick={(event) => {
