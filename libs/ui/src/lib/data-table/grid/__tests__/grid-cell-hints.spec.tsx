@@ -1,3 +1,4 @@
+import { axeScan } from '@jetstream/test-utils';
 import { fireEvent, render, waitFor } from '@testing-library/react';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { DataTable } from '../../DataTable';
@@ -55,7 +56,7 @@ async function arrowTo(fromCell: HTMLElement, key: 'ArrowRight' | 'ArrowLeft', e
 
 describe('grid cell keyboard hints', () => {
   test('a focused cell is described by what Enter does with it: editing, or its inner controls', async () => {
-    render(<DataTable columns={columns} data={data} getRowKey={(row) => row._key} />);
+    const { baseElement } = render(<DataTable columns={columns} data={data} getRowKey={(row) => row._key} />);
     const nameCell = getCell('1', 'Name');
     const amountCell = getCell('1', 'Amount');
     const linkCell = getCell('1', 'Link');
@@ -63,6 +64,7 @@ describe('grid cell keyboard hints', () => {
 
     await arrowTo(nameCell, 'ArrowRight', amountCell);
     expect(describedByText(amountCell)).toMatch(/editable\. press enter to edit/i);
+    await axeScan(baseElement);
 
     await arrowTo(amountCell, 'ArrowRight', linkCell);
     expect(describedByText(linkCell)).toMatch(/contains controls\. press enter/i);
