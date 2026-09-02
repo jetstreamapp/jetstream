@@ -6,6 +6,9 @@ export const COVERAGE_COVERED_CLASS = 'jetstream-coverage-covered';
 export const COVERAGE_UNCOVERED_CLASS = 'jetstream-coverage-uncovered';
 export const COVERAGE_COVERED_GUTTER_CLASS = 'jetstream-coverage-covered-gutter';
 export const COVERAGE_UNCOVERED_GUTTER_CLASS = 'jetstream-coverage-uncovered-gutter';
+/** Glyph-margin marks (✓ / ✗) so covered vs uncovered is not conveyed by colour alone */
+export const COVERAGE_COVERED_GLYPH_CLASS = 'jetstream-coverage-covered-glyph';
+export const COVERAGE_UNCOVERED_GLYPH_CLASS = 'jetstream-coverage-uncovered-glyph';
 
 interface CoverageLines {
   coveredLines: number[];
@@ -33,17 +36,27 @@ export function useCoverageDecorations() {
       return;
     }
     collectionRef.current?.clear();
-    const buildDecoration = (line: number, className: string, gutterClassName: string): editor.IModelDeltaDecoration => ({
+    const buildDecoration = (
+      line: number,
+      className: string,
+      gutterClassName: string,
+      glyphClassName: string,
+    ): editor.IModelDeltaDecoration => ({
       range: new monaco.Range(line, 1, line, 1) as Range,
       options: {
         isWholeLine: true,
         className,
         linesDecorationsClassName: gutterClassName,
+        glyphMarginClassName: glyphClassName,
       },
     });
     collectionRef.current = editorInstance.createDecorationsCollection([
-      ...coverage.coveredLines.map((line) => buildDecoration(line, COVERAGE_COVERED_CLASS, COVERAGE_COVERED_GUTTER_CLASS)),
-      ...coverage.uncoveredLines.map((line) => buildDecoration(line, COVERAGE_UNCOVERED_CLASS, COVERAGE_UNCOVERED_GUTTER_CLASS)),
+      ...coverage.coveredLines.map((line) =>
+        buildDecoration(line, COVERAGE_COVERED_CLASS, COVERAGE_COVERED_GUTTER_CLASS, COVERAGE_COVERED_GLYPH_CLASS),
+      ),
+      ...coverage.uncoveredLines.map((line) =>
+        buildDecoration(line, COVERAGE_UNCOVERED_CLASS, COVERAGE_UNCOVERED_GUTTER_CLASS, COVERAGE_UNCOVERED_GLYPH_CLASS),
+      ),
     ]);
   }, []);
 
