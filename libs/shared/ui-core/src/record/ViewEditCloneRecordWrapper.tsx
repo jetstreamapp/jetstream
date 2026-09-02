@@ -9,6 +9,7 @@ import {
   useObservable,
 } from '@jetstream/shared/ui-utils';
 import { CloneEditView, SalesforceOrgUi } from '@jetstream/types';
+import { useAnnouncer } from '@jetstream/ui';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent, useEffect, useState } from 'react';
@@ -124,12 +125,18 @@ export const ViewEditCloneRecordWrapper: FunctionComponent = () => {
     setAction(action);
   }
 
+  // The modal remounts in view mode after a save, so the only sign of success is the changed title. The
+  // announcer is rendered INSIDE the modal: outside it, the modal's focus manager marks the rest of the
+  // document aria-hidden and the message is never read
+  const { announce, announcer } = useAnnouncer();
+
   function onSave(saved: { recordId: string; sobjectName: string }) {
     setRecordId(saved.recordId);
     setSobjectName(saved.sobjectName);
     setAction('view');
     setDidSave(true);
     setInstanceKey((key) => key + 1);
+    announce('Record saved');
   }
 
   function onModalClose() {
@@ -150,6 +157,7 @@ export const ViewEditCloneRecordWrapper: FunctionComponent = () => {
 
   return (
     <ViewEditCloneRecord
+      liveRegion={announcer}
       key={instanceKey}
       apiVersion={defaultApiVersion}
       selectedOrg={selectedOrg}

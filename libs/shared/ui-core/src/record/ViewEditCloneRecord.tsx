@@ -60,7 +60,7 @@ import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { useAtomValue } from 'jotai';
 import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
-import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { useAmplitude } from '../analytics';
 import { MonacoEditor } from '../app/MonacoEditor';
 import { fromJetstreamEvents } from '../jetstream-events';
@@ -137,6 +137,11 @@ export interface ViewEditCloneRecordProps {
   onSave: (saved: { recordId: string; sobjectName: string }) => void;
   onFetch?: (recordId: string, record: any) => void;
   onFetchError?: (recordId: string, sobjectName: string) => void;
+  /**
+   * Rendered inside the modal body. The modal's focus manager marks everything outside it aria-hidden,
+   * so an owner's live region ("Record saved" after the post-save remount) is only read from in here.
+   */
+  liveRegion?: ReactNode;
 }
 
 export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = ({
@@ -148,6 +153,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   onClose,
   onChangeAction,
   onSave,
+  liveRegion,
   onFetch,
   onFetchError,
 }) => {
@@ -827,6 +833,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
             {(loading || saving) && <Spinner />}
             {/* The spinner is the only sign that Save/Load is in progress, so mirror it for screen readers */}
             <AssistiveStatus message={saving ? 'Saving record' : loading ? 'Loading record' : ''} />
+            {liveRegion}
             {!loading && initialRecord && (
               <>
                 {/* Create and Edit do not show child records */}
