@@ -111,6 +111,7 @@ export const HeaderUpdateNotification = ({ onCheckForUpdates, onInstallUpdate }:
             <div className="slds-text-heading_small slds-m-bottom_x-small">Update Available</div>
             <div className="slds-text-body_small slds-m-bottom_small">
               Version {updateStatus.version} is available and will download in the background.
+              {updateStatus.requiresElevation && ' You will be asked before it is installed.'}
             </div>
             {lastChecked && (
               <div className="slds-text-body_small slds-text-color_weak">Found: {formatRelative(lastChecked, new Date())}</div>
@@ -133,11 +134,36 @@ export const HeaderUpdateNotification = ({ onCheckForUpdates, onInstallUpdate }:
           <div className="slds-p-around_small">
             <div className="slds-text-heading_small slds-m-bottom_x-small">Update Ready</div>
             <div className="slds-text-body_small slds-m-bottom_small">
-              Version {updateStatus.version} is ready to install. The update will be applied when you restart the app.
+              Version {updateStatus.version} is ready to install.{' '}
+              {updateStatus.requiresElevation
+                ? 'Jetstream is installed for all users on this computer, so Windows will ask for an administrator to approve the update.'
+                : 'The update will be applied when you restart the app.'}
             </div>
+            {updateStatus.requiresElevation && (
+              <div className="slds-text-body_small slds-m-bottom_small slds-text-color_weak">
+                If you do not have administrator rights, contact your IT team - they may install updates for you.
+              </div>
+            )}
             <button className="slds-button slds-button_brand slds-button_stretch" onClick={handleInstallUpdate}>
-              Restart Now
+              {updateStatus.requiresElevation ? 'Install Update' : 'Restart Now'}
             </button>
+          </div>
+        );
+
+      case 'disabled':
+        return (
+          <div className="slds-p-around_small">
+            <div className="slds-text-heading_small slds-m-bottom_x-small">Updates Turned Off</div>
+            <div className="slds-text-body_small slds-m-bottom_small">
+              {updateStatus.disabledBy === 'user-preference'
+                ? 'Automatic updates are turned off in your settings. You can still check for one now.'
+                : 'Updates are managed by your organization. Your IT team installs new versions for you.'}
+            </div>
+            {updateStatus.disabledBy === 'user-preference' && (
+              <button className="slds-button slds-button_neutral slds-button_stretch" onClick={handleCheckForUpdates}>
+                Check for Updates
+              </button>
+            )}
           </div>
         );
 
@@ -206,8 +232,14 @@ export const HeaderUpdateNotification = ({ onCheckForUpdates, onInstallUpdate }:
       case 'ready':
         return {
           icon: <Icon type="utility" icon="success" className={baseIconClass} />,
-          tooltip: 'Update ready - click to restart',
+          tooltip: updateStatus.requiresElevation ? 'Update ready - click to install' : 'Update ready - click to restart',
           showWiggle: true,
+        };
+      case 'disabled':
+        return {
+          icon: <Icon type="utility" icon="download" className={baseIconClass} />,
+          tooltip: 'Updates turned off',
+          showWiggle: false,
         };
       case 'error':
         return {

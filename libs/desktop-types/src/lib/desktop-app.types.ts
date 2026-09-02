@@ -103,6 +103,7 @@ export interface ElectronApiRequestResponse {
   pickDataHistoryFolder: () => Promise<string | null>;
   checkForUpdates: (userInitiated?: boolean) => Promise<void>;
   getUpdateStatus: () => Promise<UpdateStatus>;
+  getUpdatePolicy: () => Promise<UpdatePolicy>;
   installUpdate: () => void;
   openGooglePicker: (payload: {
     /**
@@ -212,6 +213,11 @@ export const DesktopUserPreferencesSchema = z.object({
   recordSyncEnabled: z.boolean().optional().default(false),
   // Defaults to enabled - opting out is explicit, and the menu checkbox writes both states.
   crashReportingEnabled: z.boolean().optional().default(true),
+  /**
+   * Background update checks and downloads. Defaults to enabled; an administrator policy can force
+   * it off regardless of this value (see `UpdatePolicy`).
+   */
+  autoUpdateEnabled: z.boolean().optional().default(true),
   /** Base directory for native Data History storage — defaults to `<userData>/data-history` when unset */
   dataHistoryFolder: z.string().optional(),
   soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.prefault({}),
@@ -301,7 +307,7 @@ export const NotificationMessageV1ResponseSchema = z.object({
 export type NotificationMessageV1Response = z.infer<typeof NotificationMessageV1ResponseSchema>;
 
 // Auto-update types
-export type UpdateStatusType = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error' | 'up-to-date';
+export type UpdateStatusType = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error' | 'up-to-date' | 'disabled';
 
 export interface UpdateStatus {
   status: UpdateStatusType;
@@ -314,6 +320,37 @@ export interface UpdateStatus {
     transferred: number;
     total: number;
   };
+  /**
+   * True when installing the pending update will trigger a Windows UAC prompt because Jetstream was
+   * installed for all users. The app never installs those silently, so the UI has to tell the user
+   * an administrator approval is coming rather than letting one appear unannounced.
+   */
+  requiresElevation?: boolean;
+  /** Populated on the `disabled` status so the UI can explain who turned updates off. */
+  disabledBy?: UpdatePolicySource;
+}
+
+/**
+ * Which layer decided whether automatic updates run, highest precedence first. Everything except
+ * `user-preference` and `default` is administrator-controlled and cannot be changed in the app.
+ */
+export type UpdatePolicySource = 'command-line' | 'environment' | 'managed-policy' | 'user-preference' | 'default';
+
+export interface UpdatePolicy {
+  /** When false, Jetstream never checks for or downloads updates in the background. */
+  autoUpdateEnabled: boolean;
+  /** Whether "Check for Updates" does anything — false only when an administrator disabled updates. */
+  allowManualCheck: boolean;
+  /** The layer that decided {@link autoUpdateEnabled}. */
+  source: UpdatePolicySource;
+  /** True when an administrator owns the decision, so the in-app toggle is read-only. */
+  managed: boolean;
+  /**
+   * True when Jetstream is installed for all users (Windows per-machine install). Its files live
+   * outside the user's profile, so NSIS relaunches the installer elevated and Windows shows a UAC
+   * prompt — which means updates can only be installed from a deliberate user action.
+   */
+  perMachineInstall: boolean;
 }
 
 // Google Picker types

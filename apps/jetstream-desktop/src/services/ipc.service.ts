@@ -21,7 +21,7 @@ import { jwtDecode } from 'jwt-decode';
 import { ResponseBodyError } from 'oauth4webapi';
 import { Method } from 'tiny-request-router';
 import { z } from 'zod';
-import { checkForUpdates, getCurrentUpdateStatus, installUpdate } from '../config/auto-updater';
+import { checkForUpdates, getCurrentUpdateStatus, getUpdatePolicy, installUpdate, refreshUpdatePolicy } from '../config/auto-updater';
 import { ENV } from '../config/environment';
 import { initMainErrorTracker } from '../config/error-tracker';
 import { desktopRoutes } from '../controllers/desktop.routes';
@@ -183,6 +183,7 @@ export function registerIpc(): void {
   // Handle auto-update requests
   registerHandler('checkForUpdates', handleCheckForUpdatesEvent);
   registerHandler('getUpdateStatus', handleGetUpdateStatusEvent);
+  registerHandler('getUpdatePolicy', handleGetUpdatePolicyEvent);
   registerHandler('installUpdate', handleInstallUpdateEvent);
   // Handle Google Picker
   registerHandler('openGooglePicker', handleOpenGooglePickerEvent);
@@ -211,7 +212,11 @@ const handleSetPreferences: MainIpcHandler<'setPreferences'> = async (_, payload
   // toggle, so without this a snapshot taken before a relocation would silently point history back
   // at the old folder — and any renderer code could aim all history I/O at an arbitrary path.
   const { dataHistoryFolder: _mainProcessOwned, ...rendererPreferences } = payload;
-  return dataService.updateUserPreferences(rendererPreferences);
+  const updatedPreferences = dataService.updateUserPreferences(rendererPreferences);
+  // Start or stop the background update timers immediately, so the toggle takes effect without a
+  // restart. An administrator policy still wins - refreshing re-applies the full precedence chain.
+  await refreshUpdatePolicy();
+  return updatedPreferences;
 };
 
 const handleConfigureCrashReporter: MainIpcHandler<'configureCrashReporter'> = async (_, dsn) => {
@@ -620,13 +625,17 @@ const handleRequestEvent: MainIpcHandler<'request'> = async (_, { url: urlString
 };
 
 const handleCheckForUpdatesEvent: MainIpcHandler<'checkForUpdates'> = async (event, userInitiated) => {
-  checkForUpdates(false, userInitiated);
+  checkForUpdates(userInitiated);
   // Send current status immediately
   event.sender.send(IpcEventChannel.updateStatus, getCurrentUpdateStatus());
 };
 
 const handleGetUpdateStatusEvent: MainIpcHandler<'getUpdateStatus'> = async (_event) => {
   return getCurrentUpdateStatus();
+};
+
+const handleGetUpdatePolicyEvent: MainIpcHandler<'getUpdatePolicy'> = async (_event) => {
+  return getUpdatePolicy();
 };
 
 const handleInstallUpdateEvent: MainIpcHandler<'installUpdate'> = async (_event) => {
