@@ -37,6 +37,7 @@ import { ComboboxListItem } from './ComboboxListItem';
 
 export interface ComboboxPropsRef {
   clearInputText(): void;
+  focusInput(): void;
   getRefs(): {
     inputEl: React.RefObject<HTMLInputElement | null>;
     divContainerEl: React.RefObject<HTMLDivElement | null>;
