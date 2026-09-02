@@ -48,6 +48,8 @@ export const QueryFieldFunction = ({ hasGroupByClause, selectedFields }: QueryFi
     );
   }
 
+  const DELETE_ROW_BUTTON_ID_PREFIX = 'query-field-function-delete-';
+
   function handleAddRow() {
     setFieldFilterFunctions((prevItems) => [
       ...prevItems,
@@ -59,7 +61,15 @@ export const QueryFieldFunction = ({ hasGroupByClause, selectedFields }: QueryFi
     ]);
   }
 
+  /**
+   * The delete button unmounts with its row, which would drop keyboard focus to <body> — land on
+   * the previous row's delete button (or the row that slides into slot 0, which is always present
+   * because an emptied list is refilled with one blank row)
+   */
   function handleDeleteRow(index: number) {
+    window.setTimeout(() => {
+      document.getElementById(`${DELETE_ROW_BUTTON_ID_PREFIX}${Math.max(index - 1, 0)}`)?.focus();
+    });
     setFieldFilterFunctions((prevItems) => {
       const output = prevItems.filter((_, i) => i !== index);
       if (!output.length) {
@@ -89,7 +99,12 @@ export const QueryFieldFunction = ({ hasGroupByClause, selectedFields }: QueryFi
                 onChange={(selectedField, selectedFunction, alias) => handleChange(i, selectedField, selectedFunction, alias)}
               />
               <GridCol growNone>
-                <button className="slds-button slds-button_icon slds-button_icon-border" onClick={() => handleDeleteRow(i)}>
+                <button
+                  id={`${DELETE_ROW_BUTTON_ID_PREFIX}${i}`}
+                  className="slds-button slds-button_icon slds-button_icon-border"
+                  aria-label={`Delete field function row ${i + 1}`}
+                  onClick={() => handleDeleteRow(i)}
+                >
                   <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
                 </button>
               </GridCol>
