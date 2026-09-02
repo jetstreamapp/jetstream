@@ -385,6 +385,8 @@ export function GridContainer<TRow extends object = RowWithKey>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyboardNav.activeCell?.columnId]);
 
+  const cellHintIds = useMemo(() => ({ editable: `${gridId}-hint-editable`, controls: `${gridId}-hint-controls` }), [gridId]);
+
   const runtime: GridRuntime<TRow> = useMemo(
     () => ({ table, gridId, getRowKey, columns: orderedColumns }),
     [table, gridId, getRowKey, orderedColumns],
@@ -902,6 +904,7 @@ export function GridContainer<TRow extends object = RowWithKey>({
               mode={keyboardNav.mode}
               getLastInteractionSource={keyboardNav.getLastInteractionSource}
               editingCell={editingCell}
+              cellHintIds={cellHintIds}
               selectionBounds={selectionBounds}
               onCellMouseDown={keyboardNav.handleCellMouseDown}
               onCellMouseEnter={keyboardNav.handleCellMouseEnter}
@@ -914,6 +917,14 @@ export function GridContainer<TRow extends object = RowWithKey>({
             />
           </div>
         </div>
+
+        {/* Keyboard hints for the focused cell — GridBody points the cell's aria-describedby at these. */}
+        <span id={cellHintIds.editable} className="slds-assistive-text">
+          Editable. Press Enter to edit.
+        </span>
+        <span id={cellHintIds.controls} className="slds-assistive-text">
+          Contains controls. Press Enter to interact with them and Escape to return to the cell.
+        </span>
 
         {/* Screen-reader announcement of the current navigation/actionable mode. */}
         <span className="slds-assistive-text" aria-live="polite">
