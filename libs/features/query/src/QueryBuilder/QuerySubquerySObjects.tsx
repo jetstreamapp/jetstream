@@ -6,7 +6,7 @@ import { fromQueryState } from '@jetstream/ui-core';
 import { getSubqueryFieldBaseKey } from '@jetstream/ui-core/shared';
 import { useAtomValue, useSetAtom } from 'jotai';
 import isNumber from 'lodash/isNumber';
-import { Fragment, FunctionComponent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FunctionComponent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   buildSelectedSubqueryTree,
   countSubqueriesBelow,
@@ -109,11 +109,16 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
 
   /**
    * Nothing is left to configure at this level once it is cleared, so step back up to the level that
-   * still has selections rather than leaving the user on an empty list.
+   * still has selections rather than leaving the user on an empty list. The Clear all button unmounts
+   * with that, so focus lands on the first control of the level that replaces it instead of <body>.
    */
+  const containerRef = useRef<HTMLDivElement>(null);
   function handleClearAll() {
     clearSubqueries(currentRelationshipPath);
     goToLevels((currentLevels) => currentLevels.slice(0, -1));
+    window.setTimeout(() => {
+      containerRef.current?.querySelector<HTMLElement>('button, a[href], input, [tabindex="0"]')?.focus();
+    });
   }
 
   /**
@@ -159,7 +164,8 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
   }
 
   return (
-    <Fragment>
+    // display: contents keeps the wrapper out of the layout; it only scopes the focus fallback below
+    <div ref={containerRef} style={{ display: 'contents' }}>
       {levels.length > 0 && (
         <div className="slds-p-around_x-small slds-border_bottom">
           <Breadcrumbs
@@ -218,7 +224,7 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
           onDrillIn={(level) => goToLevels((currentLevels) => [...currentLevels, level])}
         />
       )}
-    </Fragment>
+    </div>
   );
 };
 
