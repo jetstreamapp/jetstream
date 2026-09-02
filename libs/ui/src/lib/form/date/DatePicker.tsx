@@ -230,6 +230,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
             .filter(Boolean)
             .join(' ')}
           type="text"
+          aria-invalid={hasError || undefined}
           autoComplete="off"
           id={id}
           placeholder=""

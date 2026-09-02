@@ -97,6 +97,7 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
             type="checkbox"
             name="options"
             id={id}
+            aria-invalid={hasError || undefined}
             checked={checked || false}
             disabled={readOnly || disabled}
             readOnly={readOnly}
