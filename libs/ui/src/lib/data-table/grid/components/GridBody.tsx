@@ -43,6 +43,11 @@ export interface GridBodyProps<TRow extends object> {
   getLastInteractionSource?: () => GridInteractionSource;
   /** The cell currently being edited (its editor owns focus, so the body must not steal it). */
   editingCell?: ActiveCell | null;
+  /**
+   * Ids of the visually hidden hint elements (rendered by GridContainer) that describe what Enter does on
+   * the focused cell. Attached via aria-describedby to the one cell that receives keyboard focus.
+   */
+  cellHintIds: { editable: string; controls: string };
   /** Resolved cell-selection rectangles (inclusive display-index bounds; empty when collapsed). */
   selectionBounds?: CellSelectionBounds[];
   onCellMouseDown?: (rowId: string, columnId: string, shiftKey: boolean, button?: number, ctrlOrMetaKey?: boolean) => void;
@@ -84,6 +89,7 @@ export function GridBody<TRow extends object>({
   mode = 'navigation',
   getLastInteractionSource,
   editingCell,
+  cellHintIds,
   selectionBounds,
   onCellMouseDown,
   onCellMouseEnter,
@@ -147,6 +153,37 @@ export function GridBody<TRow extends object>({
   // Resolve the active cell to a DOM node: scroll its row into view, then focus the cell (navigation)
   // or the first focusable inside it (actionable). Runs only when the coordinate/mode changes — NOT on
   // manual scroll — so scrolling away from the active cell never yanks the viewport back.
+  // The cell currently carrying the keyboard hint, so it can be cleared when focus moves on.
+  const hintedCellRef = useRef<HTMLElement | null>(null);
+
+  /**
+   * Screen readers announce a gridcell's content but nothing about what Enter would do with it, so the
+   * cell is described before it takes focus: "editable" when it has an editor, "contains controls" when
+   * it wraps buttons/links/popover triggers. Applied imperatively to the single focused cell rather than
+   * rendered on every cell, and never to header cells (their sort/filter controls are announced directly).
+   */
+  const applyCellKeyboardHints = (cellEl: HTMLElement) => {
+    const previousHintedCell = hintedCellRef.current;
+    if (previousHintedCell && previousHintedCell !== cellEl) {
+      previousHintedCell.removeAttribute('aria-describedby');
+    }
+    const role = cellEl.getAttribute('role');
+    const hintIds: string[] = [];
+    if ((role === 'gridcell' || role === 'rowheader') && cellEl.getAttribute('aria-readonly') !== 'true') {
+      hintIds.push(cellHintIds.editable);
+    }
+    if (role === 'gridcell' && cellEl.querySelector(ACTIONABLE_FOCUSABLE_SELECTOR)) {
+      hintIds.push(cellHintIds.controls);
+    }
+    if (hintIds.length > 0) {
+      cellEl.setAttribute('aria-describedby', hintIds.join(' '));
+      hintedCellRef.current = cellEl;
+    } else {
+      cellEl.removeAttribute('aria-describedby');
+      hintedCellRef.current = null;
+    }
+  };
+
   // True when the active cell is the one being edited — its editor input owns focus, so skip cell focus.
   const isEditingActiveCell =
     !!editingCell && !!activeCell && editingCell.rowId === activeCell.rowId && editingCell.columnId === activeCell.columnId;
@@ -238,6 +275,9 @@ export function GridBody<TRow extends object>({
           // data-grid-inner-focus — arrow navigation focuses the widget itself so its role and state
           // are announced (e.g. "Pin entry, toggle button, pressed") and Enter/Space activate natively
           const innerFocusTarget = cellEl.querySelector<HTMLElement>('[data-grid-inner-focus]:not(:disabled)');
+          if (!innerFocusTarget) {
+            applyCellKeyboardHints(cellEl);
+          }
           (innerFocusTarget ?? cellEl).focus();
         }
         return;
