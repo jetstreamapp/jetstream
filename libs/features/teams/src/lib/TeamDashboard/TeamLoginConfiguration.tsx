@@ -1,6 +1,6 @@
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { LoginConfigurationIdentityDisplayNames, TeamLoginConfigRequest } from '@jetstream/types';
-import { Card, Checkbox, fireToast, Grid, GridCol, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Card, Checkbox, fireToast, Grid, GridCol, Spinner } from '@jetstream/ui';
 import { abilityState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
@@ -153,11 +153,12 @@ export function TeamLoginConfiguration({ loginConfiguration, hasSsoConfigured, s
       title="Login Configuration"
       icon={{ type: 'standard', icon: 'settings' }}
       actions={
+        // aria-disabled keeps focus on the button while the submit disables it; the guarded click blocks re-submits
         <button
           form="team-login-configuration-form"
           type="submit"
           className="slds-button slds-button_brand"
-          disabled={!dirty.isDirty || errors.hasError || loading}
+          {...ariaDisabledButtonProps(!dirty.isDirty || errors.hasError || loading, () => {})}
         >
           Save
         </button>
