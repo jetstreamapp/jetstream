@@ -87,8 +87,7 @@ export function Component() {
             />
             <Select id="color-scheme" className="slds-m-top_x-small" label="Theme">
               <select
-                id="color-scheme-select"
-                aria-describedby="color-scheme"
+                id="color-scheme"
                 className="slds-select"
                 value={colorScheme ?? 'light'}
                 onChange={(event) => setColorScheme(event.target.value as ColorScheme)}
