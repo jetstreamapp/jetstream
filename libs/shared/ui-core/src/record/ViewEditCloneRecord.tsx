@@ -5,7 +5,13 @@ import { getPicklistValuesForRecordAndRecordType, UiRecordForm } from '@jetstrea
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
 import { clearCacheForOrg, describeGlobal, describeSObject, query, sobjectOperation } from '@jetstream/shared/data';
-import { copyRecordsToClipboard, isErrorResponse, tracker, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import {
+  copyRecordsToClipboard,
+  isErrorResponse,
+  tracker,
+  useNonInitialEffect,
+  usePrimaryActionShortcut,
+} from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
   AsyncJobNew,
@@ -23,10 +29,13 @@ import {
 } from '@jetstream/types';
 import {
   ariaDisabledButtonProps,
+  AssistiveStatus,
   Breadcrumbs,
   ButtonGroupContainer,
   DownloadFromServerOpts,
   DropDown,
+  getAriaKeyshortcuts,
+  getModifierKey,
   Grid,
   Icon,
   Modal,
@@ -572,6 +581,10 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   }
 
   const isSaveButtonDisabled = loading || saving || !initialRecord;
+
+  // Enter never submits: the form is long and a stray Enter in a field must not save. Cmd/Ctrl+Enter
+  // is the app-wide primary-action shortcut and is announced on the Save button.
+  usePrimaryActionShortcut(() => handleSave(), { disabled: isSaveButtonDisabled || action === 'view' });
   const showSaveWithErrorsButton = !isSaveButtonDisabled && formErrors.hasErrors;
 
   return (
@@ -782,6 +795,8 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                     <ButtonGroupContainer>
                       <button
                         className="slds-button slds-button_brand"
+                        // The shortcut is conveyed by aria-keyshortcuts; repeating it in a title would double the announcement
+                        aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
                         {...ariaDisabledButtonProps(isSaveButtonDisabled, () => handleSave())}
                       >
                         Save
@@ -810,6 +825,8 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
         >
           <div ref={modalBodyRef}>
             {(loading || saving) && <Spinner />}
+            {/* The spinner is the only sign that Save/Load is in progress, so mirror it for screen readers */}
+            <AssistiveStatus message={saving ? 'Saving record' : loading ? 'Loading record' : ''} />
             {!loading && initialRecord && (
               <>
                 {/* Create and Edit do not show child records */}
