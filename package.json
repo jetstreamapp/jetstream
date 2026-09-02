@@ -129,6 +129,7 @@
     "playwright:test": "pnpm playwright test src --config apps/jetstream-e2e/playwright.config.ts",
     "playwright:test:query-results": "pnpm playwright test query-results.spec.ts --config apps/jetstream-e2e/playwright.config.ts --headed",
     "playwright:test:a11y": "pnpm playwright test src/tests/a11y --config apps/jetstream-e2e/playwright.config.ts",
+    "a11y:lint-ratchet": "node scripts/a11y-lint-ratchet.mjs",
     "a11y:merge-baseline": "node scripts/a11y-merge-baseline.mjs",
     "a11y:scan-urls": "node scripts/a11y-scan-urls.mjs",
     "playwright:web-extension:test": "pnpm playwright test src --config apps/jetstream-web-extension-e2e/playwright.config.ts --headed",

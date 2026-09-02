@@ -52,7 +52,13 @@ allowed to violate and how many nodes each may flag, e.g. `"route-CREATE_FIELDS"
 
 Lint follows the same ratchet idea: `jsx-a11y` rules currently at `warn` in `.oxlintrc.json` are
 promoted to `error` once their violation count reaches zero (see the census in the findings log);
-rules already at `error` are never demoted.
+rules already at `error` are never demoted. Until a rule is promoted, `pnpm a11y:lint-ratchet`
+(`scripts/a11y-lint-ratchet.mjs`, run by the pre-commit hook and the CI lint job) holds the line:
+it baselines the allowed hit count per file and rule in `tools/oxlint/jsx-a11y-baseline.json` and
+fails on any file that exceeds it. The same script requires an `axeScan()` assertion in every
+`libs/ui` component spec not listed as a legacy exemption, and a `route-<KEY>` baseline entry for
+every swept `APP_ROUTES` key, so a new route is gated from its first commit. `--update` shrinks the
+baseline; `--allow-growth` is needed to record anything new, with a line in the findings log.
 
 ## Manual audit
 
