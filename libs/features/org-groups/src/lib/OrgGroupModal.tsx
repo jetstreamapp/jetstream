@@ -13,6 +13,7 @@ interface OrgGroupModalProps {
 
 export function OrgGroupModal({ orgGroup, onSubmit, onClose }: OrgGroupModalProps) {
   const isMounted = useRef(true);
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [updatedOrg, setUpdatedOrg] = useState(() => ({
     name: orgGroup?.name || '',
@@ -58,6 +59,7 @@ export function OrgGroupModal({ orgGroup, onSubmit, onClose }: OrgGroupModalProp
         </Grid>
       }
       size="sm"
+      initialFocus={nameInputRef}
       onClose={onClose}
     >
       <div className="slds-is-relative">
@@ -71,10 +73,10 @@ export function OrgGroupModal({ orgGroup, onSubmit, onClose }: OrgGroupModalProp
         >
           <Input id="group-name" label="Group Name" isRequired hasError={false} errorMessageId="Error" errorMessage="This is not valid">
             <input
+              ref={nameInputRef}
               id="group-name"
               name="group-name"
               className="slds-input"
-              autoFocus
               value={updatedOrg.name}
               required
               minLength={1}
