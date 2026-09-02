@@ -2,7 +2,19 @@ import { css } from '@emotion/react';
 import { getOrgType, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { isProductionOrg } from '@jetstream/shared/utils';
 import { ChangeSet, DeployOptions, ListItem, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { ComboboxWithItems, Grid, GridCol, Input, Modal, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
+import {
+  ariaDisabledButtonProps,
+  ComboboxWithItems,
+  Grid,
+  GridCol,
+  Input,
+  Modal,
+  Radio,
+  RadioGroup,
+  SalesforceLogin,
+  Spinner,
+  Textarea,
+} from '@jetstream/ui';
 import { OrgLabelBadge } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
@@ -137,7 +149,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
             <RadioGroup
               className="slds-m-top_small slds-m-bottom_x-small"
               idPrefix="package"
-              label="Choose changeset from list"
+              label="Changeset selection method"
               required
               labelHelp="Salesforce has limited support for obtaining changesets, if your changeset is not shown below, manually enter the name."
             >
@@ -179,9 +191,13 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
                           <span>
                             Salesforce has limited changeset support for 3rd party applications. If your changeset does not appear, choose
                             to{' '}
-                            <span className="slds-text-link" onClick={() => setChangesetEntryType('manual')}>
+                            <button
+                              type="button"
+                              className="slds-button slds-button_reset slds-text-link"
+                              onClick={() => setChangesetEntryType('manual')}
+                            >
                               manually enter
-                            </span>{' '}
+                            </button>{' '}
                             the changeset name.
                           </span>
                         ),
@@ -197,7 +213,11 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
                     />
                   </div>
                   <div className="slds-m-horizontal_small">
-                    <button className="slds-button slds-button_neutral slds-m-top_large" onClick={() => loadPackages()} disabled={loading}>
+                    {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
+                    <button
+                      className="slds-button slds-button_neutral slds-m-top_large"
+                      {...ariaDisabledButtonProps(loading, () => loadPackages())}
+                    >
                       Refresh
                     </button>
                   </div>
