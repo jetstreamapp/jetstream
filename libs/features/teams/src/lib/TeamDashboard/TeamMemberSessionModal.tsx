@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { UserSessionWithLocationAndUser } from '@jetstream/auth/types';
 import { getTeamUserSessions, PaginationCursorParams, revokeTeamUserSession } from '@jetstream/shared/data';
 import { getBrowserInfo } from '@jetstream/shared/ui-utils';
-import { DropDown, fireToast, Modal, ScopedNotification, SessionLocationDisplay, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, DropDown, fireToast, Modal, ScopedNotification, SessionLocationDisplay, Spinner } from '@jetstream/ui';
 import { abilityState } from '@jetstream/ui/app-state';
 import { parseISO } from 'date-fns/parseISO';
 import { useAtomValue } from 'jotai';
@@ -80,10 +80,7 @@ export function TeamMemberSessionModal({ teamId, onClose }: TeamMemberSessionMod
           There was a problem getting your team's sessions. File a support ticket if you need additional assistance.
         </ScopedNotification>
       )}
-      <table
-        aria-describedby="team-members-heading"
-        className="slds-table slds-table_cell-buffer slds-table_bordered slds-m-bottom_x-large"
-      >
+      <table aria-label="Team sessions" className="slds-table slds-table_cell-buffer slds-table_bordered slds-m-bottom_x-large">
         <thead>
           <tr className="slds-line-height_reset">
             <th
@@ -97,40 +94,43 @@ export function TeamMemberSessionModal({ teamId, onClose }: TeamMemberSessionMod
               </div>
             </th>
             <th scope="col">
-              <span className="slds-truncate" title="Name">
+              <span className="slds-truncate" title="User">
                 User
               </span>
             </th>
             <th scope="col">
-              <span className="slds-truncate" title="Email">
+              <span className="slds-truncate" title="Browser">
                 Browser
               </span>
             </th>
             <th scope="col">
-              <span className="slds-truncate" title="Email">
+              <span className="slds-truncate" title="IP Address">
                 IP Address
               </span>
             </th>
             <th scope="col">
-              <span className="slds-truncate" title="Role">
+              <span className="slds-truncate" title="Created At">
                 Created At
               </span>
             </th>
             <th scope="col">
-              <span className="slds-truncate" title="Status">
+              <span className="slds-truncate" title="Expires At">
                 Expires At
               </span>
             </th>
             <th scope="col">
-              <span className="slds-truncate" title="Last Logged In">
+              <span className="slds-truncate" title="Provider">
                 Provider
               </span>
             </th>
             <th
+              scope="col"
               css={css`
                 max-width: 32px;
               `}
-            />
+            >
+              <span className="slds-assistive-text">Actions</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -147,14 +147,14 @@ export function TeamMemberSessionModal({ teamId, onClose }: TeamMemberSessionMod
           {hasMore && (
             <tr>
               <td colSpan={7} css={{ textAlign: 'center' }}>
+                {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
                 <button
                   className="slds-button slds-button_neutral"
-                  disabled={loading}
-                  onClick={() => {
+                  {...ariaDisabledButtonProps(loading, () => {
                     const { sessionId } = sessions[sessions.length - 1];
                     setLoading(true);
                     setPagination((prev) => ({ ...prev, cursorId: sessionId }));
-                  }}
+                  })}
                 >
                   Load More
                 </button>
@@ -228,11 +228,12 @@ const Row = ({
             dropDownClassName="slds-dropdown_actions"
             buttonClassName="slds-button slds-button_icon slds-button_icon-border-filled slds-button_icon-x-small"
             position="right"
+            description={`Actions for ${user.name} session`}
             items={[
               {
                 id: 'revoke',
                 value: 'Revoke Session',
-                icon: { type: 'utility', icon: 'delete', description: 'Revoke Session' },
+                icon: { type: 'utility', icon: 'delete' },
               },
             ]}
             onSelected={(id) => {
