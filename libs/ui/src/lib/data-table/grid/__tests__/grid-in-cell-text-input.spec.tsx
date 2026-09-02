@@ -1,3 +1,4 @@
+import { axeScan } from '@jetstream/test-utils';
 import { fireEvent, render } from '@testing-library/react';
 import { beforeAll, describe, expect, test, vi } from 'vitest';
 import { DataTable, DataTableProps } from '../../DataTable';
@@ -56,6 +57,11 @@ function pasteInto(element: HTMLElement, text: string): boolean {
 }
 
 describe('in-cell text inputs keep their own keyboard and clipboard behavior', () => {
+  test('a grid whose summary row holds a filter input has no axe violations', async () => {
+    const { baseElement } = renderTable();
+    await axeScan(baseElement);
+  });
+
   test('pasting into a summary row filter input is left to the input', () => {
     const onPaste = vi.fn();
     const { getByLabelText } = renderTable({ onPaste });
