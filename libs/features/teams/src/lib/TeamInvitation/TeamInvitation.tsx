@@ -6,6 +6,7 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useTitle } from '@jetstream/shared/ui-utils';
 import { TeamInviteVerificationResponse } from '@jetstream/types';
 import {
+  ariaDisabledButtonProps,
   AutoFullHeightContainer,
   fireToast,
   Page,
@@ -119,7 +120,7 @@ export function TeamInvitation() {
               className="slds-text-align_center slds-p-around_large"
             >
               <div className="slds-m-bottom_large">
-                <h1 className="slds-text-heading_large slds-text-color_default">Join {teamVerification.teamName}</h1>
+                <h2 className="slds-text-heading_large slds-text-color_default">Join {teamVerification.teamName}</h2>
                 <p className="slds-text-body_regular slds-text-color_weak slds-m-top_small">You've been invited to join your teammates.</p>
               </div>
               {/* Team validation */}
@@ -152,13 +153,15 @@ export function TeamInvitation() {
                   )}
                 </div>
               }
+              {/* Stays focusable (and keeps its name) while its own click disables it — native disabled
+                  would drop focus to <body>, and swapping the text for a spinner left it nameless */}
               <button
                 className="slds-m-top_large slds-button slds-button_brand slds-is-relative slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3"
-                disabled={!teamVerification.canEnroll || accepting}
                 type="button"
-                onClick={handleAcceptInvitation}
+                {...ariaDisabledButtonProps(!teamVerification.canEnroll || accepting, () => handleAcceptInvitation())}
               >
-                {accepting ? <Spinner size="small" className="slds-m-right_x-small" /> : 'Accept Invitation'}
+                {accepting && <Spinner size="small" />}
+                Accept Invitation
               </button>
             </div>
           </div>

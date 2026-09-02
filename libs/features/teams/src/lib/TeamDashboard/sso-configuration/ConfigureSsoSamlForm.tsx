@@ -4,7 +4,17 @@ import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { parseSamlMetadata } from '@jetstream/shared/data';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { InputReadFileContent } from '@jetstream/types';
-import { Accordion, CopyToClipboard, FileSelector, fireToast, Input, ScopedNotification, Spinner, Textarea } from '@jetstream/ui';
+import {
+  Accordion,
+  ariaDisabledButtonProps,
+  CopyToClipboard,
+  FileSelector,
+  fireToast,
+  Input,
+  ScopedNotification,
+  Spinner,
+  Textarea,
+} from '@jetstream/ui';
 import classNames from 'classnames';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -230,11 +240,11 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
                       </Input>
                     </div>
                     <div className="slds-col slds-grow-none">
+                      {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
                       <button
                         className="slds-button slds-button_neutral slds-is-relative"
-                        disabled={!metadataUrl || isFetchingMetadata}
-                        onClick={handleFetchMetadataUrl}
                         type="button"
+                        {...ariaDisabledButtonProps(!metadataUrl || isFetchingMetadata, () => handleFetchMetadataUrl())}
                       >
                         {isFetchingMetadata && <Spinner size="x-small" />}
                         Fetch Metadata
