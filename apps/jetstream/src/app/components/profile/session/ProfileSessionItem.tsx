@@ -66,6 +66,8 @@ export const ProfileSessionItem: FunctionComponent<ProfileSessionItemProps> = ({
                 );
               }
             `}
+            // Every session card repeats this button — the name says which session it revokes
+            aria-label={`Revoke session ${osName} ${browserName}`}
             onClick={() => onRevokeSession(sessionId, type)}
           >
             Revoke
