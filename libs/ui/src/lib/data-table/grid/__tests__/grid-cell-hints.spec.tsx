@@ -10,6 +10,7 @@ interface Row {
   Amount: string;
   Link: string;
   Url: string;
+  Both: string;
 }
 
 const columns: ColumnWithFilter<Row>[] = [
@@ -25,11 +26,21 @@ const columns: ColumnWithFilter<Row>[] = [
       </a>
     ),
   },
+  {
+    key: 'Both',
+    name: 'Both',
+    renderCell: ({ row }) => (
+      <>
+        <button type="button">Expand</button>
+        <a href={row.Both}>Open</a>
+      </>
+    ),
+  },
 ];
 
 const data: Row[] = [
-  { _key: '1', Name: 'Alpha', Amount: '10', Link: 'one', Url: 'https://example.com/1' },
-  { _key: '2', Name: 'Bravo', Amount: '20', Link: 'two', Url: 'https://example.com/2' },
+  { _key: '1', Name: 'Alpha', Amount: '10', Link: 'one', Url: 'https://example.com/1', Both: 'https://example.com/a' },
+  { _key: '2', Name: 'Bravo', Amount: '20', Link: 'two', Url: 'https://example.com/2', Both: 'https://example.com/b' },
 ];
 
 // The virtualizers measure the scroll container, which jsdom reports as 0x0 — give every element a
@@ -65,12 +76,13 @@ async function arrowTo(fromCell: HTMLElement, key: 'ArrowRight' | 'ArrowLeft', e
 }
 
 describe('grid cell keyboard hints', () => {
-  test('a focused cell is described by what Enter does with it: editing, or its inner controls', async () => {
+  test('a focused cell is described by what Enter does with it: edit, activate, open a link, or enter the cell', async () => {
     const { baseElement } = render(<DataTable columns={columns} data={data} getRowKey={(row) => row._key} />);
     const nameCell = getCell('1', 'Name');
     const amountCell = getCell('1', 'Amount');
     const linkCell = getCell('1', 'Link');
     const urlCell = getCell('1', 'Url');
+    const bothCell = getCell('1', 'Both');
     fireEvent.mouseDown(nameCell);
 
     await arrowTo(nameCell, 'ArrowRight', amountCell);
@@ -78,13 +90,17 @@ describe('grid cell keyboard hints', () => {
     await axeScan(baseElement);
 
     await arrowTo(amountCell, 'ArrowRight', linkCell);
-    expect(describedByText(linkCell)).toMatch(/contains controls\. press enter/i);
+    expect(describedByText(linkCell)).toMatch(/contains a control\. press enter to activate it/i);
     // the hint moved with focus
     expect(amountCell.hasAttribute('aria-describedby')).toBe(false);
 
     await arrowTo(linkCell, 'ArrowRight', urlCell);
-    expect(describedByText(urlCell)).toMatch(/contains a link\. press enter to move to it/i);
+    expect(describedByText(urlCell)).toMatch(/contains a link\. press enter to open it/i);
 
+    await arrowTo(urlCell, 'ArrowRight', bothCell);
+    expect(describedByText(bothCell)).toMatch(/contains controls\. press enter to move to them/i);
+
+    await arrowTo(bothCell, 'ArrowLeft', urlCell);
     await arrowTo(urlCell, 'ArrowLeft', linkCell);
     await arrowTo(linkCell, 'ArrowLeft', amountCell);
     await arrowTo(amountCell, 'ArrowLeft', nameCell);
