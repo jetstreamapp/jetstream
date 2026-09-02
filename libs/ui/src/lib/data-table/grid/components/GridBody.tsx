@@ -3,6 +3,7 @@ import { shallow, useSelector } from '@tanstack/react-store';
 import type { CellSelectionBounds } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { CSSProperties, RefObject, useEffect, useMemo, useRef } from 'react';
+import { CellHintKind, getCellHintId } from '../grid-cell-hints';
 import { DEFAULT_ROW_HEIGHT, HEADER_ROW_ID, isSummaryRowId } from '../grid-constants';
 import { selectRowModelInputs } from '../grid-context';
 import { TanstackTable } from '../grid-types';
@@ -43,11 +44,8 @@ export interface GridBodyProps<TRow extends object> {
   getLastInteractionSource?: () => GridInteractionSource;
   /** The cell currently being edited (its editor owns focus, so the body must not steal it). */
   editingCell?: ActiveCell | null;
-  /**
-   * Ids of the visually hidden hint elements (rendered by GridContainer) that describe what Enter does on
-   * the focused cell. Attached via aria-describedby to the one cell that receives keyboard focus.
-   */
-  cellHintIds: { editable: string; controls: string; link: string };
+  /** Prefix of the hidden cell-hint elements rendered by GridContainer (see grid-cell-hints.ts). */
+  gridId: string;
   /** Resolved cell-selection rectangles (inclusive display-index bounds; empty when collapsed). */
   selectionBounds?: CellSelectionBounds[];
   onCellMouseDown?: (rowId: string, columnId: string, shiftKey: boolean, button?: number, ctrlOrMetaKey?: boolean) => void;
@@ -89,7 +87,7 @@ export function GridBody<TRow extends object>({
   mode = 'navigation',
   getLastInteractionSource,
   editingCell,
-  cellHintIds,
+  gridId,
   selectionBounds,
   onCellMouseDown,
   onCellMouseEnter,
@@ -163,31 +161,53 @@ export function GridBody<TRow extends object>({
   const hintedCellRef = useRef<HTMLElement | null>(null);
 
   /**
+   * Which hint describes the cell — the same decision tree as the keyboard hook's Enter handling
+   * (edit first, then activateCell). Header cells get none: their sort/filter controls are announced directly.
+   */
+  const getCellHintKind = (cellEl: HTMLElement): CellHintKind | null => {
+    const role = cellEl.getAttribute('role');
+    if (role !== 'gridcell' && role !== 'rowheader') {
+      return null;
+    }
+    if (cellEl.getAttribute('aria-readonly') !== 'true') {
+      return 'editable';
+    }
+    if (cellEl.querySelectorAll('input[type="checkbox"]:not([disabled])').length === 1) {
+      return 'checkbox';
+    }
+    const controls = Array.from(cellEl.querySelectorAll<HTMLElement>(ACTIONABLE_FOCUSABLE_SELECTOR));
+    if (controls.length === 0) {
+      return null;
+    }
+    if (controls.length > 1) {
+      return 'controls';
+    }
+    const [control] = controls;
+    if (control.matches('.jgrid-tree-toggle')) {
+      return 'expand';
+    }
+    if (control.matches('a[href]')) {
+      return 'link';
+    }
+    if (control.matches('input:not([type="checkbox"]):not([type="radio"]):not([type="button"]), textarea, select')) {
+      return 'input';
+    }
+    return 'control';
+  };
+
+  /**
    * Screen readers announce a gridcell's content but nothing about what Enter would do with it, so the
-   * cell is described before it takes focus: "editable" when it has an editor, "contains controls" when
-   * it wraps buttons/links/popover triggers. Applied imperatively to the single focused cell rather than
-   * rendered on every cell, and never to header cells (their sort/filter controls are announced directly).
+   * cell is described before it takes focus. Applied imperatively to the single focused cell rather than
+   * rendered on every cell, and cleared again when focus moves on.
    */
   const applyCellKeyboardHints = (cellEl: HTMLElement) => {
     const previousHintedCell = hintedCellRef.current;
     if (previousHintedCell && previousHintedCell !== cellEl) {
       previousHintedCell.removeAttribute('aria-describedby');
     }
-    const role = cellEl.getAttribute('role');
-    const hintIds: string[] = [];
-    if ((role === 'gridcell' || role === 'rowheader') && cellEl.getAttribute('aria-readonly') !== 'true') {
-      hintIds.push(cellHintIds.editable);
-    }
-    if (role === 'gridcell') {
-      const interactiveElements = Array.from(cellEl.querySelectorAll(ACTIONABLE_FOCUSABLE_SELECTOR));
-      if (interactiveElements.length > 0) {
-        // A cell holding only links (e.g. "open in Salesforce") is a navigation target, not a control
-        const onlyLinks = interactiveElements.every((element) => element.matches('a[href]'));
-        hintIds.push(onlyLinks ? cellHintIds.link : cellHintIds.controls);
-      }
-    }
-    if (hintIds.length > 0) {
-      cellEl.setAttribute('aria-describedby', hintIds.join(' '));
+    const hintKind = getCellHintKind(cellEl);
+    if (hintKind) {
+      cellEl.setAttribute('aria-describedby', getCellHintId(gridId, hintKind));
       hintedCellRef.current = cellEl;
     } else {
       cellEl.removeAttribute('aria-describedby');
