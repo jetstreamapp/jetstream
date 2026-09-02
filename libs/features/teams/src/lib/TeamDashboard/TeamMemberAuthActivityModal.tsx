@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { LoginActivityUserFacing } from '@jetstream/auth/types';
 import { getTeamAuthActivity, PaginationCursorParams } from '@jetstream/shared/data';
 import { getBrowserInfo } from '@jetstream/shared/ui-utils';
-import { Modal, ScopedNotification, SessionLocationDisplay, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Modal, ScopedNotification, SessionLocationDisplay, Spinner } from '@jetstream/ui';
 import { parseISO } from 'date-fns/parseISO';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -54,7 +54,7 @@ export function TeamMemberAuthActivityModal({ teamId, onClose }: TeamMemberAuthA
           There was a problem getting your team's authentication activity. File a support ticket if you need additional assistance.
         </ScopedNotification>
       )}
-      <table aria-describedby="team-members-heading" className="slds-table slds-table_cell-buffer slds-table_bordered">
+      <table aria-label="Authentication activity" className="slds-table slds-table_cell-buffer slds-table_bordered">
         <thead>
           <tr className="slds-line-height_reset">
             <th
@@ -68,32 +68,32 @@ export function TeamMemberAuthActivityModal({ teamId, onClose }: TeamMemberAuthA
               </div>
             </th>
             <th scope="col">
-              <span className="slds-truncate" title="Name">
+              <span className="slds-truncate" title="User">
                 User
               </span>
             </th>
             <th scope="col">
-              <span className="slds-truncate" title="Email">
+              <span className="slds-truncate" title="Browser">
                 Browser
               </span>
             </th>
             <th scope="col">
-              <span className="slds-truncate" title="Email">
+              <span className="slds-truncate" title="IP Address">
                 IP Address
               </span>
             </th>
             <th scope="col">
-              <span className="slds-truncate" title="Role">
+              <span className="slds-truncate" title="Action">
                 Action
               </span>
             </th>
             <th scope="col">
-              <span className="slds-truncate" title="Status">
+              <span className="slds-truncate" title="Created At">
                 Created At
               </span>
             </th>
             <th scope="col">
-              <span className="slds-truncate" title="Last Logged In">
+              <span className="slds-truncate" title="Outcome">
                 Outcome
               </span>
             </th>
@@ -108,14 +108,14 @@ export function TeamMemberAuthActivityModal({ teamId, onClose }: TeamMemberAuthA
           {hasMore && (
             <tr>
               <td colSpan={7} css={{ textAlign: 'center' }}>
+                {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
                 <button
                   className="slds-button slds-button_neutral"
-                  disabled={loading}
-                  onClick={() => {
+                  {...ariaDisabledButtonProps(loading, () => {
                     const { id } = authActivity[authActivity.length - 1];
                     setLoading(true);
                     setPagination((prev) => ({ ...prev, cursorId: id }));
-                  }}
+                  })}
                 >
                   Load More
                 </button>
