@@ -27,12 +27,7 @@
     "vitest.config.mts"
   ],
   "files": ["../../../node_modules/@nx/react/typings/cssmodule.d.ts", "../../../node_modules/@nx/react/typings/image.d.ts"],
-  "include": [
-    "src/**/*.js",
-    "src/**/*.jsx",
-    "src/**/*.ts",
-    "src/**/*.tsx"
-  ],
+  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
       "path": "../../test-utils/tsconfig.lib.json"
