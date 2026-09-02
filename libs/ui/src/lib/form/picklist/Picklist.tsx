@@ -420,6 +420,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                     role="combobox"
                     aria-expanded={isOpen}
                     aria-haspopup="listbox"
+                    aria-invalid={hasError || undefined}
                     type="text"
                     className={classNames('slds-input slds-combobox__input slds-combobox__input-value', { 'slds-has-focus': isOpen })}
                     id={comboboxId}
