@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { PositionLeftRight, SizeSmMdLgXlFull } from '@jetstream/types';
 import classNames from 'classnames';
-import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, RefObject, useEffect, useRef, useState } from 'react';
 import Icon from '../widgets/Icon';
 
 export interface PanelProps {
@@ -33,6 +33,13 @@ export interface PanelProps {
    * Note: fullHeight panels use `position: fixed` and anchor to the viewport.
    */
   zIndex?: number;
+  /**
+   * The control that opens the panel. Focus returns to it on close when nothing was focused at open
+   * time — Safari does not focus a button on mouse click, so `document.activeElement` is `<body>` and
+   * there would otherwise be nowhere to return to. A focused element at open time still wins, so a
+   * keyboard shortcut used from inside a grid returns to the cell the user was on.
+   */
+  returnFocusTo?: RefObject<HTMLElement | null>;
   onClosed: () => void;
   children?: React.ReactNode;
 }
@@ -76,6 +83,7 @@ export const Panel: FunctionComponent<PanelProps> = ({
   closeOnEscape = false,
   closeOnOutsideClick = false,
   zIndex,
+  returnFocusTo,
   onClosed,
   children,
 }) => {
@@ -90,7 +98,9 @@ export const Panel: FunctionComponent<PanelProps> = ({
     if (!isOpen) {
       return;
     }
-    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const activeAtOpen = document.activeElement;
+    const focusedElementAtOpen = activeAtOpen instanceof HTMLElement && activeAtOpen !== document.body ? activeAtOpen : null;
+    returnFocusRef.current = focusedElementAtOpen ?? returnFocusTo?.current ?? null;
     const panelEl = panelRef.current;
     panelEl?.querySelector<HTMLElement>('[data-panel-focus-target]')?.focus();
     return () => {
@@ -101,7 +111,7 @@ export const Panel: FunctionComponent<PanelProps> = ({
         returnTarget.focus();
       }
     };
-  }, [isOpen]);
+  }, [isOpen, returnFocusTo]);
 
   // Escape with focus INSIDE the panel always closes it (a keyboard user must be able to leave the
   // drawer the way they entered); the closeOnEscape prop additionally closes on Escape from anywhere.
