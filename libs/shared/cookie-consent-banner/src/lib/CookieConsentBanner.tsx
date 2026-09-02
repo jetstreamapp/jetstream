@@ -1,4 +1,4 @@
-import { CSSProperties } from 'react';
+import { CSSProperties, useId } from 'react';
 import styles from './cookie-consent-banner.module.css';
 import { CookieOptions } from './cookie-storage';
 import { useCookieConsent } from './useCookieConsent';
@@ -17,6 +17,8 @@ export function CookieConsentBanner({
   onConsentChange,
 }: CookieConsentBannerProps) {
   const { showBanner, acceptAll, rejectAll } = useCookieConsent({ onConsentChange, cookieOptions });
+  const headingId = useId();
+  const detailsId = useId();
 
   if (!showBanner) {
     return null;
@@ -24,11 +26,15 @@ export function CookieConsentBanner({
 
   return (
     <div style={containerStyles}>
-      <div className={styles.banner}>
+      {/* A named region so screen readers announce what the banner is when it appears or is reached,
+          and buttons that say what they accept/reject on their own — "Accept" alone gave no context. */}
+      <section className={styles.banner} aria-labelledby={headingId}>
         <div className={styles.container}>
           <div className={styles.content}>
-            <p className={styles.text}>We use cookies to improve your experience</p>
-            <p className={styles.details}>
+            <p id={headingId} className={styles.text}>
+              We use cookies to improve your experience
+            </p>
+            <p id={detailsId} className={styles.details}>
               We use analytics cookies to understand how you use our application.{' '}
               <a href={privacyPolicyUrl} className={styles.link} target="_blank" rel="noopener noreferrer">
                 Privacy Policy
@@ -36,15 +42,15 @@ export function CookieConsentBanner({
             </p>
           </div>
           <div className={styles.actions}>
-            <button className={styles.button} onClick={rejectAll} type="button">
-              Reject
+            <button className={styles.button} onClick={rejectAll} type="button" aria-describedby={detailsId}>
+              Reject cookies
             </button>
-            <button className={`${styles.button} ${styles.buttonPrimary}`} onClick={acceptAll} type="button">
-              Accept
+            <button className={`${styles.button} ${styles.buttonPrimary}`} onClick={acceptAll} type="button" aria-describedby={detailsId}>
+              Accept cookies
             </button>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
