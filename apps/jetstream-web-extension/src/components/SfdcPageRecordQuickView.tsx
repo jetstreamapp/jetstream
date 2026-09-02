@@ -3,9 +3,12 @@ import { logger } from '@jetstream/shared/client-logger';
 import { useDebounce } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import { CopyToClipboard, Icon, ReadOnlyFormElement, ScopedNotification, SearchInput, Spinner } from '@jetstream/ui';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import '../sfdc-styles-shim.css';
 import { getApiClientFromHost } from '../utils/extension-generic-api-request.utils';
+
+const HEADING_ID = 'sfdc-record-quick-view-heading';
+const SEARCH_INPUT_ID = 'sfdc-record-quick-view-field-search';
 
 interface SfdcPageRecordQuickViewProps {
   sfHost: string;
@@ -27,10 +30,23 @@ export function SfdcPageRecordQuickViewButton({ sfHost, recordId, sobject }: Sfd
     return null;
   }
 
+  // Dialog focus management: the panel takes focus when it opens and hands it back here on close
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  function handleClose() {
+    setIsOpen(false);
+    window.setTimeout(() => triggerRef.current?.focus());
+  }
+
   return (
     <>
-      {isOpen && <SfdcPageRecordQuickView sfHost={sfHost} recordId={recordId} sobject={sobject} onClose={() => setIsOpen(false)} />}
-      <button className="slds-button slds-button_neutral slds-button_stretch" onClick={() => setIsOpen(true)}>
+      {isOpen && <SfdcPageRecordQuickView sfHost={sfHost} recordId={recordId} sobject={sobject} onClose={handleClose} />}
+      <button
+        ref={triggerRef}
+        className="slds-button slds-button_neutral slds-button_stretch"
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen(true)}
+      >
         Quick View Current Record
       </button>
     </>
@@ -105,6 +121,11 @@ export function SfdcPageRecordQuickView({ sfHost, recordId, sobject, onClose }: 
     return () => document.removeEventListener('keydown', handleEscape);
   }, [onClose]);
 
+  // Dialog pattern: move focus into the panel when it opens (the trigger restores it on close)
+  useEffect(() => {
+    document.getElementById(SEARCH_INPUT_ID)?.focus();
+  }, []);
+
   const filteredFields = recordData?.filter(
     (field) =>
       !searchTermDebounced ||
@@ -114,6 +135,8 @@ export function SfdcPageRecordQuickView({ sfHost, recordId, sobject, onClose }: 
 
   return (
     <div
+      role="dialog"
+      aria-labelledby={HEADING_ID}
       css={css`
         position: fixed;
         bottom: 0;
@@ -145,7 +168,9 @@ export function SfdcPageRecordQuickView({ sfHost, recordId, sobject, onClose }: 
             <Icon type="utility" icon="record_alt" className="slds-icon slds-icon_small slds-icon-text-default" />
           </div>
           <div className="slds-media__body">
-            <h2 className="slds-truncate">Record View</h2>
+            <h2 id={HEADING_ID} className="slds-truncate">
+              Record View
+            </h2>
           </div>
         </div>
         <span className="slds-text-body_small slds-text-color_weak slds-m-left_x-small">
@@ -177,7 +202,7 @@ export function SfdcPageRecordQuickView({ sfHost, recordId, sobject, onClose }: 
           `}
         >
           <SearchInput
-            id="field-search"
+            id={SEARCH_INPUT_ID}
             className="w-100"
             placeholder="Filter fields by name or value..."
             value={searchTerm}
