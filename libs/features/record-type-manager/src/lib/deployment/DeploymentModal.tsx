@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
 import { saveFile, tracker } from '@jetstream/shared/ui-utils';
 import { ReadMetadataRecordTypeExtended } from '@jetstream/types';
-import { Grid, GridCol, Icon, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Grid, GridCol, Icon, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import {
   ConfirmPageChange,
   DeployMetadataProgressSummary,
@@ -92,7 +92,8 @@ export function DeploymentModal({ modifiedValues, recordTypeMetadataByFullName, 
               <button className="slds-button slds-button_neutral" onClick={() => onClose(false)} disabled={inProgress}>
                 Close
               </button>
-              <button className="slds-button slds-button_brand" onClick={handleDeploy} disabled={inProgress}>
+              {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
+              <button className="slds-button slds-button_brand" {...ariaDisabledButtonProps(inProgress, () => handleDeploy())}>
                 Deploy
               </button>
             </div>
