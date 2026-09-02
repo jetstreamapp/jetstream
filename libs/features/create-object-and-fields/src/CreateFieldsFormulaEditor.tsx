@@ -253,9 +253,18 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
           <textarea
             id={`${id}-${field.label}`}
             className="slds-textarea"
+            // SLDS only greys out [disabled], so a read-only box looked editable and invited typing here
+            // instead of in "Edit Formula". Only the background is borrowed from the disabled look: the
+            // formula stays at full contrast and selectable, which is why it is not disabled in the first place.
+            css={css`
+              background-color: var(--slds-g-color-disabled-container-1);
+              cursor: default;
+            `}
             placeholder={field.placeholder}
             value={value as string}
-            disabled
+            // Read-only display of the formula (edited in the modal) — a disabled textarea is unfocusable
+            // and skipped by screen readers in forms mode
+            readOnly
             rows={1}
             onChange={(event) => onChange(event.target.value)}
             onBlur={onBlur}
