@@ -19,6 +19,13 @@ export interface CheckboxCheckboxToggleProps {
   /** Id of an element that describes the toggle, announced after its label */
   ariaDescribedBy?: string;
   extraProps?: HTMLAttributes<HTMLDivElement>;
+  /**
+   * Set both when the toggle reveals content below it, so screen readers announce it as
+   * expanded/collapsed and can jump to what it controls. `ariaControls` is the id of the revealed
+   * region, which should stay in the DOM (empty when collapsed) so the reference always resolves.
+   */
+  ariaExpanded?: boolean;
+  ariaControls?: string;
   onChange?: (value: boolean) => void;
 }
 
@@ -36,6 +43,8 @@ export const CheckboxToggle: FunctionComponent<CheckboxCheckboxToggleProps> = ({
   labelClassname,
   ariaDescribedBy,
   extraProps,
+  ariaExpanded,
+  ariaControls,
   onChange,
 }) => {
   const stateId = `${id}-state`;
@@ -94,6 +103,8 @@ export const CheckboxToggle: FunctionComponent<CheckboxCheckboxToggleProps> = ({
             id={id}
             name={id}
             aria-describedby={[labelHelp && `${id}-label-help-text`, stateId, ariaDescribedBy].filter(Boolean).join(' ')}
+            aria-expanded={ariaExpanded}
+            aria-controls={ariaControls}
             checked={checked}
             disabled={disabled}
             onChange={() => handleChange()}
