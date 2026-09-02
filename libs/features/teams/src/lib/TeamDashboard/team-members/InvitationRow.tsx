@@ -65,15 +65,16 @@ const RoleCell = ({ role }: { role: TeamUserFacing['invitations'][number]['role'
 const StatusCell = ({ expiresAt }: { expiresAt: TeamUserFacing['invitations'][number]['expiresAt'] }) => {
   const expires = parseISO(expiresAt);
   const isActive = isBefore(new Date(), expires);
+  // The expiry date is tooltip-only, and a Badge cannot take focus — make the tooltip trigger tabbable
   if (isActive) {
     return (
-      <Tooltip content={`This invitation expires on ${expires.toLocaleString()}`}>
+      <Tooltip content={`This invitation expires on ${expires.toLocaleString()}`} triggerTabIndex={0}>
         <Badge type="success">Pending</Badge>
       </Tooltip>
     );
   }
   return (
-    <Tooltip content={`This invitation expired on ${expires.toLocaleString()}`}>
+    <Tooltip content={`This invitation expired on ${expires.toLocaleString()}`} triggerTabIndex={0}>
       <Badge type="warning">Expired</Badge>
     </Tooltip>
   );
@@ -92,17 +93,18 @@ const ActionCell = ({
       dropDownClassName="slds-dropdown_actions"
       buttonClassName="slds-button slds-button_icon slds-button_icon-border-filled slds-button_icon-x-small"
       position="left"
+      description={`Actions for invitation ${invitation.email}`}
       items={[
         {
           id: 'resend-invite',
           value: 'Resend Invite',
-          icon: { type: 'utility', icon: 'send', description: 'Resend Invite' },
+          icon: { type: 'utility', icon: 'send' },
           trailingDivider: true,
         },
         {
           id: 'cancel-invite',
           value: 'Cancel Invite',
-          icon: { type: 'utility', icon: 'delete', description: 'Deactivate' },
+          icon: { type: 'utility', icon: 'delete' },
         },
       ]}
       onSelected={(id) =>
