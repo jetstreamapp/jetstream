@@ -11,7 +11,7 @@ import { Navigate, Outlet, useLocation } from 'react-router';
 export interface RecordTypeManagerProps {}
 
 export const RecordTypeManager: FunctionComponent<RecordTypeManagerProps> = () => {
-  useTitle(TITLES.MANAGE_PERMISSIONS);
+  useTitle(TITLES.RECORD_TYPE_MANAGER);
   const location = useLocation();
   const selectedOrg = useAtomValue(selectedOrgState);
   const resetRecordTypes = useResetAtom(fromRecordTypeManagerState.recordTypesState);
