@@ -18,6 +18,7 @@ import {
   Section,
   Spinner,
   useFieldListItemsWithDrillIn,
+  ariaDisabledButtonProps,
 } from '@jetstream/ui';
 import {
   DEFAULT_FIELD_CONFIGURATION,
@@ -381,10 +382,10 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
               Close
             </button>
             {mode === 'configure' && (
+              {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
               <button
                 className="slds-button slds-button_brand"
-                onClick={handlePreview}
-                disabled={!isValid || loading || !!batchSizeError || deployInProgress || !!fatalError}
+                {...ariaDisabledButtonProps(!isValid || loading || !!batchSizeError || deployInProgress || !!fatalError, () => handlePreview())}
               >
                 Preview Proposed Changes
               </button>
@@ -392,8 +393,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             {mode === 'preview' && !didDeploy && (
               <button
                 className="slds-button slds-button_brand"
-                onClick={handleCommit}
-                disabled={loading || deployInProgress || !!batchSizeError || !!fatalError}
+                {...ariaDisabledButtonProps(loading || deployInProgress || !!batchSizeError || !!fatalError, () => handleCommit())}
               >
                 Update {formatNumber(impactedRecordCount)} {pluralizeFromNumber('Record', impactedRecordCount)}
               </button>
