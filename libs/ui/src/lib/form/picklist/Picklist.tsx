@@ -258,6 +258,19 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
       inputRef.current?.focus();
     });
 
+    // Enter/Space on an option (keydown, in the list) selects it, closes the list and focuses the input —
+    // and the same key's keyup then lands on the input, whose "closed: Enter/Space opens" branch would
+    // pop the list straight back open. The keyup that completes a selection is skipped.
+    const ignoreNextInputKeyUpRef = useRef(false);
+
+    function handleInputKeyUp(event: KeyboardEvent<HTMLInputElement>) {
+      if (ignoreNextInputKeyUpRef.current) {
+        ignoreNextInputKeyUpRef.current = false;
+        return;
+      }
+      handleKeyDown(event);
+    }
+
     function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
       let newFocusedItem = focusedItem;
 
@@ -294,6 +307,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
         if (item) {
           handleKeyboardSelection(item);
           if (!multiSelection) {
+            ignoreNextInputKeyUpRef.current = event.type === 'keydown';
             setIsOpen(false);
             inputRef.current?.focus();
           }
@@ -421,7 +435,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                     value={selectedItemText || ''}
                     title={selectedItemText}
                     disabled={disabled}
-                    onKeyUp={handleKeyDown}
+                    onKeyUp={handleInputKeyUp}
                     onBlur={(event) => {
                       handleFocusLeft(event);
                       onBlur?.();
