@@ -5,7 +5,7 @@ import { AddOrgHandlerFn, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Grid, Icon } from '@jetstream/ui';
 import { OrgInfoPopover, useUpdateOrgs } from '@jetstream/ui-core';
 import { DraggableSfdcCard } from './organization-group.types';
-import { SalesforceOrgCardConnectionRefresh } from './SalesforceOrgCardConnectionRefresh';
+import { getOrgCardHeadingId, SalesforceOrgCardConnectionRefresh } from './SalesforceOrgCardConnectionRefresh';
 
 interface SalesforceOrgCardDraggableProps {
   org: SalesforceOrgUi;
@@ -89,7 +89,10 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
               >
                 <Icon type="utility" icon="drag_and_drop" className="slds-button__icon" omitContainer />
               </button>
-              <h2 className="slds-truncate slds-text-heading_small">{org.label}</h2>
+              {/* Focus target when the card's connection controls disappear after a refresh */}
+              <h2 id={getOrgCardHeadingId(org.uniqueId)} tabIndex={-1} className="slds-truncate slds-text-heading_small">
+                {org.label}
+              </h2>
             </Grid>
             <Grid verticalAlign="center">
               {orgType && (
