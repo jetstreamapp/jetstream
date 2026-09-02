@@ -8,6 +8,7 @@ import { ContextMenu } from '../../../form/context-menu/ContextMenu';
 import { FILTER_COUNT_ANNOUNCE_DEBOUNCE_MS } from '../../../widgets/AssistiveStatus';
 import { EditorHost } from '../editors/EditorHost';
 import { computeEdgeScrollVelocity, createEdgeAutoScroller } from '../grid-auto-scroll';
+import { CELL_HINT_KINDS, CELL_HINT_TEXT, getCellHintId } from '../grid-cell-hints';
 import { copyGridDataToClipboard, copyGridGroupRowsToClipboard, GridCopyResult } from '../grid-clipboard';
 import { reorderColumnOrder } from '../grid-column-utils';
 import { HEADER_ROW_ID, isSummaryRowId, NON_DATA_COLUMN_KEYS, TABLE_CONTEXT_MENU_ITEMS } from '../grid-constants';
@@ -384,11 +385,6 @@ export function GridContainer<TRow extends object = RowWithKey>({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyboardNav.activeCell?.columnId]);
-
-  const cellHintIds = useMemo(
-    () => ({ editable: `${gridId}-hint-editable`, controls: `${gridId}-hint-controls`, link: `${gridId}-hint-link` }),
-    [gridId],
-  );
 
   const runtime: GridRuntime<TRow> = useMemo(
     () => ({ table, gridId, getRowKey, columns: orderedColumns }),
@@ -907,7 +903,7 @@ export function GridContainer<TRow extends object = RowWithKey>({
               mode={keyboardNav.mode}
               getLastInteractionSource={keyboardNav.getLastInteractionSource}
               editingCell={editingCell}
-              cellHintIds={cellHintIds}
+              gridId={gridId}
               selectionBounds={selectionBounds}
               onCellMouseDown={keyboardNav.handleCellMouseDown}
               onCellMouseEnter={keyboardNav.handleCellMouseEnter}
@@ -921,16 +917,12 @@ export function GridContainer<TRow extends object = RowWithKey>({
           </div>
         </div>
 
-        {/* Keyboard hints for the focused cell — GridBody points the cell's aria-describedby at these. */}
-        <span id={cellHintIds.editable} className="slds-assistive-text">
-          Editable. Press Enter to edit.
-        </span>
-        <span id={cellHintIds.controls} className="slds-assistive-text">
-          Contains controls. Press Enter to interact with them and Escape to return to the cell.
-        </span>
-        <span id={cellHintIds.link} className="slds-assistive-text">
-          Contains a link. Press Enter to move to it and Escape to return to the cell.
-        </span>
+        {/* Keyboard hints for the focused cell — GridBody points the cell's aria-describedby at one of these. */}
+        {CELL_HINT_KINDS.map((kind) => (
+          <span key={kind} id={getCellHintId(gridId, kind)} className="slds-assistive-text">
+            {CELL_HINT_TEXT[kind]}
+          </span>
+        ))}
 
         {/* Screen-reader announcement of the current navigation/actionable mode. */}
         <span className="slds-assistive-text" aria-live="polite">
