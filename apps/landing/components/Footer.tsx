@@ -26,6 +26,7 @@ const footerNavigation: Record<'support' | 'resources' | 'legal', FooterNavItem[
     { name: 'About', href: ROUTES.ABOUT },
     { name: 'Privacy & Security', href: ROUTES.PRIVACY },
     { name: 'Trust Center', href: ROUTES.EXTERNAL.TRUST_CENTER, target: '_blank' },
+    { name: 'Accessibility', href: `${ROUTES.EXTERNAL.DOCS}/accessibility` },
     { name: 'Terms of Service', href: ROUTES.TERMS_OF_SERVICE },
     { name: 'Data Processing Agreement', href: ROUTES.DPA },
     { name: 'Data Sub-Processors', href: ROUTES.SUB_PROCESSORS },
