@@ -234,7 +234,7 @@ export class QueryPage {
   async addOrderBy(field: string, direction: 'ASC' | 'DESC', nulls: 'IGNORE' | 'FIRST' | 'LAST' = 'IGNORE', groupNumber = 1) {
     await this.page.getByRole('button', { name: 'Order By' }).click();
 
-    const orderByRow = this.page.getByRole('group', { name: `Filter row ${groupNumber}` });
+    const orderByRow = this.page.getByRole('group', { name: `Order by row ${groupNumber}` });
 
     await orderByRow.getByLabel('Field').click();
     await this.page.keyboard.type(field, { delay: 100 });
