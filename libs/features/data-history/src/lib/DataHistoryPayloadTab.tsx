@@ -3,6 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { CopyAsDataType, DataHistoryFileKind, DataHistoryItem } from '@jetstream/types';
 import {
+  ariaDisabledButtonProps,
   ButtonGroupContainer,
   DataTable,
   DropDown,
@@ -12,6 +13,7 @@ import {
   ScopedNotification,
   Spinner,
   Tooltip,
+  useAnnouncer,
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { readDataHistoryFile } from '@jetstream/ui/data-history';
@@ -107,6 +109,8 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
   const [activeViewId, setActiveViewId] = useState<string | null>(() => viewStateCache.get(kind) ?? null);
   const [copying, setCopying] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  // The "Copied to clipboard" confirmation appears inline with no focus change — announce it
+  const { announce, announcer } = useAnnouncer();
 
   const targets = getDataHistoryExportTargets(item).filter((target) => target.kind === kind);
   const viewTables = payload?.viewTables ?? [];
@@ -178,6 +182,9 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
   }, [item, kind, cache]);
 
   async function handleCopy(format: CopyAsDataType) {
+    if (copying) {
+      return;
+    }
     setCopying(true);
     setCopySuccess(false);
     setCopyError(null);
@@ -185,6 +192,7 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
       const { success, error } = await copyDataHistoryPayloadToClipboard(item, kind, format, activeTarget);
       if (success) {
         setCopySuccess(true);
+        announce('Copied to clipboard');
         trackEvent(ANALYTICS_KEYS.data_history_copy_to_clipboard, { kind, format, source: item.source });
       } else if (error) {
         setCopyError(error);
@@ -196,9 +204,10 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
 
   return (
     <div className="slds-p-around_x-small">
+      {announcer}
       <div className="slds-grid slds-grid_vertical-align-center slds-m-bottom_x-small">
         {viewTables.length > 1 && (
-          <RadioGroup isButtonGroup className="slds-m-right_x-small">
+          <RadioGroup label="View" isButtonGroup className="slds-m-right_x-small">
             {viewTables.map(({ id, label }) => (
               <RadioButton
                 key={id}
@@ -233,10 +242,10 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
                 : 'This will copy in a format compatible with a spreadsheet program, such as Excel or Google Sheets. Use the dropdown for additional options.'
             }
           >
+            {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
             <button
               className="slds-button slds-button_neutral slds-button_first slds-is-relative"
-              disabled={loading || copying || !!loadError}
-              onClick={() => handleCopy(knownNonTabular ? 'json' : 'excel')}
+              {...ariaDisabledButtonProps(loading || copying || !!loadError, () => handleCopy(knownNonTabular ? 'json' : 'excel'))}
             >
               {copying && <Spinner size="x-small" />}
               <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
@@ -247,6 +256,7 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
             className="slds-button_last"
             dropDownClassName="slds-dropdown_actions"
             position="left"
+            description="More copy formats"
             disabled={loading || copying || !!loadError}
             items={copyFormats}
             onSelected={(id) => handleCopy(id as CopyAsDataType)}
