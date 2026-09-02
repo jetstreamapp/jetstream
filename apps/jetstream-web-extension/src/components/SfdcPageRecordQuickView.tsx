@@ -25,13 +25,13 @@ interface RecordField {
 
 export function SfdcPageRecordQuickViewButton({ sfHost, recordId, sobject }: SfdcPageRecordQuickViewProps) {
   const [isOpen, setIsOpen] = useState(false);
+  // Dialog focus management: the panel takes focus when it opens and hands it back here on close
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   if (!recordId || !sobject) {
     return null;
   }
 
-  // Dialog focus management: the panel takes focus when it opens and hands it back here on close
-  const triggerRef = useRef<HTMLButtonElement>(null);
   function handleClose() {
     setIsOpen(false);
     window.setTimeout(() => triggerRef.current?.focus());
