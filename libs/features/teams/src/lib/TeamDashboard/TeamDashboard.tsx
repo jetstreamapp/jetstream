@@ -163,6 +163,8 @@ export function TeamDashboard() {
     const loginConfig = TeamLoginConfigSchema.parse(updatedTeam.loginConfig || {});
     setLoginConfiguration(loginConfig);
     setLoginConfigurationKey(new Date().getTime());
+    // The form re-keys (and re-renders) silently on success; errors already toast
+    fireToast({ type: 'success', message: 'Login configuration saved' });
   }
 
   async function handleTeamGlobalAction(action: TeamGlobalAction) {
