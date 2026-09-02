@@ -15,6 +15,7 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import {
+  AssistiveStatus,
   ButtonGroupContainer,
   DropDown,
   Grid,
@@ -42,6 +43,7 @@ import LoadRecordsFieldMappingRow from '../components/LoadRecordsFieldMappingRow
 import LoadRecordsFieldMappingStaticRow from '../components/LoadRecordsFieldMappingStaticRow';
 import { LoadMappingPopover } from '../components/load-mapping-storage/LoadMappingPopover';
 import SaveMappingPopover from '../components/load-mapping-storage/SaveMappingPopover';
+import { countFieldMappingErrors, getFieldMappingErrorStatusMessage } from '../utils/continue-blocked-reason';
 
 type DropDownAction = 'CLEAR' | 'RESET' | 'ALL' | 'MAPPED' | 'UNMAPPED';
 type Filter = 'ALL' | 'MAPPED' | 'UNMAPPED';
@@ -257,6 +259,11 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     const { announce, announcer } = useAnnouncer();
     const ADD_MANUAL_MAPPING_BUTTON_ID = 'field-mapping-add-manual-mapping';
 
+    // A row's error text is only read when that row's control is focused; this live region tells
+    // the user the form has errors to resolve whenever the count changes (same count that blocks
+    // the next step)
+    const errorStatusMessage = useMemo(() => getFieldMappingErrorStatusMessage(countFieldMappingErrors(fieldMapping)), [fieldMapping]);
+
     function handleAddRow() {
       const { mappingKey, fieldMappingItem } = initStaticFieldMappingItem();
       setFieldMapping((fieldMapping) => ({ ...fieldMapping, [mappingKey]: fieldMappingItem }));
@@ -306,6 +313,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
         `}
       >
         {announcer}
+        <AssistiveStatus message={errorStatusMessage} />
         <GridCol>
           {warningMessage && (
             <ScopedNotification theme="warning">
