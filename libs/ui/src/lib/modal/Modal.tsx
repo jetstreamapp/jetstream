@@ -12,7 +12,7 @@ import {
 import { isEscapeKey } from '@jetstream/shared/ui-utils';
 import { Maybe, SizeSmMdLg } from '@jetstream/types';
 import classNames from 'classnames';
-import { KeyboardEvent, ReactNode, RefObject, useEffect } from 'react';
+import { KeyboardEvent, ReactNode, RefObject, useEffect, useState } from 'react';
 import Icon from '../widgets/Icon';
 import { PortalProvider } from './PortalContext';
 
@@ -82,6 +82,29 @@ export const Modal = ({
 }: ModalProps) => {
   const modalId = useId();
   const titleId = useId();
+
+  // The element that opened the modal, captured during the first render — before any child with
+  // `autoFocus` mounts. floating-ui records its return-focus target one render later, so a child that
+  // autofocuses becomes that target and, being gone with the modal, leaves focus on <body> at close.
+  const [openerAtMount] = useState(() =>
+    document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null,
+  );
+  useEffect(() => {
+    if (hide) {
+      return;
+    }
+    return () => {
+      // Two frames: floating-ui hands focus back in its own animation frame first. Only step in when
+      // that left focus nowhere — a click elsewhere or a follow-up modal already owns it otherwise.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (document.activeElement === document.body && openerAtMount?.isConnected) {
+            openerAtMount.focus();
+          }
+        });
+      });
+    };
+  }, [hide, openerAtMount]);
 
   const { refs, context } = useFloating<HTMLElement>({
     open: !hide,
