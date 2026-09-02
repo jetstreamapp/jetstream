@@ -77,6 +77,7 @@ export const Slider: FunctionComponent<SliderProps> = ({
           )}
         >
           <input
+            aria-invalid={hasError || undefined}
             ref={inputRef}
             className="slds-slider__range"
             type="range"

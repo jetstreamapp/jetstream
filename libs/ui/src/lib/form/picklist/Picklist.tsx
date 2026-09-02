@@ -263,6 +263,23 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
     // pop the list straight back open. The keyup that completes a selection is skipped.
     const ignoreNextInputKeyUpRef = useRef(false);
 
+    /**
+     * Enter/Space on the CLOSED input open the list on keydown (APG select-only combobox) and never
+     * reach a wrapping form; that press's keyup is skipped so it cannot act on the list. While open,
+     * Enter is acted on at keyup (below) but its keydown is still marked handled so the form does not
+     * submit and page-level Cmd/Ctrl+Enter shortcuts (which honour defaultPrevented) stay quiet.
+     */
+    function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+      const isPlainEnter = isEnterKey(event) && !event.metaKey && !event.ctrlKey && !event.altKey;
+      if (!disabled && (isPlainEnter || isSpaceKey(event))) {
+        event.preventDefault();
+        if (!isOpen) {
+          ignoreNextInputKeyUpRef.current = true;
+          setIsOpen(true);
+        }
+      }
+    }
+
     function handleInputKeyUp(event: KeyboardEvent<HTMLInputElement>) {
       if (ignoreNextInputKeyUpRef.current) {
         ignoreNextInputKeyUpRef.current = false;
@@ -292,15 +309,15 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
         if (event.type === 'keydown') {
           inputRef.current?.focus();
         }
-        setIsOpen(false);
+        handleClose();
         return;
       }
 
       if (isEnterKey(event) || isSpaceKey(event)) {
         event.preventDefault();
-        // Closed: Enter/Space opens the list (APG select-only combobox), nothing to select yet
+        // Closed: the input's keydown opens the list — a keyup arriving here on its own (focus moved
+        // onto the input mid-press) must not
         if (!isOpen) {
-          setIsOpen(true);
           return;
         }
         const item = items[focusedItem ?? -1];
@@ -373,6 +390,14 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
       onClose?.();
     }
 
+    // A closed list has no focused option: otherwise Enter after reopening selected the row the arrows
+    // had left off on, which is not the one shown as focused
+    useEffect(() => {
+      if (!isOpen) {
+        setFocusedItem(null);
+      }
+    }, [isOpen]);
+
     /**
      * Close when focus leaves the widget (Tab out of the input, focus pulled elsewhere). Focus moving
      * between the input and its option list stays inside the widget. Without this, a list left open
@@ -420,6 +445,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                     role="combobox"
                     aria-expanded={isOpen}
                     aria-haspopup="listbox"
+                    aria-invalid={hasError || undefined}
                     type="text"
                     className={classNames('slds-input slds-combobox__input slds-combobox__input-value', { 'slds-has-focus': isOpen })}
                     id={comboboxId}
@@ -441,6 +467,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                       onBlur?.();
                     }}
                     {...inputProps}
+                    onKeyDown={handleInputKeyDown}
                   />
                   <span className="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right">
                     <Icon
