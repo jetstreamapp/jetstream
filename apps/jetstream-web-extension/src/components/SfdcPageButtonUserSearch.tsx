@@ -128,6 +128,7 @@ export function SfdcPageButtonUserSearch({ sfHost }: SfdcPageButtonUserSearchPro
             max-height: 50vh;
             overflow-y: auto;
           `}
+          ariaLabel="Users"
           items={usersResults.records}
           isActive={(item: User) => item.Id === searchTerm}
           // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -199,11 +200,13 @@ function getListItemContent(sfHost: string, { user }: { user: User }) {
         {Name} ({Alias})
       </strong>
       <p>
-        <strong title={Email}>Email:</strong> <CopyToClipboard content={Email} />
+        <strong title={Email}>Email:</strong>{' '}
+        <CopyToClipboard content={Email} icon={{ type: 'utility', icon: 'copy', description: `Copy email for ${Name}` }} />
         {Email}
       </p>
       <p>
-        <strong title={Username}>Username:</strong> <CopyToClipboard content={Username} />
+        <strong title={Username}>Username:</strong>{' '}
+        <CopyToClipboard content={Username} icon={{ type: 'utility', icon: 'copy', description: `Copy username for ${Name}` }} />
         <a href={getSalesforceUserLink(sfHost, Id)} onClick={handleLinkClick} title="Open user in Salesforce">
           {Username}
         </a>
@@ -224,7 +227,7 @@ function getListItemContent(sfHost: string, { user }: { user: User }) {
       )}
       {!IsActive && <p className="slds-text-color_destructive">Inactive</p>}
       <p className="slds-text-body_small slds-text-color_weak slds-truncate">
-        <CopyToClipboard content={Id} />
+        <CopyToClipboard content={Id} icon={{ type: 'utility', icon: 'copy', description: `Copy Id for ${Name}` }} />
         {Id}
       </p>
       {UserType !== 'Standard' && <p>{UserType}</p>}
