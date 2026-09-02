@@ -570,7 +570,6 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             className="slds-input"
             placeholder="Set batch size"
             value={batchSizeInput.inputValue}
-            aria-describedby={'batch-size-error'}
             disabled={loading || hasZipAttachment}
             onChange={batchSizeInput.handleChange}
             onBlur={batchSizeInput.handleBlur}
