@@ -2,19 +2,22 @@ import { prisma } from '@jetstream/api-config';
 import { HTTP } from '@jetstream/shared/constants';
 import { randomUUID } from 'crypto';
 import { createServer, Server } from 'http';
+import { AddressInfo } from 'net';
 import { expect, test } from '../../../../fixtures/fixtures';
 
 // Fresh signup per test (mirrors team.spec.ts) so the fixture's admin owns the page session.
 test.use({ storageState: { cookies: [], origins: [] } });
 
-// Distinct port from sso-oidc-happy.api.spec.ts (5555) so both mock IdPs can run in parallel workers.
-const ISSUER = 'http://127.0.0.1:5556';
+// Each spec binds its own mock IdP to a free port, so the two suites never collide.
+// Set once the mock IdP is listening: it binds to a free port so a fixed one (5555/5556) can never
+// collide with something else on the developer's machine (OrbStack held 5555 on one)
+let ISSUER = '';
 
 /**
  * Minimal mock IdP that serves only the OIDC discovery document. The config-save flow resolves and
  * snapshots the endpoints from discovery; it does not call token/jwks/userinfo at save time.
  */
-function startMockOidcServer(): Server {
+async function startMockOidcServer(): Promise<Server> {
   const server = createServer((req, res) => {
     if (req.url?.startsWith('/.well-known/openid-configuration')) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -32,7 +35,8 @@ function startMockOidcServer(): Server {
     res.writeHead(404);
     res.end();
   });
-  server.listen(5556);
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  ISSUER = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   return server;
 }
 
@@ -40,8 +44,8 @@ test.describe('OIDC SSO configuration save', () => {
   let mockServer: Server;
   let createdLoginConfigId: string | undefined;
 
-  test.beforeAll(() => {
-    mockServer = startMockOidcServer();
+  test.beforeAll(async () => {
+    mockServer = await startMockOidcServer();
   });
 
   test.afterEach(async () => {
