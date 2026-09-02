@@ -42,7 +42,13 @@ export function TeamDomainConfiguration({ teamId, domains, hasSsoEnabled, onChan
     }
   }
 
-  async function handleDelete(domain: DomainVerification) {
+  /**
+   * Deleting removes the row holding the focused delete button, which would drop keyboard focus to
+   * <body> — land on the neighbouring domain's last control, or the Add Domain button when none is left.
+   */
+  async function handleDelete(domain: DomainVerification, triggerElement?: HTMLElement) {
+    const row = triggerElement?.closest('li');
+    const adjacentRow = (row?.previousElementSibling ?? row?.nextElementSibling) as HTMLElement | null;
     if (
       await ConfirmationModalPromise({
         content: 'Are you sure you want to delete this domain?',
@@ -53,6 +59,14 @@ export function TeamDomainConfiguration({ teamId, domains, hasSsoEnabled, onChan
         // loadVerifications();
         fireToast({ type: 'success', message: 'Domain deleted successfully' });
         onChange('DELETE', domain);
+        window.setTimeout(() => {
+          if (adjacentRow?.isConnected) {
+            const controls = adjacentRow.querySelectorAll<HTMLElement>('button, a[href], input, [tabindex]');
+            (controls[controls.length - 1] ?? adjacentRow).focus();
+            return;
+          }
+          document.getElementById(ADD_DOMAIN_BUTTON_ID)?.focus();
+        });
       } catch (ex) {
         fireToast({ type: 'error', message: getErrorMessage(ex) });
       }
@@ -71,7 +85,12 @@ export function TeamDomainConfiguration({ teamId, domains, hasSsoEnabled, onChan
       icon={{ type: 'standard', icon: 'people' }}
       actions={
         canUpdate ? (
-          <button className="slds-button slds-button_neutral" type="button" onClick={() => setAddDomainModalOpen(true)}>
+          <button
+            id={ADD_DOMAIN_BUTTON_ID}
+            className="slds-button slds-button_neutral"
+            type="button"
+            onClick={() => setAddDomainModalOpen(true)}
+          >
             Add Domain
           </button>
         ) : undefined
@@ -98,7 +117,8 @@ export function TeamDomainConfiguration({ teamId, domains, hasSsoEnabled, onChan
                       <button
                         className="slds-button slds-button_icon slds-button_icon-border-filled"
                         type="button"
-                        onClick={() => handleDelete(domain)}
+                        aria-label={`Delete domain ${domain.domain}`}
+                        onClick={(event) => handleDelete(domain, event.currentTarget)}
                       >
                         <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
                       </button>
@@ -128,6 +148,7 @@ export function TeamDomainConfiguration({ teamId, domains, hasSsoEnabled, onChan
                       <button
                         className="slds-button slds-button_neutral slds-m-right_x-small"
                         type="button"
+                        aria-label={`Verify ${domain.domain}`}
                         onClick={() => setVerifyModalOpen(domain)}
                       >
                         Verify
@@ -135,7 +156,8 @@ export function TeamDomainConfiguration({ teamId, domains, hasSsoEnabled, onChan
                       <button
                         className="slds-button slds-button_icon slds-button_icon-border-filled"
                         type="button"
-                        onClick={() => handleDelete(domain)}
+                        aria-label={`Delete domain ${domain.domain}`}
+                        onClick={(event) => handleDelete(domain, event.currentTarget)}
                       >
                         <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
                       </button>
@@ -160,6 +182,9 @@ export function TeamDomainConfiguration({ teamId, domains, hasSsoEnabled, onChan
     </Card>
   );
 }
+
+/** Focus target after the last domain row is deleted (its own delete button unmounts with it) */
+const ADD_DOMAIN_BUTTON_ID = 'team-domain-add-domain';
 
 const FormSchema = z.object({
   domain: z
@@ -199,8 +224,15 @@ function AddDomainModal({ onClose, onSave }: { onClose: () => void; onSave: (dom
       }
     >
       <form id="domain-form" onSubmit={handleSubmit(({ domain }) => onSave(domain))}>
-        <Input label="Domain" errorMessage={errors.domain?.message} hasError={!!errors.domain} errorMessageId="domain-error" isRequired>
-          <input className="slds-input" type="text" {...register('domain')} placeholder="example.com" />
+        <Input
+          id="domain"
+          label="Domain"
+          errorMessage={errors.domain?.message}
+          hasError={!!errors.domain}
+          errorMessageId="domain-error"
+          isRequired
+        >
+          <input id="domain" className="slds-input" type="text" {...register('domain')} placeholder="example.com" />
         </Input>
         <div className="slds-m-top_small">
           <p>To verify ownership of your domain, you will need to add a DNS TXT record or have a publicly accessible file on the domain.</p>
@@ -312,7 +344,11 @@ function VerifyDomainModal({
       <button className="slds-button" type="button" onClick={downloadTxtFile}>
         Download Verification File
       </button>
-      {verificationMessage && <p className="slds-text-color_error slds-m-top_small">{verificationMessage}</p>}
+      {verificationMessage && (
+        <p className="slds-text-color_error slds-m-top_small" role="alert">
+          {verificationMessage}
+        </p>
+      )}
     </Modal>
   );
 }
