@@ -316,6 +316,7 @@ export function RecordLookupCombobox({
           value={value || ''}
           onChange={(ev) => onChange(ev.target.value || null)}
           aria-describedby={comboboxProps.hasError ? `${id}-error` : undefined}
+          aria-invalid={comboboxProps.hasError || undefined}
           maxLength={18}
           inputMode="text"
           placeholder={
