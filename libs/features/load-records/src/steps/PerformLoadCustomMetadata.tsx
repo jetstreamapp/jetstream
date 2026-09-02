@@ -275,7 +275,7 @@ export const PerformLoadCustomMetadata = ({
           <select
             aria-describedby="date-format"
             className="slds-select"
-            id="date-format-select"
+            id="date-format"
             required
             value={dateFormat}
             disabled={loading}
