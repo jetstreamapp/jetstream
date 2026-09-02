@@ -19,7 +19,6 @@ import {
   PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
-  Spinner,
   Tooltip,
 } from '@jetstream/ui';
 import {
@@ -39,11 +38,17 @@ import startCase from 'lodash/startCase';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import LoadRecordsDataPreview from './components/LoadRecordsDataPreview';
+import LoadRecordsNextStepButton from './components/LoadRecordsNextStepButton';
 import LoadRecordsProgress from './components/LoadRecordsProgress';
 import LoadRecordsFieldMapping from './steps/FieldMapping';
 import PerformLoad from './steps/PerformLoad';
 import PerformLoadCustomMetadata from './steps/PerformLoadCustomMetadata';
 import LoadRecordsSelectObjectAndFile from './steps/SelectObjectAndFile';
+import {
+  getFieldMappingBlockedReason,
+  getSelectObjectAndFileBlockedReason,
+  LAST_STEP_BLOCKED_REASON,
+} from './utils/continue-blocked-reason';
 
 const HEIGHT_BUFFER = 170;
 
@@ -102,8 +107,6 @@ export const LoadRecords = () => {
 
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const currentStep = steps[currentStepIdx];
-  const [currentStepText, setCurrentStepText] = useState<string>('');
-  const [nextStepDisabled, setNextStepDisabled] = useState<boolean>(true);
   const [loadSummaryText, setLoadSummaryText] = useState<string>('');
 
   const resetLoadExistingRecordCount = useResetAtom(fromLoadRecordsState.loadExistingRecordCount);
@@ -282,56 +285,51 @@ export const LoadRecords = () => {
     setExternalIdFields(fields.filter((field) => field.name === 'Id' || field.externalId));
   }, [fields]);
 
-  useEffect(() => {
-    let currStepButtonText = '';
-    let isNextStepDisabled = true;
+  // The reason doubles as the gate: the next-step button is disabled exactly when a reason exists,
+  // so the explanation shown to the user can never drift from the conditions that block the step
+  const { nextStepLabel, nextStepBlockedReason } = useMemo(() => {
     switch (currentStep.name) {
       case 'sobjectAndFile':
-        currStepButtonText = 'Continue to Map Fields';
-        isNextStepDisabled =
-          !selectedSObject ||
-          !inputFileData ||
-          !inputFileData.length ||
-          !loadType ||
-          (loadType === 'UPSERT' && !externalId) ||
-          loadingFields;
-        break;
+        return {
+          nextStepLabel: 'Continue to Map Fields',
+          nextStepBlockedReason: getSelectObjectAndFileBlockedReason({
+            selectedSObject,
+            inputFileData,
+            loadType,
+            externalId,
+            loadingFields,
+          }),
+        };
       case 'fieldMapping':
-        currStepButtonText = 'Continue to Load Records';
-        // Ensure at least one field is mapped
-        isNextStepDisabled = !fieldMapping || Object.values(fieldMapping).filter((field) => field.targetField).length === 0;
-        // Ensure related fields are fully configured
-        if (!isNextStepDisabled) {
-          isNextStepDisabled = Object.values(fieldMapping).some((field) => field.mappedToLookup && !field.targetLookupField);
-        }
-        // Any mapping error shown on a row (duplicate target field, record Id in an upsert) has to block
-        // the step — it is already surfaced in the UI and gates Save Mapping.
-        if (!isNextStepDisabled) {
-          isNextStepDisabled = Object.values(fieldMapping).some((field) => !!field.fieldErrorMsg);
-        }
-        // Ensure required fields are mapped for custom metadata objects
-        if (!isNextStepDisabled && isCustomMetadataObject) {
-          isNextStepDisabled =
-            !fieldMapping ||
-            Object.values(fieldMapping).filter((field) => field.targetField === 'DeveloperName' || field.targetField === 'Label').length !==
-              2;
-        }
-        if (!isNextStepDisabled && loadType === 'UPSERT') {
-          isNextStepDisabled = !fieldMapping || !Object.values(fieldMapping).find((field) => field.targetField === externalId);
-        }
-        // ensure body field for binary attachments is mapped
-        if (!isNextStepDisabled && allowBinaryAttachment && inputZipFilename) {
-          isNextStepDisabled = !Object.values(fieldMapping).find((field) => field.targetField === binaryAttachmentBodyField);
-        }
-        break;
-      case 'loadRecords':
-        currStepButtonText = 'No More Steps';
-        isNextStepDisabled = true;
-        break;
+        return {
+          nextStepLabel: 'Continue to Load Records',
+          nextStepBlockedReason: getFieldMappingBlockedReason({
+            fieldMapping,
+            loadType,
+            externalId,
+            isCustomMetadataObject: !!isCustomMetadataObject,
+            allowBinaryAttachment: !!allowBinaryAttachment,
+            inputZipFilename,
+            binaryAttachmentBodyField,
+          }),
+        };
+      default:
+        return { nextStepLabel: 'No More Steps', nextStepBlockedReason: LAST_STEP_BLOCKED_REASON };
     }
-    setCurrentStepText(currStepButtonText);
-    setNextStepDisabled(isNextStepDisabled);
-  }, [currentStep, selectedSObject, inputFileData, loadType, externalId, fieldMapping, loadingFields]);
+  }, [
+    currentStep,
+    selectedSObject,
+    inputFileData,
+    loadType,
+    externalId,
+    loadingFields,
+    fieldMapping,
+    isCustomMetadataObject,
+    allowBinaryAttachment,
+    inputZipFilename,
+    binaryAttachmentBodyField,
+  ]);
+  const nextStepDisabled = nextStepBlockedReason !== null;
 
   useEffect(() => {
     const text: string[] = [];
@@ -473,25 +471,13 @@ export const LoadRecords = () => {
                 Go Back To Previous Step
               </button>
             </Tooltip>
-            <Tooltip
-              openDelay={500}
-              content={
-                <div className="slds-p-bottom_small">
-                  <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
-                </div>
-              }
-            >
-              <button
-                data-testid="next-step-button"
-                className="slds-button slds-button_brand slds-is-relative"
-                aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
-                {...ariaDisabledButtonProps(nextStepDisabled || loading, () => changeStep(1))}
-              >
-                {currentStepText}
-                <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
-                {loadingFields && <Spinner size="small" />}
-              </button>
-            </Tooltip>
+            <LoadRecordsNextStepButton
+              label={nextStepLabel}
+              blockedReason={nextStepBlockedReason}
+              disabled={loading}
+              loadingFields={loadingFields}
+              onClick={() => changeStep(1)}
+            />
           </PageHeaderActions>
         </PageHeaderRow>
         <PageHeaderRow>
