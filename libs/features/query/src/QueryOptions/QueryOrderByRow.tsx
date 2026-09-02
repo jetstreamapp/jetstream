@@ -34,7 +34,7 @@ export const QueryOrderByRow: FunctionComponent<QueryOrderByProps> = ({
   const [initialSelectedNulls] = useState(nulls.find((item) => item.value === orderBy.nulls) || nulls[0]);
 
   return (
-    <div className="slds-grid slds-gutters_xx-small" role="group" aria-label={`Filter row ${groupNumber}`}>
+    <div className="slds-grid slds-gutters_xx-small" role="group" aria-label={`Order by row ${groupNumber}`}>
       {/* Resource */}
       <div className="slds-col">
         <ComboboxWithDrillInItems
