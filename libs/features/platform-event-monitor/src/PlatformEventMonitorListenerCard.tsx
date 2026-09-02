@@ -111,16 +111,23 @@ export const PlatformEventMonitorListenerCard = ({
           onSelectedSubscribeEvent={onSelectedSubscribeEvent}
         />
         <div className="slds-m-vertical_small">
-          {subscribedPlatformEventsList.map((item) => (
-            <Pill
-              key={item.id}
-              className="slds-m-right-xx-small"
-              title={`${item.label} - ${item.secondaryLabel}`}
-              onRemove={() => unsubscribe(item.value)}
-            >
-              {item.label}
-            </Pill>
-          ))}
+          {/* Not a listbox: these are active subscriptions with a remove action, not selectable options.
+              Plain pills keep the unsubscribe button as the single, named tab stop for each one. */}
+          {subscribedPlatformEventsList.length > 0 && (
+            <ul className="slds-listbox slds-listbox_horizontal" aria-label="Subscribed events">
+              {subscribedPlatformEventsList.map((item) => (
+                <li key={item.id} className="slds-listbox-item">
+                  <Pill
+                    className="slds-m-right-xx-small"
+                    title={`${item.label} - ${item.secondaryLabel}`}
+                    onRemove={() => unsubscribe(item.value)}
+                  >
+                    {item.label}
+                  </Pill>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <div>
           <PlatformEventMonitorEvents messagesByChannel={messagesByChannel} />
