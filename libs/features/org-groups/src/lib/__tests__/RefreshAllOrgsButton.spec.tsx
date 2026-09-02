@@ -94,7 +94,8 @@ describe('RefreshAllOrgsButton', () => {
 
     await clickRefresh();
 
-    expect(button.hasAttribute('disabled')).toBe(true);
+    // aria-disabled (not native disabled) so the button keeps keyboard focus while the refresh runs
+    expect(button.getAttribute('aria-disabled')).toBe('true');
     expect(button.textContent).toContain('Refreshing 0 of 3');
     // The queue caps in-flight checks, so the remaining orgs stay queued until an earlier one settles
     expect(checkOrgHealth).toHaveBeenCalledTimes(2);
@@ -107,7 +108,7 @@ describe('RefreshAllOrgsButton', () => {
       }
     });
     expect(checkOrgHealth).toHaveBeenCalledTimes(3);
-    await waitFor(() => expect(button.hasAttribute('disabled')).toBe(false));
+    await waitFor(() => expect(button.getAttribute('aria-disabled')).toBeNull());
   });
 
   it('should explain the inactivity expiration in a tooltip', async () => {
