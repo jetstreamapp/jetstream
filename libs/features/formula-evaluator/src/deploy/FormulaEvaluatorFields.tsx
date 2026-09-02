@@ -67,7 +67,8 @@ export function FormulaEvaluatorFields({ formula, field, loading, onFieldChange 
             maxLength={40}
             value={(field.label.value as string) || ''}
             autoComplete="off"
-            autoFocus
+            // This tab remounts on every visit — only pull focus here the first time, while the form is still blank
+            autoFocus={!field.label.value}
             onChange={(event) => setValue('label', event.target.value)}
           />
         </Input>
@@ -184,6 +185,7 @@ export function FormulaEvaluatorFields({ formula, field, loading, onFieldChange 
           hasError={!field.description.isValid && !!field.description.errorMessage}
         >
           <textarea
+            id="description"
             className="slds-textarea"
             maxLength={254}
             value={(field.description.value as string) || ''}
@@ -201,6 +203,7 @@ export function FormulaEvaluatorFields({ formula, field, loading, onFieldChange 
           hasError={!field.inlineHelpText.isValid && !!field.inlineHelpText.errorMessage}
         >
           <textarea
+            id="help-text"
             className="slds-textarea"
             maxLength={254}
             value={(field.inlineHelpText.value as string) || ''}
@@ -212,7 +215,8 @@ export function FormulaEvaluatorFields({ formula, field, loading, onFieldChange 
       </GridCol>
       <GridCol size={12}>
         <Textarea id="formula" label="Formula">
-          <textarea className="slds-textarea" value={formula} disabled rows={clamp(formula.split('\n').length + 1, 3, 10)} />
+          {/* Read-only display (readOnly, not disabled, so it is focusable and read in forms mode) */}
+          <textarea id="formula" className="slds-textarea" value={formula} readOnly rows={clamp(formula.split('\n').length + 1, 3, 10)} />
         </Textarea>
       </GridCol>
     </Grid>
