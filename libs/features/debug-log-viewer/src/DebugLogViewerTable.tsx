@@ -27,7 +27,6 @@ export const LogViewedRenderer = ({ row }: RenderCellProps<ApexLogWithViewed>): 
         icon="preview"
         className="slds-icon slds-icon-text-default slds-icon_xx-small"
         title="You have previously viewed this log"
-        description="This log has been viewed"
       />
     );
   }
@@ -141,13 +140,17 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
           renderCell: (props: RenderCellProps<ApexLogWithViewed>) => {
             const content = renderCell ? renderCell(props) : props.value === null || props.value === undefined ? '' : String(props.value);
             // Cells with no rendered content would otherwise be nameless buttons; cells with content
-            // (including falsy values like 0 that still render) are named by it
+            // (including falsy values like 0 that still render) are named by it. The viewed-marker
+            // column is icon-only, so it is named explicitly rather than by the icon's tooltip text.
             const isEmptyContent = content === null || content === undefined || content === '';
+            const isViewedColumn = column.key === 'viewed';
             return (
               <div
                 role="button"
                 tabIndex={-1}
-                aria-label={isEmptyContent ? 'View log' : undefined}
+                aria-label={
+                  isViewedColumn ? `View log${props.row.viewed ? ' (previously viewed)' : ''}` : isEmptyContent ? 'View log' : undefined
+                }
                 css={css`
                   width: 100%;
                   height: 100%;
