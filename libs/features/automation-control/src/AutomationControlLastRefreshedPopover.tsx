@@ -37,9 +37,20 @@ export const AutomationControlLastRefreshedPopover: FunctionComponent<Automation
           <p>These are cached in your browser to keep your experience fast.</p>
           <p>Click below to refresh Process Builders.</p>
           <ul className="slds-has-dividers_top-space slds-dropdown_length-5">
-            <li className="slds-item slds-text-link" onClick={() => handleRefresh()}>
-              <div className="slds-truncate">Process Builders</div>
-              <div className="slds-truncate slds-text-color_weak">{getProcessBuilderCachedSince()}</div>
+            <li className="slds-item">
+              {/* Real button: the clickable li was mouse-only (no focus, no Enter/Space) */}
+              <button
+                type="button"
+                className="slds-button slds-button_reset slds-text-link w-100 slds-text-align_left"
+                aria-label="Refresh Process Builders"
+                onClick={() => handleRefresh()}
+              >
+                {/* slds-button is inline-flex, which lays the two lines out side by side — stack them */}
+                <span className="slds-grid slds-grid_vertical w-100">
+                  <span className="slds-truncate">Process Builders</span>
+                  <span className="slds-truncate slds-text-color_weak">{getProcessBuilderCachedSince()}</span>
+                </span>
+              </button>
             </li>
           </ul>
         </div>
