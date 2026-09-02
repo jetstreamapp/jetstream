@@ -37,9 +37,13 @@ export type PlatformArch = z.infer<typeof PlatformArchSchema>;
  * the only published record of a release. Its filename is therefore reconstructed from the release
  * version instead, matching the `portable.artifactName` pinned in electron-builder.config.js, and
  * confirmed against the bucket before being offered (see `objectExists`).
+ *
+ * Two candidates because the artifact was renamed: releases through 4.14.0 shipped the spaced
+ * electron-builder default, everything after uses the hyphenated name. Ordered newest-first, so a
+ * release that publishes both would serve the current name.
  */
-function getPortableFilename(version: string) {
-  return `Jetstream ${version}.exe`;
+export function getPortableFilenameCandidates(version: string) {
+  return [`Jetstream-Portable-${version}.exe`, `Jetstream ${version}.exe`];
 }
 
 function getDownloadUrl(filename: string) {
@@ -61,6 +65,15 @@ async function objectExists(s3Client: S3Client, key: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+async function findFirstExistingObject(s3Client: S3Client, filenames: string[]): Promise<string | null> {
+  for (const filename of filenames) {
+    if (await objectExists(s3Client, `${ASSET_FOLDER}/${filename}`)) {
+      return filename;
+    }
+  }
+  return null;
 }
 
 async function getAndParseVersionFile(s3Client: S3Client, key: string) {
@@ -113,10 +126,9 @@ export async function getLatestDesktopVersion({ arch, platform }: PlatformArch):
         expiry: Date.now() + CACHE_DURATION_MS,
       });
 
-      const portableFilename = getPortableFilename(version);
-      const hasPortableBuild = await objectExists(s3Client, `${ASSET_FOLDER}/${portableFilename}`);
+      const portableFilename = await findFirstExistingObject(s3Client, getPortableFilenameCandidates(version));
       versionCache.set('windows-portable-x64', {
-        data: hasPortableBuild ? { version, filename: portableFilename, link: getDownloadUrl(portableFilename) } : null,
+        data: portableFilename ? { version, filename: portableFilename, link: getDownloadUrl(portableFilename) } : null,
         expiry: Date.now() + CACHE_DURATION_MS,
       });
     }
