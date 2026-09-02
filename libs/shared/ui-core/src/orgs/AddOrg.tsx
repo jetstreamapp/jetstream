@@ -216,19 +216,23 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
             <CheckboxToggle
               id="advanced-settings-toggle"
               checked={advancedOptionsEnabled}
-              label="Advanced"
+              label="Advanced options"
               labelPosition="right"
+              ariaExpanded={advancedOptionsEnabled}
+              ariaControls="advanced-settings"
               onChange={setAdvancedOptionsEnabled}
             />
-            {advancedOptionsEnabled && (
-              <Checkbox
-                id="advanced-settings-login-true"
-                label={`Add "login=true" to url`}
-                labelHelp="Allows bypassing SSO if your admin has enabled this option."
-                checked={addLoginTrue}
-                onChange={setAddLoginTrue}
-              />
-            )}
+            <div id="advanced-settings">
+              {advancedOptionsEnabled && (
+                <Checkbox
+                  id="advanced-settings-login-true"
+                  label={`Add "login=true" to url`}
+                  labelHelp="Allows bypassing SSO if your admin has enabled this option."
+                  checked={addLoginTrue}
+                  onChange={setAddLoginTrue}
+                />
+              )}
+            </div>
           </div>
         </div>
       }
