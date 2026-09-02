@@ -105,6 +105,7 @@ export const QueryFieldFunctionRow = ({
           }
           buttonProps={{
             className: classNames('slds-button slds-button_icon slds-button_icon-border-filled', { 'slds-is-selected': !!alias }),
+            'aria-label': 'Set field alias',
             disabled: !selectedField,
           }}
         >
