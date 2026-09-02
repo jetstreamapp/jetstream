@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS, DATE_FORMATS } from '@jetstream/shared/constants';
 import { DeployMetadataStatus, DeployResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, GridCol, Icon, Modal, TabsRef } from '@jetstream/ui';
+import { AssistiveStatus, Grid, GridCol, Icon, Modal, TabsRef } from '@jetstream/ui';
 import { ConfirmPageChange, DeployMetadataProgressSummary, OrgLabelBadge, useAmplitude } from '@jetstream/ui-core';
 import { formatDate } from 'date-fns/format';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -70,6 +70,23 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
   onDownload,
 }) => {
   const isDone = results?.done;
+
+  // The status column updates in place as the deployment is polled and the tabs switch on their own —
+  // mirror the visible outcome into a live region
+  let statusAnnouncement = '';
+  if (status !== 'idle') {
+    statusAnnouncement = `${inProgressLabel} Status: ${getStatusValue(status)}`;
+  } else if (results) {
+    if (results.status === 'Succeeded') {
+      statusAnnouncement = finishedSuccessfullyLabel;
+    } else if (results.status === 'SucceededPartial') {
+      statusAnnouncement = finishedPartialSuccessfullyLabel;
+    } else {
+      statusAnnouncement = errorMessage || fallbackErrorMessageLabel;
+    }
+  } else if (hasError) {
+    statusAnnouncement = errorMessage || fallbackUnknownErrorMessageLabel;
+  }
   const { trackEvent } = useAmplitude();
   const [hasErrors, setHasErrors] = useState(false);
   const tabsRef = useRef<TabsRef>(null);
@@ -187,6 +204,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
               min-width: 265px;
             `}
           >
+            <AssistiveStatus message={statusAnnouncement} />
             {status !== 'idle' && (
               <DivWithTopMargin>
                 <div>{inProgressLabel}</div>
