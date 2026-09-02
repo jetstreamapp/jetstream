@@ -1,3 +1,4 @@
+import { KeyboardSensor, PointerSensor, Sensors } from '@dnd-kit/dom';
 import { useDraggable } from '@dnd-kit/react';
 import { css } from '@emotion/react';
 import { getOrgType } from '@jetstream/shared/ui-utils';
@@ -6,6 +7,17 @@ import { Badge, Grid, Icon } from '@jetstream/ui';
 import { OrgInfoPopover, useUpdateOrgs } from '@jetstream/ui-core';
 import { DraggableSfdcCard } from './organization-group.types';
 import { getOrgCardHeadingId, SalesforceOrgCardConnectionRefresh } from './SalesforceOrgCardConnectionRefresh';
+
+/**
+ * Once a draggable has a handle, dnd-kit starts pointer drags from the handle alone. The handle exists
+ * so the keyboard and the button role have somewhere to live that is not the card (which holds other
+ * controls) — a mouse can still pick the card up anywhere, as it always could. Clicks on the card's
+ * own buttons are left alone by the sensor's default `preventActivation`.
+ */
+const ORG_CARD_DRAG_SENSORS: Sensors = [
+  PointerSensor.configure({ activatorElements: ({ element, handle }) => [element, handle] }),
+  KeyboardSensor,
+];
 
 interface SalesforceOrgCardDraggableProps {
   org: SalesforceOrgUi;
@@ -26,7 +38,8 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
   const { ref, handleRef, isDragging } = useDraggable<DraggableSfdcCard>({
     id: org.uniqueId,
     type: 'SalesforceOrg',
-    data: { uniqueId: org.uniqueId, organizationId: org.jetstreamOrganizationId ?? null },
+    data: { uniqueId: org.uniqueId, organizationId: org.jetstreamOrganizationId ?? null, label: org.label },
+    sensors: ORG_CARD_DRAG_SENSORS,
   });
 
   return (
@@ -43,10 +56,13 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
       <div
         css={css`
           height: 120px;
-          /* Only the drag handle is draggable now — the slds-box_link hover rule would otherwise
-             show a pointer cursor over the whole card, implying it is clickable */
+          /* The card can be dragged from anywhere — the slds-box_link hover rule would otherwise show a
+             pointer cursor, implying it is clickable */
           &&:hover {
-            cursor: default;
+            cursor: grab;
+          }
+          &&:active {
+            cursor: grabbing;
           }
           border-radius: var(--slds-c-card-radius-border, var(--slds-g-radius-border-2, 0.5rem));
           border: 0.5px solid
@@ -78,7 +94,7 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
               <button
                 ref={handleRef}
                 type="button"
-                aria-label={`Drag ${org.label}`}
+                aria-label={`Move ${org.label}`}
                 className="slds-button slds-button_icon slds-button_icon-x-small slds-m-right_xx-small"
                 css={css`
                   cursor: grab;
