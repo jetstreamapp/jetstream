@@ -131,7 +131,10 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
               <strong className="slds-m-bottom_x-small slds-block">Single Sign On URL (ACS):</strong>
               <div className="slds-m-top_xx-small">
                 {callbackUrls.saml}
-                <CopyToClipboard content={callbackUrls.saml} />
+                <CopyToClipboard
+                  content={callbackUrls.saml}
+                  icon={{ type: 'utility', icon: 'copy', description: 'Copy Single Sign On URL' }}
+                />
               </div>
             </div>
             {callbackUrls?.spEntityId && (
@@ -139,7 +142,10 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
                 <strong className="slds-m-bottom_x-small slds-block">Audience URN (SP Entity ID):</strong>
                 <div className="slds-m-top_xx-small">
                   {callbackUrls.spEntityId}
-                  <CopyToClipboard content={callbackUrls.spEntityId} />
+                  <CopyToClipboard
+                    content={callbackUrls.spEntityId}
+                    icon={{ type: 'utility', icon: 'copy', description: 'Copy Audience URN' }}
+                  />
                 </div>
               </div>
             )}
@@ -147,7 +153,10 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
               <strong className="slds-m-bottom_x-small slds-block">Metadata URL (Needed by some IdPs):</strong>
               <div className="slds-m-top_xx-small">
                 {callbackUrls.samlMetadata}
-                <CopyToClipboard content={callbackUrls.samlMetadata} />
+                <CopyToClipboard
+                  content={callbackUrls.samlMetadata}
+                  icon={{ type: 'utility', icon: 'copy', description: 'Copy Metadata URL' }}
+                />
               </div>
               <p className="slds-text-body_small slds-text-color_weak">
                 This will return placeholder data prior to the connection being saved
