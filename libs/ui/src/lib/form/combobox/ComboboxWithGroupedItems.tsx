@@ -14,6 +14,7 @@ const defaultSelectedItemTitleFn = (item: ListItem) => item.title;
 
 export interface ComboboxWithGroupedItemsRef {
   clearSearchTerm: () => void;
+  focusInput: () => void;
 }
 
 export interface ComboboxWithGroupedItemsProps {
@@ -84,6 +85,9 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
         clearSearchTerm: () => {
           setFilterText('');
           comboboxRef.current?.clearInputText();
+        },
+        focusInput: () => {
+          comboboxRef.current?.focusInput();
         },
       }),
       [],
