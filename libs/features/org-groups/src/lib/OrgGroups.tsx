@@ -163,18 +163,31 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
         content: 'Any Salesforce Orgs will be removed from this organization but will not be deleted.',
       })
     ) {
-      await deleteOrgGroup(organization.id);
-      setOrgGroupsFromDb(getOrgGroups());
-      setOrgs(
-        allOrgs.map((org) => {
-          if (org.jetstreamOrganizationId !== organization.id) {
-            return org;
-          }
-          return { ...org, jetstreamOrganizationId: null };
-        }),
-      );
-      handleCloseOrganizationModal();
-      trackEvent(ANALYTICS_KEYS.organizations_deleted, { priorCount: groups.length });
+      try {
+        await deleteOrgGroup(organization.id);
+        setOrgGroupsFromDb(getOrgGroups());
+        setOrgs(
+          allOrgs.map((org) => {
+            if (org.jetstreamOrganizationId !== organization.id) {
+              return org;
+            }
+            return { ...org, jetstreamOrganizationId: null };
+          }),
+        );
+        handleCloseOrganizationModal();
+        trackEvent(ANALYTICS_KEYS.organizations_deleted, { priorCount: groups.length });
+        fireToast({
+          message: `Organization "${organization.name}" deleted successfully`,
+          type: 'success',
+        });
+      } catch (ex) {
+        tracker.error('Org Group: Error deleting group', ex);
+        logger.error('Org Group: Error deleting group', ex);
+        fireToast({
+          message: `Failed to delete group. Please try again.`,
+          type: 'error',
+        });
+      }
     }
   };
 
