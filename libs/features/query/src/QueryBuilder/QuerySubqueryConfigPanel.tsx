@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { fetchFields, getListItemsFromFieldWithRelatedItems, sortQueryFields, unFlattenedListItemsById } from '@jetstream/shared/ui-utils';
 import { groupByFlat } from '@jetstream/shared/utils';
 import { ExpressionType, Field, ListItem, QueryFields, QueryOrderByClause, SalesforceOrgUi } from '@jetstream/types';
-import { Panel, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Panel, Spinner } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
 import { getSubqueryFieldBaseKey, removeInFlightQueryFields } from '@jetstream/ui-core/shared';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
@@ -300,12 +300,12 @@ export const QuerySubqueryConfigPanel: FunctionComponent<QuerySubqueryConfigPane
             align-items: center;
           `}
         >
+          {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
           <button
             className="slds-button slds-button"
             type="button"
-            onClick={handleClearAll}
-            disabled={!hasAnyConfigured}
             title="Remove all filter, order by, and limit settings for this subquery"
+            {...ariaDisabledButtonProps(!hasAnyConfigured, () => handleClearAll())}
           >
             Clear
           </button>
