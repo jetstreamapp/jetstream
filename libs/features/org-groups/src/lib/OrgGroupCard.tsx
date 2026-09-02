@@ -39,7 +39,7 @@ export function OrgGroupCardCard({
   const { ref: dropRef, isDropTarget } = useDroppable({
     id,
     accept: (source) => (source.data as DraggableSfdcCard).organizationId !== id,
-    data: { action: 'add', orgGroupId: id } satisfies SfdcCardDropTarget,
+    data: { action: 'add', orgGroupId: id, label: name } satisfies SfdcCardDropTarget,
   });
 
   const tertiaryActionMenuItems = useMemo(() => {
