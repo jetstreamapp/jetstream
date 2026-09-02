@@ -4,6 +4,7 @@ import { formatNumber, useGoBackShortcut, usePrimaryActionShortcut, useTitle } f
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { FileExtAllTypes, ListMetadataResult, Maybe, MimeType, RetrievePackageFromListMetadataJob } from '@jetstream/types';
 import {
+  AssistiveStatus,
   AutoFullHeightContainer,
   Badge,
   ButtonGroupContainer,
@@ -376,6 +377,15 @@ export const AutomationControlEditor = () => {
         <Grid>
           <Grid className="slds-grow slds-box_small slds-theme_default slds-is-relative" verticalAlign="center" wrap>
             {loading && <Spinner size="small"></Spinner>}
+            {/* The table mounts with its rows already loaded, so the grid's own count announcement (which
+                reacts to filter changes) never fires for the initial load */}
+            <AssistiveStatus
+              message={
+                loading
+                  ? 'Loading automation items'
+                  : `${formatNumber(rows.length)} automation ${pluralizeFromNumber('item', rows.length)} loaded`
+              }
+            />
             <SearchInput
               id="quick-filter"
               ariaLabel="Filter automation items"

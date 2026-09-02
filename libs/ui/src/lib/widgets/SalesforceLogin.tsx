@@ -100,6 +100,8 @@ export const SalesforceLogin: FunctionComponent<SalesforceLoginProps> = ({
       {!omitIcon && iconPosition === 'right' && (
         <Icon type="utility" icon="new_window" className="slds-icon slds-text-link slds-icon_xx-small slds-m-left_xx-small" omitContainer />
       )}
+      {/* The new-window icon is decorative, so the behaviour is spelled out for screen readers */}
+      <span className="slds-assistive-text"> (opens in a new tab)</span>
     </a>
   );
 };
