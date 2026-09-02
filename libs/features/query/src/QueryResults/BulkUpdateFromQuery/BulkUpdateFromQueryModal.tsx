@@ -4,6 +4,7 @@ import { convertDateToLocale, filterLoadSobjects, formatNumber, tracker, useInte
 import { getErrorMessage, getRecordIdFromAttributes, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import {
+  ariaDisabledButtonProps,
   Checkbox,
   getWhichRecordsDefaultValue,
   Grid,
@@ -18,7 +19,6 @@ import {
   Section,
   Spinner,
   useFieldListItemsWithDrillIn,
-  ariaDisabledButtonProps,
 } from '@jetstream/ui';
 import {
   DEFAULT_FIELD_CONFIGURATION,
@@ -381,11 +381,13 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             <button className="slds-button slds-button_neutral" disabled={deployInProgress} onClick={handleClose}>
               Close
             </button>
+            {/* Both stay focusable while their own click disables them — native disabled would drop focus to <body> */}
             {mode === 'configure' && (
-              {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
               <button
                 className="slds-button slds-button_brand"
-                {...ariaDisabledButtonProps(!isValid || loading || !!batchSizeError || deployInProgress || !!fatalError, () => handlePreview())}
+                {...ariaDisabledButtonProps(!isValid || loading || !!batchSizeError || deployInProgress || !!fatalError, () =>
+                  handlePreview(),
+                )}
               >
                 Preview Proposed Changes
               </button>
