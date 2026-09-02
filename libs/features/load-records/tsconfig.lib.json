@@ -66,6 +66,9 @@
     },
     {
       "path": "../../shared/client-logger/tsconfig.lib.json"
+    },
+    {
+      "path": "../../test-utils/tsconfig.lib.json"
     }
   ]
 }
