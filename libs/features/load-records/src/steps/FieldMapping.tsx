@@ -15,6 +15,7 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import {
+  AssistiveStatus,
   ButtonGroupContainer,
   DropDown,
   Grid,
@@ -24,6 +25,7 @@ import {
   ScopedNotification,
   SearchInput,
   Tooltip,
+  useAnnouncer,
 } from '@jetstream/ui';
 import {
   autoMapFields,
@@ -41,6 +43,7 @@ import LoadRecordsFieldMappingRow from '../components/LoadRecordsFieldMappingRow
 import LoadRecordsFieldMappingStaticRow from '../components/LoadRecordsFieldMappingStaticRow';
 import { LoadMappingPopover } from '../components/load-mapping-storage/LoadMappingPopover';
 import SaveMappingPopover from '../components/load-mapping-storage/SaveMappingPopover';
+import { countFieldMappingErrors, getFieldMappingErrorStatusMessage } from '../utils/continue-blocked-reason';
 
 type DropDownAction = 'CLEAR' | 'RESET' | 'ALL' | 'MAPPED' | 'UNMAPPED';
 type Filter = 'ALL' | 'MAPPED' | 'UNMAPPED';
@@ -251,16 +254,47 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
       }
     }
 
+    // Clear-then-set announcer: removing two rows in a row yields identical messages, which a plain
+    // live region would announce only once
+    const { announce, announcer } = useAnnouncer();
+    const ADD_MANUAL_MAPPING_BUTTON_ID = 'field-mapping-add-manual-mapping';
+
+    // A row's error text is only read when that row's control is focused; this live region tells
+    // the user the form has errors to resolve whenever the count changes (same count that blocks
+    // the next step)
+    const errorStatusMessage = useMemo(() => getFieldMappingErrorStatusMessage(countFieldMappingErrors(fieldMapping)), [fieldMapping]);
+
     function handleAddRow() {
       const { mappingKey, fieldMappingItem } = initStaticFieldMappingItem();
       setFieldMapping((fieldMapping) => ({ ...fieldMapping, [mappingKey]: fieldMappingItem }));
     }
 
-    function handleRemoveRow(mappingKey: string) {
+    /**
+     * Removing the row unmounts the focused remove button, which drops focus to <body> — Tab
+     * happens to continue from the right place in Chrome (the spec's "sequential focus navigation
+     * starting point") but that is unreliable cross-browser and silent for screen readers. Move
+     * focus to the adjacent row's action control explicitly and announce the removal.
+     */
+    function handleRemoveRow(mappingKey: string, triggerElement?: HTMLElement) {
+      const row = triggerElement?.closest('tr');
+      const adjacentRow = (row?.nextElementSibling ?? row?.previousElementSibling) as HTMLElement | null;
       setFieldMapping((fieldMapping) => {
         const clonedMapping = { ...fieldMapping };
         delete clonedMapping[mappingKey];
         return checkFieldsForMappingError(clonedMapping, loadType, externalId);
+      });
+      // Announced outside the updater (updaters must stay pure — StrictMode double-invokes them);
+      // the post-removal count is derivable from the closure value
+      announce(`Mapping removed. ${Math.max(Object.keys(fieldMapping).length - 1, 0)} rows remaining.`);
+      // After React commits the removal, land on the equivalent control of the neighboring row — or,
+      // when the last row was removed, on the Add Manual Mapping button below the table
+      window.setTimeout(() => {
+        if (adjacentRow?.isConnected) {
+          const controls = adjacentRow.querySelectorAll<HTMLElement>('button, a[href], input, [tabindex]');
+          (controls[controls.length - 1] ?? adjacentRow).focus();
+          return;
+        }
+        document.getElementById(ADD_MANUAL_MAPPING_BUTTON_ID)?.focus();
       });
     }
 
@@ -278,6 +312,8 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
           padding-bottom: 8rem;
         `}
       >
+        {announcer}
+        <AssistiveStatus message={errorStatusMessage} />
         <GridCol>
           {warningMessage && (
             <ScopedNotification theme="warning">
@@ -443,7 +479,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
                       csvRowData={activeRow?.[header]}
                       binaryAttachmentBodyField={binaryAttachmentBodyField}
                       isAdditionalMapping
-                      onRemoveRow={() => handleRemoveRow(mappingKey)}
+                      onRemoveRow={(event) => handleRemoveRow(mappingKey, event?.currentTarget)}
                       onSelectionChanged={handleFieldMappingChange}
                     />
                   )),
@@ -462,14 +498,14 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
                     fieldMappingItem={mappingItem}
                     isCustomMetadata={isCustomMetadataObject}
                     onSelectionChanged={(value) => handleFieldMappingChange(mappingKey, value)}
-                    onRemoveRow={() => handleRemoveRow(mappingKey)}
+                    onRemoveRow={(event) => handleRemoveRow(mappingKey, event?.currentTarget)}
                   />
                 );
               })}
             </tbody>
           </table>
           <Tooltip content="Manually set a provided value for all records for fields not included in your file.">
-            <button className="slds-button slds-button_neutral slds-m-top_x-small" onClick={handleAddRow}>
+            <button id={ADD_MANUAL_MAPPING_BUTTON_ID} className="slds-button slds-button_neutral slds-m-top_x-small" onClick={handleAddRow}>
               Add Manual Mapping
             </button>
           </Tooltip>

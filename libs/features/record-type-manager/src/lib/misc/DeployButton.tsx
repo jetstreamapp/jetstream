@@ -1,6 +1,6 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { Maybe } from '@jetstream/types';
-import { Tooltip } from '@jetstream/ui';
+import { ariaDisabledButtonProps, getAriaKeyshortcuts, getModifierKey, Tooltip } from '@jetstream/ui';
 import { Fragment } from 'react';
 import { RecordTypePicklistSummary } from '../types/record-types.types';
 
@@ -15,18 +15,20 @@ export function DeployButton({ modifiedValues, configurationErrors, handleDeploy
 
   const buttonLabel = hasModifiedValue ? `Deploy Changes (${formatNumber(modifiedValues.length)})` : 'Deploy Changes';
 
+  // aria-disabled (not native disabled) so the button stays focusable — the explanatory tooltips
+  // below are otherwise unreachable from the keyboard, and the click is guarded while disabled
   const deployButton = (
     <button
       className="slds-button slds-button_brand"
-      disabled={!!configurationErrors || modifiedValues.length === 0}
-      onClick={handleDeploy}
+      aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+      {...ariaDisabledButtonProps(!!configurationErrors || modifiedValues.length === 0, () => handleDeploy())}
     >
       {buttonLabel}
     </button>
   );
 
   if (!hasModifiedValue) {
-    <Tooltip content="Change one or more values to enable deployment.">{deployButton}</Tooltip>;
+    return <Tooltip content="Change one or more values to enable deployment.">{deployButton}</Tooltip>;
   }
 
   if (!configurationErrors) {

@@ -19,7 +19,7 @@ export class PlatformEventPage {
   }
 
   async goto() {
-    await this.page.getByRole('button', { name: 'Developer Tools' }).click();
+    await this.page.getByRole('button', { name: 'Developer Tools', exact: true }).click();
     await this.page.getByRole('menuitemcheckbox', { name: 'Platform Events' }).click();
     await this.page.waitForURL('**/platform-event-monitor');
   }
@@ -28,13 +28,14 @@ export class PlatformEventPage {
     await this.listenerCard.getByPlaceholder('Select an Option').click();
     await this.listenerCard.getByRole('option', { name: `(${eventName}) /event/${eventName}` }).click();
     await this.listenerCard.getByRole('button', { name: 'Subscribe', exact: true }).click();
-    // Ensure subscription was successful
-    await expect(this.listenerCard.getByRole('button', { name: 'Unsubscribe' })).toBeVisible();
+    // Ensure subscription was successful. exact: true — the header's icon button is named
+    // "Unsubscribe from all events and clear results", which substring-matches 'Unsubscribe'
+    await expect(this.listenerCard.getByRole('button', { name: 'Unsubscribe', exact: true })).toBeVisible();
     await expect(this.listenerCard.getByPlaceholder('-1')).toBeDisabled();
   }
 
   async unsubscribeToEvent() {
-    await this.listenerCard.getByRole('button', { name: 'Unsubscribe' }).click();
+    await this.listenerCard.getByRole('button', { name: 'Unsubscribe', exact: true }).click();
     await expect(this.listenerCard.getByPlaceholder('-1')).toBeEnabled();
     await expect(this.listenerCard.getByRole('button', { name: 'Subscribe', exact: true })).toBeVisible();
   }
@@ -44,6 +45,6 @@ export class PlatformEventPage {
     await this.publisherCard.getByRole('option', { name: eventName }).click();
     await this.publisherCard.getByLabel(`(${fieldName})`).fill(fieldValue);
     await this.publisherCard.getByRole('button', { name: 'Publish Event' }).click();
-    await expect(this.publisherCard.getByText(/informationEvent Id: [0-9a-fA-F-]+/)).toBeVisible();
+    await expect(this.publisherCard.getByText(/Event Id: [0-9a-fA-F-]+/)).toBeVisible();
   }
 }

@@ -6,6 +6,12 @@ import Input from '../input/Input';
 export interface SearchInputProps {
   id: string;
   className?: string;
+  /**
+   * Accessible name for the input. Falls back to the placeholder, which is what most screen readers
+   * announce, but a placeholder is not a label (3.3.2) — pass this where the field's purpose is not
+   * obvious from context (e.g. a per-column filter: "Filter Account Name").
+   */
+  ariaLabel?: string;
   placeholder?: string;
   autoFocus?: boolean;
   /**
@@ -22,6 +28,7 @@ export interface SearchInputProps {
 
 export const SearchInput: FunctionComponent<SearchInputProps> = ({
   id,
+  ariaLabel,
   className,
   placeholder,
   autoFocus,
@@ -65,6 +72,13 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
     ) {
       event.stopPropagation();
     }
+    // The Up/Down action itself fires on keyup (below), but the keydown must be consumed here too:
+    // when this input sits inside a List (nested field lists), the bubbled keydown would move the
+    // parent list's focus before the keyup ever ran.
+    if (onArrowKeyUpDown && (isArrowUpKey(event) || isArrowDownKey(event))) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
   }
 
   function handleKeyUp(event: KeyboardEvent<HTMLInputElement>) {
@@ -91,17 +105,28 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
       iconLeftType="utility"
       loading={loading}
       clearButton={!!value}
-      onClear={() => setValue('')}
+      onClear={() => {
+        setValue('');
+        // The X removes itself when the value empties — put focus back in the input
+        inputEl.current?.focus();
+      }}
     >
       <input
         ref={inputEl}
         className="slds-input"
         type="search"
         id={id}
+        aria-label={ariaLabel ?? placeholder}
         placeholder={placeholder}
         value={value}
         autoFocus={autoFocus}
         autoComplete="off"
+        // Password managers inject autofill UI into inputs, which screen readers then announce
+        // ("1Password menu available") — these are the vendors' documented opt-outs, appropriate
+        // for search/filter fields that never hold credentials
+        data-1p-ignore
+        data-lpignore="true"
+        data-bwignore="true"
         disabled={disabled}
         onChange={(event) => setValue(event.currentTarget.value)}
         onKeyDown={handleKeyDown}

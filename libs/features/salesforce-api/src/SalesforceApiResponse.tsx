@@ -39,7 +39,11 @@ export const SalesforceApiResponse: FunctionComponent<SalesforceApiResponseProps
               <Badge type={getBadgeTypeFromMethod(request.method)}>{request.method}</Badge>
             </div>
             <div>
-              <CopyToClipboard content={request.url} className="slds-m-horizontal_xx-small" />
+              <CopyToClipboard
+                content={request.url}
+                icon={{ type: 'utility', icon: 'copy', description: 'Copy request URL' }}
+                className="slds-m-horizontal_xx-small"
+              />
             </div>
             <span className="slds-line-clamp_large" title={request.url}>
               {request.url}
@@ -60,7 +64,13 @@ export const SalesforceApiResponse: FunctionComponent<SalesforceApiResponseProps
       </Grid>
       <h2 className="slds-text-heading_small slds-m-top_x-small">
         Response Headers
-        {results?.headers && <CopyToClipboard content={results.headers} className="slds-m-horizontal_xx-small" />}
+        {results?.headers && (
+          <CopyToClipboard
+            content={results.headers}
+            icon={{ type: 'utility', icon: 'copy', description: 'Copy response headers' }}
+            className="slds-m-horizontal_xx-small"
+          />
+        )}
       </h2>
       <MonacoEditor
         height="150px"
@@ -81,7 +91,13 @@ export const SalesforceApiResponse: FunctionComponent<SalesforceApiResponseProps
       >
         <h2 className="slds-text-heading_small">
           Response Body
-          {results?.body && <CopyToClipboard content={results.body} className="slds-m-horizontal_xx-small" />}
+          {results?.body && (
+            <CopyToClipboard
+              content={results.body}
+              icon={{ type: 'utility', icon: 'copy', description: 'Copy response body' }}
+              className="slds-m-horizontal_xx-small"
+            />
+          )}
         </h2>
       </Grid>
       <MonacoEditor

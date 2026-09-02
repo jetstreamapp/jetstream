@@ -827,6 +827,13 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
           id={`${row.key}-${id}-${actionKey}`}
           checked={value}
           tabIndex={-1}
+          // The visible context lives in the column-group header far above and the row label far to
+          // the left — name each checkbox with both so arrowing down a column announces which
+          // object/field/tab/permission is being toggled, and for which profile/permission set
+          aria-label={`${actionType} ${row.label} for ${label} (${type})`}
+          // Grid arrow navigation focuses the checkbox itself (APG single-widget cell) so its role,
+          // checked state, and toggle affordance are announced
+          {...(disabled ? {} : { 'data-grid-inner-focus': true })}
           // Stop the click from also reaching the wrapping div's onClick — otherwise a direct click
           // (or programmatic keyboard activation) toggles via both handlers. onChange owns the toggle.
           onClick={(ev) => ev.stopPropagation()}
@@ -874,7 +881,12 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
       if (args.row.type === 'HEADING') {
         return <SummaryFilterRenderer columnKey={`${id}-${actionKey}`} label={actionType} />;
       }
-      return <PinnedSelectAllRendererWrapper {...(args as RenderSummaryCellProps<any, unknown>)} />;
+      return (
+        <PinnedSelectAllRendererWrapper
+          {...(args as RenderSummaryCellProps<any, unknown>)}
+          contextLabel={`${actionType} for ${label} (${type})`}
+        />
+      );
     },
     // On grouped tables (field permissions) the group header shows how many of the group's child rows
     // have this permission checked. Object/tab tables aren't grouped, so this never renders there.
@@ -1692,11 +1704,24 @@ export function resetRow<TRows extends PermissionTableCellExtended>(type: Permis
 /**
  * Pinned row selection renderer
  */
-export const PinnedSelectAllRendererWrapper = ({ column }: RenderSummaryCellProps<any, unknown>) => {
-  const { onColumnAction } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
+export const PinnedSelectAllRendererWrapper = ({
+  column,
+  contextLabel,
+}: RenderSummaryCellProps<any, unknown> & { contextLabel?: string }) => {
+  const { onColumnAction, announce } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
+  // e.g. "Read for Admin (Profile)" — every column renders these same three buttons, so the
+  // accessible names and the outcome announcement must say which column they act on
+  const scopedSuffix = contextLabel ? `: ${contextLabel}` : '';
 
   function handleSelection(action: 'selectAll' | 'unselectAll' | 'reset') {
     onColumnAction(action, column.key);
+    const outcome =
+      action === 'selectAll'
+        ? `Selected all visible rows${scopedSuffix}`
+        : action === 'unselectAll'
+          ? `Unselected all visible rows${scopedSuffix}`
+          : `Reset visible rows to previous selection${scopedSuffix}`;
+    announce(outcome);
   }
 
   return (
@@ -1709,29 +1734,29 @@ export const PinnedSelectAllRendererWrapper = ({ column }: RenderSummaryCellProp
       <button
         className="slds-button slds-button_icon slds-button_icon-border"
         tabIndex={-1}
-        title={`Select all visible rows`}
+        title={`Select all visible rows${scopedSuffix}`}
         onClick={() => handleSelection('selectAll')}
       >
         <Icon type="utility" icon="multi_select_checkbox" className="slds-button__icon slds-button__icon_small" omitContainer />
-        <span className="slds-assistive-text">Select all visible rows</span>
+        <span className="slds-assistive-text">Select all visible rows{scopedSuffix}</span>
       </button>
       <button
         className="slds-button slds-button_icon slds-button_icon-border"
         tabIndex={-1}
-        title={`Unselect all visible rows`}
+        title={`Unselect all visible rows${scopedSuffix}`}
         onClick={() => handleSelection('unselectAll')}
       >
         <Icon type="utility" icon="steps" className="slds-button__icon slds-button__icon_small" omitContainer />
-        <span className="slds-assistive-text">Unselect all visible rows</span>
+        <span className="slds-assistive-text">Unselect all visible rows{scopedSuffix}</span>
       </button>
       <button
         className="slds-button slds-button_icon slds-button_icon-border"
         tabIndex={-1}
-        title={`Reset visible rows to previous selection`}
+        title={`Reset visible rows to previous selection${scopedSuffix}`}
         onClick={() => handleSelection('reset')}
       >
         <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_small" omitContainer />
-        <span className="slds-assistive-text">Reset visible rows to previous selection</span>
+        <span className="slds-assistive-text">Reset visible rows to previous selection{scopedSuffix}</span>
       </button>
     </div>
   );
@@ -2007,6 +2032,8 @@ export const RowActionRenderer = ({ commitEdit, row }: RenderCellProps<Permissio
         className: 'slds-button slds-button_stretch',
         tabIndex: -1,
         onChange: handleOpen,
+        // Focused directly during grid navigation so "Edit Row, button" (and Enter to open) is announced
+        'data-grid-inner-focus': true,
       }}
       buttonStyle={{ lineHeight: '1rem' }}
     >
@@ -2172,7 +2199,7 @@ export const BulkActionRenderer = () => {
           </div>
         </Modal>
       )}
-      <button className="slds-button slds-button_stretch" onClick={() => handleOpen()}>
+      <button className="slds-button slds-button_stretch" data-grid-inner-focus onClick={() => handleOpen()}>
         Edit All
       </button>
     </Fragment>

@@ -233,6 +233,7 @@ export const ImageSelector: FunctionComponent<ImageSelectorProps> = ({
                 accept="image/*"
                 id={id}
                 aria-describedby={hasErrorState ? `${id}-error` : undefined}
+                aria-invalid={hasErrorState || undefined}
                 aria-labelledby={`${id}-primary-label ${id}-secondary-label`}
                 disabled={disabled}
                 onChange={handleInputChange}

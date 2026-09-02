@@ -52,16 +52,28 @@ export const PlatformEventMonitorListenerCard = ({
       }
       actions={
         <>
-          <button className="slds-button slds-m-right_x-small" onClick={() => fetchPlatformEvents(true)}>
-            Just added a new event?
-          </button>
+          <Tooltip content="Reload the list of platform events from Salesforce, bypassing the cache">
+            <button
+              className="slds-button slds-m-right_x-small"
+              aria-label="Just added a new event? Reload the list of platform events"
+              onClick={() => fetchPlatformEvents(true)}
+            >
+              Just added a new event?
+            </button>
+          </Tooltip>
           <Tooltip content={'Unsubscribe from all events and clear results.'}>
             <button
               className="slds-button slds-button_icon slds-button_icon-border slds-button_icon-container slds-m-right_xx-small"
               disabled={!hasSubscriptions}
               onClick={() => onClearAll()}
             >
-              <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
+              <Icon
+                type="utility"
+                icon="delete"
+                description="Unsubscribe from all events and clear results"
+                className="slds-button__icon"
+                omitContainer
+              />
             </button>
           </Tooltip>
           <Tooltip content={'Clear current results and retain subscriptions.'}>
@@ -70,7 +82,13 @@ export const PlatformEventMonitorListenerCard = ({
               disabled={!hasSubscriptions}
               onClick={() => onClearEvents()}
             >
-              <Icon type="utility" icon="refresh" className="slds-button__icon" omitContainer />
+              <Icon
+                type="utility"
+                icon="refresh"
+                description="Clear current results and retain subscriptions"
+                className="slds-button__icon"
+                omitContainer
+              />
             </button>
           </Tooltip>
           <button className="slds-button slds-button_neutral" disabled={!hasEvents} onClick={() => onDownload()}>
@@ -93,16 +111,27 @@ export const PlatformEventMonitorListenerCard = ({
           onSelectedSubscribeEvent={onSelectedSubscribeEvent}
         />
         <div className="slds-m-vertical_small">
-          {subscribedPlatformEventsList.map((item) => (
-            <Pill
-              key={item.id}
-              className="slds-m-right-xx-small"
-              title={`${item.label} - ${item.secondaryLabel}`}
-              onRemove={() => unsubscribe(item.value)}
+          {/* Pills are role="option", which needs a listbox parent (same structure as Picklist's selected pills) */}
+          {subscribedPlatformEventsList.length > 0 && (
+            <ul
+              className="slds-listbox slds-listbox_horizontal"
+              role="listbox"
+              aria-label="Subscribed events"
+              aria-orientation="horizontal"
             >
-              {item.label}
-            </Pill>
-          ))}
+              {subscribedPlatformEventsList.map((item) => (
+                <li key={item.id} className="slds-listbox-item" role="presentation">
+                  <Pill
+                    className="slds-m-right-xx-small"
+                    title={`${item.label} - ${item.secondaryLabel}`}
+                    onRemove={() => unsubscribe(item.value)}
+                  >
+                    {item.label}
+                  </Pill>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <div>
           <PlatformEventMonitorEvents messagesByChannel={messagesByChannel} />

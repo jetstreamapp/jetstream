@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import type { ApexTestResultRecord, SalesforceOrgUi } from '@jetstream/types';
-import { Badge, Grid, Icon, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
-import { FunctionComponent, useState } from 'react';
+import { ariaDisabledButtonProps, Badge, Grid, Icon, ScopedNotification, Spinner, Tooltip, useAnnouncer } from '@jetstream/ui';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import type { TestRunDetailViewModel } from '../apex-test-runner-types';
 import { isTestRunInProgress } from '../useApexTestRunsList';
 import TestResultDetailModal from './TestResultDetailModal';
@@ -31,14 +31,40 @@ export const TestRunDetail: FunctionComponent<TestRunDetailProps> = ({
 }) => {
   const [selectedResult, setSelectedResult] = useState<ApexTestResultRecord | null>(null);
   const { run, queueItems, testResults } = detail;
+  const { announce, announcer } = useAnnouncer();
+  const statusRef = useRef<HTMLSpanElement>(null);
+
+  const inProgress = !!run && isTestRunInProgress(run);
+  // MethodsCompleted includes failed methods
+  const methodsRun = run?.MethodsCompleted ?? 0;
+
+  // Announce the polled status once it reaches a terminal state, and catch focus when the control
+  // the user activated (Abort, Resume Polling) unmounts as a result of that activation
+  const previousRunStateRef = useRef({ runId: run?.Id ?? null, inProgress, pollingTimedOut });
+  useEffect(() => {
+    const previous = previousRunStateRef.current;
+    previousRunStateRef.current = { runId: run?.Id ?? null, inProgress, pollingTimedOut };
+    if (!run || previous.runId !== run.Id) {
+      return;
+    }
+    const runFinished = previous.inProgress && !inProgress;
+    const pollingResumed = previous.pollingTimedOut && !pollingTimedOut;
+    if (runFinished) {
+      const failureCount = run.MethodsFailed ?? 0;
+      announce(
+        `Test run ${run.Status}. ${methodsRun} of ${run.MethodsEnqueued ?? methodsRun} tests run, ${failureCount} ${
+          failureCount === 1 ? 'failure' : 'failures'
+        }.`,
+      );
+    }
+    if ((runFinished || pollingResumed) && document.activeElement === document.body) {
+      statusRef.current?.focus();
+    }
+  }, [run, inProgress, pollingTimedOut, methodsRun, announce]);
 
   if (!run) {
     return null;
   }
-
-  const inProgress = isTestRunInProgress(run);
-  // MethodsCompleted includes failed methods
-  const methodsRun = run.MethodsCompleted ?? 0;
 
   return (
     <div
@@ -47,14 +73,18 @@ export const TestRunDetail: FunctionComponent<TestRunDetailProps> = ({
         min-height: 60px;
       `}
     >
+      {announcer}
       {selectedResult && (
         <TestResultDetailModal selectedOrg={selectedOrg} testResult={selectedResult} onClose={() => setSelectedResult(null)} />
       )}
       {loading && !testResults.length && <Spinner size="small" />}
       <Grid verticalAlign="center" wrap className="slds-m-vertical_x-small">
-        <Badge type={getRunStatusBadgeType(run.Status)}>{run.Status}</Badge>
+        {/* Persistent focus target for when Abort / Resume Polling unmount under the keyboard user */}
+        <span ref={statusRef} tabIndex={-1}>
+          <Badge type={getRunStatusBadgeType(run.Status)}>{run.Status}</Badge>
+        </span>
         {inProgress && <Spinner inline size="x-small" containerClassName="slds-m-left_small" />}
-        <span className="slds-m-left_small">
+        <span className="slds-m-left_small" role="status">
           {run.MethodsEnqueued !== null && (
             <>
               <strong>{methodsRun}</strong> of <strong>{run.MethodsEnqueued}</strong> tests run
@@ -70,7 +100,8 @@ export const TestRunDetail: FunctionComponent<TestRunDetailProps> = ({
         <div className="slds-col_bump-left">
           {inProgress && (
             <Tooltip content="The currently executing test class will finish, remaining tests are cancelled">
-              <button className="slds-button slds-button_destructive" disabled={aborting} onClick={onAbort}>
+              {/* Stays focusable while aborting — native disabled would drop focus to <body> */}
+              <button className="slds-button slds-button_destructive" {...ariaDisabledButtonProps(aborting, () => onAbort())}>
                 <Icon type="utility" icon="ban" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Abort Remaining Tests
               </button>

@@ -5,8 +5,10 @@ import {
   KeyBuffer,
   isArrowDownKey,
   isArrowUpKey,
+  isEndKey,
   isEnterKey,
-  isEscapeKey,
+  isHomeKey,
+  isTabKey,
   menuItemSelectScroll,
   selectMenuItemFromKeyboard,
 } from '@jetstream/shared/ui-utils';
@@ -27,6 +29,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useEscapeToCloseLayer } from '../../hooks/useEscapeToCloseLayer';
 import { usePortalContext } from '../../modal/PortalContext';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import { ConditionalPortal } from '../../widgets/ConditionalPortal';
@@ -105,6 +108,19 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
   const [focusedItem, setFocusedItem] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState<string | undefined>(initialSelectedId);
   const ulContainerEl = useRef<HTMLUListElement>(null);
+  const triggerButtonRef = useRef<HTMLButtonElement>(null);
+
+  /**
+   * Selecting an item (or pressing Escape) unmounts the portaled menu while focus is inside it,
+   * which would drop focus to <body>. Focus the trigger SYNCHRONOUSLY, before the selection
+   * callback runs: if the selection opens a modal, the modal then records the trigger as its
+   * return-focus target (the menu item it would otherwise record unmounts with the menu), and the
+   * modal immediately takes focus from there. Outside clicks intentionally never return focus,
+   * since the user is focusing something else.
+   */
+  function focusTrigger() {
+    triggerButtonRef.current?.focus();
+  }
   const elRefs = useRef<RefObject<HTMLAnchorElement>[]>([]);
 
   // init array to hold element refs for each item in list
@@ -149,17 +165,32 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
+  // Escape closes ONLY this menu (and returns focus to the trigger) — consumed at document capture
+  // so an ancestor modal/popover cannot also close on the same press
+  useEscapeToCloseLayer(isOpen, () => {
+    setIsOpen(false);
+    focusTrigger();
+  });
+
+  // Menu-item keyboard handling. Escape is deliberately absent: the items only have focus while
+  // the menu is open, and useEscapeToCloseLayer consumes Escape at document capture for that state.
   function handleKeyDown(event: KeyboardEvent<HTMLAnchorElement>) {
+    // Tab leaves the menu (APG menu button): focus the trigger first so the browser's sequential
+    // navigation continues from it (the menu is portaled), close, and let the default Tab proceed
+    if (isTabKey(event)) {
+      focusTrigger();
+      setIsOpen(false);
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     let newFocusedItem;
 
-    if (isEscapeKey(event)) {
-      setIsOpen(false);
-      return;
-    }
-
-    if (isArrowUpKey(event)) {
+    if (isHomeKey(event)) {
+      newFocusedItem = 0;
+    } else if (isEndKey(event)) {
+      newFocusedItem = items.length - 1;
+    } else if (isArrowUpKey(event)) {
       if (!isNumber(focusedItem) || focusedItem === 0) {
         newFocusedItem = items.length - 1;
       } else {
@@ -175,6 +206,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
       const item = items[focusedItem];
       if (!item.disabled) {
         setSelectedItem(item.id);
+        focusTrigger();
         onSelected(item.id, item.metadata);
         setIsOpen(false);
       }
@@ -197,6 +229,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function handleSelection(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>, id: string, metadata?: any) {
     event.preventDefault();
+    focusTrigger();
     setIsOpen(false);
     onSelected(id, metadata);
     setSelectedItem(id);
@@ -209,11 +242,14 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
         className={classNames('slds-dropdown-trigger slds-dropdown-trigger_click', className, { 'slds-is-open': isOpen })}
       >
         <button
+          ref={triggerButtonRef}
           data-testid={testId}
           className={buttonClassName || 'slds-button slds-button_icon slds-button_icon-border-filled'}
           aria-haspopup="true"
           aria-expanded={isOpen}
-          title={actionText}
+          // `description` (assistive text below) is the trigger's whole accessible name when given;
+          // otherwise the icon's actionText names it
+          title={description || actionText}
           onClick={() => setIsOpen(!isOpen)}
           disabled={disabled}
         >
@@ -230,7 +266,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
                   'slds-button__icon_x-small': !!leadingIcon,
                 })}
                 omitContainer={!!leadingIcon}
-                description={actionText}
+                description={description ? undefined : actionText}
               />
               {description && <span className="slds-assistive-text">{description}</span>}
             </Fragment>
@@ -255,7 +291,8 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
               )}
               style={usePortal ? floatingStyles : undefined}
             >
-              <ul className="slds-dropdown__list" role="menu" aria-label={actionText} ref={ulContainerEl}>
+              {/* The menu shares the trigger's name so "Actions for X" menu is distinguishable from its siblings */}
+              <ul className="slds-dropdown__list" role="menu" aria-label={description || actionText} ref={ulContainerEl}>
                 {items.map(({ id, subheader, value, icon, disabled, title, trailingDivider, metadata }, i) => (
                   <Fragment key={id}>
                     {subheader && (
@@ -275,10 +312,11 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
                         {isString(value) ? (
                           <span className="slds-truncate" title={title || value}>
                             {icon && (
+                              // Decorative beside the visible item text — a description doubled the
+                              // item's accessible name ("DeleteDelete") once icons stopped being aria-hidden
                               <Icon
                                 type={icon.type as IconType}
                                 icon={icon.icon as IconName}
-                                description={icon.description}
                                 omitContainer
                                 className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
                               />

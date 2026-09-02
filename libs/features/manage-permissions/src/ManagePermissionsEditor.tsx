@@ -47,6 +47,7 @@ import {
   ToolbarItemGroup,
   Tooltip,
   fireToast,
+  getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
 import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState, useAmplitude } from '@jetstream/ui-core';
@@ -810,7 +811,12 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
               </div>
             }
           >
-            <Link className="slds-button slds-button_brand" to=".." onClick={handleGoBack}>
+            <Link
+              className="slds-button slds-button_brand"
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'shift', 'enter'])}
+              to=".."
+              onClick={handleGoBack}
+            >
               <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
               Go Back
             </Link>
@@ -827,6 +833,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           )}
           <button
             className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
+            title="Reload All Permissions"
             onClick={reloadPermissions}
             disabled={loading}
           >
@@ -835,6 +842,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           </button>
           <button
             className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
+            title="Reset Changes"
             onClick={resetChanges}
             disabled={
               loading ||
@@ -870,6 +878,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           >
             <button
               className="slds-button slds-button_brand slds-m-left_xx-small"
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
               onClick={saveChanges}
               disabled={loading || (!dirtyObjectCount && !dirtyFieldCount && !dirtyTabVisibilityCount && !dirtySystemPermissionCount)}
             >

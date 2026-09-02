@@ -4,6 +4,8 @@ import { ComboboxWithItems, Grid, Icon } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 
 export interface MassUpdateRecordsObjectRowFieldProps {
+  /** Deterministic id for the combobox input, so the parent can move focus to a specific row */
+  comboboxId?: string;
   fields: ListItem[];
   selectedField?: Maybe<string>;
   disabled?: boolean;
@@ -13,6 +15,7 @@ export interface MassUpdateRecordsObjectRowFieldProps {
 }
 
 export const MassUpdateRecordsObjectRowField: FunctionComponent<MassUpdateRecordsObjectRowFieldProps> = ({
+  comboboxId,
   fields,
   selectedField,
   disabled,
@@ -38,6 +41,7 @@ export const MassUpdateRecordsObjectRowField: FunctionComponent<MassUpdateRecord
             itemLength: 5,
             isRequired: true,
             disabled,
+            inputProps: comboboxId ? { id: comboboxId } : undefined,
           }}
           items={fields}
           selectedItemId={selectedField}

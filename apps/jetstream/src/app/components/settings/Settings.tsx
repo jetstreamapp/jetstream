@@ -16,7 +16,13 @@ import {
   Spinner,
   fireToast,
 } from '@jetstream/ui';
-import { DataHistorySettingsSection, SalesforceCanvasOrgs, SoqlQueryFormatConfig, useAmplitude } from '@jetstream/ui-core';
+import {
+  DataHistorySettingsSection,
+  EditorSettingsSection,
+  SalesforceCanvasOrgs,
+  SoqlQueryFormatConfig,
+  useAmplitude,
+} from '@jetstream/ui-core';
 import { fromAppState, useFeatureFlag, userProfileState } from '@jetstream/ui/app-state';
 import { deleteAllDataHistoryFiles } from '@jetstream/ui/data-history';
 import { deleteAllLocalData, dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
@@ -270,6 +276,7 @@ export const Settings = () => {
             </div>
 
             <DataHistorySettingsSection />
+            <EditorSettingsSection />
 
             <div className="slds-m-top_large">
               <h2 className="slds-text-heading_medium slds-m-vertical_small">Logging</h2>

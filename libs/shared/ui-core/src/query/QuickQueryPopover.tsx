@@ -2,7 +2,9 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import {
   hasModifierKey,
   hasShiftModifierKey,
+  isArrowDownKey,
   isEKey,
+  isEnterKey,
   sanitizePastedEditorText,
   useDisposables,
   useGlobalEventHandler,
@@ -10,11 +12,14 @@ import {
 import { QueryHistoryItem, SoqlQueryFormatOptions } from '@jetstream/types';
 import {
   CheckboxToggle,
+  focusListEntryRow,
+  getAriaKeyshortcuts,
   getModifierKey,
   Grid,
   GridCol,
   Icon,
   KeyboardShortcut,
+  List,
   Popover,
   PopoverRef,
   Spinner,
@@ -43,6 +48,7 @@ export const QuickQueryPopover = () => {
   const { trackEvent } = useAmplitude();
   const popoverRef = useRef<PopoverRef>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const recentQueriesListRef = useRef<HTMLUListElement>(null);
   const { addDisposable } = useDisposables();
   const navigate = useNavigate();
   const selectedOrg = useAtomValue(selectedOrgState);
@@ -124,18 +130,52 @@ export const QuickQueryPopover = () => {
     }
   }
 
-  function handleSelectRecentQuery(event: React.MouseEvent, query: QueryHistoryItem) {
-    event.stopPropagation();
+  function selectRecentQuery(query: QueryHistoryItem) {
     setSoql(query.soql);
     setIsTooling(query.isTooling);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (hasModifierKey(event as any)) {
+  }
+
+  function getRecentQueryFromRow(target: EventTarget | null): QueryHistoryItem | undefined {
+    const rowElement = target instanceof HTMLElement ? target.closest<HTMLLIElement>('[role="option"]') : null;
+    if (!rowElement?.parentElement) {
+      return undefined;
+    }
+    // `List` renders exactly one option per item, in item order, so a row's DOM position is its index
+    const rowIndex = Array.prototype.indexOf.call(rowElement.parentElement.children, rowElement);
+    return queryHistory[rowIndex];
+  }
+
+  /**
+   * Plain click / Enter / Space on a recent query only loads it into the editor (`List` -> `onSelected`).
+   * A modifier (Cmd/Ctrl) additionally executes it and Shift additionally restores it, for mouse and
+   * keyboard alike. `List` neither exposes the triggering event nor lets Enter bubble past the list, so
+   * both variants are intercepted in the capture phase on the wrapper around it.
+   */
+  function handleRecentQueryModifierAction(event: React.MouseEvent | React.KeyboardEvent) {
+    const query = getRecentQueryFromRow(event.target);
+    if (!query) {
+      return;
+    }
+    // The shared helpers only read the modifier flags, which mouse and keyboard events share
+    const modifierEvent = event as React.KeyboardEvent;
+    if (hasModifierKey(modifierEvent)) {
+      event.stopPropagation();
+      selectRecentQuery(query);
       handleExecute(query.soql, query.isTooling);
       trackEvent(ANALYTICS_KEYS.quick_query_Execute, { method: 'keyboard', location: 'recent_query' });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } else if (hasShiftModifierKey(event as any)) {
+    } else if (hasShiftModifierKey(modifierEvent)) {
+      event.stopPropagation();
+      selectRecentQuery(query);
       handleRestore(query.soql, query.isTooling);
       trackEvent(ANALYTICS_KEYS.quick_query_Restore, { method: 'keyboard', location: 'recent_query' });
+    }
+  }
+
+  // ArrowDown from the last control above the list lands on the active (else first) recent query
+  function handleViewAllHistoryKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (isArrowDownKey(event)) {
+      event.preventDefault();
+      focusListEntryRow(recentQueriesListRef.current);
     }
   }
 
@@ -221,15 +261,21 @@ export const QuickQueryPopover = () => {
                     <Grid verticalAlign="center">
                       <h2 className="slds-text-heading_small slds-grow">Recent Queries</h2>
                       <Tooltip
+                        // The shortcuts are only documented here, so keyboard users need to be able to reach it
+                        triggerTabIndex={0}
                         content={
                           <>
                             <p>Keyboard shortcuts:</p>
-                            <Grid className="slds-m-vertical_small">
+                            <Grid className="slds-m-vertical_small" verticalAlign="center">
                               <KeyboardShortcut inverse keys={[getModifierKey(), 'click']} />
+                              <span className="slds-m-right_x-small">or</span>
+                              <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
                               to execute
                             </Grid>
-                            <Grid>
+                            <Grid verticalAlign="center">
                               <KeyboardShortcut inverse keys={['shift', 'click']} />
+                              <span className="slds-m-right_x-small">or</span>
+                              <KeyboardShortcut inverse keys={['shift', 'enter']} />
                               to restore
                             </Grid>
                           </>
@@ -246,39 +292,55 @@ export const QuickQueryPopover = () => {
                     <button
                       className="slds-button slds-button_reset slds-text-link"
                       onClick={handleOpenQueryHistory}
+                      onKeyDown={handleViewAllHistoryKeyDown}
                       title="View all query history"
                     >
                       View All History
                     </button>
                   </Grid>
-                  <ul className="slds-has-dividers_top-space" style={{ maxHeight: '450px', overflowY: 'auto' }}>
-                    {queryHistory.map((query) => (
-                      <li
-                        key={query.key}
-                        className="slds-item slds-text-link cursor-pointer slds-p-around_small"
-                        onClick={(event) => handleSelectRecentQuery(event, query)}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <div
-                          className="slds-text-body_small"
-                          style={{
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 4,
-                            WebkitBoxOrient: 'vertical',
-                            lineHeight: '1.25rem',
-                          }}
-                          title={query.soql}
-                        >
-                          {query.soql}
-                        </div>
-                        <div className="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
-                          {query.label || query.sObject} {query.isTooling && '(Metadata Query)'}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                  <div
+                    style={{ maxHeight: '450px', overflowY: 'auto' }}
+                    onClickCapture={handleRecentQueryModifierAction}
+                    onKeyDownCapture={(event) => {
+                      if (isEnterKey(event)) {
+                        handleRecentQueryModifierAction(event);
+                      }
+                    }}
+                  >
+                    <List
+                      ref={recentQueriesListRef}
+                      ariaLabel="Recent queries"
+                      className="cursor-pointer"
+                      items={queryHistory}
+                      isActive={(query: QueryHistoryItem) => query.soql === soql}
+                      getContent={(query: QueryHistoryItem) => ({
+                        key: query.key,
+                        heading: (
+                          <div
+                            className="slds-text-body_small"
+                            style={{
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 4,
+                              WebkitBoxOrient: 'vertical',
+                              lineHeight: '1.25rem',
+                            }}
+                            title={query.soql}
+                          >
+                            {query.soql}
+                          </div>
+                        ),
+                        subheading: `${query.label || query.sObject}${query.isTooling ? ' (Metadata Query)' : ''}`,
+                      })}
+                      onSelected={(key) => {
+                        const query = queryHistory.find((item) => item.key === key);
+                        if (query) {
+                          selectRecentQuery(query);
+                        }
+                      }}
+                    />
+                  </div>
                 </Fragment>
               )}
             </div>
@@ -323,6 +385,9 @@ export const QuickQueryPopover = () => {
                     scrollBeyondLastLine: false,
                     wordWrap: 'on',
                     wrappingIndent: 'indent',
+                    // Tab leaves the editor instead of inserting one: nobody indents SOQL in this compact
+                    // popover, and without it keyboard users had no way out of Monaco
+                    tabFocusMode: true,
                   }}
                   onMount={handleEditorMount}
                   onChange={(value) => setSoql(value || '')}
@@ -368,7 +433,9 @@ export const QuickQueryPopover = () => {
         buttonProps={{
           className:
             'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
-          title: 'Query Search - ctrl/command + e',
+          // The shortcut is conveyed by aria-keyshortcuts below; repeating it in the name doubled the announcement
+          title: 'Query Search',
+          'aria-keyshortcuts': getAriaKeyshortcuts([getModifierKey(), 'e']),
           disabled: !selectedOrg || !!selectedOrg.connectionError,
           onClick: () => {
             trackEvent(ANALYTICS_KEYS.quick_query_Open, { method: 'keyboard' });

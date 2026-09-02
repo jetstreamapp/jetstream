@@ -90,6 +90,7 @@ export const QueryResultsGetRecAsApexGenerateOptions: FunctionComponent<QueryRes
             `}
           >
             <select
+              id="rec-to-apex-tabSize"
               className="slds-select"
               value={options.tabSize}
               onChange={(event) => setOptions({ ...options, tabSize: Number(event.target.value) })}

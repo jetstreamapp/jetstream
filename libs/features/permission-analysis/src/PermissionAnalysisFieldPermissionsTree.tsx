@@ -48,6 +48,7 @@ import {
   getExportColumnHeaderLabel,
   listFindingsForFieldPermissionCell,
   sortFieldPermissionExportRowsForAnalysisTree,
+  withFindingDetailsCell,
   type PermissionAnalysisFinding,
   type PermissionExportRow,
   type SobjectExportDetail,
@@ -797,37 +798,39 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
       }
       const fieldType = getRowTypeFromValue(row0[key], false);
       const headerLabel = getExportColumnHeaderLabel(key);
-      permissionCols.push({
-        ...setColumnFromType<FieldPermissionTreeRow>(key, fieldType),
-        name: headerLabel,
-        key,
-        field: key,
-        resizable: true,
-        width: TREE_COL_PERMISSION_BOOL,
-        minWidth: TREE_MIN_PERMISSION_BOOL,
-        cellClass: (row: FieldPermissionTreeRow) => {
-          if (!isFieldPermissionLeafRow(row)) {
-            return undefined;
-          }
-          if (key !== 'PermissionsRead' && key !== 'PermissionsEdit') {
-            return undefined;
-          }
-          const parentId = typeof row.ParentId === 'string' ? row.ParentId.trim() : '';
-          const sobjectType = typeof row.SobjectType === 'string' ? row.SobjectType.trim() : '';
-          const fieldFull = typeof row.Field === 'string' ? row.Field.trim() : '';
-          if (!parentId || !sobjectType || !fieldFull) {
-            return undefined;
-          }
-          const severity = fieldPermissionCellSeverity(findingCellHighlightsRef.current, parentId, sobjectType, fieldFull, key);
-          if (severity === 'error') {
-            return 'permission-finding-cell--error permission-finding-cell--clickable';
-          }
-          if (severity === 'warning') {
-            return 'permission-finding-severity-cell--warning permission-finding-cell--clickable';
-          }
+      const baseColumn = setColumnFromType<FieldPermissionTreeRow>(key, fieldType);
+      // Reads through findingCellHighlightsRef (resolved per render inside the finding cell wrapper)
+      // so the columns memo stays stable
+      const severityForRow = (row: FieldPermissionTreeRow) => {
+        if (!isFieldPermissionLeafRow(row)) {
           return undefined;
-        },
-      } as ColumnWithFilter<FieldPermissionTreeRow>);
+        }
+        if (key !== 'PermissionsRead' && key !== 'PermissionsEdit') {
+          return undefined;
+        }
+        const parentId = typeof row.ParentId === 'string' ? row.ParentId.trim() : '';
+        const sobjectType = typeof row.SobjectType === 'string' ? row.SobjectType.trim() : '';
+        const fieldFull = typeof row.Field === 'string' ? row.Field.trim() : '';
+        if (!parentId || !sobjectType || !fieldFull) {
+          return undefined;
+        }
+        return fieldPermissionCellSeverity(findingCellHighlightsRef.current, parentId, sobjectType, fieldFull, key);
+      };
+      permissionCols.push(
+        withFindingDetailsCell(
+          {
+            ...baseColumn,
+            name: headerLabel,
+            key,
+            field: key,
+            resizable: true,
+            width: TREE_COL_PERMISSION_BOOL,
+            minWidth: TREE_MIN_PERMISSION_BOOL,
+          } as ColumnWithFilter<FieldPermissionTreeRow>,
+          severityForRow,
+          { columnLabel: headerLabel },
+        ),
+      );
     }
 
     return [groupPermSetCol, groupObjectCol, fieldCol, ...permissionCols];

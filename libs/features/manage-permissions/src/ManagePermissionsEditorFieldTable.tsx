@@ -8,7 +8,7 @@ import {
   PermissionTableSummaryRow,
 } from '@jetstream/types';
 import type { RowHeightArgs } from '@jetstream/ui';
-import { AutoFullHeightContainer, ColumnWithFilter, DataTableRef, DataTree } from '@jetstream/ui';
+import { AutoFullHeightContainer, ColumnWithFilter, DataTableRef, DataTree, useAnnouncer } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import {
@@ -51,6 +51,8 @@ export interface ManagePermissionsEditorFieldTableProps {
 export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissionsEditorFieldTableProps>(
   ({ columns, rows, totalCount, filterText, hasErrors, errorsOnly, onFilter, onToggleErrorsOnly, onDirtyRows, onBulkUpdate }, ref) => {
     const tableRef = useRef<DataTableRef<PermissionTableFieldCell>>(null);
+    // One table-level live region announces summary-cell column actions for every column
+    const { announce, announcer } = useAnnouncer();
     const [dirtyRows, setDirtyRows] = useState<Record<string, DirtyRow<PermissionTableFieldCell>>>({});
     const [expandedGroupIds, setExpandedGroupIds] = useState(() => new Set<any>(rows.map((row) => row.sobject)));
 
@@ -91,6 +93,7 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
 
     return (
       <div>
+        {announcer}
         <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={15}>
           <DataTree
             ref={tableRef}
@@ -111,6 +114,7 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
                 onToggleErrorsOnly,
                 onColumnAction: handleColumnAction,
                 onBulkAction: onBulkUpdate,
+                announce,
               } as PermissionManagerTableContext
             }
             rowHeight={getRowHeight}

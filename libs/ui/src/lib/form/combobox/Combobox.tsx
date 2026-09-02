@@ -9,6 +9,7 @@ import {
   isEnterKey,
   isEnterOrSpace,
   isEscapeKey,
+  isTabKey,
 } from '@jetstream/shared/ui-utils';
 import { NOOP } from '@jetstream/shared/utils';
 import { DropDownItemLength } from '@jetstream/types';
@@ -26,6 +27,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useEscapeToCloseLayer } from '../../hooks/useEscapeToCloseLayer';
 import PopoverContainer from '../../popover/PopoverContainer';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
@@ -35,6 +37,7 @@ import { ComboboxListItem } from './ComboboxListItem';
 
 export interface ComboboxPropsRef {
   clearInputText(): void;
+  focusInput(): void;
   getRefs(): {
     inputEl: React.RefObject<HTMLInputElement | null>;
     divContainerEl: React.RefObject<HTMLDivElement | null>;
@@ -96,6 +99,11 @@ export interface ComboboxProps {
    * This requires `onClear()` to be set, otherwise value cannot be cleared.
    */
   showSelectionAsButton?: boolean;
+  /**
+   * Render a clear (X) button in place of the chevron while an item is selected, WITHOUT the
+   * selection-as-button behavior above (the input stays clickable/typeable). Requires `onClear()`.
+   */
+  showClearButton?: boolean;
   /**
    * If using virtual list, this ensures child detection for keyboard navigation is correct.
    */
@@ -166,6 +174,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       errorMessageId,
       errorMessage,
       showSelectionAsButton,
+      showClearButton,
       isVirtual,
       usePortal,
       dropdownWidth,
@@ -254,6 +263,18 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     }, [selectedItemLabel]);
 
     /**
+     * Enter while the list is open selects (handled on keyup below) — mark the keydown as handled so a
+     * wrapping form does not submit and page-level Cmd/Ctrl+Enter shortcuts (which honour
+     * defaultPrevented) do not also fire on the same press
+     */
+    function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+      if (isOpen && isEnterKey(event)) {
+        event.preventDefault();
+      }
+      inputProps?.onKeyDown?.(event);
+    }
+
+    /**
      * When on input, move focus down the first list item
      */
     function handleInputKeyUp(event: KeyboardEvent<HTMLInputElement>) {
@@ -261,9 +282,9 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         return;
       }
       if (isEscapeKey(event)) {
-        // Escape is handled on keydown (see handleInputKeyDown) so it can preempt an ancestor's
-        // keydown listener (e.g. a Panel with closeOnEscape). Ignore it here so it does not fall
-        // through to the onInputChange/onFilterInputChange branch below.
+        // While open, Escape is fully consumed by useEscapeToCloseLayer (keydown AND keyup); this
+        // guard covers the CLOSED state, where the keyup must not fall through to the
+        // onInputChange/onFilterInputChange branch below.
         return;
       }
       if (isArrowUpKey(event)) {
@@ -285,22 +306,13 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       }
     }
 
-    /**
-     * Handle Escape on keydown so an open dropdown closes before any ancestor keydown listener
-     * (e.g. a Panel with closeOnEscape) reacts. When the dropdown is already closed, Escape is left
-     * to bubble so the ancestor can handle it.
-     */
-    function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-      if (disabled || preventOpen) {
-        return;
-      }
-      if (isEscapeKey(event) && isOpen) {
-        event.stopPropagation();
-        event.preventDefault();
-        setIsOpen(false);
-        onClose && onClose();
-      }
-    }
+    // Escape closes ONLY this menu (and returns focus to the input) — consumed at document capture
+    // so an ancestor modal/popover cannot also close on the same press
+    useEscapeToCloseLayer(isOpen, () => {
+      setIsOpen(false);
+      onClose && onClose();
+      inputEl.current?.focus();
+    });
 
     /**
      * Handle keyboard interaction when list items have focus
@@ -308,18 +320,28 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
      */
     function handleListKeyDown(event: KeyboardEvent<HTMLDivElement>) {
       try {
-        if (isOpen && isEscapeKey(event)) {
-          event.preventDefault();
-          event.stopPropagation();
-          setIsOpen(false);
-          onClose && onClose();
-          inputEl.current?.focus();
-          return;
-        }
+        // Escape is deliberately absent: the list only has focus while open, and
+        // useEscapeToCloseLayer consumes Escape at document capture for that state
         if (isEnterOrSpace(event)) {
           event.preventDefault();
           event.stopPropagation();
           onKeyboardNavigation('enter');
+          return;
+        }
+        // Tab leaves the combobox: hand focus back to the input WITHOUT preventDefault so the browser's
+        // sequential navigation continues from the input (with usePortal the option list lives at the
+        // end of the portal root, so the default Tab would jump to the end of the page) and close
+        if (isTabKey(event)) {
+          inputEl.current?.focus();
+          setIsOpen(false);
+          onClose && onClose();
+          return;
+        }
+        // Typing while an option has focus returns focus to the input so the keystroke lands there and
+        // filters the list (focus moves during keydown, so the browser inserts the character into the
+        // input) — the APG "focus moves to the option" pattern still expects typing to filter
+        if (!event.metaKey && !event.ctrlKey && !event.altKey && (isAlphaNumericKey(event) || event.key === 'Backspace')) {
+          inputEl.current?.focus();
           return;
         }
         if (isArrowUpKey(event)) {
@@ -341,7 +363,9 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     }
 
     const handleBlur = (event: FocusEvent) => {
-      if (entireContainerEl.current?.contains(event.relatedTarget as Node)) {
+      // With usePortal the option list (which receives real focus during arrow navigation) is NOT
+      // inside the container — without the popover check, the first arrow press closed the menu
+      if (entireContainerEl.current?.contains(event.relatedTarget as Node) || popoverRef.current?.contains(event.relatedTarget as Node)) {
         return;
       }
       setIsOpen(false);
@@ -366,7 +390,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     };
 
     const iconNotLoading =
-      showSelectionAsButton && onClear && selectedItemLabel ? (
+      (showSelectionAsButton || showClearButton) && onClear && selectedItemLabel ? (
         <div className="slds-input__icon-group slds-input__icon-group_right">
           <button
             className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
@@ -387,7 +411,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
 
     return (
       <div data-testid={`dropdown-${label || id}`} className={classNames('slds-form-element', { 'slds-has-error': hasError }, className)}>
-        <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
+        <label id={`${id}-label`} className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
           {isRequired && (
             <abbr className="slds-required" title="required">
               *{' '}
@@ -409,12 +433,14 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                 })}
                 ref={entireContainerEl}
               >
+                {/* ARIA 1.2: the combobox role and expanded state live on the focused input below, not
+                    this wrapper — screen readers only announce expand/collapse for the focused element */}
                 <div
                   className={classNames('slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen })}
-                  aria-expanded={isOpen}
-                  aria-haspopup="listbox"
-                  aria-controls={listId}
-                  role="combobox"
+                  // Only catches clicks bubbling from the input/icon area so the whole control opens the
+                  // list; the keyboard path is the input itself (role="presentation" per the jsx-a11y guidance
+                  // for bubbled-event catchers)
+                  role="presentation"
                   onClick={handleInputClick}
                 >
                   <div
@@ -426,24 +452,33 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                   >
                     <input
                       ref={inputEl}
+                      role="combobox"
+                      aria-expanded={isOpen}
+                      aria-haspopup="listbox"
                       aria-autocomplete="list"
+                      aria-invalid={hasError || undefined}
                       type="text"
                       className={classNames('slds-input slds-combobox__input', { 'slds-text-color_error': hasError })}
                       id={id}
                       css={inputCss}
-                      aria-controls={listId}
-                      aria-describedby={errorMessageId}
+                      // The listbox popover only mounts while open; a closed combobox must not reference a non-existent id
+                      aria-controls={isOpen ? listId : undefined}
+                      aria-describedby={
+                        [labelHelp && !hideLabel ? `${id}-label-help-text` : undefined, errorMessageId].filter(Boolean).join(' ') ||
+                        undefined
+                      }
                       autoComplete="off"
                       placeholder={placeholder}
                       disabled={disabled}
                       readOnly={preventOpen}
-                      onKeyDown={handleInputKeyDown}
                       onKeyUp={handleInputKeyUp}
                       onChange={(event) => setValue(event.target.value)}
                       value={value}
                       title={selectedItemTitle || value}
                       onBlur={handleBlur}
                       {...inputProps}
+                      // After the spread so a caller's inputProps.onKeyDown is chained, not replaced
+                      onKeyDown={handleInputKeyDown}
                     />
                     {loading ? iconLoading : iconNotLoading}
                   </div>
@@ -458,6 +493,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                     maxWidth={dropdownWidth?.maxWidth}
                     id={listId}
                     role="listbox"
+                    aria-labelledby={`${id}-label`}
                     isEager={isVirtual}
                     onKeyDown={handleListKeyDown}
                     /**

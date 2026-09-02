@@ -36,7 +36,6 @@ const BatchSize = ({ type = 'BULK', onBatchSizeChange }: { type?: 'BATCH' | 'BUL
         className="slds-input"
         placeholder="Set batch size"
         value={String(batchSize)}
-        aria-describedby={'batch-size-error'}
         onChange={(ev) => {
           setBatchSize(parseInt(ev.target.value.replaceAll(REGEX.NOT_NUMERIC, '') || '0', 10));
         }}

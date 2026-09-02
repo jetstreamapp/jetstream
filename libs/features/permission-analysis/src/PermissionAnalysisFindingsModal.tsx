@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
-import { ColumnWithFilter, Grid, Modal } from '@jetstream/ui';
-import { GridDownloadButton } from '@jetstream/ui-core';
-import { FunctionComponent, ReactNode } from 'react';
+import { ColumnWithFilter, Grid, Icon, Modal } from '@jetstream/ui';
+import { GridDownloadModal } from '@jetstream/ui-core';
+import { FunctionComponent, ReactNode, useState } from 'react';
 import { getFindingCodeDisplayParts, getFindingLabelForCode, type PermissionAnalysisFinding } from './permission-export-result-view';
 
 function severityLabelForFinding(finding: PermissionAnalysisFinding): string {
@@ -42,7 +42,7 @@ function trimmedFindingField(finding: PermissionAnalysisFinding, key: keyof Perm
   return typeof value === 'string' ? value.trim() : '';
 }
 
-/** Flat column set for {@link GridDownloadButton}; `getValue` mirrors what the modal shows per finding. */
+/** Flat column set for {@link GridDownloadModal}; `getValue` mirrors what the modal shows per finding. */
 const FINDINGS_DOWNLOAD_COLUMNS: ColumnWithFilter<PermissionAnalysisFinding>[] = [
   { key: 'severity', name: 'Severity', getValue: ({ row }) => severityLabelForFinding(row) },
   {
@@ -109,168 +109,186 @@ export const PermissionAnalysisFindingsModal: FunctionComponent<PermissionAnalys
   findings,
   onClose,
 }) => {
+  // Modal `hide` UNMOUNTS its content, so the download modal's state and rendering must live HERE
+  // (the component that stays mounted) — not inside the footer, where hiding would destroy it
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   if (!open) {
     return null;
   }
 
   return (
-    <Modal
-      testId={testId}
-      header={title}
-      tagline={tagline}
-      closeOnBackdropClick
-      footer={
-        <Grid align="spread" verticalAlign="center">
-          <GridDownloadButton
-            columns={FINDINGS_DOWNLOAD_COLUMNS}
-            rows={findings}
-            fileNameParts={['permission-analysis-issues']}
-            modalHeader="Download Issues"
-          />
-          <button type="button" className="slds-button slds-button_neutral" onClick={onClose}>
-            Close
-          </button>
-        </Grid>
-      }
-      onClose={onClose}
-      className="slds-p-around_small"
-    >
-      <div
-        css={css`
-          margin-left: auto;
-          margin-right: auto;
-          text-align: left;
-        `}
+    <>
+      <Modal
+        testId={testId}
+        header={title}
+        tagline={tagline}
+        hide={isDownloadModalOpen}
+        closeOnBackdropClick
+        footer={
+          <Grid align="spread" verticalAlign="center">
+            <button
+              type="button"
+              className="slds-button slds-button_neutral"
+              disabled={findings.length === 0}
+              onClick={() => setIsDownloadModalOpen(true)}
+            >
+              <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Download
+            </button>
+            <button type="button" className="slds-button slds-button_neutral" onClick={onClose}>
+              Close
+            </button>
+          </Grid>
+        }
+        onClose={onClose}
+        className="slds-p-around_small"
       >
-        <div className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">{summaryLine}</div>
         <div
-          className="slds-m-bottom_none"
           css={css`
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0.65rem;
-            font-family: var(--lwc-fontFamily, 'Salesforce Sans', Arial, sans-serif);
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
           `}
         >
-          {findings.map((finding, index) => {
-            const code = typeof finding.code === 'string' ? finding.code.trim() : '';
-            const codeParts = getFindingCodeDisplayParts(code || undefined);
-            const summaryTitle = codeParts.title.trim();
-            const detailText = findingDetailText(finding, summaryTitle);
-            const { accent, tint } = findingBlockChrome(finding);
-            return (
-              <div key={`${code || 'issue'}-${index}`}>
-                <div
-                  css={css`
-                    border-left: 3px solid ${accent};
-                    background-color: ${tint};
-                    border-radius: 0.1875rem;
-                    padding: 0.65rem 0.75rem 0.65rem 0.8rem;
-                    line-height: 1.5;
-                  `}
-                >
+          <div className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">{summaryLine}</div>
+          <div
+            className="slds-m-bottom_none"
+            css={css`
+              margin: 0;
+              padding: 0;
+              display: flex;
+              flex-direction: column;
+              align-items: stretch;
+              gap: 0.65rem;
+              font-family: var(--lwc-fontFamily, 'Salesforce Sans', Arial, sans-serif);
+            `}
+          >
+            {findings.map((finding, index) => {
+              const code = typeof finding.code === 'string' ? finding.code.trim() : '';
+              const codeParts = getFindingCodeDisplayParts(code || undefined);
+              const summaryTitle = codeParts.title.trim();
+              const detailText = findingDetailText(finding, summaryTitle);
+              const { accent, tint } = findingBlockChrome(finding);
+              return (
+                <div key={`${code || 'issue'}-${index}`}>
                   <div
-                    className="slds-text-body_small"
                     css={css`
+                      border-left: 3px solid ${accent};
+                      background-color: ${tint};
+                      border-radius: 0.1875rem;
+                      padding: 0.65rem 0.75rem 0.65rem 0.8rem;
                       line-height: 1.5;
                     `}
                   >
-                    {code ? (
-                      <>
-                        <span className="slds-text-color_weak">{severityLabelForFinding(finding)}</span>
-                        <strong>
-                          <span aria-hidden="true"> · </span>
-                        </strong>
-                        {codeParts.technicalCode ? (
-                          <>
-                            <strong>{summaryTitle}</strong>{' '}
+                    <div
+                      className="slds-text-body_small"
+                      css={css`
+                        line-height: 1.5;
+                      `}
+                    >
+                      {code ? (
+                        <>
+                          <span className="slds-text-color_weak">{severityLabelForFinding(finding)}</span>
+                          <strong>
+                            <span aria-hidden="true"> · </span>
+                          </strong>
+                          {codeParts.technicalCode ? (
+                            <>
+                              <strong>{summaryTitle}</strong>{' '}
+                              <code
+                                css={css`
+                                  font-size: 0.8125rem;
+                                  padding: 0.1rem 0.3rem;
+                                  border-radius: 0.125rem;
+                                  background: var(--slds-g-color-neutral-base-95, #f3f3f3);
+                                `}
+                              >
+                                {codeParts.technicalCode}
+                              </code>
+                            </>
+                          ) : (
                             <code
                               css={css`
                                 font-size: 0.8125rem;
+                                font-weight: 600;
                                 padding: 0.1rem 0.3rem;
                                 border-radius: 0.125rem;
                                 background: var(--slds-g-color-neutral-base-95, #f3f3f3);
                               `}
                             >
-                              {codeParts.technicalCode}
+                              {summaryTitle}
                             </code>
-                          </>
-                        ) : (
-                          <code
-                            css={css`
-                              font-size: 0.8125rem;
-                              font-weight: 600;
-                              padding: 0.1rem 0.3rem;
-                              border-radius: 0.125rem;
-                              background: var(--slds-g-color-neutral-base-95, #f3f3f3);
-                            `}
-                          >
-                            {summaryTitle}
-                          </code>
-                        )}
-                      </>
-                    ) : (
-                      <span className="slds-text-color_weak">{severityLabelForFinding(finding)}</span>
-                    )}
+                          )}
+                        </>
+                      ) : (
+                        <span className="slds-text-color_weak">{severityLabelForFinding(finding)}</span>
+                      )}
+                    </div>
+                    {detailText ? (
+                      <p
+                        className="slds-text-body_regular slds-text-color_weak"
+                        css={css`
+                          margin: 0.5rem 0 0;
+                          padding-left: 0.65rem;
+                          line-height: 1.55;
+                          font-weight: 400;
+                        `}
+                      >
+                        {detailText}
+                      </p>
+                    ) : null}
+                    {typeof finding.objectApiName === 'string' && finding.objectApiName.trim().length > 0 ? (
+                      <p
+                        className="slds-text-body_small slds-text-color_weak"
+                        css={css`
+                          margin: 0.4rem 0 0;
+                          padding-left: 0.65rem;
+                          line-height: 1.45;
+                        `}
+                      >
+                        Object: <code>{finding.objectApiName.trim()}</code>
+                      </p>
+                    ) : null}
+                    {typeof finding.fieldApiName === 'string' && finding.fieldApiName.trim().length > 0 ? (
+                      <p
+                        className="slds-text-body_small slds-text-color_weak"
+                        css={css`
+                          margin: 0.4rem 0 0;
+                          padding-left: 0.65rem;
+                          line-height: 1.45;
+                        `}
+                      >
+                        Field: <code>{finding.fieldApiName.trim()}</code>
+                      </p>
+                    ) : null}
+                    {typeof finding.permissionSetId === 'string' && finding.permissionSetId.trim().length > 0 ? (
+                      <p
+                        className="slds-text-body_small slds-text-color_weak"
+                        css={css`
+                          margin: 0.4rem 0 0;
+                          padding-left: 0.65rem;
+                          line-height: 1.45;
+                        `}
+                      >
+                        Permission set Id: <code>{finding.permissionSetId.trim()}</code>
+                      </p>
+                    ) : null}
                   </div>
-                  {detailText ? (
-                    <p
-                      className="slds-text-body_regular slds-text-color_weak"
-                      css={css`
-                        margin: 0.5rem 0 0;
-                        padding-left: 0.65rem;
-                        line-height: 1.55;
-                        font-weight: 400;
-                      `}
-                    >
-                      {detailText}
-                    </p>
-                  ) : null}
-                  {typeof finding.objectApiName === 'string' && finding.objectApiName.trim().length > 0 ? (
-                    <p
-                      className="slds-text-body_small slds-text-color_weak"
-                      css={css`
-                        margin: 0.4rem 0 0;
-                        padding-left: 0.65rem;
-                        line-height: 1.45;
-                      `}
-                    >
-                      Object: <code>{finding.objectApiName.trim()}</code>
-                    </p>
-                  ) : null}
-                  {typeof finding.fieldApiName === 'string' && finding.fieldApiName.trim().length > 0 ? (
-                    <p
-                      className="slds-text-body_small slds-text-color_weak"
-                      css={css`
-                        margin: 0.4rem 0 0;
-                        padding-left: 0.65rem;
-                        line-height: 1.45;
-                      `}
-                    >
-                      Field: <code>{finding.fieldApiName.trim()}</code>
-                    </p>
-                  ) : null}
-                  {typeof finding.permissionSetId === 'string' && finding.permissionSetId.trim().length > 0 ? (
-                    <p
-                      className="slds-text-body_small slds-text-color_weak"
-                      css={css`
-                        margin: 0.4rem 0 0;
-                        padding-left: 0.65rem;
-                        line-height: 1.45;
-                      `}
-                    >
-                      Permission set Id: <code>{finding.permissionSetId.trim()}</code>
-                    </p>
-                  ) : null}
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
-    </Modal>
+      </Modal>
+      {isDownloadModalOpen && (
+        <GridDownloadModal
+          columns={FINDINGS_DOWNLOAD_COLUMNS}
+          rows={findings}
+          fileNameParts={['permission-analysis-issues']}
+          modalHeader="Download Issues"
+          onClose={() => setIsDownloadModalOpen(false)}
+        />
+      )}
+    </>
   );
 };

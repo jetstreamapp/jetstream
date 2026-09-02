@@ -55,6 +55,7 @@ export function GridSummaryRow<TRow extends object, TSummaryRow>({
           <div
             key={column.id}
             role="gridcell"
+            aria-colindex={columnIndex + 1}
             data-row-id={rowId}
             data-col-id={column.id}
             tabIndex={isActive ? 0 : -1}

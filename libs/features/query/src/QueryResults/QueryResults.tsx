@@ -54,6 +54,7 @@ import {
   ToolbarItemGroup,
   Tooltip,
   buildResultsExport,
+  getAriaKeyshortcuts,
   getModifierKey,
   useConfirmation,
 } from '@jetstream/ui';
@@ -125,6 +126,7 @@ export const QueryResults = React.memo(() => {
     sobject?: { name: string; label: string };
   }>();
   const [soqlPanelOpen, setSoqlPanelOpen] = useState<boolean>(false);
+  const soqlPanelButtonRef = useRef<HTMLButtonElement>(null);
   const [soql, setSoql] = useState<string>('');
   const [sobject, setSobject] = useState<Maybe<string>>(null);
   const [parsedQuery, setParsedQuery] = useState<Maybe<Query>>(null);
@@ -726,6 +728,7 @@ export const QueryResults = React.memo(() => {
               className="slds-button slds-button_brand slds-m-right_x-small"
               to={{ pathname: APP_ROUTES.QUERY.ROUTE, search: APP_ROUTES.QUERY.SEARCH_PARAM }}
               state={{ soql }}
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'shift', 'enter'])}
             >
               <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
               Back
@@ -733,6 +736,7 @@ export const QueryResults = React.memo(() => {
           </Tooltip>
           <ButtonGroupContainer>
             <button
+              ref={soqlPanelButtonRef}
               className={classNames('slds-button collapsible-button collapsible-button-md slds-button_first', {
                 'slds-button_neutral': !soqlPanelOpen,
                 'slds-button_brand': soqlPanelOpen,
@@ -743,15 +747,25 @@ export const QueryResults = React.memo(() => {
               <Icon type="utility" icon="component_customization" className="slds-button__icon slds-button__icon_left" omitContainer />
               <span>SOQL Query</span>
             </button>
-            <button
-              className="slds-button slds-button_neutral collapsible-button collapsible-button-md"
-              onClick={() => executeQuery(soql, SOURCE_RELOAD, { isTooling })}
-              disabled={!!(loading || errorMessage)}
-              title="Re-run the current query"
+            <Tooltip
+              openDelay={500}
+              content={
+                <div className="slds-p-bottom_small">
+                  <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                </div>
+              }
             >
-              <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-              <span>Reload</span>
-            </button>
+              <button
+                className="slds-button slds-button_neutral collapsible-button collapsible-button-md"
+                onClick={() => executeQuery(soql, SOURCE_RELOAD, { isTooling })}
+                disabled={!!(loading || errorMessage)}
+                aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                title="Re-run the current query"
+              >
+                <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+                <span>Reload</span>
+              </button>
+            </Tooltip>
             <QueryHistory ref={queryHistoryRef} embedded selectedOrg={selectedOrg} onRestore={handleRestoreFromHistory} />
           </ButtonGroupContainer>
         </ToolbarItemGroup>
@@ -806,6 +820,7 @@ export const QueryResults = React.memo(() => {
           isOpen={soqlPanelOpen}
           selectedOrg={selectedOrg}
           sObject={allowContentDownload.sobjectName || ''}
+          returnFocusTo={soqlPanelButtonRef}
           onClosed={() => setSoqlPanelOpen(false)}
           executeQuery={(soql, tooling) => executeQuery(soql, SOURCE_MANUAL, { isTooling: tooling })}
           onOpenHistory={handleOpenHistory}

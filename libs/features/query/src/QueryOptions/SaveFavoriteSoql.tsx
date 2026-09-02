@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { Maybe, QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, Icon, Input, Popover, PopoverRef, Spinner, Textarea } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Grid, Icon, Input, Popover, PopoverRef, Spinner, Textarea } from '@jetstream/ui';
 import { fromQueryHistoryState, MonacoEditor, useAmplitude } from '@jetstream/ui-core';
 import { queryHistoryDb } from '@jetstream/ui/db';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -72,7 +72,8 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
   }
 
   async function handleSave() {
-    if (!queryHistoryItem || !sObject || !sObjectLabel) {
+    // Guard for aria-disabled (not browser-enforced) and the form-submit path
+    if (!isDirty || !queryHistoryItem || !sObject || !sObjectLabel) {
       return;
     }
     const newQueryHistoryItem: QueryHistoryItem = { ...queryHistoryItem, customLabel: name.trim(), isFavorite: true };
@@ -190,12 +191,13 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
               <button className="slds-button slds-button_neutral" onClick={() => handleRemove()} disabled={isDirty}>
                 Remove
               </button>
+              {/* The form's onSubmit owns the save (a click here submits the form) — the guarded click
+                  only blocks the submit while disabled, otherwise the save would fire twice per click */}
               <button
                 form="save-favorite-form"
                 className="slds-button slds-button_brand"
-                disabled={!isDirty}
-                onClick={() => handleSave()}
                 type="submit"
+                {...ariaDisabledButtonProps(!isDirty, () => {})}
               >
                 {isDirty ? (
                   'Save'

@@ -2,6 +2,9 @@ import { css } from '@emotion/react';
 import { Grid, Icon, Textarea } from '@jetstream/ui';
 import { FunctionComponent, useState } from 'react';
 
+const DELETE_ACCOUNT_BUTTON_ID = 'settings-delete-account-button';
+const CONFIRMATION_TEXTAREA_ID = 'delete-confirmation';
+
 export interface SettingsDeleteAccountProps {
   onDeleteAccount: (reason?: string) => void;
 }
@@ -10,13 +13,17 @@ export const SettingsDeleteAccount: FunctionComponent<SettingsDeleteAccountProps
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [reason, setReason] = useState('');
 
+  // Each step unmounts the button that opened it, which would drop keyboard focus to <body> —
+  // move it into the confirmation, and back to Delete Account on cancel
   function handleInitialDelete() {
     setShowConfirmation(true);
+    window.setTimeout(() => document.getElementById(CONFIRMATION_TEXTAREA_ID)?.focus());
   }
 
   function handleCancel() {
     setShowConfirmation(false);
     setReason('');
+    window.setTimeout(() => document.getElementById(DELETE_ACCOUNT_BUTTON_ID)?.focus());
   }
 
   return (
@@ -36,12 +43,12 @@ export const SettingsDeleteAccount: FunctionComponent<SettingsDeleteAccountProps
           className="slds-icon slds-icon-text-error slds-m-right_small slds-icon_small"
           containerClassname="slds-icon_container slds-icon-utility-error"
         />
-        <div className="slds-text-heading_medium slds-text-color_destructive">Danger Zone</div>
+        <h2 className="slds-text-heading_medium slds-text-color_destructive">Danger Zone</h2>
       </Grid>
       <p className=" slds-m-bottom_small">Would you like to delete your account and all of your stored data?</p>
       <p className=" slds-m-bottom_small">Any active subscriptions will be cancelled at the end of your current billing period.</p>
       {!showConfirmation && (
-        <button className="slds-button slds-button_text-destructive" onClick={handleInitialDelete}>
+        <button id={DELETE_ACCOUNT_BUTTON_ID} className="slds-button slds-button_text-destructive" onClick={handleInitialDelete}>
           Delete Account
         </button>
       )}

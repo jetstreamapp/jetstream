@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { FloatingPortal, autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/react';
-import { HTMLAttributes, ReactNode, forwardRef, useEffect } from 'react';
+import { HTMLAttributes, ReactNode, forwardRef, useCallback, useEffect } from 'react';
 import { usePortalContext } from '../modal/PortalContext';
 
 export interface PopoverContainerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
@@ -37,22 +37,25 @@ export const PopoverContainer = forwardRef<HTMLElement, PopoverContainerProps>(
       },
     });
 
-    useEffect(() => {
-      if (!ref) {
-        return;
-      }
-      const floatingElement = refs.floating.current;
-      if (floatingElement && typeof ref === 'function') {
-        ref(floatingElement);
-      } else if (floatingElement && typeof ref !== 'function') {
-        ref.current = floatingElement;
-      }
-    }, [refs.floating, ref]);
-
     // Ensure positioning is updated when the popover is opened - mostly impacts isEager popovers
     useEffect(() => {
       isOpen && update && update();
     }, [update, isOpen]);
+
+    // Composed callback ref: the previous effect-based forwarding ran once at mount, before a
+    // non-eager popover had rendered its floating div, so the forwarded ref stayed null forever.
+    // Memoized so React does not detach/re-attach it (ref(null) then ref(node)) on every render.
+    const setFloatingRef = useCallback(
+      (node: HTMLDivElement | null) => {
+        refs.setFloating(node);
+        if (typeof ref === 'function') {
+          ref(node);
+        } else if (ref) {
+          ref.current = node;
+        }
+      },
+      [ref, refs.setFloating],
+    );
 
     if (!isEager && !isOpen) {
       return null;
@@ -64,7 +67,7 @@ export const PopoverContainer = forwardRef<HTMLElement, PopoverContainerProps>(
     const content = (
       <div
         {...rest}
-        ref={refs.setFloating}
+        ref={setFloatingRef}
         className={className}
         // Selectively picked from `slds-dropdown` - removed margin as that must be set via popover offset
         css={css`

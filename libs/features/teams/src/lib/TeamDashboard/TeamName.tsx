@@ -12,6 +12,27 @@ export function TeamName({ team, onSave }: { team: TeamUserFacing; onSave: (name
     setValue(team?.name || '');
     setInvalidName(false);
     setEditMode(false);
+    focusEditButton();
+  }
+
+  /**
+   * Save and Cancel unmount with edit mode, which would drop keyboard focus to <body> — return it to
+   * the Edit button that replaces them (polled briefly so it exists after the re-render)
+   */
+  function focusEditButton() {
+    let attemptsRemaining = 10;
+    const tryFocus = () => {
+      const editButton = document.querySelector<HTMLElement>('[data-testid="team-name-form"] button[title="Edit Team Name"]');
+      if (editButton) {
+        editButton.focus();
+        return;
+      }
+      attemptsRemaining--;
+      if (attemptsRemaining > 0) {
+        window.setTimeout(tryFocus, 50);
+      }
+    };
+    window.setTimeout(tryFocus);
   }
 
   function onChange(value: { name: string }) {
@@ -30,11 +51,13 @@ export function TeamName({ team, onSave }: { team: TeamUserFacing; onSave: (name
 
       setEditMode(false);
       onSave(updatedTeam);
+      focusEditButton();
     } catch {
       fireToast({ type: 'error', message: 'There was an error saving the team name. Please try again.' });
       setValue(team?.name || '');
       setInvalidName(false);
       setEditMode(false);
+      focusEditButton();
     }
   }
 

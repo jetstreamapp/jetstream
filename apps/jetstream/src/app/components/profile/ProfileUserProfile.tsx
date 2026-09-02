@@ -4,7 +4,7 @@ import type { LoginConfigurationUI, UserProfileUiWithIdentities } from '@jetstre
 import { Form, FormRow, FormRowItem, Input, ReadOnlyFormItem } from '@jetstream/ui';
 import { abilityState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { FunctionComponent, useMemo } from 'react';
+import { FunctionComponent, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
 import { ProfileUserEmail } from './ProfileUserEmail';
 import { ProfileUserPassword } from './ProfileUserPassword';
@@ -50,8 +50,28 @@ export const ProfileUserProfile: FunctionComponent<ProfileUserProfileProps> = ({
     [fullUserProfile.identities],
   );
 
+  // Save and Cancel unmount with edit mode, which would drop keyboard focus to <body> — return it to
+  // the Edit button that replaces them (polled briefly: the parent flips edit mode after its save resolves)
+  const containerRef = useRef<HTMLDivElement>(null);
+  function focusEditButton() {
+    let attemptsRemaining = 10;
+    const tryFocus = () => {
+      const editButton = containerRef.current?.querySelector<HTMLElement>('button[title="Edit Name"]');
+      if (editButton) {
+        editButton.focus();
+        return;
+      }
+      attemptsRemaining--;
+      if (attemptsRemaining > 0) {
+        window.setTimeout(tryFocus, 50);
+      }
+    };
+    window.setTimeout(tryFocus);
+  }
+
   return (
     <div
+      ref={containerRef}
       className="slds-m-top_small slds-m-bottom_large"
       css={css`
         max-width: 33rem;
@@ -116,10 +136,23 @@ export const ProfileUserProfile: FunctionComponent<ProfileUserProfileProps> = ({
         </FormRow>
         {editMode && (
           <FormRow className="slds-align_absolute-center slds-m-top_medium">
-            <button className="slds-button slds-button_brand" disabled={invalidName} onClick={onSave}>
+            <button
+              className="slds-button slds-button_brand"
+              disabled={invalidName}
+              onClick={() => {
+                onSave();
+                focusEditButton();
+              }}
+            >
               Save
             </button>
-            <button className="slds-button slds-button_neutral" onClick={onCancel}>
+            <button
+              className="slds-button slds-button_neutral"
+              onClick={() => {
+                onCancel();
+                focusEditButton();
+              }}
+            >
               Cancel
             </button>
           </FormRow>

@@ -188,14 +188,14 @@ test.describe('QUERY BUILDER', () => {
 
     // The nested subquery must be restored into the builder, not silently dropped
     await queryPage.selectSubqueryObject('Contacts');
-    await expect(queryPage.getSelectedField('Contact ID')).toHaveAttribute('aria-selected', 'true');
+    await expect(queryPage.getSelectedField('Contact ID')).toBeChecked();
 
     await queryPage.drillIntoRelatedObject('Contact');
     await queryPage.page.getByPlaceholder('Filter child objects').fill('Cases');
     await queryPage.page.getByTestId('Cases').click();
 
     for (const field of ['Case ID', 'Subject']) {
-      await expect(queryPage.getSelectedField(field)).toHaveAttribute('aria-selected', 'true');
+      await expect(queryPage.getSelectedField(field)).toBeChecked();
     }
   });
 
@@ -213,7 +213,7 @@ test.describe('QUERY BUILDER', () => {
     await queryPage.navigateToSubqueryFromNavigator('Cases', 'Case');
 
     for (const field of ['Case ID', 'Subject']) {
-      await expect(queryPage.getSelectedField(field)).toHaveAttribute('aria-selected', 'true');
+      await expect(queryPage.getSelectedField(field)).toBeChecked();
     }
   });
 
@@ -241,13 +241,13 @@ test.describe('QUERY BUILDER', () => {
     await expect(queryPage.sobjectList.getByTestId('Account')).toHaveAttribute('aria-selected', 'true');
 
     for (const field of ['Account ID', 'Account Name']) {
-      await expect(queryPage.getSelectedField(field)).toHaveAttribute('aria-selected', 'true');
+      await expect(queryPage.getSelectedField(field)).toBeChecked();
     }
 
     await queryPage.selectSubqueryObject('Contacts');
 
     for (const field of ['Contact ID', 'Full Name', 'Account ID', 'Email']) {
-      await expect(queryPage.getSelectedField(field)).toHaveAttribute('aria-selected', 'true');
+      await expect(queryPage.getSelectedField(field)).toBeChecked();
     }
   });
 

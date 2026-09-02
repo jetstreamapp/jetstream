@@ -70,7 +70,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
         <GridCol growNone>
           <RadioGroup label="Type of Data Load" required isButtonGroup>
             <RadioButton
-              name="INSERT"
+              name="load-type"
               label="Insert"
               value="INSERT"
               checked={selectedType === 'INSERT'}
@@ -78,7 +78,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
               onChange={(value) => handleChange(value as InsertUpdateUpsertDelete)}
             />
             <RadioButton
-              name="UPDATE"
+              name="load-type"
               label="Update"
               value="UPDATE"
               checked={selectedType === 'UPDATE'}
@@ -86,7 +86,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
               onChange={(value) => handleChange(value as InsertUpdateUpsertDelete)}
             />
             <RadioButton
-              name="UPSERT"
+              name="load-type"
               label="Upsert"
               value="UPSERT"
               checked={selectedType === 'UPSERT'}
@@ -94,7 +94,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
               onChange={(value) => handleChange(value as InsertUpdateUpsertDelete)}
             />
             <RadioButton
-              name="DELETE"
+              name="load-type"
               label="Delete"
               value="DELETE"
               checked={selectedType === 'DELETE'}
@@ -102,7 +102,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
               onChange={(value) => handleChange(value as InsertUpdateUpsertDelete)}
             />
             <RadioButton
-              name="HARD_DELETE"
+              name="load-type"
               label="Hard Delete"
               value="HARD_DELETE"
               checked={selectedType === 'HARD_DELETE'}

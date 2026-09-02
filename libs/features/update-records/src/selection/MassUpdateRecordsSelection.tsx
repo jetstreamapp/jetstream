@@ -12,6 +12,8 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
   Tooltip,
+  ariaDisabledButtonProps,
+  getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
 import { filterMassUpdateSobject } from '@jetstream/ui-core';
@@ -106,30 +108,37 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
           />
           <PageHeaderActions colType="actions" buttonType="separate">
             {rows.length > 1 && (
-              <button className="slds-button slds-button_neutral" disabled={!allRowsValid} onClick={validateAllRowRecords}>
+              <button
+                className="slds-button slds-button_neutral"
+                {...ariaDisabledButtonProps(!allRowsValid, () => validateAllRowRecords())}
+              >
                 Validate All
               </button>
             )}
-            {allRowsValidated ? (
-              <Tooltip
-                openDelay={500}
-                content={
+            {/* One stable element for both states: the old disabled-button/Link swap replaced the DOM
+                node (losing focus continuity), and a natively disabled button is unfocusable, so
+                keyboard users could never reach the tooltip explaining why they cannot continue */}
+            <Tooltip
+              openDelay={500}
+              content={
+                allRowsValidated ? (
                   <div className="slds-p-bottom_small">
                     <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
                   </div>
-                }
+                ) : (
+                  'Validate all objects to ensure configuration is valid before continuing'
+                )
+              }
+            >
+              <Link
+                className="slds-button slds-button_brand"
+                aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                to="deployment"
+                {...ariaDisabledButtonProps(!allRowsValidated, () => handleContinue())}
               >
-                <Link className="slds-button slds-button_brand" to="deployment" onClick={handleContinue}>
-                  Review Changes
-                </Link>
-              </Tooltip>
-            ) : (
-              <Tooltip content={allRowsValidated ? '' : 'Validate all objects to ensure configuration is valid before continuing'}>
-                <button className="slds-button slds-button_brand" disabled>
-                  Review Changes
-                </button>
-              </Tooltip>
-            )}
+                Review Changes
+              </Link>
+            </Tooltip>
           </PageHeaderActions>
         </PageHeaderRow>
         <PageHeaderRow>

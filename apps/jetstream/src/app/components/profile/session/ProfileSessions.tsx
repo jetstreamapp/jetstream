@@ -10,7 +10,7 @@ const items: DropDownItem[] = [
   {
     id: 'revoke-all',
     value: 'Revoke All Other Sessions',
-    icon: { type: 'utility', icon: 'delete', description: 'Delete' },
+    icon: { type: 'utility', icon: 'delete' },
   },
 ];
 
@@ -53,7 +53,13 @@ export const ProfileSessions = ({ sessionData }: { sessionData: ReturnType<typeo
       `}
       actions={
         sessions.length > 1 && (
-          <DropDown dropDownClassName="slds-dropdown_actions" position="right" items={items} onSelected={handleMenuAction} />
+          <DropDown
+            dropDownClassName="slds-dropdown_actions"
+            position="right"
+            description="Session actions"
+            items={items}
+            onSelected={handleMenuAction}
+          />
         )
       }
     >

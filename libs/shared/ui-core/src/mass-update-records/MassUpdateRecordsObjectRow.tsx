@@ -3,11 +3,11 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { Field, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { FileDownloadModal, fireToast, Grid, GridCol, Icon, ScopedNotification, Spinner } from '@jetstream/ui';
+import { AssistiveStatus, FileDownloadModal, fireToast, Grid, GridCol, Icon, ScopedNotification, Spinner } from '@jetstream/ui';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import isNumber from 'lodash/isNumber';
-import { Fragment, FunctionComponent, ReactNode, useState } from 'react';
+import { Fragment, FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useAmplitude } from '../analytics';
 import { fromJetstreamEvents } from '../jetstream-events';
 import MassUpdateRecordTransformationText from './MassUpdateRecordTransformationText';
@@ -104,8 +104,54 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
     setDownloadModalData({ ...downloadModalData, open: false });
   }
 
+  // Rows are keyed by index, so the combobox at position i always carries this id — the focus
+  // management below addresses rows directly instead of scraping the DOM for label text
+  const fieldToUpdateComboboxId = (index: number) => `${sobject}-field-to-update-${index}`;
+
+  /**
+   * Focus the "Field to Update" combobox of `pendingFocusRowIndex` after the row list re-renders.
+   * The parent owns fieldConfigurations, so the add/remove callbacks cannot focus synchronously —
+   * this effect runs after the commit that applied the change, when the target row exists.
+   */
+  const pendingFocusRowIndex = useRef<number | null>(null);
+  useEffect(() => {
+    if (pendingFocusRowIndex.current === null) {
+      return;
+    }
+    const rowIndex = Math.min(pendingFocusRowIndex.current, fieldConfigurations.length - 1);
+    pendingFocusRowIndex.current = null;
+    document.getElementById(fieldToUpdateComboboxId(rowIndex))?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldConfigurations.length]);
+
+  /**
+   * Adding a field renders the new configuration form ABOVE the button, so keyboard/SR users had
+   * no way to know anything happened. Move focus into the new row's first control ("Field to
+   * Update") — configuring it is why the user clicked — and announce the addition.
+   */
+  function handleAddField() {
+    // New rows are appended, so the new row's index is the previous count
+    pendingFocusRowIndex.current = fieldConfigurations.length;
+    onAddField(sobject);
+  }
+
+  /**
+   * The delete button unmounts with its row, which would drop focus on <body>. Move focus to the
+   * "Field to Update" combobox of the row that slides into the deleted slot (or the last row when
+   * the final row was deleted); the AssistiveStatus count announcement conveys what happened.
+   */
+  function handleRemoveField(index: number) {
+    pendingFocusRowIndex.current = index;
+    onRemoveField(sobject, index);
+  }
+
   return (
     <div className={className}>
+      <AssistiveStatus
+        debounceMs={300}
+        // Names the object: several objects render side by side, each with its own count
+        message={`${fieldConfigurations.length} ${pluralizeFromNumber('field', fieldConfigurations.length)} configured for ${sobject}`}
+      />
       {loading && <Spinner />}
       <Grid verticalAlign="end" wrap>
         {children}
@@ -118,12 +164,13 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
             )}
             <GridCol size={12}>
               <MassUpdateRecordsObjectRowField
+                comboboxId={fieldToUpdateComboboxId(index)}
                 fields={fields}
                 selectedField={selectedField}
                 disabled={disabled}
                 allowDelete={fieldConfigurations.length > 1}
                 onchange={(selectedField, fieldMetadata) => onFieldChange(index, selectedField, fieldMetadata)}
-                onRemoveRow={() => onRemoveField(sobject, index)}
+                onRemoveRow={() => handleRemoveField(index)}
               />
             </GridCol>
             <MassUpdateRecordsObjectRowValue
@@ -162,7 +209,7 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
         ))}
         <GridCol size={12}>
           <div className="slds-m-top_x-small">
-            <button className="slds-button slds-button_neutral" disabled={disabled} onClick={() => onAddField(sobject)}>
+            <button className="slds-button slds-button_neutral" disabled={disabled} onClick={handleAddField}>
               <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
               Add Field
             </button>

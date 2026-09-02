@@ -69,7 +69,7 @@ test.describe('Team Dashboard', () => {
 
     await test.step('Verify team members', async () => {
       const row = page.getByTestId(`team-member-row-${adminUser.teamMembership.user.email}`);
-      await expect(row.getByText(adminUser.teamMembership.user.name)).toBeVisible();
+      await expect(row.getByText(adminUser.teamMembership.user.name, { exact: true })).toBeVisible();
       await expect(row.getByText(adminUser.teamMembership.user.email, { exact: true })).toBeVisible();
       await expect(row.getByTestId('user-row-actions')).toHaveCount(0); // Actions for current user are not available
       await expect(row.getByText('Username/Password')).toBeVisible();
@@ -77,7 +77,7 @@ test.describe('Team Dashboard', () => {
       await expect(row.getByText('Active')).toBeVisible();
 
       const row1 = page.getByTestId(`team-member-row-${member1.teamMembership.user.email}`);
-      await expect(row1.getByText(member1.teamMembership.user.name)).toBeVisible();
+      await expect(row1.getByText(member1.teamMembership.user.name, { exact: true })).toBeVisible();
       await expect(row1.getByText(member1.teamMembership.user.email, { exact: true })).toBeVisible();
       await expect(row1.getByTestId('user-row-actions')).toBeVisible();
       await expect(row1.getByText('Username/Password')).toBeVisible();
@@ -85,7 +85,7 @@ test.describe('Team Dashboard', () => {
       await expect(row1.getByText('Active')).toBeVisible();
 
       const row2 = page.getByTestId(`team-member-row-${member2.teamMembership.user.email}`);
-      await expect(row2.getByText(member2.teamMembership.user.name)).toBeVisible();
+      await expect(row2.getByText(member2.teamMembership.user.name, { exact: true })).toBeVisible();
       await expect(row2.getByText(member2.teamMembership.user.email, { exact: true })).toBeVisible();
       await expect(row2.getByTestId('user-row-actions')).toBeVisible();
       await expect(row2.getByText('Username/Password')).toBeVisible();
@@ -93,7 +93,7 @@ test.describe('Team Dashboard', () => {
       await expect(row2.getByText('Active')).toBeVisible();
 
       const row3 = page.getByTestId(`team-member-row-${billingMember1.teamMembership.user.email}`);
-      await expect(row3.getByText(billingMember1.teamMembership.user.name)).toBeVisible();
+      await expect(row3.getByText(billingMember1.teamMembership.user.name, { exact: true })).toBeVisible();
       await expect(row3.getByText(billingMember1.teamMembership.user.email, { exact: true })).toBeVisible();
       await expect(row3.getByTestId('user-row-actions')).toBeVisible();
       await expect(row3.getByText('Username/Password')).toBeVisible();
@@ -191,7 +191,7 @@ test.describe('Team Dashboard', () => {
       // Make sure member is logged in
       const member = billingMember1;
 
-      const getByPageBannerPromise = expect(page.getByText('Session revoked successfully.')).toBeVisible();
+      const getByPageBannerPromise = expect(page.getByRole('heading', { name: 'Session revoked successfully.' })).toBeVisible();
       await teamDashboardPage.revokeUserSession(member.user.email);
       await getByPageBannerPromise;
 
@@ -330,22 +330,22 @@ test.describe('Team Dashboard', () => {
       // Verify invites shows up in list
       await teamDashboardPage.inviteTeamMember(user1Email);
       let row = teamDashboardPage.teamInviteTable.getByTestId(`team-member-row-invite-${user1Email}`);
-      await expect(row.getByText(user1Email)).toBeVisible();
+      await expect(row.getByText(user1Email, { exact: true })).toBeVisible();
       await expect(row.getByText('Pending')).toBeVisible();
 
       await teamDashboardPage.inviteTeamMember(user2Email);
       row = teamDashboardPage.teamInviteTable.getByTestId(`team-member-row-invite-${user2Email}`);
-      await expect(row.getByText(user2Email)).toBeVisible();
+      await expect(row.getByText(user2Email, { exact: true })).toBeVisible();
       await expect(row.getByText('Pending')).toBeVisible();
 
       await teamDashboardPage.inviteTeamMember(existingUser1.email);
       row = teamDashboardPage.teamInviteTable.getByTestId(`team-member-row-invite-${existingUser1.email}`);
-      await expect(row.getByText(existingUser1.email)).toBeVisible();
+      await expect(row.getByText(existingUser1.email, { exact: true })).toBeVisible();
       await expect(row.getByText('Pending')).toBeVisible();
 
       await teamDashboardPage.inviteTeamMember(existingUser2.email);
       row = teamDashboardPage.teamInviteTable.getByTestId(`team-member-row-invite-${existingUser2.email}`);
-      await expect(row.getByText(existingUser2.email)).toBeVisible();
+      await expect(row.getByText(existingUser2.email, { exact: true })).toBeVisible();
       await expect(row.getByText('Pending')).toBeVisible();
 
       // verify email invitations were sent
@@ -487,7 +487,7 @@ test.describe('Team Dashboard', () => {
 
       for (const email of users) {
         const row = teamDashboardPage.teamMemberTable.getByTestId(`team-member-row-${email}`);
-        await expect(row.getByText(email)).toBeVisible();
+        await expect(row.getByText(email, { exact: true })).toBeVisible();
         await expect(row.getByText('Member')).toBeVisible();
         await expect(row.getByText('Active')).toBeVisible();
         await expect(row.getByText('Authenticator App')).toBeVisible();
@@ -567,7 +567,7 @@ test.describe('Team Dashboard', () => {
 
       // Wait for invite row to appear in the table, confirming the record is saved to the DB
       const inviteRow = teamDashboardPage.teamInviteTable.getByTestId(`team-member-row-invite-${userEmail}`);
-      await expect(inviteRow.getByText(userEmail)).toBeVisible();
+      await expect(inviteRow.getByText(userEmail, { exact: true })).toBeVisible();
       await expect(inviteRow.getByText('Pending')).toBeVisible();
 
       const teamInvite = await prisma.teamMemberInvitation.findFirstOrThrow({

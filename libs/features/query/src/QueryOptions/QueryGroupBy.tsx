@@ -25,6 +25,15 @@ export const QueryGroupByContainer = ({ sobject, fields, onLoadRelatedFields }: 
   }
 
   function handleDelete(deletedGroupBy: QueryGroupByClause) {
+    // The delete button unmounts with its row, which would drop keyboard focus to <body> — land on
+    // the previous row's delete button (row 0 always exists: an emptied list is refilled with one row)
+    const deletedIndex = groupByClauses.findIndex((groupBy) => groupBy.key === deletedGroupBy.key);
+    window.setTimeout(() => {
+      const deleteButtons = document.querySelectorAll<HTMLElement>(
+        '[role="group"][aria-label^="Group by row "] button[title="Delete Condition"]',
+      );
+      deleteButtons[Math.max(deletedIndex - 1, 0)]?.focus();
+    });
     const tempGroupByClauses = groupByClauses.filter((groupBy) => groupBy.key !== deletedGroupBy.key);
     // ensure there is always at least one group by
     if (tempGroupByClauses.length === 0) {

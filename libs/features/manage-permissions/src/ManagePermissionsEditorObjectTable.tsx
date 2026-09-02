@@ -7,7 +7,7 @@ import {
   PermissionTableObjectCell,
   PermissionTableSummaryRow,
 } from '@jetstream/types';
-import { AutoFullHeightContainer, ColumnWithFilter, DataTable, DataTableRef } from '@jetstream/ui';
+import { AutoFullHeightContainer, ColumnWithFilter, DataTable, DataTableRef, useAnnouncer } from '@jetstream/ui';
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { applyPastedPermissionCells, resetGridChanges, updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
 
@@ -35,6 +35,8 @@ export interface ManagePermissionsEditorObjectTableProps {
 export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissionsEditorObjectTableProps>(
   ({ columns, rows, totalCount, filterText, hasErrors, errorsOnly, onFilter, onToggleErrorsOnly, onBulkUpdate, onDirtyRows }, ref) => {
     const tableRef = useRef<DataTableRef<PermissionTableObjectCell>>(null);
+    // One table-level live region announces summary-cell column actions for every column
+    const { announce, announcer } = useAnnouncer();
     const [dirtyRows, setDirtyRows] = useState<Record<string, DirtyRow<PermissionTableObjectCell>>>({});
 
     useImperativeHandle<any, ManagePermissionsEditorTableRef>(ref, () => ({
@@ -74,6 +76,7 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
 
     return (
       <div>
+        {announcer}
         <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={15}>
           <DataTable
             ref={tableRef}
@@ -94,6 +97,7 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
                 onToggleErrorsOnly,
                 onColumnAction: handleColumnAction,
                 onBulkAction: onBulkUpdate,
+                announce,
               } as PermissionManagerTableContext
             }
             rowHeight={24}

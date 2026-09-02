@@ -161,7 +161,7 @@ export const HeaderWhatsNewPopover: FunctionComponent<HeaderWhatsNewPopoverProps
                       {highlight.description && <span>: {highlight.description}</span>}
                       {highlight.docLink && (
                         <a className="slds-m-left_xx-small" href={resolveDocHref(highlight.docLink)} target="_blank" rel="noreferrer">
-                          Learn more
+                          Learn more<span className="slds-assistive-text"> about {highlight.title}</span>
                           <Icon
                             type="utility"
                             icon="new_window"

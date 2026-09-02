@@ -32,16 +32,25 @@ export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
   isButtonGroup,
   children,
 }) => {
-  const { ariaDescribedbyText, labelHelpId, helpTextId, errorMessageId } = useFormIds(idPrefix);
+  const { labelHelpId, helpTextId, errorMessageId, legendId } = useFormIds(idPrefix);
+  // Only reference the description elements that are actually rendered
+  const ariaDescribedbyText =
+    [labelHelp && labelHelpId, helpText && helpTextId, hasError && errorMessage && errorMessageId].filter(Boolean).join(' ') || undefined;
 
   return (
     <fieldset
       className={classNames('slds-form-element', { 'slds-has-error': hasError, 'slds-is-required': required }, className)}
+      // Explicit role + labelledby: screen readers announce the group label when focus enters,
+      // which plain fieldset/legend does unreliably in VoiceOver — vital when adjacent groups
+      // share value labels (e.g. two filter groups both starting with "All")
+      role="radiogroup"
+      aria-labelledby={label ? legendId : undefined}
       aria-describedby={ariaDescribedbyText}
+      aria-invalid={hasError || undefined}
     >
       {label && (
         <Fragment>
-          <legend className="slds-form-element__legend slds-form-element__label">
+          <legend id={legendId} className="slds-form-element__legend slds-form-element__label">
             {required && (
               <abbr className="slds-required" title="required">
                 *

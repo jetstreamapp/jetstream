@@ -3,10 +3,11 @@ import { shallow, useSelector } from '@tanstack/react-store';
 import type { CellSelectionBounds } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { CSSProperties, RefObject, useEffect, useMemo, useRef } from 'react';
+import { CellHintKind, getCellHintId } from '../grid-cell-hints';
 import { DEFAULT_ROW_HEIGHT, HEADER_ROW_ID, isSummaryRowId } from '../grid-constants';
 import { selectRowModelInputs } from '../grid-context';
 import { TanstackTable } from '../grid-types';
-import { GridInteractionSource, GridMode } from '../keyboard/useGridKeyboardNavigation';
+import { GRID_OVERLAY_SELECTOR, GridInteractionSource, GridMode } from '../keyboard/useGridKeyboardNavigation';
 import { getRowSelectionSpans } from '../selection/grid-selection';
 import { GridGroupRow } from './GridGroupRow';
 import { ActiveCell, GridRow } from './GridRow';
@@ -22,6 +23,8 @@ export interface GridBodyProps<TRow extends object> {
   gridTemplateColumns: string;
   /** Visible leaf-column indexes to render (windowed + always-on frozen), passed through to each row. */
   visibleColumnIndexes: number[];
+  /** The grid is a treegrid: every row (not just nested ones) exposes aria-level. */
+  treeGrid?: boolean;
   /** Fixed numeric height per row, or a per-row callback. This is the authoritative, deterministic row
    * height — each row's box is pinned to it. Rows are NOT DOM-measured: with column virtualization the
    * mounted-cell set changes during horizontal scroll, so a measured height would oscillate and reflow
@@ -41,6 +44,8 @@ export interface GridBodyProps<TRow extends object> {
   getLastInteractionSource?: () => GridInteractionSource;
   /** The cell currently being edited (its editor owns focus, so the body must not steal it). */
   editingCell?: ActiveCell | null;
+  /** Prefix of the hidden cell-hint elements rendered by GridContainer (see grid-cell-hints.ts). */
+  gridId: string;
   /** Resolved cell-selection rectangles (inclusive display-index bounds; empty when collapsed). */
   selectionBounds?: CellSelectionBounds[];
   onCellMouseDown?: (rowId: string, columnId: string, shiftKey: boolean, button?: number, ctrlOrMetaKey?: boolean) => void;
@@ -74,6 +79,7 @@ export function GridBody<TRow extends object>({
   scrollRef,
   gridTemplateColumns,
   visibleColumnIndexes,
+  treeGrid,
   rowHeight,
   overscan = 8,
   summaryRowCount = 0,
@@ -81,6 +87,7 @@ export function GridBody<TRow extends object>({
   mode = 'navigation',
   getLastInteractionSource,
   editingCell,
+  gridId,
   selectionBounds,
   onCellMouseDown,
   onCellMouseEnter,
@@ -122,28 +129,92 @@ export function GridBody<TRow extends object>({
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
+    // Heights are rounded up to whole pixels: a fractional row height lands alternate rows on half-pixel
+    // offsets, where their 1px borders render faint and uneven on 1x displays.
     estimateSize: (index) => {
       const current = rowHeightRef.current;
       if (typeof current === 'function') {
         const row = rows[index];
         if (row) {
-          return current({ type: row.getIsGrouped() ? 'GROUP' : 'ROW', row: row.original, columnWidths: columnWidthsRef.current });
+          return Math.ceil(
+            current({ type: row.getIsGrouped() ? 'GROUP' : 'ROW', row: row.original, columnWidths: columnWidthsRef.current }),
+          );
         }
         return DEFAULT_ROW_HEIGHT;
       }
-      return current ?? DEFAULT_ROW_HEIGHT;
+      return Math.ceil(current ?? DEFAULT_ROW_HEIGHT);
     },
     overscan,
     getItemKey: (index) => rows[index].id,
     // In auto-height mode the estimate above is only the initial guess; the virtualizer measures each
     // rendered row's real height (rows wrap to content) and corrects the offsets, keeping virtualization.
-    ...(autoRowHeight ? { measureElement: (el: Element | null) => el?.getBoundingClientRect().height ?? DEFAULT_ROW_HEIGHT } : {}),
+    ...(autoRowHeight
+      ? { measureElement: (el: Element | null) => Math.ceil(el?.getBoundingClientRect().height ?? DEFAULT_ROW_HEIGHT) }
+      : {}),
   });
   const measureRowRef = autoRowHeight ? rowVirtualizer.measureElement : undefined;
 
   // Resolve the active cell to a DOM node: scroll its row into view, then focus the cell (navigation)
   // or the first focusable inside it (actionable). Runs only when the coordinate/mode changes — NOT on
   // manual scroll — so scrolling away from the active cell never yanks the viewport back.
+  // The cell currently carrying the keyboard hint, so it can be cleared when focus moves on.
+  const hintedCellRef = useRef<HTMLElement | null>(null);
+
+  /**
+   * Which hint describes the cell — the same decision tree as the keyboard hook's Enter handling
+   * (edit first, then activateCell). Header cells get none: their sort/filter controls are announced directly.
+   */
+  const getCellHintKind = (cellEl: HTMLElement): CellHintKind | null => {
+    const role = cellEl.getAttribute('role');
+    if (role !== 'gridcell' && role !== 'rowheader') {
+      return null;
+    }
+    if (cellEl.getAttribute('aria-readonly') !== 'true') {
+      return 'editable';
+    }
+    if (cellEl.querySelectorAll('input[type="checkbox"]:not([disabled])').length === 1) {
+      return 'checkbox';
+    }
+    const controls = Array.from(cellEl.querySelectorAll<HTMLElement>(ACTIONABLE_FOCUSABLE_SELECTOR));
+    if (controls.length === 0) {
+      return null;
+    }
+    if (controls.length > 1) {
+      return 'controls';
+    }
+    const [control] = controls;
+    if (control.matches('.jgrid-tree-toggle')) {
+      return 'expand';
+    }
+    if (control.matches('a[href]')) {
+      return 'link';
+    }
+    if (control.matches('input:not([type="checkbox"]):not([type="radio"]):not([type="button"]), textarea, select')) {
+      return 'input';
+    }
+    return 'control';
+  };
+
+  /**
+   * Screen readers announce a gridcell's content but nothing about what Enter would do with it, so the
+   * cell is described before it takes focus. Applied imperatively to the single focused cell rather than
+   * rendered on every cell, and cleared again when focus moves on.
+   */
+  const applyCellKeyboardHints = (cellEl: HTMLElement) => {
+    const previousHintedCell = hintedCellRef.current;
+    if (previousHintedCell && previousHintedCell !== cellEl) {
+      previousHintedCell.removeAttribute('aria-describedby');
+    }
+    const hintKind = getCellHintKind(cellEl);
+    if (hintKind) {
+      cellEl.setAttribute('aria-describedby', getCellHintId(gridId, hintKind));
+      hintedCellRef.current = cellEl;
+    } else {
+      cellEl.removeAttribute('aria-describedby');
+      hintedCellRef.current = null;
+    }
+  };
+
   // True when the active cell is the one being edited — its editor input owns focus, so skip cell focus.
   const isEditingActiveCell =
     !!editingCell && !!activeCell && editingCell.rowId === activeCell.rowId && editingCell.columnId === activeCell.columnId;
@@ -192,10 +263,34 @@ export function GridBody<TRow extends object>({
       if (cancelled) {
         return;
       }
+      // Never steal focus from an overlay opened FROM the grid (record popover, filter popover,
+      // dropdown menu): keyboard activation re-applies the active cell, and without this guard the
+      // effect's refocus raced the overlay's own focus management and yanked focus back to the cell.
+      // An overlay that CONTAINS the grid (a modal hosting it) doesn't count.
+      const overlayWithFocus = (document.activeElement as HTMLElement | null)?.closest?.(GRID_OVERLAY_SELECTOR);
+      if (overlayWithFocus && (!scrollRef.current || !overlayWithFocus.contains(scrollRef.current))) {
+        return;
+      }
       const cellEl = scrollRef.current?.querySelector<HTMLElement>(
         `[data-row-id="${CSS.escape(activeCell.rowId)}"][data-col-id="${CSS.escape(activeCell.columnId)}"]`,
       );
       if (cellEl) {
+        // Native focus scrolling only ensures the cell is inside the viewport — sticky frozen
+        // columns overlay the left edge, so a cell can land hidden UNDERNEATH the frozen band.
+        // Nudge the scroller left by the overlap so the cell is actually visible.
+        const scroller = scrollRef.current;
+        if (scroller && !cellEl.classList.contains('jgrid-cell-frozen')) {
+          const frozenBandWidth = leafColumns.reduce(
+            (width, column) => (column.columnDef.meta?.jetstream?.frozen ? width + column.getSize() : width),
+            0,
+          );
+          if (frozenBandWidth > 0) {
+            const overlap = frozenBandWidth - (cellEl.getBoundingClientRect().left - scroller.getBoundingClientRect().left);
+            if (overlap > 0) {
+              scroller.scrollLeft -= overlap;
+            }
+          }
+        }
         if (mode === 'actionable') {
           // Move focus to the first interactive control. The cell DIV holding focus (the navigation-mode
           // state) must NOT count as "already inside" — otherwise entering actionable mode from the cell
@@ -207,7 +302,14 @@ export function GridBody<TRow extends object>({
             (focusable ?? cellEl).focus();
           }
         } else if (!cellEl.contains(document.activeElement)) {
-          cellEl.focus();
+          // APG grid pattern: a cell whose only content is a single interactive widget marks it with
+          // data-grid-inner-focus — arrow navigation focuses the widget itself so its role and state
+          // are announced (e.g. "Pin entry, toggle button, pressed") and Enter/Space activate natively
+          const innerFocusTarget = cellEl.querySelector<HTMLElement>('[data-grid-inner-focus]:not(:disabled)');
+          if (!innerFocusTarget) {
+            applyCellKeyboardHints(cellEl);
+          }
+          (innerFocusTarget ?? cellEl).focus();
         }
         return;
       }
@@ -293,6 +395,7 @@ export function GridBody<TRow extends object>({
         return (
           <GridRow
             key={row.id}
+            treeGrid={treeGrid}
             table={table}
             row={row}
             columns={leafColumns}

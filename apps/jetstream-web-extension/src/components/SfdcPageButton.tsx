@@ -8,7 +8,7 @@ import type { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, OutsideClickHandler, Tabs } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue, useSetAtom } from 'jotai';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import browser from 'webextension-polyfill';
 import { useResolvedColorScheme } from '../hooks/useResolvedColorScheme';
 import '../sfdc-styles-shim.css';
@@ -202,6 +202,20 @@ export function SfdcPageButton() {
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen]);
 
+  // Dialog focus management: land on the panel's first control when it opens and return to the
+  // trigger when it closes (the trigger stays mounted while open so it can take focus back)
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const wasOpenRef = useRef(false);
+  useEffect(() => {
+    if (isOpen) {
+      panelRef.current?.querySelector<HTMLElement>('button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus();
+    } else if (wasOpenRef.current) {
+      triggerRef.current?.focus();
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen]);
+
   if (!options.enabled || !authTokens?.loggedIn) {
     return null;
   }
@@ -218,10 +232,14 @@ export function SfdcPageButton() {
   return (
     <>
       <button
+        ref={triggerRef}
         data-testid="jetstream-ext-page-button"
+        aria-label="Open Jetstream"
+        aria-expanded={isOpen}
+        aria-haspopup="dialog"
         css={css`
           z-index: 1000;
-          display: ${isOpen ? 'none' : 'block'};
+          display: block;
           position: fixed;
           vertical-align: middle;
           pointer: cursor;
@@ -273,6 +291,9 @@ export function SfdcPageButton() {
           onOutsideClick={() => setIsOpen(false)}
         >
           <div
+            ref={panelRef}
+            role="dialog"
+            aria-label="Jetstream"
             data-testid="jetstream-ext-popup-body"
             className="slds-popover__body slds-is-relative"
             css={css`

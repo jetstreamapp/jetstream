@@ -84,6 +84,11 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      # Fails on new warn-tier jsx-a11y hits, new libs/ui specs without axeScan(), and new routes
+      # without an axe baseline entry (scripts/a11y-lint-ratchet.mjs).
+      - name: Accessibility lint ratchet
+        run: pnpm a11y:lint-ratchet
+
   # Build application
   build-and-test:
     runs-on: ubuntu-latest
@@ -242,7 +247,9 @@ jobs:
         id: setup
         uses: ./.github/actions/setup-e2e
         with:
-          affected-projects: api|jetstream
+          # jetstream-e2e is listed so a change that only touches the suite itself (a spec, the a11y
+          # baseline, the shared page objects) still runs it — api/jetstream alone would skip those.
+          affected-projects: api|jetstream|jetstream-e2e
           suite-name: E2E
 
       # build:ci compiles all nine apps; E2E only reaches three of them. api/src/main.ts statically
@@ -284,6 +291,19 @@ jobs:
           path: apps/jetstream-e2e/blob-report
           retention-days: 1
           if-no-files-found: ignore
+
+      # Raw axe-core scan results from the a11y specs — evidence artifacts for the accessibility
+      # conformance report (VPAT) and inputs to scripts/a11y-merge-baseline.mjs.
+      - name: Upload a11y scan results
+        if: always() && steps.setup.outputs.should_run == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: a11y-results-${{ matrix.shardIndex }}
+          path: apps/jetstream-e2e/a11y-results
+          retention-days: 30
+          # Only the shard(s) that ran an a11y spec produce results; `warn` (not `ignore`) keeps a
+          # silently-not-running a11y spec visible in the job log.
+          if-no-files-found: warn
 
   # Playwright's _electron support needs a real BrowserWindow, which a headless GitHub-hosted
   # runner has no display server for — xvfb-run provides a virtual one. Single job, single worker

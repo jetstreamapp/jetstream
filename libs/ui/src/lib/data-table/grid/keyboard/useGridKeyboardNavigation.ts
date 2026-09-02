@@ -20,6 +20,14 @@ import { useRangeDragAutoScroll } from './useRangeDragAutoScroll';
 export type GridMode = 'navigation' | 'actionable';
 
 /**
+ * Portaled overlays that can hold focus on behalf of the grid — popovers, modals, dropdown menus,
+ * dialogs. Shared by every "is focus inside an overlay?" check (keyboard navigation, GridBody's
+ * refocus guard, GridContainer's blur guard) so the list cannot drift between copies again — a
+ * missing `.slds-dropdown` in one copy was a real bug.
+ */
+export const GRID_OVERLAY_SELECTOR = '.slds-popover, .slds-modal, .slds-dropdown, [role="dialog"]';
+
+/**
  * What drove the most recent active-cell change. Consumers use it to decide whether to move DOM focus
  * and whether to scroll the cell into view:
  *  - `mouse` — a click/hover already placed focus; don't steal it back.
@@ -81,6 +89,54 @@ function getRowSegmentStarts<TRow extends object>(row: TanstackRow<TRow>, column
     index += span;
   }
   return starts;
+}
+
+/**
+ * Column indexes at which the HEADER row starts a rendered header cell — honors HEADER colSpans
+ * (column-group headers like the permission manager's profile name spanning its sub-columns), so
+ * header navigation steps between rendered cells instead of walking every spanned-over track.
+ */
+function getHeaderSegmentStarts<TRow extends object>(columns: TanstackColumn<TRow>[]): number[] {
+  const starts: number[] = [];
+  let index = 0;
+  while (index < columns.length) {
+    starts.push(index);
+    const span = Math.max(1, columns[index].columnDef.meta?.jetstream?.colSpan?.({ type: 'HEADER' }) ?? 1);
+    index += span;
+  }
+  return starts;
+}
+
+/**
+ * The header cell that OWNS `targetColIndex`: grouped headers span their sub-columns (only the span
+ * owner renders a header cell), so a vertical move from a body cell in a spanned sub-column must land
+ * on the owner or focus has no element to go to.
+ */
+function resolveHeaderColumnStart<TRow extends object>(columns: TanstackColumn<TRow>[], targetColIndex: number): number {
+  let owner = 0;
+  for (const start of getHeaderSegmentStarts(columns)) {
+    if (start <= targetColIndex) {
+      owner = start;
+    } else {
+      break;
+    }
+  }
+  return owner;
+}
+
+/** Id of the header cell that owns `columnId` (see resolveHeaderColumnStart). */
+function headerColumnIdFor<TRow extends object>(columns: TanstackColumn<TRow>[], columnId: string): string {
+  const colIndex = Math.max(
+    0,
+    columns.findIndex((column) => column.id === columnId),
+  );
+  return columns[resolveHeaderColumnStart(columns, colIndex)]?.id ?? columnId;
+}
+
+/** The next/previous segment start relative to `colIndex` within `starts` (clamped at the ends). */
+function stepSegment(starts: number[], colIndex: number, direction: 1 | -1): number {
+  const segmentIndex = Math.max(0, starts.filter((start) => start <= colIndex).length - 1);
+  return starts[clamp(segmentIndex + direction, 0, starts.length - 1)];
 }
 
 /**
@@ -346,7 +402,9 @@ export function useGridKeyboardNavigation<TRow extends object>({
     const root = getRootElement();
     let attempts = 0;
     const tryFocus = () => {
-      const panel = Array.from(document.querySelectorAll<HTMLElement>('.slds-popover')).find((el) => !root || !el.contains(root));
+      const panel = Array.from(document.querySelectorAll<HTMLElement>('.slds-popover:not(.slds-popover_tooltip)')).find(
+        (el) => !root || !el.contains(root),
+      );
       if (panel) {
         if (!panel.contains(document.activeElement)) {
           const body = panel.querySelector<HTMLElement>('.slds-popover__body');
@@ -463,26 +521,21 @@ export function useGridKeyboardNavigation<TRow extends object>({
   // overlay; when it closes and focus would fall to <body>, pull it back to the cell so arrow navigation
   // continues. Works for popovers/modals opened by mouse OR keyboard, from a body cell or the header.
   useEffect(() => {
-    // Returns overlays (portaled popovers/modals) that are NOT an ancestor of this grid — i.e. a popover
-    // opened FROM the grid, excluding a modal that merely hosts the grid.
+    // True while focus is inside an overlay (portaled popover/modal/dropdown menu) that is NOT an ancestor
+    // of this grid — i.e. an overlay opened FROM the grid, excluding a modal that merely hosts the grid.
+    // Focus-based on purpose: a document-wide query was permanently true in the app (the navbar's
+    // CSS-toggled `.slds-dropdown` menus are always mounted, and any visible tooltip is a `.slds-popover`),
+    // which silently disabled every return-focus path below.
     const hasForeignOverlayOpen = () => {
       const root = getRootElement();
-      return Array.from(document.querySelectorAll('.slds-popover, .slds-modal, [role="dialog"]')).some(
-        (overlay) => !root || !overlay.contains(root),
-      );
+      const active = document.activeElement;
+      const overlay = active instanceof Element ? active.closest(GRID_OVERLAY_SELECTOR) : null;
+      return !!overlay && (!root || !overlay.contains(root));
     };
 
-    // When focus moves into such an overlay, remember the active cell so we can restore it on close.
-    const handleFocusIn = (event: FocusEvent) => {
-      const target = event.target as HTMLElement | null;
-      const overlay = target?.closest?.('.slds-popover, .slds-modal, [role="dialog"]');
-      const root = getRootElement();
-      if (overlay && (!root || !overlay.contains(root)) && activeCellRef.current) {
-        pendingReturnFocusCellRef.current = activeCellRef.current;
-      }
-    };
-
-    const handleFocusOut = () => {
+    // Deferred a frame so an overlay close/unmount settles first; while the overlay is still up
+    // (e.g. tabbing within it) the check is a no-op and the pending return stays armed.
+    const scheduleReturnFocusCheck = () => {
       if (!pendingReturnFocusCellRef.current) {
         return;
       }
@@ -491,7 +544,6 @@ export function useGridKeyboardNavigation<TRow extends object>({
         if (!cell) {
           return;
         }
-        // Wait while the overlay is still up (e.g. tabbing within it).
         if (hasForeignOverlayOpen()) {
           return;
         }
@@ -502,10 +554,41 @@ export function useGridKeyboardNavigation<TRow extends object>({
         // it back on a control INSIDE that cell (e.g. a header filter icon after Escape). Otherwise DOM
         // focus sits on the in-cell control and arrow navigation can't resume — the cell is the rover.
         const focusReturnedInsideCell = !!cellEl && !!active && active !== cellEl && cellEl.contains(active);
-        if (!active || active === document.body || focusReturnedInsideCell) {
-          cellEl?.focus();
+        // ...unless that control is the cell's designated inner-focus widget, which IS the rover for that cell
+        const focusReturnedToInnerFocusWidget = focusReturnedInsideCell && !!active?.closest('[data-grid-inner-focus]');
+        if (!active || active === document.body || (focusReturnedInsideCell && !focusReturnedToInnerFocusWidget)) {
+          if (cellEl) {
+            // The overlay was opened from actionable mode in many cases; the cell is the rover again, so
+            // navigation mode must be restored or Up/Down stay swallowed and the live region says "Actionable"
+            setMode('navigation');
+            cellEl.focus();
+          } else {
+            // The originating row is gone (the overlay's filter excluded it) — land on the header cell
+            // of the same column so navigation continues from a live coordinate.
+            interactionSourceRef.current = 'keyboard';
+            applySelection(HEADER_ROW_ID, headerColumnIdFor(table.getVisibleLeafColumns(), cell.columnId), false);
+          }
         }
       });
+    };
+
+    // When focus moves into such an overlay, remember the active cell so we can restore it on close.
+    const handleFocusIn = (event: FocusEvent) => {
+      const target = event.target as HTMLElement | null;
+      const overlay = target?.closest?.(GRID_OVERLAY_SELECTOR);
+      const root = getRootElement();
+      if (overlay && (!root || !overlay.contains(root)) && activeCellRef.current) {
+        pendingReturnFocusCellRef.current = activeCellRef.current;
+        return;
+      }
+      // Focus landed OUTSIDE any overlay while a return is armed. When an overlay unmounts with focus
+      // still inside it, the browser fires no focusout for the removed node — the overlay's own
+      // returnFocus then lands on the trigger and this focusin is the only close signal we get.
+      scheduleReturnFocusCheck();
+    };
+
+    const handleFocusOut = () => {
+      scheduleReturnFocusCheck();
     };
 
     document.addEventListener('focusin', handleFocusIn);
@@ -514,7 +597,7 @@ export function useGridKeyboardNavigation<TRow extends object>({
       document.removeEventListener('focusin', handleFocusIn);
       document.removeEventListener('focusout', handleFocusOut);
     };
-  }, [getCellElement, getRootElement]);
+  }, [applySelection, getCellElement, getRootElement, table]);
 
   const handleRootFocus = useCallback(
     (event: ReactFocusEvent<HTMLElement>) => {
@@ -526,9 +609,16 @@ export function useGridKeyboardNavigation<TRow extends object>({
       }
       const rows = table.getRowModel().rows;
       const columns = table.getVisibleLeafColumns();
-      if (rows.length && columns.length) {
-        interactionSourceRef.current = 'keyboard';
+      if (!columns.length) {
+        return;
+      }
+      interactionSourceRef.current = 'keyboard';
+      if (rows.length) {
         applySelection(rows[0].id, columns[0].id, false);
+      } else {
+        // Empty body (e.g. a filter excluded every row): seed the header row instead — the column
+        // filters are the only interactive surface left and must stay keyboard-reachable.
+        applySelection(HEADER_ROW_ID, columns[0].id, false);
       }
     },
     [activeCell, table, applySelection],
@@ -726,21 +816,30 @@ export function useGridKeyboardNavigation<TRow extends object>({
 
   const handleKeyDown = useCallback(
     (event: ReactKeyboardEvent) => {
+      // React synthetic events bubble through PORTALS following the React tree, so keys pressed
+      // inside an overlay a cell renderer opened (record lookup popover) arrive here even though
+      // the overlay's DOM lives outside the grid. Those keys belong to the overlay — handling them
+      // as grid navigation re-activated the cell's control and toggle-closed the popover mid-press.
+      const rootElement = getRootElement();
+      if (rootElement && event.target instanceof Node && !rootElement.contains(event.target)) {
+        return;
+      }
       const rows = table.getRowModel().rows;
       const columns = table.getVisibleLeafColumns();
-      if (!rows.length || !columns.length) {
+      if (!columns.length) {
         return;
       }
       interactionSourceRef.current = 'keyboard';
 
-      const current: ActiveCell = activeCell ?? { rowId: rows[0].id, columnId: columns[0].id };
+      // Null only while the body is empty — the empty-body branch below returns before it is used.
+      const current: ActiveCell | null = activeCell ?? (rows.length ? { rowId: rows[0].id, columnId: columns[0].id } : null);
       const rowIndex = Math.max(
         0,
-        rows.findIndex((row) => row.id === current.rowId),
+        rows.findIndex((row) => row.id === current?.rowId),
       );
       const colIndex = Math.max(
         0,
-        columns.findIndex((column) => column.id === current.columnId),
+        columns.findIndex((column) => column.id === current?.columnId),
       );
       const ctrlOrMeta = event.ctrlKey || event.metaKey;
       const extend = event.shiftKey;
@@ -768,6 +867,17 @@ export function useGridKeyboardNavigation<TRow extends object>({
           }
           return;
         }
+        // A text-entry control owns its arrow keys (caret movement) and Up/Down (textarea lines, select
+        // options): from one of those only Tab/Shift+Tab cycle the cell's controls. Everything else is
+        // left to the control, otherwise ArrowLeft in a summary-row filter input yanked focus back to the cell.
+        const activeIsTextEntry =
+          document.activeElement instanceof HTMLElement &&
+          document.activeElement.matches(
+            'input:not([type="checkbox"]):not([type="radio"]):not([type="button"]), textarea, select, [contenteditable="true"]',
+          );
+        if (activeIsTextEntry && event.key !== 'Tab') {
+          return;
+        }
         const forward = event.key === 'Tab' ? !event.shiftKey : event.key === 'ArrowRight';
         const backward = event.key === 'Tab' ? event.shiftKey : event.key === 'ArrowLeft';
         if (forward || backward) {
@@ -783,6 +893,12 @@ export function useGridKeyboardNavigation<TRow extends object>({
             );
             const nextIndex = (currentIndex + (backward ? -1 : 1) + controls.length) % controls.length;
             controls[nextIndex].focus();
+          } else {
+            // A lone control (e.g. a summary-row filter input) has nothing to cycle to — treat Tab
+            // like Escape and return to the cell so focus stays inside the grid instead of exiting it.
+            consume();
+            setMode('navigation');
+            cellEl?.focus();
           }
           return;
         }
@@ -820,22 +936,27 @@ export function useGridKeyboardNavigation<TRow extends object>({
           case 'ArrowUp':
             consume();
             break;
+          // Header cells honor HEADER colSpans (e.g. a profile-name group header spanning its
+          // Read/Edit sub-columns) — arrows step between RENDERED cells, not underlying tracks,
+          // otherwise a spanned header needs one press per covered column to cross.
           case 'ArrowRight':
             consume();
-            applySelection(HEADER_ROW_ID, columns[clamp(headerColIndex + 1, 0, columns.length - 1)].id, false);
+            applySelection(HEADER_ROW_ID, columns[stepSegment(getHeaderSegmentStarts(columns), headerColIndex, 1)].id, false);
             break;
           case 'ArrowLeft':
             consume();
-            applySelection(HEADER_ROW_ID, columns[clamp(headerColIndex - 1, 0, columns.length - 1)].id, false);
+            applySelection(HEADER_ROW_ID, columns[stepSegment(getHeaderSegmentStarts(columns), headerColIndex, -1)].id, false);
             break;
           case 'Home':
             consume();
             applySelection(HEADER_ROW_ID, columns[0].id, false);
             break;
-          case 'End':
+          case 'End': {
             consume();
-            applySelection(HEADER_ROW_ID, columns[columns.length - 1].id, false);
+            const headerStarts = getHeaderSegmentStarts(columns);
+            applySelection(HEADER_ROW_ID, columns[headerStarts[headerStarts.length - 1]].id, false);
             break;
+          }
           case 'Enter':
           case 'F2':
             // Let Cmd/Ctrl+Enter bubble to app-level handlers (e.g. save).
@@ -898,7 +1019,7 @@ export function useGridKeyboardNavigation<TRow extends object>({
             if (summaryIndex > 0) {
               applySelection(getSummaryRowId(summaryIndex - 1), columns[summaryColIndex].id, false, true);
             } else {
-              applySelection(HEADER_ROW_ID, columns[summaryColIndex].id, false, true);
+              applySelection(HEADER_ROW_ID, headerColumnIdFor(columns, columns[summaryColIndex].id), false, true);
             }
             break;
           case 'Escape':
@@ -922,6 +1043,61 @@ export function useGridKeyboardNavigation<TRow extends object>({
         return;
       }
 
+      // ── Empty body (a filter excluded every row, or no data has loaded) ──
+      // The header and summary rows are the only live surface left — route navigation keys there so
+      // the column filters stay reachable and the user can broaden the filter again. Without this the
+      // grid went completely dead (every key returned early) the moment a filter matched zero rows.
+      if (!rows.length || !current) {
+        switch (event.key) {
+          case 'ArrowUp':
+          case 'ArrowDown':
+          case 'ArrowLeft':
+          case 'ArrowRight':
+          case 'Home':
+          case 'End':
+          case 'PageUp':
+          case 'PageDown': {
+            consume();
+            // Keep the column when the active cell references a row the filter just removed.
+            const columnId = current && columns.some((column) => column.id === current.columnId) ? current.columnId : columns[0].id;
+            applySelection(
+              summaryRowCount > 0 ? getSummaryRowId(summaryRowCount - 1) : HEADER_ROW_ID,
+              summaryRowCount > 0 ? columnId : headerColumnIdFor(columns, columnId),
+              false,
+            );
+            break;
+          }
+          default:
+            break;
+        }
+        return;
+      }
+
+      // A cell marked for inner-widget focus (data-grid-inner-focus) keeps NATIVE activation: focus
+      // sits on the widget itself, so Enter/Space fire its click through the browser — the grid must
+      // neither consume the key (that would block the native click) nor also activate the cell
+      // (that would double-fire the action).
+      if ((event.key === 'Enter' || event.key === ' ') && !ctrlOrMeta && event.target instanceof HTMLElement) {
+        const innerFocusControl = event.target.closest('[data-grid-inner-focus]');
+        if (innerFocusControl) {
+          // A focusable-but-not-activatable target (a tooltip trigger span) has no native Space action, so
+          // the browser would scroll the virtualized body — swallow it (the target's own keydown ran first).
+          const nativelyActivatable = innerFocusControl.matches('button, a[href], input, select, textarea, summary');
+          if (!nativelyActivatable) {
+            if (event.key === ' ') {
+              consume();
+            }
+            return;
+          }
+          // Space activates every control natively; Enter is native for buttons/links but a NO-OP on
+          // checkboxes — for those, fall through so the grid's activate path clicks the checkbox.
+          const enterIsNative = !(innerFocusControl instanceof HTMLInputElement && innerFocusControl.type === 'checkbox');
+          if (event.key === ' ' || enterIsNative) {
+            return;
+          }
+        }
+      }
+
       // ── Navigation mode ──
       // Vertical moves target the sticky desired column (not the possibly-snapped current column), so
       // passing through a group header or a spanned "no rows" row doesn't drag the user sideways.
@@ -937,7 +1113,12 @@ export function useGridKeyboardNavigation<TRow extends object>({
           // otherwise the column header row — so the keyboard can reach both. A range-extend (Shift)
           // stays in the body.
           if (rowIndex === 0 && !extend) {
-            applySelection(summaryRowCount > 0 ? getSummaryRowId(summaryRowCount - 1) : HEADER_ROW_ID, columns[desiredCol].id, false, true);
+            applySelection(
+              summaryRowCount > 0 ? getSummaryRowId(summaryRowCount - 1) : HEADER_ROW_ID,
+              summaryRowCount > 0 ? columns[desiredCol].id : headerColumnIdFor(columns, columns[desiredCol].id),
+              false,
+              true,
+            );
           } else {
             moveTo(rowIndex - 1, desiredCol, extend, true);
           }
@@ -955,7 +1136,10 @@ export function useGridKeyboardNavigation<TRow extends object>({
             // Tree (real data row with children): Right expands a collapsed row.
             currentRow.toggleExpanded();
           } else {
-            moveTo(rowIndex, colIndex + 1, extend);
+            // Segment-aware: from a cell that spans several columns (e.g. a full-width message row),
+            // +1 lands inside the same span and snaps back to its owner — step to the next rendered
+            // cell instead. Rows without spans get plain +1 (every column is a segment start).
+            moveTo(rowIndex, currentRow ? stepSegment(getRowSegmentStarts(currentRow, columns), colIndex, 1) : colIndex + 1, extend);
           }
           break;
         }
@@ -976,7 +1160,7 @@ export function useGridKeyboardNavigation<TRow extends object>({
             const parentIndex = parent ? rows.findIndex((row) => row.id === parent.id) : -1;
             moveTo(parentIndex >= 0 ? parentIndex : rowIndex, parentIndex >= 0 ? colIndex : colIndex - 1, extend);
           } else {
-            moveTo(rowIndex, colIndex - 1, extend);
+            moveTo(rowIndex, currentRow ? stepSegment(getRowSegmentStarts(currentRow, columns), colIndex, -1) : colIndex - 1, extend);
           }
           break;
         }
@@ -1100,6 +1284,7 @@ export function useGridKeyboardNavigation<TRow extends object>({
       onUndo,
       onRedo,
       onClearSelection,
+      getRootElement,
     ],
   );
 

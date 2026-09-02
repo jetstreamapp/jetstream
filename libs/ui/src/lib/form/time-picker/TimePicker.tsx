@@ -1,16 +1,11 @@
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ListItem } from '@jetstream/types';
 import { addMinutes } from 'date-fns/addMinutes';
 import { formatDate } from 'date-fns/format';
 import { isSameDay } from 'date-fns/isSameDay';
 import { parse as parseDate } from 'date-fns/parse';
-import { FunctionComponent, useState } from 'react';
-import Picklist, { PicklistProps } from '../picklist/Picklist';
-
-type PicklistPropsWithoutItems = Omit<
-  PicklistProps,
-  'items' | 'groups' | 'selectedItems' | 'selectedItemIds' | 'multiSelection' | 'omitMultiSelectPills' | 'onChange'
->;
+import { FunctionComponent, useMemo } from 'react';
+import { ComboboxSharedProps } from '../combobox/Combobox';
+import { ComboboxWithItems } from '../combobox/ComboboxWithItems';
 
 // cache to improve costly re-calculations
 const GENERATED_TIME = new Map<number, ListItem[]>();
@@ -61,10 +56,10 @@ function normalizeInitialTime(time: string, stepInMinutes: number) {
           min = 0;
         }
       } else {
-        min = min + remainder;
-        if (min > 60) {
+        min = min + (stepInMinutes - remainder);
+        if (min >= 60) {
           min = 0;
-          hour++;
+          hour = (hour + 1) % 24;
         }
       }
     }
@@ -75,37 +70,45 @@ function normalizeInitialTime(time: string, stepInMinutes: number) {
   }
 }
 
-export interface TimePickerProps extends PicklistPropsWithoutItems {
+export interface TimePickerProps extends Omit<ComboboxSharedProps, 'onClear' | 'onClose'> {
+  /** Applied to the combobox input, so external `htmlFor`/test selectors keep working */
+  id?: string;
   stepInMinutes?: number;
   // Selected item is time formatted as "00:00:00.000"
-  selectedItem?: string | null; // This only applies on initialization, then the component will manage ongoing state
+  selectedItem?: string | null;
   onChange: (selectedItem: string | null) => void;
 }
 
-export const TimePicker: FunctionComponent<TimePickerProps> = (props) => {
-  const { stepInMinutes = 15, selectedItem: initSelectedItem, placeholder = 'Select a time', onChange } = props;
-
-  const [items, setItems] = useState(() => generateTimeListItems(stepInMinutes));
-  const [initialSelectedItemIds] = useState(() => (initSelectedItem ? [normalizeInitialTime(initSelectedItem, stepInMinutes)] : undefined));
-
-  useNonInitialEffect(() => setItems(generateTimeListItems(stepInMinutes)), [stepInMinutes]);
-
-  function handleChange(selectedItems: ListItem[]) {
-    if (Array.isArray(selectedItems) && selectedItems.length > 0) {
-      onChange(selectedItems[0].value);
-    } else {
-      onChange(null);
-    }
-  }
+/**
+ * Combobox of generated time options: the user can type to filter (e.g. "9:30" or "930") and press
+ * Enter or pick from the list. Replaces the earlier select-only Picklist implementation, which was
+ * unusable by typing and painful at small step sizes (stepInMinutes=1 renders 1,440 options).
+ */
+export const TimePicker: FunctionComponent<TimePickerProps> = ({
+  id,
+  stepInMinutes = 15,
+  selectedItem,
+  placeholder = 'Select a time',
+  onChange,
+  ...comboboxProps
+}) => {
+  const items = useMemo(() => generateTimeListItems(stepInMinutes), [stepInMinutes]);
+  const selectedItemId = selectedItem ? normalizeInitialTime(selectedItem, stepInMinutes) : null;
 
   return (
-    <Picklist
-      {...props}
-      placeholder={placeholder}
-      dropdownIcon="clock"
+    <ComboboxWithItems
+      comboboxProps={{
+        ...comboboxProps,
+        inputProps: id ? { ...comboboxProps.inputProps, id } : comboboxProps.inputProps,
+        placeholder,
+        // The old Picklist implementation deselected on re-click (allowDeselection); the combobox
+        // equivalent is an explicit clear button, without which a chosen time could never be unset
+        showClearButton: true,
+        onClear: () => onChange(null),
+      }}
       items={items}
-      selectedItemIds={initialSelectedItemIds}
-      onChange={handleChange}
+      selectedItemId={selectedItemId}
+      onSelected={(item) => onChange(item.id)}
     />
   );
 };

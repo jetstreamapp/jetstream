@@ -164,7 +164,14 @@ export const QueryWhereIsThisUsed = ({ org, sobject, field }: QueryWhereIsThisUs
             </div>
           )}
           <div className="slds-hint-parent">
-            <button className="slds-button slds-button_icon" title="Where is this field used?" onClick={handleOpen}>
+            <button
+              className="slds-button slds-button_icon"
+              title="Where is this field used?"
+              // Out of the page tab order — reached with ArrowRight from the row checkbox (List's
+              // row-local navigation); one of these per field would otherwise flood the tab order
+              tabIndex={-1}
+              onClick={handleOpen}
+            >
               <Icon type="utility" icon="strategy" omitContainer className="slds-button__icon slds-button__icon_hint" />
             </button>
           </div>

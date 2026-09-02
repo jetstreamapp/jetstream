@@ -3,7 +3,7 @@ import { clearCacheForOrg, describeSObject } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { DescribeSObjectResult, ListItem, Maybe, PicklistFieldValues, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
-import { Card, ComboboxWithItems, Grid, Icon, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
+import { AssistiveStatus, Card, ComboboxWithItems, Grid, Icon, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
 import { formatRelative } from 'date-fns/formatRelative';
 import { Fragment, FunctionComponent, useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { PlatformEventObject } from './platform-event-monitor.types';
@@ -137,6 +137,15 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
     setPublishKey((key) => key + 1);
   }
 
+  // The publish outcome renders as a static notification, which screen readers do not announce
+  const publishStatusMessage = publishLoading
+    ? 'Publishing event'
+    : publishEventResponse
+      ? publishEventResponse.success
+        ? `Event published. Event Id: ${publishEventResponse.eventId}`
+        : `There was an error publishing your event: ${publishEventResponse.errorMessage}`
+      : '';
+
   return (
     <Card
       testId="platform-event-monitor-publisher-card"
@@ -155,6 +164,7 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
       }
     >
       {(loadingPlatformEvents || sobjectDescribeLoading) && <Spinner />}
+      <AssistiveStatus debounceMs={300} message={publishStatusMessage} />
       <Grid vertical>
         <Grid verticalAlign="end">
           <div className="slds-grow">
@@ -222,7 +232,13 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
                       disabled={loadingPlatformEvents}
                       onClick={() => fetchSobjectDescribe(true)}
                     >
-                      <Icon type="utility" icon="refresh" className="slds-button__icon" omitContainer />
+                      <Icon
+                        type="utility"
+                        icon="refresh"
+                        description="Reload platform events"
+                        className="slds-button__icon"
+                        omitContainer
+                      />
                     </button>
                   </Tooltip>
                 </div>

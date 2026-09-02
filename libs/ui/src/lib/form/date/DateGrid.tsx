@@ -77,6 +77,8 @@ function getSelectedDates(dateGrid: DateGridDate[][]): DateGridSelection {
 }
 
 export interface DateGridProps {
+  /** id of the visible month/year heading that names the grid */
+  labelledById: string;
   minYear: number;
   maxYear: number;
   minAvailableDate?: Date;
@@ -95,6 +97,7 @@ export interface DateGridProps {
 }
 
 export const DateGrid: FunctionComponent<DateGridProps> = ({
+  labelledById,
   minYear,
   maxYear,
   minAvailableDate,
@@ -113,6 +116,12 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
   const lastFocusedElement = useRef<HTMLElement>(null);
   const [dateGrid, setDateGrid] = useState<DateGridDate[][]>([]);
   const elRefs = useRef<RefObject<HTMLTableCellElement | null>[][]>([]);
+  // Roving tabindex: the cell that last had focus is the grid's single tab stop, so Tab out and back
+  // (and the popup's Tab trap, which looks for tabindex="0") returns to where the user was. Reset
+  // whenever the grid is rebuilt for another month; until a cell is focused, the initial-focus
+  // candidate (selected → today → first of month) is the tab stop. Unavailable days stay reachable
+  // with the arrow keys (tabindex -1) and are announced as disabled rather than being skipped.
+  const [focusedCell, setFocusedCell] = useState<{ week: number; day: number } | null>(null);
 
   if (elRefs.current.length !== dateGrid.length) {
     const refs: RefObject<HTMLTableCellElement | null>[][] = [];
@@ -200,6 +209,7 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
       currDate = addDays(currDate, 1);
     }
     setDateGrid(grid);
+    setFocusedCell(null);
   }, [selectedDate, currMonth, currYear, minAvailableDate, maxAvailableDate, minYear, maxYear]);
 
   function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
@@ -306,8 +316,11 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
     }
   }
 
+  const { selectedIdx, todayIdx, firstOfMonthIdx } = getSelectedDates(dateGrid);
+  const rovingCell = focusedCell ?? selectedIdx ?? todayIdx ?? firstOfMonthIdx;
+
   return (
-    <table aria-labelledby="datepicker-month" aria-multiselectable="true" className="slds-datepicker__month" role="grid">
+    <table aria-labelledby={labelledById} className="slds-datepicker__month" role="grid">
       <thead>
         <tr id="datepicker-weekdays">
           <th id="datepicker-Sunday" scope="col">
@@ -352,7 +365,8 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
                     ${day.readOnly && `cursor: not-allowed`}
                   `}
                   aria-disabled={day.readOnly}
-                  tabIndex={day.readOnly ? undefined : day.label === 1 && day.isCurrMonth ? 0 : -1}
+                  tabIndex={rovingCell?.week === i && rovingCell?.day === k ? 0 : -1}
+                  onFocus={() => setFocusedCell({ week: i, day: k })}
                   onClick={() => !day.readOnly && onSelected(day.value)}
                   onKeyDown={handleKeyDown}
                   onKeyUp={(event) => handleKeyUp(day, i, k, event)}

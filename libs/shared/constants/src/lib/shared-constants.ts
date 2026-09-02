@@ -443,6 +443,7 @@ export const TITLES = {
   PLATFORM_EVENTS: 'Platform Events | Jetstream',
   PROFILE: 'Profile | Jetstream',
   QUERY: 'Query | Jetstream',
+  RECORD_TYPE_MANAGER: 'Record Type Picklist Manager | Jetstream',
   SETTINGS: 'Settings | Jetstream',
   TEAM: 'Team Dashboard | Jetstream',
 };

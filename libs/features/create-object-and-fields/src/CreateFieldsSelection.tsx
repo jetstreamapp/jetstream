@@ -18,6 +18,7 @@ import {
   ProfileOrPermSetPopover,
   ProfileOrPermSetRecordType,
   Tooltip,
+  getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, filterCreateFieldsSobjects } from '@jetstream/ui-core';
@@ -46,6 +47,7 @@ export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps
       serverUrl={serverUrl}
       skipFrontDoorAuth={skipFrontDoorAuth}
       recordId={item.id}
+      buttonTitle={`View details for ${item.label}`}
       recordType={recordType}
       meta={item.meta as PermissionSetWithProfileRecord | PermissionSetNoProfileRecord | undefined}
     />
@@ -125,7 +127,12 @@ export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps
                   </div>
                 }
               >
-                <Link className="slds-button slds-button_brand" to="configurator" onClick={handleContinue}>
+                <Link
+                  className="slds-button slds-button_brand"
+                  aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                  to="configurator"
+                  onClick={handleContinue}
+                >
                   Continue
                   <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
                 </Link>

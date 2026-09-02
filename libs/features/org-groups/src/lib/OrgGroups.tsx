@@ -30,7 +30,8 @@ import { AddOrg, useAmplitude, useUpdateOrgs } from '@jetstream/ui-core';
 import { fromAppState, getRecentlySelectedOrgForGroup } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import { ORG_GROUP_DRAG_PLUGINS } from './org-group-drag-announcements';
 import { DraggableSfdcCard, SfdcCardDropTarget } from './organization-group.types';
 import OrgGroupCardCard from './OrgGroupCard';
 import { OrgGroupCardNoOrganization } from './OrgGroupCardNoOrganization';
@@ -50,6 +51,9 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
   const [groups, setGroups] = useAtom(fromAppState.orgGroupsWithOrgsSelector);
   const setSelectedOrgGroup = useSetAtom(fromAppState.ActiveOrgGroupState);
   const [modalState, setModalState] = useState<{ open: boolean; organization?: Maybe<OrgGroupWithOrgs> }>({ open: false });
+  // Deleting a group unmounts its card along with the menu that opened the confirmation, and deleting the last
+  // org unmounts the org actions menu - so those flows hand focus to this always-present control instead of <body>
+  const createGroupButtonRef = useRef<HTMLButtonElement>(null);
 
   const { handleAddOrg } = useUpdateOrgs();
 
@@ -163,18 +167,32 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
         content: 'Any Salesforce Orgs will be removed from this organization but will not be deleted.',
       })
     ) {
-      await deleteOrgGroup(organization.id);
-      setOrgGroupsFromDb(getOrgGroups());
-      setOrgs(
-        allOrgs.map((org) => {
-          if (org.jetstreamOrganizationId !== organization.id) {
-            return org;
-          }
-          return { ...org, jetstreamOrganizationId: null };
-        }),
-      );
-      handleCloseOrganizationModal();
-      trackEvent(ANALYTICS_KEYS.organizations_deleted, { priorCount: groups.length });
+      try {
+        await deleteOrgGroup(organization.id);
+        setOrgGroupsFromDb(getOrgGroups());
+        setOrgs(
+          allOrgs.map((org) => {
+            if (org.jetstreamOrganizationId !== organization.id) {
+              return org;
+            }
+            return { ...org, jetstreamOrganizationId: null };
+          }),
+        );
+        handleCloseOrganizationModal();
+        createGroupButtonRef.current?.focus();
+        trackEvent(ANALYTICS_KEYS.organizations_deleted, { priorCount: groups.length });
+        fireToast({
+          message: `Organization "${organization.name}" deleted successfully`,
+          type: 'success',
+        });
+      } catch (ex) {
+        tracker.error('Org Group: Error deleting group', ex);
+        logger.error('Org Group: Error deleting group', ex);
+        fireToast({
+          message: `Failed to delete group. Please try again.`,
+          type: 'error',
+        });
+      }
     }
   };
 
@@ -205,6 +223,7 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
         // Remove deleted orgs from state
         setOrgs(allOrgs.filter((org) => org.jetstreamOrganizationId !== organization.id));
         handleCloseOrganizationModal();
+        createGroupButtonRef.current?.focus();
         trackEvent(ANALYTICS_KEYS.organizations_deleted_with_orgs, {
           priorCount: groups.length,
           deletedOrgCount: organization.orgs.length,
@@ -277,6 +296,9 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
     setOrgGroupsFromDb(getOrgGroups());
     const refreshedOrgs = await getOrgs();
     setOrgs(refreshedOrgs);
+    if (refreshedOrgs.length === 0) {
+      createGroupButtonRef.current?.focus();
+    }
   };
 
   return (
@@ -298,6 +320,7 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
             />
             {allOrgs.length > 0 && <RefreshAllOrgsButton className="slds-button_middle" orgs={allOrgs} />}
             <button
+              ref={createGroupButtonRef}
               className={classNames('slds-button slds-button_brand', { 'slds-button_last': allOrgs.length === 0 })}
               onClick={() => handleOpenCreateOrganizationModal()}
             >
@@ -320,7 +343,7 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
       <AutoFullHeightContainer bottomBuffer={5} className="slds-p-around_medium">
         <p>Drag and drop to move Salesforce Orgs between groups.</p>
         <p>Tip: To delete multiple Salesforce Orgs, add them to a group and choose the option to delete the group along with the orgs.</p>
-        <DragDropProvider onDragEnd={handleDragEnd}>
+        <DragDropProvider plugins={ORG_GROUP_DRAG_PLUGINS} onDragEnd={handleDragEnd}>
           <Grid vertical>
             {groups.map((organization) => (
               <div key={organization.id} className="slds-m-top_x-small">

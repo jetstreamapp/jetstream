@@ -5,8 +5,10 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import classNames from 'classnames';
 import { CSSProperties, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ContextMenu } from '../../../form/context-menu/ContextMenu';
+import { FILTER_COUNT_ANNOUNCE_DEBOUNCE_MS } from '../../../widgets/AssistiveStatus';
 import { EditorHost } from '../editors/EditorHost';
 import { computeEdgeScrollVelocity, createEdgeAutoScroller } from '../grid-auto-scroll';
+import { CELL_HINT_KINDS, CELL_HINT_TEXT, getCellHintId } from '../grid-cell-hints';
 import { copyGridDataToClipboard, copyGridGroupRowsToClipboard, GridCopyResult } from '../grid-clipboard';
 import { reorderColumnOrder } from '../grid-column-utils';
 import { HEADER_ROW_ID, isSummaryRowId, NON_DATA_COLUMN_KEYS, TABLE_CONTEXT_MENU_ITEMS } from '../grid-constants';
@@ -35,7 +37,8 @@ import {
   RowWithKey,
   TanstackTable,
 } from '../grid-types';
-import { useGridKeyboardNavigation } from '../keyboard/useGridKeyboardNavigation';
+import { GRID_OVERLAY_SELECTOR, useGridKeyboardNavigation } from '../keyboard/useGridKeyboardNavigation';
+import { useGridTabOrderContainment } from '../keyboard/useGridTabOrderContainment';
 import { getActiveRangeRect, getSelectionBounds, hasMultiCellSelection } from '../selection/grid-selection';
 import { GridBody, RowHeightFn } from './GridBody';
 import { GridHeader } from './GridHeader';
@@ -159,9 +162,10 @@ export function GridContainer<TRow extends object = RowWithKey>({
     if (editingCellRef.current || contextMenuRef.current) {
       return true;
     }
-    // A popover/modal opened from a cell (via Space/Enter or click) moves focus into its portaled panel;
-    // keep the active cell so closing the overlay returns to a live grid coordinate.
-    return relatedTarget instanceof HTMLElement && !!relatedTarget.closest('.jgrid-editor, .slds-popover, .slds-modal');
+    // A popover/modal/dropdown menu opened from a cell (via Space/Enter or click) moves focus into its
+    // portaled panel; keep the active cell so closing the overlay returns to a live grid coordinate.
+    // `.jgrid-editor` (the in-grid popup editor) is specific to this blur guard.
+    return relatedTarget instanceof HTMLElement && !!relatedTarget.closest(`.jgrid-editor, ${GRID_OVERLAY_SELECTOR}`);
   }, []);
 
   // Paste/clear eligibility: `editable` alone (no `renderEditCell` required). Checkbox-style tables
@@ -282,6 +286,9 @@ export function GridContainer<TRow extends object = RowWithKey>({
     onClearSelection: onPaste ? stableClearSelection : undefined,
   });
 
+  // The grid is a single page tab stop — strip consumer-rendered in-cell controls from the tab order.
+  useGridTabOrderContainment(useCallback(() => gridRef.current, []));
+
   // Announce the matching row count after the filter set changes (the filtered model is pre-grouping, so
   // this counts data rows and isn't perturbed by expanding/collapsing groups or sorting). Skips the
   // initial render so the grid doesn't announce on mount.
@@ -293,10 +300,17 @@ export function GridContainer<TRow extends object = RowWithKey>({
   const filteredRowCount = table.getFilteredRowModel().rows.length;
   const previousFilteredRowCountRef = useRef<number | null>(null);
   useEffect(() => {
-    if (previousFilteredRowCountRef.current !== null && previousFilteredRowCountRef.current !== filteredRowCount) {
-      announce(`${filteredRowCount} ${filteredRowCount === 1 ? 'row' : 'rows'}`);
-    }
+    const previousCount = previousFilteredRowCountRef.current;
     previousFilteredRowCountRef.current = filteredRowCount;
+    if (previousCount === null || previousCount === filteredRowCount) {
+      return;
+    }
+    // Debounced: quick-filter typing changes the count every keystroke, and screen readers drop
+    // polite live-region churn during typing — announce once after the count settles
+    const timeout = window.setTimeout(() => {
+      announce(`${filteredRowCount} ${filteredRowCount === 1 ? 'row' : 'rows'}`);
+    }, FILTER_COUNT_ANNOUNCE_DEBOUNCE_MS);
+    return () => window.clearTimeout(timeout);
   }, [filteredRowCount, announce]);
 
   const leafColumns = table.getVisibleLeafColumns();
@@ -501,6 +515,10 @@ export function GridContainer<TRow extends object = RowWithKey>({
   const handleDomPaste = useCallback(
     (event: React.ClipboardEvent) => {
       if (!onPaste || !activeCell || editingCell) {
+        return;
+      }
+      // A text-entry control inside a cell (a summary-row filter input) owns its own paste
+      if (event.target instanceof HTMLElement && event.target.matches('input, textarea, [contenteditable="true"]')) {
         return;
       }
       const text = event.clipboardData?.getData('text/plain') ?? '';
@@ -844,7 +862,8 @@ export function GridContainer<TRow extends object = RowWithKey>({
             role={role}
             data-id={gridId}
             aria-label={ariaLabel || 'Data table'}
-            aria-rowcount={rowCount + 1 + (summaryRows?.length ?? 0)}
+            // Header + summary rows + body rows; with no data the "No data available" placeholder is a row
+            aria-rowcount={Math.max(rowCount, 1) + 1 + (summaryRows?.length ?? 0)}
             aria-colcount={leafColumns.length}
             aria-multiselectable={table.options.enableRowSelection ? true : undefined}
             className="jgrid"
@@ -873,6 +892,7 @@ export function GridContainer<TRow extends object = RowWithKey>({
             />
             <GridBody
               table={table}
+              treeGrid={role === 'treegrid'}
               scrollRef={scrollRef}
               gridTemplateColumns={gridTemplateColumns}
               visibleColumnIndexes={visibleColumnIndexes}
@@ -883,6 +903,7 @@ export function GridContainer<TRow extends object = RowWithKey>({
               mode={keyboardNav.mode}
               getLastInteractionSource={keyboardNav.getLastInteractionSource}
               editingCell={editingCell}
+              gridId={gridId}
               selectionBounds={selectionBounds}
               onCellMouseDown={keyboardNav.handleCellMouseDown}
               onCellMouseEnter={keyboardNav.handleCellMouseEnter}
@@ -895,6 +916,13 @@ export function GridContainer<TRow extends object = RowWithKey>({
             />
           </div>
         </div>
+
+        {/* Keyboard hints for the focused cell — GridBody points the cell's aria-describedby at one of these. */}
+        {CELL_HINT_KINDS.map((kind) => (
+          <span key={kind} id={getCellHintId(gridId, kind)} className="slds-assistive-text">
+            {CELL_HINT_TEXT[kind]}
+          </span>
+        ))}
 
         {/* Screen-reader announcement of the current navigation/actionable mode. */}
         <span className="slds-assistive-text" aria-live="polite">

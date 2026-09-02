@@ -1,13 +1,15 @@
-import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { HorizontalVertical, UiTabSection } from '@jetstream/types';
 import classNames from 'classnames';
 import React, { ReactNode, forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
+import ShowingCountStatus from '../widgets/ShowingCountStatus';
 import Tab from './Tab';
 
 export interface TabsRef {
   changeTab: (id: string) => void;
+  /** Move keyboard focus to a tab by id — e.g. when the control the user activated unmounts */
+  focusTab: (id: string) => void;
 }
 
 export interface TabsProps {
@@ -27,6 +29,8 @@ export interface TabsProps {
    * must survive tab switches (e.g. in-progress network requests, accumulated results).
    */
   renderAllContent?: boolean;
+  /** Set false when the tab bar scrolls horizontally — labels keep full width and the bar scrolls */
+  truncateLabels?: boolean;
   onFilterValueChange?: (value: string) => void;
   onChange?: (activeId: string) => void;
   children?: ReactNode;
@@ -46,6 +50,7 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
       ulStyle,
       emptyState = <h3 className="slds-text-heading_medium slds-m-around_medium">Select an item to continue</h3>,
       renderAllContent = false,
+      truncateLabels,
       onFilterValueChange,
       onChange,
       children,
@@ -68,11 +73,17 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
       () => (filterValue ? tabs.filter(multiWordObjectFilter(['titleText', 'title', 'id'], filterValue)) : tabs),
       [tabs, filterValue],
     );
+    // The roving tab stop must be a RENDERED tab: when the vertical filter hides the active tab, fall
+    // back to the first visible one so the tablist stays reachable with Tab
+    const rovingTabId = filteredTabs.some((tab) => tab.id === activeId) ? activeId : filteredTabs[0]?.id;
 
     useImperativeHandle<TabsRef, TabsRef>(ref, () => ({
       changeTab: (id: string) => {
         setActiveId(id);
         onChange?.(id);
+      },
+      focusTab: (id: string) => {
+        document.getElementById(`tab-${id}`)?.focus();
       },
     }));
 
@@ -89,6 +100,37 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
       if (onChange) {
         onChange(tab.id);
       }
+    }
+
+    // WAI-ARIA tabs pattern: arrow keys (orientation-aware) plus Home/End move between tabs with
+    // automatic activation. Guarded to events from the tabs themselves so the vertical filter
+    // input's cursor keys are unaffected.
+    function handleTabListKeyDown(event: React.KeyboardEvent<HTMLUListElement>) {
+      const target = event.target as HTMLElement;
+      if (target.getAttribute('role') !== 'tab' || filteredTabs.length === 0) {
+        return;
+      }
+      const previousKey = position === 'vertical' ? 'ArrowUp' : 'ArrowLeft';
+      const nextKey = position === 'vertical' ? 'ArrowDown' : 'ArrowRight';
+      const currentIndex = filteredTabs.findIndex((tab) => tab.id === activeId);
+      let nextIndex: number | null = null;
+      if (event.key === previousKey) {
+        nextIndex = currentIndex <= 0 ? filteredTabs.length - 1 : currentIndex - 1;
+      } else if (event.key === nextKey) {
+        nextIndex = currentIndex >= filteredTabs.length - 1 ? 0 : currentIndex + 1;
+      } else if (event.key === 'Home') {
+        nextIndex = 0;
+      } else if (event.key === 'End') {
+        nextIndex = filteredTabs.length - 1;
+      }
+      if (nextIndex === null) {
+        return;
+      }
+      event.preventDefault();
+      const nextTab = filteredTabs[nextIndex];
+      setActiveId(nextTab.id);
+      onChange?.(nextTab.id);
+      document.getElementById(`tab-${nextTab.id}`)?.focus();
     }
 
     function getContent() {
@@ -154,6 +196,7 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
           role="tablist"
           aria-orientation={position}
           style={ulStyle}
+          onKeyDown={handleTabListKeyDown}
         >
           {children}
           {filterVisible && position === 'vertical' && (
@@ -165,9 +208,7 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
                 onChange={handleFilterChange}
                 // onArrowKeyUpDown={handleSearchKeyboard}
               />
-              <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-                Showing {formatNumber(filteredTabs.length)} of {formatNumber(tabs.length)} items
-              </div>
+              <ShowingCountStatus filteredCount={filteredTabs.length} totalCount={tabs.length} noun="items" />
             </div>
           )}
           {filteredTabs.map((tab) => (
@@ -175,7 +216,9 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
               key={tab.id}
               tab={tab}
               isHorizontal={isHorizontal}
+              truncateLabels={truncateLabels}
               activeId={activeId}
+              rovingTabId={rovingTabId}
               searchTerm={filterValue}
               highlightText
               handleTabClick={handleTabClick}

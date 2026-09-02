@@ -237,6 +237,9 @@ importers:
       '@contentful/rich-text-types':
         specifier: 17.2.7
         version: 17.2.7
+      '@dnd-kit/dom':
+        specifier: 0.5.0
+        version: 0.5.0
       '@dnd-kit/react':
         specifier: 0.5.0
         version: 0.5.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -589,6 +592,9 @@ importers:
         specifier: ^6.0.1
         version: 6.0.1(zod@4.4.3)
     devDependencies:
+      '@axe-core/playwright':
+        specifier: ^4.13.0
+        version: 4.13.0(playwright-core@1.62.1)
       '@babel/core':
         specifier: ^7.24.4
         version: 7.29.7(supports-color@7.2.0)
@@ -799,6 +805,9 @@ importers:
       autoprefixer:
         specifier: 10.5.4
         version: 10.5.4(postcss@8.5.26)
+      axe-core:
+        specifier: ^4.13.0
+        version: 4.13.0
       babel-loader:
         specifier: ^9.1.3
         version: 9.2.1(@babel/core@7.29.7(supports-color@7.2.0))(webpack@5.108.4(@swc/core@1.15.8(@swc/helpers@0.5.18))(@swc/html@1.15.43)(clean-css@5.3.3)(cssnano@7.1.3(postcss@8.5.26))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.26))
@@ -901,6 +910,9 @@ importers:
       vitest:
         specifier: 4.1.10
         version: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@24.1.0)(@vitest/coverage-v8@4.1.10)(jsdom@29.1.1(@noble/hashes@2.2.0))(vite@8.2.1(@types/node@24.1.0)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1(supports-color@7.2.0))(sass-embedded@1.100.0)(sass@1.100.0)(terser@5.49.0)(tsx@4.23.7)(yaml@2.9.0))
+      vitest-axe:
+        specifier: ^0.1.0
+        version: 0.1.0(vitest@4.1.10)
       web-ext:
         specifier: ^10.6.0
         version: 10.6.0(express@5.2.1(supports-color@7.2.0))(jiti@2.7.0)(supports-color@7.2.0)
@@ -1221,6 +1233,11 @@ packages:
   '@aws/lambda-invoke-store@0.3.0':
     resolution: {integrity: sha512-sl4Bm6yiMNYrZKkqqDFWN0UfnWhlS8ivKxrYl+6t0gCLrqr8y3B2IqZZbFRkfaVVp7C/baApyh71P+LeE1A2sQ==}
     engines: {node: '>=18.0.0'}
+
+  '@axe-core/playwright@4.13.0':
+    resolution: {integrity: sha512-6YLx+kxXu5GJceG4ozFg+33a2EMTdjYwWGloJ3sb9Kta5pp+ZNS53uxGVog5JetIY8s++P5UrtX+cri+u0VAVg==}
+    peerDependencies:
+      playwright-core: '>= 1.0.0'
 
   '@babel/code-frame@7.29.7':
     resolution: {integrity: sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==}
@@ -4218,8 +4235,8 @@ packages:
   '@maxim_mazurok/gapi.client.drive-v3@0.3.20260810':
     resolution: {integrity: sha512-J8IA28ANqiCD0E1oUkrRcFjaaAZOV2kU+MY/0wU13fMfin2d7+QJ9PnhTqB8cLU+WWOg+FtWt/FRnHUbpZr5bA==}
 
-  '@maxim_mazurok/gapi.client.drive-v3@0.3.20260816':
-    resolution: {integrity: sha512-2iaLfQy7Nd6NTPnTSP6LXz98NrAmrK8hGUoelqYtg7qkVkNyu3+5JZ43kDcgQxoOJ9/Dpu3zlgFX5gYW95tunA==}
+  '@maxim_mazurok/gapi.client.drive-v3@0.3.20260824':
+    resolution: {integrity: sha512-cuwWJOo02oycXxmFNbHpszu0AUwCA5MfzlmUCps8jZXRP11yVqI1s67/I38l1A4MiDbGi2D3z7C2GkN1qZOXjw==}
 
   '@mdn/browser-compat-data@8.0.8':
     resolution: {integrity: sha512-Rutrrc3FYOc+um4/QC4WFETNk2fV8NKWoqQl3tQfcVTQ1WFaoJRbsJBasSF34ltitmnYYD6ZsKW1cOQtSj1jbQ==}
@@ -8375,6 +8392,10 @@ packages:
 
   aws4@1.13.2:
     resolution: {integrity: sha512-lHe62zvbTB5eEABUVi/AwVh0ZKY9rMMDhmm+eeyuuUQbQ3+J+fONVQOZyj+DdrvD4BY33uYniyRJ4UJIaSKAfw==}
+
+  axe-core@4.13.0:
+    resolution: {integrity: sha512-UzGt8zg7Ny8djbYMhxl2zuEevVa7r2gJjYY5Lwr1xM7+XU2nd6CkIWFTVcCIbAP63vSz71NaVyyuSk9lHKcy0A==}
+    engines: {node: '>=4'}
 
   axios@1.19.0:
     resolution: {integrity: sha512-ht/iuYZXEjFxLH/Hkezgd7m6JKlHHXEUSneaDz8uZe1Gj5QZtCnpyDsckvAiEnT89OEbCLmnte4R4sn7P0EKFw==}
@@ -13137,6 +13158,10 @@ packages:
     resolution: {integrity: sha512-e5ISH9xMYU0DzrT+jl8q2ze9D6eWBto+I8CNpe+VI+K2J/F/k3PdkdTdz4wvGVH4NTpo+NRYTVIuMQEMMcsLqg==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
+  min-indent@1.0.1:
+    resolution: {integrity: sha512-I9jwMn07Sy/IwOj3zVkVik2JTvgpaykDZEigL6Rx6N9LbMywwUSMtxET+7lVoDLLd3O3IXwJwvuuns8UB/HeAg==}
+    engines: {node: '>=4'}
+
   mini-css-extract-plugin@2.10.2:
     resolution: {integrity: sha512-AOSS0IdEB95ayVkxn5oGzNQwqAi2J0Jb/kKm43t7H73s8+f5873g0yuj0PNvK4dO75mu5DHg4nlgp4k6Kga8eg==}
     engines: {node: '>= 12.13.0'}
@@ -15251,6 +15276,10 @@ packages:
   recma-stringify@1.0.0:
     resolution: {integrity: sha512-cjwII1MdIIVloKvC9ErQ+OgAtwHBmcZ0Bg4ciz78FtbT8In39aAYbaA7zvxQ61xVMSPE8WxhLwLbhif4Js2C+g==}
 
+  redent@3.0.0:
+    resolution: {integrity: sha512-6tDA8g98We0zd0GvVeMT9arEOnTw9qM03L9cJXaCjrip1OO764RDBLBfrB4cwzNGDj5OA5ioymC9GkizgWJDUg==}
+    engines: {node: '>=8'}
+
   reflect-metadata@0.2.2:
     resolution: {integrity: sha512-urBwgfrvVP/eAyXx4hluJivBKzuEbSQs9rKWCrCkbSxNv8mxPcUZKeuoF3Uy4mJl3Lwprp6yy5/39VWigZ4K6Q==}
 
@@ -16222,6 +16251,10 @@ packages:
     resolution: {integrity: sha512-aulFJcD6YK8V1G7iRB5tigAP4TsHBZZrOV8pjV++zdUwmeV8uzbY7yn6h9MswN62adStNZFuCIx4haBnRuMDaw==}
     engines: {node: '>=18'}
 
+  strip-indent@3.0.0:
+    resolution: {integrity: sha512-laJTa3Jb+VQpaC6DseHhF7dXVqHTfJPCRDaEbid/drOhgitgYku/letMUqOXFoWV0zIIUbjpdH2t+tYj4bQMRQ==}
+    engines: {node: '>=8'}
+
   strip-json-comments@2.0.1:
     resolution: {integrity: sha512-4gB8na07fecVVkOI6Rs4e7T6NOTki5EmL7TUduTs6bu3EdnSycntVJ4re8kgZA+wx9IueI2Y11bfbgwtzuE0KQ==}
     engines: {node: '>=0.10.0'}
@@ -17031,6 +17064,11 @@ packages:
         optional: true
       yaml:
         optional: true
+
+  vitest-axe@0.1.0:
+    resolution: {integrity: sha512-jvtXxeQPg8R/2ANTY8QicA5pvvdRP4F0FsVUAHANJ46YCDASie/cuhlSzu0DGcLmZvGBSBNsNuK3HqfaeknyvA==}
+    peerDependencies:
+      vitest: '>=0.16.0'
 
   vitest@4.1.10:
     resolution: {integrity: sha512-R9jUTe5S4Qb0HCd4TNqpC7oGcrMssMRGXLW80ubjWsW9VH5GF8y1Y0SFLY9AbqSk6nt0PnOx4H4WNJYZ13GUPw==}
@@ -17985,6 +18023,11 @@ snapshots:
       tslib: 2.8.1
 
   '@aws/lambda-invoke-store@0.3.0': {}
+
+  '@axe-core/playwright@4.13.0(playwright-core@1.62.1)':
+    dependencies:
+      axe-core: 4.13.0
+      playwright-core: 1.62.1
 
   '@babel/code-frame@7.29.7':
     dependencies:
@@ -23029,7 +23072,7 @@ snapshots:
       '@types/gapi.client': 1.0.8
       '@types/gapi.client.discovery-v1': 0.0.4
 
-  '@maxim_mazurok/gapi.client.drive-v3@0.3.20260816':
+  '@maxim_mazurok/gapi.client.drive-v3@0.3.20260824':
     dependencies:
       '@types/gapi.client': 1.0.8
       '@types/gapi.client.discovery-v1': 0.0.4
@@ -26603,7 +26646,7 @@ snapshots:
 
   '@types/gapi.client.drive-v3@0.0.5':
     dependencies:
-      '@maxim_mazurok/gapi.client.drive-v3': 0.3.20260816
+      '@maxim_mazurok/gapi.client.drive-v3': 0.3.20260824
 
   '@types/gapi.client@1.0.8': {}
 
@@ -27886,6 +27929,8 @@ snapshots:
   aws-ssl-profiles@1.1.2: {}
 
   aws4@1.13.2: {}
+
+  axe-core@4.13.0: {}
 
   axios@1.19.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0):
     dependencies:
@@ -34369,6 +34414,8 @@ snapshots:
 
   mimic-response@4.0.0: {}
 
+  min-indent@1.0.1: {}
+
   mini-css-extract-plugin@2.10.2(webpack@5.108.4(@swc/core@1.15.43(@swc/helpers@0.5.18))(@swc/html@1.15.43)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.26)):
     dependencies:
       schema-utils: 4.3.3
@@ -36836,6 +36883,11 @@ snapshots:
       unified: 11.0.5
       vfile: 6.0.3
 
+  redent@3.0.0:
+    dependencies:
+      indent-string: 4.0.0
+      strip-indent: 3.0.0
+
   reflect-metadata@0.2.2: {}
 
   reflect.getprototypeof@1.0.10:
@@ -38106,6 +38158,10 @@ snapshots:
 
   strip-final-newline@4.0.0: {}
 
+  strip-indent@3.0.0:
+    dependencies:
+      min-indent: 1.0.1
+
   strip-json-comments@2.0.1: {}
 
   strip-json-comments@3.1.1: {}
@@ -38972,6 +39028,16 @@ snapshots:
       terser: 5.49.0
       tsx: 4.23.7
       yaml: 2.9.0
+
+  vitest-axe@0.1.0(vitest@4.1.10):
+    dependencies:
+      aria-query: 5.3.0
+      axe-core: 4.13.0
+      chalk: 5.6.2
+      dom-accessibility-api: 0.5.16
+      lodash-es: 4.18.1
+      redent: 3.0.0
+      vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@24.1.0)(@vitest/coverage-v8@4.1.10)(jsdom@29.1.1(@noble/hashes@2.2.0))(vite@8.2.1(@types/node@24.1.0)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1(supports-color@7.2.0))(sass-embedded@1.100.0)(sass@1.100.0)(terser@5.49.0)(tsx@4.23.7)(yaml@2.9.0))
 
   vitest@4.1.10(@opentelemetry/api@1.9.1)(@types/node@24.1.0)(@vitest/coverage-v8@4.1.10)(jsdom@29.1.1(@noble/hashes@2.2.0))(vite@8.2.1(@types/node@24.1.0)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1(supports-color@7.2.0))(sass-embedded@1.100.0)(sass@1.100.0)(terser@5.49.0)(tsx@4.23.7)(yaml@2.9.0)):
     dependencies:

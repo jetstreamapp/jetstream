@@ -25,7 +25,7 @@ import { parseISO } from 'date-fns/parseISO';
 import { useAtomValue } from 'jotai';
 import isString from 'lodash/isString';
 import startCase from 'lodash/startCase';
-import { Fragment, FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
 import { useAmplitude } from '..';
 
@@ -185,7 +185,22 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   const [isDirty, setIsDirty] = useState(false);
   const [didClearCache, setDidClearCache] = useState(false);
   const labelInputRef = useRef<HTMLInputElement>(null);
+  const removeOrgButtonRef = useRef<HTMLButtonElement>(null);
+  const keepOrgButtonRef = useRef<HTMLButtonElement>(null);
+  // The "Remove Org" button and the keep/confirm pair replace each other in the DOM, so the button
+  // the user activated is gone by the time the next one renders — focus is moved after that render.
+  const pendingRemoveFocusRef = useRef<'keep' | 'remove' | null>(null);
+  const removeWarningId = useId();
   const hasError = !!org.connectionError;
+
+  useEffect(() => {
+    if (pendingRemoveFocusRef.current === 'keep') {
+      keepOrgButtonRef.current?.focus();
+    } else if (pendingRemoveFocusRef.current === 'remove') {
+      removeOrgButtonRef.current?.focus();
+    }
+    pendingRemoveFocusRef.current = null;
+  }, [removeOrgActive]);
 
   useEffect(() => {
     const tempIsDirty = orgLabel !== org.label;
@@ -248,6 +263,16 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
     } catch {
       // error
     }
+  }
+
+  function handleStartRemoveOrg() {
+    pendingRemoveFocusRef.current = 'keep';
+    setRemoveOrgActive(true);
+  }
+
+  function handleKeepOrg() {
+    pendingRemoveFocusRef.current = 'remove';
+    setRemoveOrgActive(false);
   }
 
   function handleRemoveOrg() {
@@ -407,11 +432,12 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
               {!removeOrgActive && (
                 <ButtonGroupContainer className="slds-button_stretch">
                   <button
+                    ref={removeOrgButtonRef}
                     className={classNames('slds-button slds-button_stretch', {
                       'slds-button_text-destructive': !hasError,
                       'slds-button_destructive': hasError,
                     })}
-                    onClick={() => setRemoveOrgActive(true)}
+                    onClick={handleStartRemoveOrg}
                     disabled={disableOrgActions}
                   >
                     <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
@@ -421,16 +447,27 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
               )}
               {removeOrgActive && (
                 <Fragment>
-                  <div className="slds-text-color_destructive slds-m-vertical_x-small">
+                  <div id={removeWarningId} className="slds-text-color_destructive slds-m-vertical_x-small">
                     <p className="slds-align_absolute-center">This action will remove this org from jetstream,</p>
                     <p className="slds-align_absolute-center">are you sure you want to continue?</p>
                   </div>
                   <Grid align="center">
                     <GridCol>
-                      <button className="slds-button slds-button_neutral" onClick={() => setRemoveOrgActive(false)}>
+                      {/* Focus lands on these straight from the button that opened them, so the warning
+                          above is attached as their description rather than relying on it being read in order */}
+                      <button
+                        ref={keepOrgButtonRef}
+                        className="slds-button slds-button_neutral"
+                        aria-describedby={removeWarningId}
+                        onClick={handleKeepOrg}
+                      >
                         Keep Org
                       </button>
-                      <button className="slds-button slds-button_brand" onClick={() => handleRemoveOrg()}>
+                      <button
+                        className="slds-button slds-button_brand"
+                        aria-describedby={removeWarningId}
+                        onClick={() => handleRemoveOrg()}
+                      >
                         Remove Org
                       </button>
                     </GridCol>
@@ -443,6 +480,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
       }
       buttonProps={{
         className: iconButtonClassName || 'slds-button slds-button_icon',
+        'aria-label': 'Salesforce org details',
         'data-testid': 'org-info-popover-button',
       }}
     >
