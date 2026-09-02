@@ -334,7 +334,7 @@ export interface UpdateStatus {
  * Which layer decided whether automatic updates run, highest precedence first. Everything except
  * `user-preference` and `default` is administrator-controlled and cannot be changed in the app.
  */
-export type UpdatePolicySource = 'command-line' | 'environment' | 'managed-policy' | 'user-preference' | 'default';
+export type UpdatePolicySource = 'portable' | 'command-line' | 'environment' | 'managed-policy' | 'user-preference' | 'default';
 
 export interface UpdatePolicy {
   /** When false, Jetstream never checks for or downloads updates in the background. */

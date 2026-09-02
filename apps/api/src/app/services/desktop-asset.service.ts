@@ -1,4 +1,4 @@
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { ENV, logger } from '@jetstream/api-config';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { load } from 'js-yaml';
@@ -7,7 +7,6 @@ import { z } from 'zod';
 interface VersionInfo {
   version: string;
   filename: string;
-  sha512: string;
   link: string;
 }
 interface VersionYaml {
@@ -23,7 +22,7 @@ const versionCache = new Map<`${PlatformArch['platform']}-${PlatformArch['arch']
 
 export const PlatformArchSchema = z.union([
   z.object({
-    platform: z.enum(['windows']),
+    platform: z.enum(['windows', 'windows-portable']),
     arch: z.enum(['x64']),
   }),
   z.object({
@@ -33,11 +32,35 @@ export const PlatformArchSchema = z.union([
 ]);
 export type PlatformArch = z.infer<typeof PlatformArchSchema>;
 
+/**
+ * electron-builder's portable target is not an update target, so it never appears in latest.yml -
+ * the only published record of a release. Its filename is therefore reconstructed from the release
+ * version instead, matching the `portable.artifactName` pinned in electron-builder.config.js, and
+ * confirmed against the bucket before being offered (see `objectExists`).
+ */
+function getPortableFilename(version: string) {
+  return `Jetstream ${version}.exe`;
+}
+
 function getDownloadUrl(filename: string) {
   // release-updates.getjetstream.app is the R2 custom domain the auto-updater uses (see
   // electron-builder.config.js publish config) and is the one known-working domain for the
   // desktop-updates bucket. releases.getjetstream.app was never wired up and served 404s.
   return `https://release-updates.getjetstream.app/${ASSET_FOLDER}/${filename}`;
+}
+
+/**
+ * A reconstructed filename is a guess until proven otherwise - a release that predates the portable
+ * target, or a renamed artifact, would otherwise hand users a 404. Any failure reads as "absent",
+ * which just hides the download rather than breaking the page.
+ */
+async function objectExists(s3Client: S3Client, key: string): Promise<boolean> {
+  try {
+    await s3Client.send(new HeadObjectCommand({ Bucket: ENV.S3_BUCKET_NAME, Key: key }));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function getAndParseVersionFile(s3Client: S3Client, key: string) {
@@ -84,9 +107,16 @@ export async function getLatestDesktopVersion({ arch, platform }: PlatformArch):
 
     if (winRelease?.files.length) {
       const version = winRelease.version;
-      const { sha512, url: filename } = winRelease.files[0];
+      const { url: filename } = winRelease.files[0];
       versionCache.set('windows-x64', {
-        data: { version, filename, sha512, link: getDownloadUrl(filename) },
+        data: { version, filename, link: getDownloadUrl(filename) },
+        expiry: Date.now() + CACHE_DURATION_MS,
+      });
+
+      const portableFilename = getPortableFilename(version);
+      const hasPortableBuild = await objectExists(s3Client, `${ASSET_FOLDER}/${portableFilename}`);
+      versionCache.set('windows-portable-x64', {
+        data: hasPortableBuild ? { version, filename: portableFilename, link: getDownloadUrl(portableFilename) } : null,
         expiry: Date.now() + CACHE_DURATION_MS,
       });
     }
@@ -96,28 +126,30 @@ export async function getLatestDesktopVersion({ arch, platform }: PlatformArch):
       const x64 = macRelease.files.find(({ url }) => url.endsWith('.dmg') && !url.endsWith('arm64.dmg'));
       if (arm64) {
         const version = macRelease.version;
-        const { sha512, url: filename } = arm64;
+        const { url: filename } = arm64;
         versionCache.set('macos-arm64', {
-          data: { version, filename, sha512, link: getDownloadUrl(filename) },
+          data: { version, filename, link: getDownloadUrl(filename) },
           expiry: Date.now() + CACHE_DURATION_MS,
         });
       }
       if (x64) {
         const version = macRelease.version;
-        const { sha512, url: filename } = x64;
+        const { url: filename } = x64;
         versionCache.set('macos-x64', {
-          data: { version, filename, sha512, link: getDownloadUrl(filename) },
+          data: { version, filename, link: getDownloadUrl(filename) },
           expiry: Date.now() + CACHE_DURATION_MS,
         });
       }
     }
 
-    const cached = versionCache.get(cacheKey);
-    if (!cached?.data) {
+    // An entry that was deliberately cached as null (a build this release does not publish) is a
+    // normal answer, not a failure - only a key nothing populated at all means the lookup broke.
+    const populated = versionCache.get(cacheKey);
+    if (!populated) {
       throw new Error(`No version info found for ${platform}/${arch}`);
     }
 
-    return cached.data;
+    return populated.data;
   } catch (error) {
     logger.error({ error: getErrorMessage(error) }, `Failed to get latest version for ${platform}/${arch}`);
     // Cache null result to avoid repeated failures

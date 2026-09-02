@@ -179,6 +179,8 @@ export interface UpdatePolicyEnvironment {
   /** Registry / configuration profile / policy file, or null when no channel had an opinion. */
   disabledByManagedPolicy: boolean | null;
   perMachineInstall: boolean;
+  /** Running from the portable (no-install) Windows build. */
+  isPortableBuild: boolean;
 }
 
 /**
@@ -187,6 +189,20 @@ export interface UpdatePolicyEnvironment {
  */
 export function resolveUpdatePolicy(environment: UpdatePolicyEnvironment, userPreferenceEnabled: boolean): UpdatePolicy {
   const { perMachineInstall } = environment;
+
+  // The portable build has nothing to update - the only artifact published for a release is the
+  // NSIS installer, so "updating" would silently turn a portable copy into an installed one,
+  // defeating the entire reason someone chose it. It outranks every other source because no
+  // configuration can make a self-update work here.
+  if (environment.isPortableBuild) {
+    return {
+      autoUpdateEnabled: false,
+      allowManualCheck: false,
+      source: 'portable',
+      managed: true,
+      perMachineInstall: false,
+    };
+  }
 
   const managedDecision = ((): { disabled: boolean; source: UpdatePolicySource } | null => {
     if (environment.disabledByCommandLine) {
@@ -267,6 +283,10 @@ export async function readUpdatePolicyEnvironment(): Promise<UpdatePolicyEnviron
     disabledByEnvironment: toBoolean(process.env[ENV_VAR]),
     disabledByManagedPolicy,
     perMachineInstall,
+    // electron-builder's portable target sets this for the app it unpacks and launches; it is the
+    // only signal distinguishing a portable run from an installed one (electron-updater itself has
+    // no portable detection - isUpdaterActive() only checks app.isPackaged, which is true here).
+    isPortableBuild: !!process.env.PORTABLE_EXECUTABLE_DIR,
   };
 }
 

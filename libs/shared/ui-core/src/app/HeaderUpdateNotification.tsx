@@ -5,7 +5,7 @@ import { Icon, Popover, PopoverRef, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
 import { formatRelative } from 'date-fns';
 import { useEffect, useRef, useState } from 'react';
-import { isManualUpdateRequiredError } from './header-update-notification.utils';
+import { getUpdatesDisabledMessage, isManualUpdateRequiredError } from './header-update-notification.utils';
 
 export interface HeaderUpdateNotificationProps {
   onCheckForUpdates: () => void;
@@ -154,11 +154,7 @@ export const HeaderUpdateNotification = ({ onCheckForUpdates, onInstallUpdate }:
         return (
           <div className="slds-p-around_small">
             <div className="slds-text-heading_small slds-m-bottom_x-small">Updates Turned Off</div>
-            <div className="slds-text-body_small slds-m-bottom_small">
-              {updateStatus.disabledBy === 'user-preference'
-                ? 'Automatic updates are turned off in your settings. You can still check for one now.'
-                : 'Updates are managed by your organization. Your IT team installs new versions for you.'}
-            </div>
+            <div className="slds-text-body_small slds-m-bottom_small">{getUpdatesDisabledMessage(updateStatus.disabledBy)}</div>
             {updateStatus.disabledBy === 'user-preference' && (
               <button className="slds-button slds-button_neutral slds-button_stretch" onClick={handleCheckForUpdates}>
                 Check for Updates
