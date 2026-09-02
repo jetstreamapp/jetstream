@@ -520,7 +520,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                     .filter((item) => selectedItemsIdsSet.has(item.id))
                     .map((item) => (
                       <li key={item.id} className="slds-listbox-item" role="presentation">
-                        <Pill title={item.label} onRemove={() => handleSelection(item)}>
+                        <Pill listboxOption title={item.label} onRemove={() => handleSelection(item)}>
                           {item.label}
                         </Pill>
                       </li>
