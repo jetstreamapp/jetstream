@@ -5,6 +5,7 @@ import { escapeSoqlString, formatNumber } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, gzipDecode, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import type { AsyncJob, PermissionExportAnalysisJob, PermissionExportFullResult } from '@jetstream/types';
 import {
+  AssistiveStatus,
   AutoFullHeightContainer,
   Icon,
   ProgressIndicator,
@@ -15,13 +16,14 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
   Tooltip,
+  useAnnouncer,
 } from '@jetstream/ui';
 import { PermissionAnalysisHistoryModal, RequireMetadataApiBanner, jobsState } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import { getDexieDb } from '@jetstream/ui/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useAtomValue } from 'jotai';
-import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { PermissionAnalysisExportGrid } from './PermissionAnalysisExportGrid';
 import { PermissionAnalysisFieldPermissionsTree } from './PermissionAnalysisFieldPermissionsTree';
@@ -227,6 +229,17 @@ export const PermissionAnalysisView: FunctionComponent = () => {
 
   const isTerminal = jobStatusNormalized === 'completed' || jobStatusNormalized === 'failed';
   const fetchError = decodeError;
+
+  // The progress block is replaced by the results silently (failures already toast) — announce the
+  // completion to the user who watched the analysis run
+  const { announce, announcer } = useAnnouncer();
+  const previousJobStatusRef = useRef(jobStatusNormalized);
+  useEffect(() => {
+    if (previousJobStatusRef.current === 'running' && jobStatusNormalized === 'completed') {
+      announce('Permission analysis complete. Results are ready.');
+    }
+    previousJobStatusRef.current = jobStatusNormalized;
+  }, [jobStatusNormalized, announce]);
   const terminalErrorMessage = historyRow?.errorMessage ?? inFlightJob?.statusMessage ?? null;
   const liveProgress = inFlightJob?.progress;
 
@@ -1028,6 +1041,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
         className="slds-scrollable_none"
         bufferIfNotRendered={HEIGHT_BUFFER}
       >
+        {announcer}
         {!jobId && (
           <div className="slds-p-around_medium">
             <ScopedNotification theme="warning">
@@ -1044,6 +1058,8 @@ export const PermissionAnalysisView: FunctionComponent = () => {
         {jobId && !fetchError && !isTerminal && (
           <div className="slds-p-around_medium">
             <h2 className="slds-text-heading_small slds-m-bottom_x-small">Permission analysis in progress…</h2>
+            {/* Announce the phase only: a live region on the step counter would speak every tick of a long analysis */}
+            <AssistiveStatus message={isJobRunning && liveProgress?.label ? liveProgress.label : 'Preparing'} />
             <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
               {isJobRunning && liveProgress?.label ? liveProgress.label : 'Preparing'}
               {isJobRunning && liveProgress && liveProgress.total > 0
