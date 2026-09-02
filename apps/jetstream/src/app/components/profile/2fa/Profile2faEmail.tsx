@@ -43,13 +43,13 @@ export const Profile2faEmail: FunctionComponent<Profile2faEmailProps> = ({ isEna
       items.push({
         id: 'disable',
         value: 'Disable',
-        icon: { type: 'utility', icon: 'toggle_off', description: 'Disable' },
+        icon: { type: 'utility', icon: 'toggle_off' },
       });
     } else {
       items.push({
         id: 'enable',
         value: 'Enable',
-        icon: { type: 'utility', icon: 'toggle_on', description: 'Disable' },
+        icon: { type: 'utility', icon: 'toggle_on' },
       });
     }
     return items;
@@ -77,6 +77,7 @@ export const Profile2faEmail: FunctionComponent<Profile2faEmailProps> = ({ isEna
           testId="mfa-email-menu-button"
           dropDownClassName="slds-dropdown_actions"
           position="right"
+          description="Email authentication actions"
           items={menuItems}
           onSelected={handleMenuAction}
         />
