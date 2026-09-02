@@ -10,6 +10,7 @@ export interface DownloadInfo {
 
 interface DownloadState {
   windows?: DownloadInfo;
+  windowsPortable?: DownloadInfo;
   macosX64?: DownloadInfo;
   macosArm64?: DownloadInfo;
   isLoading: boolean;
@@ -69,6 +70,7 @@ export function useDesktopDownloads() {
 
         const newState = {
           windows: downloads.windows || undefined,
+          windowsPortable: downloads.windowsPortable || undefined,
           macosX64: downloads.macosX64 || undefined,
           macosArm64: downloads.macosArm64 || undefined,
           isLoading: false,

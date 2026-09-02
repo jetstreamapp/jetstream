@@ -247,7 +247,9 @@ export const Settings = () => {
             />
             {updatePolicy?.managed && (
               <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
-                Updates are managed by your organization and cannot be changed here.
+                {updatePolicy.source === 'portable'
+                  ? 'The portable version does not update itself. Download a new copy to move to a newer version.'
+                  : 'Updates are managed by your organization and cannot be changed here.'}
               </p>
             )}
             {updatePolicy?.perMachineInstall && !updatePolicy.managed && (

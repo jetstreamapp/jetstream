@@ -20,8 +20,12 @@ type MenuItem = Parameters<typeof Menu.buildFromTemplate>[0][0];
  * charge, rather than dropping it and leaving the user wondering where it went.
  */
 function checkForUpdatesMenuItem(): MenuItem {
-  if (!getUpdatePolicy().allowManualCheck) {
-    return { label: 'Updates Managed by Your Organization', enabled: false };
+  const { allowManualCheck, source } = getUpdatePolicy();
+  if (!allowManualCheck) {
+    return {
+      label: source === 'portable' ? 'Updates Not Available in Portable Mode' : 'Updates Managed by Your Organization',
+      enabled: false,
+    };
   }
   return {
     label: 'Check for Updates',

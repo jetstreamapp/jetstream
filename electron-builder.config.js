@@ -386,6 +386,13 @@ const config = {
   portable: {
     requestExecutionLevel: 'user',
     unpackDirName: 'jetstream-portable',
+    /**
+     * Pinned to what electron-builder's default template already produces ("Jetstream 4.14.0.exe").
+     * The portable build is not listed in latest.yml, so the download API reconstructs this name
+     * from the release version (apps/api/src/app/services/desktop-asset.service.ts) — changing it
+     * here without changing it there makes the portable download 404.
+     */
+    artifactName: '${productName} ${version}.${ext}',
   },
 
   // Protocol Handlers

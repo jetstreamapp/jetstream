@@ -1,5 +1,5 @@
 import { UpdateStatus } from '@jetstream/desktop/types';
-import { INVALID_SIGNATURE_ERROR_CODE, isManualUpdateRequiredError } from '../header-update-notification.utils';
+import { getUpdatesDisabledMessage, INVALID_SIGNATURE_ERROR_CODE, isManualUpdateRequiredError } from '../header-update-notification.utils';
 
 describe('header-update-notification.utils#isManualUpdateRequiredError', () => {
   test('returns true when the error code is the signature-mismatch code', () => {
@@ -50,6 +50,23 @@ describe('header-update-notification.utils#isManualUpdateRequiredError', () => {
         errorCode: INVALID_SIGNATURE_ERROR_CODE,
       };
       expect(isManualUpdateRequiredError(status)).toBe(false);
+    },
+  );
+});
+
+describe('header-update-notification.utils#getUpdatesDisabledMessage', () => {
+  test('tells the user it was their own setting', () => {
+    expect(getUpdatesDisabledMessage('user-preference')).toMatch(/turned off in your settings/);
+  });
+
+  test('explains that the portable build cannot update itself', () => {
+    expect(getUpdatesDisabledMessage('portable')).toMatch(/portable version/);
+  });
+
+  test.each(['command-line', 'environment', 'managed-policy', 'default', undefined] as const)(
+    'attributes %s to the organization',
+    (source) => {
+      expect(getUpdatesDisabledMessage(source)).toMatch(/managed by your organization/);
     },
   );
 });

@@ -13,6 +13,7 @@ const NO_POLICY: UpdatePolicyEnvironment = {
   disabledByEnvironment: null,
   disabledByManagedPolicy: null,
   perMachineInstall: false,
+  isPortableBuild: false,
 };
 
 describe('update-policy#computeNsisAppGuid', () => {
@@ -138,6 +139,22 @@ describe('update-policy#resolveUpdatePolicy', () => {
   it('falls through an environment variable that is set but unparseable', () => {
     const policy = resolveUpdatePolicy({ ...NO_POLICY, disabledByEnvironment: null, disabledByManagedPolicy: true }, true);
     expect(policy.source).toBe('managed-policy');
+  });
+
+  it('turns updates off entirely for the portable build', () => {
+    expect(resolveUpdatePolicy({ ...NO_POLICY, isPortableBuild: true }, true)).toEqual({
+      autoUpdateEnabled: false,
+      allowManualCheck: false,
+      source: 'portable',
+      managed: true,
+      perMachineInstall: false,
+    });
+  });
+
+  it('keeps the portable build from updating even when a policy tries to enable updates', () => {
+    const policy = resolveUpdatePolicy({ ...NO_POLICY, isPortableBuild: true, disabledByManagedPolicy: false }, true);
+    expect(policy.autoUpdateEnabled).toBe(false);
+    expect(policy.source).toBe('portable');
   });
 
   it('carries the per-machine install flag through every decision', () => {

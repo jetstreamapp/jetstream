@@ -46,6 +46,15 @@ export const routeDefinition = {
           downloadUrl: z.string().url(),
         })
         .nullable(),
+      windowsPortable: z
+        .object({
+          platform: z.literal('windows-portable'),
+          arch: z.literal('x64'),
+          version: z.string(),
+          filename: z.string(),
+          downloadUrl: z.string().url(),
+        })
+        .nullable(),
     }),
     validators: {
       hasSourceOrg: false,
@@ -84,6 +93,7 @@ const getAllDownloadLinks = createRoute(routeDefinition.getAllDownloadLinks.vali
     // Define all platform/arch combinations we support
     const platformArchCombinations: PlatformArch[] = [
       { platform: 'windows', arch: 'x64' },
+      { platform: 'windows-portable', arch: 'x64' },
       { platform: 'macos', arch: 'x64' },
       { platform: 'macos', arch: 'arm64' },
     ];
@@ -110,6 +120,7 @@ const getAllDownloadLinks = createRoute(routeDefinition.getAllDownloadLinks.vali
       windows: availableDownloads.find(({ platform, arch }) => platform === 'windows' && arch === 'x64') || null,
       macosX64: availableDownloads.find(({ platform, arch }) => platform === 'macos' && arch === 'x64') || null,
       macosArm64: availableDownloads.find(({ platform, arch }) => platform === 'macos' && arch === 'arm64') || null,
+      windowsPortable: availableDownloads.find(({ platform }) => platform === 'windows-portable') || null,
     };
 
     res.json(downloads);
