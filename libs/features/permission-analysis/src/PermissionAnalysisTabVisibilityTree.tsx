@@ -109,6 +109,7 @@ function renderTabVisibilityGroupCell(
         `}
         onClick={toggleGroup}
         title={exportLabel}
+        aria-expanded={isExpanded}
       >
         <span
           css={css`
@@ -117,6 +118,7 @@ function renderTabVisibilityGroupCell(
             align-items: flex-start;
           `}
         >
+          {/* Decorative: the button's visible text names it and aria-expanded carries the state */}
           <Icon
             type="utility"
             icon={isExpanded ? 'chevrondown' : 'chevronright'}
@@ -126,7 +128,6 @@ function renderTabVisibilityGroupCell(
               margin-top: 0.125rem;
             `}
             omitContainer
-            description={isExpanded ? 'Collapse' : 'Expand'}
           />
           <span
             css={css`
