@@ -111,16 +111,27 @@ export const PlatformEventMonitorListenerCard = ({
           onSelectedSubscribeEvent={onSelectedSubscribeEvent}
         />
         <div className="slds-m-vertical_small">
-          {subscribedPlatformEventsList.map((item) => (
-            <Pill
-              key={item.id}
-              className="slds-m-right-xx-small"
-              title={`${item.label} - ${item.secondaryLabel}`}
-              onRemove={() => unsubscribe(item.value)}
+          {/* Pills are role="option", which needs a listbox parent (same structure as Picklist's selected pills) */}
+          {subscribedPlatformEventsList.length > 0 && (
+            <ul
+              className="slds-listbox slds-listbox_horizontal"
+              role="listbox"
+              aria-label="Subscribed events"
+              aria-orientation="horizontal"
             >
-              {item.label}
-            </Pill>
-          ))}
+              {subscribedPlatformEventsList.map((item) => (
+                <li key={item.id} className="slds-listbox-item" role="presentation">
+                  <Pill
+                    className="slds-m-right-xx-small"
+                    title={`${item.label} - ${item.secondaryLabel}`}
+                    onRemove={() => unsubscribe(item.value)}
+                  >
+                    {item.label}
+                  </Pill>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <div>
           <PlatformEventMonitorEvents messagesByChannel={messagesByChannel} />
