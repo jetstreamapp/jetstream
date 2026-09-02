@@ -84,6 +84,11 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      # Fails on new warn-tier jsx-a11y hits, new libs/ui specs without axeScan(), and new routes
+      # without an axe baseline entry (scripts/a11y-lint-ratchet.mjs).
+      - name: Accessibility lint ratchet
+        run: pnpm a11y:lint-ratchet
+
   # Build application
   build-and-test:
     runs-on: ubuntu-latest

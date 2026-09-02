@@ -1,0 +1,182 @@
+{
+  "$comment": "Accessibility lint ratchet — maintained by scripts/a11y-lint-ratchet.mjs (`pnpm a11y:lint-ratchet --update`). `lint` is the allowed number of warn-tier jsx-a11y hits per file and rule; `axeScanExemptSpecs` lists the libs/ui component specs that predate the axeScan() requirement. Both only shrink. See docs/accessibility/README.md.",
+  "lint": {
+    "apps/jetstream/src/app/components/billing/EnhancedBillingCard.tsx": {
+      "click-events-have-key-events": 1,
+      "no-static-element-interactions": 1
+    },
+    "apps/landing/components/FigureImgWithViewFullScreen.tsx": {
+      "click-events-have-key-events": 1,
+      "no-noninteractive-element-interactions": 1
+    },
+    "libs/features/apex-test-runner/src/coverage/CoverageTable.tsx": {
+      "click-events-have-key-events": 1
+    },
+    "libs/features/apex-test-runner/src/runs/TestRunResultsTable.tsx": {
+      "click-events-have-key-events": 1
+    },
+    "libs/features/apex-test-runner/src/runs/TestRunsTable.tsx": {
+      "click-events-have-key-events": 1
+    },
+    "libs/features/data-analysis/src/FieldUsageAnalysisView.tsx": {
+      "click-events-have-key-events": 2,
+      "no-static-element-interactions": 2
+    },
+    "libs/features/debug-log-viewer/src/DebugLogViewerTable.tsx": {
+      "click-events-have-key-events": 1
+    },
+    "libs/features/load-records/src/components/load-results/LoadRecordsBatchApiResultsTable.tsx": {
+      "control-has-associated-label": 1
+    },
+    "libs/features/load-records/src/components/load-results/LoadRecordsCustomMetadataResultsTable.tsx": {
+      "control-has-associated-label": 1
+    },
+    "libs/features/load-records/src/steps/FieldMapping.tsx": {
+      "control-has-associated-label": 1
+    },
+    "libs/features/manage-permissions/src/PermissionColumnGroupHeader.tsx": {
+      "no-static-element-interactions": 1
+    },
+    "libs/features/permission-analysis/src/PermissionAnalysisExportGrid.tsx": {
+      "click-events-have-key-events": 2,
+      "no-static-element-interactions": 2
+    },
+    "libs/features/permission-analysis/src/PermissionAnalysisFieldPermissionsTree.tsx": {
+      "click-events-have-key-events": 3,
+      "no-static-element-interactions": 3
+    },
+    "libs/features/permission-analysis/src/PermissionAnalysisObjectPermissionsTree.tsx": {
+      "click-events-have-key-events": 1,
+      "no-static-element-interactions": 1
+    },
+    "libs/shared/ui-core/src/load-records-results/LoadRecordsBulkApiResultsTable.tsx": {
+      "control-has-associated-label": 1
+    },
+    "libs/shared/ui-core/src/orgs/OrganizationGroupSelector.tsx": {
+      "click-events-have-key-events": 2,
+      "no-noninteractive-element-interactions": 2
+    },
+    "libs/shared/ui-core/src/query/QuickQueryPopover.tsx": {
+      "click-events-have-key-events": 1,
+      "no-noninteractive-element-interactions": 1
+    },
+    "libs/shared/ui-core/src/record/RecordSearchPopover.tsx": {
+      "click-events-have-key-events": 1,
+      "no-noninteractive-element-interactions": 1
+    },
+    "libs/ui/src/lib/badge/BadgePopoverGroupList.tsx": {
+      "click-events-have-key-events": 1,
+      "no-noninteractive-element-interactions": 1
+    },
+    "libs/ui/src/lib/badge/BadgePopoverList.tsx": {
+      "click-events-have-key-events": 1,
+      "no-noninteractive-element-interactions": 1
+    },
+    "libs/ui/src/lib/data-table/grid/components/GridCell.tsx": {
+      "no-static-element-interactions": 1
+    },
+    "libs/ui/src/lib/data-table/grid/components/GridContainer.tsx": {
+      "no-static-element-interactions": 1
+    },
+    "libs/ui/src/lib/data-table/grid/components/HeaderCell.tsx": {
+      "click-events-have-key-events": 2,
+      "no-static-element-interactions": 2
+    },
+    "libs/ui/src/lib/data-table/grid/editors/EditorHost.tsx": {
+      "no-noninteractive-element-interactions": 1
+    },
+    "libs/ui/src/lib/data-table/grid/filters/HeaderFilters.tsx": {
+      "no-static-element-interactions": 1
+    },
+    "libs/ui/src/lib/data-table/grid/renderers/CellRenderers.tsx": {
+      "no-static-element-interactions": 1
+    },
+    "libs/ui/src/lib/form/context-menu/ContextMenu.tsx": {
+      "control-has-associated-label": 2,
+      "no-noninteractive-element-to-interactive-role": 3
+    },
+    "libs/ui/src/lib/form/dropdown/DropDown.tsx": {
+      "control-has-associated-label": 1,
+      "no-noninteractive-element-to-interactive-role": 2
+    },
+    "libs/ui/src/lib/form/dueling-picklist/DuelingPicklistColumn.tsx": {
+      "no-static-element-interactions": 1
+    },
+    "libs/ui/src/lib/list/ListItem.tsx": {
+      "click-events-have-key-events": 1
+    },
+    "libs/ui/src/lib/list/ListWithFilterMultiSelect.tsx": {
+      "no-static-element-interactions": 1
+    },
+    "libs/ui/src/lib/modal/Modal.tsx": {
+      "no-noninteractive-element-interactions": 1
+    },
+    "libs/ui/src/lib/nav/NavbarMenuItems.tsx": {
+      "no-noninteractive-element-to-interactive-role": 1
+    },
+    "libs/ui/src/lib/sobject-field-list/SobjectExpandChildrenBtn.tsx": {
+      "no-static-element-interactions": 1
+    },
+    "libs/ui/src/lib/sobject-field-list/SobjectFieldList.tsx": {
+      "click-events-have-key-events": 1,
+      "no-static-element-interactions": 1
+    },
+    "libs/ui/src/lib/sobject-field-list/WhereIsThisFieldUsed.tsx": {
+      "no-static-element-interactions": 2
+    },
+    "libs/ui/src/lib/tabs/Tab.tsx": {
+      "click-events-have-key-events": 1
+    },
+    "libs/ui/src/lib/tree/TreeItem.tsx": {
+      "click-events-have-key-events": 1
+    },
+    "libs/ui/src/lib/user-feedback-widget/UserFeedbackWidget.tsx": {
+      "control-has-associated-label": 1
+    },
+    "libs/ui/src/lib/widgets/ProfileOrPermSetPopover.tsx": {
+      "click-events-have-key-events": 1,
+      "no-static-element-interactions": 1
+    },
+    "libs/ui/src/lib/widgets/RecordLookupPopover.tsx": {
+      "click-events-have-key-events": 1,
+      "no-static-element-interactions": 1
+    }
+  },
+  "axeScanExemptSpecs": [
+    "libs/ui/src/lib/alert/__tests__/Alert.spec.tsx",
+    "libs/ui/src/lib/badge/__tests__/Badge.spec.tsx",
+    "libs/ui/src/lib/card/__tests__/Card.spec.tsx",
+    "libs/ui/src/lib/confirmation-dialog/__tests__/ConfirmationDialog.spec.tsx",
+    "libs/ui/src/lib/data-table/grid/__tests__/EditorHost.spec.tsx",
+    "libs/ui/src/lib/data-table/grid/__tests__/SubqueryRenderer.spec.tsx",
+    "libs/ui/src/lib/data-table/grid/__tests__/grid-clipboard.spec.tsx",
+    "libs/ui/src/lib/data-table/grid/__tests__/grid-context-menu-interaction.spec.tsx",
+    "libs/ui/src/lib/data-table/grid/__tests__/grid-selection.spec.tsx",
+    "libs/ui/src/lib/data-table/grid/__tests__/selection-expansion-atoms.spec.tsx",
+    "libs/ui/src/lib/data-table/grid/__tests__/useGridKeyboardNavigation.spec.tsx",
+    "libs/ui/src/lib/data-table/grid/__tests__/useGridTabOrderContainment.spec.tsx",
+    "libs/ui/src/lib/data-table/grid/__tests__/useJetstreamTable.spec.tsx",
+    "libs/ui/src/lib/data-table/grid/__tests__/useRangeDragAutoScroll.spec.tsx",
+    "libs/ui/src/lib/expression-group/__tests__/ExpressionContainer.spec.tsx",
+    "libs/ui/src/lib/file-download-modal/__tests__/RecordDownloadModal.spec.tsx",
+    "libs/ui/src/lib/form/checkbox/__tests__/Checkbox.spec.tsx",
+    "libs/ui/src/lib/form/combobox/__tests__/Combobox.spec.tsx",
+    "libs/ui/src/lib/form/combobox/__tests__/ComboboxListItem.spec.tsx",
+    "libs/ui/src/lib/form/radio/__tests__/Radio.spec.tsx",
+    "libs/ui/src/lib/grid/__tests__/Grid.spec.tsx",
+    "libs/ui/src/lib/layout/__tests__/ViewDocsLink.spec.tsx",
+    "libs/ui/src/lib/list/__tests__/List.spec.tsx",
+    "libs/ui/src/lib/list/__tests__/ListItemCheckbox.spec.tsx",
+    "libs/ui/src/lib/popover/__tests__/Popover.spec.tsx",
+    "libs/ui/src/lib/progress-indicator/__tests__/ProgressStepIndicator.spec.tsx",
+    "libs/ui/src/lib/progress-ring/__tests__/ProgressRing.spec.tsx",
+    "libs/ui/src/lib/scoped-notification/__tests__/ScopedNotification.spec.tsx",
+    "libs/ui/src/lib/section/__tests__/Section.spec.tsx",
+    "libs/ui/src/lib/toast/__tests__/Toast.spec.tsx",
+    "libs/ui/src/lib/toolbar/__tests__/Toolbar.spec.tsx",
+    "libs/ui/src/lib/tree/__tests__/Tree.spec.tsx",
+    "libs/ui/src/lib/widgets/__tests__/CopyRecordsToClipboardButton.spec.tsx",
+    "libs/ui/src/lib/widgets/__tests__/ManagePermissionSetAssignmentsModal.spec.tsx",
+    "libs/ui/src/lib/widgets/__tests__/Widgets.spec.tsx"
+  ]
+}
