@@ -35,13 +35,21 @@ export const DeployMetadataLastRefreshedPopover: FunctionComponent<DeployMetadat
           </p>
           <ul className="slds-has-dividers_top-space slds-dropdown_length-10">
             {Object.keys(listMetadataItems).map((key) => (
-              <li key={key} className="slds-item slds-text-link" onClick={() => onRefreshItem(key)}>
-                <div className="slds-truncate" title={listMetadataItems[key].type}>
-                  {listMetadataItems[key].type}
-                </div>
-                <div className="slds-truncate slds-text-color_weak" title={listMetadataItems[key].lastRefreshed || undefined}>
-                  {listMetadataItems[key].lastRefreshed}
-                </div>
+              <li key={key} className="slds-item">
+                {/* Real button: the clickable li was mouse-only (no focus, no Enter/Space) */}
+                <button
+                  type="button"
+                  className="slds-button slds-button_reset slds-text-link w-100 slds-text-align_left"
+                  aria-label={`Refresh ${listMetadataItems[key].type}`}
+                  onClick={() => onRefreshItem(key)}
+                >
+                  <div className="slds-truncate" title={listMetadataItems[key].type}>
+                    {listMetadataItems[key].type}
+                  </div>
+                  <div className="slds-truncate slds-text-color_weak" title={listMetadataItems[key].lastRefreshed || undefined}>
+                    {listMetadataItems[key].lastRefreshed}
+                  </div>
+                </button>
               </li>
             ))}
           </ul>
