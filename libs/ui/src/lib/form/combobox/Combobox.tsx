@@ -3,13 +3,13 @@ import { logger } from '@jetstream/shared/client-logger';
 import {
   focusElementFromRefWhenAvailable,
   isAlphaNumericKey,
-  isTabKey,
   isArrowDownKey,
   isArrowRightKey,
   isArrowUpKey,
   isEnterKey,
   isEnterOrSpace,
   isEscapeKey,
+  isTabKey,
 } from '@jetstream/shared/ui-utils';
 import { NOOP } from '@jetstream/shared/utils';
 import { DropDownItemLength } from '@jetstream/types';
@@ -456,6 +456,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                       aria-expanded={isOpen}
                       aria-haspopup="listbox"
                       aria-autocomplete="list"
+                      aria-invalid={hasError || undefined}
                       type="text"
                       className={classNames('slds-input slds-combobox__input', { 'slds-text-color_error': hasError })}
                       id={id}
