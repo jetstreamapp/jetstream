@@ -36,8 +36,10 @@ export const SaveMappingItem: FunctionComponent<SaveMappingItemProps> = ({ mappi
             </li>
           </ul>
           <ButtonGroupContainer>
+            {/* Every saved mapping repeats these controls — their names say which mapping they act on */}
             <button
               className="slds-button slds-button_neutral slds-button_first collapsible-button slds-m-left_x-small"
+              aria-label={`Use mapping ${mapping.name}`}
               onClick={() => onUseFieldMapping(mapping)}
             >
               Use
@@ -46,6 +48,7 @@ export const SaveMappingItem: FunctionComponent<SaveMappingItemProps> = ({ mappi
               className="slds-button_last"
               dropDownClassName="slds-dropdown_actions"
               position="right"
+              description={`Actions for mapping ${mapping.name}`}
               items={[{ id: 'delete', value: 'Delete', metadata: mapping }]}
               onSelected={onButtonAction}
             />
