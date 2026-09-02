@@ -237,6 +237,9 @@ importers:
       '@contentful/rich-text-types':
         specifier: 17.2.7
         version: 17.2.7
+      '@dnd-kit/dom':
+        specifier: 0.5.0
+        version: 0.5.0
       '@dnd-kit/react':
         specifier: 0.5.0
         version: 0.5.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -4232,8 +4235,8 @@ packages:
   '@maxim_mazurok/gapi.client.drive-v3@0.3.20260810':
     resolution: {integrity: sha512-J8IA28ANqiCD0E1oUkrRcFjaaAZOV2kU+MY/0wU13fMfin2d7+QJ9PnhTqB8cLU+WWOg+FtWt/FRnHUbpZr5bA==}
 
-  '@maxim_mazurok/gapi.client.drive-v3@0.3.20260816':
-    resolution: {integrity: sha512-2iaLfQy7Nd6NTPnTSP6LXz98NrAmrK8hGUoelqYtg7qkVkNyu3+5JZ43kDcgQxoOJ9/Dpu3zlgFX5gYW95tunA==}
+  '@maxim_mazurok/gapi.client.drive-v3@0.3.20260824':
+    resolution: {integrity: sha512-cuwWJOo02oycXxmFNbHpszu0AUwCA5MfzlmUCps8jZXRP11yVqI1s67/I38l1A4MiDbGi2D3z7C2GkN1qZOXjw==}
 
   '@mdn/browser-compat-data@8.0.8':
     resolution: {integrity: sha512-Rutrrc3FYOc+um4/QC4WFETNk2fV8NKWoqQl3tQfcVTQ1WFaoJRbsJBasSF34ltitmnYYD6ZsKW1cOQtSj1jbQ==}
@@ -23069,7 +23072,7 @@ snapshots:
       '@types/gapi.client': 1.0.8
       '@types/gapi.client.discovery-v1': 0.0.4
 
-  '@maxim_mazurok/gapi.client.drive-v3@0.3.20260816':
+  '@maxim_mazurok/gapi.client.drive-v3@0.3.20260824':
     dependencies:
       '@types/gapi.client': 1.0.8
       '@types/gapi.client.discovery-v1': 0.0.4
@@ -26643,7 +26646,7 @@ snapshots:
 
   '@types/gapi.client.drive-v3@0.0.5':
     dependencies:
-      '@maxim_mazurok/gapi.client.drive-v3': 0.3.20260816
+      '@maxim_mazurok/gapi.client.drive-v3': 0.3.20260824
 
   '@types/gapi.client@1.0.8': {}
 

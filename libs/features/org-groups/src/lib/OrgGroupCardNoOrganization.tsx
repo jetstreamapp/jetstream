@@ -5,7 +5,7 @@ import { AddOrgHandlerFn, SalesforceOrgUi } from '@jetstream/types';
 import { Card, Grid, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { SalesforceOrgCardDraggable } from './SalesforceOrgCardDraggable';
-import { DraggableSfdcCard, SfdcCardDropTarget } from './organization-group.types';
+import { DraggableSfdcCard, SfdcCardDropTarget, UNASSIGNED_ORGS_DROP_LABEL } from './organization-group.types';
 
 interface OrgGroupCardNoOrganizationProps {
   isActive: boolean;
@@ -30,7 +30,7 @@ export function OrgGroupCardNoOrganization({
   const { ref: dropRef, isDropTarget } = useDroppable({
     id: 'unassigned',
     accept: (source) => !!(source.data as DraggableSfdcCard).organizationId,
-    data: { action: 'remove' } satisfies SfdcCardDropTarget,
+    data: { action: 'remove', label: UNASSIGNED_ORGS_DROP_LABEL } satisfies SfdcCardDropTarget,
   });
 
   return (
