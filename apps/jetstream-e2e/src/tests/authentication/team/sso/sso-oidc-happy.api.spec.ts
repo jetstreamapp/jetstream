@@ -4,11 +4,14 @@ import { expect, test } from '@playwright/test';
 import { parseCookie } from 'cookie';
 import { createSign, generateKeyPairSync } from 'crypto';
 import { createServer, Server } from 'http';
+import { AddressInfo } from 'net';
 import { cleanupSsoFixture, createSsoFixture } from '../../../../utils/auth-fixtures';
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
-const ISSUER = 'http://127.0.0.1:5555';
+// Set once the mock IdP is listening: it binds to a free port so a fixed one (5555/5556) can never
+// collide with something else on the developer's machine (OrbStack held 5555 on one)
+let ISSUER = '';
 const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
 const jwk = publicKey.export({ format: 'jwk' }) as any;
 jwk.use = 'sig';
@@ -45,7 +48,7 @@ function signIdToken(nonce: string, email: string) {
   return `${data}.${signature}`;
 }
 
-function startMockOidcServer(): Server {
+async function startMockOidcServer(): Promise<Server> {
   const server = createServer((req, res) => {
     if (!req.url) return;
     if (req.url.startsWith('/.well-known/openid-configuration')) {
@@ -89,7 +92,8 @@ function startMockOidcServer(): Server {
     res.writeHead(404);
     res.end();
   });
-  server.listen(5555);
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  ISSUER = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   return server;
 }
 
@@ -142,7 +146,7 @@ test.describe('OIDC SSO happy path', () => {
   let mockServer: Server;
 
   test.beforeAll(async () => {
-    mockServer = startMockOidcServer();
+    mockServer = await startMockOidcServer();
     fixture = await createSsoFixture({
       ssoProvider: 'OIDC',
       oidcIssuer: ISSUER,
