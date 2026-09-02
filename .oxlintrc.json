@@ -100,6 +100,7 @@
     // Accessibility ratchet (docs/accessibility/README.md): each rule is promoted from `warn` to
     // `error` once its violation count reaches zero — see the lint census in
     // docs/accessibility/audit-2026/findings.md for current counts. Never demote a promoted rule.
+    "jsx-a11y/anchor-ambiguous-text": "error",
     "jsx-a11y/autocomplete-valid": "error",
     "jsx-a11y/click-events-have-key-events": "warn",
     // depth: SLDS blueprints nest a control's text several levels deep (li > div.slds-media >
