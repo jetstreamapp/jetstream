@@ -46,6 +46,19 @@ export const HeaderHelpPopover: FunctionComponent<HeaderHelpPopoverProps> = () =
               </a>
             </li>
             <li className="slds-box slds-box_x-small slds-m-bottom_x-small">
+              <a href="https://docs.getjetstream.app/accessibility" target="_blank" rel="noreferrer" onClick={() => closePopover()}>
+                <span className="slds-truncate" title="Accessibility">
+                  Accessibility
+                </span>
+                <Icon
+                  type="utility"
+                  icon="new_window"
+                  className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-left_xx-small"
+                  omitContainer
+                />
+              </a>
+            </li>
+            <li className="slds-box slds-box_x-small slds-m-bottom_x-small">
               <FeedbackLink type="GH_ISSUE" label="Report a bug or feature request" onClick={() => closePopover()} />
             </li>
             <li className="slds-box slds-box_x-small slds-m-bottom_x-small">

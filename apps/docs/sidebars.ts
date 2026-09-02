@@ -12,6 +12,7 @@ const sidebar = {
         'getting-started/troubleshooting',
         'getting-started/org-groups',
         'getting-started/feedback',
+        'getting-started/accessibility',
         'getting-started/managed-package/managed-package',
         'getting-started/desktop-app',
         'getting-started/browser-extension/browser-extension',

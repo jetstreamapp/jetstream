@@ -17,6 +17,7 @@ const footerNavigation = {
   legal: [
     { name: 'About', href: ROUTES.ABOUT },
     { name: 'Privacy & Security', href: ROUTES.PRIVACY },
+    { name: 'Accessibility', href: `${ROUTES.EXTERNAL.DOCS}/accessibility`, target: '_blank' },
     { name: 'Terms of Service', href: ROUTES.TERMS_OF_SERVICE },
     { name: 'Data Processing Agreement', href: ROUTES.DPA },
     { name: 'Data Sub-Processors', href: ROUTES.SUB_PROCESSORS },
