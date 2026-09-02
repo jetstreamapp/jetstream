@@ -106,6 +106,9 @@ export function GridGroupRow<TRow extends object>({
       <div {...baseRowProps} style={{ ...rowStyle, gridTemplateColumns: '1fr' }}>
         <div
           role="gridcell"
+          // Never edited: without this the cell hint reads "Editable" while Enter toggles the group
+          // eslint-disable-next-line jsx-a11y/role-supports-aria-props -- gridcell supports aria-readonly (ARIA 1.2); the plugin's table is behind
+          aria-readonly
           className="jgrid-cell jgrid-group-cell"
           data-row-id={row.id}
           data-col-id={firstColumnId}
@@ -160,6 +163,9 @@ export function GridGroupRow<TRow extends object>({
         <div
           key={column.id}
           role="gridcell"
+          // Never edited: without this the cell hint reads "Editable" while Enter toggles the group
+          // eslint-disable-next-line jsx-a11y/role-supports-aria-props -- gridcell supports aria-readonly (ARIA 1.2); the plugin's table is behind
+          aria-readonly
           className="jgrid-cell jgrid-group-cell"
           data-row-id={row.id}
           data-col-id={column.id}
