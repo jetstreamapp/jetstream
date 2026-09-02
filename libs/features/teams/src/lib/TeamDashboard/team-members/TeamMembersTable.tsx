@@ -87,11 +87,7 @@ export function TeamMembersTable({
         </ButtonGroupContainer>
       }
     >
-      <table
-        data-testid="team-member-table"
-        aria-describedby="team-members-heading"
-        className="slds-table slds-table_cell-buffer slds-table_bordered"
-      >
+      <table data-testid="team-member-table" aria-label="Team members" className="slds-table slds-table_cell-buffer slds-table_bordered">
         <thead>
           <tr className="slds-line-height_reset">
             <th
@@ -154,7 +150,7 @@ export function TeamMembersTable({
       </table>
       {invitations.length > 0 && (
         <>
-          <h4 className="slds-text-align_center slds-text-heading_small slds-m-around_small">Team Member Invitations</h4>
+          <h3 className="slds-text-align_center slds-text-heading_small slds-m-around_small">Team Member Invitations</h3>
           <TeamInviteTable invitations={invitations} canUpdate={canUpdate} onUserAction={onUserAction} />
         </>
       )}
