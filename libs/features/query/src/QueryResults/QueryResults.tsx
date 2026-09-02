@@ -117,6 +117,10 @@ export const QueryResults = React.memo(() => {
     sobject?: { name: string; label: string };
   }>();
   const [soqlPanelOpen, setSoqlPanelOpen] = useState<boolean>(false);
+  // A failed query opens the SOQL panel on its own, possibly after a background re-query while the user
+  // works elsewhere, so only a panel the user opened takes focus
+  const [soqlPanelOpenedByUser, setSoqlPanelOpenedByUser] = useState<boolean>(true);
+  const soqlPanelButtonRef = useRef<HTMLButtonElement>(null);
   const [soql, setSoql] = useState<string>('');
   const [sobject, setSobject] = useState<Maybe<string>>(null);
   const [parsedQuery, setParsedQuery] = useState<Maybe<Query>>(null);
@@ -213,15 +217,20 @@ export const QueryResults = React.memo(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const toggleSoqlPanel = useCallback(() => {
+    setSoqlPanelOpenedByUser(true);
+    setSoqlPanelOpen((isOpen) => !isOpen);
+  }, []);
+
   const onKeydown = useCallback(
     (event: KeyboardEvent) => {
       if (hasModifierKey(event as any) && isMKey(event as any)) {
         event.stopPropagation();
         event.preventDefault();
-        setSoqlPanelOpen(!soqlPanelOpen);
+        toggleSoqlPanel();
       }
     },
-    [soqlPanelOpen],
+    [toggleSoqlPanel],
   );
 
   useGlobalEventHandler('keydown', onKeydown);
@@ -401,6 +410,7 @@ export const QueryResults = React.memo(() => {
       }
       logger.warn('ERROR', ex);
       setErrorMessage(getErrorMessage(ex));
+      setSoqlPanelOpenedByUser(false);
       setSoqlPanelOpen(true);
       trackEvent(ANALYTICS_KEYS.query_ExecuteQuery, { source, success: false, isTooling: tooling, includeDeletedRecords });
       notifyUser(`Your query failed`, {
@@ -726,12 +736,13 @@ export const QueryResults = React.memo(() => {
           </Tooltip>
           <ButtonGroupContainer>
             <button
+              ref={soqlPanelButtonRef}
               className={classNames('slds-button collapsible-button collapsible-button-md slds-button_first', {
                 'slds-button_neutral': !soqlPanelOpen,
                 'slds-button_brand': soqlPanelOpen,
               })}
               title="View or manually edit SOQL query (ctrl/command + m)"
-              onClick={() => setSoqlPanelOpen(!soqlPanelOpen)}
+              onClick={toggleSoqlPanel}
             >
               <Icon type="utility" icon="component_customization" className="slds-button__icon slds-button__icon_left" omitContainer />
               <span>SOQL Query</span>
@@ -812,6 +823,8 @@ export const QueryResults = React.memo(() => {
           isOpen={soqlPanelOpen}
           selectedOrg={selectedOrg}
           sObject={allowContentDownload.sobjectName || ''}
+          returnFocusTo={soqlPanelButtonRef}
+          focusOnOpen={soqlPanelOpenedByUser}
           onClosed={() => setSoqlPanelOpen(false)}
           executeQuery={(soql, tooling) => executeQuery(soql, SOURCE_MANUAL, { isTooling: tooling })}
           onOpenHistory={handleOpenHistory}
