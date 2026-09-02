@@ -376,7 +376,12 @@ export const AutomationControlEditor = () => {
         <Grid>
           <Grid className="slds-grow slds-box_small slds-theme_default slds-is-relative" verticalAlign="center" wrap>
             {loading && <Spinner size="small"></Spinner>}
-            <SearchInput id="quick-filter" placeholder="Filter items..." onChange={setQuickFilterText} />
+            <SearchInput
+              id="quick-filter"
+              ariaLabel="Filter automation items"
+              placeholder="Filter items..."
+              onChange={setQuickFilterText}
+            />
             <ButtonGroupContainer className="slds-m-horizontal_small">
               <button
                 className={classNames('slds-button slds-button_neutral')}

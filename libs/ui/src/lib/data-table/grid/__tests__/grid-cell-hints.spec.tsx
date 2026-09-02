@@ -9,17 +9,27 @@ interface Row {
   Name: string;
   Amount: string;
   Link: string;
+  Url: string;
 }
 
 const columns: ColumnWithFilter<Row>[] = [
   { key: 'Name', name: 'Name' },
   { key: 'Amount', name: 'Amount', editable: true, renderEditCell: () => null },
   { key: 'Link', name: 'Link', renderCell: ({ row }) => <button type="button">Open {row.Link}</button> },
+  {
+    key: 'Url',
+    name: 'Url',
+    renderCell: ({ row }) => (
+      <a href={row.Url} target="_blank" rel="noreferrer">
+        View in Salesforce
+      </a>
+    ),
+  },
 ];
 
 const data: Row[] = [
-  { _key: '1', Name: 'Alpha', Amount: '10', Link: 'one' },
-  { _key: '2', Name: 'Bravo', Amount: '20', Link: 'two' },
+  { _key: '1', Name: 'Alpha', Amount: '10', Link: 'one', Url: 'https://example.com/1' },
+  { _key: '2', Name: 'Bravo', Amount: '20', Link: 'two', Url: 'https://example.com/2' },
 ];
 
 // The virtualizers measure the scroll container, which jsdom reports as 0x0 — give every element a
@@ -60,6 +70,7 @@ describe('grid cell keyboard hints', () => {
     const nameCell = getCell('1', 'Name');
     const amountCell = getCell('1', 'Amount');
     const linkCell = getCell('1', 'Link');
+    const urlCell = getCell('1', 'Url');
     fireEvent.mouseDown(nameCell);
 
     await arrowTo(nameCell, 'ArrowRight', amountCell);
@@ -71,6 +82,10 @@ describe('grid cell keyboard hints', () => {
     // the hint moved with focus
     expect(amountCell.hasAttribute('aria-describedby')).toBe(false);
 
+    await arrowTo(linkCell, 'ArrowRight', urlCell);
+    expect(describedByText(urlCell)).toMatch(/contains a link\. press enter to move to it/i);
+
+    await arrowTo(urlCell, 'ArrowLeft', linkCell);
     await arrowTo(linkCell, 'ArrowLeft', amountCell);
     await arrowTo(amountCell, 'ArrowLeft', nameCell);
     // a plain read-only cell gets no hint at all
