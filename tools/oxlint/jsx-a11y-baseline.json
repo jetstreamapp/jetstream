@@ -56,14 +56,6 @@
       "click-events-have-key-events": 2,
       "no-noninteractive-element-interactions": 2
     },
-    "libs/shared/ui-core/src/query/QuickQueryPopover.tsx": {
-      "click-events-have-key-events": 1,
-      "no-noninteractive-element-interactions": 1
-    },
-    "libs/shared/ui-core/src/record/RecordSearchPopover.tsx": {
-      "click-events-have-key-events": 1,
-      "no-noninteractive-element-interactions": 1
-    },
     "libs/ui/src/lib/badge/BadgePopoverGroupList.tsx": {
       "click-events-have-key-events": 1,
       "no-noninteractive-element-interactions": 1
