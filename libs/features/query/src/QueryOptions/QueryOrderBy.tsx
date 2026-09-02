@@ -38,6 +38,15 @@ export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps
     }
 
     function handleDelete(deletedOrderby: QueryOrderByClause) {
+      // The delete button unmounts with its row, which would drop keyboard focus to <body> — land on
+      // the previous row's delete button (row 0 always exists: an emptied list is refilled with one row)
+      const deletedIndex = orderByClauses.findIndex((orderBy) => orderBy.key === deletedOrderby.key);
+      window.setTimeout(() => {
+        const deleteButtons = document.querySelectorAll<HTMLElement>(
+          '[role="group"][aria-label^="Order by row "] button[title="Delete Condition"]',
+        );
+        deleteButtons[Math.max(deletedIndex - 1, 0)]?.focus();
+      });
       const tempOrderByClauses = orderByClauses.filter((orderBy) => orderBy.key !== deletedOrderby.key);
       // ensure there is always at least one order by
       if (tempOrderByClauses.length === 0) {
