@@ -33,7 +33,9 @@ Statuses: `open` → `in-progress` → `fixed (PR #)` | `accepted` (documented r
 
 75 warnings across 41 files (`main`: 140; branch tip before the 2026-09-01 code review: 131; 97 after the shared-component fixes, 75 after the feature-level sweeps). Promote
 each rule to `error` in `.oxlintrc.json` when its count hits zero. Promoted so far: `no-redundant-roles`,
-`autocomplete-valid`, `interactive-supports-focus` and `label-has-associated-control` are all at `error`.
+`autocomplete-valid`, `interactive-supports-focus`, `label-has-associated-control` and (2026-09-02, after
+naming the two "Learn more" links) `anchor-ambiguous-text` are all at `error`. The remaining warn-tier
+counts are held per file by `pnpm a11y:lint-ratchet` (`tools/oxlint/jsx-a11y-baseline.json`).
 Part of the drop from 131 comes from aligning the rule options with eslint-plugin-jsx-a11y's recommended
 config — the `no-noninteractive-element-to-interactive-role` allowlist (`li` → `option`/`tab`/`treeitem`/
 `row`/`menuitem*`, `ul`/`ol` → `listbox`/`menu`/`tree`/`treegrid`/`tablist`/`radiogroup`, `table` → `grid`,
