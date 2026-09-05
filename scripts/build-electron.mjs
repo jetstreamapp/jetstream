@@ -150,7 +150,7 @@ async function build() {
 
   // Copy electron-builder config and assets
   await copy('electron-builder.config.js', join(TARGET_DIR, 'electron-builder.config.js'));
-  await copy('DESKTOP_EULA.md', join(TARGET_DIR, 'DESKTOP_EULA.md'));
+  await copy('DESKTOP_EULA.html', join(TARGET_DIR, 'DESKTOP_EULA.html'));
   prepareTargetPackageJson();
 
   cd(TARGET_DIR);
