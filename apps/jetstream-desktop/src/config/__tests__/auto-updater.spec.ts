@@ -281,6 +281,23 @@ describe('auto-updater', () => {
       expect(getCurrentUpdateStatus()).toMatchObject({ status: 'ready', requiresElevation: true });
     });
 
+    it('installs silently from the header button on a per-user install', async () => {
+      const { installUpdate } = await loadModule(policy());
+
+      installUpdate();
+
+      // (isSilent, isForceRunAfter) - force-run is required for the app to come back after a silent install
+      expect(mocks.autoUpdater.quitAndInstall).toHaveBeenCalledWith(true, true);
+    });
+
+    it('shows the installer UI on a per-machine install so the UAC prompt has context', async () => {
+      const { installUpdate } = await loadModule(policy({ perMachineInstall: true }));
+
+      installUpdate();
+
+      expect(mocks.autoUpdater.quitAndInstall).toHaveBeenCalledWith(false, true);
+    });
+
     it('marks a per-user install as not needing elevation', async () => {
       const { getCurrentUpdateStatus } = await loadModule(policy());
 
