@@ -380,7 +380,7 @@ const config = {
     perMachine: false,
     allowToChangeInstallationDirectory: true,
     allowElevation: true,
-    license: 'DESKTOP_EULA.md',
+    license: 'DESKTOP_EULA.html',
     warningsAsErrors: false,
     createStartMenuShortcut: true,
     shortcutName: 'Jetstream',
