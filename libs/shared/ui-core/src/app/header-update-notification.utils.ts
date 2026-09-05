@@ -1,4 +1,4 @@
-import { UpdateStatus } from '@jetstream/desktop/types';
+import { UpdatePolicySource, UpdateStatus } from '@jetstream/desktop/types';
 
 /**
  * electron-updater throws this code when a downloaded update's signing certificate does not
@@ -28,4 +28,19 @@ export function isManualUpdateRequiredError(updateStatus: UpdateStatus): boolean
     return true;
   }
   return !!updateStatus.error && INVALID_SIGNATURE_MESSAGE_PATTERN.test(updateStatus.error);
+}
+
+/**
+ * Explains who turned updates off. Every administrator-controlled source reads the same to the user
+ * ("your organization did this"), so only the two sources with a different story get their own copy.
+ */
+export function getUpdatesDisabledMessage(disabledBy: UpdatePolicySource | undefined): string {
+  switch (disabledBy) {
+    case 'user-preference':
+      return 'Automatic updates are turned off in your settings. You can still check for one now.';
+    case 'portable':
+      return 'You are running the portable version, which does not update itself. Download a new copy to move to a newer version.';
+    default:
+      return 'Updates are managed by your organization. Your IT team installs new versions for you.';
+  }
 }

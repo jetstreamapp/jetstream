@@ -68,6 +68,7 @@ const API: ElectronAPI = {
   showFileInFolder: (filePath) => ipcRenderer.invoke('showFileInFolder', filePath),
   checkForUpdates: (userInitiated) => ipcRenderer.invoke('checkForUpdates', userInitiated),
   getUpdateStatus: () => ipcRenderer.invoke('getUpdateStatus'),
+  getUpdatePolicy: () => ipcRenderer.invoke('getUpdatePolicy'),
   installUpdate: () => ipcRenderer.invoke('installUpdate'),
   openGooglePicker: (payload) => ipcRenderer.invoke('openGooglePicker', payload),
 };
