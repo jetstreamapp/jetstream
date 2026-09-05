@@ -244,9 +244,16 @@ export function checkForUpdates(userInitiated = false) {
 }
 
 export function installUpdate() {
-  // Use default behavior for NSIS installers on Windows
-  // This ensures proper quit sequence and allows installer to complete
-  autoUpdater.quitAndInstall();
+  // A per-machine install has to elevate, so it runs with the installer UI visible - that window is
+  // what gives the UAC prompt its context. A per-user install needs neither, so it installs silently
+  // and relaunches, matching what quitting the app with a pending update already does. Without this
+  // the same update showed the full wizard (EULA, install directory, the lot) when installed from
+  // the header button but nothing at all when installed by quitting.
+  //
+  // isForceRunAfter must be passed explicitly: electron-updater only honors `autoRunAppAfterInstall`
+  // on the non-silent path, so a silent install would otherwise never relaunch the app.
+  const installSilently = !getUpdatePolicy().perMachineInstall;
+  autoUpdater.quitAndInstall(installSilently, true);
 }
 
 export function getCurrentUpdateStatus(): UpdateStatus {
