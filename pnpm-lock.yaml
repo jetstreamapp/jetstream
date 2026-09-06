@@ -373,8 +373,8 @@ importers:
         specifier: ^4.0.1-beta.13
         version: 4.0.1-beta.13(dexie@4.4.5)
       dexie-react-hooks:
-        specifier: ^1.1.7
-        version: 1.1.7(@types/react@19.2.18)(dexie@4.4.5)(react@19.2.8)
+        specifier: ^4.4.0
+        version: 4.4.0(dexie@4.4.5)(react@19.2.8)
       dexie-syncable:
         specifier: ^4.0.1-beta.13
         version: 4.0.1-beta.13(dexie-observable@4.0.1-beta.13(dexie@4.4.5))(dexie@4.4.5)
@@ -442,8 +442,8 @@ importers:
         specifier: ^11.5.2
         version: 11.5.2
       mailgun.js:
-        specifier: 13.3.0
-        version: 13.3.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
+        specifier: 14.0.0
+        version: 14.0.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
       maxmind:
         specifier: ^5.0.7
         version: 5.0.7
@@ -9260,11 +9260,10 @@ packages:
     peerDependencies:
       dexie: ^3.0.2 || ^4.0.1-alpha.5
 
-  dexie-react-hooks@1.1.7:
-    resolution: {integrity: sha512-Lwv5W0Hk+uOW3kGnsU9GZoR1er1B7WQ5DSdonoNG+focTNeJbHW6vi6nBoX534VKI3/uwHebYzSw1fwY6a7mTw==}
+  dexie-react-hooks@4.4.0:
+    resolution: {integrity: sha512-ObLXBS5+4BJU8vtSvBx6b9fY6zZYgniAtwxzjCHsUQadgbqYN6935X2/1TWw4Rf2N1aZV1io5/ziox4vKuxABA==}
     peerDependencies:
-      '@types/react': '>=16'
-      dexie: ^3.2 || ^4.0.1-alpha
+      dexie: '>=4.2.0-alpha.1 <5.0.0'
       react: '>=16'
 
   dexie-syncable@4.0.1-beta.13:
@@ -12009,8 +12008,8 @@ packages:
   magicast@0.5.4:
     resolution: {integrity: sha512-llBEhWm1SacoRwgHUoQJYtwp4PBLF4faQi5TCpIGyGs9n4y5+juI0tDgyKIfpqxckRHaHzouUEph3THklWh03w==}
 
-  mailgun.js@13.3.0:
-    resolution: {integrity: sha512-8avnVhhaZJ17Pw91nPq+N4WuhCBBi9SJpsiAs5SV0CmLXZhz0UobTGP5p3bVTI+Zh1NZU6nXtL+N8KM/taBX4w==}
+  mailgun.js@14.0.0:
+    resolution: {integrity: sha512-3JOytYg/Ff8Itrw74gfwQjylcu/tBEMf4O2HdpfgMqCLON6kypreVDYy5nUqrvMYjtDPVsCV1yKU8mvWsg4VPw==}
     engines: {node: '>=18.0.0'}
 
   make-asynchronous@1.1.0:
@@ -27423,9 +27422,8 @@ snapshots:
     dependencies:
       dexie: 4.4.5
 
-  dexie-react-hooks@1.1.7(@types/react@19.2.18)(dexie@4.4.5)(react@19.2.8):
+  dexie-react-hooks@4.4.0(dexie@4.4.5)(react@19.2.8):
     dependencies:
-      '@types/react': 19.2.18
       dexie: 4.4.5
       react: 19.2.8
 
@@ -31248,7 +31246,7 @@ snapshots:
       '@babel/types': 7.29.8
       source-map-js: 1.2.1
 
-  mailgun.js@13.3.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0):
+  mailgun.js@14.0.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0):
     dependencies:
       axios: 1.20.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
       base-64: 1.0.0
