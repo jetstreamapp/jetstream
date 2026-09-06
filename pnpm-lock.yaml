@@ -346,8 +346,8 @@ importers:
         specifier: ^2.5.1
         version: 2.5.1
       cometd:
-        specifier: ^7.0.13
-        version: 7.0.13
+        specifier: ^9.0.1
+        version: 9.0.1
       connect-pg-simple:
         specifier: ^10.0.0
         version: 10.0.0
@@ -415,8 +415,8 @@ importers:
         specifier: ^1.19.0
         version: 1.19.0(supports-color@7.2.0)
       fast-jwt:
-        specifier: ^6.3.2
-        version: 6.3.2
+        specifier: ^6.3.3
+        version: 6.3.3
       file-saver:
         specifier: ^2.0.5
         version: 2.0.5
@@ -8687,8 +8687,8 @@ packages:
     resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}
     engines: {node: '>= 0.8'}
 
-  cometd@7.0.13:
-    resolution: {integrity: sha512-VHho8Oxygyz4nrE9MVHcsMrYwaoKe48IpJKjgEbno9We5R8sPGPlwogENTiP14rR7+piobT95JdhSIjAiA9wuA==}
+  cometd@9.0.1:
+    resolution: {integrity: sha512-uIHn0SEJKbpknurUB5V9muODkmQEkbzXKK94iC6jb7HPrKvTUiK3+2jLop7AvmJ7U/PCIMeNwsUKcrLW8gfPpg==}
 
   comma-separated-tokens@2.0.3:
     resolution: {integrity: sha512-Fu4hJdvzeylCfQPp9SGWidpzrMs7tTrlu6Vb8XGaRGck8QSNZJJp538Wrb60Lax4fPwR64ViY468OIUTbRlGZg==}
@@ -10266,8 +10266,8 @@ packages:
   fast-json-stable-stringify@2.1.0:
     resolution: {integrity: sha512-lhd/wF+Lk98HZoTCtlVraHtfh5XYijIjalXck7saUtuanSDyLMxnHhSXEDJqHxD7msR8D0uCmqlkwjCV8xvwHw==}
 
-  fast-jwt@6.3.2:
-    resolution: {integrity: sha512-JTQImpkXVvj+eq7tJImtsHRt1K6ngloEzIx62Qbf9x4tEM2P2EqGpYJSeUoPf/kMn78rImSHfhf08KShR8PauA==}
+  fast-jwt@6.3.3:
+    resolution: {integrity: sha512-pQDXx7IHeZT4jSmpE9o80RrBqfrG4fPrl8anazSM5vErIdK1iCc13z/EWX+H0j7liWSRnwTpHswIKMeLYGAckw==}
     engines: {node: '>=20'}
 
   fast-levenshtein@2.0.6:
@@ -27337,7 +27337,7 @@ snapshots:
     dependencies:
       delayed-stream: 1.0.0
 
-  cometd@7.0.13: {}
+  cometd@9.0.1: {}
 
   comma-separated-tokens@2.0.3: {}
 
@@ -29321,7 +29321,7 @@ snapshots:
 
   fast-json-stable-stringify@2.1.0: {}
 
-  fast-jwt@6.3.2:
+  fast-jwt@6.3.3:
     dependencies:
       '@lukeed/ms': 2.0.2
       asn1.js: 5.4.1
