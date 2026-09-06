@@ -1,14 +1,14 @@
 import { StripeUserFacingSubscription } from '@jetstream/types';
 
-export const ACTIVE_SUBSCRIPTION_STATUSES = new Set<StripeUserFacingSubscription['status']>([
+export const ACTIVE_SUBSCRIPTION_STATUSES: Set<StripeUserFacingSubscription['status']> = new Set([
   'ACTIVE',
   'PAST_DUE',
   'TRIALING',
   'PAUSED',
   'UNPAID',
 ]);
-export const PAST_DUE_SUBSCRIPTION_STATUSES = new Set<StripeUserFacingSubscription['status']>(['PAST_DUE']);
-export const UNPAID_SUBSCRIPTION_STATUSES = new Set<StripeUserFacingSubscription['status']>(['UNPAID']);
+export const PAST_DUE_SUBSCRIPTION_STATUSES: Set<StripeUserFacingSubscription['status']> = new Set(['PAST_DUE']);
+export const UNPAID_SUBSCRIPTION_STATUSES: Set<StripeUserFacingSubscription['status']> = new Set(['UNPAID']);
 
 export const PRO_MONTHLY_KEY = 'PRO_MONTHLY';
 export const PRO_ANNUAL_KEY = 'PRO_ANNUAL';
