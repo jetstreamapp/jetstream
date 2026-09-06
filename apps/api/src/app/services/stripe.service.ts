@@ -100,6 +100,23 @@ function filterInactiveSubscriptions(subscriptions: Stripe.Subscription[]) {
   return subscriptions.filter((subscription) => activeSubscriptionStatuses.has(subscription.status));
 }
 
+function findTeamPlanSubscription(subscriptions: Stripe.Subscription[]) {
+  return subscriptions.find(({ items }) => items.data.some((item) => item.price.lookup_key?.startsWith('TEAM_')));
+}
+
+/**
+ * A team plan can be started either through checkout or by switching plans in the Stripe billing
+ * portal, and the portal never routes through checkout. Every path that observes a TEAM price on a
+ * customer funnels through here so that a delayed or failed webhook self-heals instead of leaving the
+ * user without a team.
+ */
+async function createTeamForTeamPlanCustomer({ userId, customerId }: { userId: string; customerId: string }) {
+  const team = await teamDbService.upsertTeamWithBillingAccount({ userId, billingAccountCustomerId: customerId });
+  // ensure stripe has proper metadata
+  await updateCustomerMetadata(customerId, { userId, teamId: team.id, type: 'TEAM' });
+  return team;
+}
+
 async function fetchCustomerWithSubscriptionsById({
   customerId,
 }: {
@@ -441,7 +458,17 @@ export async function synchronizeStripeWithJetstreamUserIfRequired({
     }
 
     const subscriptions = filterInactiveSubscriptions(stripeCustomer.subscriptions.data);
-    const priceRecordCount = subscriptions.flatMap((subscription) => subscription.items.data.length).length;
+
+    // The customer upgraded to a team plan without a team existing yet - most likely a plan switch in
+    // the billing portal, which never routes through checkout. Create the team and sync as a team,
+    // otherwise the team subscription would be recorded against the personal account and the checks
+    // below would then report the account as correctly synchronized forever.
+    if (findTeamPlanSubscription(subscriptions)) {
+      const team = await createTeamForTeamPlanCustomer({ userId, customerId });
+      return await synchronizeStripeWithJetstreamTeamIfRequired({ teamId: team.id, customerId });
+    }
+
+    const priceRecordCount = subscriptions.flatMap((subscription) => subscription.items.data).length;
 
     /**
      * Check if we need to synchronize
@@ -507,7 +534,7 @@ export async function synchronizeStripeWithJetstreamTeamIfRequired({
     }
 
     const subscriptions = filterInactiveSubscriptions(stripeCustomer.subscriptions.data);
-    const priceRecordCount = subscriptions.flatMap((subscription) => subscription.items.data.length).length;
+    const priceRecordCount = subscriptions.flatMap((subscription) => subscription.items.data).length;
 
     /**
      * Check if we need to synchronize
@@ -558,15 +585,13 @@ export async function saveOrUpdateSubscription({
 
   let { userId, teamId, type = 'USER' } = customer.metadata;
   const subscriptions = customer.subscriptions?.data ?? [];
-  const hasTeamPlan = subscriptions.find(({ items }) => items.data.find((item) => item.price.lookup_key?.startsWith('TEAM_')));
+  const hasTeamPlan = !!findTeamPlanSubscription(subscriptions);
 
   // Ensure team is auto-created if required and Stripe is updated to reflect this
   if (hasTeamPlan && userId && (!teamId || type !== 'TEAM')) {
     type = 'TEAM';
-    const team = await teamDbService.upsertTeamWithBillingAccount({ userId, billingAccountCustomerId: customer.id });
+    const team = await createTeamForTeamPlanCustomer({ userId, customerId: customer.id });
     teamId = team.id;
-    // ensure stripe has proper metadata
-    await updateCustomerMetadata(customer.id, { userId, teamId, type: 'TEAM' });
   }
 
   // customer does not have Jetstream id attached - update Stripe to ensure data integrity (if possible)
