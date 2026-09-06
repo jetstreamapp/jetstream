@@ -69,7 +69,8 @@ describe('OrgsCombobox', () => {
     const { listbox } = renderOpen();
     const styles = getComputedStyle(listbox);
     expect(listbox.className).not.toContain('slds-dropdown_fluid');
-    expect(styles.maxWidth).toBe('32rem');
+    // 32rem, resolved by jsdom against the 16px default root font size.
+    expect(styles.maxWidth).toBe('512px');
   });
 
   describe('search', () => {
