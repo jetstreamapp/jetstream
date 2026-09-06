@@ -85,6 +85,12 @@
 
     "react-hooks/exhaustive-deps": ["warn", { "additionalHooks": "(useNonInitialEffect)" }],
     "react-hooks/rules-of-hooks": "error",
+    "react/set-state-in-effect": "warn",
+    "react/refs": "warn",
+    "react/incompatible-library": "warn",
+    "react/immutability": "warn",
+    "react/purity": "warn",
+    "react/preserve-manual-memoization": "warn",
 
     // `import * as X from 'cjs-pkg'` is correct under `esModuleInterop: false`, but this rule reads
     // the package's ESM exports and reports the CJS namespace members as missing (e.g. `bowser`).
