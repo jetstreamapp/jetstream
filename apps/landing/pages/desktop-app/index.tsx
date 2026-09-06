@@ -15,7 +15,7 @@ import { ROUTES } from '../../utils/environment';
 
 export default function DesktopDownloadPage() {
   const userProfile = useUserProfile();
-  const { windows, macosX64, macosArm64, isLoading, error } = useDesktopDownloads();
+  const { windows, windowsPortable, macosX64, macosArm64, isLoading, error } = useDesktopDownloads();
   const detectedPlatform = useDetectPlatform();
 
   return (
@@ -128,6 +128,27 @@ export default function DesktopDownloadPage() {
                     {windows ? (
                       <a
                         href={windows.downloadUrl}
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-md hover:bg-white/20 focus:outline-hidden focus:ring-2 focus:ring-cyan-500"
+                        download
+                      >
+                        <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
+                        Download
+                      </a>
+                    ) : (
+                      <span className="text-sm text-gray-500">Not available</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-lg border border-gray-700 bg-white/5">
+                    <div>
+                      <h4 className="text-white font-medium">Windows (Portable)</h4>
+                      <p className="text-sm text-gray-400">
+                        Runs without installing{windowsPortable ? ` • v${windowsPortable.version}` : ''}
+                      </p>
+                    </div>
+                    {windowsPortable ? (
+                      <a
+                        href={windowsPortable.downloadUrl}
                         className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-md hover:bg-white/20 focus:outline-hidden focus:ring-2 focus:ring-cyan-500"
                         download
                       >

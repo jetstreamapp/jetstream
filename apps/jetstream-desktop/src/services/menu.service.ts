@@ -4,7 +4,7 @@ import { app, BrowserWindow, Menu, shell } from 'electron';
 import logger from 'electron-log';
 import path from 'node:path';
 import { Browser } from '../browser/browser';
-import { checkForUpdates } from '../config/auto-updater';
+import { checkForUpdates, getUpdatePolicy } from '../config/auto-updater';
 import { openExternalSafe } from '../utils/url.utils';
 import { isMac } from '../utils/utils';
 import { getUserPreferences } from './persistence.service';
@@ -13,6 +13,25 @@ import { getUserPreferences } from './persistence.service';
 // import { IpcEventChannel } from '@jetstream/desktop/types';
 
 type MenuItem = Parameters<typeof Menu.buildFromTemplate>[0][0];
+
+/**
+ * When an administrator has disabled updates the app has no update path at all, so a live "Check
+ * for Updates" would just fail silently. Replace it with a disabled item that says who is in
+ * charge, rather than dropping it and leaving the user wondering where it went.
+ */
+function checkForUpdatesMenuItem(): MenuItem {
+  const { allowManualCheck, source } = getUpdatePolicy();
+  if (!allowManualCheck) {
+    return {
+      label: source === 'portable' ? 'Updates Not Available in Portable Mode' : 'Updates Managed by Your Organization',
+      enabled: false,
+    };
+  }
+  return {
+    label: 'Check for Updates',
+    click: () => checkForUpdates(true),
+  };
+}
 
 export function initAppMenu() {
   let template: MenuItem[] = [];
@@ -27,10 +46,7 @@ export function initAppMenu() {
             label: app.name,
             submenu: [
               { role: 'about' },
-              {
-                label: 'Check for Updates',
-                click: () => checkForUpdates(false, true),
-              },
+              checkForUpdatesMenuItem(),
               { type: 'separator' },
               {
                 label: 'Settings',
@@ -65,10 +81,7 @@ export function initAppMenu() {
                 click: (_, window) => (window as BrowserWindow | undefined)?.webContents.send('open-settings'),
               },
               { type: 'separator' },
-              {
-                label: 'Check for Updates',
-                click: () => checkForUpdates(false, true),
-              },
+              checkForUpdatesMenuItem(),
             ]) as any[]),
         { type: 'separator' },
         isMac() ? { role: 'close' } : { role: 'quit' },

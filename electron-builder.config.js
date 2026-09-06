@@ -18,7 +18,28 @@ const ENV = {
   AZURE_TENANT_ID: process.env.AZURE_TENANT_ID,
   AZURE_CLIENT_ID: process.env.AZURE_CLIENT_ID,
   AZURE_CLIENT_SECRET: process.env.AZURE_CLIENT_SECRET,
+  /**
+   * Where clients look for updates and where `publish` uploads them. Both default to production and are
+   * only overridden to dry-run a release against a throwaway bucket; CI never sets them.
+   */
+  DESKTOP_UPDATE_FEED_URL: process.env.DESKTOP_UPDATE_FEED_URL || 'https://release-updates.getjetstream.app/jetstream/releases',
+  DESKTOP_UPDATE_BUCKET: process.env.DESKTOP_UPDATE_BUCKET || 'desktop-updates',
 };
+
+/**
+ * Keep Windows differential updates small by using 7-Zip's in-place BCJ x86 filter instead of the
+ * BCJ2 default. BCJ2 pulls every CALL/JMP target out of an executable into a separate stream, so the
+ * main stream's length depends on how many bytes happen to look like a CALL opcode (0xE8). The PE
+ * checksum near the start of Jetstream.exe is a random 32-bit value that changes every build, and
+ * whenever it gains or loses an 0xE8 byte the whole main stream shifts by four bytes, every LZMA2
+ * block after it re-encodes differently, and the "delta" becomes 60-95% of the installer. Measured
+ * on two version-only rebuilds: 64 MB with BCJ2 versus 2.3 MB with BCJ, for an installer ~8% larger.
+ * electron-builder only exposes this through the environment variable, and it applies to 7z
+ * archives only (the macOS zip/dmg are unaffected).
+ */
+if (!process.env.ELECTRON_BUILDER_7Z_FILTER) {
+  process.env.ELECTRON_BUILDER_7Z_FILTER = 'BCJ';
+}
 
 /**
  * Fail fast with a clear message when signing is enabled but credentials are
@@ -368,16 +389,34 @@ const config = {
 
   // NSIS Installer Configuration (replaces both WiX and Squirrel)
   nsis: {
+    /**
+     * electron-builder's NSIS default is "${productName} Setup ${version}.${ext}" - the space is
+     * hardcoded in its NsisTarget, not a Windows convention. Hyphens match the macOS artifacts
+     * (Jetstream-4.14.0.dmg, from a different electron-builder default) and keep the published URLs
+     * free of %20 for scripted/MDM downloads. Releases up to 4.14.0 used the spaced name; those
+     * artifacts keep it, and the auto-updater reads whatever name latest.yml carries.
+     */
+    artifactName: '${productName}-Setup-${version}.${ext}',
     oneClick: false,
     perMachine: false,
     allowToChangeInstallationDirectory: true,
     allowElevation: true,
-    license: 'DESKTOP_EULA.md',
+    license: 'DESKTOP_EULA.html',
     warningsAsErrors: false,
     createStartMenuShortcut: true,
     shortcutName: 'Jetstream',
     deleteAppDataOnUninstall: false,
-    differentialPackage: false, // Enable delta updates
+    // differentialPackage is deliberately left at its default (enabled) so a .blockmap ships beside
+    // the installer and electron-updater downloads only the changed blocks. It previously read
+    // `differentialPackage: false` under a comment claiming it enabled deltas, which is the opposite
+    // of what the flag does, and Windows shipped without a blockmap for years while macOS (a
+    // different default) had one. The first release after this change still falls back to a full
+    // download, because the version it updates *from* has no blockmap to diff against.
+    //
+    // A side effect worth knowing: a differential-aware archive is always compressed with 7-Zip
+    // "normal" (non-solid, 1 MB dictionary) regardless of the top-level `compression` setting, so the
+    // Windows installer went from ~430 MB (store) to ~120 MB. See ELECTRON_BUILDER_7Z_FILTER above
+    // for the filter choice that keeps the deltas themselves small.
     include: 'assets/installer.nsh',
     runAfterFinish: true, // Auto-restart app after successful installation
   },
@@ -386,6 +425,14 @@ const config = {
   portable: {
     requestExecutionLevel: 'user',
     unpackDirName: 'jetstream-portable',
+    /**
+     * The portable build is not listed in latest.yml, so the download API reconstructs this name
+     * from the release version (apps/api/src/app/services/desktop-asset.service.ts) — changing it
+     * here without changing it there makes the portable download 404. "Portable" is explicit
+     * because this artifact IS the app the user runs; electron-builder's default only distinguished
+     * it from the installer by the absence of the word "Setup" ("Jetstream 4.14.0.exe").
+     */
+    artifactName: '${productName}-Portable-${version}.${ext}',
   },
 
   // Protocol Handlers
@@ -403,20 +450,39 @@ const config = {
           // storage vendor. Backed by Cloudflare R2.
           {
             provider: 'generic',
-            url: 'https://release-updates.getjetstream.app/jetstream/releases',
+            url: ENV.DESKTOP_UPDATE_FEED_URL,
             /**
-             * The auto-updater validates the publisher names exactly and will fail if they don't match.
-             *
-             * Azure: Jetstream Solutions, LLC
-             * Digicert: JETSTREAM SOLUTIONS, LLC
+             * Differential downloads fetch the changed blocks of the new installer with HTTP range requests.
+             * By default electron-updater batches them into a single multi-range request
+             * (`Range: bytes=a-b, c-d, ...`) for every host except s3.amazonaws.com, and Cloudflare answers
+             * that with HTTP 400 (a single range gets the expected 206). The updater treats the 400 as
+             * "ranges unsupported", logs "Cannot download differentially, fallback to full download" and
+             * re-downloads the entire installer - so without this the .blockmap files are dead weight.
+             * `false` makes it issue one plain range request per chunk instead. This option is written into
+             * the app's app-update.yml, so it only takes effect for clients built after it was set.
              */
-            publisherName: ['Jetstream Solutions, LLC', 'JETSTREAM SOLUTIONS, LLC'],
+            useMultipleRangeRequest: false,
+            /**
+             * The auto-updater checks the downloaded installer's Authenticode signature against these.
+             * A full Distinguished Name compares every attribute of the certificate subject; a bare name
+             * matches on CN only and electron-updater logs a warning asking for the full DN. Azure Trusted
+             * Signing rotates the certificate itself frequently but the subject stays the same.
+             *
+             * Azure (full DN, current):  CN="Jetstream Solutions, LLC", O=..., L=Whitefish, S=Montana, C=US
+             * Azure (CN only):           Jetstream Solutions, LLC
+             * Digicert (CN only, legacy): JETSTREAM SOLUTIONS, LLC
+             */
+            publisherName: [
+              'CN="Jetstream Solutions, LLC", O="Jetstream Solutions, LLC", L=Whitefish, S=Montana, C=US, PostalCode=59937',
+              'Jetstream Solutions, LLC',
+              'JETSTREAM SOLUTIONS, LLC',
+            ],
           },
           // Used for publishing, clients always use the first entry (generic provider above)
           {
             provider: 's3',
             endpoint: ENV.AWS_ENDPOINT_URL,
-            bucket: 'desktop-updates',
+            bucket: ENV.DESKTOP_UPDATE_BUCKET,
             path: `jetstream/releases`,
             region: 'auto',
             acl: null,
