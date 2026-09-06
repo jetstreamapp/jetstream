@@ -35,9 +35,9 @@ export interface StripeUserFacingSubscriptionItem {
   id: string;
   priceId: string;
   active: boolean;
-  // TODO: if we want these we can add in after stripe v18 upgrade
-  // currentPeriodStart: string;
-  // currentPeriodEnd: string;
+  /** Billing period is tracked per subscription item, not per subscription, as of the Basil API version. */
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
   product: string;
   lookupKey: string | null;
   unitAmount: number;
