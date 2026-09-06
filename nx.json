@@ -24,7 +24,6 @@
     },
     "@nx/react": {
       "application": {
-        "babel": true,
         "style": "@emotion/styled",
         "bundler": "vite"
       },
@@ -90,12 +89,7 @@
   },
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
-    "sharedGlobals": [
-      "{workspaceRoot}/workspace.json",
-      "{workspaceRoot}/nx.json",
-      "{workspaceRoot}/tsconfig.base.json",
-      "{workspaceRoot}/babel.config.json"
-    ],
+    "sharedGlobals": ["{workspaceRoot}/workspace.json", "{workspaceRoot}/nx.json", "{workspaceRoot}/tsconfig.base.json"],
     "production": [
       "default",
       "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",

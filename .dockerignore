@@ -17,7 +17,6 @@
 !/pnpm-workspace.yaml
 !/.oxlintrc.json
 !/.gitignore
-!/babel.config.json
 !/Dockerfile
 !/LICENSE.md
 !/next-sitemap.config.js
