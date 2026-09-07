@@ -152,7 +152,6 @@
     "libs/ui/src/lib/expression-group/__tests__/ExpressionContainer.spec.tsx",
     "libs/ui/src/lib/file-download-modal/__tests__/RecordDownloadModal.spec.tsx",
     "libs/ui/src/lib/form/checkbox/__tests__/Checkbox.spec.tsx",
-    "libs/ui/src/lib/form/combobox/__tests__/Combobox.spec.tsx",
     "libs/ui/src/lib/form/combobox/__tests__/ComboboxListItem.spec.tsx",
     "libs/ui/src/lib/form/radio/__tests__/Radio.spec.tsx",
     "libs/ui/src/lib/grid/__tests__/Grid.spec.tsx",
