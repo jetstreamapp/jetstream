@@ -12,6 +12,7 @@ import {
   isCanvasApp,
   isDesktop,
   isEnterKey,
+  isImeComposing,
   planLoadMultiObjectTemplate,
   prepareCsvFile,
   prepareExcelFile,
@@ -572,8 +573,13 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     return hasSelectableSubset(selectedRecords, records);
   }
 
-  function handleKeyUp(event: KeyboardEvent<HTMLElement>) {
-    if (isEnterKey(event) && !invalidConfig && !isLoadingChildRelationships) {
+  // Enter in the filename input downloads — on keydown, never keyup: the modal opens with this input
+  // focused, so the keyup of the Enter that activated the opening button lands here and used to
+  // download and close the modal before it was ever seen. An Enter that commits an IME conversion is
+  // part of typing the name, not a request to download.
+  function handleFilenameKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (isEnterKey(event) && !isImeComposing(event.nativeEvent) && !invalidConfig && !isLoadingChildRelationships) {
+      event.preventDefault();
       handleDownload();
     }
   }
@@ -845,7 +851,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 minLength={1}
                 maxLength={250}
                 onChange={(event) => setFileName(event.target.value)}
-                onKeyUp={handleKeyUp}
+                onKeyDown={handleFilenameKeyDown}
               />
             </Input>
             {fileFormat !== RADIO_FORMAT_GDRIVE && <DesktopDownloadLocationNote />}
