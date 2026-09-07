@@ -7,6 +7,15 @@ import { Badge, Grid, Popover, PopoverRef } from '@jetstream/ui';
 import { ReactNode, useRef } from 'react';
 import { Link } from 'react-router';
 
+/**
+ * The selector stacks above the org switcher inside the 3.125rem global header. A normal line box
+ * (1.5 × the header font) made the stack overflow the header, and the navbar painted over the bottom
+ * of the switcher's focus ring; a single line height keeps the whole stack, ring included, inside.
+ */
+const compactLineHeightCss = css`
+  line-height: 1.2;
+`;
+
 interface OrganizationGroupSelectorProps {
   groups: OrgGroup[];
   selectedGroup?: Maybe<OrgGroup>;
@@ -32,7 +41,7 @@ export function OrganizationGroupSelector({
 }: OrganizationGroupSelectorProps) {
   if (!selectedGroup) {
     return (
-      <div className="slds-align_absolute-center">
+      <div className="slds-align_absolute-center" css={compactLineHeightCss}>
         <OrganizationGroupPopover groups={groups} salesforceOrgsWithoutGroup={salesforceOrgsWithoutGroup} onSelection={onSelection}>
           Choose Group
         </OrganizationGroupPopover>
@@ -41,7 +50,7 @@ export function OrganizationGroupSelector({
   }
 
   return (
-    <Grid className="slds-align_absolute-center" verticalAlign="center">
+    <Grid className="slds-align_absolute-center" verticalAlign="center" css={compactLineHeightCss}>
       <p
         css={css`
           font-size: ${size === 'small' ? '10px;' : '14px'}
