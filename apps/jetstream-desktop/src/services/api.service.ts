@@ -5,6 +5,7 @@ import { app, net } from 'electron';
 import logger from 'electron-log';
 import { z } from 'zod';
 import { ENV } from '../config/environment';
+import { getDesktopRequestHeaders } from '../utils/request-headers.utils';
 
 const AuthResponseSuccessSchema = z.object({
   success: z.literal(true),
@@ -20,24 +21,25 @@ export type AuthResponseSuccess = z.infer<typeof AuthResponseSuccessSchema>;
 export type AuthResponseError = z.infer<typeof AuthResponseErrorSchema>;
 
 export async function verifyAuthToken({ accessToken, deviceId }: { deviceId: string; accessToken: string }) {
+  const { headers: desktopHeaders, requestId } = getDesktopRequestHeaders({ deviceId, accessToken });
+  const headers = {
+    Accept: 'application/json',
+    ...desktopHeaders,
+    [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
+  };
+
   let response: Response;
   try {
     response = await net.fetch(`${ENV.SERVER_URL}/desktop-app/auth/verify`, {
       method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-        [HTTP.HEADERS.X_APP_VERSION]: app.getVersion(),
-        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
-        [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
-      },
+      headers,
     });
   } catch (ex) {
-    logger.error('verifyAuthToken network error', ex);
+    logger.error('verifyAuthToken network error', { requestId }, ex);
     return { success: false, networkError: true, error: 'Could not reach the server. Please check your connection and try again.' };
   }
 
-  return parseAuthResponse(response, SuccessOrErrorSchema, 'verifyAuthToken');
+  return parseAuthResponse(response, SuccessOrErrorSchema, 'verifyAuthToken', requestId);
 }
 
 /**
@@ -52,6 +54,7 @@ async function parseAuthResponse<T extends z.ZodTypeAny>(
   response: Response,
   schema: T,
   label: string,
+  requestId: string,
 ): Promise<z.infer<T> | { success: false; error: string; networkError?: true }> {
   const status = response.status;
   const contentType = response.headers.get('content-type') ?? '';
@@ -62,7 +65,7 @@ async function parseAuthResponse<T extends z.ZodTypeAny>(
       .text()
       .then((text) => text.slice(0, 500))
       .catch(() => '<unreadable body>');
-    logger.error(`${label}: non-JSON response`, { status, contentType, url: response.url, bodyPreview });
+    logger.error(`${label}: non-JSON response`, { requestId, status, contentType, url: response.url, bodyPreview });
     // Treat as transport-level failure so callers (e.g. handleCheckAuthEvent) can keep the
     // cached session instead of forcing a logout when an upstream proxy / auth wall returns HTML.
     return {
@@ -76,18 +79,18 @@ async function parseAuthResponse<T extends z.ZodTypeAny>(
   try {
     payload = (await response.json())?.data;
   } catch (ex) {
-    logger.error(`${label}: JSON parse error`, { status, url: response.url, ex });
+    logger.error(`${label}: JSON parse error`, { requestId, status, url: response.url, ex });
     // Server claimed JSON but body didn't parse — same situation as above, don't kick the user out.
     return { success: false, networkError: true, error: `Could not parse server response (status ${status}).` };
   }
 
   if (!response.ok) {
-    logger.warn(`${label}: non-2xx response`, { status, url: response.url, payload });
+    logger.warn(`${label}: non-2xx response`, { requestId, status, url: response.url, payload });
   }
 
   const results = schema.safeParse(payload);
   if (!results.success) {
-    logger.warn(`${label}: schema mismatch`, { status, payload, zodError: results.error });
+    logger.warn(`${label}: schema mismatch`, { requestId, status, payload, zodError: results.error });
     return {
       success: false,
       error:
@@ -101,23 +104,21 @@ async function parseAuthResponse<T extends z.ZodTypeAny>(
 }
 
 export async function logout({ accessToken, deviceId }: { deviceId: string; accessToken: string }) {
+  const { headers: desktopHeaders, requestId } = getDesktopRequestHeaders({ deviceId, accessToken });
+  const headers = { Accept: 'application/json', ...desktopHeaders };
+
   let response: Response;
   try {
     response = await net.fetch(`${ENV.SERVER_URL}/desktop-app/auth/logout`, {
       method: 'DELETE',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-        [HTTP.HEADERS.X_APP_VERSION]: app.getVersion(),
-        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
-      },
+      headers,
     });
   } catch (ex) {
-    logger.error('logout network error', ex);
+    logger.error('logout network error', { requestId }, ex);
     return { success: false, error: 'Could not reach the server.' };
   }
 
-  return parseAuthResponse(response, LogoutResponseSchema, 'logout');
+  return parseAuthResponse(response, LogoutResponseSchema, 'logout', requestId);
 }
 
 export async function checkNotifications({
@@ -135,9 +136,7 @@ export async function checkNotifications({
     method: 'GET',
     headers: {
       Accept: 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-      [HTTP.HEADERS.X_APP_VERSION]: app.getVersion(),
-      [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+      ...getDesktopRequestHeaders({ deviceId, accessToken }).headers,
     },
   });
 

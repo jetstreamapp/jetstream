@@ -1,4 +1,5 @@
 import { logger, prisma } from '@jetstream/api-config';
+import { ClientInfo } from '@jetstream/auth/server';
 import { OauthProviderType, SsoProviderType, TokenSource, TokenSourceBrowserExtensions, TokenSourceDesktop } from '@jetstream/auth/types';
 import { Prisma } from '@jetstream/prisma';
 import { getErrorMessage } from '@jetstream/shared/utils';
@@ -38,6 +39,11 @@ const SELECT = {
   deviceId: true,
   ipAddress: true,
   userAgent: true,
+  platform: true,
+  osVersion: true,
+  arch: true,
+  runtimeVersion: true,
+  appVersion: true,
   expiresAt: true,
   createdAt: true,
   updatedAt: true,
@@ -168,10 +174,19 @@ export const replaceTokenIfCurrent = async (
     ipAddress: string;
     userAgent: string;
     expiresAt: Date;
-  },
+  } & ClientInfo,
 ): Promise<boolean> => {
   const token = encryptJwtToken(payload.token);
   const tokenHash = hashToken(payload.token);
+
+  // typed out to force a compile error when new values are added so that they remain explicit
+  const clientInfoData: Record<keyof ClientInfo, string | undefined> = {
+    platform: payload.platform,
+    osVersion: payload.osVersion,
+    arch: payload.arch,
+    runtimeVersion: payload.runtimeVersion,
+    appVersion: payload.appVersion,
+  };
 
   const result = await prisma.webExtensionToken.updateMany({
     where: {
@@ -187,6 +202,7 @@ export const replaceTokenIfCurrent = async (
       ipAddress: payload.ipAddress,
       userAgent: payload.userAgent,
       expiresAt: payload.expiresAt,
+      ...clientInfoData,
     },
   });
 

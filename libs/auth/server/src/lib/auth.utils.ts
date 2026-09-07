@@ -334,6 +334,56 @@ export function getApiAddressFromReq(req: ExpressRequest<unknown, unknown, unkno
 }
 
 /**
+ * Host environment a client reports about itself. The desktop app reports every field; the browser
+ * extension reports only `appVersion`.
+ * Every field is client-supplied and is treated as untrusted display data: it is sanitized before
+ * it reaches the database or a log line and is never used for an authorization decision.
+ */
+export interface ClientInfo {
+  platform?: string;
+  osVersion?: string;
+  arch?: string;
+  runtimeVersion?: string;
+  appVersion?: string;
+}
+
+// Generous cap - the longest legitimate value is the runtime string (`electron/x.y.z chrome/x.y.z.w`).
+// Must not exceed the `@db.VarChar(100)` width of the WebExtensionToken columns these are written to,
+// or every token rotation would throw on the write.
+const MAX_CLIENT_INFO_LENGTH = 100;
+
+/**
+ * Read the client environment headers off a request. Fully populated for the desktop app. A browser
+ * client can only report its app version: the user-agent is the equivalent of the rest, and it
+ * cannot report a real OS version anyway (Chromium freezes macOS at `10_15_7` and reports
+ * Windows 10 and 11 identically).
+ */
+export function getClientInfoFromReq(req: ExpressRequest<unknown, unknown, unknown, unknown>): ClientInfo {
+  return {
+    platform: sanitizeClientInfoValue(req.get(HTTP.HEADERS.X_CLIENT_PLATFORM)),
+    osVersion: sanitizeClientInfoValue(req.get(HTTP.HEADERS.X_CLIENT_OS_VERSION)),
+    arch: sanitizeClientInfoValue(req.get(HTTP.HEADERS.X_CLIENT_ARCH)),
+    runtimeVersion: sanitizeClientInfoValue(req.get(HTTP.HEADERS.X_CLIENT_RUNTIME)),
+    appVersion: sanitizeClientInfoValue(req.get(HTTP.HEADERS.X_APP_VERSION)),
+  };
+}
+
+/**
+ * Reduce a client-supplied header to a bounded, printable value. Returns undefined for anything
+ * empty so callers can leave the field untouched rather than overwriting good data with a blank.
+ */
+function sanitizeClientInfoValue(value?: string): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const sanitized = value
+    .replace(/[^\x20-\x7E]/g, '')
+    .trim()
+    .slice(0, MAX_CLIENT_INFO_LENGTH);
+  return sanitized || undefined;
+}
+
+/**
  * Validates a redirect URL to prevent open redirect vulnerabilities.
  * Only allows:
  * - Relative paths starting with / (but not // which could be protocol-relative)

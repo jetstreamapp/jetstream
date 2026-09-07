@@ -10,6 +10,8 @@
  *   - the race-loser is handed the current DB token (race-loss-current)
  *   - a race-loss-none rotation outcome still forces a 401
  *   - rotation is skipped when the client does not opt in, or when no bearer token is present
+ *   - the client's reported host environment rides along with the rotation
+ *   - a device environment change is checked for before rotation overwrites the stored environment
  */
 import { HTTP } from '@jetstream/shared/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -21,7 +23,9 @@ const mocks = vi.hoisted(() => ({
   findIdByUserIdUserFacing: vi.fn(),
   checkUserEntitlement: vi.fn(),
   rotateToken: vi.fn(),
+  logDeviceEnvironmentChange: vi.fn(),
   getApiAddressFromReq: vi.fn(() => '127.0.0.1'),
+  getClientInfoFromReq: vi.fn(() => ({ platform: 'darwin', osVersion: '12.7.6' })),
   createUserActivityFromReq: vi.fn(),
 }));
 
@@ -50,6 +54,7 @@ vi.mock('@jetstream/auth/server', () => {
     InvalidSession,
     MissingEntitlement,
     getApiAddressFromReq: mocks.getApiAddressFromReq,
+    getClientInfoFromReq: mocks.getClientInfoFromReq,
     createUserActivityFromReq: mocks.createUserActivityFromReq,
     getCookieConfig: vi.fn(() => ({})),
   };
@@ -82,6 +87,7 @@ vi.mock('../../services/external-auth.service', () => ({
   AUDIENCE_WEB_EXT: 'https://getjetstream.app/web-extension',
   AUDIENCE_DESKTOP: 'https://getjetstream.app/desktop-app',
   rotateToken: mocks.rotateToken,
+  logDeviceEnvironmentChange: mocks.logDeviceEnvironmentChange,
   issueAccessToken: vi.fn(),
   decodeToken: vi.fn(),
   TOKEN_EXPIRATION_SHORT: 1,
@@ -134,11 +140,32 @@ describe('desktop-app.controller verifyToken token rotation', () => {
     const { res } = await invokeVerify({ Authorization: 'Bearer old-token', [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1' });
 
     expect(mocks.rotateToken).toHaveBeenCalledTimes(1);
-    expect(mocks.rotateToken).toHaveBeenCalledWith(expect.objectContaining({ oldAccessToken: 'old-token', deviceId: 'device-1' }));
+    expect(mocks.rotateToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        oldAccessToken: 'old-token',
+        deviceId: 'device-1',
+        // Rotation is what refreshes the device inventory with the client's host environment
+        clientInfo: { platform: 'darwin', osVersion: '12.7.6' },
+      }),
+    );
     expect(mocks.sendJson).toHaveBeenCalledWith(
       res,
       expect.objectContaining({ success: true, userProfile, encryptionKey: expect.any(String), accessToken: 'new-token' }),
     );
+  });
+
+  it('checks for a device environment change before rotation overwrites the stored environment', async () => {
+    mocks.rotateToken.mockResolvedValue({ outcome: 'rotated', token: 'new-token' });
+
+    await invokeVerify({ Authorization: 'Bearer old-token', [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1' });
+
+    expect(mocks.logDeviceEnvironmentChange).toHaveBeenCalledWith({
+      userId: 'user-1',
+      deviceId: 'device-1',
+      source: 'DESKTOP',
+      clientInfo: { platform: 'darwin', osVersion: '12.7.6' },
+    });
+    expect(mocks.logDeviceEnvironmentChange.mock.invocationCallOrder[0]).toBeLessThan(mocks.rotateToken.mock.invocationCallOrder[0]);
   });
 
   it('hands the race-loser the current DB token (race-loss-current)', async () => {
@@ -161,6 +188,7 @@ describe('desktop-app.controller verifyToken token rotation', () => {
     const { res } = await invokeVerify({ Authorization: 'Bearer old-token' });
 
     expect(mocks.rotateToken).not.toHaveBeenCalled();
+    expect(mocks.logDeviceEnvironmentChange).not.toHaveBeenCalled();
     expect(mocks.sendJson).toHaveBeenCalledWith(
       res,
       expect.objectContaining({ success: true, userProfile, encryptionKey: expect.any(String), accessToken: undefined }),
@@ -171,6 +199,7 @@ describe('desktop-app.controller verifyToken token rotation', () => {
     const { res } = await invokeVerify({ [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1' });
 
     expect(mocks.rotateToken).not.toHaveBeenCalled();
+    expect(mocks.logDeviceEnvironmentChange).not.toHaveBeenCalled();
     expect(mocks.sendJson).toHaveBeenCalledWith(res, expect.objectContaining({ success: true, accessToken: undefined }));
   });
 });

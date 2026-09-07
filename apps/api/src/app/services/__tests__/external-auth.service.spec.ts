@@ -7,8 +7,10 @@ import * as webExtDb from '../../db/web-extension.db';
 import {
   addDeviceIdToLocals,
   AUDIENCE_WEB_EXT,
+  findDeviceEnvironmentChange,
   getDeviceId,
   isTokenWithinRefreshWindow,
+  logDeviceEnvironmentChange,
   rotateToken,
   type Audience,
 } from '../external-auth.service';
@@ -119,6 +121,18 @@ describe('external-auth.service', () => {
       );
     });
 
+    it('writes the host environment the client reports into the replaced row', async () => {
+      mockWebExtDb.replaceTokenIfCurrent.mockResolvedValue(true);
+
+      await rotateToken({ ...baseArgs, clientInfo: { platform: 'darwin', osVersion: '12.7.6', appVersion: '10.15.2' } });
+
+      expect(mockWebExtDb.replaceTokenIfCurrent).toHaveBeenCalledWith(
+        mockUserProfile.id,
+        expect.any(String),
+        expect.objectContaining({ platform: 'darwin', osVersion: '12.7.6', appVersion: '10.15.2' }),
+      );
+    });
+
     it('returns outcome=race-loss-current with the current DB token when rotation race is lost', async () => {
       // The winner already rotated to "winner-token-T1"
       mockWebExtDb.replaceTokenIfCurrent.mockResolvedValue(false);
@@ -163,6 +177,63 @@ describe('external-auth.service', () => {
 
       expect(result).toEqual({ token: undefined, outcome: 'race-loss-none' });
       expect(decryptJwtTokenOrPlaintext).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('logDeviceEnvironmentChange', () => {
+    const detectionArgs = {
+      userId: mockUserProfile.id,
+      deviceId: baseArgs.deviceId,
+      source: 'DESKTOP' as const,
+    };
+
+    it('should not read the existing record for a client that does not report a platform', async () => {
+      await logDeviceEnvironmentChange({ ...detectionArgs, clientInfo: { appVersion: '1.0.0' } });
+
+      expect(mockWebExtDb.findByUserIdAndDeviceId).not.toHaveBeenCalled();
+    });
+
+    it('should compare against the stored record for a client that reports a platform', async () => {
+      mockWebExtDb.findByUserIdAndDeviceId.mockResolvedValue({ platform: 'darwin', arch: 'arm64' });
+
+      await logDeviceEnvironmentChange({ ...detectionArgs, clientInfo: { platform: 'darwin', arch: 'arm64' } });
+
+      expect(mockWebExtDb.findByUserIdAndDeviceId).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: mockUserProfile.id, deviceId: baseArgs.deviceId }),
+      );
+    });
+
+    it('should swallow a lookup failure, so detection can never fail an auth request', async () => {
+      mockWebExtDb.findByUserIdAndDeviceId.mockRejectedValue(new Error('db is down'));
+
+      await expect(logDeviceEnvironmentChange({ ...detectionArgs, clientInfo: { platform: 'darwin' } })).resolves.toBeUndefined();
+    });
+  });
+
+  describe('findDeviceEnvironmentChange', () => {
+    it('should report a platform flip on an existing device', () => {
+      expect(findDeviceEnvironmentChange({ platform: 'darwin', arch: 'arm64' }, { platform: 'win32', arch: 'x64' })).toEqual({
+        previousPlatform: 'darwin',
+        currentPlatform: 'win32',
+        previousArch: 'arm64',
+        currentArch: 'x64',
+      });
+    });
+
+    it('should ignore an unchanged platform', () => {
+      expect(findDeviceEnvironmentChange({ platform: 'darwin', arch: 'arm64' }, { platform: 'darwin', arch: 'arm64' })).toBeNull();
+    });
+
+    it('should ignore an architecture change on its own, which happens on a legitimate rebuild switch', () => {
+      expect(findDeviceEnvironmentChange({ platform: 'darwin', arch: 'x64-translated' }, { platform: 'darwin', arch: 'arm64' })).toBeNull();
+    });
+
+    it('should ignore a device that has no platform on record yet', () => {
+      expect(findDeviceEnvironmentChange({ platform: null, arch: null }, { platform: 'darwin' })).toBeNull();
+    });
+
+    it('should ignore a client that stops reporting its platform', () => {
+      expect(findDeviceEnvironmentChange({ platform: 'darwin' }, {})).toBeNull();
     });
   });
 

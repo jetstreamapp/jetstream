@@ -159,6 +159,7 @@ describe('persistence.service', () => {
       const result = service.getAppData();
       expect(result.accessToken).toBeUndefined();
       expect(result.deviceId).toBeDefined(); // schema default generates a deviceId
+      expect(service.isFreshProfile()).toBe(true);
     });
 
     it('creates a plain JSON file when file does not exist (no safeStorage)', async () => {
@@ -181,6 +182,9 @@ describe('persistence.service', () => {
       const result = service.getAppData();
       expect(result.deviceId).toBe('test-device');
       expect(result.accessToken).toBe('test-jwt-token');
+      // A returning user must not report a fresh profile - that signal is how a userData
+      // directory that is not persisting (roaming/VDI) is told apart from genuine new devices
+      expect(service.isFreshProfile()).toBe(false);
     });
 
     it('falls back to safeStorage for legacy encrypted files', async () => {
@@ -192,6 +196,7 @@ describe('persistence.service', () => {
       const result = service.getAppData();
       expect(result.deviceId).toBe('legacy-device');
       expect(result.accessToken).toBe('legacy-token');
+      expect(service.isFreshProfile()).toBe(false);
     });
 
     it('starts fresh when file cannot be read by either method', async () => {
@@ -202,6 +207,7 @@ describe('persistence.service', () => {
       const result = service.getAppData();
       // Should return default empty app data
       expect(result.accessToken).toBeUndefined();
+      expect(service.isFreshProfile()).toBe(true);
     });
   });
 

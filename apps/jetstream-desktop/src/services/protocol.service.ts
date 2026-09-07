@@ -1,5 +1,5 @@
 import { DesktopActionLoadRecord, IpcEventChannel } from '@jetstream/desktop/types';
-import { HTTP, HTTP_SOURCE_DESKTOP } from '@jetstream/shared/constants';
+import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { app, net, protocol, session } from 'electron';
 import logger from 'electron-log';
@@ -8,6 +8,7 @@ import path, { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Browser } from '../browser/browser';
 import { ENV, SERVER_URL } from '../config/environment';
+import { getDesktopRequestHeaders } from '../utils/request-headers.utils';
 import { initApiConnection } from '../utils/route.utils';
 import { getCspPolicy, setRecentDocument, toSafeDownloadFileName } from '../utils/utils';
 import { getAppData, getUserPreferences } from './persistence.service';
@@ -77,10 +78,7 @@ export function registerWebRequestHandlers() {
     if (details.url.includes('/socket.io/')) {
       const { accessToken, deviceId } = getAppData();
       if (accessToken) {
-        requestHeaders[HTTP.HEADERS.X_SOURCE] = HTTP_SOURCE_DESKTOP;
-        requestHeaders[HTTP.HEADERS.AUTHORIZATION] = `Bearer ${accessToken}`;
-        requestHeaders[HTTP.HEADERS.X_EXT_DEVICE_ID] = deviceId;
-        requestHeaders[HTTP.HEADERS.X_APP_VERSION] = app.getVersion();
+        Object.assign(requestHeaders, getDesktopRequestHeaders({ deviceId, accessToken }).headers);
       }
     }
     callback({ requestHeaders });

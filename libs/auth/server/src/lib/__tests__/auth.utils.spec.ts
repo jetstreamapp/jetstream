@@ -3,6 +3,7 @@ import {
   createCSRFToken,
   createHMAC,
   generateHMACDoubleCSRFToken,
+  getClientInfoFromReq,
   getCookieConfig,
   hashPassword,
   randomString,
@@ -465,5 +466,53 @@ describe('validateRedirectUrl', () => {
         'https://sub.app.example.com/page',
       );
     });
+  });
+});
+
+describe('getClientInfoFromReq', () => {
+  function buildRequest(headers: Record<string, string>) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return { get: (name: string) => headers[name] } as any;
+  }
+
+  it('should read the client environment headers', () => {
+    const clientInfo = getClientInfoFromReq(
+      buildRequest({
+        'X-Client-Platform': 'darwin',
+        'X-Client-Os-Version': '12.7.6',
+        'X-Client-Arch': 'x64-translated',
+        'X-Client-Runtime': 'electron/43.4.0 chrome/140.0.7339.220',
+        'X-App-Version': '10.15.2',
+      }),
+    );
+
+    expect(clientInfo).toEqual({
+      platform: 'darwin',
+      osVersion: '12.7.6',
+      arch: 'x64-translated',
+      runtimeVersion: 'electron/43.4.0 chrome/140.0.7339.220',
+      appVersion: '10.15.2',
+    });
+  });
+
+  it('should return undefined for every field a browser client does not send', () => {
+    expect(getClientInfoFromReq(buildRequest({}))).toEqual({
+      platform: undefined,
+      osVersion: undefined,
+      arch: undefined,
+      runtimeVersion: undefined,
+      appVersion: undefined,
+    });
+  });
+
+  it('should treat a blank value as absent so it never overwrites a stored value', () => {
+    expect(getClientInfoFromReq(buildRequest({ 'X-Client-Os-Version': '   ' })).osVersion).toBeUndefined();
+  });
+
+  it('should strip control characters and cap the length of client supplied values', () => {
+    const clientInfo = getClientInfoFromReq(buildRequest({ 'X-Client-Platform': 'dar\u0000win\n', 'X-Client-Runtime': 'e'.repeat(500) }));
+
+    expect(clientInfo.platform).toBe('darwin');
+    expect(clientInfo.runtimeVersion).toHaveLength(100);
   });
 });

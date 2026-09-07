@@ -375,6 +375,11 @@ model WebExtensionToken {
   deviceId          String
   ipAddress         String
   userAgent         String
+  platform          String?  @db.VarChar(100)
+  osVersion         String?  @db.VarChar(100)
+  arch              String?  @db.VarChar(100)
+  runtimeVersion    String?  @db.VarChar(100)
+  appVersion        String?  @db.VarChar(100)
   provider          String?
   providerAccountId String?
   expiresAt         DateTime

@@ -2,6 +2,7 @@ import { ENV, getLogger } from '@jetstream/api-config';
 import {
   createUserActivityFromReq,
   getApiAddressFromReq,
+  getClientInfoFromReq,
   getCookieConfig,
   InvalidSession,
   MissingEntitlement,
@@ -276,6 +277,14 @@ const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({
       // does not by itself protect orgs.json (tracked separately as clone-detection / interactive-key
       // gating follow-ups).
       if (oldAccessToken) {
+        const clientInfo = getClientInfoFromReq(req);
+        // Compare against the stored environment before rotation overwrites it with this one
+        await externalAuthService.logDeviceEnvironmentChange({
+          userId: userProfile.id,
+          deviceId,
+          source: webExtDb.TOKEN_SOURCE_DESKTOP,
+          clientInfo,
+        });
         const result = await externalAuthService.rotateToken({
           userProfile,
           audience: externalAuthService.AUDIENCE_DESKTOP,
@@ -284,6 +293,7 @@ const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({
           oldAccessToken,
           ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
           userAgent: req.get('User-Agent') || 'unknown',
+          clientInfo,
         });
         if (result.outcome === 'race-loss-none') {
           // Token was deleted from the DB between middleware auth and rotation (typically a

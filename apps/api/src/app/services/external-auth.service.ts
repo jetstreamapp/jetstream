@@ -1,5 +1,5 @@
 import { enrichRequestContext, ENV, getLogger } from '@jetstream/api-config';
-import { convertUserProfileToSession_External, InvalidAccessToken } from '@jetstream/auth/server';
+import { ClientInfo, convertUserProfileToSession_External, InvalidAccessToken } from '@jetstream/auth/server';
 import { TokenSource, UserProfileSession } from '@jetstream/auth/types';
 import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
@@ -121,6 +121,77 @@ export type RotateTokenResult =
   | { token: string; outcome: 'race-loss-current' }
   | { token: undefined; outcome: 'race-loss-none' };
 
+export interface DeviceEnvironmentChange {
+  previousPlatform: string;
+  currentPlatform: string;
+  previousArch: Maybe<string>;
+  currentArch: Maybe<string>;
+}
+
+/**
+ * A deviceId is minted once per install and lives in the same local file as the token, so the
+ * machine a device reports should never change. A platform flip on an existing deviceId means that
+ * file was copied to another machine - the token-clone case a plaintext-on-disk token cannot be
+ * prevented from allowing, and which is otherwise invisible to us.
+ *
+ * `arch` is carried as context but is never a signal on its own: moving between the Intel and
+ * Apple Silicon builds on the same machine legitimately changes it, as does dropping Rosetta.
+ * Comparing the reported platform rather than the user-agent string is what makes this usable -
+ * the user-agent changes on every browser and app update, the platform only when the machine does.
+ */
+export function findDeviceEnvironmentChange(
+  previous: { platform?: Maybe<string>; arch?: Maybe<string> },
+  current: ClientInfo,
+): DeviceEnvironmentChange | null {
+  if (!previous.platform || !current.platform || previous.platform === current.platform) {
+    return null;
+  }
+  return {
+    previousPlatform: previous.platform,
+    currentPlatform: current.platform,
+    previousArch: previous.arch,
+    currentArch: current.arch,
+  };
+}
+
+/**
+ * Called by the desktop verify handler immediately before `rotateToken`, which overwrites the stored
+ * environment with whatever the client reports now.
+ *
+ * Reported, never enforced: refusing the request would lock out a user whose only offense is an
+ * unusual environment, and a copied token is already valid by the time it reaches here. Detection
+ * failures are swallowed for the same reason - this must never be able to fail an auth request.
+ */
+export async function logDeviceEnvironmentChange({
+  userId,
+  deviceId,
+  source,
+  clientInfo,
+}: {
+  userId: string;
+  deviceId: string;
+  source: TokenSource;
+  clientInfo: ClientInfo;
+}): Promise<void> {
+  // Only a client that reports a platform can produce this signal, so nothing is read for one that
+  // does not (a desktop build that predates these headers)
+  if (!clientInfo.platform) {
+    return;
+  }
+  try {
+    const existingRecord = await webExtDb.findByUserIdAndDeviceId({ userId, deviceId, type: webExtDb.TOKEN_TYPE_AUTH });
+    const change = existingRecord && findDeviceEnvironmentChange(existingRecord, clientInfo);
+    if (change) {
+      getLogger().warn(
+        { userId, deviceId, source, ...change },
+        '[DEVICE ENV CHANGED] Device reported a different platform than the one on record',
+      );
+    }
+  } catch (ex) {
+    getLogger().error({ userId, deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error checking for a device environment change');
+  }
+}
+
 export async function rotateToken({
   userProfile,
   audience,
@@ -129,6 +200,7 @@ export async function rotateToken({
   oldAccessToken,
   ipAddress,
   userAgent,
+  clientInfo,
   durationMs,
 }: {
   userProfile: UserProfileUi;
@@ -138,6 +210,8 @@ export async function rotateToken({
   oldAccessToken: string;
   ipAddress: string;
   userAgent: string;
+  /** Host environment reported by the client; refreshes the device inventory on every rotation */
+  clientInfo?: ClientInfo;
   durationMs?: number;
 }): Promise<RotateTokenResult> {
   const newAccessToken = await issueAccessToken(userProfile, audience, durationMs ?? TOKEN_EXPIRATION_SHORT);
@@ -149,6 +223,7 @@ export async function rotateToken({
     deviceId,
     ipAddress,
     userAgent,
+    ...clientInfo,
     expiresAt: fromUnixTime(decodeToken(newAccessToken).exp),
   });
   // Always invalidate the old token from cache — whether we won or lost the race,
