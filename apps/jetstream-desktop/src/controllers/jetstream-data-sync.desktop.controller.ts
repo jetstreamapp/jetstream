@@ -1,8 +1,7 @@
-import { HTTP } from '@jetstream/shared/constants';
-import { app } from 'electron';
 import { z } from 'zod';
 import { ENV } from '../config/environment';
 import { getAppData } from '../services/persistence.service';
+import { getDesktopRequestHeaders } from '../utils/request-headers.utils';
 import { createRoute, handleErrorResponse, RouteValidator } from '../utils/route.utils';
 
 /**
@@ -45,9 +44,7 @@ const pull = createRoute(routeDefinition.pull.validators, async ({ query }) => {
       method: 'GET',
       headers: {
         Accept: 'application/json',
-        Authorization: `Bearer ${authTokens?.accessToken}`,
-        [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
-        [HTTP.HEADERS.X_APP_VERSION]: app.getVersion(),
+        ...getDesktopRequestHeaders({ deviceId: extIdentifier.id, accessToken: authTokens.accessToken }).headers,
       },
     });
   } catch (ex) {
@@ -64,9 +61,7 @@ const push = createRoute(routeDefinition.push.validators, async ({ query, body }
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${authTokens?.accessToken}`,
-        [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
-        [HTTP.HEADERS.X_APP_VERSION]: app.getVersion(),
+        ...getDesktopRequestHeaders({ deviceId: extIdentifier.id, accessToken: authTokens.accessToken }).headers,
       },
       body: JSON.stringify(body),
     });

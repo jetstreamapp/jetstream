@@ -216,9 +216,13 @@ export function initSocketServer(
     const userId = session?.user?.id as string | undefined;
     const deviceId = session?.deviceId as string | undefined;
 
+    const appVersion =
+      getSingleHandshakeValue(socket.handshake.auth?.[HTTP.HEADERS.X_APP_VERSION]) ??
+      getSingleHandshakeValue(socket.handshake.headers[HTTP.HEADERS.X_APP_VERSION.toLowerCase()]);
+
     // Socket lifecycle is not a single async scope (events fire over time), so bind a
     // per-connection child logger instead of relying on AsyncLocalStorage here.
-    const socketLogger = logger.child({ socketId: socket.id, userId: userId || 'unknown', sessionId, deviceId });
+    const socketLogger = logger.child({ socketId: socket.id, userId: userId || 'unknown', sessionId, deviceId, appVersion });
 
     socketLogger.debug('[SOCKET][CONNECT] %s', socket.id);
 

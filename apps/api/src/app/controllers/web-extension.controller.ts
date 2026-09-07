@@ -2,6 +2,7 @@ import { ENV, getLogger } from '@jetstream/api-config';
 import {
   createUserActivityFromReq,
   getApiAddressFromReq,
+  getClientInfoFromReq,
   getCookieConfig,
   InvalidSession,
   MissingEntitlement,
@@ -249,6 +250,7 @@ const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({
           oldAccessToken,
           ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
           userAgent: req.get('User-Agent') || 'unknown',
+          clientInfo: getClientInfoFromReq(req),
         });
         if (result.outcome === 'race-loss-none') {
           // Token was deleted from the DB between middleware auth and rotation (typically a

@@ -1,9 +1,8 @@
 import { DesktopUserPreferencesSchema } from '@jetstream/desktop/types';
-import { HTTP } from '@jetstream/shared/constants';
-import { app } from 'electron';
 import { z } from 'zod';
 import { ENV } from '../config/environment';
 import * as dataService from '../services/persistence.service';
+import { getDesktopRequestHeaders } from '../utils/request-headers.utils';
 import { createRoute, handleErrorResponse, handleJsonResponse, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
@@ -90,9 +89,7 @@ const sendUserFeedbackEmail = createRoute(routeDefinition.sendUserFeedbackEmail.
         Accept: 'application/json',
         // ensure we keep the same boundary that the client used
         'Content-Type': req.request.headers.get('content-type')!,
-        Authorization: `Bearer ${authTokens?.accessToken}`,
-        [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
-        [HTTP.HEADERS.X_APP_VERSION]: app.getVersion(),
+        ...getDesktopRequestHeaders({ deviceId: extIdentifier.id, accessToken: authTokens.accessToken }).headers,
       },
       body,
     });

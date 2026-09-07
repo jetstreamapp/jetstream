@@ -126,6 +126,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
       initSocket(serverUrl, {
         [HTTP.HEADERS.AUTHORIZATION]: `Bearer ${authTokens.accessToken}`,
         [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
+        [HTTP.HEADERS.X_APP_VERSION]: getBrowserExtensionVersion(),
       });
     } else {
       disconnectSocket();

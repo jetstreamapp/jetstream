@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   isTokenWithinRefreshWindow: vi.fn(),
   rotateToken: vi.fn(),
   getApiAddressFromReq: vi.fn(() => '127.0.0.1'),
+  getClientInfoFromReq: vi.fn(() => ({ appVersion: '1.2.3' })),
   createUserActivityFromReq: vi.fn(),
 }));
 
@@ -47,6 +48,7 @@ vi.mock('@jetstream/auth/server', () => {
     InvalidSession,
     MissingEntitlement,
     getApiAddressFromReq: mocks.getApiAddressFromReq,
+    getClientInfoFromReq: mocks.getClientInfoFromReq,
     createUserActivityFromReq: mocks.createUserActivityFromReq,
     getCookieConfig: vi.fn(() => ({})),
   };
@@ -141,6 +143,8 @@ describe('web-extension.controller verifyToken token rotation gating', () => {
     const { res } = await invokeVerify({ Authorization: 'Bearer old-token', [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1' });
 
     expect(mocks.rotateToken).toHaveBeenCalledTimes(1);
+    // Rotation is what records the extension's version in the device inventory
+    expect(mocks.rotateToken).toHaveBeenCalledWith(expect.objectContaining({ clientInfo: { appVersion: '1.2.3' } }));
     expect(mocks.sendJson).toHaveBeenCalledWith(res, { success: true, userProfile, accessToken: 'new-token' });
   });
 

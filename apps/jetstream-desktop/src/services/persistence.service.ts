@@ -238,13 +238,29 @@ function readFile(path: string, decrypt = false) {
  * ******************************
  */
 
+/**
+ * True when this session started without usable app data, so a brand-new profile (and a brand-new
+ * deviceId) was minted. Reported to the server on every request via the install header: a machine
+ * that reports it on every launch has a userData directory that is not persisting - typically a
+ * roaming/VDI profile - which otherwise shows up server-side as an endless stream of new devices
+ * rather than a returning user.
+ */
+let isFreshAppDataProfile = false;
+
+export const isFreshProfile = () => isFreshAppDataProfile;
+
+function createFreshAppData(): AppData {
+  isFreshAppDataProfile = true;
+  return AppDataSchema.parse({});
+}
+
 export function getAppData(): AppData {
   try {
     if (APP_DATA) {
       return APP_DATA;
     }
     if (!existsSync(APP_DATA_FILE)) {
-      const appData = AppDataSchema.parse({});
+      const appData = createFreshAppData();
       writeFile(APP_DATA_FILE, JSON.stringify(appData));
       APP_DATA = appData;
       return appData;
@@ -257,7 +273,7 @@ export function getAppData(): AppData {
       // New format: plain JSON
       const text = readFileSync(APP_DATA_FILE, 'utf8');
       const result = AppDataSchema.safeParse(JSON.parse(text));
-      appData = result.success ? result.data : AppDataSchema.parse({});
+      appData = result.success ? result.data : createFreshAppData();
     } catch {
       // Plain JSON read/parse failed — try safeStorage (legacy encrypted format).
       // readFileSync(path, 'utf8') on binary data doesn't throw, but JSON.parse will,
@@ -266,10 +282,10 @@ export function getAppData(): AppData {
         const text = safeStorage.decryptString(readFileSync(APP_DATA_FILE));
         logger.info('Read app-data from legacy safeStorage format — will migrate to plain JSON on next write');
         const result = AppDataSchema.safeParse(JSON.parse(text));
-        appData = result.success ? result.data : AppDataSchema.parse({});
+        appData = result.success ? result.data : createFreshAppData();
       } catch (safeStorageError) {
         logger.warn('Unable to read app-data (not valid JSON and safeStorage decrypt failed). Starting fresh.', safeStorageError);
-        appData = AppDataSchema.parse({});
+        appData = createFreshAppData();
         writeFile(APP_DATA_FILE, JSON.stringify(appData));
       }
     }
@@ -277,7 +293,7 @@ export function getAppData(): AppData {
     return appData;
   } catch (ex) {
     logger.error('Error reading app data file', ex);
-    const appData = AppDataSchema.parse({});
+    const appData = createFreshAppData();
     writeFile(APP_DATA_FILE, JSON.stringify(appData));
     return appData;
   }
