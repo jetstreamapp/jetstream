@@ -6,7 +6,7 @@ import { AsyncJobNew, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { DropDown, Input, getSfdcRetUrl, salesforceLoginAndRedirect, useConfirmation } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { Query } from '@jetstreamapp/soql-parser-js';
-import { Fragment, FunctionComponent, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import BulkUpdateFromQueryModal from './BulkUpdateFromQuery/BulkUpdateFromQueryModal';
 import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 
@@ -74,6 +74,18 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
   const { trackEvent } = useAmplitude();
   const { confirm, setOptions } = useConfirmation();
   const [openModal, setOpenModal] = useState<false | 'bulk-update' | 'apex'>(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  // Closing the bulk update modal after a deploy refreshes the records, which disables this trigger
+  // while the query re-runs — and a disabled button cannot take the focus the modal hands back. The
+  // hand-off is finished here once the trigger is enabled again.
+  const focusTriggerWhenEnabledRef = useRef(false);
+
+  useEffect(() => {
+    if (!disabled && focusTriggerWhenEnabledRef.current) {
+      focusTriggerWhenEnabledRef.current = false;
+      triggerRef.current?.focus();
+    }
+  }, [disabled]);
 
   function handleAction(id: 'bulk-delete' | 'bulk-undelete' | 'get-as-apex' | 'open-in-new-tab' | 'bulk-update' | 'new-record') {
     logger.log({ id, selectedRows });
@@ -213,7 +225,10 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
 
   function handleBulkUpdateModalClose(didUpdate = false) {
     setOpenModal(false);
-    didUpdate && refreshRecords();
+    if (didUpdate) {
+      focusTriggerWhenEnabledRef.current = true;
+      refreshRecords();
+    }
   }
 
   return (
@@ -225,6 +240,7 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
         leadingIcon={{ icon: 'settings', type: 'utility', description: 'More Actions' }}
         actionText="Record actions"
         disabled={disabled}
+        triggerRef={triggerRef}
         items={[
           {
             id: 'bulk-update',
