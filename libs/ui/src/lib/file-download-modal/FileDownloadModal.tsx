@@ -7,6 +7,7 @@ import {
   isCanvasApp,
   isDesktop,
   isEnterKey,
+  isImeComposing,
   prepareCsvFile,
   prepareExcelFile,
   saveFile,
@@ -290,8 +291,13 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
     onModalClose();
   }
 
-  function handleKeyUp(event: KeyboardEvent<HTMLElement>) {
-    if (isEnterKey(event) && !filenameEmpty) {
+  // Enter in the filename input downloads — on keydown, never keyup: the modal opens with this input
+  // focused, so the keyup of the Enter that activated the opening button lands here and used to
+  // download and close the modal before it was ever seen. An Enter that commits an IME conversion is
+  // part of typing the name, not a request to download.
+  function handleFilenameKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (isEnterKey(event) && !isImeComposing(event.nativeEvent) && !filenameEmpty) {
+      event.preventDefault();
       handleDownload();
     }
   }
@@ -408,7 +414,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
             minLength={1}
             maxLength={250}
             onChange={(event) => setFileName(event.target.value)}
-            onKeyUp={handleKeyUp}
+            onKeyDown={handleFilenameKeyDown}
           />
         </Input>
       </div>
