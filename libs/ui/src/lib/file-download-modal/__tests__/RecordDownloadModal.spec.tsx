@@ -1,5 +1,5 @@
 import { SalesforceOrgUi } from '@jetstream/types';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -132,5 +132,25 @@ describe('RecordDownloadModal bulk API requirement', () => {
 
     expect(screen.getByLabelText<HTMLInputElement>('Standard').checked).toBe(true);
     expect(screen.getByLabelText<HTMLInputElement>('Standard').disabled).toBe(false);
+  });
+});
+
+describe('RecordDownloadModal filename Enter', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  // The modal opens with the filename input focused, so the keyup of the Enter that activated the
+  // opening button lands in it — that keyup must not download
+  test('downloads on Enter keydown in the filename input, never on the keyup alone', () => {
+    const { onDownload } = setup();
+    const filename = document.getElementById('download-filename') as HTMLInputElement;
+
+    fireEvent.keyUp(filename, { key: 'Enter' });
+    expect(onDownload).not.toHaveBeenCalled();
+
+    expect(fireEvent.keyDown(filename, { key: 'Enter' })).toBe(false);
+    expect(onDownload).toHaveBeenCalledTimes(1);
   });
 });
