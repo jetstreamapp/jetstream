@@ -243,11 +243,12 @@ Manual check still recommended for: the live-region text during a keyboard drag 
 VoiceOver announcing the record modal after a popover hand-off, and the grid editor announcement after
 Enter on an editable cell (jsdom cannot observe screen reader output).
 
-### Keyboard follow-up (2026-09-07)
+### Keyboard and focus follow-ups (2026-09-07)
 
 | Ref | Finding                                                                                                                                             | Fix                                                                                                                                                                                                                                                         |
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | V14 | Combobox: Enter on the closed input did nothing (Picklist and DropDown open on Enter, as does Lightning's own combobox); inside a form it submitted | Enter opens the list on keydown without moving the highlight and never reaches a wrapping form; the opening press's keyup is skipped so it does not pick the first option (the V8 pattern). A modified Enter (Cmd/Ctrl/Alt) is left to page-level shortcuts |
+| V15 | Org info popover: "Clear Cached Data" disables itself on click through the native `disabled` attribute, so focus fell to `<body>`                   | `ariaDisabledButtonProps` keeps the button focusable (and guards a second click); "Cached data cleared" is announced through `useAnnouncer`                                                                                                                 |
 
 ### Still open after the review
 
