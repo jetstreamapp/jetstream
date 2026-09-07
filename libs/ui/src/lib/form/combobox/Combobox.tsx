@@ -263,12 +263,26 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     }, [selectedItemLabel]);
 
     /**
-     * Enter while the list is open selects (handled on keyup below) — mark the keydown as handled so a
-     * wrapping form does not submit and page-level Cmd/Ctrl+Enter shortcuts (which honour
-     * defaultPrevented) do not also fire on the same press
+     * Enter on the closed input opens the list without moving the highlight (Lightning's combobox and
+     * the APG select-only combobox both do; Picklist and DropDown already did). The press is remembered
+     * so its keyup does not fall into the "Enter picks the first option" branch below and undo the open.
+     * A modified Enter (Cmd/Ctrl/Alt) is left alone for page-level shortcuts.
+     */
+    const enterPressOpenedListRef = useRef(false);
+
+    /**
+     * Enter never reaches a wrapping form from the input: closed it opens the list, open it selects
+     * (handled on keyup below). Marking the keydown as handled also keeps page-level Cmd/Ctrl+Enter
+     * shortcuts (which honour defaultPrevented) from firing on the same press.
      */
     function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-      if (isOpen && isEnterKey(event)) {
+      const isPlainEnter = isEnterKey(event) && !event.metaKey && !event.ctrlKey && !event.altKey;
+      const opensList = isPlainEnter && !isOpen && !disabled && !preventOpen;
+      enterPressOpenedListRef.current = opensList;
+      if (opensList) {
+        setIsOpen(true);
+      }
+      if (isEnterKey(event) && (isOpen || opensList)) {
         event.preventDefault();
       }
       inputProps?.onKeyDown?.(event);
@@ -285,6 +299,11 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         // While open, Escape is fully consumed by useEscapeToCloseLayer (keydown AND keyup); this
         // guard covers the CLOSED state, where the keyup must not fall through to the
         // onInputChange/onFilterInputChange branch below.
+        return;
+      }
+      if (isEnterKey(event) && enterPressOpenedListRef.current) {
+        // The keydown of this press just opened the list; letting the keyup through would pick the first option
+        enterPressOpenedListRef.current = false;
         return;
       }
       if (isArrowUpKey(event)) {
