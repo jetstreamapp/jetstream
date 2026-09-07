@@ -105,12 +105,50 @@ describe('Combobox Enter key', () => {
     expect(onInputEnter).toHaveBeenCalledTimes(1);
   });
 
+  test('holding Enter on the closed input only opens the list', () => {
+    const { container, input, onInputEnter } = renderClosed();
+    fireEvent.keyDown(input, { key: 'Enter' });
+    // Auto-repeat arrives once the list is already open
+    expect(fireEvent.keyDown(input, { key: 'Enter', repeat: true })).toBe(false);
+    fireEvent.keyDown(input, { key: 'Enter', repeat: true });
+    fireEvent.keyUp(input, { key: 'Enter' });
+
+    expect(getListbox(container)).not.toBeNull();
+    expect(onInputEnter).not.toHaveBeenCalled();
+  });
+
   test('leaves a modified Enter to page-level shortcuts', () => {
     const { container, input, onInputEnter } = renderClosed();
     expect(fireEvent.keyDown(input, { key: 'Enter', metaKey: true })).toBe(true);
     fireEvent.keyUp(input, { key: 'Enter', metaKey: true });
     expect(getListbox(container)).toBeNull();
     expect(onInputEnter).not.toHaveBeenCalled();
+  });
+
+  test('ignores the keyup of an Enter that was pressed on an option while the list is still open', () => {
+    const onKeyboardNavigation = vi.fn();
+    const onInputEnter = vi.fn();
+    const { container } = render(
+      <Combobox label="Orgs" onKeyboardNavigation={onKeyboardNavigation} onInputEnter={onInputEnter}>
+        <ComboboxListItem id="a" label="one" selected={false} onSelection={NOOP} />
+      </Combobox>,
+    );
+    const input = getInput(container);
+    fireEvent.click(input);
+    const option = screen.getByRole('option', { name: 'one' });
+    option.focus();
+
+    // The list selects on keydown; a drill-in item keeps the list open and refocuses the input, so the
+    // keyup of the same press lands on the input while the list is still open
+    fireEvent.keyDown(option, { key: 'Enter' });
+    expect(onKeyboardNavigation).toHaveBeenCalledWith('enter');
+    input.focus();
+    fireEvent.keyUp(input, { key: 'Enter' });
+    expect(onInputEnter).not.toHaveBeenCalled();
+
+    // A fresh Enter pressed on the input itself still picks the first option
+    pressEnter(input);
+    expect(onInputEnter).toHaveBeenCalledTimes(1);
   });
 
   test('selecting an option with Enter in the list does not reopen it', () => {
