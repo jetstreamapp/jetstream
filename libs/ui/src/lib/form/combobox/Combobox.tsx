@@ -79,8 +79,8 @@ export interface ComboboxProps {
    * Shows a dropdown at beginning to choose between different types of items.
    * {@link https://www.lightningdesignsystem.com/components/combobox/?variant=deprecated-multi-entity#Grouped-Comboboxes-(Cross-entity-Polymorphic)}
    */
-  leadingDropdown?: Omit<FormGroupDropdownProps, 'comboboxId' | 'variant'>;
-  trailingDropdown?: Omit<FormGroupDropdownProps, 'comboboxId' | 'variant'>;
+  leadingDropdown?: Omit<FormGroupDropdownProps, 'variant'>;
+  trailingDropdown?: Omit<FormGroupDropdownProps, 'variant'>;
   /**
    * Depending on how Combobox is used, isEmpty may not be able to be automatically calculated.
    * if so, Set this field to true if you know there are no items in the list.
@@ -263,12 +263,17 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     }, [selectedItemLabel]);
 
     /**
-     * Enter on the closed input opens the list without moving the highlight (Lightning's combobox and
-     * the APG select-only combobox both do; Picklist and DropDown already did). The press is remembered
-     * so its keyup does not fall into the "Enter picks the first option" branch below and undo the open.
-     * A modified Enter (Cmd/Ctrl/Alt) is left alone for page-level shortcuts.
+     * Where the Enter press in flight started. Enter on the input is acted on at keyup (below), but a
+     * keyup only means something when this input also saw the keydown:
+     * - 'opened': the keydown opened the closed list (Lightning's combobox and the APG select-only
+     *   combobox both do; Picklist and DropDown already did) — its keyup must not pick the first option
+     * - 'held': the keydown landed here with the list open — its keyup picks the first option
+     * - null: the keydown landed on an option. The list selects on keydown and hands focus back to
+     *   the input (after a short delay for drill-in items), so the keyup that then arrives here is the
+     *   tail of that press; acting on it picked the first option of the new list over the one chosen.
+     * A modified Enter (Cmd/Ctrl/Alt) on the closed input is left alone for page-level shortcuts.
      */
-    const enterPressOpenedListRef = useRef(false);
+    const enterPressRef = useRef<'opened' | 'held' | null>(null);
 
     /**
      * Enter never reaches a wrapping form from the input: closed it opens the list, open it selects
@@ -276,9 +281,18 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
      * shortcuts (which honour defaultPrevented) from firing on the same press.
      */
     function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+      // Auto-repeat of a held Enter keeps the first keydown's meaning: the press that opened the list
+      // must not turn into a 'held' press whose keyup picks the first option
+      if (isEnterKey(event) && event.repeat) {
+        if (isOpen) {
+          event.preventDefault();
+        }
+        inputProps?.onKeyDown?.(event);
+        return;
+      }
       const isPlainEnter = isEnterKey(event) && !event.metaKey && !event.ctrlKey && !event.altKey;
       const opensList = isPlainEnter && !isOpen && !disabled && !preventOpen;
-      enterPressOpenedListRef.current = opensList;
+      enterPressRef.current = isEnterKey(event) ? (opensList ? 'opened' : 'held') : null;
       if (opensList) {
         setIsOpen(true);
       }
@@ -301,9 +315,12 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         // onInputChange/onFilterInputChange branch below.
         return;
       }
-      if (isEnterKey(event) && enterPressOpenedListRef.current) {
-        // The keydown of this press just opened the list; letting the keyup through would pick the first option
-        enterPressOpenedListRef.current = false;
+      if (isEnterKey(event)) {
+        const press = enterPressRef.current;
+        enterPressRef.current = null;
+        if (press === 'held' && isOpen && onInputEnter) {
+          onInputEnter();
+        }
         return;
       }
       if (isArrowUpKey(event)) {
@@ -312,8 +329,6 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       } else if (isArrowDownKey(event)) {
         !isOpen && setIsOpen(true);
         onKeyboardNavigation('down');
-      } else if (isEnterKey(event) && isOpen && onInputEnter) {
-        onInputEnter();
       } else {
         if (isAlphaNumericKey(event) && !isOpen) {
           // save input so that when we open, we can set the value instead of clearing it
@@ -387,6 +402,10 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       if (entireContainerEl.current?.contains(event.relatedTarget as Node) || popoverRef.current?.contains(event.relatedTarget as Node)) {
         return;
       }
+      // Already closed (Tab from an option closes and reports it before focus leaves): nothing to report
+      if (!isOpen) {
+        return;
+      }
       setIsOpen(false);
       onClose && onClose();
     };
@@ -443,7 +462,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
           {getContainer(
             hasLeadingDropdown || hasTrailingDropdown,
             <Fragment>
-              {hasLeadingDropdown && <FormGroupDropdown comboboxId={id} variant="start" {...leadingDropdown} />}
+              {hasLeadingDropdown && <FormGroupDropdown variant="start" {...leadingDropdown} />}
               <div
                 className={classNames('slds-combobox_container', {
                   'slds-has-selection': showSelectionAsButton && selectedItemLabel,
@@ -541,7 +560,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                   </PopoverContainer>
                 </div>
               </div>
-              {hasTrailingDropdown && <FormGroupDropdown comboboxId={id} variant="end" {...trailingDropdown} />}
+              {hasTrailingDropdown && <FormGroupDropdown variant="end" {...trailingDropdown} />}
             </Fragment>,
           )}
         </div>
