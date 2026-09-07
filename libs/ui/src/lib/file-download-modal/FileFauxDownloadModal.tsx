@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
-import { getFilename, isBrowserExtension, isCanvasApp, isDesktop, isEnterKey } from '@jetstream/shared/ui-utils';
+import { getFilename, isBrowserExtension, isCanvasApp, isDesktop, isEnterKey, isImeComposing } from '@jetstream/shared/ui-utils';
 import {
   FileExtAllTypes,
   FileExtCsv,
@@ -169,8 +169,13 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
     }
   }
 
-  function handleKeyUp(event: KeyboardEvent<HTMLElement>) {
-    if (isEnterKey(event) && !filenameEmpty) {
+  // Enter in the filename input downloads — on keydown, never keyup: the modal opens with this input
+  // focused, so the keyup of the Enter that activated the opening button lands here and used to
+  // download and close the modal before it was ever seen. An Enter that commits an IME conversion is
+  // part of typing the name, not a request to download.
+  function handleFilenameKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (isEnterKey(event) && !isImeComposing(event.nativeEvent) && !filenameEmpty) {
+      event.preventDefault();
       handleDownload();
     }
   }
@@ -285,7 +290,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
             minLength={1}
             maxLength={250}
             onChange={(event) => setFileName(event.target.value)}
-            onKeyUp={handleKeyUp}
+            onKeyDown={handleFilenameKeyDown}
           />
         </Input>
       </div>
