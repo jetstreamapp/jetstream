@@ -1,5 +1,19 @@
 # Changelog
 
+## [10.18.0](https://github.com/jetstreamapp/jetstream/compare/v10.17.0...v10.18.0) (2026-09-07)
+
+### Features
+
+- **desktop:** let admins and users disable automatic updates ([7bf9bb0](https://github.com/jetstreamapp/jetstream/commit/7bf9bb0245dc379a6d7908f76fd542b036446af5))
+- offer the portable Windows build on the download page ([1ff2400](https://github.com/jetstreamapp/jetstream/commit/1ff240018a5874953691d1892981863dde303620))
+
+### Bug Fixes
+
+- **desktop:** download only what changed when updating on Windows ([b185918](https://github.com/jetstreamapp/jetstream/commit/b185918a9572c7ebb68a4d8214e402d0de305a89))
+- **desktop:** install per-user updates silently from the header button ([224970f](https://github.com/jetstreamapp/jetstream/commit/224970f2e16bfd5e749939e57e4868936f02e04c))
+- **desktop:** render the installer EULA as HTML instead of raw markdown ([e6fbcb3](https://github.com/jetstreamapp/jetstream/commit/e6fbcb3f54c7145961b0cf1540a6dc33912bed3e))
+- ensure team is auto-created on upgrade ([afa34d9](https://github.com/jetstreamapp/jetstream/commit/afa34d965f46f75d7a34602bbb372a49aaba3293))
+
 ## [10.17.0](https://github.com/jetstreamapp/jetstream/compare/v10.16.0...v10.17.0) (2026-09-01)
 
 ### Features
