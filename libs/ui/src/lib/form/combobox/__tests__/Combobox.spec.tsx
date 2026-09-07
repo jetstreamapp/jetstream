@@ -23,8 +23,11 @@ describe('Combobox dropdownWidth', () => {
   test('drops fluid and applies the provided widths', () => {
     const listbox = renderOpen({ dropdownWidth: { minWidth: '100%', maxWidth: '32rem' } });
     expect(listbox.className).not.toContain('slds-dropdown_fluid');
+    // jsdom resolves absolute lengths against the 16px default root font size, so the 32rem handed
+    // to the component reads back as 512px. Percentages have no layout to resolve against, so
+    // minWidth comes back verbatim.
     const styles = getComputedStyle(listbox);
     expect(styles.minWidth).toBe('100%');
-    expect(styles.maxWidth).toBe('32rem');
+    expect(styles.maxWidth).toBe('512px');
   });
 });
