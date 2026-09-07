@@ -15,8 +15,11 @@ vi.doMock('../..', () => ({
   useAmplitude: () => ({ trackEvent: vi.fn() }),
 }));
 
+// Held outside the factory so the spec can assert on it: a dynamic import of the library from
+// the spec would make the nx boundary rule treat every static import of it in ui-core as an error
+const clearCacheForOrg = vi.fn();
 vi.doMock('@jetstream/shared/data', () => ({
-  clearCacheForOrg: vi.fn(),
+  clearCacheForOrg,
 }));
 
 const { OrgInfoPopover } = await import('../OrgInfoPopover');
@@ -73,6 +76,31 @@ describe('OrgInfoPopover', () => {
 
       expect(onRemoveOrg).toHaveBeenCalledWith(org);
       await axeScan(baseElement);
+    });
+  });
+
+  describe('clear cached data', () => {
+    // The button disables itself on click; the native attribute would drop focus to <body>
+    it('keeps focus on the button once it disables itself and announces the result', async () => {
+      clearCacheForOrg.mockClear();
+      const { baseElement } = renderOpen();
+      const button = screen.getByRole('button', { name: 'Clear Cached Data' });
+      button.focus();
+      fireEvent.click(button);
+
+      expect(clearCacheForOrg).toHaveBeenCalledWith(org);
+      expect(button.getAttribute('aria-disabled')).toBe('true');
+      expect(document.activeElement).toBe(button);
+      // useAnnouncer clear-then-sets on a 100ms timer, which can overrun waitFor's 1s default under a
+      // fully parallel test run
+      await waitFor(() => expect(screen.getByText('Cached data cleared')).toBeTruthy(), { timeout: 5000 });
+
+      // aria-disabled is not enforced by the browser, so the guarded click must not clear twice
+      fireEvent.click(button);
+      expect(clearCacheForOrg).toHaveBeenCalledTimes(1);
+
+      const results = await axeScan(baseElement);
+      expect(results.violations).toEqual([]);
     });
   });
 });
