@@ -22,7 +22,6 @@ import Icon from '../../widgets/Icon';
 
 export interface FormGroupDropdownProps {
   className?: string;
-  comboboxId: string;
   label: string;
   initialSelectedItemId?: string;
   items: FormGroupDropdownItem[];
@@ -37,7 +36,6 @@ export interface FormGroupDropdownProps {
 
 export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
   className,
-  comboboxId,
   label,
   initialSelectedItemId,
   items,
