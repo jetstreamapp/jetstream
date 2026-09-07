@@ -283,7 +283,6 @@ export function RecordLookupCombobox({
         errorMessageId={`${id}-error`}
         trailingChildren={
           <FormGroupDropdown
-            comboboxId={id}
             label={INPUT_MODE_LABEL}
             initialSelectedItemId={inputMode}
             items={INPUT_MODE_OPTIONS}
