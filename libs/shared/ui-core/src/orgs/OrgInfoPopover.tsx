@@ -17,6 +17,8 @@ import {
   SalesforceLogin,
   Spinner,
   Tooltip,
+  ariaDisabledButtonProps,
+  useAnnouncer,
 } from '@jetstream/ui';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
@@ -177,6 +179,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   onUpdateOrg,
 }) => {
   const { trackEvent } = useAmplitude();
+  const { announce, announcer } = useAnnouncer();
   const { serverUrl } = useAtomValue(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const [orgLabel, setOrgLabel] = useState(org.label || org.username);
@@ -260,6 +263,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
     try {
       setDidClearCache(true);
       await clearCacheForOrg(org);
+      announce('Cached data cleared');
     } catch {
       // error
     }
@@ -419,13 +423,14 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
             >
               <button
                 className="slds-button slds-button_neutral slds-button_stretch"
-                onClick={() => handleClearCache()}
-                disabled={disableOrgActions || didClearCache}
+                // The button disables itself on click; aria-disabled keeps focus on it instead of dropping to <body>
+                {...ariaDisabledButtonProps(disableOrgActions || didClearCache, () => handleClearCache())}
               >
                 <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Clear Cached Data
               </button>
             </Tooltip>
+            {announcer}
           </div>
           {!isReadOnly && (
             <div className="slds-p-around_xx-small">
