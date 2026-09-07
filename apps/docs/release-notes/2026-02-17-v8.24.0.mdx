@@ -2,9 +2,11 @@
 slug: v8.24.0
 title: 8.24.0 - Metadata audit signals and Google folder memory
 date: '2026-02-17'
-tags: [web]
+tags: [web, desktop, extension]
 versions:
   web: 8.24.0
+  desktop: 3.15.0
+  extension: 2.16.0
 summary: Custom metadata records now show a last-modified date, invalid metadata timestamps are flagged with a warning, and Jetstream remembers your recent Google Drive folder.
 highlights:
   - title: Last modified on custom metadata records
@@ -14,6 +16,7 @@ highlights:
     description: When Salesforce returns an invalid audit timestamp, a warning icon now tells you the correct data is not available instead of showing a misleading date.
   - title: Remembered Google folder selection
     description: When exporting or uploading to Google Drive, your recent folder choice is remembered so repeat uploads take fewer clicks.
+    platforms: [web]
   - title: Automation Control works in namespaced orgs
     description: Orgs that have their own namespace can now manage components inside their managed package from Automation Control.
 ---

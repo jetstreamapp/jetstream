@@ -31,7 +31,8 @@ Map the command argument:
   not-yet-tagged release.
 - **`--version X.Y.Z`** → pass through unchanged (upcoming release, explicit version).
 
-The script prints the resolved mode, target version, release date, and every merged PR in
+The script prints the resolved mode, target version, release date, the desktop and extension
+releases cut in the range (plus the current desktop/extension versions), and every merged PR in
 the release's commit range (title, labels, touched areas, body) plus direct commits. This is
 your source material — base the note on it, not on guesses. If it warns that a note already
 exists for the version, update that existing file instead of creating a new one.
@@ -58,11 +59,11 @@ from Step 1.
 slug: v<version> # e.g. v10.4.0
 title: <version> - <short description> # e.g. "10.4.0 - Faster data tables and SSO fixes"
 date: '<YYYY-MM-DD>'
-tags: [web] # subset of: web, desktop, extension, all (>= 1)
-versions: # only the platforms actually releasing
+tags: [web, desktop, extension] # every platform whose users receive the changes, see "Tags / versions mapping"
+versions: # for each tagged platform, the release that carries the changes
   web: <version>
-  # desktop: <version>                 # include only if desktop is releasing
-  # extension: <version>               # include only if the extension is releasing
+  desktop: <version> # omit only when desktop is not tagged
+  extension: <version> # omit only when the extension is not tagged
 summary: <one or two sentences for the in-app popover>
 highlights: # 2-6 items, most important first
   - title: <short, user-facing headline>
@@ -77,17 +78,54 @@ must be non-empty; `summary` is required.
 
 ### Tags / versions mapping
 
-Infer platforms from each PR's "touched" areas in the digest:
+`tags` decides who sees the note. The in-app What's New popover
+(`libs/release-notes/src/lib/release-notes-utils.ts`) shows a note only on platforms listed in its
+`tags`, and hides any highlight whose `platforms` field excludes the viewer's platform. A note tagged
+only `web` is never shown to desktop or extension users, even when they received the feature. So
+`tags` must list every platform whose users receive the changes, not just the platform whose release
+you happen to be writing about.
 
-- `apps/jetstream/`, `apps/api/`, or shared `libs/**` → **web**
-- `apps/jetstream-desktop` / `apps/jetstream-desktop-client` → **desktop**
-- `apps/jetstream-web-extension` → **extension**
-- Use `all` only when a change genuinely ships to every platform.
+Jetstream is one codebase: the web app, the desktop app and the browser extension all mount the same
+feature libraries, and the desktop and extension releases are normally cut minutes after the web
+release from the same commit. Decide per change, then take the union:
 
-Put the platform(s) the release ships to in `tags`, and list each releasing platform's version
-in `versions`. If you are unsure which platforms a given highlight applies to, set its
-`platforms: [...]` field. **Default to `web`** unless the digest clearly shows desktop/extension
-changes.
+- **Shared feature or shared UI change** → **web, desktop, extension**. This is anything under
+  `libs/features/**`, `libs/shared/**`, `libs/ui/**`, or any app page (Query, Load Records, Update
+  Records, Automation Control, Manage Permissions, Permission Analysis, Deploy Metadata, Create Fields,
+  Formula Evaluator, Record Type Manager, Anonymous Apex, Apex Tests, Debug Logs, Platform Events,
+  Salesforce API, Export Object Metadata, Data History, field usage analysis) plus cross-cutting UI
+  (data tables, editors, header and navigation, org dropdown, keyboard shortcuts, record modals, file
+  exports). The desktop app mounts every page. The extension mounts every page except Create Records
+  and Org Groups; when unsure, check the `<Route>` list in
+  `apps/jetstream-web-extension/src/pages/app/App.tsx`.
+- **Web-only surface** (`apps/jetstream/` or `apps/api/` only) → **web**: login, signup, MFA,
+  passkeys, profile, billing and subscriptions, team management, SSO, the web "add org" OAuth flow,
+  PWA, Salesforce Canvas, the landing and docs sites, server-only behaviour.
+- **Desktop-only** (`apps/jetstream-desktop*`) → **desktop**: auto-update, installers, menus,
+  desktop settings, local org storage. Add **web** as well when the surface is the website's
+  download page.
+- **Extension-only** (`apps/jetstream-web-extension`) → **extension**: popup, Salesforce page
+  injection, extension permissions and manifest, extension login.
+
+Never use `all`; list the platforms explicitly. The context script prints each PR's touched areas,
+labelling shared libraries by their reach, and lists the desktop and extension releases cut in the
+range, so the digest alone is usually enough to decide.
+
+When the union spans more than one platform, set `platforms: [...]` on every highlight that does not
+reach all of them (a billing fix in an otherwise shared release gets `platforms: [web]`), so the
+popover does not show desktop users a web-only bullet. Highlights that reach every tagged platform
+need no `platforms` field.
+
+`versions` lists, for each tagged platform, the release that carries the changes:
+
+- **Already-cut release:** use the `desktop-v*` / `web-ext-v*` tags the context script lists for the
+  range (they are cut minutes after the web tag).
+- **Upcoming release:** the next desktop/extension version, i.e. a bump of the current
+  `apps/jetstream-desktop/package.json` and `apps/jetstream-web-extension/src/manifest.json` versions
+  (the context script prints both). Say in the handoff that those platforms must be selected in the
+  `pnpm release` platform picker. If the human decides not to cut a tagged platform, drop it from both
+  `tags` and `versions` before merging, since its users would otherwise see a note for changes they do
+  not have.
 
 ### Voice and style
 
@@ -237,4 +275,5 @@ them to:
    workflow runs on the PR.
 3. For an **already-cut release**, just merge — the note goes live on the docs site (and in
    the in-app popover) once the docs deploy completes. For an **upcoming release**, merge the
-   PR **before** cutting the release (`pnpm release`).
+   PR **before** cutting the release (`pnpm release`), and select every platform listed in
+   `versions` in the release script's platform picker so the note matches what ships.

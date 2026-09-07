@@ -2,9 +2,11 @@
 slug: v9.13.0
 title: 9.13.0 - Clickable Name links in query results, auth hardening
 date: '2026-04-19'
-tags: [web]
+tags: [web, desktop, extension]
 versions:
   web: 9.13.0
+  desktop: 3.20.0
+  extension: 2.22.0
 summary: Name fields in query results now open the same record-lookup popover as Id links, plus several authentication and session hardening changes.
 highlights:
   - title: Clickable Name columns in query results
@@ -12,12 +14,16 @@ highlights:
     docLink: /query/results
   - title: Salesforce refresh token rotation
     description: Jetstream now stores rotated refresh tokens when Salesforce issues them during a refresh.
+    platforms: [web, desktop]
   - title: Verification attempt limits
     description: OTP, email verification, and password reset tokens now expire after a set number of invalid attempts, with rate limits on internal password reset endpoints.
+    platforms: [web]
   - title: Revoke other sessions on password change
     description: Setting a new password or removing a password from the profile page now logs out all other active sessions.
+    platforms: [web]
   - title: Require auth before serving the app
     description: Unauthenticated requests to app pages are redirected to login up front instead of briefly loading the app first.
+    platforms: [web]
 ---
 
 {/* truncate */}
