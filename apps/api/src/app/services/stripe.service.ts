@@ -19,7 +19,9 @@ import * as subscriptionDbService from '../db/subscription.db';
 import * as teamDbService from '../db/team.db';
 import * as userDbService from '../db/user.db';
 
-const stripe = ENV.STRIPE_API_KEY ? new Stripe(ENV.STRIPE_API_KEY) : ({} as Stripe);
+const STRIPE_API_VERSION = '2026-08-26.dahlia';
+
+const stripe = ENV.STRIPE_API_KEY ? new Stripe(ENV.STRIPE_API_KEY, { apiVersion: STRIPE_API_VERSION }) : ({} as Stripe);
 
 const priceCache = new WeakMap<
   typeof STRIPE_PRICE_KEYS,
@@ -36,6 +38,16 @@ export const ensureStripeIsInitialized = () => {
 };
 
 export const activeSubscriptionStatuses = new Set(['active', 'trialing', 'incomplete']);
+
+export type StripeSyncFailureReason = 'NO_CUSTOMER_ID' | 'CUSTOMER_IS_DELETED' | 'MISSING_SUBSCRIPTIONS' | 'UNKNOWN_ERROR';
+
+/**
+ * Declared explicitly rather than inferred because the Stripe SDK's generated types are no longer
+ * nameable from an inferred position, which breaks declaration emit.
+ */
+export type StripeJetstreamSyncResult =
+  | { success: true; reason?: undefined; didUpdate: boolean; stripeCustomer?: Stripe.Customer }
+  | { success: false; reason: StripeSyncFailureReason; didUpdate?: boolean; stripeCustomer?: undefined };
 
 export async function handleStripeWebhook({ signature, payload }: { signature?: string; payload: string | Buffer }) {
   if (!ENV.STRIPE_API_KEY) {
@@ -88,7 +100,28 @@ function filterInactiveSubscriptions(subscriptions: Stripe.Subscription[]) {
   return subscriptions.filter((subscription) => activeSubscriptionStatuses.has(subscription.status));
 }
 
-async function fetchCustomerWithSubscriptionsById({ customerId }: { customerId: string }) {
+function findTeamPlanSubscription(subscriptions: Stripe.Subscription[]) {
+  return subscriptions.find(({ items }) => items.data.some((item) => item.price.lookup_key?.startsWith('TEAM_')));
+}
+
+/**
+ * A team plan can be started either through checkout or by switching plans in the Stripe billing
+ * portal, and the portal never routes through checkout. Every path that observes a TEAM price on a
+ * customer funnels through here so that a delayed or failed webhook self-heals instead of leaving the
+ * user without a team.
+ */
+async function createTeamForTeamPlanCustomer({ userId, customerId }: { userId: string; customerId: string }) {
+  const team = await teamDbService.upsertTeamWithBillingAccount({ userId, billingAccountCustomerId: customerId });
+  // ensure stripe has proper metadata
+  await updateCustomerMetadata(customerId, { userId, teamId: team.id, type: 'TEAM' });
+  return team;
+}
+
+async function fetchCustomerWithSubscriptionsById({
+  customerId,
+}: {
+  customerId: string;
+}): Promise<Stripe.Response<Stripe.Customer | Stripe.DeletedCustomer>> {
   return await stripe.customers.retrieve(customerId, {
     expand: ['subscriptions'],
   });
@@ -156,11 +189,15 @@ export async function fetchPrices({ lookupKeys }: { lookupKeys: typeof STRIPE_PR
   return pricesByKey;
 }
 
-export async function fetchCustomerEntitlements({ customerId }: { customerId: string }) {
+export async function fetchCustomerEntitlements({
+  customerId,
+}: {
+  customerId: string;
+}): Promise<Stripe.Response<Stripe.ApiList<Stripe.Entitlements.ActiveEntitlement>>> {
   return await stripe.entitlements.activeEntitlements.list({ customer: customerId });
 }
 
-export async function fetchCustomerWithSubscriptionsByJetstreamId({ userId }: { userId: string }) {
+export async function fetchCustomerWithSubscriptionsByJetstreamId({ userId }: { userId: string }): Promise<Stripe.Customer> {
   const customerWithSubscriptions = await stripe.customers.search({
     query: `metadata["userId"]:"${userId}"`,
     limit: 1,
@@ -171,7 +208,7 @@ export async function fetchCustomerWithSubscriptionsByJetstreamId({ userId }: { 
 
 export async function getUserFacingStripeCustomer({ customerId }: { customerId: string }): Promise<StripeUserFacingCustomer | null> {
   try {
-    const stripeCustomer = await fetchCustomerWithSubscriptionsById({ customerId });
+    const stripeCustomer: Stripe.Customer | Stripe.DeletedCustomer = await fetchCustomerWithSubscriptionsById({ customerId });
     if (stripeCustomer.deleted) {
       return null;
     }
@@ -189,35 +226,22 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
     delinquent: !!stripeCustomer.delinquent,
     subscriptions:
       stripeCustomer.subscriptions?.data.map(
-        ({
-          id,
-          billing_cycle_anchor,
-          cancel_at,
-          cancel_at_period_end,
-          canceled_at,
-          // current_period_end,
-          // current_period_start,
-          ended_at,
-          items,
-          start_date,
-          status,
-        }) => ({
+        ({ id, billing_cycle_anchor, cancel_at, cancel_at_period_end, canceled_at, ended_at, items, start_date, status }) => ({
           id,
           // TODO: validate that the dates are correct (should be if server is on UTC I think?)
           billingCycleAnchor: formatISO(fromUnixTime(billing_cycle_anchor)),
           cancelAt: cancel_at ? formatISO(fromUnixTime(cancel_at)) : null,
           cancelAtPeriodEnd: cancel_at_period_end,
           canceledAt: canceled_at ? formatISO(fromUnixTime(canceled_at)) : null,
-          // TODO: these are moved to line items in stripe v18
-          // currentPeriodEnd: formatISO(fromUnixTime(current_period_end)),
-          // currentPeriodStart: formatISO(fromUnixTime(current_period_start)),
           endedAt: ended_at ? formatISO(fromUnixTime(ended_at)) : null,
           startDate: formatISO(fromUnixTime(start_date)),
           status: status.toUpperCase() as Uppercase<Stripe.Subscription.Status>,
-          items: items.data.map(({ id, price, quantity }) => ({
+          items: items.data.map(({ id, price, quantity, current_period_start, current_period_end }) => ({
             id,
             priceId: price.id,
             active: price.active,
+            currentPeriodStart: formatISO(fromUnixTime(current_period_start)),
+            currentPeriodEnd: formatISO(fromUnixTime(current_period_end)),
             product: price.product as string,
             lookupKey: price.lookup_key,
             unitAmount: (price.unit_amount || 0) / 100,
@@ -231,7 +255,10 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
   return customerWithSubscriptions;
 }
 
-export async function createCustomer(user: Pick<UserProfile, 'id' | 'name' | 'email'>, type: 'TEAM' | 'USER') {
+export async function createCustomer(
+  user: Pick<UserProfile, 'id' | 'name' | 'email'>,
+  type: 'TEAM' | 'USER',
+): Promise<Stripe.Response<Stripe.Customer>> {
   const customer = await stripe.customers.create({
     email: user.email,
     name: user.name,
@@ -253,7 +280,7 @@ export async function createCustomer(user: Pick<UserProfile, 'id' | 'name' | 'em
  * Keeps the Stripe customer's email aligned with the account, so receipts and dunning notices reach
  * the address the user actually reads.
  */
-export async function updateCustomerEmail(customerId: string, email: string) {
+export async function updateCustomerEmail(customerId: string, email: string): Promise<Stripe.Response<Stripe.Customer>> {
   return stripe.customers.update(customerId, { email });
 }
 
@@ -263,7 +290,7 @@ export async function updateCustomerEmail(customerId: string, email: string) {
 export async function updateCustomerMetadata(
   customerId: string,
   metadata: { userId: string; teamId: string | null; type: 'TEAM' | 'USER' },
-) {
+): Promise<Stripe.Response<Stripe.Customer>> {
   const { type } = metadata;
   const customer = await stripe.customers.update(customerId, {
     metadata,
@@ -392,7 +419,9 @@ export async function synchronizeStripeWithJetstreamIfRequiredForTeamOrUser({
   userId,
   teamId,
   customerId,
-}: { userId: string; teamId?: string; customerId?: null } | { userId: string; teamId: string; customerId: string }) {
+}:
+  | { userId: string; teamId?: string; customerId?: null }
+  | { userId: string; teamId: string; customerId: string }): Promise<StripeJetstreamSyncResult> {
   if (teamId) {
     return synchronizeStripeWithJetstreamTeamIfRequired({ teamId, customerId });
   }
@@ -402,7 +431,7 @@ export async function synchronizeStripeWithJetstreamIfRequiredForTeamOrUser({
 export async function synchronizeStripeWithJetstreamUserIfRequired({
   userId,
   customerId,
-}: { userId: string; customerId?: null; force?: boolean } | { userId: string; customerId: string }) {
+}: { userId: string; customerId?: null; force?: boolean } | { userId: string; customerId: string }): Promise<StripeJetstreamSyncResult> {
   try {
     let didUpdate = false;
     const userProfile = await userDbService.findById(userId);
@@ -419,7 +448,7 @@ export async function synchronizeStripeWithJetstreamUserIfRequired({
       return { success: false, reason: 'NO_CUSTOMER_ID' } as const;
     }
 
-    const stripeCustomer = await fetchCustomerWithSubscriptionsById({ customerId });
+    const stripeCustomer: Stripe.Customer | Stripe.DeletedCustomer = await fetchCustomerWithSubscriptionsById({ customerId });
     if (stripeCustomer.deleted) {
       return { success: false, reason: 'CUSTOMER_IS_DELETED', didUpdate } as const;
     }
@@ -429,7 +458,17 @@ export async function synchronizeStripeWithJetstreamUserIfRequired({
     }
 
     const subscriptions = filterInactiveSubscriptions(stripeCustomer.subscriptions.data);
-    const priceRecordCount = subscriptions.flatMap((subscription) => subscription.items.data.length).length;
+
+    // The customer upgraded to a team plan without a team existing yet - most likely a plan switch in
+    // the billing portal, which never routes through checkout. Create the team and sync as a team,
+    // otherwise the team subscription would be recorded against the personal account and the checks
+    // below would then report the account as correctly synchronized forever.
+    if (findTeamPlanSubscription(subscriptions)) {
+      const team = await createTeamForTeamPlanCustomer({ userId, customerId });
+      return await synchronizeStripeWithJetstreamTeamIfRequired({ teamId: team.id, customerId });
+    }
+
+    const priceRecordCount = subscriptions.flatMap((subscription) => subscription.items.data).length;
 
     /**
      * Check if we need to synchronize
@@ -466,7 +505,7 @@ export async function synchronizeStripeWithJetstreamUserIfRequired({
 export async function synchronizeStripeWithJetstreamTeamIfRequired({
   teamId,
   customerId,
-}: { teamId: string; customerId?: null; force?: boolean } | { teamId: string; customerId: string }) {
+}: { teamId: string; customerId?: null; force?: boolean } | { teamId: string; customerId: string }): Promise<StripeJetstreamSyncResult> {
   try {
     let didUpdate = false;
     const team = await teamDbService.findById({ teamId });
@@ -485,7 +524,7 @@ export async function synchronizeStripeWithJetstreamTeamIfRequired({
       return { success: false, reason: 'NO_CUSTOMER_ID' } as const;
     }
 
-    const stripeCustomer = await fetchCustomerWithSubscriptionsById({ customerId });
+    const stripeCustomer: Stripe.Customer | Stripe.DeletedCustomer = await fetchCustomerWithSubscriptionsById({ customerId });
     if (stripeCustomer.deleted) {
       return { success: false, reason: 'CUSTOMER_IS_DELETED', didUpdate } as const;
     }
@@ -495,7 +534,7 @@ export async function synchronizeStripeWithJetstreamTeamIfRequired({
     }
 
     const subscriptions = filterInactiveSubscriptions(stripeCustomer.subscriptions.data);
-    const priceRecordCount = subscriptions.flatMap((subscription) => subscription.items.data.length).length;
+    const priceRecordCount = subscriptions.flatMap((subscription) => subscription.items.data).length;
 
     /**
      * Check if we need to synchronize
@@ -546,15 +585,13 @@ export async function saveOrUpdateSubscription({
 
   let { userId, teamId, type = 'USER' } = customer.metadata;
   const subscriptions = customer.subscriptions?.data ?? [];
-  const hasTeamPlan = subscriptions.find(({ items }) => items.data.find((item) => item.price.lookup_key?.startsWith('TEAM_')));
+  const hasTeamPlan = !!findTeamPlanSubscription(subscriptions);
 
   // Ensure team is auto-created if required and Stripe is updated to reflect this
   if (hasTeamPlan && userId && (!teamId || type !== 'TEAM')) {
     type = 'TEAM';
-    const team = await teamDbService.upsertTeamWithBillingAccount({ userId, billingAccountCustomerId: customer.id });
+    const team = await createTeamForTeamPlanCustomer({ userId, customerId: customer.id });
     teamId = team.id;
-    // ensure stripe has proper metadata
-    await updateCustomerMetadata(customer.id, { userId, teamId, type: 'TEAM' });
   }
 
   // customer does not have Jetstream id attached - update Stripe to ensure data integrity (if possible)
@@ -677,7 +714,7 @@ export async function createCheckoutSession({
   customerId?: string;
   type: 'TEAM' | 'USER';
   teamId?: string;
-}) {
+}): Promise<Stripe.Response<Stripe.Checkout.Session>> {
   const urlParams = new URLSearchParams({ sessionId: 'CHECKOUT_SESSION_ID', type, priceId, userId: user.id, mode });
 
   // Create customer if one does not exist
@@ -743,7 +780,7 @@ export async function createBillingPortalSession({
   customerId: string;
   portalType: 'USER' | 'TEAM' | 'MANUAL';
   returnUrl?: string;
-}) {
+}): Promise<Stripe.Response<Stripe.BillingPortal.Session>> {
   if (cachedPortalSessions.size === 0) {
     logger.info('Loading billing portal configurations from Stripe');
     await stripe.billingPortal.configurations.list({ active: true }).then((res) => {

@@ -35,9 +35,13 @@ export interface StripeUserFacingSubscriptionItem {
   id: string;
   priceId: string;
   active: boolean;
-  // TODO: if we want these we can add in after stripe v18 upgrade
-  // currentPeriodStart: string;
-  // currentPeriodEnd: string;
+  /**
+   * Mirrors Stripe's item-level `current_period_start` / `current_period_end`. Stripe moved the billing
+   * period off the subscription and onto each subscription item, so a subscription with items on
+   * different schedules reports a period per item rather than one for the whole subscription.
+   */
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
   product: string;
   lookupKey: string | null;
   unitAmount: number;
