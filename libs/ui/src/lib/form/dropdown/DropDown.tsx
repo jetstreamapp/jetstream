@@ -6,7 +6,7 @@ import {
   isArrowDownKey,
   isArrowUpKey,
   isEndKey,
-  isEnterKey,
+  isEnterOrSpace,
   isHomeKey,
   isTabKey,
   menuItemSelectScroll,
@@ -20,6 +20,7 @@ import React, {
   Fragment,
   FunctionComponent,
   KeyboardEvent,
+  MutableRefObject,
   ReactNode,
   RefObject,
   createRef,
@@ -52,6 +53,8 @@ export interface DropDownProps {
   usePortal?: boolean;
   /** Portal target when `usePortal` is set; defaults to the app's portal root (document.body) */
   portalRef?: HTMLElement | null;
+  /** The trigger button, for callers that must hand focus back to it themselves (e.g. after it was disabled) */
+  triggerRef?: MutableRefObject<HTMLButtonElement | null>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSelected: (id: string, metadata?: any) => void;
 }
@@ -72,6 +75,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
   description,
   usePortal = false,
   portalRef,
+  triggerRef,
   onSelected,
 }) => {
   const keyBuffer = useRef(new KeyBuffer());
@@ -107,6 +111,9 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
   );
   const [focusedItem, setFocusedItem] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState<string | undefined>(initialSelectedId);
+  // ArrowUp on the trigger opens the menu on its LAST item (APG menu button); every other way of
+  // opening lands on the selected item, or the first
+  const openOnLastItemRef = useRef(false);
   const ulContainerEl = useRef<HTMLUListElement>(null);
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -152,18 +159,33 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
 
   useEffect(() => {
     if (isOpen && !isNumber(focusedItem)) {
-      if (selectedItem) {
+      if (openOnLastItemRef.current) {
+        setFocusedItem(items.length - 1);
+      } else if (selectedItem) {
         let idx = items.findIndex((item) => item.id === selectedItem);
         idx = idx >= 0 ? idx : 0;
         setFocusedItem(idx);
       } else {
         setFocusedItem(0);
       }
+      openOnLastItemRef.current = false;
     } else if (!isOpen) {
       setFocusedItem(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
+  // Enter/Space on the trigger already open the menu through the native click; the arrow keys open
+  // it too so a keyboard user can reach the items the same way as any other menu button
+  function handleTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (isArrowDownKey(event) || isArrowUpKey(event)) {
+      event.preventDefault();
+      if (!isOpen) {
+        openOnLastItemRef.current = isArrowUpKey(event);
+        setIsOpen(true);
+      }
+    }
+  }
 
   // Escape closes ONLY this menu (and returns focus to the trigger) — consumed at document capture
   // so an ancestor modal/popover cannot also close on the same press
@@ -202,7 +224,10 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
       } else {
         newFocusedItem = focusedItem + 1;
       }
-    } else if (isEnterKey(event) && isNumber(focusedItem)) {
+    } else if (isEnterOrSpace(event) && isNumber(focusedItem)) {
+      // Space activates like Enter (APG menu); without this it fell into the type-ahead below and
+      // jumped focus to the first item. The trigger only fires its click for a Space whose keydown
+      // it saw itself, so handing focus back here cannot reopen the menu on the keyup.
       const item = items[focusedItem];
       if (!item.disabled) {
         setSelectedItem(item.id);
@@ -242,7 +267,12 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
         className={classNames('slds-dropdown-trigger slds-dropdown-trigger_click', className, { 'slds-is-open': isOpen })}
       >
         <button
-          ref={triggerButtonRef}
+          ref={(element) => {
+            triggerButtonRef.current = element;
+            if (triggerRef) {
+              triggerRef.current = element;
+            }
+          }}
           data-testid={testId}
           className={buttonClassName || 'slds-button slds-button_icon slds-button_icon-border-filled'}
           aria-haspopup="true"
@@ -251,6 +281,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
           // otherwise the icon's actionText names it
           title={description || actionText}
           onClick={() => setIsOpen(!isOpen)}
+          onKeyDown={handleTriggerKeyDown}
           disabled={disabled}
         >
           {buttonContent ? (
