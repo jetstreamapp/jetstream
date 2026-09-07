@@ -109,6 +109,32 @@ describe('Combobox Enter key', () => {
     expect(onInputEnter).not.toHaveBeenCalled();
   });
 
+  test('ignores the keyup of an Enter that was pressed on an option while the list is still open', () => {
+    const onKeyboardNavigation = vi.fn();
+    const onInputEnter = vi.fn();
+    const { container } = render(
+      <Combobox label="Orgs" onKeyboardNavigation={onKeyboardNavigation} onInputEnter={onInputEnter}>
+        <ComboboxListItem id="a" label="one" selected={false} onSelection={NOOP} />
+      </Combobox>,
+    );
+    const input = getInput(container);
+    fireEvent.click(input);
+    const option = screen.getByRole('option', { name: 'one' });
+    option.focus();
+
+    // The list selects on keydown; a drill-in item keeps the list open and refocuses the input, so the
+    // keyup of the same press lands on the input while the list is still open
+    fireEvent.keyDown(option, { key: 'Enter' });
+    expect(onKeyboardNavigation).toHaveBeenCalledWith('enter');
+    input.focus();
+    fireEvent.keyUp(input, { key: 'Enter' });
+    expect(onInputEnter).not.toHaveBeenCalled();
+
+    // A fresh Enter pressed on the input itself still picks the first option
+    pressEnter(input);
+    expect(onInputEnter).toHaveBeenCalledTimes(1);
+  });
+
   test('selecting an option with Enter in the list does not reopen it', () => {
     const { container } = render(<SelectableHarness />);
     const input = getInput(container);
