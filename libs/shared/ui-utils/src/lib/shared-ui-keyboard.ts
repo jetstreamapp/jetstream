@@ -180,7 +180,7 @@ export function isEnterKey(event: KeyboardEvent<unknown>): boolean {
 }
 
 export function isSpaceKey(event: KeyboardEvent<unknown>): boolean {
-  return event.keyCode === 32;
+  return event.key === ' ' || event.key === 'Spacebar' || event.keyCode === 32;
 }
 
 export function isEnterOrSpace(event: KeyboardEvent<unknown>): boolean {
