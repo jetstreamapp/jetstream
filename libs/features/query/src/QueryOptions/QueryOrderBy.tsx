@@ -1,5 +1,5 @@
 import { AscDesc, FirstLast, ListItem, QueryOrderByClause } from '@jetstream/types';
-import { Icon } from '@jetstream/ui';
+import { Icon, ariaDisabledButtonProps } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
 import React, { FunctionComponent, useRef } from 'react';
 import QueryOrderByRow from './QueryOrderByRow';
@@ -75,7 +75,8 @@ export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps
           />
         ))}
         <div className="slds-m-top_small">
-          <button className="slds-button slds-button_neutral" onClick={handleAdd} disabled={orderByClauses.length >= 5}>
+          {/* The click that adds the fifth row disables this button — aria-disabled keeps focus on it */}
+          <button className="slds-button slds-button_neutral" {...ariaDisabledButtonProps(orderByClauses.length >= 5, handleAdd)}>
             <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
             Add Order By
           </button>
