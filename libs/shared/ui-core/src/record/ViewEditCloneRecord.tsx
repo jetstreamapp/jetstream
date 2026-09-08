@@ -590,7 +590,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
 
   // Enter never submits: the form is long and a stray Enter in a field must not save. Cmd/Ctrl+Enter
   // is the app-wide primary-action shortcut and is announced on the Save button.
-  usePrimaryActionShortcut(() => handleSave(), { disabled: isSaveButtonDisabled || action === 'view' });
+  usePrimaryActionShortcut(() => handleSave(), { scope: 'dialog', disabled: isSaveButtonDisabled || action === 'view' });
   const showSaveWithErrorsButton = !isSaveButtonDisabled && formErrors.hasErrors;
 
   return (

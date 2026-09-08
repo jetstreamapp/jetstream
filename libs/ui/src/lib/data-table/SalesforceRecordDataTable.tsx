@@ -3,7 +3,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { queryRemaining, queryRemainingSubqueryRecords } from '@jetstream/shared/data';
-import { formatNumber, hasCtrlOrMeta, isEnterKey, tracker, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
+import { formatNumber, hasCtrlOrMeta, isEnterKey, isModalDialogOpen, tracker, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import {
   flattenRecord,
   getErrorMessage,
@@ -765,7 +765,9 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     // Cmd/Ctrl+Enter opens the Preview Changes modal (the modal then owns the shortcut to actually save).
     // A live ref (updated in an effect, never during render) lets the stable global handler read the latest
     // state, and deferring to the next tick lets an in-progress cell edit (committed on Enter) settle into
-    // dirty state first. No-ops when there is nothing to preview or the modal is already open.
+    // dirty state first. No-ops when there is nothing to preview or the modal is already open, and stands
+    // down entirely while any modal is open: this listener is registered first, so claiming the key there
+    // would keep a modal's own Cmd/Ctrl+Enter (saving the record opened from a row) from ever firing.
     const openPreviewRef = useRef<() => void>(() => undefined);
     useEffect(() => {
       openPreviewRef.current = () => {
@@ -777,7 +779,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       };
     });
     const handlePreviewShortcut = useCallback((event: KeyboardEvent) => {
-      if (!isEnterKey(event as any) || !hasCtrlOrMeta(event as any)) {
+      if (!isEnterKey(event as any) || !hasCtrlOrMeta(event as any) || isModalDialogOpen()) {
         return;
       }
       event.preventDefault();
