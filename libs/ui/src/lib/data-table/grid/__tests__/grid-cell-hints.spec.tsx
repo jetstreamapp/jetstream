@@ -2,6 +2,7 @@ import { axeScan } from '@jetstream/test-utils';
 import { fireEvent, render, waitFor } from '@testing-library/react';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { DataTable } from '../../DataTable';
+import { getSummaryRowId } from '../grid-constants';
 import { ColumnWithFilter } from '../grid-types';
 
 interface Row {
@@ -107,5 +108,49 @@ describe('grid cell keyboard hints', () => {
     // a plain read-only cell gets no hint at all
     expect(nameCell.hasAttribute('aria-describedby')).toBe(false);
     expect(linkCell.hasAttribute('aria-describedby')).toBe(false);
+  });
+});
+
+describe('grid cell read-only state', () => {
+  test('a column is read-only unless it is editable AND has an editor, since Enter only opens an editor when both are set', () => {
+    const readOnlyColumns: ColumnWithFilter<Row>[] = [
+      { key: 'Name', name: 'Name' },
+      // editable for paste/clear eligibility but nothing to open on Enter
+      { key: 'Link', name: 'Link', editable: true },
+      { key: 'Amount', name: 'Amount', editable: true, renderEditCell: () => null },
+      // per-row predicate: only the first row opens an editor
+      { key: 'Url', name: 'Url', editable: (row) => row._key === '1', renderEditCell: () => null },
+    ];
+    render(<DataTable columns={readOnlyColumns} data={data} getRowKey={(row) => row._key} />);
+
+    expect(getCell('1', 'Name').getAttribute('aria-readonly')).toBe('true');
+    expect(getCell('1', 'Link').getAttribute('aria-readonly')).toBe('true');
+    expect(getCell('1', 'Amount').hasAttribute('aria-readonly')).toBe(false);
+    expect(getCell('1', 'Url').hasAttribute('aria-readonly')).toBe(false);
+    expect(getCell('2', 'Url').getAttribute('aria-readonly')).toBe('true');
+  });
+
+  test('summary row cells are read-only even in editable columns, since they host controls rather than an editor', () => {
+    const summaryColumns: ColumnWithFilter<Row>[] = [
+      { key: 'Name', name: 'Name', renderSummaryCell: () => <span>Totals</span> },
+      {
+        key: 'Amount',
+        name: 'Amount',
+        editable: true,
+        renderEditCell: () => null,
+        renderSummaryCell: () => <button type="button">Reset</button>,
+      },
+    ];
+    render(<DataTable columns={summaryColumns} data={data} getRowKey={(row) => row._key} topSummaryRows={[{ label: 'Totals' }]} />);
+    const summaryRowId = getSummaryRowId(0);
+
+    const nameSummaryCell = getCell(summaryRowId, 'Name');
+    const amountSummaryCell = getCell(summaryRowId, 'Amount');
+    expect(nameSummaryCell.textContent).toBe('Totals');
+    expect(nameSummaryCell.getAttribute('aria-readonly')).toBe('true');
+    expect(amountSummaryCell.querySelector('button')?.textContent).toBe('Reset');
+    expect(amountSummaryCell.getAttribute('aria-readonly')).toBe('true');
+    // the body cell of the same editable column is still editable
+    expect(getCell('1', 'Amount').hasAttribute('aria-readonly')).toBe(false);
   });
 });
