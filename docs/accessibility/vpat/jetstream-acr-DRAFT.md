@@ -21,7 +21,7 @@ Based on ITI **VPAT® Version 2.5 (WCAG edition)**. Rename to `jetstream-acr-<YY
 - Manual keyboard-only testing of ten representative task flows, 2026-08-28 → 2026-08-31 (`../audit-2026/manual-checklist.md`).
 - Manual screen reader testing with VoiceOver on macOS (Safari, with a Chrome spot-check) over the same flows.
 - Zoom (200%) and reflow (320 px) testing; the text-spacing override pass is not yet recorded (see 1.4.12).
-- Code review of the remediation branch, 2026-09-01 (findings R1–R21) and 2026-09-07 (findings V23–V49).
+- Code review of the remediation branch, 2026-09-01 (findings R1–R21) and 2026-09-07 (findings V23–V50).
 
 **Applicable standards:** WCAG 2.1 Level A and Level AA.
 
