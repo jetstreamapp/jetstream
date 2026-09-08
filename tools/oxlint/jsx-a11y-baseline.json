@@ -52,10 +52,6 @@
     "libs/shared/ui-core/src/load-records-results/LoadRecordsBulkApiResultsTable.tsx": {
       "control-has-associated-label": 1
     },
-    "libs/shared/ui-core/src/orgs/OrganizationGroupSelector.tsx": {
-      "click-events-have-key-events": 2,
-      "no-noninteractive-element-interactions": 2
-    },
     "libs/ui/src/lib/badge/BadgePopoverGroupList.tsx": {
       "click-events-have-key-events": 1,
       "no-noninteractive-element-interactions": 1
