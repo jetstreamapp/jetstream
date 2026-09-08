@@ -2,10 +2,11 @@
 slug: v8.3.0
 title: 8.3.0 - Better related-object loading and assorted bug fixes
 date: '2025-10-21'
-tags: [web, desktop]
+tags: [web, desktop, extension]
 versions:
   web: 8.3.0
   desktop: 3.1.0
+  extension: 2.5.0
 summary: Load Records now shows every related object on polymorphic lookups and fetches related-field metadata on demand. Also fixes Firefox drag in the query builder and a create-organization regression.
 highlights:
   - title: All related objects on polymorphic lookups
@@ -17,8 +18,10 @@ highlights:
   - title: Firefox query builder drag
     description: Condition rows in the query builder can be dragged on Firefox again.
     docLink: /query/results
+    platforms: [web, extension]
   - title: Create organization from selected org
     description: Creating a new organization no longer fails when another organization is selected.
+    platforms: [web, desktop]
 ---
 
 {/* truncate */}

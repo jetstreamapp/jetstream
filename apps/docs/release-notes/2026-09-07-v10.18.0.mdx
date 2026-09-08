@@ -1,0 +1,61 @@
+---
+slug: v10.18.0
+title: 10.18.0 - Desktop update controls and portable Windows build
+date: '2026-09-07'
+tags: [web, desktop]
+versions:
+  web: 10.18.0
+  desktop: 4.15.0
+summary: The desktop app now lets you turn off automatic updates, and IT teams can manage updates for an entire organization. A portable Windows build is now available on the download page.
+highlights:
+  - title: Turn off automatic updates in the desktop app
+    description: A new Automatically Download Updates setting stops background checks and downloads, while Check for Updates in the File menu still works on demand.
+    docLink: /desktop-app-updates
+    platforms: [desktop]
+  - title: Managed update policy for organizations
+    description: IT teams can disable or pin automatic updates for every install with a registry key, macOS configuration profile, environment variable, command-line flag, or policy file.
+    docLink: /desktop-app-updates
+    platforms: [desktop]
+  - title: Administrator prompts on all-users Windows installs
+    description: Updates on all-users installs no longer try to install silently when the app closes, which showed a User Account Control prompt that standard users could not complete.
+    docLink: /desktop-app-updates
+    platforms: [desktop]
+  - title: Portable Windows build on the download page
+    description: A Windows build that runs without installing and never asks for an administrator is now offered on the download page.
+    docLink: /desktop-app-updates
+    platforms: [web, desktop]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Turn off automatic updates in the desktop app
+
+Settings has a new **Automatically Download Updates** toggle. When it is off, Jetstream stops checking for and downloading new versions in the background, and the update icon in the header shows that updates are turned off. You can still get a new version at any time from **Check for Updates** in the File menu (the Jetstream menu on a Mac) or from the header icon.
+
+### Managed update policy for organizations
+
+If you deploy Jetstream with an MDM or software-distribution tool, you can now own the update schedule. Jetstream reads these sources in order and uses the first one that is set:
+
+- The `--disable-auto-update` command-line flag
+- The `JETSTREAM_DISABLE_AUTO_UPDATE` environment variable
+- A `DisableAutoUpdate` value under `HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Jetstream` (Windows)
+- A configuration profile for the `app.getjetstream` preference domain (macOS)
+- A machine-wide `policy.json` file
+
+When updates are disabled by any of these, the in-app toggle becomes read-only, the **Check for Updates** menu item is replaced with **Updates Managed by Your Organization**, and deploying new versions is up to your distribution tool. Setting the value to `0` instead pins automatic updates on so users cannot turn them off.
+
+### Administrator prompts on all-users Windows installs
+
+When Jetstream is installed for all users of a Windows computer, installing an update means writing outside your own user profile, so Windows asks for administrator approval. Previously the update tried to install silently when the app closed, which showed an unexplained User Account Control prompt on every quit, and a user without administrator rights could never complete it. Jetstream now never installs these updates in the background. The update still downloads, and the header notification explains that an administrator is needed and only starts the install when you click **Install Update**.
+
+### Portable Windows build on the download page
+
+The download page now offers **Windows (Portable)**, a build that runs without installing and never asks for an administrator. It does not update itself: download a new copy to move to a newer version. The in-app update controls say so when you are running the portable build.
+
+### Other fixes
+
+- Windows updates now download only the parts of the installer that changed. Updating to this version still downloads the full installer, and later updates will be smaller.
+- Clicking **Restart Now** in the header update notification on a per-user Windows install now installs the update silently instead of opening the installer wizard.
+- The Windows installer license screen now shows formatted text instead of raw markdown symbols.

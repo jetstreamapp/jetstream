@@ -2,19 +2,25 @@
 slug: v8.8.0
 title: 8.8.0 - Org expiration, Organization Groups, bulk org delete
 date: '2025-11-15'
-tags: [web]
+tags: [web, desktop, extension]
 versions:
   web: 8.8.0
+  desktop: 3.5.0
+  extension: 2.6.0
 summary: Unused Salesforce orgs now expire with advance email notice, the Organization page handles refresh/reconnect cleanly, and you can delete orgs in bulk.
 highlights:
   - title: Org expiration with email notice
     description: Salesforce orgs unused for 90 days are flagged for expiration, with email notifications summarizing expiring and expired orgs.
+    platforms: [web]
   - title: Easier reconnect for expired orgs
     description: The Organization page surfaces expiring and expired orgs, and reconnect pre-fills your existing connection details.
+    platforms: [web]
   - title: Bulk delete Salesforce orgs
     description: Select and delete multiple connected orgs at once from the Organizations page.
+    platforms: [web, desktop]
   - title: Rename to "Organization Group"
     description: What used to be called "Jetstream Organization" is now "Organization Group" everywhere in the app, to avoid confusion with a Salesforce organization.
+    platforms: [web, desktop]
   - title: Download format is remembered
     description: Your last-used download format (CSV, Excel, JSON, etc.) is remembered per-user as the new default.
 ---

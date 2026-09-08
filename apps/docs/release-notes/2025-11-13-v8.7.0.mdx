@@ -2,9 +2,11 @@
 slug: v8.7.0
 title: 8.7.0 - Table filter fixes and connected-app onboarding help
 date: '2025-11-13'
-tags: [web]
+tags: [web, desktop, extension]
 versions:
   web: 8.7.0
+  desktop: 3.5.0
+  extension: 2.6.0
 summary: Table filters now stay in sync when data reloads, password reset accepts plus-sign emails, and orgs missing the Jetstream connected app get clearer install guidance.
 highlights:
   - title: Table filters follow data updates
@@ -14,10 +16,13 @@ highlights:
     description: Filters on numeric fields now behave correctly and no longer drop values on refresh.
   - title: Password reset with plus-sign emails
     description: Emails containing a "+" no longer get mangled into a space during password reset.
+    platforms: [web]
   - title: Connected app install guidance
     description: Help links point users to the page where they would install the Jetstream connected app if it is missing, plus a sandbox sync callout.
+    platforms: [web, desktop]
   - title: Cookie banner padding fix
     description: The consent banner no longer throws off in-app alignment while still looking right on the landing page.
+    platforms: [web]
 ---
 
 {/* truncate */}

@@ -41,6 +41,8 @@ const BODY_TRUNCATE = 1200;
 
 // Map a changed-file path to a coarse platform/area signal so the drafter can
 // infer the release-note `tags` / `versions` without reading raw file lists.
+// Shared client libraries are mounted by the web app, the desktop app and the browser
+// extension alike, so they are labelled with that reach rather than as generic "shared".
 const AREA_RULES = [
   { match: /^apps\/jetstream-web-extension\//, area: 'extension' },
   { match: /^apps\/jetstream-desktop(-client)?\//, area: 'desktop' },
@@ -48,8 +50,23 @@ const AREA_RULES = [
   { match: /^apps\/api\//, area: 'web (server)' },
   { match: /^apps\/landing\//, area: 'landing site' },
   { match: /^apps\/docs\//, area: 'docs' },
+  { match: /^libs\/features\//, area: 'shared feature (web, desktop, extension)' },
+  {
+    match: /^libs\/(ui|icon-factory|monaco-configuration|splitjs|shared\/(ui-[^/]+|data|utils|constants|client-logger))\//,
+    area: 'shared UI (web, desktop, extension)',
+  },
+  { match: /^libs\/desktop-types\//, area: 'desktop' },
+  { match: /^libs\/(api-config|api-types|auth|audit-logs|email|prisma|shared\/node-utils)\//, area: 'web (server)' },
   { match: /^libs\//, area: 'shared lib' },
 ];
+
+// Desktop and extension releases are cut from the same history minutes after the web release,
+// so the platform tags inside the range tell the drafter which versions carry the changes.
+const PLATFORM_TAG_PATTERNS = ['desktop-v*', 'web-ext-v*'];
+const PLATFORM_VERSION_FILES = {
+  desktop: 'apps/jetstream-desktop/package.json',
+  extension: 'apps/jetstream-web-extension/src/manifest.json',
+};
 
 const options = parseArgs(process.argv.slice(2));
 
@@ -106,6 +123,8 @@ if (!(await refExists(head))) {
 const existingNoteFile = await findReleaseNoteFor(targetVersion);
 
 const { headSha, currentBranch, prs, directCommits, totalCommits } = await getMergedPrsSince(baseTag, { head });
+const platformReleases = await listPlatformTagsInRange(baseTag, head);
+const platformVersions = await readPlatformVersions();
 
 // When head is a tag/ref (not the working tree), label the range with it instead of the branch.
 const headLabel = head !== 'HEAD' ? head : currentBranch;
@@ -126,6 +145,8 @@ const context = {
   currentBranch,
   headLabel,
   totalCommits,
+  platformReleases,
+  platformVersions,
   prs: enrichedPrs,
   directCommits,
 };
@@ -134,6 +155,35 @@ if (options.json) {
   printJson(context);
 } else {
   printMarkdown(context);
+}
+
+// ── Platform releases ───────────────────────────────────────────────────────
+
+/** Desktop / extension tags reachable from `head` but not from `baseTag`, oldest first. */
+async function listPlatformTagsInRange(baseTag, head) {
+  const raw = (
+    await $`git tag --list ${PLATFORM_TAG_PATTERNS} --merged ${head} --no-merged ${baseTag} --sort=creatordate --format=${'%(creatordate:short) %(refname:short)'}`
+  ).stdout.trim();
+  if (!raw) {
+    return [];
+  }
+  return raw.split('\n').map((line) => {
+    const [date, tag] = line.split(' ');
+    return { tag, date, platform: tag.startsWith('desktop-v') ? 'desktop' : 'extension' };
+  });
+}
+
+/** Current desktop / extension versions in the working tree (the next release bumps these). */
+async function readPlatformVersions() {
+  const versions = {};
+  for (const [platform, file] of Object.entries(PLATFORM_VERSION_FILES)) {
+    try {
+      versions[platform] = JSON.parse(await readFile(path.join(ROOT, file), 'utf8')).version;
+    } catch {
+      versions[platform] = null;
+    }
+  }
+  return versions;
 }
 
 // ── Enrichment ──────────────────────────────────────────────────────────────
@@ -188,6 +238,19 @@ function printMarkdown(ctx) {
   lines.push(`- base tag: **${ctx.baseTag}** → head: **${ctx.headLabel}** (${ctx.headSha.slice(0, 9)})`);
   lines.push(`- total commits in range: ${ctx.totalCommits}`);
   lines.push(`- compare: https://github.com/${REPO_SLUG}/compare/${ctx.baseTag}...${ctx.headSha}`);
+  if (ctx.platformReleases.length) {
+    lines.push(
+      `- desktop/extension releases cut in this range: ${ctx.platformReleases.map(({ tag, date }) => `${tag} (${date})`).join(', ')}`,
+    );
+  } else {
+    lines.push('- desktop/extension releases cut in this range: none');
+  }
+  lines.push(
+    `- current platform versions in the tree: desktop ${ctx.platformVersions.desktop ?? 'unknown'}, extension ${ctx.platformVersions.extension ?? 'unknown'}`,
+  );
+  lines.push(
+    '- reminder: shared feature / shared UI changes ship to the desktop app and the browser extension too. Tag every platform that receives the changes and list its carrying version (an upcoming release bumps the current platform versions above).',
+  );
   lines.push('');
 
   if (ctx.prs.length === 0) {

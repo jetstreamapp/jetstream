@@ -1,10 +1,44 @@
 [
   {
+    "slug": "v10.18.0",
+    "title": "10.18.0 - Desktop update controls and portable Windows build",
+    "date": "2026-09-07",
+    "tags": ["web", "desktop"],
+    "versions": { "web": "10.18.0", "desktop": "4.15.0" },
+    "summary": "The desktop app now lets you turn off automatic updates, and IT teams can manage updates for an entire organization. A portable Windows build is now available on the download page.",
+    "highlights": [
+      {
+        "title": "Turn off automatic updates in the desktop app",
+        "description": "A new Automatically Download Updates setting stops background checks and downloads, while Check for Updates in the File menu still works on demand.",
+        "platforms": ["desktop"],
+        "docLink": "/desktop-app-updates"
+      },
+      {
+        "title": "Managed update policy for organizations",
+        "description": "IT teams can disable or pin automatic updates for every install with a registry key, macOS configuration profile, environment variable, command-line flag, or policy file.",
+        "platforms": ["desktop"],
+        "docLink": "/desktop-app-updates"
+      },
+      {
+        "title": "Administrator prompts on all-users Windows installs",
+        "description": "Updates on all-users installs no longer try to install silently when the app closes, which showed a User Account Control prompt that standard users could not complete.",
+        "platforms": ["desktop"],
+        "docLink": "/desktop-app-updates"
+      },
+      {
+        "title": "Portable Windows build on the download page",
+        "description": "A Windows build that runs without installing and never asks for an administrator is now offered on the download page.",
+        "platforms": ["web", "desktop"],
+        "docLink": "/desktop-app-updates"
+      }
+    ]
+  },
+  {
     "slug": "v10.17.0",
     "title": "10.17.0 - Apex Test Runner",
     "date": "2026-09-01",
-    "tags": ["web"],
-    "versions": { "web": "10.17.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.17.0", "desktop": "4.14.0", "extension": "3.17.0" },
     "summary": "Adds the Apex Test Runner. Run Apex tests, monitor test runs in real time, and view code coverage with per-line highlighting.",
     "highlights": [
       {
@@ -31,8 +65,8 @@
     "slug": "v10.16.0",
     "title": "10.16.0 - Org dropdown improvements and large load retry fix",
     "date": "2026-08-27",
-    "tags": ["web"],
-    "versions": { "web": "10.16.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.16.0", "desktop": "4.13.0", "extension": "3.16.0" },
     "summary": "The org dropdown shows full usernames and labels each org with its type. Also fixes a crash when retrying failed records on very large data loads.",
     "highlights": [
       {
@@ -41,7 +75,8 @@
       },
       {
         "title": "Paste any Salesforce URL to add a custom domain",
-        "description": "The custom domain field on the add-org form accepts a full pasted Salesforce URL, including sandbox URLs, and extracts the domain for you."
+        "description": "The custom domain field on the add-org form accepts a full pasted Salesforce URL, including sandbox URLs, and extracts the domain for you.",
+        "platforms": ["web", "desktop"]
       },
       {
         "title": "Fix for load retries with 100,000+ records",
@@ -54,8 +89,8 @@
     "slug": "v10.15.2",
     "title": "10.15.2 - Permission Analysis fix for permission set groups",
     "date": "2026-08-25",
-    "tags": ["web"],
-    "versions": { "web": "10.15.2" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.15.2", "desktop": "4.12.2", "extension": "3.15.1" },
     "summary": "Fixes a Permission Analysis error when a selected permission set belongs to a permission set group.",
     "highlights": [
       {
@@ -90,8 +125,8 @@
     "slug": "v10.15.0",
     "title": "10.15.0 - Record limit for Update Records, map one column to multiple fields",
     "date": "2026-08-23",
-    "tags": ["web"],
-    "versions": { "web": "10.15.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.15.0", "desktop": "4.12.0", "extension": "3.15.0" },
     "summary": "Update Records can limit how many records are updated at a time, and Load Records can map one file column to multiple Salesforce fields.",
     "highlights": [
       {
@@ -125,8 +160,8 @@
     "slug": "v10.14.1",
     "title": "10.14.1 - Manage Permissions object list fix",
     "date": "2026-08-21",
-    "tags": ["web"],
-    "versions": { "web": "10.14.1" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.14.1", "desktop": "4.11.1", "extension": "3.14.1" },
     "summary": "Manage Permissions now shows objects that only support field-level security, such as Price Book Entry and Task, which were missing from the object list.",
     "highlights": [
       {
@@ -239,8 +274,8 @@
     "slug": "v10.11.0",
     "title": "10.11.0 - Faster tables, right-click copy everywhere, multi-range selection",
     "date": "2026-08-10",
-    "tags": ["web"],
-    "versions": { "web": "10.11.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.11.0", "desktop": "4.8.0", "extension": "3.11.0" },
     "summary": "Data tables across the app get a big upgrade — faster rendering, a right-click copy menu on every table, and spreadsheet-style multi-range cell selection — plus a permission manager that recovers on its own when your org's permissions change.",
     "highlights": [
       {
@@ -286,8 +321,8 @@
     "slug": "v10.10.0",
     "title": "10.10.0 - Change your email address, SOQL autocomplete",
     "date": "2026-08-05",
-    "tags": ["web", "desktop"],
-    "versions": { "web": "10.10.0", "desktop": "4.7.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.10.0", "desktop": "4.7.0", "extension": "3.10.0" },
     "summary": "Change the email address on your account without filing a support ticket, get autocomplete while writing SOQL, and see org connection expiration dates that match what Salesforce actually enforces.",
     "highlights": [
       {
@@ -388,8 +423,8 @@
     "slug": "v10.7.2",
     "title": "10.7.2 - Very long queries no longer fail",
     "date": "2026-07-27",
-    "tags": ["web"],
-    "versions": { "web": "10.7.2" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.7.2", "desktop": "4.4.1", "extension": "3.7.1" },
     "summary": "Queries with a large number of fields no longer fail with a request-too-large error from Salesforce, and results now come back in a single round trip.",
     "highlights": [
       {
@@ -429,8 +464,8 @@
     "slug": "v10.7.0",
     "title": "10.7.0 - Manage system permissions",
     "date": "2026-07-22",
-    "tags": ["web"],
-    "versions": { "web": "10.7.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.7.0", "desktop": "4.4.0", "extension": "3.7.0" },
     "summary": "Manage Permissions now covers system permissions — review and edit them across profiles and permission sets side by side, with required permissions handled automatically.",
     "highlights": [
       {
@@ -440,7 +475,8 @@
       },
       {
         "title": "Release notes",
-        "description": "Jetstream now publishes release notes on the docs site, so you can keep up with new features and fixes."
+        "description": "Jetstream now publishes release notes on the docs site, so you can keep up with new features and fixes.",
+        "platforms": ["web"]
       }
     ]
   },
@@ -449,7 +485,7 @@
     "title": "10.6.1 - Windows update fix and security hardening",
     "date": "2026-07-19",
     "tags": ["desktop", "extension"],
-    "versions": { "desktop": "4.3.0", "extension": "3.6.0" },
+    "versions": { "desktop": "4.3.1", "extension": "3.6.0" },
     "summary": "Fixes broken auto-updates for the Windows desktop app and adds security hardening to the desktop app and browser extension.",
     "highlights": [
       {
@@ -459,8 +495,7 @@
       },
       {
         "title": "Security hardening on desktop and extension",
-        "description": "Safer handling of external links and downloads in the desktop app, and stricter message handling in the browser extension.",
-        "platforms": ["desktop", "extension"]
+        "description": "Safer handling of external links and downloads in the desktop app, and stricter message handling in the browser extension."
       }
     ]
   },
@@ -468,8 +503,8 @@
     "slug": "v10.6.0",
     "title": "10.6.0 - SOQL comments and sturdier bulk updates",
     "date": "2026-07-17",
-    "tags": ["web"],
-    "versions": { "web": "10.6.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.6.0", "desktop": "4.3.0", "extension": "3.6.0" },
     "summary": "Write comments in your SOQL queries, get more resilient bulk record updates, and benefit from single sign-on configuration improvements.",
     "highlights": [
       {
@@ -485,6 +520,7 @@
       {
         "title": "Single sign-on improvements",
         "description": "Improved OIDC configuration handling and discovery for single sign-on.",
+        "platforms": ["web"],
         "docLink": "/team-management/sso/overview"
       }
     ]
@@ -512,8 +548,8 @@
     "slug": "v10.5.0",
     "title": "10.5.0 - Copy, paste, and undo in editable tables",
     "date": "2026-07-15",
-    "tags": ["web", "extension"],
-    "versions": { "web": "10.5.0", "extension": "3.4.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.5.0", "desktop": "4.2.0", "extension": "3.5.0" },
     "summary": "A big upgrade to table editing — copy and paste ranges of cells, undo your changes, and preview everything before saving — plus row range selection and a batch of reliability fixes.",
     "highlights": [
       {
@@ -528,7 +564,8 @@
       },
       {
         "title": "Clearer reconnect prompts",
-        "description": "Salesforce authentication failures now prompt you to reconnect instead of showing a confusing error."
+        "description": "Salesforce authentication failures now prompt you to reconnect instead of showing a confusing error.",
+        "platforms": ["web"]
       },
       {
         "title": "Steadier dates and large orgs",
@@ -540,8 +577,8 @@
     "slug": "v10.4.0",
     "title": "10.4.0 - Preview bulk updates and view field metadata",
     "date": "2026-06-30",
-    "tags": ["web", "extension"],
-    "versions": { "web": "10.4.0", "extension": "3.3.2" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.4.0", "desktop": "4.2.0", "extension": "3.4.0" },
     "summary": "Preview exactly what a bulk update will change before you apply it, and view field metadata right from the query results grid.",
     "highlights": [
       {
@@ -565,8 +602,8 @@
     "slug": "v10.3.5",
     "title": "10.3.5 - Data table crash fix",
     "date": "2026-06-22",
-    "tags": ["web"],
-    "versions": { "web": "10.3.5" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.3.5", "desktop": "4.2.0", "extension": "3.3.2" },
     "summary": "Fixes a crash that could affect query results and other data tables, with further single sign-on reliability improvements.",
     "highlights": [
       {
@@ -610,8 +647,8 @@
     "slug": "v10.3.2",
     "title": "10.3.2 - Faster data tables and steadier sign-in",
     "date": "2026-06-22",
-    "tags": ["web", "extension"],
-    "versions": { "web": "10.3.2", "extension": "3.3.1" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.3.2", "desktop": "4.2.0", "extension": "3.3.2" },
     "summary": "Data tables load and filter faster, and desktop and browser-extension sessions stay signed in more reliably.",
     "highlights": [
       {
@@ -621,7 +658,8 @@
       },
       {
         "title": "More reliable sign-in",
-        "description": "Improved token verification keeps the desktop app and browser extension signed in more reliably."
+        "description": "Improved token verification keeps the desktop app and browser extension signed in more reliably.",
+        "platforms": ["desktop", "extension"]
       }
     ]
   },
@@ -629,8 +667,8 @@
     "slug": "v10.3.1",
     "title": "10.3.1 - Data table polish",
     "date": "2026-06-21",
-    "tags": ["web", "extension"],
-    "versions": { "web": "10.3.1", "extension": "3.3.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.3.1", "desktop": "4.2.0", "extension": "3.3.1" },
     "summary": "A couple of small but welcome usability fixes for the rebuilt data tables.",
     "highlights": [
       {
@@ -644,8 +682,8 @@
     "slug": "v10.3.0",
     "title": "10.3.0 - Rebuilt data tables with cell selection, copy, and export",
     "date": "2026-06-21",
-    "tags": ["web", "extension"],
-    "versions": { "web": "10.3.0", "extension": "3.2.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.3.0", "desktop": "4.2.0", "extension": "3.3.0" },
     "summary": "Jetstream's data tables are rebuilt on a new foundation — select and copy ranges of cells, copy columns and export tables from a richer right-click menu, and export just the cells you selected. Subqueries gain filter/order/limit support, the permission manager shows per-object selection counts, and new keyboard shortcuts speed up multi-step pages.",
     "highlights": [
       {
@@ -683,8 +721,8 @@
     "slug": "v10.2.0",
     "title": "10.2.0 - Better keyboard navigation and smoother drag-and-drop",
     "date": "2026-06-20",
-    "tags": ["web"],
-    "versions": { "web": "10.2.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.2.0", "desktop": "4.2.0", "extension": "3.2.0" },
     "summary": "Keyboard navigation around popovers and the app gets a lot less frustrating, drag-and-drop for org groups and filters feels smoother, and the browser extension stops churning through tokens.",
     "highlights": [
       {
@@ -698,7 +736,8 @@
       },
       {
         "title": "Fewer extension token refreshes",
-        "description": "The browser extension no longer churns through access tokens, refreshing far less often than it used to."
+        "description": "The browser extension no longer churns through access tokens, refreshing far less often than it used to.",
+        "platforms": ["extension"]
       }
     ]
   },
@@ -706,8 +745,8 @@
     "slug": "v10.1.3",
     "title": "10.1.3 - Salesforce permissions documentation",
     "date": "2026-06-18",
-    "tags": ["web", "desktop"],
-    "versions": { "web": "10.1.3", "desktop": "4.1.2" },
+    "tags": ["web"],
+    "versions": { "web": "10.1.3" },
     "summary": "New documentation detailing the Salesforce permissions Jetstream needs, to help admins grant the right access.",
     "highlights": [
       {
@@ -722,7 +761,7 @@
     "title": "10.1.2 - Maintenance and security updates",
     "date": "2026-06-14",
     "tags": ["web", "desktop"],
-    "versions": { "web": "10.1.2", "desktop": "4.1.1" },
+    "versions": { "web": "10.1.2", "desktop": "4.1.2" },
     "summary": "Behind-the-scenes maintenance and security updates. No changes to how the app works.",
     "highlights": [
       { "title": "Maintenance and security updates", "description": "Routine behind-the-scenes updates. No changes to how the app works." }
@@ -797,8 +836,8 @@
     "slug": "v10.0.0",
     "title": "10.0.0 - A fresh look with SLDS 2 and dark mode",
     "date": "2026-06-10",
-    "tags": ["web"],
-    "versions": { "web": "10.0.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.0.0", "desktop": "4.0.0", "extension": "3.0.0" },
     "summary": "Jetstream gets a refreshed look built on Salesforce's SLDS 2 \"Cosmos\" design system — and, by popular demand, a dark mode.",
     "highlights": [
       {
@@ -884,8 +923,8 @@
     "slug": "v9.18.0",
     "title": "9.18.0 - Refresh records in place and jump from the extension into Query",
     "date": "2026-05-22",
-    "tags": ["web", "extension"],
-    "versions": { "web": "9.18.0", "extension": "2.24.1" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "9.18.0", "desktop": "3.23.0", "extension": "2.25.0" },
     "summary": "Refresh a record without closing the modal, deep-link from the browser extension straight into a query, and get more visibility into org-level actions through expanded audit logs.",
     "highlights": [
       {
@@ -896,11 +935,13 @@
       {
         "title": "Jump from the extension into Query",
         "description": "Opening Jetstream from the browser extension can pre-fill the object and add a filter for the record you came from.",
+        "platforms": ["extension"],
         "docLink": "/query"
       },
       {
         "title": "More org action audit logs",
-        "description": "Adding, deleting, and refreshing Salesforce org connections are now recorded for better team accountability."
+        "description": "Adding, deleting, and refreshing Salesforce org connections are now recorded for better team accountability.",
+        "platforms": ["web"]
       }
     ]
   },
@@ -977,18 +1018,20 @@
     "slug": "v9.15.2",
     "title": "9.15.2 - Smoother SSO sign-in",
     "date": "2026-04-23",
-    "tags": ["web"],
-    "versions": { "web": "9.15.2" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "9.15.2", "desktop": "3.20.1", "extension": "2.22.1" },
     "summary": "A round of single sign-on improvements — fewer double logins, fewer race conditions, and clearer messaging when an account can't be matched.",
     "highlights": [
       {
         "title": "Fewer double logins and auth race conditions",
         "description": "Signing in through SSO is smoother across the desktop app and browser extension, with the extra login prompt and timing-related hiccups ironed out.",
+        "platforms": ["desktop", "extension"],
         "docLink": "/team-management/sso/overview"
       },
       {
         "title": "Clearer SSO account-matching errors",
         "description": "When SSO can't confidently match you to a single account, Jetstream now explains what happened instead of failing silently.",
+        "platforms": ["web"],
         "docLink": "/team-management/sso/overview"
       }
     ]
@@ -1051,8 +1094,8 @@
     "slug": "v9.13.0",
     "title": "9.13.0 - Clickable Name links in query results, auth hardening",
     "date": "2026-04-19",
-    "tags": ["web"],
-    "versions": { "web": "9.13.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "9.13.0", "desktop": "3.20.0", "extension": "2.22.0" },
     "summary": "Name fields in query results now open the same record-lookup popover as Id links, plus several authentication and session hardening changes.",
     "highlights": [
       {
@@ -1062,19 +1105,23 @@
       },
       {
         "title": "Salesforce refresh token rotation",
-        "description": "Jetstream now stores rotated refresh tokens when Salesforce issues them during a refresh."
+        "description": "Jetstream now stores rotated refresh tokens when Salesforce issues them during a refresh.",
+        "platforms": ["web", "desktop"]
       },
       {
         "title": "Verification attempt limits",
-        "description": "OTP, email verification, and password reset tokens now expire after a set number of invalid attempts, with rate limits on internal password reset endpoints."
+        "description": "OTP, email verification, and password reset tokens now expire after a set number of invalid attempts, with rate limits on internal password reset endpoints.",
+        "platforms": ["web"]
       },
       {
         "title": "Revoke other sessions on password change",
-        "description": "Setting a new password or removing a password from the profile page now logs out all other active sessions."
+        "description": "Setting a new password or removing a password from the profile page now logs out all other active sessions.",
+        "platforms": ["web"]
       },
       {
         "title": "Require auth before serving the app",
-        "description": "Unauthenticated requests to app pages are redirected to login up front instead of briefly loading the app first."
+        "description": "Unauthenticated requests to app pages are redirected to login up front instead of briefly loading the app first.",
+        "platforms": ["web"]
       }
     ]
   },
@@ -1082,8 +1129,8 @@
     "slug": "v9.12.1",
     "title": "9.12.1 - Retry failed rows on a data load",
     "date": "2026-04-14",
-    "tags": ["web"],
-    "versions": { "web": "9.12.1" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "9.12.1", "desktop": "3.20.0", "extension": "2.22.0" },
     "summary": "Retry just the failed rows from a data load without re-running the whole job.",
     "highlights": [
       {
@@ -1097,8 +1144,8 @@
     "slug": "v9.12.0",
     "title": "9.12.0 - Bulk API error handling improvements",
     "date": "2026-04-14",
-    "tags": ["web"],
-    "versions": { "web": "9.12.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "9.12.0", "desktop": "3.20.0", "extension": "2.22.0" },
     "summary": "Bulk API loads now detect fatal errors and retry transient failures instead of plowing ahead, with clearer progress reporting.",
     "highlights": [
       {
@@ -1132,8 +1179,8 @@
     "slug": "v9.10.0",
     "title": "9.10.0 - Import existing fields, more copy-to-clipboard tables",
     "date": "2026-04-08",
-    "tags": ["web"],
-    "versions": { "web": "9.10.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "9.10.0", "desktop": "3.19.0", "extension": "2.21.0" },
     "summary": "Preload definitions of existing Salesforce fields into Create Fields, and copy data from more tables with a right-click context menu.",
     "highlights": [
       {
@@ -1212,8 +1259,8 @@
     "slug": "v9.8.0",
     "title": "9.8.0 - IdP-initiated OIDC login, resilient SOQL formatting",
     "date": "2026-04-03",
-    "tags": ["web"],
-    "versions": { "web": "9.8.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "9.8.0", "desktop": "3.19.0", "extension": "2.21.0" },
     "summary": "Log in to Jetstream directly from your identity provider's dashboard, plus the query editor no longer crashes on partially typed SOQL.",
     "highlights": [
       {
@@ -1224,7 +1271,6 @@
       {
         "title": "SOQL formatter crash fix",
         "description": "Invalid or in-progress SOQL no longer crashes the query editor while you are still typing.",
-        "platforms": ["web", "desktop", "extension"],
         "docLink": "/query/results"
       }
     ]
@@ -1239,8 +1285,7 @@
     "highlights": [
       {
         "title": "Updated Terms of Service",
-        "description": "New last-updated date and a compliance reporting section describing how to report security, ethics, or compliance concerns.",
-        "platforms": ["web", "desktop", "extension"]
+        "description": "New last-updated date and a compliance reporting section describing how to report security, ethics, or compliance concerns."
       }
     ]
   },
@@ -1248,14 +1293,13 @@
     "slug": "v9.6.0",
     "title": "9.6.0 - Safer user profile handling",
     "date": "2026-04-02",
-    "tags": ["web", "desktop"],
+    "tags": ["web"],
     "versions": { "web": "9.6.0" },
     "summary": "Jetstream now falls back gracefully instead of showing a confusing error when your user profile fails to load.",
     "highlights": [
       {
         "title": "Safer profile fetch",
-        "description": "If loading your user profile fails, Jetstream now falls back to a default instead of surfacing a confusing error.",
-        "platforms": ["web", "desktop", "extension"]
+        "description": "If loading your user profile fails, Jetstream now falls back to a default instead of surfacing a confusing error."
       }
     ]
   },
@@ -1263,14 +1307,13 @@
     "slug": "v9.5.0",
     "title": "9.5.0 - Better Salesforce formula evaluation, desktop persistence fixes",
     "date": "2026-04-01",
-    "tags": ["web", "desktop"],
-    "versions": { "web": "9.5.0", "desktop": "3.18.2" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "9.5.0", "desktop": "3.18.2", "extension": "2.21.0" },
     "summary": "Formula evaluation now covers far more of the Salesforce formula language with fewer bugs, plus desktop persistence fixes for VDI environments.",
     "highlights": [
       {
         "title": "Better formula evaluation",
-        "description": "Formula evaluation now supports far more of the Salesforce formula language with fewer bugs.",
-        "platforms": ["web", "desktop", "extension"]
+        "description": "Formula evaluation now supports far more of the Salesforce formula language with fewer bugs."
       },
       {
         "title": "Desktop persistence reliability",
@@ -1283,8 +1326,8 @@
     "slug": "v9.4.1",
     "title": "9.4.1 - Desktop org list and Salesforce API fixes",
     "date": "2026-03-31",
-    "tags": ["web", "desktop"],
-    "versions": { "web": "9.4.1", "desktop": "3.18.1" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "9.4.1", "desktop": "3.18.2", "extension": "2.21.0" },
     "summary": "Fix for orgs and org groups not appearing on first launch of the desktop app, plus cleaner handling of empty-body requests in the Salesforce API tool.",
     "highlights": [
       {
@@ -1294,8 +1337,7 @@
       },
       {
         "title": "Salesforce API request with empty body",
-        "description": "Sending a Salesforce API request with an empty body no longer crashes the request editor.",
-        "platforms": ["web", "desktop"]
+        "description": "Sending a Salesforce API request with an empty body no longer crashes the request editor."
       }
     ]
   },
@@ -1376,25 +1418,22 @@
     "slug": "v9.1.0",
     "title": "9.1.0 - Paste sanitization and bulk-update errors",
     "date": "2026-03-08",
-    "tags": ["web", "extension"],
-    "versions": { "web": "9.1.0", "extension": "2.17.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "9.1.0", "desktop": "3.16.0", "extension": "2.17.0" },
     "summary": "Editors now strip invisible characters from pasted text, and bulk update failures surface the real server error instead of a generic message.",
     "highlights": [
       {
         "title": "Sanitize pasted text in editors",
-        "description": "Invisible characters from copied content are removed on paste so Salesforce won't reject the value.",
-        "platforms": ["web", "extension"]
+        "description": "Invisible characters from copied content are removed on paste so Salesforce won't reject the value."
       },
       {
         "title": "Real error messages on bulk update failures",
         "description": "When updating records without a file, the actual server error is shown instead of a generic one.",
-        "platforms": ["web", "extension"],
         "docLink": "/load"
       },
       {
         "title": "Editor line-number reset",
         "description": "Anonymous Apex and the metadata compare modal no longer jump to an odd scroll position when the editor re-renders.",
-        "platforms": ["web", "extension"],
         "docLink": "/developer/anonymous-apex"
       },
       {
@@ -1475,8 +1514,8 @@
     "slug": "v8.24.0",
     "title": "8.24.0 - Metadata audit signals and Google folder memory",
     "date": "2026-02-17",
-    "tags": ["web"],
-    "versions": { "web": "8.24.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "8.24.0", "desktop": "3.15.0", "extension": "2.16.0" },
     "summary": "Custom metadata records now show a last-modified date, invalid metadata timestamps are flagged with a warning, and Jetstream remembers your recent Google Drive folder.",
     "highlights": [
       {
@@ -1490,7 +1529,8 @@
       },
       {
         "title": "Remembered Google folder selection",
-        "description": "When exporting or uploading to Google Drive, your recent folder choice is remembered so repeat uploads take fewer clicks."
+        "description": "When exporting or uploading to Google Drive, your recent folder choice is remembered so repeat uploads take fewer clicks.",
+        "platforms": ["web"]
       },
       {
         "title": "Automation Control works in namespaced orgs",
@@ -1517,8 +1557,8 @@
     "slug": "v8.23.0",
     "title": "8.23.0 - Friendlier record creation and keyboard fixes",
     "date": "2026-02-12",
-    "tags": ["web"],
-    "versions": { "web": "8.23.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "8.23.0", "desktop": "3.15.0", "extension": "2.16.0" },
     "summary": "Owner and audit fields are now optional when creating records, with an option to save even when the form reports errors. Keyboard navigation in lookup pickers is fixed.",
     "highlights": [
       {
@@ -1539,14 +1579,13 @@
     "slug": "v8.22.0",
     "title": "8.22.0 - Auto-select org on group change",
     "date": "2026-02-09",
-    "tags": ["web"],
-    "versions": { "web": "8.22.0" },
+    "tags": ["web", "desktop"],
+    "versions": { "web": "8.22.0", "desktop": "3.15.0" },
     "summary": "Switching org groups now auto-selects the most recently used org in that group, or the first org if none have been used.",
     "highlights": [
       {
         "title": "Auto-select org when changing groups",
-        "description": "Changing the active org group now picks the most recently used org from that group, or the first org in the list.",
-        "platforms": ["web"]
+        "description": "Changing the active org group now picks the most recently used org from that group, or the first org in the list."
       }
     ]
   },
@@ -1591,26 +1630,23 @@
     "slug": "v8.20.0",
     "title": "8.20.0 - Permission export improvements",
     "date": "2026-02-03",
-    "tags": ["web"],
-    "versions": { "web": "8.20.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "8.20.0", "desktop": "3.14.0", "extension": "2.15.0" },
     "summary": "Permission manager exports are more reliable, show real errors on failure, and now offer CSV as a fallback format.",
     "highlights": [
       {
         "title": "More reliable permission exports",
         "description": "Reduced export failures when downloading large permission sets.",
-        "platforms": ["web"],
         "docLink": "/permissions"
       },
       {
         "title": "CSV fallback for permission exports",
         "description": "Added CSV as an export option so you can fall back when XLSX generation fails on very large exports.",
-        "platforms": ["web"],
         "docLink": "/permissions"
       },
       {
         "title": "Real error messages on export failure",
-        "description": "Export failures now surface an error to the user instead of silently doing nothing.",
-        "platforms": ["web"]
+        "description": "Export failures now surface an error to the user instead of silently doing nothing."
       }
     ]
   },
@@ -1831,20 +1867,18 @@
     "slug": "v8.14.0",
     "title": "8.14.0 - Record lookup in query filters",
     "date": "2025-12-14",
-    "tags": ["web", "desktop"],
-    "versions": { "web": "8.14.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "8.14.0", "desktop": "3.8.2", "extension": "2.10.0" },
     "summary": "Query filter values now support a record lookup so you can search for the record you want to filter on instead of hunting for an ID.",
     "highlights": [
       {
         "title": "Record lookup in query filters",
         "description": "When building a query filter on a reference field, search for the related record and have the ID inserted into your SOQL.",
-        "platforms": ["web", "desktop", "extension"],
         "docLink": "/query/results"
       },
       {
         "title": "Lookup clear button fix",
-        "description": "The clear button now works correctly when the lookup editor is in manual text entry mode.",
-        "platforms": ["web", "desktop", "extension"]
+        "description": "The clear button now works correctly when the lookup editor is in manual text entry mode."
       }
     ]
   },
@@ -2036,25 +2070,29 @@
     "slug": "v8.8.0",
     "title": "8.8.0 - Org expiration, Organization Groups, bulk org delete",
     "date": "2025-11-15",
-    "tags": ["web"],
-    "versions": { "web": "8.8.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "8.8.0", "desktop": "3.5.0", "extension": "2.6.0" },
     "summary": "Unused Salesforce orgs now expire with advance email notice, the Organization page handles refresh/reconnect cleanly, and you can delete orgs in bulk.",
     "highlights": [
       {
         "title": "Org expiration with email notice",
-        "description": "Salesforce orgs unused for 90 days are flagged for expiration, with email notifications summarizing expiring and expired orgs."
+        "description": "Salesforce orgs unused for 90 days are flagged for expiration, with email notifications summarizing expiring and expired orgs.",
+        "platforms": ["web"]
       },
       {
         "title": "Easier reconnect for expired orgs",
-        "description": "The Organization page surfaces expiring and expired orgs, and reconnect pre-fills your existing connection details."
+        "description": "The Organization page surfaces expiring and expired orgs, and reconnect pre-fills your existing connection details.",
+        "platforms": ["web"]
       },
       {
         "title": "Bulk delete Salesforce orgs",
-        "description": "Select and delete multiple connected orgs at once from the Organizations page."
+        "description": "Select and delete multiple connected orgs at once from the Organizations page.",
+        "platforms": ["web", "desktop"]
       },
       {
         "title": "Rename to \"Organization Group\"",
-        "description": "What used to be called \"Jetstream Organization\" is now \"Organization Group\" everywhere in the app, to avoid confusion with a Salesforce organization."
+        "description": "What used to be called \"Jetstream Organization\" is now \"Organization Group\" everywhere in the app, to avoid confusion with a Salesforce organization.",
+        "platforms": ["web", "desktop"]
       },
       {
         "title": "Download format is remembered",
@@ -2066,8 +2104,8 @@
     "slug": "v8.7.0",
     "title": "8.7.0 - Table filter fixes and connected-app onboarding help",
     "date": "2025-11-13",
-    "tags": ["web"],
-    "versions": { "web": "8.7.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "8.7.0", "desktop": "3.5.0", "extension": "2.6.0" },
     "summary": "Table filters now stay in sync when data reloads, password reset accepts plus-sign emails, and orgs missing the Jetstream connected app get clearer install guidance.",
     "highlights": [
       {
@@ -2081,15 +2119,18 @@
       },
       {
         "title": "Password reset with plus-sign emails",
-        "description": "Emails containing a \"+\" no longer get mangled into a space during password reset."
+        "description": "Emails containing a \"+\" no longer get mangled into a space during password reset.",
+        "platforms": ["web"]
       },
       {
         "title": "Connected app install guidance",
-        "description": "Help links point users to the page where they would install the Jetstream connected app if it is missing, plus a sandbox sync callout."
+        "description": "Help links point users to the page where they would install the Jetstream connected app if it is missing, plus a sandbox sync callout.",
+        "platforms": ["web", "desktop"]
       },
       {
         "title": "Cookie banner padding fix",
-        "description": "The consent banner no longer throws off in-app alignment while still looking right on the landing page."
+        "description": "The consent banner no longer throws off in-app alignment while still looking right on the landing page.",
+        "platforms": ["web"]
       }
     ]
   },
@@ -2139,8 +2180,8 @@
     "slug": "v8.4.0",
     "title": "8.4.0 - View Record checkbox fix, smoother desktop auto-update",
     "date": "2025-10-28",
-    "tags": ["web", "desktop"],
-    "versions": { "web": "8.4.0", "desktop": "3.3.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "8.4.0", "desktop": "3.3.0", "extension": "2.5.0" },
     "summary": "Fixes checkboxes rendering blank in View Record, improves the desktop auto-update UX, and lets you pick filename formats for zip attachment exports.",
     "highlights": [
       {
@@ -2172,8 +2213,8 @@
     "slug": "v8.3.0",
     "title": "8.3.0 - Better related-object loading and assorted bug fixes",
     "date": "2025-10-21",
-    "tags": ["web", "desktop"],
-    "versions": { "web": "8.3.0", "desktop": "3.1.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "8.3.0", "desktop": "3.1.0", "extension": "2.5.0" },
     "summary": "Load Records now shows every related object on polymorphic lookups and fetches related-field metadata on demand. Also fixes Firefox drag in the query builder and a create-organization regression.",
     "highlights": [
       {
@@ -2189,11 +2230,13 @@
       {
         "title": "Firefox query builder drag",
         "description": "Condition rows in the query builder can be dragged on Firefox again.",
+        "platforms": ["web", "extension"],
         "docLink": "/query/results"
       },
       {
         "title": "Create organization from selected org",
-        "description": "Creating a new organization no longer fails when another organization is selected."
+        "description": "Creating a new organization no longer fails when another organization is selected.",
+        "platforms": ["web", "desktop"]
       }
     ]
   },
@@ -2201,8 +2244,8 @@
     "slug": "v8.2.0",
     "title": "8.2.0 - Bug bash fixes across load, deploy, and automation control",
     "date": "2025-10-14",
-    "tags": ["web", "extension"],
-    "versions": { "web": "8.2.0", "extension": "2.4.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "8.2.0", "desktop": "3.1.0", "extension": "2.4.0" },
     "summary": "Collection of fixes from a bug bash, including deploy-metadata token refresh, a safer default for rollbackOnError in production, and a fix for Automation Control select-all on filtered rows.",
     "highlights": [
       {
@@ -2266,11 +2309,13 @@
     "highlights": [
       {
         "title": "Team plan and team dashboard",
-        "description": "Invite teammates, manage members and roles, configure login rules, and review session and authentication activity from a single dashboard."
+        "description": "Invite teammates, manage members and roles, configure login rules, and review session and authentication activity from a single dashboard.",
+        "platforms": ["web"]
       },
       {
         "title": "Unified billing experience",
-        "description": "Reworked billing page with clearer plan cards, monthly/annual toggle, and team naming during upgrade."
+        "description": "Reworked billing page with clearer plan cards, monthly/annual toggle, and team naming during upgrade.",
+        "platforms": ["web"]
       },
       {
         "title": "Desktop update fixes",
@@ -2283,14 +2328,14 @@
     "slug": "v7.10.0",
     "title": "7.10.0 - Desktop history sync and binary upload fixes",
     "date": "2025-09-27",
-    "tags": ["web"],
-    "versions": { "web": "7.10.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "7.10.0", "desktop": "3.0.2", "extension": "2.4.0" },
     "summary": "Fixes binary uploads on the desktop app and documents the upcoming outbound IP address ranges.",
     "highlights": [
       {
         "title": "Desktop history sync fix",
         "description": "Fixed an issue where history sync could fail to connect on the desktop app.",
-        "platforms": ["web", "desktop", "extension"]
+        "platforms": ["desktop"]
       },
       {
         "title": "Binary file uploads on desktop",
@@ -2301,7 +2346,6 @@
       {
         "title": "Outbound IP address ranges",
         "description": "The getting started docs now include a dedicated page describing the upcoming API outbound IP address ranges.",
-        "platforms": ["web", "desktop", "extension"],
         "docLink": "/"
       }
     ]
@@ -2310,14 +2354,13 @@
     "slug": "v7.9.1",
     "title": "7.9.1 - Permission manager column fix and desktop download link",
     "date": "2025-09-24",
-    "tags": ["web"],
-    "versions": { "web": "7.9.1" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "7.9.1", "desktop": "3.0.1", "extension": "2.4.0" },
     "summary": "Fixes the View All Records column width in Manage Permissions and corrects the x64 desktop download link.",
     "highlights": [
       {
         "title": "View All Records column width",
         "description": "The View All Records column in the permission manager grid now renders with the correct width.",
-        "platforms": ["web", "desktop", "extension"],
         "docLink": "/permissions"
       },
       {
@@ -2331,20 +2374,18 @@
     "slug": "v7.9.0",
     "title": "7.9.0 - View All Fields in Manage Permissions",
     "date": "2025-09-24",
-    "tags": ["web"],
-    "versions": { "web": "7.9.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "7.9.0", "desktop": "3.0.0", "extension": "2.4.0" },
     "summary": "Adds support for the new View All Fields object permission in Manage Permissions and fixes a save bug affecting View All Records.",
     "highlights": [
       {
         "title": "View All Fields object permission",
         "description": "Grant or revoke the new Salesforce View All Fields permission alongside the other object permissions in Manage Permissions.",
-        "platforms": ["web", "desktop", "extension"],
         "docLink": "/permissions"
       },
       {
         "title": "Fix View All Records save value",
         "description": "Saving permissions now persists the value you selected for View All Records and View All.",
-        "platforms": ["web", "desktop", "extension"],
         "docLink": "/permissions"
       }
     ]
@@ -2353,27 +2394,21 @@
     "slug": "v7.8.0",
     "title": "7.8.0 - Better large-file uploads and higher free-plan limit",
     "date": "2025-09-20",
-    "tags": ["web"],
-    "versions": { "web": "7.8.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "7.8.0", "desktop": "2.0.0", "extension": "2.4.0" },
     "summary": "Improves binary file uploads so large files upload reliably, and raises the free-plan attachment filesize limit.",
     "highlights": [
       {
         "title": "Reliable large attachment uploads",
         "description": "Binary attachment loads now handle large files reliably, so big files upload without timeouts.",
-        "platforms": ["web", "desktop", "extension"],
         "docLink": "/load"
       },
       {
         "title": "Higher free-plan attachment limit",
         "description": "The attachment filesize cap on the free plan was raised.",
-        "platforms": ["web", "desktop", "extension"],
         "docLink": "/load"
       },
-      {
-        "title": "Platform events publishing fix",
-        "description": "Fixed an issue that could occur when publishing platform events.",
-        "platforms": ["web", "desktop", "extension"]
-      }
+      { "title": "Platform events publishing fix", "description": "Fixed an issue that could occur when publishing platform events." }
     ]
   },
   {
@@ -2395,14 +2430,13 @@
     "slug": "v7.7.1",
     "title": "7.7.1 - Salesforce login URL fix",
     "date": "2025-09-13",
-    "tags": ["web"],
-    "versions": { "web": "7.7.1" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "7.7.1", "desktop": "2.0.0", "extension": "2.4.0" },
     "summary": "Fixes invalid URLs generated when logging in to Salesforce from Jetstream links.",
     "highlights": [
       {
         "title": "Login with Salesforce URL fix",
-        "description": "Links that log you into Salesforce now generate valid URLs, avoiding double-slash and other malformed links.",
-        "platforms": ["web", "desktop", "extension"]
+        "description": "Links that log you into Salesforce now generate valid URLs, avoiding double-slash and other malformed links."
       }
     ]
   },
@@ -2410,45 +2444,35 @@
     "slug": "v7.7.0",
     "title": "7.7.0 - Field mapping and UI polish",
     "date": "2025-09-11",
-    "tags": ["web"],
-    "versions": { "web": "7.7.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "7.7.0", "desktop": "2.0.0", "extension": "2.4.0" },
     "summary": "Cleans up the field mapping dropdown and fixes several small UI issues.",
     "highlights": [
       {
         "title": "Cleaner field mapping dropdown",
         "description": "The load records field mapping dropdown now shows the field type as tertiary text, matching the rest of the app.",
-        "platforms": ["web", "desktop", "extension"],
         "docLink": "/load"
       },
-      {
-        "title": "Combobox sizing fix",
-        "description": "The combobox no longer miscalculates its size in certain layouts.",
-        "platforms": ["web", "desktop", "extension"]
-      },
+      { "title": "Combobox sizing fix", "description": "The combobox no longer miscalculates its size in certain layouts." },
       {
         "title": "Better Salesforce domain detection in the extension",
         "description": "The Chrome extension now detects Salesforce domains more reliably.",
-        "platforms": ["web", "extension"]
+        "platforms": ["extension"]
       },
-      {
-        "title": "Error popover styling",
-        "description": "The error popover nubbin color now matches the popover background.",
-        "platforms": ["web", "desktop", "extension"]
-      }
+      { "title": "Error popover styling", "description": "The error popover nubbin color now matches the popover background." }
     ]
   },
   {
     "slug": "v7.6.3",
     "title": "7.6.3 - Binary file load fixes",
     "date": "2025-09-07",
-    "tags": ["web"],
-    "versions": { "web": "7.6.3", "desktop": "1.3.1" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "7.6.3", "desktop": "1.3.1", "extension": "2.4.0" },
     "summary": "Fixes a file picker conflict on the binary attachment loader.",
     "highlights": [
       {
         "title": "Binary attachment file picker fix",
         "description": "Clicking the \"Zip with attachments\" input no longer accidentally triggers the main CSV file input.",
-        "platforms": ["web", "desktop", "extension"],
         "docLink": "/load"
       }
     ]
@@ -2529,14 +2553,13 @@
     "slug": "v7.5.0",
     "title": "7.5.0 - Accurate record count preview for queries",
     "date": "2025-08-30",
-    "tags": ["web"],
-    "versions": { "web": "7.5.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "7.5.0", "desktop": "1.2.0", "extension": "2.2.0" },
     "summary": "The record count preview shown before running a query no longer fails when the query includes an ORDER BY clause.",
     "highlights": [
       {
         "title": "Query record count preview works with ORDER BY",
         "description": "The count preview now strips the incompatible ORDER BY before running, so you get an accurate record total every time.",
-        "platforms": ["web", "desktop", "extension"],
         "docLink": "/query/results"
       }
     ]
@@ -2545,14 +2568,13 @@
     "slug": "v7.4.0",
     "title": "7.4.0 - Stronger encryption for stored org credentials",
     "date": "2025-08-26",
-    "tags": ["web", "desktop"],
+    "tags": ["web"],
     "versions": { "web": "7.4.0" },
     "summary": "Each stored Salesforce org is now encrypted with its own unique key.",
     "highlights": [
       {
         "title": "Per-org encryption keys",
-        "description": "Each stored Salesforce org now uses its own unique encryption key instead of a single shared key.",
-        "platforms": ["web", "desktop"]
+        "description": "Each stored Salesforce org now uses its own unique encryption key instead of a single shared key."
       }
     ]
   },
@@ -2560,8 +2582,8 @@
     "slug": "v7.3.5",
     "title": "7.3.5 - Diff editor collapses unchanged regions after swap",
     "date": "2025-08-23",
-    "tags": ["web"],
-    "versions": { "web": "7.3.5" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "7.3.5", "desktop": "1.2.0", "extension": "2.2.0" },
     "summary": "Fixes the view/compare metadata diff editor so collapsed unchanged regions stay collapsed after swapping the two sides.",
     "highlights": [
       {
@@ -2575,8 +2597,8 @@
     "slug": "v7.3.4",
     "title": "7.3.4 - One-click field change in query filters",
     "date": "2025-08-23",
-    "tags": ["web"],
-    "versions": { "web": "7.3.4" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "7.3.4", "desktop": "1.2.0", "extension": "2.2.0" },
     "summary": "Removes the extra clear step when changing the field in a query filter condition.",
     "highlights": [
       {
@@ -2590,8 +2612,8 @@
     "slug": "v7.3.3",
     "title": "7.3.3 - Connected app guidance and annual pricing fix",
     "date": "2025-08-21",
-    "tags": ["web"],
-    "versions": { "web": "7.3.3" },
+    "tags": ["web", "desktop"],
+    "versions": { "web": "7.3.3", "desktop": "1.2.0" },
     "summary": "Adds an in-app banner about upcoming Salesforce Connected App changes, updates the related docs, and fixes annual pricing display for existing subscribers.",
     "highlights": [
       {
@@ -2601,11 +2623,13 @@
       },
       {
         "title": "Annual subscription pricing fix",
-        "description": "Existing annual subscribers now see the correct price on the billing page."
+        "description": "Existing annual subscribers now see the correct price on the billing page.",
+        "platforms": ["web"]
       },
       {
         "title": "Docs refresh",
-        "description": "Overview, security, and troubleshooting docs have been updated with current Connected App install steps."
+        "description": "Overview, security, and troubleshooting docs have been updated with current Connected App install steps.",
+        "platforms": ["web"]
       }
     ]
   },
@@ -2613,8 +2637,8 @@
     "slug": "v7.3.2",
     "title": "7.3.2 - Fix view-results modal for bulk edits from query",
     "date": "2025-08-14",
-    "tags": ["web"],
-    "versions": { "web": "7.3.2" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "7.3.2", "desktop": "1.2.0", "extension": "2.2.0" },
     "summary": "Fixes a bug where viewing bulk results after bulk editing records from query results did nothing.",
     "highlights": [
       {
@@ -2665,14 +2689,13 @@
     "slug": "v7.2.0",
     "title": "7.2.0 - Copy load results to clipboard",
     "date": "2025-08-09",
-    "tags": ["web", "extension"],
-    "versions": { "web": "7.2.0", "extension": "2.1.0" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "7.2.0", "desktop": "1.1.0", "extension": "2.1.0" },
     "summary": "You can now copy load results directly to the clipboard as Excel, CSV, or JSON without downloading a file first.",
     "highlights": [
       {
         "title": "Copy load results to clipboard",
         "description": "From the load results modal, copy all or selected rows to the clipboard in spreadsheet, CSV, or JSON format.",
-        "platforms": ["web", "extension"],
         "docLink": "/load"
       }
     ]
@@ -2681,26 +2704,23 @@
     "slug": "v7.1.0",
     "title": "7.1.0 - Diff editor toggle, folder metadata fixes",
     "date": "2025-08-09",
-    "tags": ["web", "extension"],
-    "versions": { "web": "7.1.0", "extension": "2.0.1" },
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "7.1.0", "desktop": "1.1.0", "extension": "2.0.1" },
     "summary": "Compare metadata got an option to hide unchanged lines, folder metadata types are now retrieved correctly, and several datatable and popover bugs are fixed.",
     "highlights": [
       {
         "title": "Toggle unchanged lines in the metadata diff editor",
         "description": "When comparing metadata between orgs you can now collapse unchanged lines, which makes larger files much easier to scan.",
-        "platforms": ["web", "extension"],
         "docLink": "/deploy-metadata"
       },
       {
         "title": "Folder metadata types work correctly",
         "description": "Document, Email, Report, and Dashboard folders now appear in the metadata picker and retrieve the correct metadata from Salesforce.",
-        "platforms": ["web", "extension"],
         "docLink": "/deploy-metadata"
       },
       {
         "title": "Datatable tab navigation fix",
-        "description": "Fixed an edge case where Tab navigation inside the datatable could skip the action and Id columns in production builds.",
-        "platforms": ["web", "extension"]
+        "description": "Fixed an edge case where Tab navigation inside the datatable could skip the action and Id columns in production builds."
       }
     ]
   },
