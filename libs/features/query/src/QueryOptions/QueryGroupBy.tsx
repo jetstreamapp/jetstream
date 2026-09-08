@@ -1,5 +1,5 @@
 import { ListItem, QueryGroupByClause } from '@jetstream/types';
-import { Icon } from '@jetstream/ui';
+import { Icon, ariaDisabledButtonProps } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
 import { useAtom } from 'jotai';
 import { useRef, useState } from 'react';
@@ -60,7 +60,8 @@ export const QueryGroupByContainer = ({ sobject, fields, onLoadRelatedFields }: 
         />
       ))}
       <div className="slds-m-top_small">
-        <button className="slds-button slds-button_neutral" onClick={handleAdd} disabled={groupByClauses.length >= 5}>
+        {/* The click that adds the fifth row disables this button — aria-disabled keeps focus on it */}
+        <button className="slds-button slds-button_neutral" {...ariaDisabledButtonProps(groupByClauses.length >= 5, handleAdd)}>
           <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
           Add Group By
         </button>
