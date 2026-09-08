@@ -22,6 +22,7 @@
     "commitMessage": "chore: release ${version}",
     "tag": true,
     "tagName": "v${version}",
+    "pushArgs": ["--follow-tags", "--atomic"],
     "requireBranch": ["main", "hotfix/*"]
   },
   "npm": false,
