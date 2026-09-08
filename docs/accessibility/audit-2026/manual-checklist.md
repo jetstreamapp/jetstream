@@ -106,7 +106,7 @@ Add rows to **Manual audit findings** in `findings.md`:
 Two extra rules:
 
 - **Regressions**: if a check fails on something an existing row already covers (C1–C10, M1–M60,
-  R1–R21), reopen that row — set its status to `regressed (date)` — rather than adding a new one.
+  R1–R21, V1–V48), reopen that row — set its status to `regressed (date)` — rather than adding a new one.
 - **Passes matter too.** For each flow, record the pass in the evidence table below — the VPAT needs
   positive evidence for the "Supports" rows, not just a list of bugs.
 

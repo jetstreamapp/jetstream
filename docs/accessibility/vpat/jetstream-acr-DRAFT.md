@@ -2,7 +2,7 @@
 
 Based on ITI **VPAT® Version 2.5 (WCAG edition)**. Rename to `jetstream-acr-<YYYY-MM>.md` when published.
 
-**Name of Product/Version:** Jetstream web application (including the Jetstream desktop application) — version 10.16.0 (`package.json` at the time of evaluation; confirm the released version at publication)
+**Name of Product/Version:** Jetstream web application (including the Jetstream desktop application) — version 10.18.0 (`package.json` at the time of evaluation; confirm the released version at publication)
 
 **Evaluation Date:** 2026-09-01
 
@@ -16,12 +16,12 @@ Based on ITI **VPAT® Version 2.5 (WCAG edition)**. Rename to `jetstream-acr-<YY
 
 **Evaluation Methods Used:**
 
-- Automated scanning with axe-core 4.13.0 (WCAG 2.1 A/AA rule set) via Playwright across 27 application routes and 5 interactive states, gated by a node-level baseline (`apps/jetstream-e2e/src/tests/a11y/a11y-baseline.json`; evidence: CI `a11y-results-*` artifacts), plus 17 landing/auth pages and the 226-page documentation sitemap via `scripts/a11y-scan-urls.mjs`.
+- Automated scanning with axe-core 4.13.0 (WCAG 2.1 A/AA rule set) via Playwright across 27 application routes and 5 interactive states, gated by a node-level baseline (`apps/jetstream-e2e/src/tests/a11y/a11y-baseline.json`; evidence: CI `a11y-results-*` artifacts), plus 226 landing/auth and documentation pages (17 landing/auth, the rest the documentation sitemap) via `scripts/a11y-scan-urls.mjs`.
 - Component-level axe-core assertions in unit tests (`axeScan()` from `@jetstream/test-utils`).
 - Manual keyboard-only testing of ten representative task flows, 2026-08-28 → 2026-08-31 (`../audit-2026/manual-checklist.md`).
 - Manual screen reader testing with VoiceOver on macOS (Safari, with a Chrome spot-check) over the same flows.
 - Zoom (200%) and reflow (320 px) testing; the text-spacing override pass is not yet recorded (see 1.4.12).
-- Code review of the remediation branch, 2026-09-01 (findings R1–R21).
+- Code review of the remediation branch, 2026-09-01 (findings R1–R21) and 2026-09-07 (findings V23–V48).
 
 **Applicable standards:** WCAG 2.1 Level A and Level AA.
 
