@@ -101,6 +101,7 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
   // input has focus (the keystroke there reads as "create", not "save the other suite's classes")
   // and while the delete confirmation is open above this modal.
   usePrimaryActionShortcut(() => handleSaveMembership(), {
+    scope: 'dialog',
     disabled: saving || !selectedSuite || confirmingDelete || newSuiteNameFocused,
   });
 
