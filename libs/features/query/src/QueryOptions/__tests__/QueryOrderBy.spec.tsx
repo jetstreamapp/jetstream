@@ -112,9 +112,14 @@ describe('QueryOrderByContainer', () => {
     const { subquery } = setup({ subqueryRowCount: 4 });
     const addButton = within(subquery).getByRole('button', { name: 'Add Order By' });
 
+    addButton.focus();
     fireEvent.click(addButton);
 
     expect(getRows(subquery)).toHaveLength(5);
-    expect((addButton as HTMLButtonElement).disabled).toBe(true);
+    // The click disables the button — through aria-disabled, so focus stays on it instead of falling to body
+    expect(addButton.getAttribute('aria-disabled')).toBe('true');
+    expect(document.activeElement).toBe(addButton);
+    fireEvent.click(addButton);
+    expect(getRows(subquery)).toHaveLength(5);
   });
 });
