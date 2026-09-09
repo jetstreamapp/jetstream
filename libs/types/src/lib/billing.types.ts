@@ -28,6 +28,8 @@ export interface StripeUserFacingSubscription {
   endedAt: string | null;
   startDate: string;
   status: Uppercase<Stripe.Subscription.Status>;
+  /** True when a coupon/promotion is active on the subscription or customer — displayed amounts are pre-discount list prices */
+  hasDiscount: boolean;
   items: StripeUserFacingSubscriptionItem[];
 }
 
@@ -44,7 +46,16 @@ export interface StripeUserFacingSubscriptionItem {
   currentPeriodEnd: string;
   product: string;
   lookupKey: string | null;
+  /** In dollars — already converted from Stripe's cents. Always 0 for tiered prices, which carry their amounts in `tiers`. */
   unitAmount: number;
+  billingScheme: Stripe.Price.BillingScheme;
+  tiersMode: Stripe.Price.TiersMode | null;
+  /**
+   * Tier table for tiered prices, in dollars. Stripe omits `tiers` from the price embedded in a
+   * subscription item, so the API fetches it separately. Null for per-unit prices, or when that
+   * fetch failed, in which case the client cannot derive what the customer pays.
+   */
+  tiers: JetstreamPriceTier[] | null;
   recurringInterval: 'DAY' | 'MONTH' | 'WEEK' | 'YEAR' | null;
   recurringIntervalCount: number | null;
   quantity: number;
@@ -66,17 +77,16 @@ export interface JetstreamPrice {
   tiers: JetstreamPriceTier[] | null;
 }
 
-export type JetstreamPriceTier =
-  | {
-      flatAmount: number;
-      unitAmount: null;
-      upTo: number | null;
-    }
-  | {
-      flatAmount: null;
-      unitAmount: number;
-      upTo: number | null;
-    };
+/**
+ * A Stripe price tier in dollars. Stripe allows a tier to carry a flat amount, a per-unit amount,
+ * or both (e.g. legacy Team pricing: a flat amount that includes the first N seats).
+ */
+export interface JetstreamPriceTier {
+  flatAmount: number | null;
+  unitAmount: number | null;
+  /** Inclusive upper bound of the tier; null for the final, unbounded tier */
+  upTo: number | null;
+}
 
 export interface JetstreamPriceByKey {
   TEAM_ANNUAL: JetstreamPrice;
