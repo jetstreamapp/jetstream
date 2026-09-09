@@ -18,6 +18,7 @@
     "commitMessage": "chore: release desktop ${version}",
     "tag": true,
     "tagName": "desktop-v${version}",
+    "pushArgs": ["--follow-tags", "--atomic"],
     "requireBranch": ["main", "hotfix/*"]
   },
   "npm": false,
