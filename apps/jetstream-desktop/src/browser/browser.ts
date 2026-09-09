@@ -132,7 +132,9 @@ export class Browser {
         menuItems.push({
           label: 'Copy Selection',
           click: () => {
-            clipboard.writeText(properties.selectionText);
+            // Electron 44 made the clipboard API promise-based. Nothing waits on the copy, so a
+            // failure is logged rather than left to surface as an unhandled rejection.
+            void clipboard.writeText(properties.selectionText).catch((error) => log.warn('Failed to copy selection to clipboard:', error));
           },
         });
       }

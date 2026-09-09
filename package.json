@@ -212,7 +212,7 @@
     "chrome-types": "^0.1.442",
     "contentful": "^11.12.9",
     "cross-env": "^10.1.0",
-    "electron": "^43.4.0",
+    "electron": "^44.1.1",
     "electron-builder": "^26.15.3",
     "electron-updater": "^6.8.9",
     "esbuild": "^0.28.2",
