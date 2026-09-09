@@ -14,7 +14,7 @@ export default function Page() {
   return (
     <div className="m-8">
       <div className="flex items-center justify-between gap-4">
-        <LastUpdated className="text-gray-500" day={17} month="March" year={2026} />
+        <LastUpdated className="text-gray-500" day={9} month="September" year={2026} />
         <PrintButton />
       </div>
       <h1>Privacy Policy</h1>
@@ -27,6 +27,13 @@ export default function Page() {
         <li>
           We strive to follow industry best practices for all processes, including our development processes, deployment processes, hosting
           processes, and data access processes.
+        </li>
+        <li>
+          Jetstream has completed a SOC 2 Type II audit performed by an independent audit firm. See the{' '}
+          <a className="underline" href="#soc-2">
+            SOC 2 Type II
+          </a>{' '}
+          section below for details and how to request the report.
         </li>
         <li>We never store any of your Salesforce record data.</li>
         <li>We use browser-based caching to avoid having to store any metadata on our server.</li>
@@ -70,6 +77,23 @@ export default function Page() {
           for information about our Data Protection Policy.
         </li>
       </ol>
+      <h2 id="soc-2">SOC 2 TYPE II</h2>
+      <p className="mb-2 pl-2">
+        Jetstream has completed a SOC 2 Type II audit performed by A-LIGN, an independent audit firm. A Type II report evaluates whether
+        security controls are suitably designed and operated effectively over a period of time, rather than at a single point in time.
+      </p>
+      <p className="mb-2 pl-2">
+        The audit covers the Jetstream platform as a whole. Every plan, including the Free plan, runs on the same infrastructure and is
+        protected by the same controls.
+      </p>
+      <p className="mb-2 pl-2">
+        The full report is available under a non-disclosure agreement to paying customers and to organizations evaluating a paid plan. To
+        request a copy, email{' '}
+        <a className="underline" href="mailto:sales@getjetstream.app?subject=SOC 2 Report Request" target="_blank" rel="noreferrer">
+          sales@getjetstream.app
+        </a>
+        .
+      </p>
       <h2>PERSONAL INFORMATION WE COLLECT</h2>
       <p className="mb-2 pl-2">
         When you visit the Site, we may automatically collect certain information about your device, including information about your web
