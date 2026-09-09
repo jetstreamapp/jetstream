@@ -11,11 +11,23 @@ import {
   TEAM_ANNUAL_KEY,
   TEAM_MONTHLY_KEY,
 } from './billing.constants';
+import { describeSubscriptionItemPricing, formatUsd, getIntervalLabel } from './billing.utils';
 
 interface BillingExistingSubscriptionsProps {
   customerWithSubscriptions: StripeUserFacingCustomer;
   pricesByLookupKey: JetstreamPricesByLookupKey | null;
   hasManualBilling: boolean;
+}
+
+function getSeatsLabel(quantity: number, includedSeats: number | null): string {
+  const seatWord = quantity === 1 ? 'seat' : 'seats';
+  if (includedSeats === null) {
+    return `${quantity} ${seatWord}`;
+  }
+  if (quantity <= includedSeats) {
+    return `${quantity} of ${includedSeats} included seats in use`;
+  }
+  return `${quantity} seats (${includedSeats} included, ${quantity - includedSeats} additional)`;
 }
 
 export const BillingExistingSubscriptions = ({
@@ -24,25 +36,112 @@ export const BillingExistingSubscriptions = ({
   hasManualBilling,
 }: BillingExistingSubscriptionsProps) => {
   const { trackEvent } = useAmplitude();
+
+  const activeSubscription = customerWithSubscriptions.subscriptions.find(({ status }) => ACTIVE_SUBSCRIPTION_STATUSES.has(status));
+  const activeItem = activeSubscription?.items[0];
+
+  const teamProductId = pricesByLookupKey?.TEAM_MONTHLY?.product?.id;
+  const proProductId = pricesByLookupKey?.PRO_MONTHLY?.product?.id;
+
+  const isTeamSubscription = !!activeItem && (activeItem.lookupKey?.startsWith('TEAM_') || activeItem.product === teamProductId);
+  const isProSubscription = !!activeItem && (activeItem.lookupKey?.startsWith('PRO_') || activeItem.product === proProductId);
+
+  const matchesCurrentPrice =
+    !!activeItem && !!pricesByLookupKey && Object.values(pricesByLookupKey).some((price) => price.id === activeItem.priceId);
+  const isLegacyPlan = !!activeItem && !hasManualBilling && !matchesCurrentPrice && (isTeamSubscription || isProSubscription);
+
   const [selectedPlan, setSelectedPlan] = useState<string | null>(() => {
-    const priceId =
-      customerWithSubscriptions.subscriptions.find(({ status }) => ACTIVE_SUBSCRIPTION_STATUSES.has(status))?.items[0].priceId || null;
-    if (priceId) {
-      return Object.values(pricesByLookupKey || {}).find((price) => price.id === priceId)?.lookupKey || null;
+    if (!activeItem) {
+      return null;
     }
-    return null;
+    return Object.values(pricesByLookupKey || {}).find((price) => price.id === activeItem.priceId)?.lookupKey || null;
   });
 
   const handleEnterpriseContact = () => {
     trackEvent(ANALYTICS_KEYS.billing_session, { action: 'enterprise_contact' });
-    window.open('mailto:support@getjetstream.app?subject=Enterprise Plan Inquiry', '_blank');
+    window.open('mailto:sales@getjetstream.app?subject=Enterprise Plan Inquiry', '_blank');
+  };
+
+  const renderCurrentPlanSummary = () => {
+    if (!activeItem) {
+      return null;
+    }
+
+    let planLabel = 'Plan';
+    if (isTeamSubscription) {
+      planLabel = 'Team';
+    } else if (isProSubscription) {
+      planLabel = 'Professional';
+    }
+
+    let badge: string | null = null;
+    if (hasManualBilling) {
+      badge = 'Custom plan';
+    } else if (isLegacyPlan) {
+      badge = 'Legacy plan';
+    }
+
+    const { total, includedSeats, perSeatRate } = describeSubscriptionItemPricing(activeItem);
+    const interval = getIntervalLabel(activeItem.recurringInterval);
+    // Amounts are list prices — qualify them when a coupon means the customer actually pays less
+    const discountQualifier = activeSubscription?.hasDiscount ? <span className="slds-text-color_weak"> (before discounts)</span> : null;
+
+    return (
+      <div className="slds-box slds-box_x-small slds-m-bottom_medium slds-text-align_center">
+        <div className="slds-text-heading_small">
+          Your current plan: <strong>{planLabel}</strong>
+          {badge && (
+            <span
+              className="slds-badge slds-m-left_x-small"
+              style={{ backgroundColor: hasManualBilling ? '#0176d3' : '#706e6b', color: 'white' }}
+            >
+              {badge}
+            </span>
+          )}
+        </div>
+        {isTeamSubscription && (
+          <p className="slds-text-body_small slds-m-top_x-small">{getSeatsLabel(activeItem.quantity, includedSeats)}</p>
+        )}
+        {total !== null && (
+          <p className="slds-text-body_small slds-m-top_x-small">
+            {isTeamSubscription && perSeatRate !== null && (
+              <>
+                {activeItem.quantity} × {formatUsd(perSeatRate)}/seat/{interval} ={' '}
+              </>
+            )}
+            <strong>
+              {formatUsd(total)}/{interval}
+            </strong>
+            {discountQualifier}
+          </p>
+        )}
+        {isLegacyPlan && (
+          <p className="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+            You are on a legacy plan. The plans below show current pricing, and your rate does not change unless you switch plans.
+          </p>
+        )}
+        {hasManualBilling && (
+          <p className="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+            You have a custom billing arrangement. Contact support for plan changes.
+          </p>
+        )}
+      </div>
+    );
   };
 
   return (
     <div>
+      {renderCurrentPlanSummary()}
+
       {!hasManualBilling && (
         <div className="slds-text-align_center slds-m-bottom_medium">
-          <p className="slds-text-color_weak">Visit the billing portal to make changes to your plan</p>
+          <p className="slds-text-color_weak">
+            Visit the billing portal to make changes to your plan.{' '}
+            <a href="mailto:support@jetstream.com" target="_blank" rel="noopener noreferrer">
+              Contact us for assistance
+            </a>
+            .
+          </p>
         </div>
       )}
 
@@ -83,7 +182,7 @@ export const BillingExistingSubscriptions = ({
           priceSubtext={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].priceSubtext}
           description={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].description}
           features={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].features}
-          comingSoonFeatures={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].comingSoonFeatures}
+          pricingTiers={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].pricingTiers}
           checked={!hasManualBilling && selectedPlan === TEAM_MONTHLY_KEY}
           disabled={hasManualBilling || selectedPlan !== TEAM_MONTHLY_KEY}
           value={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].key}
@@ -95,7 +194,7 @@ export const BillingExistingSubscriptions = ({
           priceSubtext={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].priceSubtext}
           description={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].description}
           features={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].features}
-          comingSoonFeatures={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].comingSoonFeatures}
+          pricingTiers={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].pricingTiers}
           checked={!hasManualBilling && selectedPlan === TEAM_ANNUAL_KEY}
           disabled={hasManualBilling || selectedPlan !== TEAM_ANNUAL_KEY}
           value={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].key}

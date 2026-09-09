@@ -1,8 +1,10 @@
 import { CheckIcon } from '@heroicons/react/20/solid';
+import { PRICING_COPY } from '@jetstream/shared/constants';
 import classNames from 'classnames';
 import Link from 'next/link';
 import { useState } from 'react';
 import Layout from '../../components/layouts/Layout';
+import { Soc2Badge } from '../../components/Soc2Badge';
 import { ROUTES } from '../../utils/environment';
 
 const frequencies = [
@@ -37,8 +39,11 @@ const tiers = [
     name: 'Professional',
     id: 'tier-professional',
     href: '#',
-    price: { monthly: { price: '$25', suffix: 'month' }, annually: { price: '$250', suffix: 'year' } },
-    description: 'Perfect for individual users',
+    price: {
+      monthly: { price: PRICING_COPY.PRO.monthly.pricePerMonth, suffix: '/month' },
+      annually: { price: PRICING_COPY.PRO.annual.pricePerMonth, suffix: '/month', secondaryLabel: 'billed annually' },
+    },
+    description: PRICING_COPY.PRO.description,
     features: [
       'Everything in Free plan',
       <Link key="desktop-application" href={ROUTES.DESKTOP} className="text-cyan-500 hover:underline">
@@ -58,32 +63,28 @@ const tiers = [
     name: 'Team',
     id: 'tier-team',
     href: '#',
-    price: { monthly: { price: '$125', suffix: 'month' }, annually: { price: '$1,100', suffix: 'year' } },
-    description: { monthly: `Includes 5 users ($25/user/month)`, annually: `Includes 5 users ($22/user/month)` },
-    features: [
-      'Everything in Professional',
-      'Manage team members',
-      'Up to 20 team members',
-      'SSO via OIDC and SAML',
-      'View & Manage team member session activity',
-      'Role-based access control',
-    ],
-    comingSoonFeatures: ['SOC 2 compliance (in-progress)', 'Share orgs between team members', 'Audit logs'],
+    price: {
+      monthly: { price: PRICING_COPY.TEAM.monthly.pricePerUserMonth, suffix: '/user/month' },
+      annually: { price: PRICING_COPY.TEAM.annual.pricePerUserMonth, suffix: '/user/month', secondaryLabel: 'billed annually' },
+    },
+    description: PRICING_COPY.TEAM.description,
+    pricingTiers: {
+      monthly: PRICING_COPY.TEAM.monthly.tiers,
+      annually: PRICING_COPY.TEAM.annual.tiers,
+    },
+    features: [...PRICING_COPY.TEAM.features],
     mostPopular: false,
   },
   {
     name: 'Enterprise',
     id: 'tier-enterprise',
     href: 'mailto:sales@getjetstream.app?subject=Enterprise Plan Inquiry',
-    price: { monthly: { price: 'Custom', suffix: null }, annually: { price: 'Custom', suffix: null } },
-    description: 'Advanced features for large teams',
-    features: [
-      'Everything in Team',
-      'Unlimited team members',
-      'Custom agreements and terms',
-      'Dedicated account manager',
-      'White-glove onboarding',
-    ],
+    price: {
+      monthly: { price: PRICING_COPY.ENTERPRISE.price, suffix: null, secondaryLabel: PRICING_COPY.ENTERPRISE.priceNote },
+      annually: { price: PRICING_COPY.ENTERPRISE.price, suffix: null, secondaryLabel: PRICING_COPY.ENTERPRISE.priceNote },
+    },
+    description: PRICING_COPY.ENTERPRISE.description,
+    features: [...PRICING_COPY.ENTERPRISE.features],
     mostPopular: false,
     isEnterprise: true,
   },
@@ -136,15 +137,29 @@ export default function Page() {
                   {tier.name}
                 </h3>
               </div>
-              <p className="mt-4 text-sm/6 text-gray-300">
-                {typeof tier.description === 'string' ? tier.description : tier.description[frequency.value]}
-              </p>
+              <p className="mt-4 text-sm/6 text-gray-300">{tier.description}</p>
               <p className="mt-6 flex items-baseline gap-x-1">
                 <span className="text-4xl font-semibold tracking-tight text-white">{tier.price[frequency.value].price}</span>
                 {tier.price[frequency.value]?.suffix && (
                   <span className="text-sm/6 font-semibold text-gray-300">{tier.price[frequency.value].suffix}</span>
                 )}
               </p>
+              {tier.price[frequency.value]?.secondaryLabel && (
+                <p className="mt-1 text-xs/5 text-gray-400">{tier.price[frequency.value].secondaryLabel}</p>
+              )}
+              {tier.pricingTiers && (
+                <div className="mt-4 overflow-hidden rounded-md ring-1 ring-white/10">
+                  {tier.pricingTiers[frequency.value].map((row: { seats: string; perUser: string }) => (
+                    <div
+                      key={row.seats}
+                      className="flex justify-between bg-white/5 px-3 py-1.5 text-xs/5 text-gray-200 not-last:border-b not-last:border-white/10"
+                    >
+                      <span className="font-semibold">{row.seats} seats</span>
+                      <span>{row.perUser}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="mt-6 min-h-10">
                 <Link
                   href={
@@ -173,21 +188,21 @@ export default function Page() {
                   </li>
                 ))}
               </ul>
-              {tier.comingSoonFeatures && (
-                <>
-                  <p className="mt-6 text-sm/6 font-semibold text-gray-400 uppercase tracking-wide">Coming Soon</p>
-                  <ul className="mt-3 space-y-3 text-sm/6 text-gray-400">
-                    {tier.comingSoonFeatures.map((feature) => (
-                      <li key={feature} className="flex gap-x-3">
-                        <CheckIcon aria-hidden="true" className="h-6 w-5 flex-none text-gray-500" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
             </div>
           ))}
+        </div>
+        <div className="mx-auto mt-16 max-w-3xl rounded-3xl bg-white/5 p-8 ring-1 ring-white/10 sm:flex sm:items-center sm:gap-8">
+          <Soc2Badge className="mx-auto block w-fit shrink-0 sm:mx-0" imageClassName="h-24 w-auto" />
+          <div className="mt-6 text-center sm:mt-0 sm:text-left">
+            <h3 className="text-lg/8 font-semibold text-white">SOC 2 Type II audited</h3>
+            <p className="mt-2 text-sm/6 text-gray-300">
+              Every plan runs on the same independently audited platform, so you get the same security controls whether or not you pay.
+              Paying customers can request the full report under NDA.
+            </p>
+            <Link href={`${ROUTES.PRIVACY}#soc-2`} className="mt-3 inline-block text-sm/6 font-semibold text-cyan-500 hover:underline">
+              Learn more about our security &rarr;
+            </Link>
+          </div>
         </div>
       </div>
     </div>

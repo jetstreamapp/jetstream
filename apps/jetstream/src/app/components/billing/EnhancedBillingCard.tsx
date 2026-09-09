@@ -4,13 +4,18 @@ import { Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { useId } from 'react';
 
+interface PricingTier {
+  seats: string;
+  perUser: string;
+}
+
 interface EnhancedBillingCardProps {
   planName: string;
   price: string;
   priceSubtext?: string;
   description?: string;
-  features: string[];
-  comingSoonFeatures?: string[];
+  features: readonly string[];
+  pricingTiers?: readonly PricingTier[];
   isEnterprise?: boolean;
   disabled?: boolean;
   disabledReason?: string;
@@ -176,28 +181,33 @@ const cardStyles = css`
     opacity: 1;
   }
 
-  .coming-soon-features {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px dashed var(--slds-g-color-border-1, #d8dde6);
+  .pricing-tiers {
+    margin: 12px auto 0;
+    max-width: 260px;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    overflow: hidden;
   }
 
-  .coming-soon-features h4 {
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--slds-g-color-on-surface-1, #706e6b);
-    margin: 0 0 12px 0;
+  .pricing-tier-row {
     display: flex;
-    align-items: center;
-    gap: 6px;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 6px 12px;
+    background: #fafafa;
+
+    &:not(:last-child) {
+      border-bottom: 1px solid #ececec;
+    }
   }
 
-  .coming-soon-features .feature-item {
-    color: var(--slds-g-color-on-surface-1, #706e6b);
-    font-style: italic;
-    position: relative;
+  .pricing-tier-seats {
+    color: #706e6b;
+    font-weight: 600;
+  }
+
+  .pricing-tier-amount {
+    color: #16325c;
   }
 `;
 
@@ -207,7 +217,7 @@ export const EnhancedBillingCard = ({
   priceSubtext,
   description,
   features,
-  comingSoonFeatures,
+  pricingTiers,
   isEnterprise = false,
   disabled = false,
   disabledReason,
@@ -256,6 +266,16 @@ export const EnhancedBillingCard = ({
           <div className="price">{price}</div>
           {priceSubtext && <div className="price-subtext">{priceSubtext}</div>}
           {description && <div className="description">{description}</div>}
+          {pricingTiers && pricingTiers.length > 0 && (
+            <div className="pricing-tiers">
+              {pricingTiers.map((tier) => (
+                <div key={tier.seats} className="pricing-tier-row">
+                  <span className="pricing-tier-seats">{tier.seats}</span>
+                  <span className="pricing-tier-amount">{tier.perUser}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="features-section">
@@ -272,24 +292,6 @@ export const EnhancedBillingCard = ({
               </li>
             ))}
           </ul>
-          {comingSoonFeatures && comingSoonFeatures.length > 0 && (
-            <div className="coming-soon-features">
-              <h4>Coming Soon</h4>
-              <ul className="features-list">
-                {comingSoonFeatures.map((feature, index) => (
-                  <li key={index} className="feature-item">
-                    <Icon
-                      type="utility"
-                      icon="check"
-                      className="slds-icon slds-icon_x-small feature-icon"
-                      containerClassname="slds-icon_container slds-icon-text-default"
-                    />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
 
         {disabled && disabledReason && <div className="bottom-section disabled-reason slds-text-color_error">{disabledReason}</div>}
