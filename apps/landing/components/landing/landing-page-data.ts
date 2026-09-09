@@ -41,17 +41,6 @@ export interface PlatformOption {
   href: string;
 }
 
-export interface PricingTier {
-  name: string;
-  price: string;
-  period: string;
-  description: string;
-  features: string[];
-  cta: string;
-  href: string;
-  highlighted: boolean;
-}
-
 export interface CommunityStat {
   label: string;
   value: string;
@@ -111,49 +100,6 @@ export const PLATFORM_OPTIONS: PlatformOption[] = [
     description: 'Quick access from Chrome or Firefox. Launch Jetstream tools without leaving your current tab.',
     cta: 'Learn more',
     href: ROUTES.BROWSER_EXTENSIONS,
-  },
-];
-
-export const PRICING_TIERS: PricingTier[] = [
-  {
-    name: 'Free',
-    price: '$0',
-    period: '/month',
-    description: 'Access to all core features',
-    features: ['Unlimited Salesforce orgs', 'Query builder & data loader', 'Metadata tools & deployment', 'Developer tools & API access'],
-    cta: 'Get started for free',
-    href: ROUTES.AUTH.signup,
-    highlighted: false,
-  },
-  {
-    name: 'Professional',
-    price: '$25',
-    period: '/month',
-    description: 'Perfect for individual power users',
-    features: ['Everything in Free', 'Desktop application', 'Browser extensions', 'Google Drive integration', 'Priority support'],
-    cta: 'Get started',
-    href: ROUTES.AUTH.signup,
-    highlighted: true,
-  },
-  {
-    name: 'Team',
-    price: '$125',
-    period: '/month',
-    description: 'Includes 5 users ($25/user/month)',
-    features: ['Everything in Professional', 'Up to 20 team members', 'SSO (SAML & OIDC)', 'Role-based access control'],
-    cta: 'Get started',
-    href: ROUTES.AUTH.signup,
-    highlighted: false,
-  },
-  {
-    name: 'Enterprise',
-    price: 'Custom',
-    period: '',
-    description: 'Advanced features for large teams',
-    features: ['Everything in Team', 'Unlimited team members', 'Custom agreements & terms', 'Dedicated account manager'],
-    cta: 'Contact sales',
-    href: 'mailto:sales@getjetstream.app?subject=Enterprise Plan Inquiry',
-    highlighted: false,
   },
 ];
 
