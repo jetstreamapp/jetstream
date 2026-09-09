@@ -127,6 +127,58 @@ async function fetchCustomerWithSubscriptionsById({
   });
 }
 
+/** Stripe amounts are in cents; every amount leaves this module in dollars. */
+function centsToDollars(cents: number | null | undefined): number | null {
+  return typeof cents === 'number' ? cents / 100 : null;
+}
+
+function convertPriceTiers(tiers: Stripe.Price.Tier[] | undefined): JetstreamPriceTier[] | null {
+  if (!tiers) {
+    return null;
+  }
+  return tiers.map((tier) => ({
+    flatAmount: centsToDollars(tier.flat_amount),
+    unitAmount: centsToDollars(tier.unit_amount),
+    upTo: tier.up_to,
+  }));
+}
+
+const priceTiersCache = new Map<string, { tiers: JetstreamPriceTier[] | null; expiresAt: number }>();
+const PRICE_TIERS_CACHE_TTL_MS = 1000 * 60 * 60 * 6;
+
+/**
+ * Stripe omits `tiers` from the price embedded in a subscription item, and the expansion path through
+ * the customer is deeper than Stripe allows, so tiered prices are fetched individually. A price's tier
+ * table cannot change after creation, so a long cache is safe.
+ */
+async function fetchPriceTiers(priceId: string): Promise<JetstreamPriceTier[] | null> {
+  const cached = priceTiersCache.get(priceId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.tiers;
+  }
+  const price = await stripe.prices.retrieve(priceId, { expand: ['tiers'] });
+  const tiers = convertPriceTiers(price.tiers);
+  priceTiersCache.set(priceId, { tiers, expiresAt: Date.now() + PRICE_TIERS_CACHE_TTL_MS });
+  return tiers;
+}
+
+/**
+ * Fill in the tier table for tiered subscription items so the client can show what the customer
+ * actually pays. A failed lookup leaves `tiers` null rather than failing the whole billing page.
+ */
+async function attachTiersToTieredItems(customer: StripeUserFacingCustomer): Promise<void> {
+  const tieredItems = customer.subscriptions.flatMap(({ items }) => items).filter((item) => item.billingScheme === 'tiered' && !item.tiers);
+  await Promise.all(
+    tieredItems.map(async (item) => {
+      try {
+        item.tiers = await fetchPriceTiers(item.priceId);
+      } catch (ex) {
+        logger.warn({ priceId: item.priceId, ...getErrorMessageAndStackObj(ex) }, 'Unable to fetch price tiers for subscription item');
+      }
+    }),
+  );
+}
+
 export async function fetchPrices({ lookupKeys }: { lookupKeys: typeof STRIPE_PRICE_KEYS }): Promise<JetstreamPricesByLookupKey> {
   const cache = priceCache.get(lookupKeys);
   if (cache?.expiresAt && cache.expiresAt > Date.now()) {
@@ -158,15 +210,7 @@ export async function fetchPrices({ lookupKeys }: { lookupKeys: typeof STRIPE_PR
       interval: price.recurring?.interval === 'year' ? 'ANNUAL' : 'MONTHLY',
       amount: (price.unit_amount || 0) / 100,
       tiersMode: price.tiers_mode || null,
-      tiers:
-        price.tiers?.map(
-          (tier) =>
-            ({
-              flatAmount: tier.flat_amount ? tier.flat_amount / 100 : null,
-              unitAmount: tier.unit_amount ? tier.unit_amount / 100 : null,
-              upTo: tier.up_to,
-            }) as JetstreamPriceTier,
-        ) || null,
+      tiers: convertPriceTiers(price.tiers),
       product: {
         id: product.id,
         name: product.name,
@@ -212,7 +256,9 @@ export async function getUserFacingStripeCustomer({ customerId }: { customerId: 
     if (stripeCustomer.deleted) {
       return null;
     }
-    return convertCustomerWithSubscriptionsToUserFacing(stripeCustomer);
+    const customer = convertCustomerWithSubscriptionsToUserFacing(stripeCustomer);
+    await attachTiersToTieredItems(customer);
+    return customer;
   } catch (ex) {
     logger.warn({ customerId, ...getErrorMessageAndStackObj(ex) }, 'Unable to fetch or convert customer to user facing');
     return null;
@@ -226,7 +272,7 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
     delinquent: !!stripeCustomer.delinquent,
     subscriptions:
       stripeCustomer.subscriptions?.data.map(
-        ({ id, billing_cycle_anchor, cancel_at, cancel_at_period_end, canceled_at, ended_at, items, start_date, status }) => ({
+        ({ id, billing_cycle_anchor, cancel_at, cancel_at_period_end, canceled_at, discounts, ended_at, items, start_date, status }) => ({
           id,
           // TODO: validate that the dates are correct (should be if server is on UTC I think?)
           billingCycleAnchor: formatISO(fromUnixTime(billing_cycle_anchor)),
@@ -236,6 +282,9 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
           endedAt: ended_at ? formatISO(fromUnixTime(ended_at)) : null,
           startDate: formatISO(fromUnixTime(start_date)),
           status: status.toUpperCase() as Uppercase<Stripe.Subscription.Status>,
+          // Existence check only — `discounts` entries are unexpanded ids, and a customer-level
+          // coupon discounts this subscription's invoices the same as a subscription-level one
+          hasDiscount: Boolean(stripeCustomer.discount || discounts.length > 0),
           items: items.data.map(({ id, price, quantity, current_period_start, current_period_end }) => ({
             id,
             priceId: price.id,
@@ -245,6 +294,9 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
             product: price.product as string,
             lookupKey: price.lookup_key,
             unitAmount: (price.unit_amount || 0) / 100,
+            billingScheme: price.billing_scheme,
+            tiersMode: price.tiers_mode || null,
+            tiers: convertPriceTiers(price.tiers),
             recurringInterval: (price.recurring?.interval?.toUpperCase() || null) as StripeUserFacingSubscriptionItem['recurringInterval'],
             recurringIntervalCount: price.recurring?.interval_count || null,
             quantity: quantity ?? 1,
