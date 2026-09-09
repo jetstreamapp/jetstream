@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ROUTES } from '../utils/environment';
+import { Soc2Badge } from './Soc2Badge';
 
 const footerNavigation = {
   support: [
@@ -43,6 +44,7 @@ export const Footer = ({ omitLinks = [] }: FooterProps) => (
             />
           </Link>
           <p className="text-gray-500 text-base">Providing tools to help you get your job done faster.</p>
+          <Soc2Badge className="inline-block" imageClassName="h-28 w-auto" />
         </div>
         <div className="mt-12 grid grid-cols-3 gap-8 xl:mt-0 xl:col-span-2">
           <div className="md:grid md:grid-cols-1 md:gap-8">
