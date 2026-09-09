@@ -11,6 +11,12 @@ ignoreWorkspaceRootCheck: true
 minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
   - "@jetstreamapp/*"
+  # Remove these after 3 days
+  # Required for macos build: https://github.com/electron-userland/electron-builder/issues/10066
+  - app-builder-lib@26.16.1
+  - dmg-builder@26.16.1
+  - electron-builder-squirrel-windows@26.16.1
+  - electron-builder@26.16.1
 
 # Allow scripts from these specific libraries
 allowBuilds:
