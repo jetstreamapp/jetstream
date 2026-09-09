@@ -160,13 +160,21 @@ export class AuthenticationPage {
     return `Test User ${new Date().getTime()}${randomBytes(8).toString('hex')}`;
   }
 
+  /**
+   * Random-only on purpose. This used to embed `Date.now()` and loop until `PasswordSchema` accepted the
+   * result, but the schema rejects 4+ repeated characters and there are multi-hour stretches where every
+   * epoch-millisecond timestamp contains one (2026-09-08 15:06–17:53 UTC: every timestamp began `17888 8`).
+   * The loop then spun synchronously, which also starved Playwright's test timeout, and froze the worker
+   * until the clock moved on. Bounded so a future schema change can never turn this back into a hang.
+   */
   generateTestPassword() {
-    let password = `PWD-${new Date().getTime()}!${randomBytes(8).toString('hex')}`;
-    // Regenerate password if it doesn't meet the schema requirements, to avoid test failures due to invalid passwords
-    while (!PasswordSchema.safeParse(password).success) {
-      password = `PWD-${new Date().getTime()}!${randomBytes(8).toString('hex')}`;
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const password = `PWD-${randomBytes(12).toString('hex')}!`;
+      if (PasswordSchema.safeParse(password).success) {
+        return password;
+      }
     }
-    return password;
+    throw new Error('Unable to generate a password that satisfies PasswordSchema');
   }
 
   async signUpWithoutEmailVerification(emailOverride?: string, initialLoginPage?: string) {
