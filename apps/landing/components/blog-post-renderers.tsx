@@ -7,6 +7,13 @@ import { Fragment, ReactNode } from 'react';
 import FigureImgWithViewFullScreen from './FigureImgWithViewFullScreen';
 const NON_URL_CHARACTERS = /[^a-zA-Z0-9-]/g;
 
+/**
+ * Contentful returns protocol-relative asset urls (`//images.ctfassets.net/...`), which resolve to
+ * http when the site itself is served over http (e.g. local development) and get blocked by the
+ * https-only img-src content security policy.
+ */
+const ensureHttpsUrl = (url: string) => (url.startsWith('//') ? `https:${url}` : url);
+
 const getNodeText = (node: ReactNode) => {
   if (['string', 'number'].includes(typeof node)) {
     return node;
@@ -147,7 +154,9 @@ export function renderBlogPostRichText(richText: Document) {
             return <Fragment />;
           }
 
-          return <FigureImgWithViewFullScreen src={url} title={title} description={description} width={width} height={height} />;
+          return (
+            <FigureImgWithViewFullScreen src={ensureHttpsUrl(url)} title={title} description={description} width={width} height={height} />
+          );
         } catch (ex) {
           console.warn('[RENDER ASSET ERROR]', ex.message);
           return <Fragment />;

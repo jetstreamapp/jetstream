@@ -9,7 +9,7 @@ export default function Page() {
   return (
     <div className="m-8">
       <div className="flex items-center justify-between gap-4">
-        <LastUpdated className="text-gray-500" day={4} month="August" year={2026} />
+        <LastUpdated className="text-gray-500" day={9} month="September" year={2026} />
         <PrintButton />
       </div>
       <h1>Data Processing Agreement</h1>
@@ -175,6 +175,10 @@ export default function Page() {
         <li>Documentation of security practices and data handling procedures;</li>
         <li>Summary reports of compliance activities and security measures.</li>
       </ol>
+      <p className="mb-2 pl-2">
+        The Processor maintains a SOC 2 Type II report issued by an independent auditor and will make its most recent report available to
+        the Controller upon written request, subject to a non-disclosure agreement.
+      </p>
       <p className="mb-2 pl-2">
         The Controller shall provide at least 30 days' advance written notice for any audit request. Any audit activities shall be conducted
         in a manner that minimizes disruption to the Processor's operations and does not compromise the security, confidentiality, or
@@ -568,7 +572,11 @@ export default function Page() {
 
       <h3>Governance and Compliance</h3>
       <ul className="mb-2 list-disc pl-6">
-        <li>The security program is aligned with the SOC 2 Trust Services Criteria.</li>
+        <li>
+          The security program is aligned with the SOC 2 Trust Services Criteria and has been independently audited. Jetstream maintains a
+          SOC 2 Type II report covering its own controls, available to Controllers on request under a non-disclosure agreement as described
+          in Section 10.
+        </li>
         <li>Security policies are documented, reviewed, and updated at least annually.</li>
         <li>
           A formal risk management process identifies, analyzes, prioritizes, treats, and monitors information security and operational
@@ -582,6 +590,10 @@ export default function Page() {
         by the version in effect at signing, as described in Section 15.
       </p>
       <ul className="mb-2 list-disc pl-6">
+        <li>
+          <strong>September 9, 2026</strong> - Noted the availability of the Processor's SOC 2 Type II report (Section 10; Annex 2,
+          Governance and Compliance).
+        </li>
         <li>
           <strong>August 4, 2026</strong> - Incorporated the EU Standard Contractual Clauses, the UK Addendum, and Swiss FADP adaptations
           (Section 11); added CCPA service provider restrictions (Section 12); shortened Security Incident notification from 72 hours to 48
