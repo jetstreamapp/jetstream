@@ -201,3 +201,19 @@ export function placeholderHtmlPlugin(): PluginOption {
     },
   };
 }
+
+/**
+ * Copies files from libs/shared/assets into the extension output. The manifest and the html pages reference the
+ * extension icons by fixed path (assets/icons/<name>.png), so the files must physically exist in the bundle.
+ */
+export function sharedAssetsPlugin(files: { from: string; to: string }[]): PluginOption {
+  return {
+    name: 'copy-shared-assets',
+    apply: 'build',
+    generateBundle() {
+      for (const { from, to } of files) {
+        this.emitFile({ type: 'asset', fileName: to, source: readFileSync(from) });
+      }
+    },
+  };
+}

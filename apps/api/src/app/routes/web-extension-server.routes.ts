@@ -45,7 +45,7 @@ routes.use(
         fontSrc: ["'self'", 'https:'],
         frameAncestors: ["'self'"],
         frameSrc: ["'self'", 'https://accounts.google.com', 'https://docs.google.com', 'https://drive.google.com'],
-        imgSrc: ["'self'", '*.cloudinary.com', '*.googleusercontent.com'],
+        imgSrc: ["'self'", '*.googleusercontent.com'],
         objectSrc: ["'none'"],
         scriptSrc: [
           "'self'",

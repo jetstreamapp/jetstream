@@ -6,6 +6,7 @@ import {
   ErrorBoundaryEmptyFallback,
   ErrorBoundaryFallback,
   HeaderNavbar,
+  NotificationsRequestModal,
   ThemeApplier,
   ViewEditCloneRecordWrapper,
 } from '@jetstream/ui-core';
@@ -20,7 +21,6 @@ import { DownloadFileStreamDesktop } from './components/core/DownloadFileStreamD
 import { Login } from './components/core/Login';
 import LogInitializer from './components/core/LogInitializer';
 import './components/core/monaco-loader';
-import NotificationsRequestModal from './components/core/NotificationsRequestModal';
 import { addDesktopOrg } from './utils/utils';
 
 export const App = () => {

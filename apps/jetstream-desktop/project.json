@@ -4,6 +4,7 @@
   "sourceRoot": "apps/jetstream-desktop/src",
   "projectType": "application",
   "tags": ["scope:server"],
+  "implicitDependencies": ["shared-assets"],
   "targets": {
     "build": {
       "executor": "@nx/esbuild:esbuild",
@@ -24,6 +25,16 @@
             "input": "apps/jetstream-desktop/src/assets",
             "glob": "**/*",
             "output": "assets"
+          },
+          {
+            "input": "libs/shared/assets/public/images/desktop",
+            "glob": "**/*",
+            "output": "assets/icons"
+          },
+          {
+            "input": "libs/shared/assets/public/images",
+            "glob": "favicon.ico",
+            "output": "assets/images"
           }
         ],
         "generatePackageJson": true,

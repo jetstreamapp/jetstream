@@ -6,10 +6,12 @@ on:
       - main
     paths:
       - "apps/docs/**"
+      - "libs/shared/assets/public/**"
       - ".github/workflows/docs.yml"
   pull_request:
     paths:
       - "apps/docs/**"
+      - "libs/shared/assets/public/**"
       - ".github/workflows/docs.yml"
 
 permissions:

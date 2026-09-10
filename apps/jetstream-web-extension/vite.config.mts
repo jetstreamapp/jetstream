@@ -8,7 +8,12 @@ import {
   getServerUrlForMode,
   manifestTransformPlugin,
   placeholderHtmlPlugin,
+  sharedAssetsPlugin,
 } from './vite.plugins.mts';
+
+const SHARED_IMAGES_DIR = resolve(import.meta.dirname, '../../libs/shared/assets/public/images');
+// Referenced from src/manifest.json (jetstream-icon-*) and the html pages' favicons (jetstream-icon-pro-*)
+const EXTENSION_ICONS = [16, 32, 48, 128].flatMap((size) => [`jetstream-icon-${size}.png`, `jetstream-icon-pro-${size}.png`]);
 
 export default defineConfig(({ command, mode }) => {
   // Force staging to be "production" mode.
@@ -38,6 +43,7 @@ export default defineConfig(({ command, mode }) => {
       }),
       manifestTransformPlugin(mode),
       placeholderHtmlPlugin(),
+      sharedAssetsPlugin(EXTENSION_ICONS.map((name) => ({ from: resolve(SHARED_IMAGES_DIR, name), to: `assets/icons/${name}` }))),
       extensionScriptsBuildPlugin(mode),
     ],
     resolve: { tsconfigPaths: true },

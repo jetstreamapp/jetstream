@@ -26,7 +26,7 @@ const CspPolicy = {
   'font-src': [`'self'`, 'data:'],
   'frame-ancestors': ["'self'", 'https://getjetstream.app', 'https://*.google.com', 'https://*.googleapis.com', 'https://*.gstatic.com'],
   // 'frame-src': [`'self'`, '*.google.com', '*.googleapis.com', '*.gstatic.com'],
-  'img-src': [`'self'`, 'data:', 'https://*.googleusercontent.com', 'https://res.cloudinary.com', 'https://*.gravatar.com'],
+  'img-src': [`'self'`, 'data:', 'https://*.googleusercontent.com', 'https://*.gravatar.com'],
   'script-src': [`'self'`, `'unsafe-inline'`, 'https://*.google.com'],
   'script-src-attr': ['none'],
   'style-src': [`'self'`, `'unsafe-inline'`],

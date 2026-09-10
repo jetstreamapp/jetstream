@@ -4,8 +4,9 @@ import { useRouter } from 'next/router';
 const DESCRIPTION =
   'Jetstream is a powerful suite of Salesforce administration tools built for Salesforce admins, developers, and power users. Manage, query, and update Salesforce data faster with an advanced SOQL query builder, a high-performance data loader, and productivity features designed for real-world Salesforce workflows.';
 
-const OG_IMAGE = 'https://res.cloudinary.com/getjetstream/image/upload/v1771094335/public/jetstream-og-image_chejpi.png';
 const SITE_URL = 'https://getjetstream.app';
+// Absolute URL required by social crawlers; the file lives in libs/shared/assets and is served by the API
+const OG_IMAGE = `${SITE_URL}/assets/images/website/jetstream-og-image.png`;
 
 export default function LayoutHead({ title = 'Jetstream', url }: { title?: string; url?: string }) {
   const router = useRouter();
@@ -35,7 +36,7 @@ export default function LayoutHead({ title = 'Jetstream', url }: { title?: strin
       <meta name="twitter:description" content={DESCRIPTION} />
       <meta name="twitter:image" content={OG_IMAGE} />
 
-      <link rel="icon" type="image/png" href="/images/favicon.ico"></link>
+      <link rel="icon" type="image/png" href="/assets/images/favicon.ico"></link>
       <meta charSet="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
@@ -55,7 +56,7 @@ export default function LayoutHead({ title = 'Jetstream', url }: { title?: strin
       <link rel="manifest" href="/assets/images/manifest.json" />
 
       <meta name="msapplication-TileColor" content="#ffffff" />
-      <meta name="msapplication-TileImage" content="/images/ms-icon-144x144.png" />
+      <meta name="msapplication-TileImage" content="/assets/images/ms-icon-144x144.png" />
 
       <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png" />
       <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96x96.png" />

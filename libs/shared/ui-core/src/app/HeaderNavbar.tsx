@@ -1,6 +1,7 @@
 import { css, SerializedStyles } from '@emotion/react';
 import { AppAbility } from '@jetstream/acl';
 import type { ReleasePlatform } from '@jetstream/release-notes';
+import { jetstreamLogoProUrl, jetstreamLogoUrl } from '@jetstream/shared/assets';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { isBrowserExtension, isCanvasApp } from '@jetstream/shared/ui-utils';
@@ -32,8 +33,6 @@ import { useHeaderNavbarItems } from './HeaderNavbarItems';
 import { headerNavbarBillingUserItems } from './HeaderNavbarReadOnlyUserItems';
 import HeaderUpdateNotification from './HeaderUpdateNotification';
 import type { HeaderWhatsNewPopoverProps } from './HeaderWhatsNewPopover';
-import LogoPro from './jetstream-logo-pro-200w.png';
-import Logo from './jetstream-logo-v1-200w.png';
 import NotificationsRequestModal from './NotificationsRequestModal';
 
 // Lazy-loaded so the popover (and the release-notes fetch/validation code behind it) is code-split
@@ -386,7 +385,7 @@ export const HeaderNavbar = ({
       <Header
         userProfile={userProfile}
         isReadOnlyUser={isReadOnlyUser}
-        logo={isPaidLikeLogo ? LogoPro : Logo}
+        logo={isPaidLikeLogo ? jetstreamLogoProUrl : jetstreamLogoUrl}
         logoCss={isPaidLikeLogo ? logoCss : freeLogoCss}
         orgs={isEmbeddedApp ? <SelectedOrgReadOnly /> : <OrgsDropdown onAddOrgHandlerFn={onAddOrgHandlerFn} />}
         userMenuItems={userMenuItems}

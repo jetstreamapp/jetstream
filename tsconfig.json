@@ -113,6 +113,9 @@
       "path": "./libs/features/deploy"
     },
     {
+      "path": "./libs/shared/assets"
+    },
+    {
       "path": "./libs/shared/ui-utils"
     },
     {

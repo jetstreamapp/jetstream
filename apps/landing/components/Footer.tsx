@@ -36,11 +36,7 @@ export const Footer = ({ omitLinks = [] }: FooterProps) => (
       <div className="xl:grid xl:grid-cols-3 xl:gap-8">
         <div className="space-y-8 xl:col-span-1">
           <Link href={ROUTES.HOME}>
-            <img
-              className="h-12"
-              src="https://res.cloudinary.com/getjetstream/image/upload/v1634516624/public/jetstream-logo.svg"
-              alt="Jetstream"
-            />
+            <img className="h-12" src="/assets/images/jetstream-logo.svg" alt="Jetstream" />
           </Link>
           <p className="text-gray-500 text-base">Providing tools to help you get your job done faster.</p>
         </div>

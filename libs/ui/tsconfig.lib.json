@@ -30,6 +30,9 @@
   ],
   "references": [
     {
+      "path": "../shared/assets/tsconfig.lib.json"
+    },
+    {
       "path": "../auth/types/tsconfig.lib.json"
     },
     {
@@ -45,10 +48,10 @@
       "path": "../shared/ui-router/tsconfig.lib.json"
     },
     {
-      "path": "../shared/data/tsconfig.lib.json"
+      "path": "../shared/utils/tsconfig.lib.json"
     },
     {
-      "path": "../shared/utils/tsconfig.lib.json"
+      "path": "../shared/data/tsconfig.lib.json"
     },
     {
       "path": "../shared/constants/tsconfig.lib.json"

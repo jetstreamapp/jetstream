@@ -1,9 +1,9 @@
+import { jetstreamSampleNotificationUrl } from '@jetstream/shared/assets';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DockedComposer, DockedComposerRef } from '@jetstream/ui';
 import { useUserPreferenceState } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useAmplitude } from '../analytics';
-import NotificationExampleImage from './jetstream-sample-notification.png';
 
 export interface NotificationsRequestModalProps {
   loadDelay?: number;
@@ -85,7 +85,7 @@ export const NotificationsRequestModal: FunctionComponent<NotificationsRequestMo
         >
           <div className="slds-p-around_medium">
             <div className="slds-align_absolute-center">
-              <img src={NotificationExampleImage} alt="Notification Example" />
+              <img src={jetstreamSampleNotificationUrl} alt="Notification Example" />
             </div>
 
             <p className="slds-m-vertical_small">

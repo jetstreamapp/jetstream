@@ -52,14 +52,13 @@ export interface FeatureCategory {
 }
 
 const SCREENSHOTS = {
-  query: 'https://res.cloudinary.com/getjetstream/image/upload/v1773244748/public/website/landing-query-builder_wgxdx2.png',
-  load: 'https://res.cloudinary.com/getjetstream/image/upload/v1773244746/public/website/landing-load-records_lmmmkv.png',
-  automation:
-    'https://res.cloudinary.com/getjetstream/image/upload/v1773244745/public/website/landing-automation-control-results_tnsenq.png',
-  permissions: 'https://res.cloudinary.com/getjetstream/image/upload/v1773244744/public/website/landing-permissions-grid_mndfqk.png',
-  deploy: 'https://res.cloudinary.com/getjetstream/image/upload/v1773244743/public/website/landing-deploy-grid_feqzrs.png',
-  create: 'https://res.cloudinary.com/getjetstream/image/upload/v1773244742/public/website/landing-create-fields-config_wkvxhc.png',
-  developer: 'https://res.cloudinary.com/getjetstream/image/upload/v1773244742/public/website/landing-anonymous-apex_uizsfy.png',
+  query: '/assets/images/website/landing-query-builder.png',
+  load: '/assets/images/website/landing-load-records.png',
+  automation: '/assets/images/website/landing-automation-control-results.png',
+  permissions: '/assets/images/website/landing-permissions-grid.png',
+  deploy: '/assets/images/website/landing-deploy-grid.png',
+  create: '/assets/images/website/landing-create-fields-config.png',
+  developer: '/assets/images/website/landing-anonymous-apex.png',
 };
 
 export const FEATURE_CATEGORIES: FeatureCategory[] = [
