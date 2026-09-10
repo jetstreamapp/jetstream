@@ -15,14 +15,30 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => searchParams,
 }));
 
+// `label` and `icon` mirror getProviders() on the server - the oauth buttons render both, so a
+// fixture without them produces buttons with no accessible name.
 const PROVIDERS = {
-  google: { provider: 'google', signinUrl: 'https://example.com/signin/google', callbackUrl: 'https://example.com/callback/google' },
+  google: {
+    provider: 'google',
+    label: 'Google',
+    icon: 'https://example.com/assets/images/third-party/google-login-icon.svg',
+    signinUrl: 'https://example.com/signin/google',
+    callbackUrl: 'https://example.com/callback/google',
+  },
   salesforce: {
     provider: 'salesforce',
+    label: 'Salesforce',
+    icon: 'https://example.com/assets/images/third-party/salesforce-blue.svg',
     signinUrl: 'https://example.com/signin/salesforce',
     callbackUrl: 'https://example.com/callback/salesforce',
   },
-  credentials: { provider: 'credentials', signinUrl: 'https://example.com/signin', callbackUrl: 'https://example.com/callback' },
+  credentials: {
+    provider: 'credentials',
+    label: 'Jetstream',
+    icon: 'https://example.com/assets/images/jetstream-icon.svg',
+    signinUrl: 'https://example.com/signin',
+    callbackUrl: 'https://example.com/callback',
+  },
 } as unknown as Providers;
 
 const SSO_EMAIL = 'user@example.com';

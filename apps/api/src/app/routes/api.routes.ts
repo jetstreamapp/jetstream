@@ -160,14 +160,6 @@ routes.delete('/canvas-orgs/:id', verifyEntitlement('salesforceCanvas'), canvasO
 
 /**
  * ************************************
- * imageController Routes
- * ************************************
- * Deprecated - re-implement if required - review this commit for prior implementation
- */
-// routes.get('/images/upload-signature', imageController.getUploadSignature.controllerFn());
-
-/**
- * ************************************
  * queryController Routes
  * ************************************
  */

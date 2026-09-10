@@ -1,7 +1,7 @@
 import { replaceFiles } from '@nx/vite/plugins/rollup-replace-files.plugin';
 import react from '@vitejs/plugin-react';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import { readdirSync, readFileSync } from 'fs';
+import { basename, resolve } from 'path';
 import type { PluginOption } from 'vite';
 import { build } from 'vite';
 
@@ -128,8 +128,14 @@ export function extensionScriptsBuildPlugin(mode: string): PluginOption {
               },
               rolldownOptions: {
                 output: {
-                  // Give CSS a predictable name based on the entry (e.g. contentScript.css)
-                  assetFileNames: `${name}.[ext]`,
+                  // CSS gets a predictable name based on the entry (e.g. contentScript.css) because the
+                  // loader references it by that name. Everything else keeps its own file name so the images
+                  // this entry pulls in land on (and dedupe against) the ones the main bundle already emits,
+                  // instead of a run of meaningless `contentScript<n>.png` copies.
+                  assetFileNames: (assetInfo) =>
+                    [assetInfo.name, ...(assetInfo.names ?? [])].some((assetName) => assetName?.endsWith('.css'))
+                      ? `${name}.[ext]`
+                      : '[name].[ext]',
                 },
               },
             },
@@ -196,6 +202,46 @@ export function placeholderHtmlPlugin(): PluginOption {
           type: 'asset',
           fileName: `${page}.html`,
           source: template,
+        });
+      }
+    },
+  };
+}
+
+const SHARED_IMAGES_DIR = resolve(import.meta.dirname, '../../libs/shared/assets/public/images');
+/** Matches the `assets/icons/<name>.png` favicon references in the extension's html pages. */
+const ICON_REFERENCE_RE = /assets\/icons\/[\w.-]+\.png/g;
+
+/**
+ * Copies the extension icons out of libs/shared/assets into the extension output. The manifest and the html pages
+ * reference them by fixed path (assets/icons/<name>.png), so the files must physically exist in the bundle.
+ *
+ * The list is derived from those references rather than hand-maintained: pointing the manifest at an icon that is
+ * never copied produces a bundle the browser rejects at load, and that failure would otherwise only surface at
+ * store upload. Every referenced name must exist in libs/shared/assets/public/images or the build throws here.
+ */
+export function sharedAssetsPlugin(): PluginOption {
+  return {
+    name: 'copy-shared-assets',
+    apply: 'build',
+    generateBundle() {
+      const manifest = JSON.parse(readFileSync(resolve(import.meta.dirname, 'src/manifest.json'), 'utf-8'));
+      const htmlIconReferences = readdirSync(import.meta.dirname)
+        .filter((file) => file.endsWith('.html'))
+        .flatMap((file) => [...readFileSync(resolve(import.meta.dirname, file), 'utf-8').matchAll(ICON_REFERENCE_RE)])
+        .map(([reference]) => reference);
+
+      const iconPaths = new Set<string>([
+        ...Object.values<string>(manifest.icons ?? {}),
+        ...Object.values<string>(manifest.action?.default_icons ?? {}),
+        ...htmlIconReferences,
+      ]);
+
+      for (const iconPath of iconPaths) {
+        this.emitFile({
+          type: 'asset',
+          fileName: iconPath,
+          source: readFileSync(resolve(SHARED_IMAGES_DIR, basename(iconPath))),
         });
       }
     },

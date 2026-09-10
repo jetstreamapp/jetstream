@@ -297,37 +297,6 @@ export interface SalesforceUserInfo {
   is_app_installed: boolean;
 }
 
-export interface CloudinarySignature {
-  signature: string;
-  timestamp: number;
-  cloudName: string;
-  apiKey: string;
-  context: string;
-}
-
-export interface CloudinaryUploadResponse {
-  access_mode: string;
-  api_key: string;
-  asset_id: string;
-  bytes: number;
-  created_at: string;
-  delete_token: string;
-  etag: string;
-  format: string;
-  height: number;
-  placeholder: boolean;
-  public_id: string;
-  resource_type: string;
-  secure_url: string;
-  signature: string;
-  tags: string[];
-  type: string;
-  url: string;
-  version_id: string;
-  version: number;
-  width: number;
-}
-
 export interface SalesforceOrgUi {
   // TODO: transition to "orgGroupId"
   jetstreamOrganizationId?: Maybe<string>;

@@ -62,7 +62,7 @@ const csp = [
   `default-src 'self'`,
   `script-src 'self' ${scriptHashes.join(' ')} https://static.cloudflareinsights.com`,
   `style-src 'self' 'unsafe-inline'`,
-  `img-src 'self' data: https://res.cloudinary.com`,
+  `img-src 'self' data:`,
   `font-src 'self' data:`,
   `connect-src 'self' https://*.algolia.net https://*.algolianet.com https://*.algolia.io https://cloudflareinsights.com`,
   `frame-ancestors 'none'`,

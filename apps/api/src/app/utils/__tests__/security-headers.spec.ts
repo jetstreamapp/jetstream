@@ -102,9 +102,10 @@ describe('security headers', () => {
     expect(appImgSrc).not.toContain('https://*.githubusercontent.com');
     expect(appImgSrc).not.toContain('https://*.wp.com');
     expect(appImgSrc).not.toContain('https://*.ctfassets.net');
+    // Images moved from Cloudinary to libs/shared/assets, served same-origin under /assets/images
+    expect(appImgSrc).not.toContain('https://*.cloudinary.com');
 
     // Retained for /app: hosts the app actually loads images from
-    expect(appImgSrc).toContain('https://*.cloudinary.com');
     expect(appImgSrc).toContain('https://*.googleusercontent.com');
     expect(appImgSrc).toContain('https://*.salesforce.com');
 

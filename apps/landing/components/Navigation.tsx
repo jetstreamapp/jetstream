@@ -80,11 +80,7 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
                 <span className="sr-only">Jetstream</span>
                 <img
                   className="h-8 w-auto sm:h-10"
-                  src={
-                    inverse
-                      ? 'https://res.cloudinary.com/getjetstream/image/upload/v1634516624/public/jetstream-logo-inverse.svg'
-                      : 'https://res.cloudinary.com/getjetstream/image/upload/v1634516624/public/jetstream-logo.svg'
-                  }
+                  src={inverse ? '/assets/images/jetstream-logo-inverse.svg' : '/assets/images/jetstream-logo.svg'}
                   alt="Jetstream logo"
                 />
               </Link>
@@ -126,7 +122,7 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
                 <img
                   title="View project on Github"
                   className="h-6 w-6"
-                  src="https://res.cloudinary.com/getjetstream/image/upload/v1673824284/public/github-mark-white_ksnuo6.svg"
+                  src="/assets/images/third-party/github-mark-white.svg"
                   alt="View project on Github"
                 />
               </a>
@@ -134,7 +130,7 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
                 <img
                   title="Join the SFXD Discord Community (#vendors-jetstream)"
                   className="h-6 w-6"
-                  src="https://res.cloudinary.com/getjetstream/image/upload/v1673824421/public/discord-mark-white_ny5zwv.svg"
+                  src="/assets/images/third-party/discord-mark-white.svg"
                   alt="Join the SFXD Discord Community (#vendors-jetstream)"
                 />
               </a>
@@ -191,11 +187,7 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
               <div className="rounded-lg shadow-md bg-white ring-1 ring-black ring-opacity-5 overflow-hidden">
                 <div className="px-5 pt-4 flex items-center justify-between">
                   <div>
-                    <img
-                      className="h-8 w-auto"
-                      src="https://res.cloudinary.com/getjetstream/image/upload/v1634608986/public/jetstream-icon-bare.svg"
-                      alt="Jetstream logo"
-                    />
+                    <img className="h-8 w-auto" src="/assets/images/jetstream-icon-bare-dark.svg" alt="Jetstream logo" />
                   </div>
                   <div className="-mr-2">
                     <button

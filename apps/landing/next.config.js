@@ -27,6 +27,16 @@ const nextConfig = {
           },
         ],
       },
+      {
+        source: '/assets/:path*',
+        destination: 'http://localhost:3333/assets/:path*', // Static images (libs/shared/assets) are served by the API
+        has: [
+          {
+            type: 'host',
+            value: 'localhost',
+          },
+        ],
+      },
     ],
   }),
   trailingSlash: true,

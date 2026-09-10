@@ -42,8 +42,6 @@ import {
   BulkJobBatchInfo,
   BulkJobWithBatches,
   ChildRelationship,
-  CloudinarySignature,
-  CloudinaryUploadResponse,
   ColorScheme,
   CreateSalesforceCanvasOrgRequest,
   DeployOptions,
@@ -107,8 +105,6 @@ export interface PaginationCursorParams {
 }
 
 //// LANDING PAGE ROUTES
-
-let cloudinarySignature: CloudinarySignature;
 
 function unwrapResponseIgnoreCache<T>(response: ApiResponse<T>) {
   return response.data;
@@ -612,58 +608,6 @@ export async function deleteOrgGroupAndAllOrgs(id: string): Promise<void> {
   return handleRequest({
     method: 'DELETE',
     url: `/api/orgs/groups/${id}/with-orgs`,
-  }).then(unwrapResponseIgnoreCache);
-}
-
-/**
- * First an upload signature is obtained from the server, if needed (good for 1 hour)
- * Then images are uploaded directly to cloudinary
- *
- * https://cloudinary.com/documentation/upload_images#example_2_upload_multiple_files_using_a_form_signed
- * @warn The server implementation is disabled - re-implement if this capability is required
- * @param files
- * @returns
- */
-export async function uploadImage(image: { content: string }): Promise<CloudinaryUploadResponse> {
-  // signatures are available for 1 hour, using a 5 minute buffer
-  const earliestValidTimestamp = Math.round(new Date().getTime() / 1000) - 60 * 55;
-  if (!cloudinarySignature || cloudinarySignature.timestamp >= earliestValidTimestamp) {
-    cloudinarySignature = await handleRequest<CloudinarySignature>({ method: 'GET', url: '/api/images/upload-signature' }).then(
-      unwrapResponseIgnoreCache,
-    );
-  }
-  const { apiKey, cloudName, context, signature, timestamp } = cloudinarySignature;
-
-  const formData = new FormData();
-  formData.append('file', image.content);
-  formData.append('api_key', apiKey);
-  formData.append('timestamp', `${timestamp}`);
-  formData.append('signature', signature);
-  formData.append('upload_preset', 'jetstream-issues');
-  formData.append('context', context);
-
-  return handleExternalRequest({
-    method: 'POST',
-    url: `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
-    data: formData,
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }).then(unwrapResponseIgnoreCache);
-}
-
-/**
- * https://cloudinary.com/documentation/upload_images#deleting_client_side_uploaded_assets
- */
-export async function deleteImage(deleteToken: string): Promise<CloudinaryUploadResponse> {
-  const { cloudName } = cloudinarySignature;
-
-  const formData = new FormData();
-  formData.append('token', deleteToken);
-
-  return handleExternalRequest({
-    method: 'POST',
-    url: `https://api.cloudinary.com/v1_1/${cloudName}/delete_by_token`,
-    data: formData,
-    headers: { 'Content-Type': 'multipart/form-data' },
   }).then(unwrapResponseIgnoreCache);
 }
 

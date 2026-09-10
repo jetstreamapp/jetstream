@@ -1,10 +1,10 @@
 /**
- * The source asset has a large transparent margin, so Cloudinary's trim transformation is applied
- * to keep the shield flush with surrounding content. Dimensions are those of the trimmed image so the
- * browser reserves the right footprint before the lazy image loads.
+ * A-LIGN ships the badge with a large transparent margin, so the pre-trimmed copy is used to keep the
+ * shield flush with surrounding content. Dimensions are those of the trimmed image so the browser
+ * reserves the right footprint before the lazy image loads.
  */
 const SOC2_BADGE = {
-  src: 'https://res.cloudinary.com/getjetstream/image/upload/e_trim/v1788963624/A_LIGN_badge_SOC_2_gu4mu2.png',
+  src: '/assets/images/third-party/a-lign-badge-soc-2-trimmed.png',
   alt: 'SOC 2 Type II, audited by A-LIGN',
   width: 938,
   height: 1200,

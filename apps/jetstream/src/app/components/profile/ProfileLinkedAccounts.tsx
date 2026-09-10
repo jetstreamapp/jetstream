@@ -83,7 +83,7 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
               <input type="hidden" name="callbackUrl" value={providers.google.callbackUrl} />
               <button type="submit" className="slds-button slds-button_neutral slds-m-top_small slds-m-right_smal slds-button_stretch">
                 <img
-                  src="https://res.cloudinary.com/getjetstream/image/upload/v1693697889/public/google-login-icon_bzw1hi.svg"
+                  src={providers.google.icon}
                   alt="Google"
                   className="slds-m-right_x-small"
                   css={css`
@@ -108,7 +108,7 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
               <input type="hidden" name="callbackUrl" value={providers.salesforce.callbackUrl} />
               <button type="submit" className="slds-button slds-button_neutral slds-m-top_small slds-button_stretch">
                 <img
-                  src="https://res.cloudinary.com/getjetstream/image/upload/v1724511801/salesforce-blue_qdptxw.svg"
+                  src={providers.salesforce.icon}
                   alt="Salesforce"
                   className="slds-m-right_x-small"
                   css={css`

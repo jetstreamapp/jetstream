@@ -18,7 +18,7 @@ function Page({ post }: PostProps) {
       <Head>
         <title>Jetstream Blog - {post.title}</title>
         <meta name="description" content={`Jetstream blog - ${post.summary}.`} />
-        <link rel="icon" type="image/png" href="/images/favicon.ico"></link>
+        <link rel="icon" type="image/png" href="/assets/images/favicon.ico"></link>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
@@ -38,7 +38,7 @@ function Page({ post }: PostProps) {
         <link rel="manifest" href="/assets/images/manifest.json" />
 
         <meta name="msapplication-TileColor" content="#ffffff" />
-        <meta name="msapplication-TileImage" content="/images/ms-icon-144x144.png" />
+        <meta name="msapplication-TileImage" content="/assets/images/ms-icon-144x144.png" />
 
         <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96x96.png" />

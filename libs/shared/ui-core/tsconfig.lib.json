@@ -37,9 +37,6 @@
       "path": "../ui-core-shared/tsconfig.lib.json"
     },
     {
-      "path": "../ui-data-history/tsconfig.lib.json"
-    },
-    {
       "path": "../../test-utils/tsconfig.lib.json"
     },
     {
@@ -49,10 +46,16 @@
       "path": "../../auth/types/tsconfig.lib.json"
     },
     {
+      "path": "../ui-data-history/tsconfig.lib.json"
+    },
+    {
       "path": "../data/tsconfig.lib.json"
     },
     {
       "path": "../../desktop-types/tsconfig.lib.json"
+    },
+    {
+      "path": "../assets/tsconfig.lib.json"
     },
     {
       "path": "../../release-notes/tsconfig.lib.json"
