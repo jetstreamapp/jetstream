@@ -82,6 +82,7 @@ const seats = {
   available: 0,
   isUnlimited: false,
   isOverAllocated: false,
+  includedSeats: 0,
 };
 
 function makeSeatLimitError(kind: 'ADD' | 'ACCEPT_INVITATION') {

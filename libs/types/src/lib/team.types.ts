@@ -182,6 +182,8 @@ export const TeamSeatSummarySchema = z.object({
   available: z.number().int().nullable(),
   isUnlimited: z.boolean(),
   isOverAllocated: z.boolean(),
+  /** Seats a legacy flat-first-tier price covers; the seat count can never go below this */
+  includedSeats: z.number().int().min(0),
 });
 export type TeamSeatSummary = z.infer<typeof TeamSeatSummarySchema>;
 

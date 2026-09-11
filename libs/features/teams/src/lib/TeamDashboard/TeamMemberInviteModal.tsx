@@ -14,6 +14,7 @@ interface TeamMemberInviteModalProps {
   userRole: TeamMemberRole;
   seats: TeamSeatSummary | null;
   canManageSeats: boolean;
+  isPastDue: boolean;
   onBuySeats: () => void;
   onClose: (invitations?: TeamInviteUserFacing[]) => void;
 }
@@ -24,6 +25,7 @@ export function TeamMemberInviteModal({
   userRole,
   seats,
   canManageSeats,
+  isPastDue,
   onBuySeats,
   onClose,
 }: TeamMemberInviteModalProps) {
@@ -76,7 +78,13 @@ export function TeamMemberInviteModal({
       }
     >
       {seatBlocked && seats && (
-        <SeatsUnavailableNotice seats={seats} hasManualBilling={hasManualBilling} canManageSeats={canManageSeats} onBuySeats={onBuySeats} />
+        <SeatsUnavailableNotice
+          seats={seats}
+          hasManualBilling={hasManualBilling}
+          canManageSeats={canManageSeats}
+          isPastDue={isPastDue}
+          onBuySeats={onBuySeats}
+        />
       )}
       {!seatBlocked && requiresSeat && Number.isFinite(availableSeats) && (
         <ScopedNotification theme="info">

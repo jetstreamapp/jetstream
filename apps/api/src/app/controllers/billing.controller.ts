@@ -123,6 +123,13 @@ const createCheckoutSessionHandler = createRoute(
       if (!seats) {
         throw new UserFacingError('Choose how many seats to purchase for your team', { code: 'SEATS_BELOW_MINIMUM', minimum: 1 });
       }
+      // Self-serve checkout would charge the card while sync leaves the agreed cap untouched, so the
+      // team would pay for seats it never receives
+      if (team?.billingAccount?.manualBilling) {
+        throw new UserFacingError('Seats for this team are set by your billing agreement. Contact support to change them.', {
+          code: 'SEATS_MANUAL_BILLING',
+        });
+      }
       // An existing team's members and pending invitations already occupy seats, so the purchase must cover them
       if (team) {
         const usage = await subscriptionDbService.getTeamSeatUsage({ teamId: team.id });
@@ -137,8 +144,10 @@ const createCheckoutSessionHandler = createRoute(
       session = await stripeService.createCheckoutSession({
         mode: 'subscription',
         priceId,
+        // An existing team already bills against its own customer; using the buyer's personal customer
+        // would put the subscription somewhere the team's seat sync never looks.
         // Customer will be created if it doesn't exist
-        customerId: user.billingAccount?.customerId,
+        customerId: team?.billingAccount?.customerId ?? user.billingAccount?.customerId,
         user,
         type: 'TEAM',
         teamId: team?.id,
@@ -227,6 +236,9 @@ const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.val
     return;
   }
   const customer = stripeService.convertCustomerWithSubscriptionsToUserFacing(internalCustomer);
+  // Stripe omits the tier table from the expanded subscription item, so a tiered Team plan renders
+  // unknown pricing until the tables are filled in
+  await stripeService.attachTiersToTieredItems(customer);
   const hasManualBilling = await userDbService.hasManualBilling({ userId: user.id });
 
   let userProfile: UserProfileUi | undefined;

@@ -78,6 +78,7 @@ function makeSeatSummary(overrides: Partial<TeamSeatSummary> = {}): TeamSeatSumm
     used: 2,
     reserved: 1,
     available: 2,
+    includedSeats: 0,
     isUnlimited: false,
     isOverAllocated: false,
     ...overrides,

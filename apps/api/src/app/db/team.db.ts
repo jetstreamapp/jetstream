@@ -222,6 +222,14 @@ export const doesUserHaveSpecifiedRoles = async ({ userId, roles }: { userId: st
   return count > 0;
 };
 
+/** Current status of a member, used to label what a blocked membership change was actually attempting. */
+export const findMemberStatus = async ({ teamId, userId }: { teamId: string; userId: string }) => {
+  return prisma.teamMember.findUnique({
+    select: { status: true },
+    where: { teamId_userId: { teamId, userId } },
+  });
+};
+
 /**
  * Only use for internal use-cases, do not expose to users.
  */

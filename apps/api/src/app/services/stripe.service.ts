@@ -176,7 +176,7 @@ async function fetchPriceTiers(priceId: string): Promise<JetstreamPriceTier[] | 
  * Fill in the tier table for tiered subscription items so the client can show what the customer
  * actually pays. A failed lookup leaves `tiers` null rather than failing the whole billing page.
  */
-async function attachTiersToTieredItems(customer: StripeUserFacingCustomer): Promise<void> {
+export async function attachTiersToTieredItems(customer: StripeUserFacingCustomer): Promise<void> {
   const tieredItems = customer.subscriptions.flatMap(({ items }) => items).filter((item) => item.billingScheme === 'tiered' && !item.tiers);
   await Promise.all(
     tieredItems.map(async (item) => {
@@ -1158,7 +1158,19 @@ export async function scheduleTeamSeatDecrease({
   quantity: number;
 }): Promise<Stripe.SubscriptionSchedule> {
   const schedule = await stripe.subscriptionSchedules.create({ from_subscription: subscription.id });
-  return await stripe.subscriptionSchedules.update(schedule.id, buildSeatDecreaseScheduleParams({ teamId, schedule, item, quantity }));
+  try {
+    return await stripe.subscriptionSchedules.update(schedule.id, buildSeatDecreaseScheduleParams({ teamId, schedule, item, quantity }));
+  } catch (ex) {
+    // Without our metadata the schedule reads as foreign on the next sync, which blocks every future
+    // seat change until someone clears it by hand
+    await releaseTeamSeatSchedule(schedule.id).catch((releaseError) => {
+      logger.error(
+        { teamId, scheduleId: schedule.id, ...getErrorMessageAndStackObj(releaseError) },
+        'Unable to release the seat decrease schedule after it failed to configure',
+      );
+    });
+    throw ex;
+  }
 }
 
 /** Detach a seat decrease schedule; an already-released or missing schedule counts as done. */

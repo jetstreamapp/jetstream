@@ -36,7 +36,7 @@ export const PRICING_COPY = {
     features: [
       'Everything in Professional',
       'Manage team members',
-      'Unlimited team members',
+      'Add seats as your team grows',
       'SSO via OIDC and SAML',
       'View & Manage team member session activity',
       'Role-based access control',

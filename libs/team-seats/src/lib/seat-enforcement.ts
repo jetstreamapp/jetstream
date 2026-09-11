@@ -93,7 +93,13 @@ export async function getTeamSeatSummary(
     select: {
       billingStatus: true,
       billingAccount: {
-        select: { manualBilling: true, licenseCountLimit: true, pendingSeatQuantity: true, pendingSeatEffectiveAt: true },
+        select: {
+          manualBilling: true,
+          licenseCountLimit: true,
+          pendingSeatQuantity: true,
+          pendingSeatEffectiveAt: true,
+          includedSeats: true,
+        },
       },
     },
   });
@@ -113,11 +119,15 @@ export async function getTeamSeatSummary(
     billingStatus: team.billingStatus,
     manualBilling: team.billingAccount?.manualBilling ?? false,
     seats: summarizeSeats({
+      // A null limit reads as uncapped on purpose. It is the state of every team until the seat
+      // backfill runs, and of a brand-new team between checkout and its first Stripe sync. Failing
+      // closed here would lock a paying team out of adding anyone over a sync hiccup.
       purchasedSeats: team.billingAccount?.licenseCountLimit ?? null,
       pendingSeats: team.billingAccount?.pendingSeatQuantity ?? null,
       pendingEffectiveAt: team.billingAccount?.pendingSeatEffectiveAt ?? null,
       usedSeats,
       reservedSeats,
+      includedSeats: team.billingAccount?.includedSeats ?? null,
     }),
   };
 }

@@ -46,7 +46,8 @@ function getSuccessMessage({ changeType, seats, effectiveAt }: TeamSeatChangeRes
 export function TeamSeatsManageModal({ teamId, seats, onClose }: TeamSeatsManageModalProps) {
   const { trackEvent } = useAmplitude();
   const purchasedSeats = seats.purchased ?? 0;
-  const minSeats = Math.max(1, seats.used + seats.reserved);
+  // Mirrors the server's floor: usage, plus whatever a legacy flat-first-tier price already includes
+  const minSeats = Math.max(1, seats.used + seats.reserved, seats.includedSeats);
 
   // Start from the count that will be in force, but never below what the team already uses
   const [requestedSeats, setRequestedSeats] = useState(Math.max(seats.pending ?? purchasedSeats, minSeats));

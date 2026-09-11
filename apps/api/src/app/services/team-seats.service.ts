@@ -150,6 +150,7 @@ function validateSeatRequest({
       pendingEffectiveAt: pending?.effectiveAt ?? null,
       usedSeats: usage.used,
       reservedSeats: usage.reserved,
+      includedSeats,
     }),
     billingStatus: context.billingStatus,
     manualBilling: false,

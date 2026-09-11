@@ -33,6 +33,7 @@ interface FakeAccount {
   seatQuantity: number | null;
   includedSeats: number;
   seatSubscriptionItemId: string | null;
+  seatPeriodEnd: Date | null;
 }
 
 function createAccount(overrides: Partial<FakeAccount> & Pick<FakeAccount, 'teamId' | 'customerId'>): FakeAccount {
@@ -42,6 +43,7 @@ function createAccount(overrides: Partial<FakeAccount> & Pick<FakeAccount, 'team
     seatQuantity: null,
     includedSeats: 0,
     seatSubscriptionItemId: null,
+    seatPeriodEnd: null,
     ...overrides,
   };
 }
@@ -265,6 +267,7 @@ describe('backfillTeamSeats', () => {
           licenseCountLimit: 7,
           seatQuantity: 7,
           seatSubscriptionItemId: 'si_synced',
+          seatPeriodEnd: new Date(PERIOD_END_SECONDS * 1000),
         }),
       ],
       customersById: {
@@ -288,6 +291,42 @@ describe('backfillTeamSeats', () => {
     expect(harness.update).not.toHaveBeenCalled();
     expect(mockCreateAuditLog).not.toHaveBeenCalled();
     expect(loggedMessages(harness.logger.info).some((message) => message.includes('[SKIP_ALREADY_SYNCED]'))).toBe(true);
+  });
+
+  it('refreshes a team whose seat count matches but whose period end is stale after a renewal', async () => {
+    const harness = createHarness({
+      accounts: [
+        createAccount({
+          teamId: 'team-renewed',
+          customerId: 'cus_renewed',
+          licenseCountLimit: 7,
+          seatQuantity: 7,
+          seatSubscriptionItemId: 'si_renewed',
+          // Last period's end, left behind by an earlier run
+          seatPeriodEnd: new Date('2026-09-10T12:00:00.000Z'),
+        }),
+      ],
+      customersById: {
+        cus_renewed: createCustomer({
+          id: 'cus_renewed',
+          subscriptions: [
+            {
+              id: 'sub_renewed',
+              status: 'active',
+              items: [{ id: 'si_renewed', priceId: 'price_volume', lookupKey: 'TEAM_ANNUAL', quantity: 7 }],
+            },
+          ],
+        }),
+      },
+      tiersByPriceId: { price_volume: VOLUME_TIERS },
+    });
+
+    const result = await backfillTeamSeats({ ...harness, dryRun: false, now: NOW });
+
+    expect(result).toEqual({ dryRun: false, scanned: 1, updated: 1, skipped: 0, warnings: 0, failures: 0 });
+    expect(harness.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ seatPeriodEnd: new Date(PERIOD_END_SECONDS * 1000) }) }),
+    );
   });
 
   it('writes nothing in dry-run mode but reports what would change', async () => {

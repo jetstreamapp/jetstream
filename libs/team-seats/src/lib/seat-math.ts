@@ -18,6 +18,7 @@ export interface SeatInputs {
   pendingEffectiveAt: Date | string | null;
   usedSeats: number;
   reservedSeats: number;
+  includedSeats?: number | null;
 }
 
 export interface SeatTeamShape {
@@ -25,6 +26,7 @@ export interface SeatTeamShape {
     licenseCountLimit: number | null;
     pendingSeatQuantity?: number | null;
     pendingSeatEffectiveAt?: Date | string | null;
+    includedSeats?: number | null;
   } | null;
   members: { role: string; status: string }[];
   invitations: { role: string; expiresAt: Date | string }[];
@@ -53,6 +55,7 @@ export function summarizeSeats({
   pendingEffectiveAt,
   usedSeats,
   reservedSeats,
+  includedSeats,
 }: SeatInputs): TeamSeatSummary {
   const isUnlimited = purchasedSeats === null;
   let effective: number | null = purchasedSeats;
@@ -70,6 +73,7 @@ export function summarizeSeats({
     available,
     isUnlimited,
     isOverAllocated: available !== null && available < 0,
+    includedSeats: includedSeats ?? 0,
   };
 }
 
@@ -81,6 +85,7 @@ export function summarizeSeatsFromTeam(team: SeatTeamShape, now = new Date()): T
     pendingEffectiveAt: team.billingAccount?.pendingSeatEffectiveAt ?? null,
     usedSeats: team.members.filter(isSeatConsumingMember).length,
     reservedSeats: team.invitations.filter((invitation) => isSeatReservingInvitation(invitation, now)).length,
+    includedSeats: team.billingAccount?.includedSeats ?? null,
   });
 }
 

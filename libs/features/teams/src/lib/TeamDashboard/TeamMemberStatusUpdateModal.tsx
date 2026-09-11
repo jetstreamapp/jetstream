@@ -15,6 +15,7 @@ interface TeamMemberStatusUpdateModalProps {
   hasManualBilling: boolean;
   seats: TeamSeatSummary | null;
   canManageSeats: boolean;
+  isPastDue: boolean;
   onBuySeats: () => void;
   onClose: (team?: TeamUserFacing) => void;
 }
@@ -26,6 +27,7 @@ export function TeamMemberStatusUpdateModal({
   hasManualBilling,
   seats,
   canManageSeats,
+  isPastDue,
   onBuySeats,
   onClose,
 }: TeamMemberStatusUpdateModalProps) {
@@ -118,6 +120,7 @@ export function TeamMemberStatusUpdateModal({
                 seats={seats}
                 hasManualBilling={hasManualBilling}
                 canManageSeats={canManageSeats}
+                isPastDue={isPastDue}
                 onBuySeats={onBuySeats}
               />
             )}

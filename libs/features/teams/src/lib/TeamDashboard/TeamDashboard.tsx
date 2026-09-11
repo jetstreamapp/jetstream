@@ -13,6 +13,7 @@ import { useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
   DomainVerification,
+  TEAM_BILLING_STATUS_PAST_DUE,
   TeamBillingStatusSchema,
   TeamGlobalAction,
   TeamLoginConfig,
@@ -98,6 +99,7 @@ export function TeamDashboard() {
   // Manual-billing seat limits are set by agreement, so only self-serve teams get the Manage Seats flow.
   // Past-due standing disables the button in place rather than hiding it, so it is not part of this check.
   const canManageSeats = ability.can('update', 'TeamSeats') && !hasManualBilling;
+  const isPastDue = team?.billingStatus === TEAM_BILLING_STATUS_PAST_DUE;
   const seats = team?.seats ?? null;
   const seatBanner = getSeatBannerState(seats, hasManualBilling);
   const hasVerifiedDomain = useMemo(() => {
@@ -281,6 +283,7 @@ export function TeamDashboard() {
           userRole={userProfile.teamMembership?.role || TeamMemberRoleSchema.enum.MEMBER}
           seats={seats}
           canManageSeats={canManageSeats}
+          isPastDue={isPastDue}
           onBuySeats={openManageSeatsFromModal}
           onClose={(_invitations) => {
             fetchTeam();
@@ -317,6 +320,7 @@ export function TeamDashboard() {
           currentUserRole={userProfile.teamMembership?.role}
           seats={seats}
           canManageSeats={canManageSeats}
+          isPastDue={isPastDue}
           onBuySeats={openManageSeatsFromModal}
           onClose={(teamData) => {
             if (teamData) {
@@ -334,6 +338,7 @@ export function TeamDashboard() {
           teamMember={teamMemberStatusUpdateState.teamMember}
           seats={seats}
           canManageSeats={canManageSeats}
+          isPastDue={isPastDue}
           onBuySeats={openManageSeatsFromModal}
           onClose={(teamData) => {
             if (teamData) {

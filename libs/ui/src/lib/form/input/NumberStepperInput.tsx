@@ -21,8 +21,13 @@ export interface NumberStepperInputProps {
   onChange: (value: number) => void;
 }
 
+/** Number rather than parseInt so a decimal is rejected outright instead of silently truncating */
 function parseInteger(value: string): number | null {
-  const parsed = Number.parseInt(value, 10);
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const parsed = Number(trimmed);
   return Number.isInteger(parsed) ? parsed : null;
 }
 

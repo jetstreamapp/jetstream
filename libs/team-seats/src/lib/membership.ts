@@ -22,7 +22,14 @@ export async function addMemberFromInvitation(
   { teamId, userId, invitation }: { teamId: string; userId: string; invitation: AcceptedInvitation },
 ): Promise<{ role: string; status: string }> {
   await lockTeamForSeatChange(tx, teamId);
-  if (isBillableRole(invitation.role)) {
+  // The caller read the invitation before taking the lock. Re-read it here so a role change in the
+  // meantime cannot slip a billable member past the seat check on the strength of a stale snapshot,
+  // and so a revoked invitation cannot still grant its privileges.
+  const { role, features } = await tx.teamMemberInvitation.findUniqueOrThrow({
+    where: { id: invitation.id },
+    select: { role: true, features: true },
+  });
+  if (isBillableRole(role)) {
     await assertSeatAvailable(tx, { teamId, kind: 'ACCEPT_INVITATION' });
   }
   await tx.teamMemberInvitation.delete({ where: { id: invitation.id } });
@@ -31,9 +38,9 @@ export async function addMemberFromInvitation(
     data: {
       teamId,
       userId,
-      role: invitation.role,
+      role,
       status: TEAM_MEMBER_STATUS_ACTIVE,
-      features: invitation.features,
+      features,
       createdById: userId,
       updatedById: userId,
     },

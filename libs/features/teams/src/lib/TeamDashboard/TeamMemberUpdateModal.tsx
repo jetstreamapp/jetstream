@@ -15,6 +15,7 @@ interface TeamMemberUpdateModalProps {
   currentUserRole?: TeamMemberRole;
   seats: TeamSeatSummary | null;
   canManageSeats: boolean;
+  isPastDue: boolean;
   onBuySeats: () => void;
   onClose: (team?: TeamUserFacing) => void;
 }
@@ -26,6 +27,7 @@ export function TeamMemberUpdateModal({
   currentUserRole,
   seats,
   canManageSeats,
+  isPastDue,
   onBuySeats,
   onClose,
 }: TeamMemberUpdateModalProps) {
@@ -81,7 +83,13 @@ export function TeamMemberUpdateModal({
       }
     >
       {seatBlocked && seats && (
-        <SeatsUnavailableNotice seats={seats} hasManualBilling={hasManualBilling} canManageSeats={canManageSeats} onBuySeats={onBuySeats} />
+        <SeatsUnavailableNotice
+          seats={seats}
+          hasManualBilling={hasManualBilling}
+          canManageSeats={canManageSeats}
+          isPastDue={isPastDue}
+          onBuySeats={onBuySeats}
+        />
       )}
       {!seatBlocked && isMovingToBillable && Number.isFinite(availableSeats) && (
         <ScopedNotification theme="info">

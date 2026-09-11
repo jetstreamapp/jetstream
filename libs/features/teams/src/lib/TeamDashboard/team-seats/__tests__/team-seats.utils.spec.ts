@@ -32,6 +32,7 @@ function buildSeats(overrides: Partial<TeamSeatSummary> = {}): TeamSeatSummary {
     available,
     isUnlimited: purchased === null,
     isOverAllocated: available !== null && available < 0,
+    includedSeats: 0,
     ...overrides,
   };
 }

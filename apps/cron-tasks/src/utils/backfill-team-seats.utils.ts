@@ -170,8 +170,15 @@ async function backfillAccount({
     );
   }
 
+  const seatPeriodEnd = new Date(item.current_period_end * 1000);
+  // Every mirrored column is compared, not just the cap: a rerun after a renewal or after a corrected
+  // tier lookup must not report a row as synced while leaving those fields stale
   const isAlreadySynced =
-    account.licenseCountLimit === desiredSeats && account.seatQuantity === quantity && account.seatSubscriptionItemId === item.id;
+    account.licenseCountLimit === desiredSeats &&
+    account.seatQuantity === quantity &&
+    account.seatSubscriptionItemId === item.id &&
+    account.includedSeats === includedSeats &&
+    account.seatPeriodEnd?.getTime() === seatPeriodEnd.getTime();
   if (isAlreadySynced) {
     result.skipped++;
     logger.info({ teamId, customerId, seats: desiredSeats }, '[SKIP_ALREADY_SYNCED] Seat fields already match Stripe');
@@ -182,7 +189,7 @@ async function backfillAccount({
     seatQuantity: quantity,
     includedSeats,
     seatSubscriptionItemId: item.id,
-    seatPeriodEnd: new Date(item.current_period_end * 1000),
+    seatPeriodEnd,
     licenseCountLimit: desiredSeats,
   };
   const logContext = { teamId, customerId, previousLimit: account.licenseCountLimit, priceLookupKey: item.price.lookup_key, ...seatState };

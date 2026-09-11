@@ -477,6 +477,7 @@ describe('handleSsoLogin seat enforcement', () => {
     available: 2,
     isUnlimited: false,
     isOverAllocated: false,
+    includedSeats: 0,
   };
   const membership = { teamId: TEAM_ID, role: 'MEMBER', status: 'ACTIVE' };
 

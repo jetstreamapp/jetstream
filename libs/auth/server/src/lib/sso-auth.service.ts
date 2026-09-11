@@ -347,17 +347,33 @@ export async function handleSsoLogin(
       throw new SsoAutoProvisioningDisabled('User not invited. JIT provisioning is disabled for this team.');
     }
 
-    // Determine role and features for new user
-    const role = invitation?.role || TEAM_MEMBER_ROLE_MEMBER;
-    const features = invitation?.features || ['ALL'];
+    // Tracks the role the seat check actually ran against, so a rejection reports what was attempted
+    let attemptedRole: string = invitation?.role || TEAM_MEMBER_ROLE_MEMBER;
 
     try {
       // Create the user and their membership under the team row lock so the seat check and the write
       // are atomic. An invitation converts its reservation (ACCEPT_INVITATION); JIT without one takes a
       // brand-new seat (ADD).
       const newUser = await withTeamSeatLock(teamId, async (tx) => {
+        // The invitation was read before the lock, so re-read it here: one revoked or re-roled in the
+        // meantime must not still hand out its role, features, or its seat reservation.
+        const currentInvitation = invitation
+          ? await tx.teamMemberInvitation.findFirst({
+              where: { id: invitation.id, teamId, email, expiresAt: { gte: new Date() } },
+              select: { id: true, role: true, features: true },
+            })
+          : null;
+        if (invitation && !currentInvitation && !loginConfig.ssoJitProvisioningEnabled) {
+          throw new SsoAutoProvisioningDisabled('User not invited. JIT provisioning is disabled for this team.');
+        }
+
+        // Determine role and features for new user
+        const role = currentInvitation?.role || TEAM_MEMBER_ROLE_MEMBER;
+        const features = currentInvitation?.features || ['ALL'];
+        attemptedRole = role;
+
         if (isBillableRole(role)) {
-          await assertSeatAvailable(tx, { teamId, kind: invitation ? 'ACCEPT_INVITATION' : 'ADD' });
+          await assertSeatAvailable(tx, { teamId, kind: currentInvitation ? 'ACCEPT_INVITATION' : 'ADD' });
         }
         const createdUser = await tx.user
           .create({
@@ -406,9 +422,10 @@ export async function handleSsoLogin(
           .then((user) => AuthenticatedUserSchema.parse(user));
 
         // deleteMany rather than delete: a zero-row delete must not abort the transaction if the
-        // invitation was revoked concurrently
-        if (invitation) {
-          await tx.teamMemberInvitation.deleteMany({ where: { id: invitation.id } });
+        // invitation was revoked concurrently. The role above came from the re-read row, so a
+        // vanished invitation costs nothing more than the cleanup.
+        if (currentInvitation) {
+          await tx.teamMemberInvitation.deleteMany({ where: { id: currentInvitation.id } });
         }
         return createdUser;
       });
@@ -443,7 +460,7 @@ export async function handleSsoLogin(
       return newUser;
     } catch (error) {
       if (!isUniqueConstraintError(error)) {
-        rethrowSsoSeatLimit(error, { teamId, email, role });
+        rethrowSsoSeatLimit(error, { teamId, email, role: attemptedRole });
       }
       // A concurrent request created the user first — re-fetch and continue to existing-user flow
       logger.info({ teamId, provider, email }, 'SSO user creation race condition detected, retrying as existing user');
