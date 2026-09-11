@@ -1,7 +1,7 @@
 ---
 id: permission-analysis
 title: Permission Analysis
-description: Audit and export object, field, tab, and system permissions across your profiles and permission sets, and automatically surface access issues.
+description: Scan every profile and permission set in your org for over-access, inconsistent field security, and dead configuration, then export the evidence.
 keywords:
   [
     salesforce,
@@ -23,15 +23,23 @@ sidebar_label: Permission Analysis
 slug: /permission-analysis
 ---
 
+Permission Analysis scans the profiles and permission sets you select and hands you a ranked list of access problems: over-exposure, field security that is not backed by object access, dangerous system permissions, and permission sets nobody is assigned to. Every grid it produces can be downloaded as Excel, CSV or JSON, so the output doubles as audit evidence.
+
+It is completely **read-only**. Nothing in Permission Analysis changes your org, so it is safe to run at any time. Where [Manage Permissions](/permissions) lets you _edit_ object and field permissions, Permission Analysis _reads, scans and exports_ the full picture.
+
 :::info
 
-Permission Analysis is available on a **paid Jetstream plan** and is currently in **pre-release**. It is fully functional, but the interface and the set of detected issues may change as we continue to refine it. Upgrade from within Jetstream (**Settings &rarr; Billing**) to enable it.
+Permission Analysis is available on a **paid Jetstream plan**. Upgrade from within Jetstream under **Settings &rarr; Billing**.
 
 :::
 
-Permission Analysis gives you a **read-only** audit of who can access what in your org. Where [Manage Permissions](/permissions) lets you _edit_ object and field permissions, Permission Analysis _reads and exports_ the full permission picture for the profiles and permission sets you choose, then automatically scans it for access **issues** — over-exposure, inconsistent field-vs-object access, unused permission sets, and more.
+## What people use it for
 
-Nothing in Permission Analysis changes your org. It only reads metadata, so it is safe to run at any time.
+- **Quarterly access reviews.** Export object, field and system permissions for every profile in scope and attach the file to your review record.
+- **Pre-audit preparation.** Find and document every grant of Modify All Data, View All Data and Export Reports before somebody else does.
+- **Offboarding and role changes.** See exactly which permission sets a user holds, including the ones they inherit through a permission set group.
+- **Cleanup after a migration or merge.** Surface permission sets with no assignments, tabs pointing at objects nobody can read, and field security that the same container never grants object access for.
+- **Troubleshooting "why can this person see that?"** Jump from any cell straight into the matching Salesforce Setup page.
 
 ## Requirements
 
@@ -78,6 +86,12 @@ Every grid supports **Expand all** / **Collapse all**, a **quick-filter search b
   alt="Permission Analysis results view with the tab strip and Expand/Collapse controls"
 />
 
+## Downloading the results
+
+Every table has a **download button** in its header — each permission tree, the export grid, the issues tab, and the findings detail modal. You get the same download options as everywhere else in Jetstream: **Excel**, **CSV**, **JSON**, or straight to **Google Drive**.
+
+Downloads respect what you are currently looking at, so you can filter the Issues tab down to errors on a single object and export just that slice. This is the fastest way to hand a specific finding to the person who owns it, drop a permission snapshot into a spreadsheet for sign-off, or keep a record of what permissions looked like before a change.
+
 ## Issues
 
 Permission Analysis inspects the exported permissions and reports **findings** at two severities:
@@ -85,14 +99,34 @@ Permission Analysis inspects the exported permissions and reports **findings** a
 - **Error** — real over-access or exposure that usually warrants review.
 - **Warning** — an inconsistency, incomplete setup, or cleanup opportunity.
 
-Examples of what is detected:
+### What Jetstream checks for
 
-- **Modify All Records** / **View All Records** on an object — bypasses the sharing model for that object.
-- **High-risk or elevated system permissions** — such as Modify All Data, View All Data, Author Apex, Manage Users, Customize Application, or Export Reports.
-- **Field access not backed by object access in the same container** — field Read or Edit is granted, but that profile or permission set grants no corresponding object access.
-- **Object permission with no field permissions configured** — default field-level security applies.
-- **Permission set with no direct assignments** that is also not part of a permission set group (likely dead configuration).
-- **Tab visible without object read** — a tab is visible but the underlying object grants no Read.
+| Code                         | Severity | Meaning                                                                                          |
+| ---------------------------- | -------- | ------------------------------------------------------------------------------------------------ |
+| `OBJECT_MODIFY_ALL_RECORDS`  | Error    | Modify All Records bypasses the sharing model — edit and delete every record of this object.     |
+| `SYSTEM_PERM_HIGH_RISK`      | Error    | A high-risk system permission is granted. See the catalog below.                                 |
+| `OBJECT_VIEW_ALL_RECORDS`    | Warning  | View All Records bypasses the sharing model — read every record of this object.                  |
+| `SYSTEM_PERM_ELEVATED`       | Warning  | An elevated system permission is granted. See the catalog below.                                 |
+| `FLS_READ_NO_OBJECT_READ`    | Warning  | Field read is granted, but this container grants no object read, so access must come elsewhere.  |
+| `FLS_EDIT_NO_OBJECT_EDIT`    | Warning  | Field edit is granted, but this container grants no object edit, so access must come elsewhere.  |
+| `FLS_WITHOUT_OLS_ROW`        | Warning  | Field permissions exist for the object, but this container has no object permissions row at all. |
+| `OLS_READ_NO_FLS_ROWS`       | Warning  | Object read is granted with no field permissions configured, so default field access applies.    |
+| `OLS_EDIT_NO_FLS_ROWS`       | Warning  | Object edit is granted with no field permissions configured, so default field access applies.    |
+| `PERMSET_NO_ASSIGNMENTS`     | Warning  | A permission set has no direct assignments and is not part of a permission set group.            |
+| `TAB_VISIBLE_NO_OBJECT_READ` | Warning  | A tab is visible, but the container grants no read on the underlying object.                     |
+| `FINDINGS_TRUNCATED`         | Warning  | Some findings were omitted to keep the export result size bounded. See the note below.           |
+
+### High-risk system permission catalog
+
+When any of these is granted to a profile or permission set in your selection, Jetstream raises a finding. Tier 1 permissions are reported as errors, the rest as warnings.
+
+| Tier | Reported as | Permissions                                                                                                                                           |
+| ---- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Error       | Modify All Data, View All Data, Author Apex                                                                                                           |
+| 2    | Warning     | Manage Users, Manage Internal Users, Manage Profiles and Permission Sets, Assign Permission Sets, Manage Roles, Customize Application, Manage Sharing |
+| 3    | Warning     | Export Reports, API Enabled, View All Users, Manage Data Integrations, Password Never Expires, View Setup and Configuration                           |
+
+Tier 1 is full data access or the ability to run arbitrary code. Tier 2 is privilege escalation and control over users and configuration. Tier 3 is data egress and setup visibility.
 
 :::note
 
