@@ -174,7 +174,7 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
     hero: {
       title: 'Permission audits in minutes, not hours',
       description:
-        'View and edit field-level security and object permissions across profiles and permission sets without clicking through setup endlessly. Then let Permission Analysis scan the whole selection for over-access, dangerous system permissions, and field security nothing backs up, and hand you the findings ranked by severity.',
+        'View and edit field-level security and object permissions across profiles and permission sets without clicking through setup endlessly. Then let Permission Analysis scan the whole selection for over-access, dangerous system permissions, and field access the same profile or permission set never grants object access for, and hand you the findings ranked by severity.',
       bullets: [
         'View field-level security across multiple profiles and permission sets',
         'Edit object and field permissions in bulk',
@@ -200,7 +200,7 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
         icon: ExclamationTriangleIcon,
         title: 'Automatic Issue Detection',
         description:
-          'Permission Analysis scans your selection for over-exposure, high-risk system permissions, orphaned permission sets, and field access no object permission backs up.',
+          'Permission Analysis scans your selection for over-exposure, high-risk system permissions, orphaned permission sets, and field access the same container never grants object access for.',
       },
       {
         icon: ArrowDownTrayIcon,

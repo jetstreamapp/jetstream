@@ -44,8 +44,8 @@ export const AnalysisToolsPaywall: FunctionComponent<AnalysisToolsPaywallProps> 
         <h2 className="slds-text-heading_medium slds-m-bottom_x-small">{featureLabel} is a paid feature</h2>
         <p className="slds-text-body_regular slds-text-color_weak slds-m-bottom_small">
           Permission Analysis scans the profiles and permission sets you choose for over-access, dangerous system permissions, and field
-          security that is not backed by object access. Field Usage Analysis measures how much of your data actually populates each field so
-          you can find the ones nobody uses. Every result can be exported to Excel, CSV, or JSON.
+          access the same profile or permission set never grants object access for, and every result grid downloads to Excel, CSV, or JSON.
+          Field Usage Analysis measures how much of your data actually populates each field so you can find the ones nobody uses.
         </p>
         <div className="slds-align_absolute-center slds-m-bottom_medium">
           <ViewDocsLink path={docsPath} textReset />

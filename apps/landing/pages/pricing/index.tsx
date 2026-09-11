@@ -43,7 +43,7 @@ const tiers = [
       'Everything in Free plan',
       <a
         key="permission-analysis"
-        href={`${ROUTES.EXTERNAL.DOCS}/permission-analysis`}
+        href={ROUTES.EXTERNAL.DOCS_PERMISSION_ANALYSIS}
         target="_blank"
         rel="noreferrer"
         className="text-cyan-500 hover:underline"
@@ -52,7 +52,7 @@ const tiers = [
       </a>,
       <a
         key="field-usage-analysis"
-        href={`${ROUTES.EXTERNAL.DOCS}/data-analysis`}
+        href={ROUTES.EXTERNAL.DOCS_DATA_ANALYSIS}
         target="_blank"
         rel="noreferrer"
         className="text-cyan-500 hover:underline"
