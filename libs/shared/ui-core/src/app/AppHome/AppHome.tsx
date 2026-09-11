@@ -207,7 +207,8 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
                             )}
                           </dt>
                           <dd className="slds-item_detail">{DESCRIPTION}</dd>
-                          {!locked && DOCS && (
+                          {/* Docs stay visible while locked — someone deciding whether to upgrade needs to read what the feature does. */}
+                          {DOCS && (
                             <a href={DOCS} target="_blank" className="slds-text-body_small" rel="noreferrer">
                               Documentation
                               <Icon

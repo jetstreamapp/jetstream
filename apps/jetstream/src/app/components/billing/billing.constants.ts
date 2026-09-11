@@ -16,6 +16,8 @@ export const TEAM_MONTHLY_KEY = 'TEAM_MONTHLY';
 export const TEAM_ANNUAL_KEY = 'TEAM_ANNUAL';
 
 export const professionalFeatures = [
+  'Permission Analysis: audit profiles and permission sets',
+  'Field Usage Analysis: find unused fields',
   'Desktop Application',
   'Browser Extensions (Chrome & Firefox)',
   'Save query history across devices',

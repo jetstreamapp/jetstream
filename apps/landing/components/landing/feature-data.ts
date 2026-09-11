@@ -10,6 +10,7 @@ import {
   CodeBracketIcon,
   CogIcon,
   DocumentDuplicateIcon,
+  ExclamationTriangleIcon,
   FunnelIcon,
   ListBulletIcon,
   PencilSquareIcon,
@@ -173,13 +174,13 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
     hero: {
       title: 'Permission audits in minutes, not hours',
       description:
-        'View and edit field-level security and object permissions across profiles and permission sets without clicking through setup endlessly. Compare permissions side by side across profiles. This is a game changer for permission audits and troubleshooting access issues.',
+        'View and edit field-level security and object permissions across profiles and permission sets without clicking through setup endlessly. Then let Permission Analysis scan the whole selection for over-access, dangerous system permissions, and field security nothing backs up, and hand you the findings ranked by severity.',
       bullets: [
         'View field-level security across multiple profiles and permission sets',
         'Edit object and field permissions in bulk',
         'Side-by-side comparison of permission sets and profiles',
-        'Quickly find and fix permission gaps',
-        'Export permission data for compliance documentation',
+        'Automatically flag Modify All Data, View All Data, and 14 more high-risk permissions',
+        'Export any result to Excel, CSV, or JSON for compliance documentation',
       ],
       screenshot: SCREENSHOTS.permissions,
       screenshotAlt: 'Jetstream permissions manager matrix view',
@@ -194,6 +195,17 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
         icon: PencilSquareIcon,
         title: 'Bulk Edit Permissions',
         description: 'Update field-level security and object permissions across multiple profiles at once.',
+      },
+      {
+        icon: ExclamationTriangleIcon,
+        title: 'Automatic Issue Detection',
+        description:
+          'Permission Analysis scans your selection for over-exposure, high-risk system permissions, orphaned permission sets, and field access no object permission backs up.',
+      },
+      {
+        icon: ArrowDownTrayIcon,
+        title: 'Audit-Ready Exports',
+        description: 'Every grid downloads to Excel, CSV, JSON, or Google Drive, so an access review comes with its own evidence file.',
       },
     ],
   },

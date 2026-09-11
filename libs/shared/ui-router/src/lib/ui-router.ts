@@ -142,7 +142,7 @@ export const APP_ROUTES: RouteMap = {
     ...getRoutePath('/permission-analysis'),
     DOCS: 'https://docs.getjetstream.app/permission-analysis',
     TITLE: 'Permission Analysis',
-    DESCRIPTION: 'Read and export permission coverage for profiles and permission sets',
+    DESCRIPTION: 'Audit profiles and permission sets for over-access and export the findings',
   },
   DATA_ANALYSIS: {
     ...getRoutePath('/data-analysis'),

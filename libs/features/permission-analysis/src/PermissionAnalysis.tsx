@@ -74,7 +74,7 @@ export const PermissionAnalysis: FunctionComponent = () => {
     return <Navigate to={APP_ROUTES.HOME.ROUTE} replace />;
   }
   if (!hasAnalysisToolsAccess) {
-    return <AnalysisToolsPaywall featureLabel="Permission Analysis" />;
+    return <AnalysisToolsPaywall featureLabel="Permission Analysis" docsPath={APP_ROUTES.PERMISSION_ANALYSIS.DOCS} />;
   }
   return blockAnalysisWithoutSelections ? <Navigate to="." /> : <Outlet />;
 };
