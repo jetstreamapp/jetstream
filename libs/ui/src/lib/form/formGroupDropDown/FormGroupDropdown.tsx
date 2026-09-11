@@ -16,6 +16,7 @@ import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import uniqueId from 'lodash/uniqueId';
 import { createRef, FunctionComponent, KeyboardEvent, RefObject, useEffect, useRef, useState } from 'react';
+import { useEscapeToCloseLayer } from '../../hooks/useEscapeToCloseLayer';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import Icon from '../../widgets/Icon';
 
@@ -89,15 +90,39 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
   function selectItem(item: FormGroupDropdownItem) {
     setSelectedItem(item);
     setIsOpen(false);
+    // The focused option unmounts with the list, which would drop focus to <body> — return it to the
+    // trigger (as Escape does) BEFORE notifying, so anything the selection opens records the trigger
+    // as its return-focus target
+    if (inputRef.current && typeof inputRef.current.focus === 'function') {
+      inputRef.current.focus();
+    }
     if (onSelected) {
       onSelected(item);
     }
   }
 
+  // Escape closes ONLY this menu (and returns focus to the trigger) — consumed at document capture
+  // so an ancestor modal/popover cannot also close on the same press
+  useEscapeToCloseLayer(isOpen, () => {
+    setIsOpen(false);
+    if (inputRef.current && typeof inputRef.current.focus === 'function') {
+      inputRef.current.focus();
+    }
+  });
+
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement | HTMLInputElement | HTMLLIElement>) {
     try {
       if (isTabKey(event)) {
+        // A focused option unmounts with the list — hand focus to the trigger WITHOUT preventDefault so
+        // the browser's sequential navigation continues from there in the same press
+        if (event.target !== inputRef.current && inputRef.current && typeof inputRef.current.focus === 'function') {
+          inputRef.current.focus();
+        }
         setIsOpen(false);
+        return;
+      }
+      // Modified keys are browser/app shortcuts (reload, page-level Cmd+Enter), not type-ahead
+      if (event.metaKey || event.ctrlKey || event.altKey) {
         return;
       }
 
@@ -105,11 +130,10 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
       event.stopPropagation();
       let newFocusedItem;
 
+      // While open, Escape never reaches here (useEscapeToCloseLayer consumes it at document
+      // capture); this guard covers the CLOSED state, keeping Escape out of the type-ahead buffer
+      // in the fallback branch below
       if (isEscapeKey(event)) {
-        setIsOpen(false);
-        if (inputRef.current && typeof inputRef.current.focus === 'function') {
-          inputRef.current.focus();
-        }
         return;
       }
 
@@ -131,7 +155,7 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
         } else {
           newFocusedItem = focusedItem + 1;
         }
-      } else if (isEnterKey(event) && isNumber(focusedItem)) {
+      } else if (isOpen && (isEnterKey(event) || isSpaceKey(event)) && isNumber(focusedItem)) {
         const item = items[focusedItem];
         selectItem(item);
       } else {
@@ -166,7 +190,8 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
           <div className={classNames('slds-combobox_container', { 'slds-has-icon-only': !!iconOnly })}>
             <div
               className={classNames('slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen })}
-              aria-controls={comboboxId}
+              // Only catches clicks bubbling from the trigger/icon area; the keyboard path is the trigger
+              role="presentation"
               onClick={() => setIsOpen(true)}
             >
               <div
@@ -195,7 +220,7 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
                       }
                     `}
                     id={`${inputId}-selected-value`}
-                    aria-controls={id}
+                    aria-controls={isOpen ? id : undefined}
                     aria-expanded={isOpen}
                     aria-haspopup="listbox"
                     aria-labelledby={`${inputId}-label`}
@@ -216,7 +241,7 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
                       'slds-has-focus': isOpen,
                     })}
                     id={`${inputId}-selected-value`}
-                    aria-controls={id}
+                    aria-controls={isOpen ? id : undefined}
                     aria-expanded={isOpen}
                     aria-haspopup="listbox"
                     aria-labelledby={`${inputId}-label`}
@@ -238,6 +263,7 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
                   id={id}
                   className={`slds-dropdown slds-dropdown_length-7 slds-dropdown_x-small slds-dropdown_${variant === 'end' ? 'right' : 'left'}`}
                   role="listbox"
+                  aria-labelledby={`${inputId}-label`}
                 >
                   <ul className="slds-listbox slds-listbox_vertical" role="group" ref={ulContainerEl}>
                     {headingLabel && (
@@ -258,7 +284,11 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
                         key={item.id}
                         ref={elRefs.current[i]}
                         tabIndex={-1}
-                        role="presentation"
+                        // The li receives focus during arrow-key navigation, so it carries the option
+                        // semantics (same fix as ComboboxListItem/PicklistItem) — with role="presentation"
+                        // here, screen readers announced nothing while arrowing
+                        role="option"
+                        aria-selected={item.id === selectedItem.id}
                         className="slds-listbox__item slds-item"
                         onKeyDown={handleKeyDown}
                         onClick={(event) => {
@@ -271,8 +301,6 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
                           className={classNames('slds-media slds-listbox__option slds-listbox__option_plain slds-media_small', {
                             'slds-is-selected': item.id === selectedItem.id,
                           })}
-                          aria-selected={item.id === selectedItem.id}
-                          role="option"
                         >
                           <span className="slds-media__figure slds-listbox__option-icon">
                             {item.icon && (

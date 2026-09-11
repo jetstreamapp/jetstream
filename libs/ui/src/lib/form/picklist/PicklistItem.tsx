@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import { Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import { Fragment, forwardRef } from 'react';
@@ -17,11 +18,25 @@ export interface PicklistItemProps {
 export const PicklistItem = forwardRef<HTMLLIElement, PicklistItemProps>(
   ({ id, label, secondaryLabel, secondaryLabelOnNewLine, isSelected, onClick }, ref) => {
     return (
+      // Keyboard activation (Enter/Space) and arrow navigation are handled once on the listbox
+      // container (Picklist.handleKeyDown); oxlint does not recognise interactive ARIA roles here
+      // eslint-disable-next-line jsx-a11y/click-events-have-key-events
       <li
         ref={ref}
-        role="presentation"
+        // The li receives focus during arrow-key navigation, so it carries the option semantics —
+        // with role="presentation" here, screen readers announced nothing (same fix as ComboboxListItem)
+        role="option"
+        aria-selected={isSelected}
         className="slds-listbox__item slds-item"
         tabIndex={-1}
+        css={css`
+          /* Inset outline: Safari paints no default focus ring on li, and an outline drawn outside
+             the element is clipped by the dropdown's scroll container and rounded corners */
+          &:focus-visible {
+            outline: 2px solid var(--slds-g-color-brand-base-50, #0176d3);
+            outline-offset: -2px;
+          }
+        `}
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -36,8 +51,6 @@ export const PicklistItem = forwardRef<HTMLLIElement, PicklistItemProps>(
             'slds-media_center slds-listbox__option_entity': secondaryLabelOnNewLine && secondaryLabel,
             'slds-media_small': !secondaryLabelOnNewLine,
           })}
-          role="option"
-          aria-selected={isSelected}
         >
           <span className="slds-media__figure slds-listbox__option-icon">
             {isSelected && (

@@ -1,6 +1,7 @@
 import classNames from 'classnames';
 import React, { Fragment, FunctionComponent, ReactNode } from 'react';
 import HelpText from '../../widgets/HelpText';
+import { associateErrorsWithControls } from '../form-a11y.utils';
 
 export interface TextareaProps {
   id: string;
@@ -48,7 +49,14 @@ export const Textarea: FunctionComponent<TextareaProps> = ({
           {labelHelp && !hideLabel && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
         </Fragment>
       )}
-      <div className={classNames('slds-form-element__control', { 'slds-border_bottom': readOnly })}>{children}</div>
+      <div className={classNames('slds-form-element__control', { 'slds-border_bottom': readOnly })}>
+        {associateErrorsWithControls(
+          children,
+          hasError,
+          errorMessageId,
+          labelHelp && !hideLabel && id ? `${id}-label-help-text` : undefined,
+        )}
+      </div>
       {helpText && <div className="slds-form-element__help">{helpText}</div>}
       {hasError && errorMessage && (
         <div className="slds-form-element__help" id={errorMessageId}>

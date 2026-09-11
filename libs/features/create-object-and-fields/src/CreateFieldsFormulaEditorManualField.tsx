@@ -69,8 +69,10 @@ export const CreateFieldsFormulaEditorManualField = forwardRef<unknown, CreateFi
     }
 
     return (
-      <>
-        <p className="slds-text-heading_small slds-p-top_xx-small">{field}</p>
+      // Every field repeats the same "Field Type" / "Value" controls — the fieldset gives them the
+      // field's name as group context instead of a heading the controls are not associated with
+      <fieldset className="slds-form-element">
+        <legend className="slds-form-element__legend slds-form-element__label slds-text-heading_small slds-p-top_xx-small">{field}</legend>
         <Grid verticalAlign="start" className="slds-p-left_xx-small">
           <ComboboxWithItems
             comboboxProps={{
@@ -156,7 +158,7 @@ export const CreateFieldsFormulaEditorManualField = forwardRef<unknown, CreateFi
             />
           )}
         </Grid>
-      </>
+      </fieldset>
     );
   },
 );

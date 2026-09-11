@@ -32,7 +32,7 @@ export const QueryGroupByRow: FunctionComponent<QueryOrderByProps> = ({
   );
 
   return (
-    <div className="slds-grid slds-gutters_xx-small" role="group" aria-label={`Filter row ${groupNumber}`}>
+    <div className="slds-grid slds-gutters_xx-small" role="group" aria-label={`Group by row ${groupNumber}`}>
       {/* Resource */}
       <GridCol>
         <ComboboxWithDrillInItems

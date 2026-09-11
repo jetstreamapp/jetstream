@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { createPortal } from 'react-dom';
 import { List } from '../List';
 import { ReadonlyList } from '../ReadonlyList';
 
@@ -56,12 +57,28 @@ describe('List', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
   });
 
-  test('keyboard ArrowDown moves focus to next item', () => {
-    render(<List items={items} isActive={(item) => item.id === 'item-1'} getContent={getContent} onSelected={() => {}} />);
+  test('keyboard ArrowDown from the listbox lands on the active option (APG: focus the selected option on entry)', () => {
+    render(<List items={items} isActive={(item) => item.id === 'item-2'} getContent={getContent} onSelected={() => {}} />);
     const listbox = screen.getByRole('listbox');
     const options = screen.getAllByRole('option');
     fireEvent.keyDown(listbox, { key: 'ArrowDown', code: 'ArrowDown' });
     expect(document.activeElement).toBe(options[1]);
+  });
+
+  test('keyboard ArrowDown from a focused option moves to the next item, even after the items array is re-created', () => {
+    const { rerender } = render(
+      <List items={items} isActive={(item) => item.id === 'item-1'} getContent={getContent} onSelected={() => {}} />,
+    );
+    const listbox = screen.getByRole('listbox');
+    const options = screen.getAllByRole('option');
+    fireEvent.keyDown(listbox, { key: 'ArrowDown', code: 'ArrowDown' });
+    expect(document.activeElement).toBe(options[0]);
+    // A parent re-creating `items` (every toggle/filter does) must not reset the position
+    rerender(<List items={[...items]} isActive={(item) => item.id === 'item-1'} getContent={getContent} onSelected={() => {}} />);
+    fireEvent.keyDown(options[0], { key: 'ArrowDown', code: 'ArrowDown' });
+    expect(document.activeElement).toBe(options[1]);
+    fireEvent.keyDown(options[1], { key: 'ArrowDown', code: 'ArrowDown' });
+    expect(document.activeElement).toBe(options[2]);
   });
 
   test('keyboard Home moves focus to first item', () => {
@@ -70,6 +87,47 @@ describe('List', () => {
     const options = screen.getAllByRole('option');
     fireEvent.keyDown(listbox, { key: 'Home', code: 'Home' });
     expect(document.activeElement).toBe(options[0]);
+  });
+
+  test('keyboard ArrowDown from the listbox enters a List nested inside another list row', () => {
+    // Child relationship field lists render a List inside the parent row's li; the ul's own keydown must
+    // not mistake that OUTER li for its focused row and swallow the key
+    render(
+      <ul>
+        <li>
+          <List items={items} isActive={() => false} getContent={getContent} onSelected={() => {}} />
+        </li>
+      </ul>,
+    );
+    const listbox = screen.getByRole('listbox');
+    const options = screen.getAllByRole('option');
+    listbox.focus();
+    fireEvent.keyDown(listbox, { key: 'ArrowDown', code: 'ArrowDown' });
+    expect(document.activeElement).toBe(options[0]);
+    fireEvent.keyDown(options[0], { key: 'ArrowDown', code: 'ArrowDown' });
+    expect(document.activeElement).toBe(options[1]);
+  });
+  test("keys from a row's portaled content (a details popover) never move the list, even without an li ancestor", () => {
+    const itemsWithPortal: TestItem[] = [items[0], items[1]];
+    const getContentWithPortal = (item: TestItem) => ({
+      key: item.id,
+      heading:
+        item.id === 'item-1' ? (
+          <span>
+            {item.name}
+            {createPortal(<button type="button">Popover control</button>, document.body)}
+          </span>
+        ) : (
+          item.name
+        ),
+    });
+    render(
+      <List items={itemsWithPortal} isActive={(item) => item.id === 'item-1'} getContent={getContentWithPortal} onSelected={() => {}} />,
+    );
+    const popoverControl = screen.getByRole('button', { name: 'Popover control' });
+    popoverControl.focus();
+    fireEvent.keyDown(popoverControl, { key: 'ArrowDown', code: 'ArrowDown' });
+    expect(document.activeElement).toBe(popoverControl);
   });
 });
 

@@ -1,7 +1,7 @@
 import { queryAll } from '@jetstream/shared/data';
 import { getApexLogsToDeleteQuery } from '@jetstream/shared/ui-utils';
 import { AsyncJobNew, SalesforceOrgUi } from '@jetstream/types';
-import { Modal, RadioButton, RadioGroup, ScopedNotification, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Modal, RadioButton, RadioGroup, ScopedNotification, Spinner } from '@jetstream/ui';
 import { fromJetstreamEvents } from '@jetstream/ui-core';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 
@@ -61,7 +61,8 @@ export const PurgeLogsModal: FunctionComponent<PurgeLogsModalProps> = ({ selecte
           <button className="slds-button slds-button_neutral" onClick={() => onModalClose()} disabled={status === 'LOADING'}>
             Cancel
           </button>
-          <button className="slds-button slds-button_brand" onClick={deleteLogs} disabled={status === 'LOADING'}>
+          {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
+          <button className="slds-button slds-button_brand" {...ariaDisabledButtonProps(status === 'LOADING', () => deleteLogs())}>
             Delete Logs
           </button>
         </>

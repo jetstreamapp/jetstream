@@ -93,8 +93,12 @@ export function buildTree(
 function getTreeLabel(id: string, name: string, meta: FileItemMetadata | null): string | React.ReactNode {
   if (meta?.source && meta?.targetHasLoaded) {
     let tooltip = 'Source and Target org are the same';
+    // The compare result is otherwise text colour + hover tooltip only — carry it in the label text
+    // for screen readers without adding a tab stop (WCAG 1.4.1)
+    let assistiveStatus = '';
     if (!meta.sourceAndTargetMatch) {
       tooltip = meta?.target?.content ? 'Source and Target org are different' : 'This item does not exist in the target org';
+      assistiveStatus = meta?.target?.content ? ' (differs)' : ' (missing in target)';
     }
     return (
       <div className="slds-grid">
@@ -106,6 +110,7 @@ function getTreeLabel(id: string, name: string, meta: FileItemMetadata | null): 
             })}
           >
             {name}
+            {assistiveStatus && <span className="slds-assistive-text">{assistiveStatus}</span>}
           </span>
         </Tooltip>
       </div>

@@ -255,7 +255,9 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
             className="slds-textarea"
             placeholder={field.placeholder}
             value={value as string}
-            disabled
+            // Read-only display of the formula (edited in the modal) — a disabled textarea is unfocusable
+            // and skipped by screen readers in forms mode
+            readOnly
             rows={1}
             onChange={(event) => onChange(event.target.value)}
             onBlur={onBlur}

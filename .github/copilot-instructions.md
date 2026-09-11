@@ -18,3 +18,4 @@ Jetstream is a private Nx monorepo (React 19 + Vite web app, Express/Prisma API,
 - UI is hand-built — this repo does NOT use `@salesforce/design-system-react`. Prefer SLDS CSS classes; use Emotion `css` where needed. State is jotai atoms.
 - Always use curly braces on `if` statements. Prefer verbose variable names (except `i` for index); avoid single-letter names.
 - Tests are Vitest, co-located in `__tests__/*.spec.ts`. Migrations are created with the Prisma CLI only.
+- The product targets **WCAG 2.1 AA** (see `docs/accessibility/`). In UI changes, flag missing accessible names, keyboard operability gaps, focus-management regressions, and missing `aria-live` for async status. Interactive `libs/ui` components should carry an `axeScan()` assertion (`@jetstream/test-utils`) in their spec — reference pattern: `libs/ui/src/lib/modal/__tests__/Modal.spec.tsx`.

@@ -113,10 +113,17 @@ export class QueryPage {
     }
   }
 
+  /**
+   * Field rows are plain list items containing a labeled checkbox (not listbox options — options
+   * cannot contain interactive children). Selection state is the checkbox's checked state.
+   */
   getSelectedField(label: string) {
-    return this.fieldsList.getByRole('option').filter({
-      has: this.page.getByText(label, { exact: true }).first(),
-    });
+    return this.fieldsList
+      .getByRole('listitem')
+      .filter({
+        has: this.page.getByText(label, { exact: true }).first(),
+      })
+      .getByRole('checkbox');
   }
 
   async selectSubqueryObject(relationshipName: string) {
@@ -227,7 +234,7 @@ export class QueryPage {
   async addOrderBy(field: string, direction: 'ASC' | 'DESC', nulls: 'IGNORE' | 'FIRST' | 'LAST' = 'IGNORE', groupNumber = 1) {
     await this.page.getByRole('button', { name: 'Order By' }).click();
 
-    const orderByRow = this.page.getByRole('group', { name: `Filter row ${groupNumber}` });
+    const orderByRow = this.page.getByRole('group', { name: `Order by row ${groupNumber}` });
 
     await orderByRow.getByLabel('Field').click();
     await this.page.keyboard.type(field, { delay: 100 });

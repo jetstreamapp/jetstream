@@ -83,6 +83,7 @@ export function StatusRenderer({ row: item }: RenderCellProps<SalesforceDeployHi
 
 export function ActionRenderer({ row: item }: RenderCellProps<SalesforceDeployHistoryItem>) {
   const { onDownload, onView } = useContext(DataTableGenericContext) as DeployHistoryTableContext;
+  const deploymentLabel = `${item.type} to ${item.destinationOrg.label} on ${new Date(item.start).toLocaleString()}`;
 
   return (
     <Grid
@@ -92,14 +93,23 @@ export function ActionRenderer({ row: item }: RenderCellProps<SalesforceDeployHi
         width: 180px;
       `}
     >
+      {/* Every row repeats these buttons — the names say which deployment they act on */}
       <div className="slds-p-around_xx-small">
-        <button className="slds-button slds-button_neutral slds-button_stretch" onClick={() => onView(item)}>
+        <button
+          className="slds-button slds-button_neutral slds-button_stretch"
+          aria-label={`View details for ${deploymentLabel}`}
+          onClick={() => onView(item)}
+        >
           View Details
         </button>
       </div>
       {item.fileKey && (
         <div className="slds-p-around_xx-small">
-          <button className="slds-button slds-button_neutral slds-button_stretch" onClick={() => onDownload(item)}>
+          <button
+            className="slds-button slds-button_neutral slds-button_stretch"
+            aria-label={`Download package for ${deploymentLabel}`}
+            onClick={() => onDownload(item)}
+          >
             Download Package
           </button>
         </div>

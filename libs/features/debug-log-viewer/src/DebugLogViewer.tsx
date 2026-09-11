@@ -15,6 +15,7 @@ import {
   Tooltip,
   ViewDocsLink,
   dataTableFileSizeFormatter,
+  useAnnouncer,
 } from '@jetstream/ui';
 import { MonacoEditor, RequireMetadataApiBanner, fromJetstreamEvents, isAsyncJob } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
@@ -47,6 +48,10 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   const [loadingLog, setLoadingLog] = useState(false);
   const [activeLogId, setActiveLogId] = useState<string | null>(null);
   const [activeLog, setActiveLog] = useState<string>('');
+
+  // Activating a log row loads it into the Monaco pane on the right with no visible focus change —
+  // announce each load (clear-then-set, so re-selecting a cached log announces again)
+  const { announce, announcer } = useAnnouncer();
   const [userDebug, setUserDebug] = useState(false);
   const [textFilter, setTextFilter] = useState<string>('');
   const [visibleResults, setVisibleResults] = useState<string>('');
@@ -139,12 +144,15 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   }, [logs]);
 
   const getActiveLog = useCallback(async () => {
+    if (!activeLogId) {
+      return;
+    }
+    const log = logs.find(({ Id }) => Id === activeLogId);
+    const logName = log ? `${log.Operation} log from ${log.LogUser.Name}` : 'Debug log';
     try {
-      if (!activeLogId) {
-        return;
-      }
       if (logCache.current[activeLogId]) {
         setActiveLog(logCache.current[activeLogId]);
+        announce(`${logName} loaded in the viewer panel`);
         return;
       }
       const orgId = selectedOrg.uniqueId;
@@ -152,6 +160,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
       const results = await fetchActiveLog(selectedOrg, activeLogId);
       if (isMounted.current) {
         setActiveLog(results);
+        announce(`${logName} loaded in the viewer panel`);
         // save log in local cache
         if (activeOrgId.current === orgId) {
           logCache.current = { ...logCache.current, [activeLogId]: results };
@@ -160,12 +169,15 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
       }
     } catch {
       // TODO: handle error state
+      if (isMounted.current) {
+        announce(`${logName} could not be loaded`);
+      }
     } finally {
       if (isMounted.current) {
         setLoadingLog(false);
       }
     }
-  }, [selectedOrg, activeLogId]);
+  }, [selectedOrg, activeLogId, logs, announce]);
 
   useNonInitialEffect(() => {
     if (activeLogId) {
@@ -192,6 +204,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   return (
     <AutoFullHeightContainer fillHeight bottomBuffer={10} setHeightAttr className="slds-p-horizontal_x-small slds-scrollable_none">
       <RequireMetadataApiBanner />
+      {announcer}
       {purgeModalOpen && <PurgeLogsModal selectedOrg={selectedOrg} onModalClose={() => setPurgeModalOpen(false)} />}
       <Split
         sizes={[66, 33]}
@@ -252,7 +265,13 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
                           className="slds-button slds-button_icon slds-button_icon-container slds-m-around_xxx-small"
                           onClick={() => togglePause()}
                         >
-                          <Icon type="utility" icon={isPaused ? 'play' : 'pause'} className="slds-button__icon" omitContainer />
+                          <Icon
+                            type="utility"
+                            icon={isPaused ? 'play' : 'pause'}
+                            description={isPaused ? 'Resume checking for logs' : 'Pause checking for new logs'}
+                            className="slds-button__icon"
+                            omitContainer
+                          />
                         </button>
                       </Tooltip>
                       <p title={pollTitle} className="slds-text-color_weak slds-truncate">
@@ -263,6 +282,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
                           <Icon
                             type="utility"
                             icon="refresh"
+                            description="Check for new logs"
                             className={classNames('slds-button__icon', { spin: loading })}
                             omitContainer
                           />

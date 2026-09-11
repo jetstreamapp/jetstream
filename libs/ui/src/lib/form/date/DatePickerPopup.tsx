@@ -17,6 +17,8 @@ import DateGridPrevNextSelector from './DateGridPrevNextSelector';
 
 export interface DatePickerPopupProps {
   ref?: React.Ref<HTMLDivElement>;
+  /** The owning DatePicker's id — scopes the heading/select ids so two pickers on a page do not collide */
+  id: string;
   initialSelectedDate?: Date;
   initialVisibleDate?: Date;
   dropDownPosition?: PositionLeftRight;
@@ -30,6 +32,7 @@ export interface DatePickerPopupProps {
 
 export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
   ref,
+  id,
   initialSelectedDate,
   initialVisibleDate = startOfMonth(new Date()),
   availableYears,
@@ -87,10 +90,39 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
     setVisibleMonth(setYear(visibleMonth, currYear));
   }
 
+  /**
+   * Dialog-wide keyboard contract (the popup renders as role="dialog"):
+   * - Escape closes from ANY element — owned by DatePicker's useEscapeToCloseLayer, which consumes
+   *   the key at document capture before this handler could ever see it
+   * - Tab/Shift+Tab wrap within the popup (a dialog traps Tab per the APG)
+   */
+  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== 'Tab') {
+      return;
+    }
+    const focusables = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), select:not(:disabled), [tabindex="0"]'),
+    );
+    if (!focusables.length) {
+      return;
+    }
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
   return (
-    <div ref={ref}>
+    // Delegated dialog-level handler (Escape / Tab trap) — the wrapping PopoverContainer provides role="dialog"
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+    <div ref={ref} onKeyDown={handleKeyDown}>
       <DateGridPrevNextSelector
-        id="date-picker"
+        id={`${id}-month`}
         currMonth={currMonthString}
         currYear={currYear}
         availableYears={availableYears}
@@ -101,6 +133,7 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
         onYearChange={handleYearChange}
       />
       <DateGrid
+        labelledById={`${id}-month`}
         currMonth={currMonth}
         currYear={currYear}
         selectedDate={selectedDate}

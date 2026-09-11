@@ -18,6 +18,7 @@ import {
   PageHeaderTitle,
   ScopedNotification,
   UpgradeToProButton,
+  useAnnouncer,
 } from '@jetstream/ui';
 import {
   openHistoryFolder,
@@ -247,16 +248,22 @@ export const DataHistory: FunctionComponent = () => {
     }
   }
 
+  // The grid activates the pin toggle while focus stays on the cell (single-control cells are
+  // clicked in place), so the state change must be announced through a live region
+  const { announce, announcer } = useAnnouncer();
+
   const handleTogglePin = useCallback(
     async (item: DataHistoryItem) => {
       try {
         await setDataHistoryPinned(item.key, !item.pinned);
         trackEvent(ANALYTICS_KEYS.data_history_pin, { pinned: !item.pinned });
+        announce(!item.pinned ? 'Entry pinned' : 'Entry unpinned');
       } catch (ex) {
         logger.warn('[DATA_HISTORY] Error pinning entry', ex);
+        fireToast({ type: 'error', message: 'There was a problem updating the pinned state.' });
       }
     },
-    [trackEvent],
+    [announce, trackEvent],
   );
 
   const handleDelete = useCallback(
@@ -290,6 +297,7 @@ export const DataHistory: FunctionComponent = () => {
 
   return (
     <Page testId="data-history-page">
+      {announcer}
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle
@@ -325,12 +333,17 @@ export const DataHistory: FunctionComponent = () => {
             {/* Canvas has no settings surface; the extension's settings live on a separate html page outside the SPA router */}
             {!isCanvasApp() &&
               (isBrowserExtension() ? (
-                <a className="slds-button slds-button_neutral" href="/additional-settings.html" target="_blank" rel="noreferrer">
+                <a
+                  className="slds-button slds-button_neutral"
+                  href="/additional-settings.html#data-history"
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   <Icon type="utility" icon="settings" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Data History Settings
                 </a>
               ) : (
-                <Link className="slds-button slds-button_neutral" to={APP_ROUTES.SETTINGS.ROUTE}>
+                <Link className="slds-button slds-button_neutral" to={`${APP_ROUTES.SETTINGS.ROUTE}#data-history`}>
                   <Icon type="utility" icon="settings" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Data History Settings
                 </Link>

@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SoqlQueryFormatOptions } from '@jetstream/types';
 import { Checkbox, Input } from '@jetstream/ui';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useAmplitude } from '../analytics';
 
 interface SoqlQueryFormatConfigProps {
@@ -22,6 +22,9 @@ export const SoqlQueryFormatConfig = ({
   onChange,
   onCancel,
 }: SoqlQueryFormatConfigProps) => {
+  // Mounted on the Settings page and in the header popover at the same time — static ids collided there
+  const maxLineLengthId = useId();
+  const indentSizeId = useId();
   const { trackEvent } = useAmplitude();
   const [currentValue, setCurrentValue] = useState(value);
   // Local state for input fields to allow clearing
@@ -63,12 +66,14 @@ export const SoqlQueryFormatConfig = ({
         `}
       >
         <Input
+          id={maxLineLengthId}
           label="Max Characters per line"
           labelHelp="Set the maximum number of characters per line for formatted SOQL queries. Set to 1 to have each field on its own line."
           hasError={!isFieldMaxLineLengthValid}
           errorMessage={!isFieldMaxLineLengthValid ? 'Must be a number greater than or equal to 1' : undefined}
         >
           <input
+            id={maxLineLengthId}
             className="slds-input"
             pattern="[0-9]"
             type="number"
@@ -86,12 +91,14 @@ export const SoqlQueryFormatConfig = ({
           />
         </Input>
         <Input
+          id={indentSizeId}
           label="Indent Size"
           labelHelp="Set the number of spaces to use for each indentation level in formatted SOQL queries."
           hasError={!isNumIndentValid}
           errorMessage={!isNumIndentValid ? 'Must be a number greater than or equal to 1' : undefined}
         >
           <input
+            id={indentSizeId}
             className="slds-input"
             pattern="[0-9]"
             type="number"

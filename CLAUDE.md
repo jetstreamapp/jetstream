@@ -54,6 +54,15 @@ This project does NOT use `@salesforce/design-system-react`, all components were
 
 Prefer using Salesforce lightning design system CSS classes when applicable, but can use `import { css } from '@emotion/react'` where needed.
 
+## Accessibility
+
+The product targets WCAG 2.1 AA — program docs, findings log, and the conformance report live in `docs/accessibility/`. Run the `/a11y-review` skill on any change that adds or modifies interactive UI before calling it done.
+
+- New or changed interactive UI must be keyboard operable with correct ARIA (names, roles, states) and managed focus: when a control unmounts on activation, move focus to its replacement or the trigger, never let it fall to `body`. Reference implementations: `libs/ui/src/lib/modal/Modal.tsx`, `popover/Popover.tsx`, `form/dropdown/DropDown.tsx`, `list/List.tsx`, and the grid under `data-table/grid/`.
+- Use the shared primitives instead of hand-rolling: `ariaDisabledButtonProps` for a control that disables itself, `AssistiveStatus` / `useAnnouncer` / `ScopedNotification` for status a screen reader must hear, `useEscapeToCloseLayer` for anything Escape closes, and the roving-tabindex composites (`List`, `Tabs`, `Accordion`, `Tree`, the grid) for long collections — never a tab stop per row.
+- Add an `axeScan()` assertion (from `@jetstream/test-utils`) to specs for interactive `libs/ui` components — see `libs/ui/src/lib/modal/__tests__/Modal.spec.tsx`.
+- `pnpm a11y:lint-ratchet` runs in pre-commit and CI. It fails on any new `warn`-tier `jsx-a11y` hit (per file and rule, baselined in `tools/oxlint/jsx-a11y-baseline.json`), a new `libs/ui` spec without `axeScan()`, and a new `APP_ROUTES` entry without an `a11y-baseline.json` key. `--update` shrinks the baseline; growth needs `--allow-growth` plus a findings-log entry. E2E axe scans in `apps/jetstream-e2e/src/tests/a11y/` ratchet the same way, and `jsx-a11y` rules are never demoted from `error`.
+
 ## Testing Approach
 
 - Unit tests with Vitest (co-located with source files, but in a `__tests__` folder example: `__tests__/*.spec.ts`)

@@ -296,7 +296,10 @@ export const UserFeedbackWidget = () => {
           ${positionStyles.bottom ? `bottom: ${positionStyles.bottom}` : ''};
           ${positionStyles.left ? `left: ${positionStyles.left}` : ''};
           ${positionStyles.right ? `right: ${positionStyles.right}` : ''};
-          z-index: 9000;
+          /* BELOW popovers/dropdowns (7000) and modals: at 9000 the floating button sat on top of
+             open popovers and intercepted clicks on their content (e.g. the manual query Execute
+             link at smaller viewports) */
+          z-index: 5000;
           width: 3.5rem;
           height: 3.5rem;
           border-radius: 50%;
@@ -332,6 +335,8 @@ export const UserFeedbackWidget = () => {
           ref={contextMenuRef}
           role="menu"
           aria-label="Widget position options"
+          // Focusable only programmatically: the menu items carry the roving tab stop
+          tabIndex={-1}
           onKeyDown={handleMenuKeyDown}
           css={css`
             position: fixed;

@@ -35,7 +35,7 @@ function getIcon(theme: ScopedNotificationTypes, icon?: React.ReactNode) {
         <Icon
           type="utility"
           icon="success"
-          title="information"
+          title="success"
           containerClassname="slds-icon_container slds-icon-utility-success"
           className="slds-icon slds-icon_small"
         />
@@ -45,7 +45,7 @@ function getIcon(theme: ScopedNotificationTypes, icon?: React.ReactNode) {
         <Icon
           type="utility"
           icon="warning"
-          title="information"
+          title="warning"
           containerClassname="slds-icon_container slds-icon-utility-warning"
           className="slds-icon slds-icon_small"
         />
@@ -55,7 +55,7 @@ function getIcon(theme: ScopedNotificationTypes, icon?: React.ReactNode) {
         <Icon
           type="utility"
           icon="error"
-          title="information"
+          title="error"
           containerClassname="slds-icon_container slds-icon-utility-error"
           className="slds-icon slds-icon_small"
         />
@@ -119,6 +119,10 @@ export const ScopedNotification: FunctionComponent<ScopedNotificationProps> = ({
 
   return (
     <div
+      // Inline outcomes (save/deploy/load errors, results summaries) render through this component, so
+      // it is a live region: errors interrupt, everything else is announced politely. Notifications
+      // present at page load are ignored by assistive tech, which is the desired behaviour for banners.
+      role={theme === 'error' ? 'alert' : 'status'}
       className={classNames(
         'slds-scoped-notification slds-media slds-media_center',
         {

@@ -17,7 +17,7 @@ import {
   SalesforceOrgUi,
   ViewModalData,
 } from '@jetstream/types';
-import { FileDownloadModal, Grid, Icon, ProgressRing, Spinner, Tooltip } from '@jetstream/ui';
+import { ariaDisabledButtonProps, AssistiveStatus, FileDownloadModal, Grid, Icon, ProgressRing, Spinner, Tooltip } from '@jetstream/ui';
 import { fromJetstreamEvents, getFieldHeaderFromMapping, LoadRecordsResultsModal, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
@@ -502,6 +502,9 @@ export const LoadRecordsBatchApiResults = ({
       )}
       <Grid verticalAlign="center" align="spread">
         <div>
+          {/* The status heading changes in place as the load progresses — mirror it into a persistent live
+              region (a live-region role on the heading itself removed its heading semantics) */}
+          <AssistiveStatus message={status} />
           <h3 className="slds-text-heading_small">
             <Grid verticalAlign="center">
               <span className="slds-m-right_x-small">{status}</span>
@@ -528,7 +531,7 @@ export const LoadRecordsBatchApiResults = ({
             </Grid>
           </h3>
           {fatalError && (
-            <div className="slds-text-color_error">
+            <div className="slds-text-color_error" role="alert">
               <strong>Fatal Error</strong>: {fatalError}
             </div>
           )}
@@ -536,10 +539,10 @@ export const LoadRecordsBatchApiResults = ({
         <div>
           {ABORTABLE_STATUSES.has(status) && (
             <Tooltip content="Any batches in progress may not be able to be aborted.">
+              {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
               <button
                 className="slds-button slds-button_text-destructive slds-m-bottom_xx-small slds-is-relative"
-                disabled={status === STATUSES.ABORTING}
-                onClick={handleAbort}
+                {...ariaDisabledButtonProps(status === STATUSES.ABORTING, () => handleAbort())}
               >
                 {status === STATUSES.ABORTING && <Spinner size="small" />}
                 Abort Job

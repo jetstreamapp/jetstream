@@ -15,10 +15,12 @@ export function useFormIds(idPrefix?: string) {
   const [labelHelpId] = useState(`${_idPrefix}-label-help-text`);
   const [helpTextId] = useState(`${_idPrefix}-help-text`);
   const [errorMessageId] = useState(`${_idPrefix}-error-message`);
+  const [legendId] = useState(`${_idPrefix}-legend`);
   const [ariaDescribedbyText] = useState(getDescribedBy(labelHelpId, helpTextId, errorMessageId));
 
   return {
     formId,
+    legendId,
     ariaDescribedbyText,
     labelHelpId,
     helpTextId,

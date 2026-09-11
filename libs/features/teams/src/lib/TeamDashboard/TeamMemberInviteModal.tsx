@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { createInvitation } from '@jetstream/shared/data';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { Feature, TeamInviteUserFacing, TeamMemberRole } from '@jetstream/types';
-import { Input, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Input, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { useState } from 'react';
 import { TeamMemberRoleDropdown } from './TeamMemberRoleDropdown';
 
@@ -45,12 +45,13 @@ export function TeamMemberInviteModal({ teamId, hasManualBilling, userRole, onCl
           <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>
             Cancel
           </button>
+          {/* The form's onSubmit owns the invite (a click here submits the form) — the old onClick made a
+              mouse click fire it twice; aria-disabled keeps focus while the submit disables the button */}
           <button
             type="submit"
             form="team-member-invite-form"
             className="slds-button slds-button_brand slds-is-relative"
-            onClick={handleInvite}
-            disabled={!email || loading}
+            {...ariaDisabledButtonProps(!email || loading, () => {})}
           >
             Send Invitation
             {loading && <Spinner className="slds-spinner slds-spinner_small" />}
@@ -109,7 +110,7 @@ export function TeamMemberInviteModal({ teamId, hasManualBilling, userRole, onCl
             aria-invalid={invalidEmail}
             aria-describedby={invalidEmail ? 'email-error' : undefined}
             name="email"
-            autoComplete="none"
+            autoComplete="off"
             required
           />
         </Input>

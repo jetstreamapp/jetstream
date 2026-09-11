@@ -195,6 +195,7 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
             <AutoFullHeightContainer bottomBuffer={20}>
               <List
                 ref={ulRef}
+                ariaLabel="Metadata types"
                 autoScrollToFocus
                 items={filteredMetadataItems}
                 isActive={(item: ItemWithLabel) => selectedItems.has(item.name)}

@@ -245,6 +245,7 @@ export const EnhancedBillingCard = ({
             value={value}
             checked={checked}
             name="priceId"
+            aria-label={`${planName} - ${price}`}
             disabled={disabled}
             onChange={(ev) => onChange?.(ev.target.value as StripePriceKey)}
             className="radio-input"

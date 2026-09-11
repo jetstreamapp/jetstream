@@ -3,9 +3,9 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import type { Column } from '@jetstream/ui';
-import { AutoFullHeightContainer, DataTable, Icon, Modal, Spinner } from '@jetstream/ui';
+import { AssistiveStatus, AutoFullHeightContainer, DataTable, Icon, Modal, Spinner, ariaDisabledButtonProps } from '@jetstream/ui';
 import { ConfirmPageChange, useAmplitude } from '@jetstream/ui-core';
-import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deployMetadata, getAutomationTypeLabel, preparePayloads } from './automation-control-data-utils';
 import { AutomationDeployStatusRenderer, BooleanAndVersionRenderer } from './automation-control-table-renderers';
 import {
@@ -107,6 +107,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   const [didDeploy, setDidDeploy] = useState(false);
   const [didRollback, setDidRollback] = useState(false);
   const [didDeployMetadata, setDidDeployMetadata] = useState(false);
+  const primaryButtonRef = useRef<HTMLButtonElement>(null);
 
   const deploymentItemRows: DeploymentItemRow[] = useMemo(
     () =>
@@ -122,6 +123,20 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   useEffect(() => {
     setDeploymentItems(Object.values(deploymentItemMap));
   }, [deploymentItemMap]);
+
+  // Mirrors what sighted users see (spinner, per-row status column, modal header) for each phase:
+  // initial metadata retrieval, deploy/rollback progress, and the final outcome with counts
+  const assistiveMessage = useMemo(() => {
+    if (inProgress) {
+      return currentStep === 0 ? 'Loading current automation metadata for review' : modalLabel;
+    }
+    const errorCount = deploymentItems.filter(({ status }) => status === 'Error').length;
+    if (didDeploy) {
+      const successCount = deploymentItems.filter(({ status }) => status === 'Deployed' || status === 'Rolled Back').length;
+      return `${modalLabel}. ${successCount} succeeded, ${errorCount} failed.`;
+    }
+    return `Ready to review. ${deploymentItems.length} changes loaded${errorCount ? `, ${errorCount} with errors` : ''}.`;
+  }, [inProgress, currentStep, modalLabel, deploymentItems, didDeploy]);
 
   const handlePreparePayloads = useCallback(() => {
     return preparePayloads(defaultApiVersion, selectedOrg, deploymentItemMap).subscribe({
@@ -293,28 +308,39 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
       <Modal
         size="lg"
         header={modalLabel}
+        tagline="Each row shows the current (old) and pending (new) active state. Deploying applies the new values to the selected org, and successful changes can be rolled back afterwards."
         closeOnBackdropClick={false}
         closeOnEsc={false}
         onClose={() => handleCloseModal()}
         footer={
           <Fragment>
+            {/* ariaDisabledButtonProps keeps the footer buttons focusable while a deploy is in
+                flight, so focus is not dropped mid-operation */}
             {!didDeploy && (
-              <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={inProgress}>
+              <button className="slds-button slds-button_neutral" {...ariaDisabledButtonProps(inProgress, () => onClose())}>
                 Cancel
               </button>
             )}
             {didDeploy && !didRollback && (
               <button
                 className="slds-button slds-button_neutral"
-                onClick={() => handleRollbackMetadata()}
                 title="Revert all successfully deployed items"
-                disabled={inProgress}
+                {...ariaDisabledButtonProps(inProgress, () => {
+                  handleRollbackMetadata();
+                  // This button unmounts when the rollback finishes — hand focus to the primary
+                  // button (which becomes "Close") so focus survives the removal
+                  primaryButtonRef.current?.focus();
+                })}
               >
                 <Icon type="utility" icon="undo" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Rollback
               </button>
             )}
-            <button className="slds-button slds-button_brand" onClick={() => setCurrentStep(currentStep + 1)} disabled={inProgress}>
+            <button
+              ref={primaryButtonRef}
+              className="slds-button slds-button_brand"
+              {...ariaDisabledButtonProps(inProgress, () => setCurrentStep(currentStep + 1))}
+            >
               {nextButtonLabel}
             </button>
           </Fragment>
@@ -326,6 +352,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
             min-height: 50vh;
           `}
         >
+          <AssistiveStatus debounceMs={500} message={assistiveMessage} />
           {inProgress && <Spinner />}
           <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={250}>
             <DataTable columns={COLUMNS} data={deploymentItemRows} getRowKey={getRowId} />

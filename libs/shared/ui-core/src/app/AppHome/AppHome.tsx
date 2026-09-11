@@ -98,6 +98,8 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
         }
       `}
     >
+      {/* The page has no visible title — give screen reader users a heading to land on and outline from */}
+      <h1 className="slds-assistive-text">Home</h1>
       <div
         css={css`
           display: grid;
@@ -208,15 +210,17 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
                           </dt>
                           <dd className="slds-item_detail">{DESCRIPTION}</dd>
                           {!locked && DOCS && (
-                            <a href={DOCS} target="_blank" className="slds-text-body_small" rel="noreferrer">
-                              Documentation
-                              <Icon
-                                type="utility"
-                                icon="help_doc_ext"
-                                className="slds-icon slds-icon_xx-small slds-icon-text-default slds-m-left_xx-small"
-                                omitContainer
-                              />
-                            </a>
+                            <dd className="slds-item_detail">
+                              <a href={DOCS} target="_blank" className="slds-text-body_small" rel="noreferrer">
+                                Documentation
+                                <Icon
+                                  type="utility"
+                                  icon="help_doc_ext"
+                                  className="slds-icon slds-icon_xx-small slds-icon-text-default slds-m-left_xx-small"
+                                  omitContainer
+                                />
+                              </a>
+                            </dd>
                           )}
                         </Fragment>
                       ))}

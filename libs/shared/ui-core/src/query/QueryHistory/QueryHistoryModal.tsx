@@ -8,7 +8,7 @@ import { EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput, Spinner } fr
 import { getDexieDb, queryHistoryDb } from '@jetstream/ui/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import uniqBy from 'lodash/uniqBy';
-import { createRef, forwardRef, useCallback, useEffect, useState } from 'react';
+import { createRef, forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 import { fromQueryHistoryState } from '../..';
 import { useAmplitude } from '../../analytics';
 import { QueryRestoreErrors } from '../RestoreQuery/query-restore-utils';
@@ -103,6 +103,23 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ selectedO
     [filterRecordsFn, showingUpTo, refreshCounter],
     [] as QueryHistoryItem[],
   );
+
+  /**
+   * Saving an edited query can change the item's KEY (it derives from the SOQL text), which
+   * remounts that card on refresh — unmounting the Edit button the card itself just refocused and
+   * dropping keyboard focus to <body>. Remember the saved key and, once the refreshed list renders,
+   * hand focus to the new card's Edit button. One-shot: cleared on the first delivery whether or
+   * not the item is still visible (the current filter may exclude the edited query).
+   */
+  const pendingFocusEditKeyRef = useRef<QueryHistoryItem['key'] | null>(null);
+  useEffect(() => {
+    if (pendingFocusEditKeyRef.current === null) {
+      return;
+    }
+    const editButton = document.getElementById(`edit-query-${pendingFocusEditKeyRef.current}`);
+    pendingFocusEditKeyRef.current = null;
+    editButton?.focus();
+  }, [queryHistory]);
 
   const totalRecordCount = useLiveQuery(
     () => getDexieDb().query_history.orderBy('lastRun').reverse().filter(filterRecordsFn).count(),
@@ -227,6 +244,7 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ selectedO
             </div>
             <List
               ref={ulRef}
+              ariaLabel="Salesforce objects"
               items={filteredSelectObjectsList}
               isActive={(item: QueryHistorySelection) => item.key === selectedObject}
               subheadingPlaceholder
@@ -270,7 +288,8 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ selectedO
                 selectedOrg={selectedOrg}
                 onExecute={handleExecute}
                 onSave={handleSaveFavorite}
-                onQueryUpdated={() => {
+                onQueryUpdated={(updatedKey) => {
+                  pendingFocusEditKeyRef.current = updatedKey;
                   // Force refresh by incrementing the counter
                   setRefreshCounter((prev) => prev + 1);
                 }}

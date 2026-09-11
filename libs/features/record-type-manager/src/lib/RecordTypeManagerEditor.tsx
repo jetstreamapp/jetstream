@@ -18,6 +18,7 @@ import {
   ScopedNotification,
   Spinner,
   Tooltip,
+  getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
@@ -111,7 +112,11 @@ export function RecordTypeManagerEditor() {
                   </div>
                 }
               >
-                <Link className="slds-button slds-button_neutral" to="..">
+                <Link
+                  className="slds-button slds-button_neutral"
+                  aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'shift', 'enter'])}
+                  to=".."
+                >
                   <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Go Back
                 </Link>

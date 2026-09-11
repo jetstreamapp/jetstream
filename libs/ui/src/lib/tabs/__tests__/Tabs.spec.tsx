@@ -1,3 +1,4 @@
+import { axeScan } from '@jetstream/test-utils';
 import { UiTabSection } from '@jetstream/types';
 import { fireEvent, render, screen } from '@testing-library/react';
 import Tabs from '../Tabs';
@@ -68,6 +69,34 @@ describe('Tabs', () => {
 
     const tabPanel = screen.getByRole('tabpanel');
     expect(tabPanel.textContent).toContain('Gamma Content');
+  });
+
+  test('arrow keys move between tabs with automatic activation', () => {
+    render(<Tabs tabs={tabs} />);
+
+    const alphaTab = screen.getAllByRole('tab').find((tab) => tab.getAttribute('aria-controls') === 'tab-alpha')!;
+
+    // Fired on the tab itself so it bubbles to the tablist handler with the tab as event target
+    fireEvent.keyDown(alphaTab, { key: 'ArrowRight' });
+    expect(screen.getByRole('tabpanel').textContent).toContain('Beta Content');
+
+    const betaTab = screen.getAllByRole('tab').find((tab) => tab.getAttribute('aria-controls') === 'tab-beta')!;
+    fireEvent.keyDown(betaTab, { key: 'End' });
+    expect(screen.getByRole('tabpanel').textContent).toContain('Gamma Content');
+  });
+
+  test('only the active tab is in the tab order (roving tabindex)', () => {
+    render(<Tabs tabs={tabs} />);
+
+    const tabLinks = screen.getAllByRole('tab');
+    expect(tabLinks.filter((tab) => tab.getAttribute('tabindex') === '0')).toHaveLength(1);
+    expect(tabLinks.filter((tab) => tab.getAttribute('tabindex') === '-1')).toHaveLength(2);
+  });
+
+  test('has no axe violations', async () => {
+    const { container } = render(<Tabs tabs={tabs} />);
+    const results = await axeScan(container);
+    expect(results.violations).toEqual([]);
   });
 
   test('all tab titles are rendered in the tablist', () => {

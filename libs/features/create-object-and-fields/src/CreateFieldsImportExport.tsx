@@ -162,6 +162,7 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows, onLo
         </button>
         <button
           className="slds-button slds-button_neutral slds-button_middle collapsible-button collapsible-button-lg"
+          title="Export Fields"
           onClick={() => handleExport()}
         >
           <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />

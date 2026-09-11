@@ -895,13 +895,26 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
             if (reason && WHY_NOT_DELETABLE_REASONS.has(reason)) {
               return (
                 <Grid align="center" verticalAlign="center" className="h-100">
-                  <Tooltip ariaRole="label" content={`Not eligible to delete: ${FIELD_USAGE_DELETE_INELIGIBLE_LABELS[reason]}`}>
+                  {/* Focusable + grid-inner-focus so keyboard users can reach the explanation: arrowing
+                      onto the cell focuses the trigger, which opens the tooltip and reads its label */}
+                  <Tooltip
+                    ariaRole="label"
+                    triggerTabIndex={-1}
+                    triggerProps={{ 'data-grid-inner-focus': true }}
+                    content={`Not eligible to delete: ${FIELD_USAGE_DELETE_INELIGIBLE_LABELS[reason]}`}
+                  >
                     <Icon icon="info" type="utility" className="slds-icon slds-icon-text-default slds-icon_xx-small" />
                   </Tooltip>
                 </Grid>
               );
             }
-            return null;
+            // Visually blank (standard/packaged/name rows are obviously not user-deletable), but screen
+            // readers should not just hear an empty cell in a checkbox column
+            return (
+              <span className="slds-assistive-text">
+                {reason ? `Not eligible to delete: ${FIELD_USAGE_DELETE_INELIGIBLE_LABELS[reason]}` : 'Not eligible to delete'}
+              </span>
+            );
           }
           return SelectColumn.renderCell?.(args) || <SelectFormatter {...args} />;
         },
@@ -1108,6 +1121,12 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
               <button
                 type="button"
                 className="slds-button slds-button_neutral slds-button_stretch"
+                // Focused directly during grid navigation so "Where Used, button" (and Enter to open)
+                // is announced; the aria-label scopes the name since every row renders this button,
+                // and tabIndex -1 keeps the grid a single page tab stop
+                data-grid-inner-focus
+                tabIndex={-1}
+                aria-label={`Where Used for ${p.row.fieldApiName}`}
                 onClick={() => setWhereUsedForKey(fieldKey)}
               >
                 Where Used
@@ -1450,6 +1469,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                   <button
                     type="button"
                     className="slds-button slds-button_neutral collapsible-button collapsible-button-xs slds-m-left_xx-small"
+                    title="Load All Records"
                     disabled={isFieldUsageJobActiveForOrg}
                     onClick={() => setLoadAllRecordsModalOpen(true)}
                   >

@@ -1,10 +1,10 @@
 import { css } from '@emotion/react';
 import { AddOrgHandlerFn, Maybe, OrgGroup, SalesforceOrgUi } from '@jetstream/types';
-import { Badge, Grid, Icon, Tooltip } from '@jetstream/ui';
+import { Badge, ComboboxWithGroupedItemsRef, Grid, Icon, Tooltip } from '@jetstream/ui';
 import { fromAppState, getRecentlySelectedOrgForGroup, setRecentlySelectedOrgsToStorage } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { Fragment, FunctionComponent, useEffect } from 'react';
+import { Fragment, FunctionComponent, useEffect, useRef } from 'react';
 import { OrgsCombobox, useOrgPermissions } from '..';
 import { hasOrderByConfigured } from '../state-management/query.state';
 import { AddOrg } from './AddOrg';
@@ -42,6 +42,28 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
   const activeOrgGroup = useAtomValue(fromAppState.jetstreamActiveGroupSelector);
 
   const { actionInProgress, orgLoading, handleAddOrg, handleRemoveOrg, handleUpdateOrg } = useUpdateOrgs();
+
+  const orgsComboboxRef = useRef<ComboboxWithGroupedItemsRef>(null);
+  // Removing the selected org unmounts the info popover together with its trigger, so the popover's
+  // own return-focus has nowhere to go. Remember which org is being removed and hand focus to the org
+  // switcher once the selection has moved off it.
+  const removedOrgIdPendingFocusRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const removedOrgId = removedOrgIdPendingFocusRef.current;
+    if (removedOrgId && selectedOrg?.uniqueId !== removedOrgId) {
+      removedOrgIdPendingFocusRef.current = null;
+      orgsComboboxRef.current?.focusInput();
+    }
+  }, [selectedOrg]);
+
+  async function handleRemoveOrgAndFocusSwitcher(org: SalesforceOrgUi) {
+    removedOrgIdPendingFocusRef.current = org.uniqueId;
+    const removed = await handleRemoveOrg(org);
+    if (!removed) {
+      removedOrgIdPendingFocusRef.current = null;
+    }
+  }
 
   // Save selected org to recently selected orgs in storage whenever it changes, so that it can be pre-selected when switching between groups
   useEffect(() => {
@@ -104,6 +126,8 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
           {!hasMetadataAccess && (
             <Tooltip
               id={`limited-org-access`}
+              // The explanation is only in the tooltip, so keyboard users need to be able to reach it
+              triggerTabIndex={0}
               content={`Your user does not have the permission "Modify Metadata Through Metadata API Functions" Or "Modify All Data". Some Jetstream features will not work properly.`}
             >
               <div className={classNames('slds-col slds-p-around_xx-small')}>
@@ -122,6 +146,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
             )}
           </div>
           <OrgsCombobox
+            ref={orgsComboboxRef}
             orgs={orgs}
             selectedOrg={selectedOrg}
             disabled={actionInProgress}
@@ -135,7 +160,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
                 loading={orgLoading}
                 disableOrgActions={actionInProgress}
                 onAddOrg={handleAddOrg}
-                onRemoveOrg={handleRemoveOrg}
+                onRemoveOrg={handleRemoveOrgAndFocusSwitcher}
                 onUpdateOrg={handleUpdateOrg}
               />
             </div>

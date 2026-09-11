@@ -14,6 +14,7 @@ const defaultSelectedItemTitleFn = (item: ListItem) => item.title;
 
 export interface ComboboxWithGroupedItemsRef {
   clearSearchTerm: () => void;
+  focusInput: () => void;
 }
 
 export interface ComboboxWithGroupedItemsProps {
@@ -64,7 +65,10 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
   ) => {
     const comboboxRef = useRef<ComboboxPropsRef>(null);
     const [filterTextNonDebounced, setFilterText] = useState<string>('');
-    const filterText = useDebounce(filterTextNonDebounced, 300);
+    const debouncedFilterText = useDebounce(filterTextNonDebounced, 300);
+    // Clearing applies immediately (M13): a debounced reset showed the previous search's subset for
+    // 300ms when the list was cleared or reopened — same rule as ComboboxWithItems
+    const filterText = filterTextNonDebounced ? debouncedFilterText : '';
     const [visibleItems, setVisibleItems] = useState(groups);
     // Derived during render rather than mirrored into state with effects — see ComboboxWithItems
     // for why the effect-synced version risked "Maximum update depth exceeded".
@@ -81,6 +85,9 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
         clearSearchTerm: () => {
           setFilterText('');
           comboboxRef.current?.clearInputText();
+        },
+        focusInput: () => {
+          comboboxRef.current?.focusInput();
         },
       }),
       [],
@@ -106,10 +113,14 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
       }
     }, [groups, filterText, filterFn, groupFilterFn, allowGroupToMatchFilterText]);
 
+    // Enter from the input picks the first selectable option (see ComboboxWithItems for why it closes explicitly)
     const onInputEnter = useCallback(() => {
-      const items = visibleItems.flatMap((group) => group.items);
-      if (items.length > 0) {
-        onSelected(items[0]);
+      const item = visibleItems.flatMap((group) => group.items).find((groupItem) => !groupItem.disabled);
+      if (item) {
+        onSelected(item);
+        if (!item.isDrillInItem) {
+          comboboxRef.current?.close();
+        }
       }
     }, [onSelected, visibleItems]);
 
@@ -155,6 +166,11 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
           break;
         }
         case 'enter': {
+          // A disabled option is announced as disabled and must not activate — mirrors the
+          // pointer guard in ComboboxListItem
+          if (isNumber(focusedIndex) && items[focusedIndex]?.disabled) {
+            return;
+          }
           if (isNumber(tempFocusedIndex)) {
             tempFocusedIndex = null;
             setFocusedIndex(tempFocusedIndex);
