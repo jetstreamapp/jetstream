@@ -199,6 +199,9 @@ jobs:
   # "e2e" job below, not at these.
   e2e-shard:
     runs-on: ubuntu-latest
+    # Shards normally finish in 4–10 minutes. The cap makes a hung worker fail the shard instead of
+    # holding the whole run for GitHub's 6-hour default.
+    timeout-minutes: 30
     # Split across 4 machines. Each shard gets its own postgres service, app server and seeded
     # users, so the only resource shared between them is the Salesforce org.
     # fail-fast is off so one shard failing still lets the others report.
