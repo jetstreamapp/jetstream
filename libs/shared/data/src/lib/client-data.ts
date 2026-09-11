@@ -89,6 +89,9 @@ import {
   TeamMemberRole,
   TeamMemberStatus,
   TeamMemberUpdateRequest,
+  TeamSeatChangePreview,
+  TeamSeatUpdateRequest,
+  TeamSeatUpdateResponse,
   TeamUserFacing,
   UpdateSalesforceCanvasOrgRequest,
   UserProfileUi,
@@ -215,6 +218,14 @@ export async function resendInvitation(teamId: string, invitationId: string): Pr
 
 export async function cancelInvitation(teamId: string, invitationId: string): Promise<void> {
   return handleRequest({ method: 'DELETE', url: `/api/teams/${teamId}/invitations/${invitationId}` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function previewTeamSeats(teamId: string, data: { seats: number }): Promise<TeamSeatChangePreview> {
+  return handleRequest({ method: 'POST', url: `/api/teams/${teamId}/seats/preview`, data }).then(unwrapResponseIgnoreCache);
+}
+
+export async function updateTeamSeats(teamId: string, data: TeamSeatUpdateRequest): Promise<TeamSeatUpdateResponse> {
+  return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}/seats`, data }).then(unwrapResponseIgnoreCache);
 }
 
 /**
@@ -431,14 +442,20 @@ export async function cancelEmailChange(): Promise<{ pendingEmailChange: Maybe<P
 
 export async function initCheckoutSession({
   priceLookupKey,
+  quantity,
   teamName,
 }: {
   priceLookupKey: StripePriceKey;
+  /** Seats to purchase; required for team prices and ignored for individual plans */
+  quantity?: number;
+  /** Only applied when the checkout creates a new team */
   teamName?: string;
 }): Promise<{ url: string }> {
-  return handleRequest({ method: 'POST', url: '/api/billing/checkout-session', data: { priceLookupKey, teamName } }).then(
-    unwrapResponseIgnoreCache,
-  );
+  return handleRequest({
+    method: 'POST',
+    url: '/api/billing/checkout-session',
+    data: { priceLookupKey, seats: quantity, teamName },
+  }).then(unwrapResponseIgnoreCache);
 }
 
 export async function getSubscriptions(): Promise<{
