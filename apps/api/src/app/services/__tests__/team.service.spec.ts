@@ -7,6 +7,13 @@ import { verifyTeamInvitation } from '../team.service';
 vi.mock('../../db/team.db');
 vi.mock('oauth4webapi');
 
+// Membership changes no longer sync seat quantities to Stripe, so team.service must not depend on
+// stripe.service at all. The factory only runs if something in this import graph pulls the module
+// in, at which point it fails the whole file at load time.
+vi.mock('../stripe.service', () => {
+  throw new Error('team.service must not import stripe.service: seat quantities are purchased, not synced from membership');
+});
+
 vi.mock('@jetstream/auth/server', async () => {
   const actual = await vi.importActual('@jetstream/auth/server');
   return {

@@ -36,6 +36,11 @@ export const ENV = {
   // Overrides the upstream disposable-email blocklist source; falls back to the community list.
   BLOCKED_EMAIL_DOMAIN_LIST_URL: process.env.BLOCKED_EMAIL_DOMAIN_LIST_URL,
 
+  // STRIPE — only the one-off backfill-team-seats entry point talks to Stripe
+  STRIPE_API_KEY: process.env.STRIPE_API_KEY,
+  // Report what a task would do without writing anything (currently honored by backfill-team-seats)
+  DRY_RUN: Boolean(process.env.DRY_RUN && process.env.DRY_RUN.toLowerCase().startsWith('t')),
+
   // CLOUDFLARE
   CLOUDFLARE_API_TOKEN: process.env.CLOUDFLARE_API_TOKEN,
   CLOUDFLARE_ZONE_IDS: process.env.CLOUDFLARE_ZONE_IDS, // comma-separated list of zone tags

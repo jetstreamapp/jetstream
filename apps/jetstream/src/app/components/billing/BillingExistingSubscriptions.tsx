@@ -1,7 +1,18 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { JetstreamPricesByLookupKey, StripeUserFacingCustomer } from '@jetstream/types';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
+import {
+  formatUsd,
+  getIntervalLabel,
+  getOverAllocationMessage,
+  getPendingSeatDecreaseMessage,
+  hasPendingSeatDecrease,
+} from '@jetstream/shared/ui-utils';
+import { pluralizeFromNumber } from '@jetstream/shared/utils';
+import { JetstreamPricesByLookupKey, StripeUserFacingCustomer, TeamSeatSummary } from '@jetstream/types';
+import { FeedbackLink, ScopedNotification } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { EnhancedBillingCard } from './EnhancedBillingCard';
 import {
   ACTIVE_SUBSCRIPTION_STATUSES,
@@ -11,29 +22,50 @@ import {
   TEAM_ANNUAL_KEY,
   TEAM_MONTHLY_KEY,
 } from './billing.constants';
-import { describeSubscriptionItemPricing, formatUsd, getIntervalLabel } from './billing.utils';
+import { describeSubscriptionItemPricing } from './billing.utils';
 
 interface BillingExistingSubscriptionsProps {
   customerWithSubscriptions: StripeUserFacingCustomer;
   pricesByLookupKey: JetstreamPricesByLookupKey | null;
   hasManualBilling: boolean;
+  /** Seat accounting for the user's team; null for individual plans or when the team could not be loaded */
+  seats: TeamSeatSummary | null;
+  teamId: string | null;
 }
 
-function getSeatsLabel(quantity: number, includedSeats: number | null): string {
-  const seatWord = quantity === 1 ? 'seat' : 'seats';
-  if (includedSeats === null) {
-    return `${quantity} ${seatWord}`;
-  }
+/** How a legacy flat-tier plan is billed: a block of included seats plus any purchased beyond it. */
+function getSeatsLabel(quantity: number, includedSeats: number): string {
   if (quantity <= includedSeats) {
-    return `${quantity} of ${includedSeats} included seats in use`;
+    return `Your plan includes ${includedSeats} seats.`;
   }
-  return `${quantity} seats (${includedSeats} included, ${quantity - includedSeats} additional)`;
+  const additional = quantity - includedSeats;
+  return `Your plan includes ${includedSeats} seats plus ${additional} additional ${pluralizeFromNumber('seat', additional)}.`;
+}
+
+function getSeatSummaryLabel(seats: TeamSeatSummary): string {
+  const parts: string[] = [];
+  if (seats.purchased === null) {
+    parts.push('Unlimited seats');
+  } else {
+    parts.push(`${seats.purchased} ${pluralizeFromNumber('seat', seats.purchased)} purchased`);
+  }
+  parts.push(`${seats.used} in use`);
+  if (seats.reserved > 0) {
+    parts.push(`${seats.reserved} reserved for invitations`);
+  }
+  if (seats.available !== null) {
+    // An over-allocated team reads as 0 available; the over-allocation notice reports by how much
+    parts.push(`${Math.max(seats.available, 0)} available`);
+  }
+  return parts.join(' · ');
 }
 
 export const BillingExistingSubscriptions = ({
   customerWithSubscriptions,
   pricesByLookupKey,
   hasManualBilling,
+  seats,
+  teamId,
 }: BillingExistingSubscriptionsProps) => {
   const { trackEvent } = useAmplitude();
 
@@ -60,6 +92,36 @@ export const BillingExistingSubscriptions = ({
   const handleEnterpriseContact = () => {
     trackEvent(ANALYTICS_KEYS.billing_session, { action: 'enterprise_contact' });
     window.open('mailto:sales@getjetstream.app?subject=Enterprise Plan Inquiry', '_blank');
+  };
+
+  const renderSeatDetails = () => {
+    if (!isTeamSubscription || !seats) {
+      return null;
+    }
+
+    const overAllocationMessage = getOverAllocationMessage(seats, hasManualBilling);
+
+    return (
+      <div className="slds-m-top_x-small slds-text-align_left">
+        {hasPendingSeatDecrease(seats) && seats.pendingEffectiveAt && (
+          <ScopedNotification theme="info" className="slds-m-top_x-small">
+            {getPendingSeatDecreaseMessage(seats)}
+          </ScopedNotification>
+        )}
+        {overAllocationMessage && (
+          <ScopedNotification theme="warning" className="slds-m-top_x-small">
+            {overAllocationMessage}
+          </ScopedNotification>
+        )}
+        {teamId && (
+          <p className="slds-text-body_small slds-m-top_x-small slds-text-align_center">
+            {hasManualBilling ? <>Seat limit set by your agreement. Contact support to change it. </> : <>Manage seats from the </>}
+            <Link to={APP_ROUTES.TEAM_DASHBOARD.ROUTE}>Team Dashboard</Link>
+            {hasManualBilling ? ' shows who is using them.' : '.'}
+          </p>
+        )}
+      </div>
+    );
   };
 
   const renderCurrentPlanSummary = () => {
@@ -99,8 +161,15 @@ export const BillingExistingSubscriptions = ({
             </span>
           )}
         </div>
-        {isTeamSubscription && (
-          <p className="slds-text-body_small slds-m-top_x-small">{getSeatsLabel(activeItem.quantity, includedSeats)}</p>
+        {isTeamSubscription && seats && (
+          <p data-testid="billing-seat-summary" className="slds-text-body_small slds-m-top_x-small">
+            {getSeatSummaryLabel(seats)}
+          </p>
+        )}
+        {isTeamSubscription && isLegacyPlan && includedSeats !== null && (
+          <p className="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+            {getSeatsLabel(activeItem.quantity, includedSeats)}
+          </p>
         )}
         {total !== null && (
           <p className="slds-text-body_small slds-m-top_x-small">
@@ -115,6 +184,7 @@ export const BillingExistingSubscriptions = ({
             {discountQualifier}
           </p>
         )}
+        {renderSeatDetails()}
         {isLegacyPlan && (
           <p className="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
             You are on a legacy plan. The plans below show current pricing, and your rate does not change unless you switch plans.
@@ -137,10 +207,7 @@ export const BillingExistingSubscriptions = ({
         <div className="slds-text-align_center slds-m-bottom_medium">
           <p className="slds-text-color_weak">
             Visit the billing portal to make changes to your plan.{' '}
-            <a href="mailto:support@jetstream.com" target="_blank" rel="noopener noreferrer">
-              Contact us for assistance
-            </a>
-            .
+            <FeedbackLink type="EMAIL" label="Contact us for assistance" emailLinkParams={{ subject: 'Billing question' }} />.
           </p>
         </div>
       )}

@@ -1,6 +1,16 @@
 import { formatISO, fromUnixTime } from 'date-fns';
 import type Stripe from 'stripe';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  buildSeatDecreaseScheduleParams,
+  fetchPriceTiers,
+  findTeamSeatItem,
+  getStripeErrorDetails,
+  isProrationDateError,
+  isStripeCardError,
+  isStripeInvalidRequestError,
+  sumProrationAmount,
+} from '../stripe-seats.service';
 import { convertCustomerWithSubscriptionsToUserFacing } from '../stripe.service';
 
 // stripe.service instantiates a Stripe client and pulls in db/email modules at import — stub the config
@@ -20,6 +30,9 @@ vi.mock('@jetstream/email', () => ({
 vi.mock('../../db/subscription.db', () => ({}));
 vi.mock('../../db/team.db', () => ({}));
 vi.mock('../../db/user.db', () => ({}));
+
+const { retrievePrice } = vi.hoisted(() => ({ retrievePrice: vi.fn() }));
+vi.mock('../stripe.client', () => ({ stripe: { prices: { retrieve: retrievePrice } } }));
 
 const entitlement = (lookup_key: string) => ({ lookup_key }) as Stripe.Entitlements.ActiveEntitlement;
 
@@ -253,5 +266,301 @@ describe('convertCustomerWithSubscriptionsToUserFacing', () => {
     const result = convertCustomerWithSubscriptionsToUserFacing(buildCustomer());
 
     expect(result.subscriptions[0].hasDiscount).toBe(false);
+  });
+});
+
+type StripeSubscription = Parameters<typeof findTeamSeatItem>[0][number];
+type StripeSchedule = Parameters<typeof buildSeatDecreaseScheduleParams>[0]['schedule'];
+type StripeSubscriptionItem = Parameters<typeof buildSeatDecreaseScheduleParams>[0]['item'];
+type StripeInvoiceForProration = Parameters<typeof sumProrationAmount>[0];
+
+function buildSubscription(id: string, items: { id: string; lookupKey: string | null }[]): StripeSubscription {
+  return {
+    id,
+    status: 'active',
+    items: { data: items.map(({ id: itemId, lookupKey }) => ({ id: itemId, price: { id: `price_${lookupKey}`, lookup_key: lookupKey } })) },
+  } as unknown as StripeSubscription;
+}
+
+describe('findTeamSeatItem', () => {
+  it('returns the single TEAM_ item with its subscription', () => {
+    const subscription = buildSubscription('sub_1', [{ id: 'si_team', lookupKey: 'TEAM_MONTHLY' }]);
+
+    const result = findTeamSeatItem([buildSubscription('sub_0', [{ id: 'si_pro', lookupKey: 'PRO_MONTHLY' }]), subscription]);
+
+    expect(result?.subscription.id).toBe('sub_1');
+    expect(result?.item.id).toBe('si_team');
+  });
+
+  it('returns null when no item is a team price', () => {
+    expect(findTeamSeatItem([buildSubscription('sub_1', [{ id: 'si_pro', lookupKey: 'PRO_ANNUAL' }])])).toBeNull();
+    expect(findTeamSeatItem([buildSubscription('sub_1', [{ id: 'si_x', lookupKey: null }])])).toBeNull();
+    expect(findTeamSeatItem([])).toBeNull();
+  });
+
+  it('returns null when more than one TEAM_ item exists, because the seat state is ambiguous', () => {
+    const result = findTeamSeatItem([
+      buildSubscription('sub_1', [{ id: 'si_a', lookupKey: 'TEAM_MONTHLY' }]),
+      buildSubscription('sub_2', [{ id: 'si_b', lookupKey: 'TEAM_ANNUAL' }]),
+    ]);
+
+    expect(result).toBeNull();
+  });
+});
+
+describe('fetchPriceTiers', () => {
+  const stripeTiers = [
+    { flat_amount: 5000, unit_amount: null, up_to: 5 },
+    { flat_amount: null, unit_amount: 1000, up_to: null },
+  ];
+
+  beforeEach(() => {
+    retrievePrice.mockReset();
+  });
+
+  // The cache is module-level, so every test uses its own price id
+  it('caches a tier table so repeat lookups skip Stripe', async () => {
+    retrievePrice.mockResolvedValue({ tiers: stripeTiers });
+
+    await fetchPriceTiers('price_cached');
+    const tiers = await fetchPriceTiers('price_cached');
+
+    expect(retrievePrice).toHaveBeenCalledTimes(1);
+    expect(tiers).toEqual([
+      { flatAmount: 50, unitAmount: null, upTo: 5 },
+      { flatAmount: null, unitAmount: 10, upTo: null },
+    ]);
+  });
+
+  it('does not cache an empty tier table, so the next call retries the lookup', async () => {
+    retrievePrice.mockResolvedValueOnce({ tiers: [] }).mockResolvedValueOnce({ tiers: stripeTiers });
+
+    expect(await fetchPriceTiers('price_empty')).toEqual([]);
+    expect(await fetchPriceTiers('price_empty')).toHaveLength(2);
+    expect(retrievePrice).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('sumProrationAmount', () => {
+  const invoice = (amountDue: number, lines: { amount: number; proration?: boolean }[]): StripeInvoiceForProration =>
+    ({
+      amount_due: amountDue,
+      lines: {
+        data: lines.map(({ amount, proration }) => ({
+          amount,
+          parent: proration === undefined ? null : { subscription_item_details: { proration } },
+        })),
+      },
+    }) as unknown as StripeInvoiceForProration;
+
+  it('sums only the lines Stripe flags as prorations and converts to dollars', () => {
+    // Unused time credit, new quantity debit, and the next period's recurring line which must be excluded
+    const result = sumProrationAmount(
+      invoice(30000, [
+        { amount: -5000, proration: true },
+        { amount: 12500, proration: true },
+        { amount: 22500, proration: false },
+      ]),
+    );
+
+    expect(result).toBe(75);
+  });
+
+  it('falls back to amount_due when no line is flagged as a proration', () => {
+    expect(sumProrationAmount(invoice(4250, [{ amount: 4250 }]))).toBe(42.5);
+    expect(sumProrationAmount(invoice(0, []))).toBe(0);
+  });
+});
+
+describe('buildSeatDecreaseScheduleParams', () => {
+  const item = {
+    id: 'si_team',
+    price: { id: 'price_team_monthly', recurring: { interval: 'month', interval_count: 1 } },
+  } as unknown as StripeSubscriptionItem;
+
+  const schedule = (discounts: unknown[] = []): StripeSchedule =>
+    ({
+      id: 'sub_sched_1',
+      phases: [
+        {
+          start_date: 1_760_000_000,
+          end_date: 1_762_592_000,
+          discounts,
+          items: [{ price: { id: 'price_team_monthly' }, quantity: 5 }],
+        },
+      ],
+    }) as unknown as StripeSchedule;
+
+  it('copies the current phase verbatim and adds one interval at the lower quantity that then releases', () => {
+    const params = buildSeatDecreaseScheduleParams({ teamId: 'team_1', schedule: schedule(), item, quantity: 3 });
+
+    expect(params).toEqual({
+      end_behavior: 'release',
+      metadata: { type: 'SEAT_DECREASE', teamId: 'team_1', seats: '3' },
+      phases: [
+        { start_date: 1_760_000_000, end_date: 1_762_592_000, items: [{ price: 'price_team_monthly', quantity: 5 }] },
+        {
+          items: [{ price: 'price_team_monthly', quantity: 3 }],
+          duration: { interval: 'month', interval_count: 1 },
+          proration_behavior: 'none',
+        },
+      ],
+    });
+  });
+
+  it('re-sends subscription discounts on both phases, reusing the existing discount id', () => {
+    const params = buildSeatDecreaseScheduleParams({
+      teamId: 'team_1',
+      schedule: schedule([
+        { coupon: 'coupon_1', discount: 'di_1', promotion_code: null },
+        { coupon: { id: 'coupon_2' }, discount: null, promotion_code: null },
+        { coupon: null, discount: null, promotion_code: { id: 'promo_3' } },
+      ]),
+      item,
+      quantity: 3,
+    });
+
+    const expectedDiscounts = [{ discount: 'di_1' }, { coupon: 'coupon_2' }, { promotion_code: 'promo_3' }];
+    expect(params.phases?.[0].discounts).toEqual(expectedDiscounts);
+    expect(params.phases?.[1].discounts).toEqual(expectedDiscounts);
+  });
+
+  it('accepts price ids given as strings on the current phase', () => {
+    const stringPriceSchedule = {
+      ...schedule(),
+      phases: [{ start_date: 1, end_date: 2, discounts: [], items: [{ price: 'price_team_monthly', quantity: 5 }] }],
+    } as unknown as StripeSchedule;
+
+    const params = buildSeatDecreaseScheduleParams({ teamId: 'team_1', schedule: stringPriceSchedule, item, quantity: 3 });
+
+    expect(params.phases?.[0].items).toEqual([{ price: 'price_team_monthly', quantity: 5 }]);
+  });
+
+  const scheduleWithPhaseSettings = (phaseSettings: Record<string, unknown>): StripeSchedule =>
+    ({
+      id: 'sub_sched_1',
+      phases: [
+        {
+          start_date: 1_760_000_000,
+          end_date: 1_762_592_000,
+          discounts: [],
+          items: [{ price: { id: 'price_team_monthly' }, quantity: 5 }],
+          ...phaseSettings,
+        },
+      ],
+    }) as unknown as StripeSchedule;
+
+  it.each([
+    ['an id', 'pm_1'],
+    ['an expanded object', { id: 'pm_1', object: 'payment_method' }],
+  ])(
+    're-sends the phase payment method (given as %s), tax rates, metadata and invoice collection on both phases',
+    (_label, defaultPaymentMethod) => {
+      const params = buildSeatDecreaseScheduleParams({
+        teamId: 'team_1',
+        schedule: scheduleWithPhaseSettings({
+          default_payment_method: defaultPaymentMethod,
+          default_tax_rates: [{ id: 'txr_1', object: 'tax_rate' }, { id: 'txr_2' }],
+          metadata: { source: 'checkout' },
+          collection_method: 'send_invoice',
+          // Only the payment terms are carried; the other invoice settings are left alone
+          invoice_settings: { days_until_due: 30, footer: 'Thank you', account_tax_ids: null, custom_fields: null, description: null },
+        }),
+        item,
+        quantity: 3,
+      });
+
+      const expectedSettings = {
+        default_payment_method: 'pm_1',
+        default_tax_rates: ['txr_1', 'txr_2'],
+        metadata: { source: 'checkout' },
+        collection_method: 'send_invoice',
+        invoice_settings: { days_until_due: 30 },
+      };
+      expect(params.phases).toEqual([
+        { start_date: 1_760_000_000, end_date: 1_762_592_000, items: [{ price: 'price_team_monthly', quantity: 5 }], ...expectedSettings },
+        {
+          items: [{ price: 'price_team_monthly', quantity: 3 }],
+          duration: { interval: 'month', interval_count: 1 },
+          proration_behavior: 'none',
+          ...expectedSettings,
+        },
+      ]);
+    },
+  );
+
+  it('re-sends charge_automatically collection without invoice settings when the phase has no payment terms', () => {
+    const params = buildSeatDecreaseScheduleParams({
+      teamId: 'team_1',
+      schedule: scheduleWithPhaseSettings({ collection_method: 'charge_automatically', invoice_settings: { days_until_due: null } }),
+      item,
+      quantity: 3,
+    });
+
+    for (const phase of params.phases ?? []) {
+      expect(phase.collection_method).toBe('charge_automatically');
+      expect(phase).not.toHaveProperty('invoice_settings');
+    }
+  });
+
+  it.each([
+    ['null', { default_payment_method: null, default_tax_rates: null, metadata: null, collection_method: null, invoice_settings: null }],
+    [
+      'empty',
+      // Payment terms without a collection method are not carried on their own
+      {
+        default_payment_method: null,
+        default_tax_rates: [],
+        metadata: {},
+        collection_method: null,
+        invoice_settings: { days_until_due: 30 },
+      },
+    ],
+  ])('leaves out phase settings that are %s', (_label, phaseSettings) => {
+    const params = buildSeatDecreaseScheduleParams({
+      teamId: 'team_1',
+      schedule: scheduleWithPhaseSettings(phaseSettings),
+      item,
+      quantity: 3,
+    });
+
+    expect(params.phases).toEqual([
+      { start_date: 1_760_000_000, end_date: 1_762_592_000, items: [{ price: 'price_team_monthly', quantity: 5 }] },
+      {
+        items: [{ price: 'price_team_monthly', quantity: 3 }],
+        duration: { interval: 'month', interval_count: 1 },
+        proration_behavior: 'none',
+      },
+    ]);
+  });
+});
+
+describe('Stripe error duck-typing', () => {
+  it('recognizes card errors by SDK class name or raw type', () => {
+    expect(isStripeCardError({ type: 'StripeCardError' })).toBe(true);
+    expect(isStripeCardError({ rawType: 'card_error' })).toBe(true);
+    expect(isStripeCardError({ type: 'StripeInvalidRequestError' })).toBe(false);
+    expect(isStripeCardError(new Error('boom'))).toBe(false);
+    expect(isStripeCardError(null)).toBe(false);
+  });
+
+  it('recognizes invalid proration dates from the param or the message', () => {
+    expect(isProrationDateError({ type: 'StripeInvalidRequestError', param: 'proration_date' })).toBe(true);
+    expect(
+      isProrationDateError({ rawType: 'invalid_request_error', message: 'Invalid proration_date: must be within the current period' }),
+    ).toBe(true);
+    expect(isProrationDateError({ type: 'StripeInvalidRequestError', param: 'quantity' })).toBe(false);
+    expect(isProrationDateError({ type: 'StripeCardError', message: 'proration_date' })).toBe(false);
+    expect(isStripeInvalidRequestError({ type: 'StripeInvalidRequestError' })).toBe(true);
+  });
+
+  it('extracts the message and decline code for the user-facing payment error', () => {
+    expect(
+      getStripeErrorDetails({ type: 'StripeCardError', message: 'Your card was declined.', decline_code: 'insufficient_funds' }),
+    ).toEqual({
+      message: 'Your card was declined.',
+      declineCode: 'insufficient_funds',
+    });
+    expect(getStripeErrorDetails(new Error('network down'))).toEqual({ message: 'network down', declineCode: null });
   });
 });

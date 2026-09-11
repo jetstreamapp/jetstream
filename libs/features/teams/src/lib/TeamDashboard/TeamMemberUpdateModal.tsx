@@ -1,36 +1,49 @@
 import { css } from '@emotion/react';
 import { updateTeamMember } from '@jetstream/shared/data';
-import { TeamMemberRole, TeamUserFacing } from '@jetstream/types';
+import { getErrorMessage } from '@jetstream/shared/utils';
+import { TEAM_MEMBER_STATUS_ACTIVE, TeamMemberRole, TeamUserFacing } from '@jetstream/types';
 import { Input, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { useState } from 'react';
+import { evaluateSeatGate, SeatGate } from './team-seats/seat-gate';
+import { SeatChangeNotice } from './team-seats/SeatChangeNotice';
+import { needsSeat } from './team-seats/team-seats.utils';
 import { TeamMemberRoleDropdown } from './TeamMemberRoleDropdown';
 
 interface TeamMemberUpdateModalProps {
   teamId: string;
   teamMember: TeamUserFacing['members'][number];
-  hasManualBilling: boolean;
   currentUserRole?: TeamMemberRole;
+  seatGate: SeatGate;
   onClose: (team?: TeamUserFacing) => void;
 }
 
-export function TeamMemberUpdateModal({ teamId, teamMember, hasManualBilling, currentUserRole, onClose }: TeamMemberUpdateModalProps) {
+export function TeamMemberUpdateModal({ teamId, teamMember, currentUserRole, seatGate, onClose }: TeamMemberUpdateModalProps) {
   const [role, setRole] = useState<TeamMemberRole>(teamMember.role);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const isMovingToNonBillable = teamMember.role !== role && role === 'BILLING';
-  const isMovingToBillable = teamMember.role !== role && teamMember.role === 'BILLING';
   const isDirty = teamMember.role !== role;
+  const isMovingToNonBillable = isDirty && needsSeat(teamMember.role) && !needsSeat(role);
+  const isMovingToBillable = isDirty && !needsSeat(teamMember.role) && needsSeat(role);
+  // Only an active member takes a seat when promoted; inactive members are checked when reactivated
+  const seatEvaluation = evaluateSeatGate(seatGate.seats, {
+    requiresSeat: isMovingToBillable,
+    takesSeatNow: teamMember.status === TEAM_MEMBER_STATUS_ACTIVE,
+  });
+  const { seatBlocked } = seatEvaluation;
 
   const handleUpdateRole = async () => {
+    if (seatBlocked) {
+      return;
+    }
     setErrorMessage(null);
     setLoading(true);
     try {
       const updatedTeam = await updateTeamMember(teamId, teamMember.userId, { role });
       onClose(updatedTeam);
-    } catch {
-      setErrorMessage('There was an error updating this user, try again or contact support for assistance.');
+    } catch (ex) {
+      setErrorMessage(getErrorMessage(ex) || 'There was an error updating this user, try again or contact support for assistance.');
     } finally {
       setLoading(false);
     }
@@ -50,8 +63,7 @@ export function TeamMemberUpdateModal({ teamId, teamMember, hasManualBilling, cu
             type="submit"
             form="team-member-update-form"
             className="slds-button slds-button_brand slds-is-relative"
-            onClick={handleUpdateRole}
-            disabled={!isDirty || loading}
+            disabled={!isDirty || loading || seatBlocked}
           >
             Save
             {loading && <Spinner className="slds-spinner slds-spinner_small" />}
@@ -59,16 +71,18 @@ export function TeamMemberUpdateModal({ teamId, teamMember, hasManualBilling, cu
         </>
       }
     >
-      {!hasManualBilling && isMovingToNonBillable && (
+      {/* The non-billable direction has its own note below, so the generic billing-only note is suppressed */}
+      <SeatChangeNotice
+        seatGate={seatGate}
+        evaluation={seatEvaluation}
+        requiresSeat={isMovingToBillable}
+        consumption="uses"
+        billingOnlyNote={false}
+      />
+      {isMovingToNonBillable && (
         <ScopedNotification theme="info">
-          Moving from a billable role to a non-billable role may result in a prorated credit, depending on your plan, which will be applied
-          to future invoices.
-        </ScopedNotification>
-      )}
-      {!hasManualBilling && isMovingToBillable && (
-        <ScopedNotification theme="info">
-          Moving from a non-billable role to a billable role may result in a prorated invoice, depending on your plan, which will be
-          generated upon this change.
+          This change frees a seat for another team member.
+          {!seatGate.hasManualBilling && ' Your purchased seat count and billing do not change — use Manage Seats to reduce seats.'}
         </ScopedNotification>
       )}
       <form
