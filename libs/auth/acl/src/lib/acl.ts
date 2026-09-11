@@ -19,7 +19,12 @@ type TeamActions = 'read' | 'update';
 type TeamSubjects = 'Team' | 'TeamMember' | { type: 'TeamMember'; role: TeamMemberRole };
 
 type TeamMemberActions = 'invite';
-type TeamMemberSubjects = 'TeamMember' | { type: 'TeamMember'; billingStatus: TeamUserFacing['billingStatus']; availableLicenses: number };
+type TeamMemberSubjects = 'TeamMember' | { type: 'TeamMember'; billingStatus: TeamUserFacing['billingStatus'] };
+
+// 'update' rather than 'manage': CASL reserves 'manage' to mean every action, which would make a
+// cannot('manage', ...) rule also revoke read access
+type TeamSeatsActions = 'read' | 'update';
+type TeamSeatsSubjects = 'TeamSeats' | { type: 'TeamSeats'; manualBilling: boolean; billingStatus: TeamUserFacing['billingStatus'] };
 
 type TeamMemberSessionActions = 'read' | 'delete';
 type TeamMemberSessionSubjects = 'TeamMemberSession';
@@ -41,6 +46,7 @@ export type AppAbility = MongoAbility<
   | [EntitlementActions, EntitlementSubjects]
   | [TeamActions, TeamSubjects]
   | [TeamMemberActions, TeamMemberSubjects]
+  | [TeamSeatsActions, TeamSeatsSubjects]
   | [TeamMemberSessionActions, TeamMemberSessionSubjects]
   | [TeamMemberAuthActivityActions, TeamMemberAuthActivitySubjects]
   | [DomainConfigurationActions, DomainConfigurationSubjects]
@@ -98,9 +104,15 @@ function getAbilityRules({ isBrowserExtension, isDesktop, isCanvasApp, user }: G
         can(['read'], ['Team', 'TeamMemberSession', 'TeamMemberAuthActivity', 'TeamMember', 'DomainConfiguration', 'SsoConfiguration']);
         can('update', ['Team', 'TeamMember']);
 
+        // Seat availability is enforced by the server and explained in the modals, so the invite
+        // action itself only depends on role and billing standing
         can('invite', 'TeamMember');
         cannot('invite', 'TeamMember', { billingStatus: TeamBillingStatusSchema.enum.PAST_DUE });
-        cannot('invite', 'TeamMember', { availableLicenses: { $lte: 0 } });
+
+        // Both roles can buy seats: the Billing role exists so finance can act on money
+        can(['read', 'update'], 'TeamSeats');
+        cannot('update', 'TeamSeats', { manualBilling: true });
+        cannot('update', 'TeamSeats', { billingStatus: TeamBillingStatusSchema.enum.PAST_DUE });
       }
       if (isBillingRole) {
         cannot('update', 'TeamMember', { role: TeamMemberRoleSchema.enum.ADMIN });

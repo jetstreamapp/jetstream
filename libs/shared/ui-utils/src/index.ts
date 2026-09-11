@@ -1,3 +1,4 @@
+export * from './lib/billing-format-utils';
 export * from './lib/errorTracker';
 export * from './lib/google-access-token';
 export * from './lib/hooks/useBrowserNotifications';

@@ -6,6 +6,7 @@ import { OidcConfigurationRequestSchema, SamlConfigurationRequestSchema } from '
 import { BLOCKED_PUBLIC_EMAIL_DOMAINS } from '@jetstream/shared/constants';
 import { assertDomainResolvesToPublicIp, fetchWithPinnedPublicIp } from '@jetstream/shared/node-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { SeatLimitError } from '@jetstream/team-seats';
 import {
   CreateSalesforceCanvasOrgRequestSchema,
   TEAM_MEMBER_ROLE_ACCESS,
@@ -18,6 +19,8 @@ import {
   TeamMemberRoleSchema,
   TeamMemberStatusUpdateRequestSchema,
   TeamMemberUpdateRequestSchema,
+  TeamSeatChangePreviewRequestSchema,
+  TeamSeatUpdateRequestSchema,
   UpdateSalesforceCanvasOrgRequestSchema,
 } from '@jetstream/types';
 import * as crypto from 'crypto';
@@ -27,7 +30,9 @@ import { z } from 'zod';
 import { clearSsoCertificateAnnouncementCache } from '../announcements';
 import * as canvasOrgDb from '../db/canvas-entitlement.db';
 import * as teamDb from '../db/team.db';
+import * as teamSeatsService from '../services/team-seats.service';
 import * as teamService from '../services/team.service';
+import { Request } from '../types/route.types';
 import { NotAllowedError, NotFoundError, UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
@@ -53,6 +58,77 @@ export function maskSsoSecrets<
     masked.oidcConfiguration = { ...masked.oidcConfiguration, clientSecret: null };
   }
   return masked;
+}
+
+type BlockedSeatAction = 'INVITE' | 'RESEND_INVITATION' | 'ROLE_CHANGE' | 'REACTIVATE' | 'ACCEPT_INVITATION';
+
+/**
+ * Records a membership change that was refused for lack of a seat so admins can see who was turned
+ * away from the audit log. The caller rethrows the error afterwards; this only adds the audit entry.
+ */
+function auditBlockedSeatAction(
+  req: Pick<Request, 'ip' | 'headers'>,
+  {
+    error,
+    userId,
+    teamId,
+    attemptedAction,
+    resource,
+    resourceId,
+    role,
+    targetEmail,
+    targetUserId,
+  }: {
+    error: SeatLimitError;
+    userId: string;
+    teamId: string;
+    attemptedAction: BlockedSeatAction;
+    resource: AuditLogResource;
+    resourceId?: string;
+    role: string;
+    targetEmail?: string;
+    targetUserId?: string;
+  },
+) {
+  createTeamAuditLog({
+    userId,
+    teamId,
+    action: AuditLogAction.TEAM_MEMBER_ADD_BLOCKED_NO_SEATS,
+    resource,
+    resourceId,
+    metadata: {
+      attemptedAction,
+      code: error.code,
+      kind: error.kind,
+      ...(targetEmail ? { targetEmail } : {}),
+      ...(targetUserId ? { targetUserId } : {}),
+      role,
+      seats: error.seats,
+    },
+    ipAddress: req.ip,
+    userAgent: req.headers['user-agent'] as string,
+  });
+}
+
+type BlockedSeatAuditContext = Omit<Parameters<typeof auditBlockedSeatAction>[1], 'error'>;
+
+/**
+ * Runs a membership change, recording an audit entry when it is refused for lack of a seat. The
+ * error always propagates; a null context opts out of the audit entry for that attempt.
+ */
+async function withSeatBlockAudit<T>(
+  req: Pick<Request, 'ip' | 'headers'>,
+  context: BlockedSeatAuditContext | null,
+  fn: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (ex) {
+    if (ex instanceof SeatLimitError && context) {
+      auditBlockedSeatAction(req, { ...context, error: ex });
+    }
+    throw ex;
+  }
 }
 
 const SAML_METADATA_MAX_REDIRECTS = 5;
@@ -261,6 +337,30 @@ export const routeDefinition = {
         userId: z.uuid(),
       }),
       body: TeamMemberStatusUpdateRequestSchema,
+    } satisfies RouteValidator,
+  },
+  previewSeatChange: {
+    controllerFn: () => previewSeatChange,
+    responseType: z.any(),
+    validators: {
+      hasSourceOrg: false,
+      logErrorToBugTracker: true,
+      params: z.object({
+        teamId: z.uuid(),
+      }),
+      body: TeamSeatChangePreviewRequestSchema,
+    } satisfies RouteValidator,
+  },
+  updateSeats: {
+    controllerFn: () => updateSeats,
+    responseType: z.any(),
+    validators: {
+      hasSourceOrg: false,
+      logErrorToBugTracker: true,
+      params: z.object({
+        teamId: z.uuid(),
+      }),
+      body: TeamSeatUpdateRequestSchema,
     } satisfies RouteValidator,
   },
   getInvitations: {
@@ -509,12 +609,26 @@ const acceptInvitation = createRoute(routeDefinition.acceptInvitation.validators
     email: inviteeEmail,
     role,
     features,
-  } = await teamService.acceptTeamInvitation({
-    user,
-    currentSessionProvider: req.session.provider || 'credentials',
-    teamId,
-    token,
-  });
+  } = await withSeatBlockAudit(
+    req,
+    {
+      userId: user.id,
+      teamId,
+      attemptedAction: 'ACCEPT_INVITATION',
+      resource: AuditLogResource.TEAM_MEMBER,
+      resourceId: user.id,
+      role: TEAM_MEMBER_ROLE_MEMBER,
+      targetEmail: user.email,
+      targetUserId: user.id,
+    },
+    () =>
+      teamService.acceptTeamInvitation({
+        user,
+        currentSessionProvider: req.session.provider || 'credentials',
+        teamId,
+        token,
+      }),
+  );
 
   const cookieConfig = authService.getCookieConfig(ENV.USE_SECURE_COOKIES);
   clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
@@ -657,7 +771,22 @@ const updateTeamMember = createRoute(routeDefinition.updateTeamMember.validators
     throw new NotAllowedError('You are not allowed to assign the specified role');
   }
 
-  const { team, previousMember } = await teamService.updateTeamMember({ teamId, userId, data: body, runningUserId: user.id });
+  // Only a role change can be refused for a seat, so a request without one opts out of the audit entry
+  const { team, previousMember } = await withSeatBlockAudit(
+    req,
+    body.role
+      ? {
+          userId: user.id,
+          teamId,
+          attemptedAction: 'ROLE_CHANGE',
+          resource: AuditLogResource.TEAM_MEMBER,
+          resourceId: userId,
+          role: body.role,
+          targetUserId: userId,
+        }
+      : null,
+    () => teamService.updateTeamMember({ teamId, userId, data: body, runningUserId: user.id }),
+  );
   sendJson(res, team);
 
   const updatedMember = team.members.find((member) => member.userId === userId);
@@ -700,13 +829,19 @@ const updateTeamMemberStatusAndRole = createRoute(
 
     await teamService.canRunningUserUpdateTargetUserOrThrow({ runningUserRole, userId });
 
-    const { team, previousMember, allSessionsRevoked } = await teamService.updateTeamMemberStatusAndRole({
-      teamId,
-      userId,
-      status,
-      role,
-      runningUserId: user.id,
-    });
+    const { team, previousMember, allSessionsRevoked } = await withSeatBlockAudit(
+      req,
+      {
+        userId: user.id,
+        teamId,
+        attemptedAction: 'REACTIVATE',
+        resource: AuditLogResource.TEAM_MEMBER,
+        resourceId: userId,
+        role: role || TEAM_MEMBER_ROLE_MEMBER,
+        targetUserId: userId,
+      },
+      () => teamService.updateTeamMemberStatusAndRole({ teamId, userId, status, role, runningUserId: user.id }),
+    );
     sendJson(res, team);
 
     const updatedMember = team.members.find((member) => member.userId === userId);
@@ -748,11 +883,18 @@ const createInvitation = createRoute(routeDefinition.createInvitation.validators
     throw new NotAllowedError('You are not allowed to assign the specified role');
   }
 
-  const { invitations, createdInvitation } = await teamService.createInvitation({
-    runningUserId: user.id,
-    teamId,
-    request: body,
-  });
+  const { invitations, createdInvitation } = await withSeatBlockAudit(
+    req,
+    {
+      userId: user.id,
+      teamId,
+      attemptedAction: 'INVITE',
+      resource: AuditLogResource.TEAM_INVITATION,
+      role: body.role,
+      targetEmail: body.email,
+    },
+    () => teamService.createInvitation({ runningUserId: user.id, teamId, request: body }),
+  );
   sendJson(res, invitations);
 
   createTeamAuditLog({
@@ -790,13 +932,26 @@ const resendInvitation = createRoute(routeDefinition.resendInvitation.validators
     throw new NotAllowedError('You are not allowed to modify an invitation for the specified role');
   }
 
-  const { invitations, updatedInvitation } = await teamService.resendInvitation({
-    runningUserId: user.id,
-    teamId,
-    invitationId: id,
-    expectedRole: existingInvitation.role,
-    request: body,
-  });
+  const { invitations, updatedInvitation } = await withSeatBlockAudit(
+    req,
+    {
+      userId: user.id,
+      teamId,
+      attemptedAction: 'RESEND_INVITATION',
+      resource: AuditLogResource.TEAM_INVITATION,
+      resourceId: id,
+      role: invitationRole,
+      targetEmail: existingInvitation.email,
+    },
+    () =>
+      teamService.resendInvitation({
+        runningUserId: user.id,
+        teamId,
+        invitationId: id,
+        expectedRole: existingInvitation.role,
+        request: body,
+      }),
+  );
   sendJson(res, invitations);
 
   createTeamAuditLog({
@@ -834,6 +989,40 @@ const cancelInvitation = createRoute(routeDefinition.cancelInvitation.validators
     resource: AuditLogResource.TEAM_INVITATION,
     resourceId: id,
     metadata: { inviteeEmail: existingInvitation.email, role: existingInvitation.role },
+    ipAddress: req.ip,
+    userAgent: req.headers['user-agent'] as string,
+  });
+});
+
+const previewSeatChange = createRoute(routeDefinition.previewSeatChange.validators, async ({ params, body }, _, res) => {
+  const preview = await teamSeatsService.previewSeatChange({ teamId: params.teamId, seats: body.seats });
+  sendJson(res, preview);
+});
+
+const updateSeats = createRoute(routeDefinition.updateSeats.validators, async ({ params, body, user }, req, res) => {
+  const { teamId } = params;
+  const response = await teamSeatsService.commitSeatChange({
+    teamId,
+    seats: body.seats,
+    expectedCurrentSeats: body.expectedCurrentSeats,
+    prorationDate: body.prorationDate,
+    runningUserId: user.id,
+  });
+  sendJson(res, response);
+
+  createTeamAuditLog({
+    userId: user.id,
+    teamId,
+    action: AuditLogAction.TEAM_SEATS_UPDATED,
+    resource: AuditLogResource.TEAM_SEATS,
+    resourceId: teamId,
+    metadata: {
+      changeType: response.result.changeType,
+      previousSeats: body.expectedCurrentSeats,
+      newSeats: response.result.seats,
+      effectiveAt: response.result.effectiveAt,
+      invoiceId: response.result.invoice?.id ?? null,
+    },
     ipAddress: req.ip,
     userAgent: req.headers['user-agent'] as string,
   });

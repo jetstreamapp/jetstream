@@ -1,5 +1,5 @@
 import { LoginConfigurationWithCallbacks } from '@jetstream/auth/types';
-import { TITLES } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import {
   cancelInvitation,
   getDomainVerifications,
@@ -13,7 +13,6 @@ import { useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
   DomainVerification,
-  TEAM_MEMBER_STATUS_ACTIVE,
   TeamBillingStatusSchema,
   TeamGlobalAction,
   TeamLoginConfig,
@@ -35,13 +34,16 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { SalesforceCanvasOrgs } from '@jetstream/ui-core';
+import { SalesforceCanvasOrgs, useAmplitude } from '@jetstream/ui-core';
 import { abilityState, fromAppState, useFeatureFlag } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { TeamSSOConfiguration } from './sso-configuration/TeamSSOConfiguration';
 import { TeamMembersTable } from './team-members/TeamMembersTable';
+import { getSeatBannerState } from './team-seats/team-seats.utils';
+import { TeamSeats } from './team-seats/TeamSeats';
+import { TeamSeatsManageModal } from './team-seats/TeamSeatsManageModal';
 import { TeamAuditLogModal } from './TeamAuditLogModal';
 import { TeamDomainConfiguration } from './TeamDomainConfiguration';
 import { TeamLoginConfiguration } from './TeamLoginConfiguration';
@@ -61,6 +63,7 @@ const HEIGHT_BUFFER = 170;
 
 export function TeamDashboard() {
   useTitle(TITLES.TEAM);
+  const { trackEvent } = useAmplitude();
   const ability = useAtomValue(abilityState);
   const [loading, setLoading] = useState(true);
   const [team, setTeam] = useState<TeamUserFacing>();
@@ -75,6 +78,7 @@ export function TeamDashboard() {
   const [teamSessionModalOpen, setTeamSessionModalOpen] = useState(false);
   const [teamAuthActivityModalOpen, setTeamAuthActivityModalOpen] = useState(false);
   const [teamAuditLogModalOpen, setTeamAuditLogModalOpen] = useState(false);
+  const [manageSeatsModalOpen, setManageSeatsModalOpen] = useState(false);
   const [teamMemberUpdateState, setTeamMemberUpdateState] = useState<TeamMemberEditModalState>({ open: false });
   const [teamMemberStatusUpdateState, setTeamMemberStatusUpdateState] = useState<TeamMemberEditStatusModalState>({ open: false });
 
@@ -91,20 +95,14 @@ export function TeamDashboard() {
   const canReadAuditLog = ability.can('read', 'AuditLog');
 
   const hasManualBilling = !!team?.billingAccount?.manualBilling;
+  // Manual-billing seat limits are set by agreement, so only self-serve teams get the Manage Seats flow.
+  // Past-due standing disables the button in place rather than hiding it, so it is not part of this check.
+  const canManageSeats = ability.can('update', 'TeamSeats') && !hasManualBilling;
+  const seats = team?.seats ?? null;
+  const seatBanner = getSeatBannerState(seats, hasManualBilling);
   const hasVerifiedDomain = useMemo(() => {
     return domains?.some((domain) => domain.status === 'VERIFIED') || false;
   }, [domains]);
-
-  const availableLicenses = useMemo(() => {
-    const licenseCountLimit = team?.billingAccount?.licenseCountLimit ?? Infinity;
-    const billableUserCount = team?.members.filter(
-      ({ status, role }) => status === TEAM_MEMBER_STATUS_ACTIVE && role !== TeamMemberRoleSchema.enum.BILLING,
-    ).length;
-    const billableInviteCount = team?.invitations.filter(({ role }) => role !== TeamMemberRoleSchema.enum.BILLING).length;
-    const billableUserCountWithInvites = (billableUserCount || 0) + (billableInviteCount || 0);
-    const availableLicenses = licenseCountLimit - billableUserCountWithInvites;
-    return availableLicenses;
-  }, [team]);
 
   const teamId = userProfile.teamMembership?.team?.id;
   const hasSsoConfigured = !ssoConfig || ssoConfig.ssoProvider !== 'NONE';
@@ -165,6 +163,22 @@ export function TeamDashboard() {
     setLoginConfigurationKey(new Date().getTime());
   }
 
+  function openManageSeats(source: string) {
+    if (!canManageSeats) {
+      return;
+    }
+    trackEvent(ANALYTICS_KEYS.team_seats_modal_open, { source });
+    setManageSeatsModalOpen(true);
+  }
+
+  /** "Buy more seats" inside a member modal: dismiss whichever modal is open, then open Manage Seats. */
+  function openManageSeatsFromModal() {
+    setInviteModalOpen(false);
+    setTeamMemberUpdateState({ open: false });
+    setTeamMemberStatusUpdateState({ open: false });
+    openManageSeats('member-modal');
+  }
+
   async function handleTeamGlobalAction(action: TeamGlobalAction) {
     switch (action) {
       case 'team-member-invite': {
@@ -181,6 +195,10 @@ export function TeamDashboard() {
       }
       case 'view-audit-log': {
         setTeamAuditLogModalOpen(true);
+        break;
+      }
+      case 'manage-seats': {
+        openManageSeats('dashboard');
         break;
       }
     }
@@ -261,6 +279,9 @@ export function TeamDashboard() {
           teamId={team.id}
           hasManualBilling={hasManualBilling}
           userRole={userProfile.teamMembership?.role || TeamMemberRoleSchema.enum.MEMBER}
+          seats={seats}
+          canManageSeats={canManageSeats}
+          onBuySeats={openManageSeatsFromModal}
           onClose={(_invitations) => {
             fetchTeam();
             setInviteModalOpen(false);
@@ -276,12 +297,27 @@ export function TeamDashboard() {
       {canReadAuditLog && team && teamAuditLogModalOpen && (
         <TeamAuditLogModal teamId={team.id} onClose={() => setTeamAuditLogModalOpen(false)} />
       )}
+      {team && seats && canManageSeats && manageSeatsModalOpen && (
+        <TeamSeatsManageModal
+          teamId={team.id}
+          seats={seats}
+          onClose={(updatedTeam) => {
+            if (updatedTeam) {
+              setTeam(updatedTeam);
+            }
+            setManageSeatsModalOpen(false);
+          }}
+        />
+      )}
       {team && teamMemberUpdateState.open && (
         <TeamMemberUpdateModal
           teamId={team.id}
           hasManualBilling={hasManualBilling}
           teamMember={teamMemberUpdateState.teamMember}
           currentUserRole={userProfile.teamMembership?.role}
+          seats={seats}
+          canManageSeats={canManageSeats}
+          onBuySeats={openManageSeatsFromModal}
           onClose={(teamData) => {
             if (teamData) {
               setTeam(teamData);
@@ -296,6 +332,9 @@ export function TeamDashboard() {
           action={teamMemberStatusUpdateState.action}
           hasManualBilling={hasManualBilling}
           teamMember={teamMemberStatusUpdateState.teamMember}
+          seats={seats}
+          canManageSeats={canManageSeats}
+          onBuySeats={openManageSeatsFromModal}
           onClose={(teamData) => {
             if (teamData) {
               setTeam(teamData);
@@ -343,13 +382,32 @@ export function TeamDashboard() {
                   Go to the billing page to resume service or contact support for assistance.
                 </ScopedNotification>
               )}
-              {!availableLicenses && (
-                <ScopedNotification theme="light">
-                  You have used all of your available licenses. To add additional users, deactivate existing users or contact support to
-                  purchase more licenses.
-                </ScopedNotification>
+              {seatBanner && (
+                <div data-testid="team-seats-banner" className="slds-m-bottom_medium">
+                  <ScopedNotification theme={seatBanner.theme}>
+                    {seatBanner.message}
+                    {canManageSeats && (
+                      <button
+                        type="button"
+                        className="slds-button slds-button_neutral slds-m-left_small"
+                        onClick={() => handleTeamGlobalAction('manage-seats')}
+                      >
+                        Manage Seats
+                      </button>
+                    )}
+                  </ScopedNotification>
+                </div>
               )}
               <TeamName team={team} onSave={(updatedTeam) => setTeam(updatedTeam)} />
+              {seats && (
+                <TeamSeats
+                  seats={seats}
+                  billingStatus={team.billingStatus}
+                  hasManualBilling={hasManualBilling}
+                  canManageSeats={canManageSeats}
+                  onManageSeats={() => handleTeamGlobalAction('manage-seats')}
+                />
+              )}
             </>
           )}
 
@@ -389,8 +447,8 @@ export function TeamDashboard() {
               <TeamMembersTable
                 loginConfiguration={team.loginConfig}
                 billingStatus={team.billingStatus}
-                availableLicenses={availableLicenses}
-                hasManualBilling={!hasManualBilling}
+                seats={seats}
+                hasManualBilling={hasManualBilling}
                 teamMembers={team.members}
                 invitations={team.invitations}
                 userProfile={userProfile}

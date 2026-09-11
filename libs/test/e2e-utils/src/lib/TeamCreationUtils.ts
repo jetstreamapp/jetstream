@@ -6,6 +6,8 @@ import chalk from 'chalk';
 import { randomBytes } from 'crypto';
 import { AuthenticationPage } from './pageObjectModels/AuthenticationPage.model';
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 type Team = Awaited<ReturnType<TeamCreationUtils['createTeam']>>;
 type TeamMember = Awaited<ReturnType<TeamCreationUtils['createTeam']>>['members'][number];
 interface UserWithTeamMember {
@@ -17,6 +19,16 @@ interface UserWithTeamMember {
 
 interface UserWithTeamMemberAndBrowserContext extends UserWithTeamMember {
   context: BrowserContext;
+}
+
+/**
+ * Billing shape for a test team. Stripe is not available in E2E, so purchased seats are written
+ * straight to the billing account and the server derives the seat summary from the database.
+ */
+export interface TeamBillingOptions {
+  manualBilling?: boolean;
+  /** Purchased seats (the enforced cap); null or undefined leaves the team unlimited */
+  licenseCountLimit?: number | null;
 }
 
 export class TeamCreationUtils {
@@ -43,7 +55,7 @@ export class TeamCreationUtils {
   /**
    * Create Team With Admin User But No Other Members
    */
-  async createTestTeamWithoutMembers({ page }: { page: Page }) {
+  async createTestTeamWithoutMembers({ page, billing }: { page: Page; billing?: TeamBillingOptions }) {
     const adminUser = await (async () => {
       const authPage = new AuthenticationPage(page);
       const user = await authPage.signUpAndVerifyEmail();
@@ -56,6 +68,8 @@ export class TeamCreationUtils {
 
     this.team = await this.createTeam({
       email: adminUser.user.email,
+      manualBilling: billing?.manualBilling,
+      licenseCountLimit: billing?.licenseCountLimit,
       members: [],
     });
     const team = this.team;
@@ -71,9 +85,9 @@ export class TeamCreationUtils {
   }
 
   /**
-   * Create Team With Admin Users and 3 additional users
+   * Create Team With Admin Users and 3 additional users (MEMBER, MEMBER, BILLING)
    */
-  async createTestTeamAndUsers({ browser, page }: { browser: Browser; page: Page }) {
+  async createTestTeamAndUsers({ browser, page, billing }: { browser: Browser; page: Page; billing?: TeamBillingOptions }) {
     // Isolated context to allow additional member logins
     const [adminUser, user1, user2, user3] = await Promise.all([
       (async () => {
@@ -121,8 +135,8 @@ export class TeamCreationUtils {
 
     this.team = await this.createTeam({
       email: adminUser.user.email,
-      // manualBilling: true,
-      // licenseCountLimit: 5,
+      manualBilling: billing?.manualBilling,
+      licenseCountLimit: billing?.licenseCountLimit,
       members: [
         {
           userId: (await prisma.user.findFirstOrThrow({ where: { email: user1.user.email } })).id,
@@ -235,6 +249,44 @@ export class TeamCreationUtils {
   }
 
   /**
+   * Set the purchased seats (and optionally a scheduled decrease) directly on the billing account.
+   * The server computes the seat summary from these columns, so no Stripe interaction is needed.
+   */
+  async setSeats({
+    purchased,
+    pending = null,
+    pendingEffectiveAt = null,
+  }: {
+    purchased: number | null;
+    pending?: number | null;
+    pendingEffectiveAt?: Date | null;
+  }) {
+    return prisma.teamBillingAccount.update({
+      where: { teamId: this.team.id },
+      data: { licenseCountLimit: purchased, pendingSeatQuantity: pending, pendingSeatEffectiveAt: pendingEffectiveAt },
+    });
+  }
+
+  /**
+   * Insert an invitation whose expiration has already passed. Expired invitations must not reserve a seat.
+   */
+  async createExpiredInvitation({ email, role }: { email: string; role: TeamMemberRole }) {
+    const now = Date.now();
+    return prisma.teamMemberInvitation.create({
+      data: {
+        teamId: this.team.id,
+        email,
+        role,
+        features: ['ALL'],
+        expiresAt: new Date(now - DAY_MS),
+        lastSentAt: new Date(now - 15 * DAY_MS),
+        createdById: this.adminUser.userId,
+        updatedById: this.adminUser.userId,
+      },
+    });
+  }
+
+  /**
    * Helper function to create team in DB
    */
   private async createTeam({
@@ -250,7 +302,7 @@ export class TeamCreationUtils {
       Pick<LoginConfiguration, 'allowedMfaMethods' | 'allowedProviders' | 'requireMfa' | 'allowIdentityLinking' | 'autoAddToTeam'>
     >;
     manualBilling?: boolean;
-    licenseCountLimit?: number;
+    licenseCountLimit?: number | null;
   }) {
     const user = await prisma.user.findFirstOrThrow({ select: { id: true, name: true, email: true }, where: { email } });
     const team = await prisma.team.create({

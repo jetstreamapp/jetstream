@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
-export type TeamGlobalAction = 'view-auth-activity' | 'view-user-sessions' | 'team-member-invite' | 'view-audit-log';
+export type TeamGlobalAction = 'view-auth-activity' | 'view-user-sessions' | 'team-member-invite' | 'view-audit-log' | 'manage-seats';
+
+/** Upper bound for self-serve seat purchases; larger teams go through sales. */
+export const MAX_TEAM_SEATS = 500;
 export type TeamUserAction = 'deactivate' | 'reactivate' | 'edit';
 export type TeamInvitationAction = 'cancel-invite' | 'resend-invite';
 
@@ -160,6 +163,28 @@ export const TeamInviteUserFacingSchema = z.object({
   updatedAt: DateStringSchema,
 });
 
+/**
+ * Seat accounting for a team, computed on the server so every surface shares one definition.
+ * A seat is used by an ACTIVE Admin or Member and reserved by an unexpired invitation for one of
+ * those roles; Billing-role users never need a seat.
+ */
+export const TeamSeatSummarySchema = z.object({
+  /** Purchased seats (the enforced cap); null means unlimited, which only manual-billing teams can be */
+  purchased: z.number().int().min(0).nullable(),
+  /** Target of a decrease scheduled for the end of the current billing period */
+  pending: z.number().int().min(0).nullable(),
+  pendingEffectiveAt: DateStringSchema.nullable(),
+  /** The cap in force for adding members: min(purchased, pending) */
+  effective: z.number().int().min(0).nullable(),
+  used: z.number().int().min(0),
+  reserved: z.number().int().min(0),
+  /** effective - used - reserved; negative when over-allocated, null when unlimited */
+  available: z.number().int().nullable(),
+  isUnlimited: z.boolean(),
+  isOverAllocated: z.boolean(),
+});
+export type TeamSeatSummary = z.infer<typeof TeamSeatSummarySchema>;
+
 export const TeamUserFacingSchema = z.object({
   id: z.string(),
   name: z.string().max(255).min(1),
@@ -175,11 +200,77 @@ export const TeamUserFacingSchema = z.object({
       customerId: z.string(),
       manualBilling: z.boolean(),
       licenseCountLimit: z.number().min(0).nullable().default(null),
+      includedSeats: z.number().int().min(0).optional().default(0),
+      pendingSeatQuantity: z.number().int().min(0).nullable().optional().default(null),
+      pendingSeatEffectiveAt: DateStringSchema.nullable().optional().default(null),
     })
     .nullable(),
+  seats: TeamSeatSummarySchema,
   createdAt: DateStringSchema,
   updatedAt: DateStringSchema,
 });
+
+export const TeamSeatChangePreviewRequestSchema = z.object({
+  seats: z.number().int().min(1).max(MAX_TEAM_SEATS),
+});
+export type TeamSeatChangePreviewRequest = z.infer<typeof TeamSeatChangePreviewRequestSchema>;
+
+export const TeamSeatUpdateRequestSchema = z.object({
+  seats: z.number().int().min(1).max(MAX_TEAM_SEATS),
+  /** The seat count the admin saw when previewing, so a concurrent change is rejected instead of applied blindly */
+  expectedCurrentSeats: z.number().int().min(0),
+  /** Unix seconds captured at preview; required for increases so the charge matches the previewed amount */
+  prorationDate: z.number().int().nullish(),
+});
+export type TeamSeatUpdateRequest = z.infer<typeof TeamSeatUpdateRequestSchema>;
+
+export const TeamSeatChangeTypeSchema = z.enum(['INCREASE', 'DECREASE', 'CANCEL_PENDING_DECREASE', 'NONE']);
+export type TeamSeatChangeType = z.infer<typeof TeamSeatChangeTypeSchema>;
+
+export interface TeamSeatChangePreview {
+  changeType: TeamSeatChangeType;
+  currentSeats: number;
+  requestedSeats: number;
+  /** Lowest count the team can move to: active members plus pending invitations, or the plan's included seats */
+  minimumSeats: number;
+  /** Dollars; 0 unless changeType is INCREASE */
+  amountDueNow: number;
+  /** Unix seconds captured at preview; echo back on commit for an INCREASE */
+  prorationDate: number | null;
+  nextInvoice: { amount: number; date: string };
+  interval: 'MONTH' | 'YEAR';
+  effectiveAt: string;
+  replacesPendingDecrease: { seats: number; effectiveAt: string } | null;
+  hasDiscount: boolean;
+}
+
+export interface TeamSeatChangeResult {
+  changeType: TeamSeatChangeType;
+  seats: number;
+  effectiveAt: string;
+  invoice: { id: string; status: string | null; amountDue: number; hostedInvoiceUrl: string | null } | null;
+}
+
+export interface TeamSeatUpdateResponse {
+  team: TeamUserFacing;
+  result: TeamSeatChangeResult;
+}
+
+export const TEAM_SEAT_ERROR_CODES = [
+  'SEATS_MANUAL_BILLING',
+  'SEATS_PAST_DUE',
+  'SEATS_SUBSCRIPTION_CANCELING',
+  'SEATS_BLOCKED_BY_SCHEDULE',
+  'SEATS_BELOW_MINIMUM',
+  'PREVIEW_EXPIRED',
+  'STALE_PREVIEW',
+  'PAYMENT_FAILED',
+] as const;
+export type TeamSeatErrorCode = (typeof TEAM_SEAT_ERROR_CODES)[number];
+
+/** Which membership operation was blocked; ACCEPT_INVITATION converts a reserved seat rather than taking a new one */
+export type TeamSeatCheckKind = 'ADD' | 'ACCEPT_INVITATION';
+export type TeamSeatLimitErrorCode = 'NO_SEATS' | 'PAST_DUE';
 
 export const TeamInvitationRequestSchema = z.object({
   email: z.email().toLowerCase(),

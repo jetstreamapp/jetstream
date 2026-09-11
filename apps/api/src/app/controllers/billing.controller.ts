@@ -1,8 +1,9 @@
 import { ENV, getLogger } from '@jetstream/api-config';
 import { refreshSessionUser } from '@jetstream/auth/server';
-import { STRIPE_PRICE_KEYS, TeamMemberRole, TeamMemberRoleSchema, UserProfileUi } from '@jetstream/types';
+import { CheckoutSessionRequestSchema, STRIPE_PRICE_KEYS, TeamMemberRole, TeamMemberRoleSchema, UserProfileUi } from '@jetstream/types';
 import Stripe from 'stripe';
 import { z } from 'zod';
+import * as subscriptionDbService from '../db/subscription.db';
 import * as teamDbService from '../db/team.db';
 import * as userDbService from '../db/user.db';
 import * as stripeService from '../services/stripe.service';
@@ -33,9 +34,7 @@ export const routeDefinition = {
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-      body: z.object({
-        priceLookupKey: z.enum(STRIPE_PRICE_KEYS),
-      }),
+      body: CheckoutSessionRequestSchema,
     } satisfies RouteValidator,
   },
   processCheckoutSuccess: {
@@ -102,7 +101,7 @@ const createCheckoutSessionHandler = createRoute(
   routeDefinition.createCheckoutSession.validators,
   async ({ user: sessionUser, body }, req, res) => {
     stripeService.ensureStripeIsInitialized();
-    const { priceLookupKey } = body;
+    const { priceLookupKey, seats, teamName } = body;
 
     const priceId = await stripeService.fetchPrices({ lookupKeys: STRIPE_PRICE_KEYS }).then((prices) => prices[priceLookupKey]?.id);
     if (!priceId) {
@@ -121,6 +120,20 @@ const createCheckoutSessionHandler = createRoute(
       if (team && teamMember?.role !== 'ADMIN' && teamMember?.role !== 'BILLING') {
         throw new UserFacingError(`You do not have permission to create a billing session for this team`);
       }
+      if (!seats) {
+        throw new UserFacingError('Choose how many seats to purchase for your team', { code: 'SEATS_BELOW_MINIMUM', minimum: 1 });
+      }
+      // An existing team's members and pending invitations already occupy seats, so the purchase must cover them
+      if (team) {
+        const usage = await subscriptionDbService.getTeamSeatUsage({ teamId: team.id });
+        const minimumSeats = Math.max(1, usage.used + usage.reserved);
+        if (seats < minimumSeats) {
+          throw new UserFacingError(
+            `Your team needs at least ${minimumSeats} seats: ${usage.used} in use and ${usage.reserved} reserved by pending invitations.`,
+            { code: 'SEATS_BELOW_MINIMUM', minimum: minimumSeats, used: usage.used, reserved: usage.reserved },
+          );
+        }
+      }
       session = await stripeService.createCheckoutSession({
         mode: 'subscription',
         priceId,
@@ -129,6 +142,8 @@ const createCheckoutSessionHandler = createRoute(
         user,
         type: 'TEAM',
         teamId: team?.id,
+        quantity: seats,
+        teamName,
       });
     } else {
       session = await stripeService.createCheckoutSession({
@@ -188,8 +203,11 @@ const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.val
   const teamId = membership?.teamId;
   const teamRole = membership?.role;
 
+  // Prices are needed even without a customer: the checkout seat picker prices seats from Stripe's tiers
+  const pricesByLookupKey = await stripeService.fetchPrices({ lookupKeys: STRIPE_PRICE_KEYS });
+
   if (teamId && teamRole !== 'ADMIN' && teamRole !== 'BILLING') {
-    sendJson(res, { customer: null, pricesByLookupKey: null, didUpdate: false });
+    sendJson(res, { customer: null, pricesByLookupKey, hasManualBilling: false, didUpdate: false });
     return;
   }
 
@@ -201,15 +219,14 @@ const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.val
   } = await stripeService.synchronizeStripeWithJetstreamIfRequiredForTeamOrUser({ userId: user.id, teamId });
   if (!success) {
     getLogger().error({ userId: user.id }, `Did not synchronize Stripe with Jetstream: ${reason}`);
-    sendJson(res, { customer: null, pricesByLookupKey: null, hasManualBilling: false, didUpdate });
+    sendJson(res, { customer: null, pricesByLookupKey, hasManualBilling: false, didUpdate });
     return;
   }
   if (!internalCustomer) {
-    sendJson(res, { customer: null, pricesByLookupKey: null, hasManualBilling: false, didUpdate });
+    sendJson(res, { customer: null, pricesByLookupKey, hasManualBilling: false, didUpdate });
     return;
   }
   const customer = stripeService.convertCustomerWithSubscriptionsToUserFacing(internalCustomer);
-  const pricesByLookupKey = await stripeService.fetchPrices({ lookupKeys: STRIPE_PRICE_KEYS });
   const hasManualBilling = await userDbService.hasManualBilling({ userId: user.id });
 
   let userProfile: UserProfileUi | undefined;

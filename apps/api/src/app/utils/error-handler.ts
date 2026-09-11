@@ -2,6 +2,7 @@ import { logger } from '@jetstream/api-config';
 import { StepUpAuthRequiredError } from '@jetstream/auth/server';
 import { isPrismaError } from '@jetstream/prisma';
 import { ApiRequestError } from '@jetstream/salesforce-api';
+import { SeatLimitError } from '@jetstream/team-seats';
 import z, { ZodError } from 'zod';
 
 function initStatus(data: unknown, fallback: number) {
@@ -22,6 +23,17 @@ export function isKnownError(error: unknown) {
     error instanceof StepUpAuthRequiredError ||
     isPrismaError(error)
   );
+}
+
+/**
+ * Structured context carried by errors thrown from shared libraries. Surfaced as `additionalData`
+ * so the client can key on it (e.g. a seat-limit rejection is a 400 with `{ code, kind, seats }`).
+ */
+function getAdditionalDataFromError(error: Error): Record<string, unknown> | undefined {
+  if (error instanceof SeatLimitError) {
+    return { code: error.code, kind: error.kind, seats: error.seats };
+  }
+  return undefined;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -51,7 +63,7 @@ export class UserFacingError extends Error {
         message.message = 'An unexpected error has occurred';
       }
       super(message.message);
-      this.additionalData = additionalData;
+      this.additionalData = additionalData ?? getAdditionalDataFromError(message);
       this.name = message.name;
       this.stack = message.stack;
     } else {

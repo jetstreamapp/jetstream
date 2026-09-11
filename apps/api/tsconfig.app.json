@@ -12,7 +12,13 @@
       "path": "../../libs/prisma/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/team-seats/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/shared/node-utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/api-types/tsconfig.lib.json"
     },
     {
       "path": "../../libs/salesforce-api/tsconfig.lib.json"
@@ -25,9 +31,6 @@
     },
     {
       "path": "../../libs/auth/salesforce-oauth/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/api-types/tsconfig.lib.json"
     },
     {
       "path": "../../libs/email/tsconfig.lib.json"

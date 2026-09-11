@@ -57,7 +57,7 @@ export const PRICING_COPY = {
       'Custom agreements and redlines',
       'Security questionnaire and vendor review support',
       'Invoice or purchase order billing',
-      'Named point of contact',
+      'White glove support',
     ],
   },
 } as const;
