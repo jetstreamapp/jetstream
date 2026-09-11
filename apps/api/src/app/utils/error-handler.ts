@@ -24,6 +24,18 @@ export function isKnownError(error: unknown) {
   );
 }
 
+/**
+ * Structured context carried by errors thrown from shared libraries, read the same way `initStatus`
+ * reads `status` so this handler never has to import each library's error class. Surfaced as
+ * `additionalData` so the client can key on it (e.g. a seat-limit rejection is a 400 with `{ code, kind, seats }`).
+ */
+function getAdditionalDataFromError(error: Error): Record<string, unknown> | undefined {
+  if ('additionalData' in error && error.additionalData && typeof error.additionalData === 'object') {
+    return error.additionalData as Record<string, unknown>;
+  }
+  return undefined;
+}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export class UserFacingError extends Error {
   readonly status: number;
@@ -51,7 +63,7 @@ export class UserFacingError extends Error {
         message.message = 'An unexpected error has occurred';
       }
       super(message.message);
-      this.additionalData = additionalData;
+      this.additionalData = additionalData ?? getAdditionalDataFromError(message);
       this.name = message.name;
       this.stack = message.stack;
     } else {

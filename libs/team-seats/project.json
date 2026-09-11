@@ -1,0 +1,8 @@
+{
+  "name": "team-seats",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/team-seats/src",
+  "projectType": "library",
+  "tags": ["scope:server"],
+  "targets": {}
+}

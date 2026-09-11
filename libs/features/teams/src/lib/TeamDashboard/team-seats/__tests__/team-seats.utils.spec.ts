@@ -1,0 +1,108 @@
+import { TeamSeatSummary } from '@jetstream/types';
+import { describe, expect, it } from 'vitest';
+import { getAvailableSeats, getSeatBannerState, getSeatsUnavailableMessage, needsSeat } from '../team-seats.utils';
+
+function buildSeats(overrides: Partial<TeamSeatSummary> = {}): TeamSeatSummary {
+  const purchased = overrides.purchased === undefined ? 5 : overrides.purchased;
+  const pending = overrides.pending ?? null;
+  const used = overrides.used ?? 2;
+  const reserved = overrides.reserved ?? 0;
+  let effective = purchased;
+  if (purchased !== null && pending !== null) {
+    effective = Math.min(purchased, pending);
+  }
+  const available = effective === null ? null : effective - used - reserved;
+  return {
+    purchased,
+    pending,
+    pendingEffectiveAt: overrides.pendingEffectiveAt ?? (pending !== null ? '2026-10-01T00:00:00.000Z' : null),
+    effective,
+    used,
+    reserved,
+    available,
+    isUnlimited: purchased === null,
+    isOverAllocated: available !== null && available < 0,
+    includedSeats: 0,
+    ...overrides,
+  };
+}
+
+describe('getAvailableSeats', () => {
+  it('returns the remaining seats for a capped team', () => {
+    expect(getAvailableSeats(buildSeats({ purchased: 5, used: 3, reserved: 1 }))).toBe(1);
+  });
+
+  it('treats a missing summary or an unlimited team as having no cap', () => {
+    expect(getAvailableSeats(null)).toBe(Infinity);
+    expect(getAvailableSeats(buildSeats({ purchased: null }))).toBe(Infinity);
+  });
+
+  it('passes negative values through so callers can detect over-allocation', () => {
+    expect(getAvailableSeats(buildSeats({ purchased: 2, used: 3 }))).toBe(-1);
+  });
+});
+
+describe('needsSeat', () => {
+  it('is true for billable roles only', () => {
+    expect(needsSeat('ADMIN')).toBe(true);
+    expect(needsSeat('MEMBER')).toBe(true);
+    expect(needsSeat('BILLING')).toBe(false);
+  });
+});
+
+describe('getSeatBannerState', () => {
+  it('is null when seats remain or the team is unlimited', () => {
+    expect(getSeatBannerState(buildSeats({ purchased: 5, used: 2 }), false)).toBeNull();
+    expect(getSeatBannerState(buildSeats({ purchased: null }), true)).toBeNull();
+    expect(getSeatBannerState(null, false)).toBeNull();
+  });
+
+  it('warns when over-allocated', () => {
+    const banner = getSeatBannerState(buildSeats({ purchased: 2, used: 3 }), false);
+    expect(banner?.theme).toBe('warning');
+    expect(banner?.message).toContain('Buy 1 more seat');
+  });
+
+  it('shows a light notice when every seat is taken', () => {
+    const banner = getSeatBannerState(buildSeats({ purchased: 3, used: 2, reserved: 1 }), false);
+    expect(banner).toEqual({
+      theme: 'light',
+      message:
+        'All 3 seats are in use or reserved for pending invitations. Buy more seats or deactivate a member to add more team members.',
+    });
+  });
+
+  it('points manual-billing teams to support when full', () => {
+    const banner = getSeatBannerState(buildSeats({ purchased: 3, used: 3 }), true);
+    expect(banner?.message).toContain('set by your agreement');
+  });
+});
+
+describe('getSeatsUnavailableMessage', () => {
+  it('describes the self-serve remedy', () => {
+    expect(getSeatsUnavailableMessage(buildSeats({ purchased: 3, used: 3 }), false)).toBe(
+      'No seats available. All 3 purchased seats are in use or reserved for pending invitations. Buy more seats, deactivate a member, or cancel a pending invitation. Billing-only users do not need a seat.',
+    );
+  });
+
+  it('describes the manual-billing remedy', () => {
+    expect(getSeatsUnavailableMessage(buildSeats({ purchased: 3, used: 3 }), true)).toBe(
+      'No seats available. All 3 purchased seats are in use or reserved for pending invitations. Your seat limit of 3 is set by your agreement. Contact support to increase it, deactivate a member, or cancel a pending invitation. Billing-only users do not need a seat.',
+    );
+  });
+
+  it('explains a cap lowered by a pending decrease', () => {
+    const message = getSeatsUnavailableMessage(buildSeats({ purchased: 5, pending: 2, used: 2 }), false);
+    expect(message).toContain('Your seat count decreases to 2 on');
+    expect(message).toContain('all 2 of those seats are in use');
+  });
+
+  it('uses the singular for a one-seat team', () => {
+    expect(getSeatsUnavailableMessage(buildSeats({ purchased: 1, used: 1 }), false)).toContain(
+      'No seats available. Your 1 purchased seat is in use or reserved for a pending invitation.',
+    );
+    expect(getSeatsUnavailableMessage(buildSeats({ purchased: 5, pending: 1, used: 1 }), false)).toContain(
+      'and that seat is in use or reserved for a pending invitation.',
+    );
+  });
+});

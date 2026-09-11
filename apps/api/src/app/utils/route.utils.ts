@@ -69,6 +69,14 @@ export type ControllerFunction<TParamsSchema extends z.ZodTypeAny, TBodySchema e
   next: NextFunction,
 ) => Promise<void> | void;
 
+/**
+ * Refusals the product hands out routinely, such as a team with no free seat. They are ordinary 400
+ * responses, and reporting them to the bug tracker would bury real failures under expected ones.
+ */
+function isExpectedRejection(ex: unknown): boolean {
+  return ex instanceof Error && ex.name === 'SeatLimitError';
+}
+
 export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema extends z.ZodTypeAny, TQuerySchema extends z.ZodTypeAny>(
   {
     params,
@@ -141,7 +149,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await controllerFn(data as any, req, res, next);
       } catch (ex) {
-        if (logErrorToBugTracker) {
+        if (logErrorToBugTracker && !isExpectedRejection(ex)) {
           getLogger().error({ err: ex }, 'Logging error to bug tracker');
           errorTracker.error(ex, req, {
             url: req.url,

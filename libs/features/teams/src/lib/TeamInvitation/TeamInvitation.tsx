@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { TITLES } from '@jetstream/shared/constants';
-import { acceptInvitation, getUserProfile, verifyInvitation } from '@jetstream/shared/data';
+import { acceptInvitation, getApiErrorCode, getUserProfile, verifyInvitation } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useTitle } from '@jetstream/shared/ui-utils';
 import { TeamInviteSessionAction, TeamInviteVerificationResponse } from '@jetstream/types';
@@ -23,6 +23,15 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 const HEIGHT_BUFFER = 170;
 
 const SSO_SESSION_ACTIONS = new Set<TeamInviteSessionAction>(['SSO_REQUIRED', 'SSO_UNAVAILABLE']);
+
+/**
+ * The server's seat-limit messages are written for team admins, so the invitee gets their own wording.
+ * The invitation stays valid, which is why each one ends by inviting a retry.
+ */
+const SEAT_LIMIT_ACCEPT_MESSAGES: Record<string, string> = {
+  NO_SEATS: 'This team has no available seats right now. Ask a team admin to add a seat, then accept this invitation again.',
+  PAST_DUE: 'This team cannot add new members until its billing is resolved. Ask a team admin to update billing, then try again.',
+};
 
 export function TeamInvitation() {
   useTitle(TITLES.TEAM);
@@ -92,8 +101,9 @@ export function TeamInvitation() {
       } else {
         setLoadingError('An error occurred while accepting the invitation.');
       }
-    } catch {
-      setLoadingError('An error occurred while accepting the invitation. Please try again later.');
+    } catch (ex) {
+      const seatLimitMessage = SEAT_LIMIT_ACCEPT_MESSAGES[getApiErrorCode(ex) ?? ''];
+      setLoadingError(seatLimitMessage || 'An error occurred while accepting the invitation. Please try again later.');
     } finally {
       setAccepting(false);
     }

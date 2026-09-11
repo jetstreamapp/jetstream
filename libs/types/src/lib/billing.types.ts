@@ -1,5 +1,6 @@
 import type Stripe from 'stripe';
 import { z } from 'zod';
+import { MAX_TEAM_SEATS } from './team.types';
 
 export const EntitlementsAccessSchema = z.object({
   googleDrive: z.boolean().optional().default(false),
@@ -95,7 +96,19 @@ export interface JetstreamPriceByKey {
   PRO_MONTHLY_25: JetstreamPrice;
 }
 
+/** Pinned Stripe API version, shared by every process that constructs a Stripe client. */
+export const STRIPE_API_VERSION = '2026-08-26.dahlia';
+
 export const STRIPE_PRICE_KEYS = ['TEAM_ANNUAL', 'TEAM_MONTHLY', 'PRO_ANNUAL', 'PRO_MONTHLY'] as const;
 export type StripePriceKey = (typeof STRIPE_PRICE_KEYS)[number];
+
+export const CheckoutSessionRequestSchema = z.object({
+  priceLookupKey: z.enum(STRIPE_PRICE_KEYS),
+  /** Required for team prices; ignored for individual plans */
+  seats: z.number().int().min(1).max(MAX_TEAM_SEATS).optional(),
+  /** Only applied when the checkout creates a new team */
+  teamName: z.string().trim().min(1).max(255).optional(),
+});
+export type CheckoutSessionRequest = z.infer<typeof CheckoutSessionRequestSchema>;
 
 export type JetstreamPricesByLookupKey = { [key in StripePriceKey]: JetstreamPrice };

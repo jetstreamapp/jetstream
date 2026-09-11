@@ -16,7 +16,11 @@ export interface InputProps {
   hideLabel?: boolean;
   labelHelp?: string | React.ReactNode | null;
   helpText?: React.ReactNode | string;
+  /** Set when the input references the help text from its own `aria-describedby` */
+  helpTextId?: string;
   hasError?: boolean;
+  /** Skips the error icon added to the left of the input when `hasError` is set and no icon is configured */
+  hideErrorIcon?: boolean;
   isRequired?: boolean;
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
@@ -46,8 +50,10 @@ export const Input: FunctionComponent<InputProps> = ({
   hideLabel = false,
   labelHelp,
   helpText,
+  helpTextId,
   isRequired = false,
   hasError = false,
+  hideErrorIcon = false,
   errorMessageId,
   errorMessage,
   iconLeft,
@@ -63,7 +69,7 @@ export const Input: FunctionComponent<InputProps> = ({
   rightAddon,
   children,
 }) => {
-  if (hasError && !iconLeft && !iconRight) {
+  if (hasError && !hideErrorIcon && !iconLeft && !iconRight) {
     iconLeft = 'error';
     iconLeftType = 'utility';
   }
@@ -144,7 +150,11 @@ export const Input: FunctionComponent<InputProps> = ({
         </div>
         {trailingChildren}
       </div>
-      {helpText && <div className="slds-form-element__help">{helpText}</div>}
+      {helpText && (
+        <div className="slds-form-element__help" id={helpTextId}>
+          {helpText}
+        </div>
+      )}
       {hasError && errorMessage && (
         <div className="slds-form-element__help" id={errorMessageId}>
           {errorMessage}

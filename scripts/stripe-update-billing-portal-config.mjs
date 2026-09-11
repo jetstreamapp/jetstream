@@ -46,6 +46,7 @@ async function run() {
 
   let defaultBillingPortal = portals.data.find((portal) => portal.is_default && portal.active);
   let teamBillingPortal = portals.data.find((portal) => portal.metadata?.type === 'TEAM');
+  let teamLegacyBillingPortal = portals.data.find((portal) => portal.metadata?.type === 'TEAM_LEGACY');
   let manualBillingPortal = portals.data.find((portal) => portal.metadata?.type === 'MANUAL');
 
   // UPDATE STANDARD BILLING PORTAL
@@ -56,8 +57,11 @@ async function run() {
   defaultBillingPortal = await upsertProBillingPortal(defaultBillingPortal?.id, proPriceIds, proProductId, teamPriceIds, teamProductId);
   console.log('Updated main billing portal configuration', defaultBillingPortal.id);
 
-  teamBillingPortal = await upsertTeamBillingPortal(teamBillingPortal?.id, teamPriceIds, teamProductId);
+  teamBillingPortal = await upsertTeamBillingPortal(teamBillingPortal?.id, { type: 'TEAM', teamPriceIds, teamProductId });
   console.log('Updated team billing portal configuration', teamBillingPortal.id);
+
+  teamLegacyBillingPortal = await upsertTeamBillingPortal(teamLegacyBillingPortal?.id, { type: 'TEAM_LEGACY' });
+  console.log('Updated legacy team billing portal configuration', teamLegacyBillingPortal.id);
 
   manualBillingPortal = await upsertManualBillingPortal(manualBillingPortal?.id);
   console.log('Updated manual billing portal configuration', manualBillingPortal.id);
@@ -117,10 +121,15 @@ async function upsertProBillingPortal(existingPortalId, proPriceIds, proProductI
           {
             prices: proPriceIds,
             product: proProductId,
+            // A personal plan is always quantity 1; a quantity setting enabled by hand would otherwise survive
+            adjustable_quantity: { enabled: false },
           },
           {
             prices: teamPriceIds,
             product: teamProductId,
+            // Seats are bought in the app (team dashboard) so usage floors and seat schedules are enforced;
+            // left unset, a quantity setting enabled by hand in the Dashboard would survive this script
+            adjustable_quantity: { enabled: false },
           },
         ],
         proration_behavior: 'always_invoice',
@@ -147,12 +156,15 @@ async function upsertProBillingPortal(existingPortalId, proPriceIds, proProductI
 }
 
 /**
- * Upsert the team billing portal configuration.
+ * Upsert a team billing portal configuration. The API opens TEAM for teams on the current Team prices, which can
+ * switch between monthly and annual, and TEAM_LEGACY for every other team, which cannot change plans: a legacy price
+ * includes seats in its first tier and a switch keeps the item quantity, so moving it to a per-seat price would
+ * drop the team to that quantity.
  * @param {string | undefined} existingPortalId
- * @param {string[]} teamPriceIds
- * @param {string} teamProductId
+ * @param {{ type: 'TEAM' | 'TEAM_LEGACY', teamPriceIds?: string[], teamProductId?: string }} options
  */
-async function upsertTeamBillingPortal(existingPortalId, teamPriceIds, teamProductId) {
+async function upsertTeamBillingPortal(existingPortalId, { type, teamPriceIds, teamProductId }) {
+  const allowsPlanSwitch = type === 'TEAM';
   /**
    * @type {Parameters<typeof stripe.billingPortal.configurations.create>[0]}
    */
@@ -173,29 +185,28 @@ async function upsertTeamBillingPortal(existingPortalId, teamPriceIds, teamProdu
       payment_method_update: { enabled: true },
       // Disabled for now - we need to figure out the cancellation flow for teams
       subscription_cancel: { enabled: false },
-      subscription_update: {
-        default_allowed_updates: ['price', 'promotion_code'],
-        enabled: true,
-        products: [
-          {
-            prices: teamPriceIds,
-            product: teamProductId,
-          },
-        ],
-        proration_behavior: 'always_invoice',
-        schedule_at_period_end: {
-          conditions: [{ type: 'decreasing_item_amount' }, { type: 'shortening_interval' }],
-        },
-      },
+      subscription_update: allowsPlanSwitch
+        ? {
+            default_allowed_updates: ['price', 'promotion_code'],
+            enabled: true,
+            // Seats are only bought on the team dashboard, so a switch keeps the current seat count
+            products: [{ prices: teamPriceIds, product: teamProductId, adjustable_quantity: { enabled: false } }],
+            proration_behavior: 'always_invoice',
+          }
+        : { enabled: false },
     },
     login_page: { enabled: false },
-    metadata: {
-      type: 'TEAM',
-    },
+    metadata: { type },
   };
 
   if (existingPortalId) {
-    await stripe.billingPortal.configurations.update(existingPortalId, config);
+    // Every switch applies right away with proration ('' clears conditions saved earlier). A switch Stripe defers to
+    // the end of the period attaches its own schedule to the subscription, which blocks seat changes until it lands.
+    const scheduleParams = allowsPlanSwitch ? { schedule_at_period_end: { conditions: '' } } : {};
+    await stripe.billingPortal.configurations.update(existingPortalId, {
+      ...config,
+      features: { ...config.features, subscription_update: { ...config.features.subscription_update, ...scheduleParams } },
+    });
   } else {
     const newPortal = await stripe.billingPortal.configurations.create(config);
     existingPortalId = newPortal.id;
@@ -206,7 +217,7 @@ async function upsertTeamBillingPortal(existingPortalId, teamPriceIds, teamProdu
 }
 
 /**
- * Upsert the team billing portal configuration.
+ * Upsert the manual billing portal configuration.
  * @param {string | undefined} existingPortalId
  */
 async function upsertManualBillingPortal(existingPortalId) {

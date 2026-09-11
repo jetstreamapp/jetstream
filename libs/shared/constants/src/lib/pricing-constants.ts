@@ -37,7 +37,7 @@ export const PRICING_COPY = {
     features: [
       'Everything in Professional',
       'Manage team members',
-      'Unlimited team members',
+      'Add seats as your team grows',
       'SSO via OIDC and SAML',
       'View & Manage team member session activity',
       'Role-based access control',
@@ -58,7 +58,7 @@ export const PRICING_COPY = {
       'Custom agreements and redlines',
       'Security questionnaire and vendor review support',
       'Invoice or purchase order billing',
-      'Named point of contact',
+      'White glove support',
     ],
   },
 } as const;

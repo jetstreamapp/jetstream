@@ -30,11 +30,27 @@ export class ApiRequestError extends Error {
   /** Marker so {@link isApiRequestError} holds across module instances, the way `isAxiosError` does. */
   readonly isApiRequestError = true;
   readonly status: number | null;
+  /**
+   * Structured context the server attached to the failure, forwarded verbatim so call sites can key on
+   * it (e.g. a seat change reads `code` to tell a declined card from a stale preview). Undefined for
+   * responses that carried none, so every reader must treat it as optional.
+   */
+  readonly additionalData?: Record<string, unknown>;
 
-  constructor(message: string, status: number | null = null) {
+  constructor(message: string, status: number | null = null, additionalData?: Record<string, unknown>) {
     super(message);
     this.status = status;
+    this.additionalData = additionalData;
   }
+}
+
+/** Reads a string `code` off a failed request's server-supplied context, when there is one. */
+export function getApiErrorCode(error: unknown): string | null {
+  if (!isApiRequestError(error)) {
+    return null;
+  }
+  const { code } = error.additionalData ?? {};
+  return typeof code === 'string' ? code : null;
 }
 
 export function isApiRequestError(error: unknown): error is ApiRequestError {

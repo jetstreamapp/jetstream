@@ -1,20 +1,22 @@
 import { css } from '@emotion/react';
 import { LoginConfigurationWithCallbacks } from '@jetstream/auth/types';
-import { formatNumber } from '@jetstream/shared/ui-utils';
-import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import { TeamGlobalAction, TeamTableAction, TeamUserFacing, UserProfileUi } from '@jetstream/types';
+import { TeamGlobalAction, TeamSeatSummary, TeamTableAction, TeamUserFacing, UserProfileUi } from '@jetstream/types';
 import { ButtonGroupContainer, Card } from '@jetstream/ui';
 import { abilityState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { ReactNode } from 'react';
+import { TeamSeatsSummary } from '../team-seats/TeamSeatsSummary';
 import { TeamInviteTable } from './TeamInviteTable';
 import { TeamMemberRow } from './TeamMemberRow';
 
 export interface TeamMembersTableProps {
   loginConfiguration: TeamUserFacing['loginConfig'];
   billingStatus: TeamUserFacing['billingStatus'];
-  availableLicenses: number;
+  seats: TeamSeatSummary | null;
   hasManualBilling: boolean;
+  /** The viewer's role allows buying seats and the team is self-serve */
+  canManageSeats: boolean;
+  /** Set when Manage Seats is shown but cannot be used right now (past due, count still syncing) */
+  manageSeatsDisabledReason: string | null;
   teamMembers: TeamUserFacing['members'];
   invitations: TeamUserFacing['invitations'];
   userProfile: UserProfileUi;
@@ -27,8 +29,10 @@ export function TeamMembersTable({
   loginConfiguration,
   billingStatus,
   teamMembers,
-  availableLicenses,
+  seats,
   hasManualBilling,
+  canManageSeats,
+  manageSeatsDisabledReason,
   invitations,
   userProfile,
   configuredSsoProvider,
@@ -40,20 +44,12 @@ export function TeamMembersTable({
   const canReadAuthActivity = ability.can('read', 'TeamMemberAuthActivity');
   const canReadSession = ability.can('read', 'TeamMemberSession');
   const canUpdate = ability.can('update', 'TeamMember');
-  const canInvite = ability.can('invite', { type: 'TeamMember', billingStatus, availableLicenses });
+  // Seat availability is enforced by the server and explained in the invite modal, so the button
+  // stays visible even when every seat is taken
+  const canInvite = ability.can('invite', { type: 'TeamMember', billingStatus });
 
   if (ability.cannot('read', 'TeamMember')) {
     return null;
-  }
-
-  let licenseMessage: ReactNode = null;
-
-  if (isFinite(availableLicenses)) {
-    if (hasManualBilling) {
-      licenseMessage = `You have ${formatNumber(availableLicenses)} ${pluralizeFromNumber('license', availableLicenses)} remaining.`;
-    } else if (availableLicenses > 0) {
-      licenseMessage = `You can add up to ${formatNumber(availableLicenses)} additional ${pluralizeFromNumber('user', availableLicenses)}.`;
-    }
   }
 
   const allowedMfaMethods = new Set(loginConfiguration?.allowedMfaMethods);
@@ -66,7 +62,6 @@ export function TeamMembersTable({
       title="Team Members"
       className="slds-m-bottom_medium slds-card_boundary"
       icon={{ type: 'standard', icon: 'people' }}
-      footer={licenseMessage}
       actions={
         <ButtonGroupContainer>
           {canReadAuthActivity && (
@@ -79,6 +74,18 @@ export function TeamMembersTable({
               View User Sessions
             </button>
           )}
+          {canManageSeats && (
+            <button
+              type="button"
+              data-testid="team-seats-manage-button"
+              className="slds-button slds-button_neutral"
+              disabled={!!manageSeatsDisabledReason}
+              title={manageSeatsDisabledReason ?? undefined}
+              onClick={() => onGlobalAction('manage-seats')}
+            >
+              Manage Seats
+            </button>
+          )}
           {canInvite && (
             <button className="slds-button slds-button_brand" onClick={() => onGlobalAction('team-member-invite')}>
               Add Team Member
@@ -87,6 +94,9 @@ export function TeamMembersTable({
         </ButtonGroupContainer>
       }
     >
+      {seats && (
+        <TeamSeatsSummary seats={seats} hasManualBilling={hasManualBilling} manageSeatsDisabledReason={manageSeatsDisabledReason} />
+      )}
       <table
         data-testid="team-member-table"
         aria-describedby="team-members-heading"
