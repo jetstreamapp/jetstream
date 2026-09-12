@@ -4,9 +4,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeployResults, MetadataRowConfiguration } from '../mass-update-records.types';
 import { useDeployRecords } from '../useDeployRecords';
 
-const { bulkApiCreateJobMock, bulkApiAddBatchToJobMock, trackerErrorMock } = vi.hoisted(() => ({
+const { bulkApiCreateJobMock, bulkApiAddBatchToJobMock, bulkApiCloseJobMock, trackerErrorMock } = vi.hoisted(() => ({
   bulkApiCreateJobMock: vi.fn(),
   bulkApiAddBatchToJobMock: vi.fn(),
+  bulkApiCloseJobMock: vi.fn(),
   trackerErrorMock: vi.fn(),
 }));
 
@@ -14,6 +15,7 @@ vi.mock('@jetstream/shared/data', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@jetstream/shared/data')>()),
   bulkApiCreateJob: bulkApiCreateJobMock,
   bulkApiAddBatchToJob: bulkApiAddBatchToJobMock,
+  bulkApiCloseJob: bulkApiCloseJobMock,
 }));
 vi.mock('@jetstream/shared/ui-utils', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@jetstream/shared/ui-utils')>()),
@@ -66,6 +68,7 @@ describe('useDeployRecords batch submission', () => {
     vi.clearAllMocks();
     bulkApiCreateJobMock.mockResolvedValue({ id: 'job-1', batches: [] });
     bulkApiAddBatchToJobMock.mockImplementation(async () => ({ id: `batch-${bulkApiAddBatchToJobMock.mock.calls.length}` }));
+    bulkApiCloseJobMock.mockResolvedValue({ id: 'job-1', state: 'Closed' });
   });
 
   /**
@@ -104,5 +107,46 @@ describe('useDeployRecords batch submission', () => {
 
     expect(bulkApiAddBatchToJobMock).toHaveBeenCalledTimes(3);
     expect(bulkApiAddBatchToJobMock.mock.calls.map(([, , , closeJob]) => closeJob)).toEqual([false, false, true]);
+    // The final batch already carried `closeJob`, so no separate close is needed
+    expect(bulkApiCloseJobMock).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Only the final batch carries `closeJob`, so stopping before it would otherwise strand the job in
+   * `Open` and hold one of the org's job slots until Salesforce expires it.
+   */
+  it('closes the job when it stops early and no batch carried the close flag', async () => {
+    bulkApiAddBatchToJobMock.mockImplementationOnce(async () => {
+      throw new Error(JOB_CLOSED_ERROR);
+    });
+
+    await deployAndGetResults();
+
+    expect(bulkApiAddBatchToJobMock).toHaveBeenCalledTimes(1);
+    expect(bulkApiCloseJobMock).toHaveBeenCalledWith(org, 'job-1');
+  });
+
+  it('closes the job when the final batch itself fails', async () => {
+    bulkApiAddBatchToJobMock.mockImplementationOnce(async () => ({ id: 'batch-1' }));
+    bulkApiAddBatchToJobMock.mockImplementationOnce(async () => ({ id: 'batch-2' }));
+    bulkApiAddBatchToJobMock.mockImplementationOnce(async () => {
+      throw new Error('Request timed out');
+    });
+
+    await deployAndGetResults();
+
+    expect(bulkApiCloseJobMock).toHaveBeenCalledWith(org, 'job-1');
+  });
+
+  it('does not surface a failed cleanup close to the user', async () => {
+    bulkApiAddBatchToJobMock.mockImplementationOnce(async () => {
+      throw new Error(JOB_CLOSED_ERROR);
+    });
+    bulkApiCloseJobMock.mockRejectedValue(new Error('Job already closed'));
+
+    const deployResults = await deployAndGetResults();
+
+    expect(deployResults.status).toBe('In Progress');
+    expect(bulkApiCloseJobMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { bulkApiAddBatchToJob, bulkApiCreateJob, bulkApiGetJob } from '@jetstream/shared/data';
+import { bulkApiAddBatchToJob, bulkApiCloseJob, bulkApiCreateJob, bulkApiGetJob } from '@jetstream/shared/data';
 import { checkIfBulkApiJobIsDone, convertDateToLocale, generateCsv, tracker, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { delay, getErrorMessage, isFatalBulkApiError, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { BulkJobBatchInfo, Maybe, SalesforceOrgUi } from '@jetstream/types';
@@ -128,19 +128,32 @@ export function useDeployRecords(
       deployResults.records = records;
       isMounted.current && onDeployResults(sobject, { ...deployResults });
 
-      /** Mark every record in a batch as failed, for a batch that was rejected or never submitted */
-      function recordFailedBatch(failedRecords: any[], errorMessage: string) {
-        deployResults.processingErrors = [...deployResults.processingErrors];
-        failedRecords.forEach((record, i) => deployResults.processingErrors.push({ record, errors: [errorMessage], row: i }));
+      /**
+       * Mark every record in the given batches as failed, for batches Salesforce rejected or that were
+       * never submitted. The list is cloned once for the whole set rather than once per batch, which
+       * would make stopping early cost O(skipped records x skipped batches) to record.
+       */
+      function recordFailedBatches(failedBatches: unknown[][], errorMessage: string) {
+        const processingErrors = [...deployResults.processingErrors];
+        failedBatches.forEach((failedRecords) => {
+          failedRecords.forEach((record, i) => processingErrors.push({ record, errors: [errorMessage], row: i }));
+        });
+        deployResults.processingErrors = processingErrors;
       }
 
       let currItem = 0;
+      // Only the final batch carries `closeJob`, so any path that never reaches it - stopping early, or
+      // the final batch itself failing - leaves the job Open, holding an org job slot until Salesforce
+      // expires it. Tracked here so the cleanup below knows whether the close actually happened.
+      let jobClosed = false;
       for (const batch of batches) {
         try {
           if (!isMounted.current) {
             return;
           }
-          const batchResult = await bulkApiAddBatchToJob(org, jobId, batch.csv, currItem === batches.length - 1);
+          const isLastBatch = currItem === batches.length - 1;
+          const batchResult = await bulkApiAddBatchToJob(org, jobId, batch.csv, isLastBatch);
+          jobClosed = jobClosed || isLastBatch;
           deployResults.batchIdToIndex = { ...deployResults.batchIdToIndex, [batchResult.id]: currItem };
           deployResults.jobInfo = { ...deployResults.jobInfo };
           deployResults.jobInfo.batches = deployResults.jobInfo.batches || [];
@@ -157,19 +170,31 @@ export function useDeployRecords(
             tracker.error('There was an error loading batch for mass record update', ex);
           }
 
-          recordFailedBatch(batch.records, getErrorMessage(ex));
-
           // Salesforce rejects everything sent after the job is closed, aborted or over a limit, so the
           // remaining batches would each cost a doomed round trip and a duplicate error report. Fail them
-          // here instead - the records still land in `processingErrors` so the user sees what was skipped.
-          if (isFatalBulkApiError(ex)) {
-            batches.slice(currItem + 1).forEach(({ records: skippedRecords }) => recordFailedBatch(skippedRecords, getErrorMessage(ex)));
+          // alongside this one instead - the records still land in `processingErrors` so the user sees
+          // what was skipped.
+          const isFatal = isFatalBulkApiError(ex);
+          const skippedBatches = isFatal ? batches.slice(currItem + 1).map(({ records: skippedRecords }) => skippedRecords) : [];
+          recordFailedBatches([batch.records, ...skippedBatches], getErrorMessage(ex));
+
+          if (isFatal) {
             break;
           }
         } finally {
           currItem++;
         }
       }
+
+      // Fire and forget, matching the load-records path: the user is already being shown results and an
+      // orphaned job is our problem, not theirs. A job Salesforce has already closed rejects this, which
+      // is exactly the case that got us here, so the rejection is expected and only worth a log line.
+      if (!jobClosed) {
+        bulkApiCloseJob(org, jobId).catch((ex) => {
+          logger.warn('Error closing job', ex);
+        });
+      }
+
       deployResults.status = 'In Progress';
       deployResults.lastChecked = formatDate(new Date(), 'h:mm:ss');
       isMounted.current && onDeployResults(sobject, { ...deployResults });
