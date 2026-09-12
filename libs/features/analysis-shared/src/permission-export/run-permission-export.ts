@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { HIGH_RISK_SYSTEM_PERMISSIONS } from '@jetstream/shared/constants';
+import { HIGH_RISK_SYSTEM_PERMISSIONS, JOB_CANCELED_ERROR_MESSAGE } from '@jetstream/shared/constants';
 import { describeGlobal, describeSObject, queryWithRecordBudget } from '@jetstream/shared/data';
 import { sanitizeSobjectApiNames, splitArrayToMaxSize, uniqueSalesforceIds } from '@jetstream/shared/utils';
 import type { PermissionExportFullResult, SalesforceOrgUi } from '@jetstream/types';
@@ -117,7 +117,7 @@ function emptyResult(requestPayload?: PermissionExportFullResult['requestPayload
 
 function throwIfCanceled(isCanceled: (() => boolean) | undefined): void {
   if (isCanceled?.()) {
-    throw new Error('Job canceled');
+    throw new Error(JOB_CANCELED_ERROR_MESSAGE);
   }
 }
 

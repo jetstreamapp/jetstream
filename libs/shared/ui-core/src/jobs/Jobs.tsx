@@ -3,7 +3,7 @@
 import { css } from '@emotion/react';
 import { DownloadFileResult } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
-import { fileExtToGoogleDriveMimeType, fileExtToMimeType, MIME_TYPES } from '@jetstream/shared/constants';
+import { fileExtToGoogleDriveMimeType, fileExtToMimeType, JOB_CANCELED_ERROR_MESSAGE, MIME_TYPES } from '@jetstream/shared/constants';
 import { googleUploadFile } from '@jetstream/shared/data';
 import {
   formatNumber,
@@ -67,8 +67,15 @@ function getGoogleAccessToken(): string | undefined {
  * the whole file as a single string and throws `RangeError: Invalid string length` past ~512MB. The jobs popover
  * only ever shows the raw message, so report the inputs needed to tell a browser limit apart from a Salesforce
  * failure. The SOQL and the records themselves are deliberately left out.
+ *
+ * Cancelling from the jobs popover settles the job through this same failure path, so it is filtered out here -
+ * it is a user decision, not something to investigate, and long downloads get cancelled often enough that it was
+ * the single noisiest pattern in the error tracker.
  */
 function trackDownloadFailure(job: AsyncJob, errorMessage: string) {
+  if (errorMessage === JOB_CANCELED_ERROR_MESSAGE) {
+    return;
+  }
   const { fileFormat, sObject, totalRecordCount, fields, useBulkApi, includeSubquery, isTooling } = (job.meta ||
     {}) as Partial<BulkDownloadJob>;
   tracker.error('Bulk download job failed', new Error(errorMessage), {

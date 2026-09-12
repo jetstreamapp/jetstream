@@ -112,6 +112,12 @@ export const HTTP = {
   },
 };
 
+/**
+ * Message every long running job throws with when the user cancels it. It travels back to the main thread as
+ * a plain error string, so the callers that need to tell a cancellation apart from a real failure match on it.
+ */
+export const JOB_CANCELED_ERROR_MESSAGE = 'Job canceled';
+
 export const ERROR_MESSAGES = {
   SFDC_EXPIRED_TOKEN: 'expired access/refresh token',
   SFDC_EXPIRED_SESSION: 'Session expired or invalid',
