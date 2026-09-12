@@ -1,3 +1,7 @@
+// Must stay the first import — Zod probes for eval support when the first schema is constructed,
+// which happens while these imports are evaluated. See configure-zod.
+import '@jetstream/shared/utils/configure-zod';
+
 import { logger } from '@jetstream/shared/client-logger';
 import {
   AutoFullHeightContainer,

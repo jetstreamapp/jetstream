@@ -1,3 +1,7 @@
+// Must stay the first import — Zod probes for eval support when the first schema is constructed,
+// which happens while these imports are evaluated. See configure-zod.
+import '@jetstream/shared/utils/configure-zod';
+
 import { css } from '@emotion/react';
 import { ColorScheme } from '@jetstream/types';
 import { CheckboxToggle, FeedbackLink, Grid, ScopedNotification, Select } from '@jetstream/ui';
