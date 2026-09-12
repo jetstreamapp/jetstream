@@ -1,9 +1,19 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, HTTP, TITLES } from '@jetstream/shared/constants';
-import { getCsrfTokenFromCookie, getSubscriptions, initCheckoutSession } from '@jetstream/shared/data';
+import { getCsrfTokenFromCookie, getSubscriptions, getTeam, initCheckoutSession } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { tracker, useTitle } from '@jetstream/shared/ui-utils';
-import { JetstreamPricesByLookupKey, Maybe, StripePriceKey, StripeUserFacingCustomer } from '@jetstream/types';
+import { getErrorMessage } from '@jetstream/shared/utils';
+import {
+  JetstreamPricesByLookupKey,
+  MAX_TEAM_SEATS,
+  Maybe,
+  StripePriceKey,
+  StripeUserFacingCustomer,
+  TEAM_MEMBER_ROLE_ADMIN,
+  TEAM_MEMBER_ROLE_BILLING,
+  TeamUserFacing,
+} from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   FeedbackLink,
@@ -31,11 +41,25 @@ import {
   TEAM_MONTHLY_KEY,
   UNPAID_SUBSCRIPTION_STATUSES,
 } from './billing.constants';
+import { getDefaultTeamName } from './billing.utils';
 import { BillingExistingSubscriptions } from './BillingExistingSubscriptions';
 import { BillingPeriodToggle } from './BillingPeriodToggle';
 import { EnhancedBillingCard } from './EnhancedBillingCard';
+import { TeamCheckoutOptions } from './TeamCheckoutOptions';
 
 const HEIGHT_BUFFER = 170;
+
+function isTeamPriceKey(priceKey: StripePriceKey): priceKey is 'TEAM_MONTHLY' | 'TEAM_ANNUAL' {
+  return priceKey === TEAM_MONTHLY_KEY || priceKey === TEAM_ANNUAL_KEY;
+}
+
+/** A team that already exists must keep every seat it uses or has promised to an invitee. */
+function getMinimumCheckoutSeats(team: TeamUserFacing | null): number {
+  if (!team) {
+    return 1;
+  }
+  return Math.max(1, team.seats.used + team.seats.reserved);
+}
 
 export const Billing = () => {
   useTitle(TITLES.BILLING);
@@ -52,6 +76,9 @@ export const Billing = () => {
   const [customerWithSubscriptions, setCustomerWithSubscriptions] = useState<StripeUserFacingCustomer | null>(null);
   const [pricesByLookupKey, setPricesByLookupKey] = useState<JetstreamPricesByLookupKey | null>(null);
   const [hasManualBilling, setHasManualBilling] = useState(false);
+  const [team, setTeam] = useState<TeamUserFacing | null>(null);
+  const [seats, setSeats] = useState(1);
+  const [teamName, setTeamName] = useState(() => getDefaultTeamName(userProfile.email));
   const [subscriptionStatus, setSubscriptionStatus] = useState({
     hasActiveSubscriptions: false,
     hasCanceledSubscriptions: false,
@@ -61,6 +88,11 @@ export const Billing = () => {
   });
   const [searchParams] = useSearchParams();
   const [csrfToken] = useState(() => getCsrfTokenFromCookie());
+
+  const teamId = userProfile.teamMembership?.team.id;
+  // Reading the team is restricted to these roles, so a plain member would only ever get a 403
+  const canReadTeam =
+    userProfile.teamMembership?.role === TEAM_MEMBER_ROLE_ADMIN || userProfile.teamMembership?.role === TEAM_MEMBER_ROLE_BILLING;
 
   const fetchSubscriptions = useCallback(async () => {
     setLoading(true);
@@ -72,7 +104,19 @@ export const Billing = () => {
         // TODO: should we do something on the server - like ensure server has the subscription?
         // depending on webhook timing, we may want to do this here
       }
-      const { customer, pricesByLookupKey, hasManualBilling, userProfile } = await getSubscriptions();
+      // The team is only needed to size the seat picker and the seat summary, so a failed fetch must
+      // not take the billing page down with it
+      const teamPromise: Promise<TeamUserFacing | null> =
+        teamId && canReadTeam
+          ? getTeam(teamId).catch((ex) => {
+              logger.warn('Billing: Error fetching team', { message: getErrorMessage(ex) });
+              return null;
+            })
+          : Promise.resolve(null);
+      const [{ customer, pricesByLookupKey, hasManualBilling, userProfile }, teamData] = await Promise.all([
+        getSubscriptions(),
+        teamPromise,
+      ]);
       if (userProfile) {
         // this ensures that all entitlements are updated across the application to match what is on the server
         setUserProfile(userProfile);
@@ -92,6 +136,8 @@ export const Billing = () => {
       setCustomerWithSubscriptions(customer);
       setPricesByLookupKey(pricesByLookupKey);
       setHasManualBilling(hasManualBilling);
+      setTeam(teamData);
+      setSeats((currentSeats) => Math.max(currentSeats, getMinimumCheckoutSeats(teamData)));
     } catch (ex) {
       logger.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
       setLoadingError(true);
@@ -118,17 +164,42 @@ export const Billing = () => {
     }
   }, [isAnnual, selectedPlan]);
 
+  const isTeamPlan = isTeamPriceKey(selectedPlan);
+  const minSeats = getMinimumCheckoutSeats(team);
+  const trimmedTeamName = teamName.trim();
+
+  let seatsError: string | null = null;
+  if (isTeamPlan && (!Number.isInteger(seats) || seats < minSeats || seats > MAX_TEAM_SEATS)) {
+    seatsError = `Enter between ${minSeats} and ${MAX_TEAM_SEATS} seats.`;
+  }
+  let teamNameError: string | null = null;
+  if (isTeamPlan && !team && (trimmedTeamName.length < 1 || trimmedTeamName.length > 255)) {
+    teamNameError = 'Enter a team name between 1 and 255 characters.';
+  }
+  const hasValidationError = !!seatsError || !!teamNameError;
+
   const handleCheckoutSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     try {
       event.preventDefault();
+      if (hasValidationError) {
+        return;
+      }
       setCheckoutSessionLoading(true);
       setCheckoutSessionError(null);
 
-      const { url } = await initCheckoutSession({ priceLookupKey: selectedPlan });
+      const { url } = await initCheckoutSession({
+        priceLookupKey: selectedPlan,
+        quantity: isTeamPlan ? seats : undefined,
+        teamName: isTeamPlan && !team ? trimmedTeamName : undefined,
+      });
       // Redirect
       window.location.href = url;
       // Track analytics for enterprise contact
-      trackEvent(ANALYTICS_KEYS.billing_session, { action: 'create_session', priceId: selectedPlan });
+      trackEvent(ANALYTICS_KEYS.billing_session, {
+        action: 'create_session',
+        priceId: selectedPlan,
+        seats: isTeamPlan ? seats : undefined,
+      });
     } catch (ex) {
       tracker.error('There was an error initiating your checkout session', ex);
       setCheckoutSessionError('There was an error initiating your checkout session, please contact support for assistance.');
@@ -238,6 +309,8 @@ export const Billing = () => {
                   customerWithSubscriptions={customerWithSubscriptions}
                   pricesByLookupKey={pricesByLookupKey}
                   hasManualBilling={hasManualBilling}
+                  seats={team?.seats ?? null}
+                  teamId={team?.id ?? null}
                 />
               ) : (
                 <form onSubmit={handleCheckoutSubmit}>
@@ -260,7 +333,9 @@ export const Billing = () => {
                         priceSubtext={
                           isAnnual ? PLAN_DESCRIPTIONS[PRO_ANNUAL_KEY].priceSubtext : PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].priceSubtext
                         }
-                        description={PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].description}
+                        description={
+                          isAnnual ? PLAN_DESCRIPTIONS[PRO_ANNUAL_KEY].description : PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].description
+                        }
                         features={PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].features}
                         checked={
                           selectedPlan === (isAnnual ? PLAN_DESCRIPTIONS[PRO_ANNUAL_KEY].key : PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].key)
@@ -276,13 +351,17 @@ export const Billing = () => {
                         priceSubtext={
                           isAnnual ? PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].priceSubtext : PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].priceSubtext
                         }
-                        description={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].description}
+                        description={
+                          isAnnual ? PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].description : PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].description
+                        }
                         features={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].features}
+                        pricingTiers={
+                          isAnnual ? PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].pricingTiers : PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].pricingTiers
+                        }
                         checked={
                           selectedPlan === (isAnnual ? PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].key : PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].key)
                         }
                         value={isAnnual ? PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].key : PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].key}
-                        comingSoonFeatures={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].comingSoonFeatures}
                         onChange={setSelectedPlan}
                       />
                       <EnhancedBillingCard
@@ -296,10 +375,26 @@ export const Billing = () => {
                       />
                     </div>
                   </fieldset>
+
+                  {isTeamPlan && (
+                    <TeamCheckoutOptions
+                      price={pricesByLookupKey?.[selectedPlan] ?? null}
+                      existingTeam={team}
+                      seats={seats}
+                      minSeats={minSeats}
+                      seatsError={seatsError}
+                      teamName={teamName}
+                      teamNameError={teamNameError}
+                      disabled={checkoutSessionLoading}
+                      onSeatsChange={setSeats}
+                      onTeamNameChange={setTeamName}
+                    />
+                  )}
+
                   <div className="slds-text-align_center slds-m-top_large slds-p-horizontal_medium">
                     <button
                       type="submit"
-                      disabled={checkoutSessionLoading}
+                      disabled={checkoutSessionLoading || hasValidationError}
                       className="slds-button slds-button_brand"
                       style={{ width: '100%', maxWidth: '400px' }}
                     >

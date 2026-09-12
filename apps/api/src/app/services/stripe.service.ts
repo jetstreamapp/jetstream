@@ -1,25 +1,29 @@
 import { ENV, logger } from '@jetstream/api-config';
 import { UserProfile } from '@jetstream/auth/types';
 import { sendWelcomeToProEmail } from '@jetstream/email';
-import { getErrorMessage, getErrorMessageAndStackObj, groupByFlat } from '@jetstream/shared/utils';
+import { getErrorMessage, getErrorMessageAndStackObj, getIncludedSeatsFromPriceTiers, groupByFlat } from '@jetstream/shared/utils';
 import {
   EntitlementsAccess,
   JetstreamPrice,
   JetstreamPricesByLookupKey,
   JetstreamPriceTier,
-  Maybe,
   STRIPE_PRICE_KEYS,
   StripeUserFacingCustomer,
   StripeUserFacingSubscriptionItem,
+  TeamSeatChangeResult,
 } from '@jetstream/types';
-import { formatISO, fromUnixTime } from 'date-fns';
+import { formatISO, fromUnixTime, getUnixTime } from 'date-fns';
 import { isObject, isString } from 'lodash';
 import Stripe from 'stripe';
+import type { TeamSeatState } from '../db/subscription.db';
 import * as subscriptionDbService from '../db/subscription.db';
 import * as teamDbService from '../db/team.db';
 import * as userDbService from '../db/user.db';
 
 const STRIPE_API_VERSION = '2026-08-26.dahlia';
+
+/** Marks the subscription schedules Jetstream creates for end-of-period seat decreases. */
+export const SEAT_DECREASE_SCHEDULE_TYPE = 'SEAT_DECREASE';
 
 const stripe = ENV.STRIPE_API_KEY ? new Stripe(ENV.STRIPE_API_KEY, { apiVersion: STRIPE_API_VERSION }) : ({} as Stripe);
 
@@ -80,7 +84,13 @@ export async function handleStripeWebhook({ signature, payload }: { signature?: 
       case 'customer.subscription.deleted':
       case 'customer.subscription.paused':
       case 'customer.subscription.resumed':
-      case 'customer.subscription.updated': {
+      case 'customer.subscription.updated':
+      // Seat decreases are Stripe schedules, so schedule lifecycle events change the team's seat state
+      case 'subscription_schedule.updated':
+      case 'subscription_schedule.released':
+      case 'subscription_schedule.completed':
+      case 'subscription_schedule.canceled':
+      case 'subscription_schedule.aborted': {
         const { customer: customerOrId } = event.data.object;
         const customer = await fetchCustomerWithSubscriptionsById({ customerId: isString(customerOrId) ? customerOrId : customerOrId.id });
         await saveOrUpdateSubscription({ customer, sendWelcomeEmail: false });
@@ -96,7 +106,7 @@ export async function handleStripeWebhook({ signature, payload }: { signature?: 
   }
 }
 
-function filterInactiveSubscriptions(subscriptions: Stripe.Subscription[]) {
+export function filterInactiveSubscriptions(subscriptions: Stripe.Subscription[]): Stripe.Subscription[] {
   return subscriptions.filter((subscription) => activeSubscriptionStatuses.has(subscription.status));
 }
 
@@ -117,7 +127,7 @@ async function createTeamForTeamPlanCustomer({ userId, customerId }: { userId: s
   return team;
 }
 
-async function fetchCustomerWithSubscriptionsById({
+export async function fetchCustomerWithSubscriptionsById({
   customerId,
 }: {
   customerId: string;
@@ -125,6 +135,58 @@ async function fetchCustomerWithSubscriptionsById({
   return await stripe.customers.retrieve(customerId, {
     expand: ['subscriptions'],
   });
+}
+
+/** Stripe amounts are in cents; every amount leaves this module in dollars. */
+function centsToDollars(cents: number | null | undefined): number | null {
+  return typeof cents === 'number' ? cents / 100 : null;
+}
+
+function convertPriceTiers(tiers: Stripe.Price.Tier[] | undefined): JetstreamPriceTier[] | null {
+  if (!tiers) {
+    return null;
+  }
+  return tiers.map((tier) => ({
+    flatAmount: centsToDollars(tier.flat_amount),
+    unitAmount: centsToDollars(tier.unit_amount),
+    upTo: tier.up_to,
+  }));
+}
+
+const priceTiersCache = new Map<string, { tiers: JetstreamPriceTier[] | null; expiresAt: number }>();
+const PRICE_TIERS_CACHE_TTL_MS = 1000 * 60 * 60 * 6;
+
+/**
+ * Stripe omits `tiers` from the price embedded in a subscription item, and the expansion path through
+ * the customer is deeper than Stripe allows, so tiered prices are fetched individually. A price's tier
+ * table cannot change after creation, so a long cache is safe.
+ */
+async function fetchPriceTiers(priceId: string): Promise<JetstreamPriceTier[] | null> {
+  const cached = priceTiersCache.get(priceId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.tiers;
+  }
+  const price = await stripe.prices.retrieve(priceId, { expand: ['tiers'] });
+  const tiers = convertPriceTiers(price.tiers);
+  priceTiersCache.set(priceId, { tiers, expiresAt: Date.now() + PRICE_TIERS_CACHE_TTL_MS });
+  return tiers;
+}
+
+/**
+ * Fill in the tier table for tiered subscription items so the client can show what the customer
+ * actually pays. A failed lookup leaves `tiers` null rather than failing the whole billing page.
+ */
+export async function attachTiersToTieredItems(customer: StripeUserFacingCustomer): Promise<void> {
+  const tieredItems = customer.subscriptions.flatMap(({ items }) => items).filter((item) => item.billingScheme === 'tiered' && !item.tiers);
+  await Promise.all(
+    tieredItems.map(async (item) => {
+      try {
+        item.tiers = await fetchPriceTiers(item.priceId);
+      } catch (ex) {
+        logger.warn({ priceId: item.priceId, ...getErrorMessageAndStackObj(ex) }, 'Unable to fetch price tiers for subscription item');
+      }
+    }),
+  );
 }
 
 export async function fetchPrices({ lookupKeys }: { lookupKeys: typeof STRIPE_PRICE_KEYS }): Promise<JetstreamPricesByLookupKey> {
@@ -136,7 +198,7 @@ export async function fetchPrices({ lookupKeys }: { lookupKeys: typeof STRIPE_PR
   const prices = await stripe.prices
     .list({
       lookup_keys: lookupKeys as unknown as string[],
-      expand: ['data.product'],
+      expand: ['data.product', 'data.tiers'],
       type: 'recurring',
       currency: 'usd',
       active: true,
@@ -158,15 +220,7 @@ export async function fetchPrices({ lookupKeys }: { lookupKeys: typeof STRIPE_PR
       interval: price.recurring?.interval === 'year' ? 'ANNUAL' : 'MONTHLY',
       amount: (price.unit_amount || 0) / 100,
       tiersMode: price.tiers_mode || null,
-      tiers:
-        price.tiers?.map(
-          (tier) =>
-            ({
-              flatAmount: tier.flat_amount ? tier.flat_amount / 100 : null,
-              unitAmount: tier.unit_amount ? tier.unit_amount / 100 : null,
-              upTo: tier.up_to,
-            }) as JetstreamPriceTier,
-        ) || null,
+      tiers: convertPriceTiers(price.tiers),
       product: {
         id: product.id,
         name: product.name,
@@ -212,7 +266,9 @@ export async function getUserFacingStripeCustomer({ customerId }: { customerId: 
     if (stripeCustomer.deleted) {
       return null;
     }
-    return convertCustomerWithSubscriptionsToUserFacing(stripeCustomer);
+    const customer = convertCustomerWithSubscriptionsToUserFacing(stripeCustomer);
+    await attachTiersToTieredItems(customer);
+    return customer;
   } catch (ex) {
     logger.warn({ customerId, ...getErrorMessageAndStackObj(ex) }, 'Unable to fetch or convert customer to user facing');
     return null;
@@ -226,7 +282,7 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
     delinquent: !!stripeCustomer.delinquent,
     subscriptions:
       stripeCustomer.subscriptions?.data.map(
-        ({ id, billing_cycle_anchor, cancel_at, cancel_at_period_end, canceled_at, ended_at, items, start_date, status }) => ({
+        ({ id, billing_cycle_anchor, cancel_at, cancel_at_period_end, canceled_at, discounts, ended_at, items, start_date, status }) => ({
           id,
           // TODO: validate that the dates are correct (should be if server is on UTC I think?)
           billingCycleAnchor: formatISO(fromUnixTime(billing_cycle_anchor)),
@@ -236,6 +292,9 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
           endedAt: ended_at ? formatISO(fromUnixTime(ended_at)) : null,
           startDate: formatISO(fromUnixTime(start_date)),
           status: status.toUpperCase() as Uppercase<Stripe.Subscription.Status>,
+          // Existence check only — `discounts` entries are unexpanded ids, and a customer-level
+          // coupon discounts this subscription's invoices the same as a subscription-level one
+          hasDiscount: Boolean(stripeCustomer.discount || discounts.length > 0),
           items: items.data.map(({ id, price, quantity, current_period_start, current_period_end }) => ({
             id,
             priceId: price.id,
@@ -245,6 +304,9 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
             product: price.product as string,
             lookupKey: price.lookup_key,
             unitAmount: (price.unit_amount || 0) / 100,
+            billingScheme: price.billing_scheme,
+            tiersMode: price.tiers_mode || null,
+            tiers: convertPriceTiers(price.tiers),
             recurringInterval: (price.recurring?.interval?.toUpperCase() || null) as StripeUserFacingSubscriptionItem['recurringInterval'],
             recurringIntervalCount: price.recurring?.interval_count || null,
             quantity: quantity ?? 1,
@@ -373,7 +435,7 @@ export async function saveSubscriptionFromCompletedSession({ sessionId }: { sess
   const customerOrId = session.customer;
   const customerId = isString(customerOrId) ? customerOrId : customerOrId.id;
 
-  const metadata = (session.metadata || {}) as { userId?: string; teamId?: string; type?: 'USER' | 'TEAM' };
+  const metadata = (session.metadata || {}) as { userId?: string; teamId?: string; type?: 'USER' | 'TEAM'; teamName?: string };
   const userId = session.client_reference_id as string;
   let teamId = metadata.teamId || null;
   let type = metadata.type || 'USER';
@@ -386,7 +448,12 @@ export async function saveSubscriptionFromCompletedSession({ sessionId }: { sess
 
   if (type === 'TEAM') {
     // upsert team (in case webhook is being processed at about the same time - this function needs to be idempotent)
-    const team = await teamDbService.upsertTeamWithBillingAccount({ userId, billingAccountCustomerId: customerId });
+    // The name chosen at checkout only applies when the team is created here; an existing team keeps its name
+    const team = await teamDbService.upsertTeamWithBillingAccount({
+      userId,
+      billingAccountCustomerId: customerId,
+      name: metadata.teamName || undefined,
+    });
     teamId = team.id;
   } else {
     // Ensure billing account exists
@@ -508,12 +575,12 @@ export async function synchronizeStripeWithJetstreamTeamIfRequired({
 }: { teamId: string; customerId?: null; force?: boolean } | { teamId: string; customerId: string }): Promise<StripeJetstreamSyncResult> {
   try {
     let didUpdate = false;
-    const team = await teamDbService.findById({ teamId });
+    const team = await subscriptionDbService.getTeamBillingAccountForSeats({ teamId });
     const entitlements = await teamDbService.findEntitlements({ teamId });
     const teamSubscriptions = await teamDbService.findSubscriptions({ teamId });
 
     // TODO: would we ever need to go in the opposite direction and delete things in Jetstream?
-    const billingAccountCustomerId = team?.billingAccount?.customerId;
+    const billingAccountCustomerId = team.billingAccount?.customerId;
     if (!billingAccountCustomerId) {
       return { success: true, didUpdate } as const;
     }
@@ -535,6 +602,7 @@ export async function synchronizeStripeWithJetstreamTeamIfRequired({
 
     const subscriptions = filterInactiveSubscriptions(stripeCustomer.subscriptions.data);
     const priceRecordCount = subscriptions.flatMap((subscription) => subscription.items.data).length;
+    const seatState = await resolveTeamSeatState(subscriptions);
 
     /**
      * Check if we need to synchronize
@@ -544,7 +612,8 @@ export async function synchronizeStripeWithJetstreamTeamIfRequired({
     const areEntitlementsEnabled =
       !!entitlements?.chromeExtension && !!entitlements?.googleDrive && !!entitlements?.desktop && !!entitlements?.recordSync;
     const hasCorrectEntitlements = priceRecordCount > 0 ? areEntitlementsEnabled : !areEntitlementsEnabled;
-    if (hasCorrectSubscriptionItemCount && hasCorrectEntitlements) {
+    const hasCorrectSeatState = subscriptionDbService.isTeamSeatStateInSync(team.billingAccount, seatState);
+    if (hasCorrectSubscriptionItemCount && hasCorrectEntitlements && hasCorrectSeatState) {
       return { success: true, didUpdate, stripeCustomer } as const;
     }
 
@@ -556,6 +625,7 @@ export async function synchronizeStripeWithJetstreamTeamIfRequired({
       teamId,
       customerId,
       subscriptions,
+      seatState,
     });
     await fetchAndUpdateEntitlements(customerId);
     return { success: true, didUpdate, stripeCustomer } as const;
@@ -637,10 +707,12 @@ export async function saveOrUpdateSubscription({
       });
     }
   } else if (type === 'TEAM') {
+    const activeSubscriptions = filterInactiveSubscriptions(subscriptions);
     await subscriptionDbService.updateTeamSubscriptionStateForCustomer({
       teamId,
       customerId: customer.id,
-      subscriptions: filterInactiveSubscriptions(subscriptions),
+      subscriptions: activeSubscriptions,
+      seatState: await resolveTeamSeatState(activeSubscriptions),
     });
   } else {
     throw new Error(`Invalid type for subscription update: ${type}`);
@@ -707,6 +779,8 @@ export async function createCheckoutSession({
   user,
   type,
   teamId,
+  quantity = 1,
+  teamName,
 }: {
   user: Pick<UserProfile, 'id' | 'name' | 'email'>;
   priceId: string;
@@ -714,6 +788,10 @@ export async function createCheckoutSession({
   customerId?: string;
   type: 'TEAM' | 'USER';
   teamId?: string;
+  /** Seats purchased up front for team plans; the customer cannot change it inside Checkout */
+  quantity?: number;
+  /** Name for the team created when checkout completes; ignored when the user already has a team */
+  teamName?: string;
 }): Promise<Stripe.Response<Stripe.Checkout.Session>> {
   const urlParams = new URLSearchParams({ sessionId: 'CHECKOUT_SESSION_ID', type, priceId, userId: user.id, mode });
 
@@ -736,7 +814,9 @@ export async function createCheckoutSession({
     line_items: [
       {
         price: priceId,
-        quantity: 1,
+        quantity,
+        // Seats are chosen in-app so the count Jetstream validated is the count Stripe charges for
+        adjustable_quantity: { enabled: false },
       },
     ],
     allow_promotion_codes: true,
@@ -761,7 +841,7 @@ export async function createCheckoutSession({
     payment_method_data: {
       allow_redisplay: 'always',
     },
-    metadata: { userId: user.id, teamId: teamId || null, type },
+    metadata: { userId: user.id, teamId: teamId || null, type, teamName: teamName || null },
   });
 
   return session;
@@ -808,108 +888,353 @@ export async function createBillingPortalSession({
 }
 
 /**
- * Update Stripe subscription item quantity to match the number of active users in Jetstream
- * This will invoice the customer immediately if required based on their plan and the number of users
+ * ************************************
+ * Team seats
+ * ************************************
  */
-export async function updateSubscriptionItemQuantity(
-  customerId: string,
-  newQuantity: number,
-): Promise<{
-  success: boolean;
-  didUpdate: boolean;
-  subscriptionId?: Maybe<string>;
-  subscriptionItemId?: Maybe<string>;
-  quantity?: Maybe<number>;
-  error?: Maybe<string>;
-}> {
-  let subscription: Stripe.Subscription | undefined = undefined;
-  let subscriptionItem: Stripe.SubscriptionItem | undefined = undefined;
-  try {
-    const customer = await stripe.customers.retrieve(customerId, {
-      expand: ['subscriptions'],
-    });
 
-    if (customer.deleted) {
-      throw new Error('Customer is deleted');
-    }
+interface SeatItemMatch {
+  subscription: Stripe.Subscription;
+  item: Stripe.SubscriptionItem;
+}
 
-    const subscriptions = (customer.subscriptions?.data || []).filter((subscription) =>
-      ['active', 'past_due', 'unpaid'].includes(subscription.status),
-    );
-    subscription = subscriptions[0];
-    const subscriptionItems = subscriptions[0]?.items?.data || [];
-    subscriptionItem = subscriptionItems[0];
-
-    if (subscriptions.length !== 1 || !subscription) {
-      throw new Error('Customer does not have an eligible subscription');
-    }
-
-    if (subscriptionItems.length !== 1 || !subscriptionItem) {
-      throw new Error('Customer does not have an eligible subscription item');
-    }
-
-    if (subscriptionItem.quantity === newQuantity) {
-      logger.info(
-        {
-          customerId,
-          quantity: newQuantity,
-          subscriptionId: subscription?.id,
-          subscriptionItemId: subscriptionItem?.id,
-        },
-        `Skipping Stripe quantity update, quantity already matches desired number`,
-      );
-      return {
-        success: true,
-        didUpdate: false,
-        subscriptionId: subscription.id,
-        subscriptionItemId: subscriptionItem.id,
-        quantity: newQuantity,
-        error: null,
-      };
-    }
-
-    await stripe.subscriptionItems.update(subscriptionItem.id, {
-      payment_behavior: 'allow_incomplete',
-      proration_behavior: 'always_invoice',
-      quantity: newQuantity,
-    });
-
-    logger.info(
-      {
-        customerId,
-        quantity: newQuantity,
-        subscriptionId: subscription?.id,
-        subscriptionItemId: subscriptionItem?.id,
-      },
-      `Updated Stripe subscription item quantity`,
-    );
-
-    return {
-      success: true,
-      didUpdate: true,
-      subscriptionId: subscription.id,
-      subscriptionItemId: subscriptionItem.id,
-      quantity: newQuantity,
-      error: null,
-    };
-  } catch (ex) {
+/**
+ * The subscription item that carries the team's purchased seats. A customer is expected to have exactly
+ * one TEAM_ item; more than one means the account was edited by hand and the seat state is ambiguous,
+ * so nothing is derived from it until it is cleaned up.
+ */
+export function findTeamSeatItem(subscriptions: Stripe.Subscription[]): SeatItemMatch | null {
+  const matches = subscriptions.flatMap((subscription) =>
+    subscription.items.data.filter((item) => item.price.lookup_key?.startsWith('TEAM_')).map((item) => ({ subscription, item })),
+  );
+  if (matches.length > 1) {
     logger.warn(
-      {
-        customerId,
-        quantity: newQuantity,
-        subscriptionId: subscription?.id,
-        subscriptionItemId: subscriptionItem?.id,
-        ...getErrorMessageAndStackObj(ex),
-      },
-      `Error updating subscription quantity: ${getErrorMessage(ex)}`,
+      { subscriptionItemIds: matches.map(({ item }) => item.id) },
+      'Customer has more than one TEAM subscription item, seat state cannot be resolved',
     );
-    return {
-      success: false,
-      didUpdate: false,
-      subscriptionId: subscription?.id,
-      subscriptionItemId: subscriptionItem?.id,
-      quantity: newQuantity,
-      error: getErrorMessage(ex),
-    };
+    return null;
   }
+  return matches[0] ?? null;
+}
+
+function getPriceId(price: string | Stripe.Price | Stripe.DeletedPrice): string {
+  return isString(price) ? price : price.id;
+}
+
+function getStripeObjectId(value: string | { id: string } | null | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  return isString(value) ? value : value.id;
+}
+
+/**
+ * Resolve the purchased-seat state Jetstream mirrors from Stripe: the TEAM_ item, the seats its price
+ * includes for free (legacy flat-tier plans), and any schedule attached to the subscription.
+ *
+ * A schedule Jetstream created for a decrease whose second phase has already started has done its job
+ * (Stripe lowered the quantity when the phase began) and is released so the subscription is free for
+ * the next change. A schedule created elsewhere is reported as foreign so seat changes are blocked
+ * rather than silently clobbering it.
+ */
+export async function resolveTeamSeatState(subscriptions: Stripe.Subscription[]): Promise<TeamSeatState | null> {
+  const seatItem = findTeamSeatItem(subscriptions);
+  if (!seatItem) {
+    return null;
+  }
+  const { subscription, item } = seatItem;
+  // A failed tier lookup must fail the sync: writing includedSeats=0 for a legacy plan would shrink the cap under the team
+  const tiers = item.price.billing_scheme === 'tiered' ? await fetchPriceTiers(item.price.id) : null;
+  const scheduleState = await resolveSeatScheduleState(subscription, item);
+  return {
+    subscriptionItemId: item.id,
+    quantity: item.quantity ?? 1,
+    includedSeats: getIncludedSeatsFromPriceTiers(tiers),
+    periodEnd: fromUnixTime(item.current_period_end),
+    ...scheduleState,
+  };
+}
+
+async function resolveSeatScheduleState(
+  subscription: Stripe.Subscription,
+  item: Stripe.SubscriptionItem,
+): Promise<Pick<TeamSeatState, 'pending' | 'foreignScheduleId'>> {
+  if (!subscription.schedule) {
+    return { pending: null, foreignScheduleId: null };
+  }
+  const schedule = isString(subscription.schedule)
+    ? await stripe.subscriptionSchedules.retrieve(subscription.schedule)
+    : subscription.schedule;
+
+  if (schedule.metadata?.type !== SEAT_DECREASE_SCHEDULE_TYPE) {
+    return { pending: null, foreignScheduleId: schedule.id };
+  }
+  if (schedule.status !== 'active') {
+    return { pending: null, foreignScheduleId: null };
+  }
+
+  const nowSeconds = getUnixTime(new Date());
+  const pendingPhase = schedule.phases.find((phase) => phase.start_date > nowSeconds);
+  if (!pendingPhase) {
+    // The decrease landed when phase two started; release so the subscription is no longer schedule-managed
+    await releaseTeamSeatSchedule(schedule.id).catch((ex) => {
+      logger.warn({ scheduleId: schedule.id, ...getErrorMessageAndStackObj(ex) }, 'Unable to release applied seat decrease schedule');
+    });
+    return { pending: null, foreignScheduleId: null };
+  }
+
+  const pendingQuantity =
+    pendingPhase.items.find((phaseItem) => getPriceId(phaseItem.price) === item.price.id)?.quantity ?? Number(schedule.metadata?.seats);
+  if (!Number.isInteger(pendingQuantity)) {
+    logger.warn({ scheduleId: schedule.id }, 'Seat decrease schedule has no resolvable quantity, ignoring pending decrease');
+    return { pending: null, foreignScheduleId: null };
+  }
+  return {
+    pending: { quantity: pendingQuantity, effectiveAt: fromUnixTime(pendingPhase.start_date), scheduleId: schedule.id },
+    foreignScheduleId: null,
+  };
+}
+
+/**
+ * Amount the customer pays right now for an increase: the proration lines of the invoice Stripe would
+ * create. Falls back to the invoice total when Stripe does not flag any line as a proration.
+ */
+export function sumProrationAmount(invoice: Pick<Stripe.Invoice, 'amount_due' | 'lines'>): number {
+  const prorationLines = invoice.lines.data.filter((line) => line.parent?.subscription_item_details?.proration === true);
+  if (prorationLines.length === 0) {
+    return centsToDollars(invoice.amount_due) ?? 0;
+  }
+  return centsToDollars(prorationLines.reduce((total, line) => total + line.amount, 0)) ?? 0;
+}
+
+/**
+ * Preview a seat change. The recurring total uses `proration_behavior: 'none'` (Stripe forbids a
+ * proration_date with it); the amount due now for an increase comes from a second, prorated preview
+ * anchored at `prorationDate` so the charge on commit matches what the admin saw.
+ */
+export async function previewTeamSeatChange({
+  customerId,
+  subscriptionId,
+  subscriptionItemId,
+  quantity,
+  prorationDate,
+}: {
+  customerId: string;
+  subscriptionId: string;
+  subscriptionItemId: string;
+  quantity: number;
+  prorationDate?: number | null;
+}): Promise<{ nextInvoiceAmount: number; amountDueNow: number }> {
+  const recurringInvoice = await stripe.invoices.createPreview({
+    customer: customerId,
+    subscription: subscriptionId,
+    subscription_details: { items: [{ id: subscriptionItemId, quantity }], proration_behavior: 'none' },
+  });
+
+  let amountDueNow = 0;
+  if (prorationDate) {
+    const prorationInvoice = await stripe.invoices.createPreview({
+      customer: customerId,
+      subscription: subscriptionId,
+      subscription_details: {
+        items: [{ id: subscriptionItemId, quantity }],
+        proration_behavior: 'always_invoice',
+        proration_date: prorationDate,
+      },
+    });
+    amountDueNow = sumProrationAmount(prorationInvoice);
+  }
+
+  return { nextInvoiceAmount: centsToDollars(recurringInvoice.amount_due) ?? 0, amountDueNow };
+}
+
+/**
+ * Apply an increase immediately and invoice the proration. `error_if_incomplete` makes a declined
+ * payment reject the whole update, so the quantity never moves without the money.
+ */
+export async function commitTeamSeatIncrease({
+  subscriptionItemId,
+  quantity,
+  prorationDate,
+}: {
+  subscriptionItemId: string;
+  quantity: number;
+  prorationDate: number;
+}): Promise<Stripe.SubscriptionItem> {
+  return await stripe.subscriptionItems.update(subscriptionItemId, {
+    quantity,
+    proration_behavior: 'always_invoice',
+    proration_date: prorationDate,
+    payment_behavior: 'error_if_incomplete',
+  });
+}
+
+function toPhaseDiscountParam(
+  discount: Stripe.SubscriptionSchedule.Phase.Discount,
+): Stripe.SubscriptionScheduleUpdateParams.Phase.Discount | null {
+  // Reusing the existing discount keeps its redemption state; otherwise re-apply the source it came from
+  const existingDiscountId = getStripeObjectId(discount.discount);
+  if (existingDiscountId) {
+    return { discount: existingDiscountId };
+  }
+  const promotionCodeId = getStripeObjectId(discount.promotion_code);
+  if (promotionCodeId) {
+    return { promotion_code: promotionCodeId };
+  }
+  const couponId = getStripeObjectId(discount.coupon);
+  if (couponId) {
+    return { coupon: couponId };
+  }
+  return null;
+}
+
+/**
+ * Build the two-phase schedule for an end-of-period decrease: the current phase copied so nothing
+ * changes before renewal, then one interval at the lower quantity, after which the schedule releases
+ * the subscription. Discounts are re-sent because an unspecified phase inherits from the customer only.
+ */
+export function buildSeatDecreaseScheduleParams({
+  teamId,
+  schedule,
+  item,
+  quantity,
+}: {
+  teamId: string;
+  schedule: Stripe.SubscriptionSchedule;
+  item: Stripe.SubscriptionItem;
+  quantity: number;
+}): Stripe.SubscriptionScheduleUpdateParams {
+  const [currentPhase] = schedule.phases;
+  if (!currentPhase) {
+    throw new Error(`Subscription schedule ${schedule.id} has no phases`);
+  }
+  const { recurring } = item.price;
+  if (!recurring) {
+    throw new Error(`Subscription item ${item.id} has no recurring interval`);
+  }
+  const discounts = currentPhase.discounts
+    .map(toPhaseDiscountParam)
+    .filter((discount): discount is Stripe.SubscriptionScheduleUpdateParams.Phase.Discount => discount !== null);
+  const discountParams = discounts.length > 0 ? { discounts } : {};
+  return {
+    end_behavior: 'release',
+    metadata: { type: SEAT_DECREASE_SCHEDULE_TYPE, teamId, seats: String(quantity) },
+    phases: [
+      {
+        start_date: currentPhase.start_date,
+        end_date: currentPhase.end_date,
+        items: currentPhase.items.map((phaseItem) => ({ price: getPriceId(phaseItem.price), quantity: phaseItem.quantity })),
+        ...discountParams,
+      },
+      {
+        // Every item carries forward; only the seat item's quantity drops, so a non-seat item on the
+        // subscription is not silently removed when the phase begins
+        items: currentPhase.items.map((phaseItem) => {
+          const priceId = getPriceId(phaseItem.price);
+          return { price: priceId, quantity: priceId === item.price.id ? quantity : phaseItem.quantity };
+        }),
+        // Exactly one billing interval at the lower quantity, then `end_behavior` hands the subscription back
+        duration: { interval: recurring.interval, interval_count: recurring.interval_count },
+        proration_behavior: 'none',
+        ...discountParams,
+      },
+    ],
+  };
+}
+
+/**
+ * Attach a schedule that lowers the seat quantity when the current period ends. Schedules are never
+ * cancelled (cancelling one cancels the subscription); releasing detaches them instead.
+ */
+export async function scheduleTeamSeatDecrease({
+  teamId,
+  subscription,
+  item,
+  quantity,
+}: {
+  teamId: string;
+  subscription: Stripe.Subscription;
+  item: Stripe.SubscriptionItem;
+  quantity: number;
+}): Promise<Stripe.SubscriptionSchedule> {
+  const schedule = await stripe.subscriptionSchedules.create({ from_subscription: subscription.id });
+  try {
+    return await stripe.subscriptionSchedules.update(schedule.id, buildSeatDecreaseScheduleParams({ teamId, schedule, item, quantity }));
+  } catch (ex) {
+    // Without our metadata the schedule reads as foreign on the next sync, which blocks every future
+    // seat change until someone clears it by hand
+    await releaseTeamSeatSchedule(schedule.id).catch((releaseError) => {
+      logger.error(
+        { teamId, scheduleId: schedule.id, ...getErrorMessageAndStackObj(releaseError) },
+        'Unable to release the seat decrease schedule after it failed to configure',
+      );
+    });
+    throw ex;
+  }
+}
+
+/** Detach a seat decrease schedule; an already-released or missing schedule counts as done. */
+export async function releaseTeamSeatSchedule(scheduleId: string): Promise<void> {
+  try {
+    await stripe.subscriptionSchedules.release(scheduleId);
+  } catch (ex) {
+    if (isStripeInvalidRequestError(ex)) {
+      logger.info({ scheduleId, ...getErrorMessageAndStackObj(ex) }, 'Seat decrease schedule was already released');
+      return;
+    }
+    throw ex;
+  }
+}
+
+/** After an immediate increase the newest invoice on the subscription is the proration invoice. */
+export async function fetchLatestInvoiceForSubscription(subscriptionId: string): Promise<TeamSeatChangeResult['invoice']> {
+  const { data } = await stripe.invoices.list({ subscription: subscriptionId, limit: 1 });
+  const [invoice] = data;
+  if (!invoice) {
+    return null;
+  }
+  return {
+    id: invoice.id,
+    status: invoice.status ?? null,
+    amountDue: centsToDollars(invoice.amount_due) ?? 0,
+    hostedInvoiceUrl: invoice.hosted_invoice_url ?? null,
+  };
+}
+
+/**
+ * Stripe errors are duck-typed rather than checked with `instanceof Stripe.errors.*` so the checks
+ * hold across module boundaries and against the partial SDK mock used in tests.
+ */
+interface StripeErrorLike {
+  type?: string;
+  rawType?: string;
+  code?: string;
+  param?: string;
+  message?: string;
+  decline_code?: string;
+}
+
+function asStripeError(ex: unknown): StripeErrorLike | null {
+  return isObject(ex) ? (ex as StripeErrorLike) : null;
+}
+
+export function isStripeCardError(ex: unknown): boolean {
+  const error = asStripeError(ex);
+  return error?.type === 'StripeCardError' || error?.rawType === 'card_error';
+}
+
+export function isStripeInvalidRequestError(ex: unknown): boolean {
+  const error = asStripeError(ex);
+  return error?.type === 'StripeInvalidRequestError' || error?.rawType === 'invalid_request_error';
+}
+
+/** Stripe rejects a proration_date outside the current period, which is what a stale preview looks like. */
+export function isProrationDateError(ex: unknown): boolean {
+  const error = asStripeError(ex);
+  return isStripeInvalidRequestError(ex) && (/proration_date/i.test(error?.param ?? '') || /proration_date/i.test(error?.message ?? ''));
+}
+
+export function getStripeErrorDetails(ex: unknown): { message: string; declineCode: string | null } {
+  const error = asStripeError(ex);
+  return { message: error?.message || getErrorMessage(ex), declineCode: error?.decline_code ?? null };
 }

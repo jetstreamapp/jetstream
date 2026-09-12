@@ -421,6 +421,10 @@ export const ANALYTICS_KEYS = {
   billing_page_accessed: 'billing_page_accessed',
   billing_portal: 'billing_portal',
   billing_session: 'billing_session',
+
+  /** TEAM SEATS */
+  team_seats_modal_open: 'team_seats_modal_open',
+  team_seats_updated: 'team_seats_updated',
 } as const;
 
 export const LOG_LEVELS = ['NONE', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'FINE', 'FINER', 'FINEST'];

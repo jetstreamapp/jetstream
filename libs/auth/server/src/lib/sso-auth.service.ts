@@ -1,7 +1,9 @@
 import { ENV, logger, prisma } from '@jetstream/api-config';
+import { AuditLogAction, AuditLogResource, createTeamAuditLog } from '@jetstream/audit-logs';
 import { AuthenticatedUser, AuthenticatedUserSchema, LoginConfiguration, SsoProviderType, TwoFactorType } from '@jetstream/auth/types';
 import { isPrismaError, PrismaUniqueConstraintError, toTypedPrismaError } from '@jetstream/prisma';
-import { BILLABLE_ROLES, TEAM_BILLING_STATUS_PAST_DUE, TEAM_MEMBER_STATUS_ACTIVE, TeamMemberRole } from '@jetstream/types';
+import { addMemberFromInvitation, assertSeatAvailable, isBillableRole, SeatLimitError, withTeamSeatLock } from '@jetstream/team-seats';
+import { TEAM_MEMBER_ROLE_MEMBER, TEAM_MEMBER_STATUS_ACTIVE, TeamMemberRole } from '@jetstream/types';
 import type { Request } from 'express';
 import { createUserActivity } from './auth-logging.db.service';
 import { AuthenticatedUserSelect, discoverSsoByDomain, getLoginConfiguration } from './auth.db.service';
@@ -97,45 +99,34 @@ function getSsoMfaRequirements(
 }
 
 /**
- * Check that the team has not exceeded its license limit before JIT provisioning a new member.
- *
- * PAST_DUE always blocks provisioning.
- * License count is only checked when the user has no invitation, because an invitation
- * already occupies a slot in the count and converting it to a membership is a no-op for billing.
+ * Converts a seat rejection into the SSO-facing error and records it so team admins can see who was
+ * turned away. Rethrows every other error unchanged.
  */
-async function checkJitLicenseAvailability(teamId: string, hasInvitation: boolean): Promise<void> {
-  const team = await prisma.team.findUnique({
-    where: { id: teamId },
-    select: {
-      billingStatus: true,
-      billingAccount: { select: { licenseCountLimit: true } },
-    },
-  });
-
-  if (!team) {
-    return;
-  }
-
-  if (team.billingStatus === TEAM_BILLING_STATUS_PAST_DUE) {
-    throw new SsoLicenseLimitExceeded(
-      'Your account cannot be provisioned because the team account is past-due. Please contact your administrator.',
-    );
-  }
-
-  if (!hasInvitation && team.billingAccount?.licenseCountLimit != null) {
-    const existingBillableMemberCount = await prisma.teamMember.count({
-      where: { teamId, status: TEAM_MEMBER_STATUS_ACTIVE, role: { in: Array.from(BILLABLE_ROLES) } },
+function rethrowSsoSeatLimit(
+  error: unknown,
+  { teamId, email, userId, role }: { teamId: string; email: string; userId?: string; role: string },
+): never {
+  if (error instanceof SeatLimitError) {
+    logger.warn({ teamId, email, userId, code: error.code }, 'SSO login blocked: no seat available for this user');
+    createTeamAuditLog({
+      userId,
+      teamId,
+      action: AuditLogAction.TEAM_MEMBER_ADD_BLOCKED_NO_SEATS,
+      resource: AuditLogResource.TEAM_MEMBER,
+      resourceId: userId,
+      metadata: {
+        attemptedAction: 'SSO_JIT',
+        code: error.code,
+        kind: error.kind,
+        targetEmail: email,
+        ...(userId ? { targetUserId: userId } : {}),
+        role,
+        seats: error.seats,
+      },
     });
-    const existingBillableInvitationCount = await prisma.teamMemberInvitation.count({
-      where: { teamId, role: { in: Array.from(BILLABLE_ROLES) } },
-    });
-
-    if (existingBillableMemberCount + existingBillableInvitationCount >= team.billingAccount.licenseCountLimit) {
-      throw new SsoLicenseLimitExceeded(
-        'Your account cannot be provisioned because the team has reached its maximum user count. Please contact your administrator.',
-      );
-    }
+    throw new SsoLicenseLimitExceeded(error.message);
   }
+  throw error;
 }
 
 /**
@@ -356,70 +347,88 @@ export async function handleSsoLogin(
       throw new SsoAutoProvisioningDisabled('User not invited. JIT provisioning is disabled for this team.');
     }
 
-    await checkJitLicenseAvailability(teamId, !!invitation);
-
-    // Determine role and features for new user
-    const role = invitation?.role || 'MEMBER';
-    const features = invitation?.features || ['ALL'];
+    // Tracks the role the seat check actually ran against, so a rejection reports what was attempted
+    let attemptedRole: string = invitation?.role || TEAM_MEMBER_ROLE_MEMBER;
 
     try {
-      // Create new user with team membership in single transaction
-      const newUser = await prisma.user
-        .create({
-          data: {
-            email,
-            userId: `${provider}|${email}`,
-            name: [userInfo.firstName, userInfo.lastName].filter(Boolean).join(' ') || email,
-            emailVerified: true,
-            lastLoggedIn: new Date(),
-            preferences: { create: { skipFrontdoorLogin: false } },
-            entitlements: {
-              create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false, salesforceCanvas: false },
-            },
-            identities: {
-              create: {
-                type: 'sso',
-                provider,
-                providerAccountId: subject || email,
-                email,
-                emailVerified: true,
-                username: userInfo.userName,
-                name: [userInfo.firstName, userInfo.lastName].filter(Boolean).join(' ') || email,
-                givenName: userInfo.firstName,
-                familyName: userInfo.lastName,
-                isPrimary: true,
-                ...configScope,
-              },
-            },
-            authFactors: {
-              create: {
-                type: '2fa-email',
-                enabled: ENV.JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE,
-              },
-            },
-            teamMembership: {
-              create: {
-                teamId,
-                role,
-                features,
-                status: TEAM_MEMBER_STATUS_ACTIVE,
-              },
-            },
-          },
-          select: AuthenticatedUserSelect,
-        })
-        .then((user) => AuthenticatedUserSchema.parse(user));
+      // Create the user and their membership under the team row lock so the seat check and the write
+      // are atomic. An invitation converts its reservation (ACCEPT_INVITATION); JIT without one takes a
+      // brand-new seat (ADD).
+      const newUser = await withTeamSeatLock(teamId, async (tx) => {
+        // The invitation was read before the lock, so re-read it here: one revoked or re-roled in the
+        // meantime must not still hand out its role, features, or its seat reservation.
+        const currentInvitation = invitation
+          ? await tx.teamMemberInvitation.findFirst({
+              where: { id: invitation.id, teamId, email, expiresAt: { gte: new Date() } },
+              select: { id: true, role: true, features: true },
+            })
+          : null;
+        if (invitation && !currentInvitation && !loginConfig.ssoJitProvisioningEnabled) {
+          throw new SsoAutoProvisioningDisabled('User not invited. JIT provisioning is disabled for this team.');
+        }
 
-      // Delete invitation if it exists
-      if (invitation) {
-        await prisma.teamMemberInvitation
-          .delete({
-            where: { id: invitation.id },
+        // Determine role and features for new user
+        const role = currentInvitation?.role || TEAM_MEMBER_ROLE_MEMBER;
+        const features = currentInvitation?.features || ['ALL'];
+        attemptedRole = role;
+
+        if (isBillableRole(role)) {
+          await assertSeatAvailable(tx, { teamId, kind: currentInvitation ? 'ACCEPT_INVITATION' : 'ADD' });
+        }
+        const createdUser = await tx.user
+          .create({
+            data: {
+              email,
+              userId: `${provider}|${email}`,
+              name: [userInfo.firstName, userInfo.lastName].filter(Boolean).join(' ') || email,
+              emailVerified: true,
+              lastLoggedIn: new Date(),
+              preferences: { create: { skipFrontdoorLogin: false } },
+              entitlements: {
+                create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false, salesforceCanvas: false },
+              },
+              identities: {
+                create: {
+                  type: 'sso',
+                  provider,
+                  providerAccountId: subject || email,
+                  email,
+                  emailVerified: true,
+                  username: userInfo.userName,
+                  name: [userInfo.firstName, userInfo.lastName].filter(Boolean).join(' ') || email,
+                  givenName: userInfo.firstName,
+                  familyName: userInfo.lastName,
+                  isPrimary: true,
+                  ...configScope,
+                },
+              },
+              authFactors: {
+                create: {
+                  type: '2fa-email',
+                  enabled: ENV.JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE,
+                },
+              },
+              teamMembership: {
+                create: {
+                  teamId,
+                  role,
+                  features,
+                  status: TEAM_MEMBER_STATUS_ACTIVE,
+                },
+              },
+            },
+            select: AuthenticatedUserSelect,
           })
-          .catch(() => {
-            // Ignore if already deleted
-          });
-      }
+          .then((user) => AuthenticatedUserSchema.parse(user));
+
+        // deleteMany rather than delete: a zero-row delete must not abort the transaction if the
+        // invitation was revoked concurrently. The role above came from the re-read row, so a
+        // vanished invitation costs nothing more than the cleanup.
+        if (currentInvitation) {
+          await tx.teamMemberInvitation.deleteMany({ where: { id: currentInvitation.id } });
+        }
+        return createdUser;
+      });
 
       logger.info({ userId: newUser.id, teamId, provider, email }, 'New user created via SSO JIT provisioning');
       createUserActivity({
@@ -451,7 +460,7 @@ export async function handleSsoLogin(
       return newUser;
     } catch (error) {
       if (!isUniqueConstraintError(error)) {
-        throw error;
+        rethrowSsoSeatLimit(error, { teamId, email, role: attemptedRole });
       }
       // A concurrent request created the user first — re-fetch and continue to existing-user flow
       logger.info({ teamId, provider, email }, 'SSO user creation race condition detected, retrying as existing user');
@@ -477,7 +486,7 @@ export async function handleSsoLogin(
   // User exists - check team membership
   if (!user.teamMembership) {
     // IdP-sourced role is intentionally not trusted — JIT users always default to MEMBER
-    const role = invitation?.role || 'MEMBER';
+    const role = invitation?.role || TEAM_MEMBER_ROLE_MEMBER;
     const features = invitation?.features || ['ALL'];
     const allowJit = loginConfig?.ssoJitProvisioningEnabled;
 
@@ -485,30 +494,30 @@ export async function handleSsoLogin(
       throw new SsoAutoProvisioningDisabled('User is not a member of this team and no invitation was found.');
     }
 
-    await checkJitLicenseAvailability(teamId, !!invitation);
-
     try {
-      await prisma.teamMember.create({
-        data: {
-          teamId,
-          userId: user.id,
-          role,
-          features,
-          status: TEAM_MEMBER_STATUS_ACTIVE,
-          createdById: user.id,
-          updatedById: user.id,
-        },
-      });
-
-      // Delete invitation if it exists
-      if (invitation) {
-        await prisma.teamMemberInvitation.delete({ where: { id: invitation.id } }).catch(() => {
-          // Ignore if already deleted
+      await withTeamSeatLock(teamId, async (tx) => {
+        if (invitation) {
+          await addMemberFromInvitation(tx, { teamId, userId: user.id, invitation });
+          return;
+        }
+        if (isBillableRole(role)) {
+          await assertSeatAvailable(tx, { teamId, kind: 'ADD' });
+        }
+        await tx.teamMember.create({
+          data: {
+            teamId,
+            userId: user.id,
+            role,
+            features,
+            status: TEAM_MEMBER_STATUS_ACTIVE,
+            createdById: user.id,
+            updatedById: user.id,
+          },
         });
-      }
+      });
     } catch (error) {
       if (!isUniqueConstraintError(error)) {
-        throw error;
+        rethrowSsoSeatLimit(error, { teamId, email, userId: user.id, role });
       }
       // A concurrent request already added this user to the team — continue
       logger.info({ userId: user.id, teamId, provider, email }, 'SSO team member creation race condition detected, continuing');

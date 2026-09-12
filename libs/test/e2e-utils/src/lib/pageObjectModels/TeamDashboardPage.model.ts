@@ -2,6 +2,30 @@ import { LoginConfigurationUI, UserProfileUiWithIdentities } from '@jetstream/au
 import { APIRequestContext, expect, Locator, Page } from '@playwright/test';
 import { ApiRequestUtils } from '../ApiRequestUtils';
 
+/** Role labels as rendered in the role picklists */
+export type TeamMemberRoleLabel = 'Admin' | 'Billing' | 'Member';
+
+export interface SeatSummaryExpectation {
+  purchased: number;
+  used: number;
+  /** Negative when the team is over-allocated */
+  available: number;
+}
+
+/**
+ * The members table footer copy for a seat state. This is the locked contract shared with the client,
+ * so it is the primary assertion for the numbers shown on the dashboard.
+ */
+export function getSeatFooterText({ purchased, used, available }: SeatSummaryExpectation): string {
+  if (available < 0) {
+    return `Using ${used} of ${purchased} seats (${Math.abs(available)} over).`;
+  }
+  if (available === 0) {
+    return `All ${purchased} seats are in use.`;
+  }
+  return `${available} of ${purchased} seats available.`;
+}
+
 export class TeamDashboardPage {
   readonly apiRequestUtils: ApiRequestUtils;
   readonly page: Page;
@@ -28,7 +52,17 @@ export class TeamDashboardPage {
   readonly userSessionModal: Locator;
   readonly teamMemberInviteModal: Locator;
   readonly teamMemberUpdateModal: Locator;
+  readonly teamMemberStatusUpdateModal: Locator;
   readonly teamMemberAuthActivityModal: Locator;
+
+  readonly teamSeatsCard: Locator;
+  readonly manageSeatsButton: Locator;
+  readonly manageSeatsModal: Locator;
+  readonly seatCountInput: Locator;
+  readonly seatPreview: Locator;
+  readonly seatsBanner: Locator;
+  readonly seatsPendingNotice: Locator;
+  readonly seatsUnavailableNotice: Locator;
 
   loginConfigurationOverride: LoginConfigurationUI;
   profileOverride: UserProfileUiWithIdentities;
@@ -58,7 +92,17 @@ export class TeamDashboardPage {
     this.userSessionModal = page.getByTestId('user-session-modal');
     this.teamMemberInviteModal = page.getByTestId('team-member-invite-modal');
     this.teamMemberUpdateModal = page.getByTestId('team-member-update-modal');
+    this.teamMemberStatusUpdateModal = page.getByTestId('team-member-status-update-modal');
     this.teamMemberAuthActivityModal = page.getByTestId('team-member-auth-activity-modal');
+
+    this.teamSeatsCard = page.getByTestId('team-seats-card');
+    this.manageSeatsButton = page.getByTestId('team-seats-manage-button');
+    this.manageSeatsModal = page.getByTestId('team-seats-manage-modal');
+    this.seatCountInput = page.getByTestId('team-seats-count');
+    this.seatPreview = page.getByTestId('team-seats-preview');
+    this.seatsBanner = page.getByTestId('team-seats-banner');
+    this.seatsPendingNotice = page.getByTestId('team-seats-pending');
+    this.seatsUnavailableNotice = page.getByTestId('seats-unavailable-notice');
   }
 
   async goToTeamDashboardPage() {
@@ -72,25 +116,115 @@ export class TeamDashboardPage {
     // TODO:
   }
 
-  async updateUserRole() {
-    // TODO:
+  /**
+   * Open the row action menu for a member. The menu is portaled, so it is not a descendant of the row —
+   * the returned locator is the open menu, tied back to the row through the trigger's expanded state.
+   */
+  async openMemberActions(email: string): Promise<Locator> {
+    const row = this.teamMemberTable.getByTestId(`team-member-row-${email}`);
+    const rowActions = row.getByTestId('user-row-actions');
+    await rowActions.click();
+    await expect(rowActions).toHaveAttribute('aria-expanded', 'true');
+    return this.page.getByRole('menu', { name: 'action' });
   }
 
-  async deactivateUser() {
-    // TODO:
+  async openDeactivateModal(email: string) {
+    const menu = await this.openMemberActions(email);
+    await menu.getByRole('menuitem', { name: 'Deactivate' }).click();
+    await expect(this.teamMemberStatusUpdateModal.getByRole('heading', { name: 'Update Status' })).toBeVisible();
   }
 
-  async inviteTeamMember(email: string, role?: string) {
+  async deactivateUser(email: string) {
+    await this.openDeactivateModal(email);
+    await this.teamMemberStatusUpdateModal.getByRole('button', { name: 'Save' }).click();
+    await expect(this.page.getByRole('heading', { name: 'Successfully deactivated' })).toBeVisible();
+    await expect(this.teamMemberStatusUpdateModal).toBeHidden();
+  }
+
+  /** Opens the reactivate modal without saving so the caller can assert on the seat state it shows */
+  async openReactivateModal(email: string, role?: TeamMemberRoleLabel) {
+    const menu = await this.openMemberActions(email);
+    await menu.getByRole('menuitem', { name: 'Reactivate User' }).click();
+    await expect(this.teamMemberStatusUpdateModal.getByRole('heading', { name: 'Update Status' })).toBeVisible();
+    if (role) {
+      await this.selectRole(this.teamMemberStatusUpdateModal, role);
+    }
+  }
+
+  async reactivateUser(email: string, role?: TeamMemberRoleLabel) {
+    await this.openReactivateModal(email, role);
+    await this.teamMemberStatusUpdateModal.getByRole('button', { name: 'Save' }).click();
+    await expect(this.page.getByRole('heading', { name: 'Successfully reactivated' })).toBeVisible();
+    await expect(this.teamMemberStatusUpdateModal).toBeHidden();
+  }
+
+  async openUpdateRoleModal(email: string) {
+    const menu = await this.openMemberActions(email);
+    await menu.getByRole('menuitem', { name: 'Edit' }).click();
+    await expect(this.teamMemberUpdateModal.getByRole('heading', { name: 'Update Role' })).toBeVisible();
+  }
+
+  async updateUserRole(email: string, role: TeamMemberRoleLabel) {
+    await this.openUpdateRoleModal(email);
+    await this.selectRole(this.teamMemberUpdateModal, role);
+    await this.teamMemberUpdateModal.getByRole('button', { name: 'Save' }).click();
+    await expect(this.teamMemberUpdateModal).toBeHidden();
+  }
+
+  async openInviteModal() {
     await this.addTeamMemberButton.click();
     await expect(this.teamMemberInviteModal.getByRole('heading', { name: 'Invite Team Member' })).toBeVisible();
+  }
+
+  async selectInviteRole(role: TeamMemberRoleLabel) {
+    await this.selectRole(this.teamMemberInviteModal, role);
+  }
+
+  async inviteTeamMember(email: string, role?: TeamMemberRoleLabel) {
+    await this.openInviteModal();
 
     if (role) {
-      await this.teamMemberInviteModal.getByPlaceholder('Select an Option').click();
-      await this.teamMemberInviteModal.getByRole('option', { name: role }).click();
+      await this.selectInviteRole(role);
     }
 
     await this.teamMemberInviteModal.getByLabel('Email Address').fill(email);
     await this.teamMemberInviteModal.getByRole('button', { name: 'Send Invitation' }).click();
+  }
+
+  /**
+   * Assert the seat numbers the dashboard shows: the Seats card stats and the members table footer copy
+   * (the locked contract shared with the client).
+   */
+  async expectSeatSummary(expectation: SeatSummaryExpectation) {
+    await expect(this.teamSeatsCard).toBeVisible();
+    await expect(this.teamSeatsCard.getByTestId('team-seats-purchased')).toHaveText(String(expectation.purchased));
+    await expect(this.teamSeatsCard.getByTestId('team-seats-used')).toHaveText(String(expectation.used));
+    await expect(this.teamSeatsCard.getByTestId('team-seats-available')).toHaveText(String(expectation.available));
+    await expect(this.teamMemberTableContainer).toContainText(getSeatFooterText(expectation));
+  }
+
+  async openManageSeats() {
+    await this.manageSeatsButton.click();
+    await expect(this.manageSeatsModal).toBeVisible();
+  }
+
+  /** The stepper clamps on blur, so the input is blurred after filling to mirror a real edit */
+  async setSeatCount(count: number) {
+    await this.seatCountInput.fill(String(count));
+    await this.seatCountInput.blur();
+    await expect(this.seatCountInput).toHaveValue(String(count));
+  }
+
+  /** Moves the Manage Seats modal from the edit step to the preview step */
+  async previewSeatChange() {
+    await this.manageSeatsModal.getByTestId('team-seats-preview-button').click();
+    await expect(this.seatPreview).toBeVisible();
+  }
+
+  /** Confirms the previewed change ("Confirm and pay $X" for increases, "Schedule decrease" for decreases) */
+  async confirmSeatChange() {
+    await this.manageSeatsModal.getByTestId('team-seats-confirm-button').click();
+    await expect(this.manageSeatsModal).toBeHidden();
   }
 
   async viewAuthActivity() {
@@ -111,5 +245,10 @@ export class TeamDashboardPage {
     await row.getByRole('menuitem', { name: 'Revoke Session' }).click();
     await this.userSessionModal.getByRole('button', { name: 'Close' }).click();
     await getByPageBannerPromise;
+  }
+
+  private async selectRole(modal: Locator, role: TeamMemberRoleLabel) {
+    await modal.getByPlaceholder('Select an Option').click();
+    await modal.getByRole('option', { name: role }).click();
   }
 }

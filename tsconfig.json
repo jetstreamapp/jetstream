@@ -161,6 +161,9 @@
       "path": "./libs/audit-logs"
     },
     {
+      "path": "./libs/team-seats"
+    },
+    {
       "path": "./libs/auth/types"
     },
     {

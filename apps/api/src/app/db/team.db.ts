@@ -11,13 +11,20 @@ import {
 import { Prisma } from '@jetstream/prisma';
 import { computeNextCertNotificationDate } from '@jetstream/shared/utils';
 import {
-  BILLABLE_ROLES,
+  addMemberFromInvitation,
+  assertSeatAvailable,
+  isBillableRole,
+  isSeatConsumingMember,
+  isSeatReservingInvitation,
+  summarizeSeatsFromTeam,
+  withTeamSeatLock,
+} from '@jetstream/team-seats';
+import {
   DomainVerificationSchema,
   Maybe,
   TEAM_MEMBER_ROLE_ADMIN,
   TEAM_MEMBER_ROLE_BILLING,
   TEAM_MEMBER_STATUS_ACTIVE,
-  TeamBillingStatusSchema,
   TeamEntitlementSchema,
   TeamInvitationRequest,
   TeamInvitationUpdateRequest,
@@ -96,59 +103,73 @@ const SELECT_TEAM_MEMBER = {
   },
 } satisfies Prisma.TeamMemberSelect;
 
-const SELECT_WITH_RELATED = {
-  id: true,
-  name: true,
-  loginConfigId: true,
-  status: true,
-  billingStatus: true,
-  sharedOrgs: {
-    select: {
-      uniqueId: true,
-      displayName: true,
-      instanceUrl: true,
-      organizationId: true,
-      userId: true,
-      username: true,
-      jetstreamUserId2: true,
+/**
+ * Full team graph behind the user-facing payload. A function rather than a const because the
+ * invitation list is relative to now: invitations that expired within the last
+ * TEAM_INVITE_EXPIRES_DAYS days are still listed (the UI shows them as expired so an admin can
+ * resend them), matching the window getTeamInvitations uses.
+ */
+function selectTeamWithRelated() {
+  return {
+    id: true,
+    name: true,
+    loginConfigId: true,
+    status: true,
+    billingStatus: true,
+    sharedOrgs: {
+      select: {
+        uniqueId: true,
+        displayName: true,
+        instanceUrl: true,
+        organizationId: true,
+        userId: true,
+        username: true,
+        jetstreamUserId2: true,
+      },
     },
-  },
-  billingAccount: {
-    select: {
-      customerId: true,
-      manualBilling: true,
-      licenseCountLimit: true,
+    billingAccount: {
+      select: {
+        customerId: true,
+        manualBilling: true,
+        licenseCountLimit: true,
+        includedSeats: true,
+        pendingSeatQuantity: true,
+        pendingSeatEffectiveAt: true,
+      },
     },
-  },
-  members: {
-    select: SELECT_TEAM_MEMBER,
-    orderBy: { user: { name: 'asc' } },
-  },
-  invitations: {
-    select: INVITE_SELECT,
-  },
-  loginConfig: {
-    select: {
-      allowedMfaMethods: true,
-      allowedProviders: true,
-      allowIdentityLinking: true,
-      autoAddToTeam: true,
-      domains: true,
-      requireMfa: true,
-      ssoProvider: true,
-      ssoEnabled: true,
-      ssoRequireMfa: true,
-      ssoJitProvisioningEnabled: true,
+    members: {
+      select: SELECT_TEAM_MEMBER,
+      orderBy: { user: { name: 'asc' } },
     },
-  },
-  subscriptions: {
-    select: {
-      status: true,
+    invitations: {
+      select: INVITE_SELECT,
+      where: { expiresAt: { gte: addDays(new Date(), -TEAM_INVITE_EXPIRES_DAYS) } },
     },
-  },
-  createdAt: true,
-  updatedAt: true,
-} satisfies Prisma.TeamSelect;
+    loginConfig: {
+      select: {
+        allowedMfaMethods: true,
+        allowedProviders: true,
+        allowIdentityLinking: true,
+        autoAddToTeam: true,
+        domains: true,
+        requireMfa: true,
+        ssoProvider: true,
+        ssoEnabled: true,
+        ssoRequireMfa: true,
+        ssoJitProvisioningEnabled: true,
+      },
+    },
+    subscriptions: {
+      select: {
+        status: true,
+      },
+    },
+    createdAt: true,
+    updatedAt: true,
+  } satisfies Prisma.TeamSelect;
+}
+
+type TeamWithRelated = Prisma.TeamGetPayload<{ select: ReturnType<typeof selectTeamWithRelated> }>;
 
 function sortTeamMembers(members: TeamMember[], runningUserId: string) {
   members.sort((a, b) => {
@@ -158,58 +179,36 @@ function sortTeamMembers(members: TeamMember[], runningUserId: string) {
   });
 }
 
+/**
+ * Builds the API payload from the loaded team graph. `seats` is derived here so every surface shares
+ * one seat definition instead of recomputing it from members and invitations.
+ */
+function toTeamUserFacing(team: TeamWithRelated, runningUserId?: string): TeamUserFacing {
+  const userFacingTeam = TeamUserFacingSchema.parse({ ...team, seats: summarizeSeatsFromTeam(team) });
+  if (runningUserId) {
+    sortTeamMembers(userFacingTeam.members, runningUserId);
+  }
+  return userFacingTeam;
+}
+
 export const findById = async ({ teamId, runningUserId }: { teamId: string; runningUserId?: string }) => {
   return await prisma.team
     .findFirstOrThrow({
-      select: SELECT_WITH_RELATED,
+      select: selectTeamWithRelated(),
       where: { id: teamId },
     })
-    .then((team) => team && TeamUserFacingSchema.parse(team))
-    .then((team) => {
-      if (runningUserId) {
-        sortTeamMembers(team.members, runningUserId);
-      }
-      return team;
-    });
-};
-
-export const findByIdWithBillingInfo_UNSAFE = async ({ teamId }: { teamId: string }) => {
-  return await prisma.team.findFirstOrThrow({
-    select: {
-      id: true,
-      billingStatus: true,
-      billingAccount: {
-        select: {
-          manualBilling: true,
-          licenseCountLimit: true,
-          customerId: true,
-        },
-      },
-      members: {
-        select: {
-          role: true,
-          status: true,
-          userId: true,
-        },
-      },
-    },
-    where: { id: teamId },
-  });
+    .then((team) => toTeamUserFacing(team, runningUserId));
 };
 
 export const findByUserId = async ({ userId }: { userId: string }) => {
   return await prisma.team
     .findFirstOrThrow({
-      select: SELECT_WITH_RELATED,
+      select: selectTeamWithRelated(),
       where: {
         members: { some: { userId, role: { in: [TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING] } } },
       },
     })
-    .then((team) => team && TeamUserFacingSchema.parse(team))
-    .then((team) => {
-      sortTeamMembers(team.members, userId);
-      return team;
-    });
+    .then((team) => toTeamUserFacing(team, userId));
 };
 
 /**
@@ -221,6 +220,14 @@ export const doesUserHaveSpecifiedRoles = async ({ userId, roles }: { userId: st
     where: { userId, role: { in: roles } },
   });
   return count > 0;
+};
+
+/** Current role and status of a member, used to describe what a blocked membership change was attempting. */
+export const findMemberRoleAndStatus = async ({ teamId, userId }: { teamId: string; userId: string }) => {
+  return prisma.teamMember.findUnique({
+    select: { role: true, status: true },
+    where: { teamId_userId: { teamId, userId } },
+  });
 };
 
 /**
@@ -373,7 +380,7 @@ export const createTeam = async ({
 
   const team = await prisma.team
     .create({
-      select: SELECT_WITH_RELATED,
+      select: selectTeamWithRelated(),
       data: {
         name,
         status,
@@ -402,7 +409,7 @@ export const createTeam = async ({
         },
       },
     })
-    .then((team) => team && TeamUserFacingSchema.parse(team));
+    .then((team) => toTeamUserFacing(team));
 
   return team;
 };
@@ -496,15 +503,11 @@ export const updateTeam = async ({
 }) => {
   return await prisma.team
     .update({
-      select: SELECT_WITH_RELATED,
+      select: selectTeamWithRelated(),
       where: { id: teamId },
       data: { name: payload.name, updatedById: runningUserId },
     })
-    .then((team) => TeamUserFacingSchema.parse(team))
-    .then((team) => {
-      sortTeamMembers(team.members, runningUserId);
-      return team;
-    });
+    .then((team) => toTeamUserFacing(team, runningUserId));
 };
 
 export const updateLoginConfiguration = async ({
@@ -675,8 +678,8 @@ export async function revokeSessionThatViolateLoginConfiguration({
  * The target's CURRENT state is read inside this transaction (not from a snapshot taken before the
  * transaction opened) so the decision is consistent with the OTHER-admins count — closing a TOCTOU
  * where a concurrent status change between a pre-read and the transaction could be missed. Must run
- * under Serializable isolation so two concurrent "deactivate a different admin" requests cannot each
- * observe one remaining admin and both proceed.
+ * while holding the team row lock (`withTeamSeatLock`) so two concurrent "deactivate a different
+ * admin" requests are serialized instead of each observing one remaining admin and both proceeding.
  */
 async function assertTeamRetainsActiveAdmin(
   tx: Prisma.TransactionClient,
@@ -722,51 +725,47 @@ export async function updateTeamMemberRole({
 }): Promise<{
   teamMember: TeamMember;
   previousMember: { role: string; features: string[]; email: string };
-  /**
-   * Indicates if billing needs to be updated due to this action
-   */
-  isBillableAction: boolean;
 }> {
   const teamMember = await prisma.teamMember.findUniqueOrThrow({
     select: { role: true, status: true, features: true, user: { select: { email: true } } },
     where: { teamId_userId: { teamId, userId } },
   });
 
-  // If this consumes a new user license, ensure this is allowed
-  if (teamMember.role !== data.role && teamMember.status === 'ACTIVE' && BILLABLE_ROLES.has(data.role || teamMember.role)) {
-    const { canAdd, reason } = await canAddBillableMember({ teamIdOrTeam: teamId });
-    if (!canAdd) {
-      throw new UserFacingError(reason);
-    }
-  }
-
+  // The team row lock serializes every membership write for the team, so the seat count and the
+  // last-admin guard both observe a consistent state. The member is re-read under the lock: a status
+  // change committed between the read above and the lock would otherwise let a seat be taken unchecked.
   // This function only changes role; status is left unchanged (nextStatus omitted), so the guard
-  // derives the effective status from the transactional read of the member's current state.
-  const updatedTeamMember = await prisma.$transaction(
-    async (tx) => {
-      await assertTeamRetainsActiveAdmin(tx, { teamId, userId, nextRole: data.role });
-      return tx.teamMember.update({
-        select: SELECT_TEAM_MEMBER,
-        where: { teamId_userId: { teamId, userId } },
-        data: { ...TeamMemberUpdateRequestSchema.parse(data), updatedById: runningUserId },
-      });
-    },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-  );
+  // derives the effective status from its own read.
+  const updatedTeamMember = await withTeamSeatLock(teamId, async (tx) => {
+    const current = await tx.teamMember.findUniqueOrThrow({
+      select: { role: true, status: true },
+      where: { teamId_userId: { teamId, userId } },
+    });
+    // Only a member who is not already using a seat needs one (e.g. BILLING → MEMBER). MEMBER → ADMIN
+    // and features-only updates are seat-neutral and never hit the check.
+    const nextRole = data.role ?? current.role;
+    const needsSeat = isSeatConsumingMember({ role: nextRole, status: current.status }) && !isSeatConsumingMember(current);
+    if (needsSeat) {
+      await assertSeatAvailable(tx, { teamId, kind: 'ADD', excludeUserId: userId });
+    }
+    await assertTeamRetainsActiveAdmin(tx, { teamId, userId, nextRole: data.role });
+    return tx.teamMember.update({
+      select: SELECT_TEAM_MEMBER,
+      where: { teamId_userId: { teamId, userId } },
+      data: { ...TeamMemberUpdateRequestSchema.parse(data), updatedById: runningUserId },
+    });
+  });
 
   return {
     teamMember: TeamMemberSchema.parse(updatedTeamMember),
     previousMember: { role: teamMember.role, features: teamMember.features as string[], email: teamMember.user.email },
-    // Trigger a Stripe sync whenever billable membership crosses in either direction
-    // (e.g. BILLING→ADMIN/MEMBER would otherwise be skipped by only looking at the previous role).
-    isBillableAction: BILLABLE_ROLES.has(teamMember.role) || (!!data.role && BILLABLE_ROLES.has(data.role)),
   };
 }
 
 /**
  * This function requires a status update and optionally a role update
  * These are combined because a user may want to re-activate a user and change their role at the same time (e.g. set to billing role)
- * This helps avoid unwanted billable changes
+ * This helps avoid taking a seat the admin did not intend to use
  */
 export async function updateTeamMemberStatusAndRole({
   teamId,
@@ -783,10 +782,6 @@ export async function updateTeamMemberStatusAndRole({
 }): Promise<{
   teamMember: TeamMember;
   previousMember: { role: string; status: string; email: string };
-  /**
-   * Indicates if billing needs to be updated due to this action
-   */
-  isBillableAction: boolean;
 }> {
   const teamMember = await prisma.teamMember.findUniqueOrThrow({
     select: { role: true, status: true, user: { select: { email: true } } },
@@ -805,41 +800,35 @@ export async function updateTeamMemberStatusAndRole({
         })
         .then((member) => TeamMemberSchema.parse(member)),
       previousMember,
-      isBillableAction: false,
     };
   }
 
-  // ensure role is set if not provided
-  role = role || (teamMember.role as TeamMemberRole);
-
-  // If this consumes a new user license, ensure this is allowed
-  if (status === 'ACTIVE' && BILLABLE_ROLES.has(role)) {
-    const { canAdd, reason } = await canAddBillableMember({ teamIdOrTeam: teamId });
-    if (!canAdd) {
-      throw new UserFacingError(reason);
+  const updatedTeamMember = await withTeamSeatLock(teamId, async (tx) => {
+    // Re-read under the lock so the seat decision reflects any change that landed since the read above
+    const current = await tx.teamMember.findUniqueOrThrow({
+      select: { role: true, status: true },
+      where: { teamId_userId: { teamId, userId } },
+    });
+    const nextRole = role || (current.role as TeamMemberRole);
+    // Reactivating into a billable role takes a seat; deactivation and moves into BILLING never do, and
+    // a member who already holds a seat keeps it (e.g. ACTIVE MEMBER → ACTIVE ADMIN).
+    const needsSeat = isSeatConsumingMember({ role: nextRole, status }) && !isSeatConsumingMember(current);
+    if (needsSeat) {
+      await assertSeatAvailable(tx, { teamId, kind: 'ADD', excludeUserId: userId });
     }
-  }
-
-  // Both role and status are set explicitly here, so the guard's effective end-state is fully
-  // determined by the request (no dependency on the member's pre-transaction state).
-  const updatedTeamMember = await prisma.$transaction(
-    async (tx) => {
-      await assertTeamRetainsActiveAdmin(tx, { teamId, userId, nextRole: role, nextStatus: status });
-      return tx.teamMember.update({
-        select: SELECT_TEAM_MEMBER,
-        where: { teamId_userId: { teamId, userId } },
-        data: { status, role, updatedById: runningUserId },
-      });
-    },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-  );
+    // Both role and status are set explicitly here, so the guard's effective end-state is fully
+    // determined by the request (no dependency on the member's pre-transaction state).
+    await assertTeamRetainsActiveAdmin(tx, { teamId, userId, nextRole, nextStatus: status });
+    return tx.teamMember.update({
+      select: SELECT_TEAM_MEMBER,
+      where: { teamId_userId: { teamId, userId } },
+      data: { status, role: nextRole, updatedById: runningUserId },
+    });
+  });
 
   return {
     teamMember: TeamMemberSchema.parse(updatedTeamMember),
     previousMember,
-    // Trigger a Stripe sync whenever billable membership crosses in either direction
-    // (e.g. MEMBER→BILLING would otherwise be skipped by only looking at the new role).
-    isBillableAction: BILLABLE_ROLES.has(role) || BILLABLE_ROLES.has(teamMember.role),
   };
 }
 
@@ -873,85 +862,53 @@ export async function createTeamInvitation({
   runningUserId: string;
   request: TeamInvitationRequest;
 }) {
-  // User is already part of a different team (for now we don't support this use-case)
-  const existingTeamMemberCount = await prisma.teamMember.count({
-    where: { user: { email: request.email } },
-  });
+  const { email, role } = request;
 
-  if (existingTeamMemberCount > 0) {
-    throw new UserFacingError(`User with email ${request.email} is already a member of another team.`);
-  }
+  // Everything runs under the team row lock so two concurrent invites cannot both take the last seat.
+  return withTeamSeatLock(teamId, async (tx) => {
+    // User is already part of a different team (for now we don't support this use-case)
+    const existingTeamMemberCount = await tx.teamMember.count({
+      where: { user: { email } },
+    });
 
-  const existingInvitationCount = await prisma.teamMemberInvitation.count({
-    where: { teamId, email: request.email, expiresAt: { gte: endOfDay(new Date()) } },
-  });
-
-  if (existingInvitationCount > 0) {
-    throw new UserFacingError(
-      `An invitation for ${request.email} already exists for this team. Revoke the existing invitation before creating a new one.`,
-    );
-  }
-
-  if (BILLABLE_ROLES.has(request.role)) {
-    const { canAdd, reason } = await canAddBillableMember({ teamIdOrTeam: teamId });
-    if (!canAdd) {
-      throw new UserFacingError(reason);
+    if (existingTeamMemberCount > 0) {
+      throw new UserFacingError(`User with email ${email} is already a member of another team.`);
     }
-  }
 
-  const [_, invitation] = await prisma.$transaction([
-    prisma.teamMemberInvitation.deleteMany({
-      where: { teamId, email: request.email },
-    }),
-    prisma.teamMemberInvitation.create({
+    const existingInvitationCount = await tx.teamMemberInvitation.count({
+      where: { teamId, email, expiresAt: { gte: endOfDay(new Date()) } },
+    });
+
+    if (existingInvitationCount > 0) {
+      throw new UserFacingError(
+        `An invitation for ${email} already exists for this team. Revoke the existing invitation before creating a new one.`,
+      );
+    }
+
+    // Clear stale invitations for this email before counting so the one being replaced does not hold
+    // a seat against its own replacement; the delete rolls back with the transaction when no seat is free.
+    await tx.teamMemberInvitation.deleteMany({
+      where: { teamId, email },
+    });
+
+    if (isBillableRole(role)) {
+      await assertSeatAvailable(tx, { teamId, kind: 'ADD' });
+    }
+
+    return tx.teamMemberInvitation.create({
       select: INVITE_SELECT,
       data: {
         teamId,
-        email: request.email,
+        email,
         createdById: runningUserId,
         updatedById: runningUserId,
-        role: request.role,
+        role,
         expiresAt: addDays(new Date(), TEAM_INVITE_EXPIRES_DAYS),
         features: request.features || ['ALL'],
         lastSentAt: new Date(),
       },
-    }),
-  ]);
-
-  return invitation;
-}
-
-export async function canAddBillableMember({
-  teamIdOrTeam,
-}: {
-  teamIdOrTeam: string | Awaited<ReturnType<typeof findByIdWithBillingInfo_UNSAFE>>;
-}): Promise<{ canAdd: true; reason?: string } | { canAdd: false; reason: string }> {
-  const team = isString(teamIdOrTeam) ? await findByIdWithBillingInfo_UNSAFE({ teamId: teamIdOrTeam }) : teamIdOrTeam;
-  const teamId = team.id;
-
-  if (team.billingStatus === TeamBillingStatusSchema.enum.PAST_DUE) {
-    return {
-      canAdd: false,
-      reason: `Your account is past-due. New users cannot be added, contact support for assistance.`,
-    };
-  }
-
-  if (team.billingAccount && team.billingAccount.licenseCountLimit !== null) {
-    const licenseCountLimit = team.billingAccount.licenseCountLimit;
-    const existingBillableMemberCount = await prisma.teamMember.count({
-      where: { teamId, status: TEAM_MEMBER_STATUS_ACTIVE, role: { in: Array.from(BILLABLE_ROLES) } },
     });
-    const existingBillableInvitationCount = await prisma.teamMemberInvitation.count({
-      where: { teamId, role: { in: Array.from(BILLABLE_ROLES) } },
-    });
-    if (existingBillableMemberCount + existingBillableInvitationCount >= licenseCountLimit) {
-      return {
-        canAdd: false,
-        reason: `You don't have any available licenses to assign. Please purchase more licenses or contact support for assistance.`,
-      };
-    }
-  }
-  return { canAdd: true };
+  });
 }
 
 export async function updateTeamInvitation({
@@ -972,36 +929,50 @@ export async function updateTeamInvitation({
   request: TeamInvitationUpdateRequest;
   runningUserId: string;
 }) {
-  // Atomic compare-and-set on role: if another admin changed the role since the controller read,
-  // count will be 0 and we abort rather than applying a write authorized against a stale value.
-  const result = await prisma.teamMemberInvitation.updateMany({
-    where: { id, teamId, role: expectedRole },
-    data: {
-      // Only write role/features if the caller provided an explicit value; otherwise leave them untouched.
-      ...(request.role ? { role: request.role } : {}),
-      ...(request.features ? { features: request.features } : {}),
-      expiresAt: addDays(new Date(), TEAM_INVITE_EXPIRES_DAYS),
-      lastSentAt: new Date(),
-      updatedById: runningUserId,
-    },
-  });
-
-  if (result.count === 0) {
-    const stillExists = await prisma.teamMemberInvitation.findFirst({ select: { id: true }, where: { teamId, id } });
-    if (!stillExists) {
+  return withTeamSeatLock(teamId, async (tx) => {
+    const existingInvitation = await tx.teamMemberInvitation.findFirst({ select: { role: true, expiresAt: true }, where: { id, teamId } });
+    if (!existingInvitation) {
       throw new NotFoundError(`No existing invitation found with id ${id}.`);
     }
-    throw new NotAllowedError('This invitation was modified by another admin. Refresh and try again.');
-  }
 
-  // Read-back after the compare-and-set. Using findFirst (not findFirstOrThrow) so a concurrent
-  // cancelInvitation that deletes the row between our successful UPDATE and this SELECT does not
-  // surface as a 500 — it becomes the same "modified concurrently" 403 as the role-mismatch path.
-  const updated = await prisma.teamMemberInvitation.findFirst({ select: INVITE_SELECT, where: { id } });
-  if (!updated) {
-    throw new NotAllowedError('This invitation was modified by another admin. Refresh and try again.');
-  }
-  return updated;
+    // Resending an expired invitation, or moving one into a billable role, reserves a seat again; an
+    // unexpired billable invitation already holds its seat and is simply extended.
+    const nextRole = request.role ?? existingInvitation.role;
+    if (isBillableRole(nextRole) && !isSeatReservingInvitation(existingInvitation)) {
+      await assertSeatAvailable(tx, { teamId, kind: 'ADD' });
+    }
+
+    // Atomic compare-and-set on role: if another admin changed the role since the controller read,
+    // count will be 0 and we abort rather than applying a write authorized against a stale value.
+    const result = await tx.teamMemberInvitation.updateMany({
+      where: { id, teamId, role: expectedRole },
+      data: {
+        // Only write role/features if the caller provided an explicit value; otherwise leave them untouched.
+        ...(request.role ? { role: request.role } : {}),
+        ...(request.features ? { features: request.features } : {}),
+        expiresAt: addDays(new Date(), TEAM_INVITE_EXPIRES_DAYS),
+        lastSentAt: new Date(),
+        updatedById: runningUserId,
+      },
+    });
+
+    if (result.count === 0) {
+      const stillExists = await tx.teamMemberInvitation.findFirst({ select: { id: true }, where: { teamId, id } });
+      if (!stillExists) {
+        throw new NotFoundError(`No existing invitation found with id ${id}.`);
+      }
+      throw new NotAllowedError('This invitation was modified by another admin. Refresh and try again.');
+    }
+
+    // Read-back after the compare-and-set. Using findFirst (not findFirstOrThrow) so a concurrent
+    // cancelInvitation that deletes the row between our successful UPDATE and this SELECT does not
+    // surface as a 500 — it becomes the same "modified concurrently" 403 as the role-mismatch path.
+    const updated = await tx.teamMemberInvitation.findFirst({ select: INVITE_SELECT, where: { id } });
+    if (!updated) {
+      throw new NotAllowedError('This invitation was modified by another admin. Refresh and try again.');
+    }
+    return updated;
+  });
 }
 
 export async function findTeamInvitationById({ id, teamId }: { id: string; teamId: string }) {
@@ -1092,36 +1063,20 @@ export async function verifyTeamInvitation({
 }
 
 /**
- * NOTE: there is also a path in auth.db.service - ideally we combine to remove code duplication
+ * Accepting from the dashboard. Login-time acceptance and SSO provisioning live in
+ * `@jetstream/auth/server`; every path delegates to `addMemberFromInvitation` so the seat check
+ * cannot be skipped by one of them.
  */
 export async function acceptTeamInvitation({ user, teamId, token }: { user: UserProfileSession; teamId: string; token: string }): Promise<{
-  isBillableAction: boolean;
   email: string;
   role: string;
   features: string[];
 }> {
   const existingInvitation = await verifyTeamInvitation({ user, teamId, token });
 
-  await prisma.$transaction([
-    prisma.teamMemberInvitation.delete({
-      where: { id: existingInvitation.id },
-    }),
-    prisma.teamMember.create({
-      select: { role: true, status: true, teamId: true, userId: true },
-      data: {
-        teamId,
-        userId: user.id,
-        role: existingInvitation.role,
-        status: TEAM_MEMBER_STATUS_ACTIVE,
-        features: existingInvitation.features,
-        createdById: user.id,
-        updatedById: user.id,
-      },
-    }),
-  ]);
+  await withTeamSeatLock(teamId, (tx) => addMemberFromInvitation(tx, { teamId, userId: user.id, invitation: existingInvitation }));
 
   return {
-    isBillableAction: BILLABLE_ROLES.has(existingInvitation.role),
     email: existingInvitation.email,
     role: existingInvitation.role,
     features: existingInvitation.features as string[],

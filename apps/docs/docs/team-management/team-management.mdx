@@ -2,7 +2,7 @@
 id: team-management
 title: Team Management
 description: Manage your Jetstream team.
-keywords: [salesforce, billing, subscriptions, team plan]
+keywords: [salesforce, billing, subscriptions, team plan, seats]
 sidebar_label: Team Management
 slug: /team-management
 ---
@@ -22,6 +22,7 @@ The Team Dashboard is your central hub for managing team members, configuring lo
 The Team Dashboard provides:
 
 - **Team name management**: Customize your team's display name
+- **Seat management**: See how many seats you have purchased and are using, and buy more or reduce your count
 - **Login configuration**: Control authentication methods and security requirements
 - **Team member management**: Invite, activate, deactivate, and manage team member roles
 - **Activity monitoring**: View authentication activity and active user sessions (Admin only)
@@ -29,6 +30,38 @@ The Team Dashboard provides:
 ## Team Name
 
 Click the edit icon next to your team name to update it. The team name is displayed throughout the application and helps identify your organization.
+
+## Seats
+
+Your team purchases a fixed number of seats, and that number is the limit on how many people can be on the team at once.
+
+### What uses a seat
+
+- Every **active** team member with the **Admin** or **Member** role uses one seat
+- **Billing** role users never use a seat
+- A **pending invitation** for an Admin or Member reserves a seat until it is accepted, cancelled, or expires
+
+Deactivated members and expired invitations do not use a seat.
+
+### The Seats card
+
+The Seats card on the Team Dashboard shows how many seats you have purchased, how many are in use (including reserved seats for pending invitations), and how many are still available. If a decrease is scheduled, the card shows the new seat count and the date it takes effect. If more seats are in use than you have purchased, the card shows how many you are over.
+
+### Changing your seat count
+
+Click **Manage Seats** on the Seats card to change the number of seats. This is available to Admin and Billing role users.
+
+- **Adding seats** takes effect immediately. The additional seats are prorated for the remainder of your current billing period and invoiced right away. You will see a preview of the amount due today and your new recurring total before you confirm.
+- **Removing seats** takes effect at the end of your current billing period. Your recurring total is reduced from the next invoice onward and no refund is issued for the current period. Until then, the decrease is shown as pending on the Seats card and the lower count is the limit for adding members. Increasing your seats again before the period ends cancels the pending decrease.
+- You cannot reduce your seats below the number currently in use. Deactivate members or cancel pending invitations first.
+
+:::tip[Refunds after a recent renewal]
+If your subscription renewed very recently and you meant to reduce your seats before the renewal, [contact support](mailto:support@getjetstream.app) and we will review a refund for the unused seats.
+:::
+
+:::info[Purchase-order billing]
+If your team is billed through a purchase order or another agreement with Jetstream, your seat limit is set by that agreement and the Seats card shows it as such. Contact support to change your seat count.
+:::
 
 ## Login Configuration
 
@@ -102,7 +135,7 @@ For each team member, you can view:
 
 - **Admin**: Full access to manage team settings, members, and billing
 - **Member**: Standard user access to Jetstream features
-- **Billing**: Access only to billing management (does not consume a license)
+- **Billing**: Access only to billing management (does not use a seat)
 
 ### Managing Team Members
 
@@ -115,8 +148,8 @@ For each team member, you can view:
 
 ![Invite Team Member Modal](./team-dashboard-invite-member.png)
 
-:::info[Billing]
-Billing for the new user starts after they accept the invitation. Depending on your plan, an invoice may be generated upon acceptance.
+:::info[Seats]
+Inviting an Admin or Member reserves one of your purchased seats while the invitation is pending, and the seat stays in use once they accept. If no seat is available, the invitation cannot be sent until you buy more seats, deactivate a member, or cancel another pending invitation. Billing role invitations never need a seat. Sending an invitation does not change what you are billed.
 :::
 
 The invited user will receive an email with instructions to accept the invitation and create or link their account.
@@ -131,8 +164,8 @@ Deactivating a team member:
 
 - Revokes all active sessions immediately
 - Prevents the user from logging in
-- Stops billing for that user (except for Billing role users)
-- May generate a credit for future invoices (depending on your plan)
+- Frees the user's seat so it can be used by someone else (Billing role users do not use a seat)
+- Does not change your purchased seat count or billing
 
 To deactivate a member:
 
@@ -145,8 +178,8 @@ To deactivate a member:
 Reactivating a team member:
 
 - Restores their access to Jetstream
-- Resumes billing for that user
-- May result in additional charges depending on your plan and current user count
+- Requires an available seat when reactivating as an Admin or Member; if all seats are in use, buy more seats first or reactivate the user with the Billing role
+- Does not change your purchased seat count or billing
 
 To reactivate a member:
 
@@ -163,8 +196,8 @@ For pending invitations, you can:
 - **Resend Invite**: Send another invitation email
 - **Cancel Invite**: Revoke the invitation
 
-:::tip[License Management]
-If you've reached your license limit, you must deactivate existing users or cancel pending invitations before adding new team members. Alternatively, contact support to purchase additional licenses.
+:::tip[Seat Management]
+If all of your seats are in use, you can buy more from the Seats card, deactivate existing users, or cancel pending invitations before adding new team members. Invitations for the Billing role can always be sent because they do not use a seat.
 :::
 
 ## Activity Monitoring
@@ -218,7 +251,9 @@ Access your team's billing information by clicking **Go to Billing** in the top-
 - View and manage subscriptions
 - Update payment methods
 - Review invoices
-- Purchase additional licenses
+- See how many seats you have purchased and how many are in use
+
+Seat changes are made from the Seats card on the Team Dashboard, not from the billing page. See [Seats](#seats) for details.
 
 :::warning[Past Due Notice]
 If your team has a past-due invoice, a warning will appear at the top of the Team Dashboard. Your team will be cancelled if service is not resumed. Visit the billing page or contact support for assistance.
@@ -228,15 +263,23 @@ If your team has a past-due invoice, a warning will appear at the top of the Tea
 
 ### How many team members can I add?
 
-Our Team plan allows you to add up to 20 team members, while the Enterprise plan supports larger teams with custom limits.
+As many as you have purchased seats for. Each active Admin or Member uses one seat, and each pending Admin or Member invitation reserves one. You choose your seat count when you subscribe and can change it at any time from the Seats card on the Team Dashboard, with a lower per-seat rate once your team has 6 or more seats.
 
-If you are billed using a purchase order, please contact support to increase your license count. Otherwise your license count will be based on the number of users that are active and will be prorated as you add and remove users.
+If you are billed using a purchase order, your seat count is set by your agreement, so please contact support to change it.
 
-Billing role users do not consume a license.
+Billing role users do not use a seat.
 
-### What happens when I reach my license limit?
+### What happens when I reach my seat limit?
 
-When all licenses are in use, you must deactivate existing users, cancel pending invitations, or purchase additional licenses before adding new team members.
+When all seats are in use, you can buy more seats from the Seats card, deactivate existing users, or cancel pending invitations before adding new team members. Invitations for the Billing role can still be sent.
+
+### When am I charged for added seats?
+
+Immediately. Added seats are prorated for the rest of your current billing period, and the prorated amount is invoiced and collected when you confirm the change. You will see the amount due today and your new recurring total before confirming. Your regular renewal then includes the new seats at the full rate.
+
+### Are seat decreases refunded?
+
+No. A decrease takes effect at the end of your current billing period, so the seats stay available until then and no refund is issued for the current period. Your next invoice reflects the lower count. If you reduced your seats just after a renewal, contact support and we will review a refund for the unused seats.
 
 ### Can I have multiple admins?
 

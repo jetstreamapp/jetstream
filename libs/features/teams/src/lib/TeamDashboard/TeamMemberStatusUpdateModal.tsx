@@ -1,8 +1,11 @@
 import { css } from '@emotion/react';
 import { updateTeamMemberStatus } from '@jetstream/shared/data';
-import { TeamMemberRole, TeamUserAction, TeamUserFacing } from '@jetstream/types';
+import { getErrorMessage } from '@jetstream/shared/utils';
+import { TeamMemberRole, TeamSeatSummary, TeamUserAction, TeamUserFacing } from '@jetstream/types';
 import { fireToast, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { useState } from 'react';
+import { SeatsUnavailableNotice } from './team-seats/SeatsUnavailableNotice';
+import { getAvailableSeats, needsSeat } from './team-seats/team-seats.utils';
 import { TeamMemberRoleDropdown } from './TeamMemberRoleDropdown';
 
 interface TeamMemberStatusUpdateModalProps {
@@ -10,16 +13,38 @@ interface TeamMemberStatusUpdateModalProps {
   teamMember: TeamUserFacing['members'][number];
   action: TeamUserAction;
   hasManualBilling: boolean;
+  seats: TeamSeatSummary | null;
+  canManageSeats: boolean;
+  isPastDue: boolean;
+  onBuySeats: () => void;
   onClose: (team?: TeamUserFacing) => void;
 }
 
-export function TeamMemberStatusUpdateModal({ teamId, teamMember, action, hasManualBilling, onClose }: TeamMemberStatusUpdateModalProps) {
+export function TeamMemberStatusUpdateModal({
+  teamId,
+  teamMember,
+  action,
+  hasManualBilling,
+  seats,
+  canManageSeats,
+  isPastDue,
+  onBuySeats,
+  onClose,
+}: TeamMemberStatusUpdateModalProps) {
   const [role, setRole] = useState<TeamMemberRole>(teamMember.role);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const isReactivating = action === 'reactivate';
+  const requiresSeat = needsSeat(role);
+  const availableSeats = getAvailableSeats(seats);
+  const seatBlocked = isReactivating && requiresSeat && !!seats && availableSeats <= 0;
+
   const handleUpdateStatusAndRole = async () => {
+    if (seatBlocked) {
+      return;
+    }
     setErrorMessage(null);
     setLoading(true);
     try {
@@ -30,8 +55,8 @@ export function TeamMemberStatusUpdateModal({ teamId, teamMember, action, hasMan
         message: action === 'deactivate' ? `Successfully deactivated member` : `Successfully reactivated member`,
         type: 'success',
       });
-    } catch {
-      setErrorMessage('There was an error updating this user, try again or contact support for assistance.');
+    } catch (ex) {
+      setErrorMessage(getErrorMessage(ex) || 'There was an error updating this user, try again or contact support for assistance.');
     } finally {
       setLoading(false);
     }
@@ -51,7 +76,7 @@ export function TeamMemberStatusUpdateModal({ teamId, teamMember, action, hasMan
             type="submit"
             form="team-member-status-update-form"
             className="slds-button slds-button_brand slds-is-relative"
-            disabled={loading}
+            disabled={loading || seatBlocked}
           >
             Save
             {loading && <Spinner className="slds-spinner slds-spinner_small" />}
@@ -73,10 +98,10 @@ export function TeamMemberStatusUpdateModal({ teamId, teamMember, action, hasMan
 
         {action === 'deactivate' && (
           <>
-            {!hasManualBilling && teamMember.role !== 'BILLING' && (
+            {needsSeat(teamMember.role) && (
               <ScopedNotification theme="info">
-                Once deactivated, this user will not count towards your overall user limit. Depending on your plan, a credit may be
-                generated which will apply to future invoices.
+                Once deactivated, this user no longer uses a seat and the seat becomes available for another team member.
+                {!hasManualBilling && ' Your purchased seat count and billing do not change — use Manage Seats to reduce seats.'}
               </ScopedNotification>
             )}
             <p className="slds-m-top_x-small">
@@ -88,14 +113,23 @@ export function TeamMemberStatusUpdateModal({ teamId, teamMember, action, hasMan
           </>
         )}
 
-        {action === 'reactivate' && (
+        {isReactivating && (
           <>
-            {!hasManualBilling && role !== 'BILLING' && (
+            {seatBlocked && seats && (
+              <SeatsUnavailableNotice
+                seats={seats}
+                hasManualBilling={hasManualBilling}
+                canManageSeats={canManageSeats}
+                isPastDue={isPastDue}
+                onBuySeats={onBuySeats}
+              />
+            )}
+            {!seatBlocked && requiresSeat && Number.isFinite(availableSeats) && (
               <ScopedNotification theme="info">
-                Once activated, billing will be restarted for this user and depending on your plan and user count, additional charges may
-                apply.
+                This change uses 1 of your {availableSeats} available seats. Your billing does not change.
               </ScopedNotification>
             )}
+            {!requiresSeat && <ScopedNotification theme="info">Billing-only users do not use a seat.</ScopedNotification>}
 
             <p className="slds-m-top_x-small">
               Are you sure you want to reactivate <strong>{teamMember.user.name}</strong>?

@@ -210,18 +210,53 @@ describe('acl', () => {
 
         const ability = getUserAbility({ user });
         expect(ability.can('invite', 'TeamMember')).toBe(true);
-        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'ACTIVE', availableLicenses: Infinity })).toBe(true);
-        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'MANUAL', availableLicenses: Infinity })).toBe(true);
-        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'ACTIVE', availableLicenses: 100 })).toBe(true);
-        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'ACTIVE', availableLicenses: 1 })).toBe(true);
-        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'MANUAL', availableLicenses: 100 })).toBe(true);
-        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'MANUAL', availableLicenses: 1 })).toBe(true);
+        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'ACTIVE' })).toBe(true);
+        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'MANUAL' })).toBe(true);
 
-        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'PAST_DUE', availableLicenses: Infinity })).toBe(false);
-        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'MANUAL', availableLicenses: 0 })).toBe(false);
-        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'MANUAL', availableLicenses: -1 })).toBe(false);
-        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'ACTIVE', availableLicenses: -1 })).toBe(false);
-        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'ACTIVE', availableLicenses: 0 })).toBe(false);
+        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'PAST_DUE' })).toBe(false);
+      });
+
+      describe('team seats', () => {
+        const adminUser: UserProfileUi = {
+          ...baseUser,
+          teamMembership: { role: 'ADMIN', status: 'ACTIVE', team: { id: '1', name: 'Test Team', billingStatus: 'ACTIVE' } },
+        };
+        const billingUser: UserProfileUi = {
+          ...baseUser,
+          teamMembership: { role: 'BILLING', status: 'ACTIVE', team: { id: '1', name: 'Test Team', billingStatus: 'ACTIVE' } },
+        };
+        const memberUser: UserProfileUi = {
+          ...baseUser,
+          teamMembership: { role: 'MEMBER', status: 'ACTIVE', team: { id: '1', name: 'Test Team', billingStatus: 'ACTIVE' } },
+        };
+        const inactiveAdmin: UserProfileUi = {
+          ...baseUser,
+          teamMembership: { role: 'ADMIN', status: 'INACTIVE', team: { id: '1', name: 'Test Team', billingStatus: 'ACTIVE' } },
+        };
+
+        it('lets admin and billing roles read and update seats', () => {
+          for (const user of [adminUser, billingUser]) {
+            const ability = getUserAbility({ user });
+            expect(ability.can('read', 'TeamSeats')).toBe(true);
+            expect(ability.can('update', 'TeamSeats')).toBe(true);
+            expect(ability.can('update', { type: 'TeamSeats', manualBilling: false, billingStatus: 'ACTIVE' })).toBe(true);
+          }
+        });
+
+        it('denies seats to members, inactive memberships, and users without a team', () => {
+          for (const user of [memberUser, inactiveAdmin, baseUser]) {
+            const ability = getUserAbility({ user });
+            expect(ability.can('read', 'TeamSeats')).toBe(false);
+            expect(ability.can('update', 'TeamSeats')).toBe(false);
+          }
+        });
+
+        it('blocks updating seats for manual billing and past-due teams but still allows reading', () => {
+          const ability = getUserAbility({ user: adminUser });
+          expect(ability.can('update', { type: 'TeamSeats', manualBilling: true, billingStatus: 'MANUAL' })).toBe(false);
+          expect(ability.can('update', { type: 'TeamSeats', manualBilling: false, billingStatus: 'PAST_DUE' })).toBe(false);
+          expect(ability.can('read', { type: 'TeamSeats', manualBilling: true, billingStatus: 'MANUAL' })).toBe(true);
+        });
       });
     });
 

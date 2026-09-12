@@ -26,7 +26,7 @@
       "path": "../../shared/constants/tsconfig.lib.json"
     },
     {
-      "path": "../../shared/utils/tsconfig.lib.json"
+      "path": "../../team-seats/tsconfig.lib.json"
     },
     {
       "path": "../../shared/node-utils/tsconfig.lib.json"
@@ -35,7 +35,13 @@
       "path": "../../prisma/tsconfig.lib.json"
     },
     {
+      "path": "../../audit-logs/tsconfig.lib.json"
+    },
+    {
       "path": "../../types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../shared/utils/tsconfig.lib.json"
     },
     {
       "path": "../types/tsconfig.lib.json"
