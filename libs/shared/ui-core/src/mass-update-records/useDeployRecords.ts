@@ -1,8 +1,8 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { bulkApiAddBatchToJob, bulkApiCreateJob, bulkApiGetJob } from '@jetstream/shared/data';
+import { bulkApiAddBatchToJob, bulkApiCloseJob, bulkApiCreateJob, bulkApiGetJob } from '@jetstream/shared/data';
 import { checkIfBulkApiJobIsDone, convertDateToLocale, generateCsv, tracker, useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import { delay, getErrorMessage, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { delay, getErrorMessage, isFatalBulkApiError, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { BulkJobBatchInfo, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
@@ -128,35 +128,72 @@ export function useDeployRecords(
       deployResults.records = records;
       isMounted.current && onDeployResults(sobject, { ...deployResults });
 
-      let currItem = 0;
-      for (const batch of batches) {
-        try {
-          if (!isMounted.current) {
-            return;
-          }
-          const batchResult = await bulkApiAddBatchToJob(org, jobId, batch.csv, currItem === batches.length - 1);
-          deployResults.batchIdToIndex = { ...deployResults.batchIdToIndex, [batchResult.id]: currItem };
-          deployResults.jobInfo = { ...deployResults.jobInfo };
-          deployResults.jobInfo.batches = deployResults.jobInfo.batches || [];
-          deployResults.jobInfo.batches = [...deployResults.jobInfo.batches, batchResult];
-
-          isMounted.current && onDeployResults(sobject, { ...deployResults });
-        } catch (ex) {
-          // error loading batch
-          logger.error('Error loading batch', ex);
-
-          // Log error for investigation of failure - but do not log for known errors
-          const errorMessage = getErrorMessage(ex)?.toLowerCase() || '';
-          if (!errorMessage.includes('aborted') && !errorMessage.includes('limit exceeded')) {
-            tracker.error('There was an error loading batch for mass record update', ex);
-          }
-
-          deployResults.processingErrors = [...deployResults.processingErrors];
-          batch.records.forEach((record, i) => deployResults.processingErrors.push({ record, errors: [getErrorMessage(ex)], row: i }));
-        } finally {
-          currItem++;
-        }
+      /**
+       * Mark every record in the given batches as failed, for batches Salesforce rejected or that were
+       * never submitted. The list is cloned once for the whole set rather than once per batch, which
+       * would make stopping early cost O(skipped records x skipped batches) to record.
+       */
+      function recordFailedBatches(failedBatches: unknown[][], errorMessage: string) {
+        const processingErrors = [...deployResults.processingErrors];
+        failedBatches.forEach((failedRecords) => {
+          failedRecords.forEach((record, i) => processingErrors.push({ record, errors: [errorMessage], row: i }));
+        });
+        deployResults.processingErrors = processingErrors;
       }
+
+      let currItem = 0;
+      try {
+        for (const batch of batches) {
+          try {
+            if (!isMounted.current) {
+              return;
+            }
+            const batchResult = await bulkApiAddBatchToJob(org, jobId, batch.csv);
+            deployResults.batchIdToIndex = { ...deployResults.batchIdToIndex, [batchResult.id]: currItem };
+            deployResults.jobInfo = { ...deployResults.jobInfo };
+            deployResults.jobInfo.batches = deployResults.jobInfo.batches || [];
+            deployResults.jobInfo.batches = [...deployResults.jobInfo.batches, batchResult];
+
+            isMounted.current && onDeployResults(sobject, { ...deployResults });
+          } catch (ex) {
+            // error loading batch
+            logger.error('Error loading batch', ex);
+
+            // Log error for investigation of failure - but do not log for known errors
+            const errorMessage = getErrorMessage(ex)?.toLowerCase() || '';
+            if (!errorMessage.includes('aborted') && !errorMessage.includes('limit exceeded')) {
+              tracker.error('There was an error loading batch for mass record update', ex);
+            }
+
+            // Salesforce rejects everything sent after the job is closed, aborted or over a limit, so the
+            // remaining batches would each cost a doomed round trip and a duplicate error report. Fail them
+            // alongside this one instead - the records still land in `processingErrors` so the user sees
+            // what was skipped.
+            const isFatal = isFatalBulkApiError(ex);
+            const skippedBatches = isFatal ? batches.slice(currItem + 1).map(({ records: skippedRecords }) => skippedRecords) : [];
+            recordFailedBatches([batch.records, ...skippedBatches], getErrorMessage(ex));
+
+            if (isFatal) {
+              break;
+            }
+          } finally {
+            currItem++;
+          }
+        }
+      } finally {
+        // Closing is always its own request rather than riding along on the final batch. Piggybacking it
+        // makes a silent close failure indistinguishable from success, and every path that stops before
+        // the final batch - a fatal error, or the host unmounting mid-load - would skip it entirely and
+        // leave the job Open, holding an org job slot until Salesforce expires it.
+        //
+        // Fire and forget, matching the load-records path: the user is already being shown results and an
+        // orphaned job is our problem, not theirs. A job Salesforce has already closed rejects this, which
+        // is exactly the case that got us here, so the rejection is expected and only worth a log line.
+        bulkApiCloseJob(org, jobId).catch((ex) => {
+          logger.warn('Error closing job', ex);
+        });
+      }
+
       deployResults.status = 'In Progress';
       deployResults.lastChecked = formatDate(new Date(), 'h:mm:ss');
       isMounted.current && onDeployResults(sobject, { ...deployResults });
