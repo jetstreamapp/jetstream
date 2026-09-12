@@ -2,7 +2,7 @@
 /* eslint-disable no-redeclare */
 import type { Placement } from '@floating-ui/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { DATE_FORMATS, HTTP, INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
+import { DATE_FORMATS, HTTP, INPUT_ACCEPT_FILETYPES, JOB_CANCELED_ERROR_MESSAGE } from '@jetstream/shared/constants';
 import {
   anonymousApex,
   bulkApiGetJob,
@@ -1104,7 +1104,7 @@ export async function pollRetrieveMetadataResultsUntilDone(
   while (!done && attempts <= maxAttempts) {
     await delay(interval);
     if (isCanceled && isCanceled()) {
-      throw new Error('Job canceled');
+      throw new Error(JOB_CANCELED_ERROR_MESSAGE);
     }
     retrieveResults = await checkMetadataRetrieveResults(selectedOrg, id);
     logger.log({ retrieveResults });
@@ -1116,7 +1116,7 @@ export async function pollRetrieveMetadataResultsUntilDone(
       interval += DEFAULT_INTERVAL_5_SEC;
     }
     if (isCanceled && isCanceled()) {
-      throw new Error('Job canceled');
+      throw new Error(JOB_CANCELED_ERROR_MESSAGE);
     }
   }
   if (!done) {

@@ -7,7 +7,7 @@ import {
   runPermissionExport,
 } from '@jetstream/feature/analysis-shared';
 import { logger } from '@jetstream/shared/client-logger';
-import { FILE_FORMAT_XLSX_LOAD_TEMPLATE, MIME_TYPES } from '@jetstream/shared/constants';
+import { FILE_FORMAT_XLSX_LOAD_TEMPLATE, JOB_CANCELED_ERROR_MESSAGE, MIME_TYPES } from '@jetstream/shared/constants';
 import {
   bulkApiAddBatchToJob,
   bulkApiCreateJob,
@@ -221,7 +221,7 @@ export class JobWorker {
               nextRecordsUrl = queryResults.nextRecordsUrl;
               downloadedRecords = downloadedRecords.concat(queryResults.records);
               if (this.canceledJobIds.has(job.id)) {
-                throw new Error('Job canceled');
+                throw new Error(JOB_CANCELED_ERROR_MESSAGE);
               }
             }
           } else {
@@ -387,7 +387,7 @@ export class JobWorker {
           }
 
           if (this.canceledJobIds.has(job.id)) {
-            throw new Error('Job canceled');
+            throw new Error(JOB_CANCELED_ERROR_MESSAGE);
           }
 
           const results = await pollRetrieveMetadataResultsUntilDone(org, id, {
@@ -555,7 +555,7 @@ export class JobWorker {
           }
           // Where-used can take a while; respect a cancel requested during that phase before we persist a "completed" row.
           if (canceledRef.has(job.id)) {
-            throw new Error('Job canceled');
+            throw new Error(JOB_CANCELED_ERROR_MESSAGE);
           }
 
           const okObjectCount = objectApiNames.filter(

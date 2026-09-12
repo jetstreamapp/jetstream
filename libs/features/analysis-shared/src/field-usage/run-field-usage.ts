@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { JOB_CANCELED_ERROR_MESSAGE } from '@jetstream/shared/constants';
 import { describeSObject, query, queryWithRecordBudget } from '@jetstream/shared/data';
 import type { DescribeSObjectResult, Field, SalesforceOrgUi } from '@jetstream/types';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
@@ -219,7 +220,7 @@ function buildFieldMeta(countable: Field[]): FieldUsageObjectPayload['fieldMeta'
 
 function throwIfCanceled(isCanceled?: () => boolean): void {
   if (isCanceled?.()) {
-    throw new Error('Job canceled');
+    throw new Error(JOB_CANCELED_ERROR_MESSAGE);
   }
 }
 
@@ -510,7 +511,7 @@ export async function runFieldUsageQueryForObjects(
         fieldMeta,
       };
     } catch (ex) {
-      if (ex instanceof Error && ex.message === 'Job canceled') {
+      if (ex instanceof Error && ex.message === JOB_CANCELED_ERROR_MESSAGE) {
         throw ex;
       }
       failedObjects.push(objectApiName);
