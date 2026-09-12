@@ -1,6 +1,7 @@
 import { PermissionSetWithProfileRecord, PermissionTableFieldCell } from '@jetstream/types';
 import { parse } from 'papaparse';
 import { describe, expect, it } from 'vitest';
+import * as XLSX from 'xlsx';
 import { generateFieldCsv, generateFieldWorksheet } from '../permission-manager-export-utils';
 import { getFieldColumns } from '../permission-manager-table-utils';
 
@@ -15,6 +16,16 @@ const PREFIX_COLUMN_COUNT = 7;
 const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const columns = getFieldColumns([PROFILE_ID], [], profilesById, {});
+
+/** Worksheets are built in dense mode, so cells live in `!data` rather than under their A1 address */
+function getCell(worksheet: XLSX.WorkSheet, address: string): XLSX.CellObject {
+  const { r, c } = XLSX.utils.decode_cell(address);
+  const denseRows = worksheet['!data'];
+  if (!denseRows) {
+    throw new Error(`Worksheet is not dense, cannot read ${address}`);
+  }
+  return denseRows[r][c];
+}
 
 function buildRow(overrides: Partial<PermissionTableFieldCell>): PermissionTableFieldCell {
   return {
@@ -84,7 +95,7 @@ describe('generateFieldWorksheet', () => {
     const worksheet = generateFieldWorksheet(columns, [customFieldRow]);
     const [, , csvRow] = parse<string[]>(generateFieldCsv(columns, [customFieldRow])).data;
     // Row 3 (index 2) is the first data row, column D is Created Date
-    const createdDateCell = worksheet['D3'];
+    const createdDateCell = getCell(worksheet, 'D3');
 
     expect(createdDateCell.t).toBe('d');
     expect(createdDateCell.z).toBe('yyyy-mm-dd hh:mm:ss');
@@ -92,16 +103,40 @@ describe('generateFieldWorksheet', () => {
     // rendering depends on the timezone the test runs in
     expect(createdDateCell.w).toBe(csvRow[3]);
     // The user name column beside it stays text
-    expect(worksheet['E3'].t).toBe('s');
-    expect(worksheet['E3'].v).toBe('Austin Turner');
+    expect(getCell(worksheet, 'E3').t).toBe('s');
+    expect(getCell(worksheet, 'E3').v).toBe('Austin Turner');
   });
 
   it('should leave the audit cells empty for a field with no audit data', () => {
     const worksheet = generateFieldWorksheet(columns, [standardFieldRow]);
 
     ['D3', 'E3', 'F3', 'G3'].forEach((cellAddress) => {
-      expect(worksheet[cellAddress].v).toBe('');
+      expect(getCell(worksheet, cellAddress).v).toBe('');
     });
+  });
+
+  it('should build the worksheet in dense mode so a wide export stays under v8 object property limits', () => {
+    const worksheet = generateFieldWorksheet(columns, [customFieldRow]);
+
+    // Sparse worksheets key every cell by its A1 address, which caps an export near 8.4 million cells
+    expect(Array.isArray(worksheet['!data'])).toBe(true);
+    expect('D3' in worksheet).toBe(false);
+  });
+
+  it('should still write a readable xlsx from the dense worksheet', () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, generateFieldWorksheet(columns, [customFieldRow]), 'Field Permissions');
+    const [, , csvRow] = parse<string[]>(generateFieldCsv(columns, [customFieldRow])).data;
+
+    const reread = XLSX.read(XLSX.write(workbook, { bookType: 'xlsx', type: 'array', bookSST: true }), {
+      type: 'array',
+      cellDates: true,
+    });
+    const sheet = reread.Sheets['Field Permissions'];
+
+    expect(sheet['B3'].v).toBe('Custom__c');
+    expect(sheet['D3'].t).toBe('d');
+    expect(sheet['D3'].w).toBe(csvRow[3]);
   });
 
   it('should shift the profile header merge past the audit columns', () => {
