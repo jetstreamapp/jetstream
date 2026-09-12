@@ -68,7 +68,7 @@ const tiers = [
       'View & Manage team member session activity',
       'Role-based access control',
     ],
-    comingSoonFeatures: ['SOC 2 compliance (in-progress)', 'Share orgs between team members', 'Audit logs'],
+    comingSoonFeatures: ['Share orgs between team members', 'Audit logs'],
     mostPopular: false,
   },
   {

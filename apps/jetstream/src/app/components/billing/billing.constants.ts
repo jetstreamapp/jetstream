@@ -33,7 +33,7 @@ export const teamFeatures = [
   'Role-based access control',
 ];
 
-export const teamFeaturesComingSoon = ['SOC 2 (in progress)', 'Share orgs between team members', 'Audit logs'];
+export const teamFeaturesComingSoon = ['Share orgs between team members', 'Audit logs'];
 
 export const enterpriseFeatures = [
   'Everything in Team',
