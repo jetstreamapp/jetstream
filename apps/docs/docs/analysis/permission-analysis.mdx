@@ -44,7 +44,7 @@ Permission Analysis is available on a **paid Jetstream plan**. Upgrade from with
 ## Requirements
 
 - A paid Jetstream plan.
-- Access to the Salesforce **Metadata API**. If your user may not have it, Jetstream shows a banner — you generally need the **Modify All Data** or **Modify Metadata** permission assigned to your user.
+- Read access to the permission setup objects Jetstream queries, which usually means **View Setup and Configuration**. Permission Analysis is read-only and does not call the Metadata API, so **Modify All Data** and **Modify Metadata** are not required. Jetstream may still show its metadata-access banner on this page; that banner is advisory and is not what gates this feature. See [Required permissions](/required-permissions) for the full breakdown.
 
 ## Running an analysis
 
@@ -88,9 +88,9 @@ Every grid supports **Expand all** / **Collapse all**, a **quick-filter search b
 
 ## Downloading the results
 
-Every table has a **download button** in its header — each permission tree, the export grid, the issues tab, and the findings detail modal. You get the same download options as everywhere else in Jetstream: **Excel**, **CSV**, **JSON**, or straight to **Google Drive**.
+Every table has a **download button** — above the grid on each permission tree, the export grid and the issues tab, and in the footer of the findings detail modal. You get the same download options as everywhere else in Jetstream: **Excel**, **CSV**, **JSON**, or straight to **Google Drive**.
 
-Downloads respect what you are currently looking at, so you can filter the Issues tab down to errors on a single object and export just that slice. This is the fastest way to hand a specific finding to the person who owns it, drop a permission snapshot into a spreadsheet for sign-off, or keep a record of what permissions looked like before a change.
+On the Issues tab the download follows the **Filters** bar and your **Columns** and **Group By** choices, so narrowing to errors only and downloading gives you just those rows. The grid's quick-filter box and per-column filters change what is on screen but not what is downloaded, so clear them and use the Filters bar when you need the file to match the view. Downloads are the fastest way to hand a finding to the person who owns it, drop a permission snapshot into a spreadsheet for sign-off, or keep a record of what permissions looked like before a change.
 
 ## Issues
 
