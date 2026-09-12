@@ -1,0 +1,53 @@
+---
+slug: v10.18.1
+title: 10.18.1 - Permission Analysis documentation and SOC 2 Type II report
+date: '2026-09-12'
+tags: [web, desktop, extension]
+versions:
+  web: 10.18.1
+  desktop: 4.15.1
+  extension: 3.18.1
+summary: Permission Analysis is now fully documented, and the app links to those docs from the home card, upgrade screen, results toolbar, and findings modal. The Jetstream SOC 2 Type II report is available on request.
+highlights:
+  - title: Permission Analysis documentation
+    description: The documentation now lists every issue code with its severity, the system permissions treated as high risk, and what the scan is commonly used for.
+    docLink: /permission-analysis
+  - title: Documentation links inside Permission Analysis
+    description: The home card, upgrade screen, results toolbar, and findings modal all link to the documentation.
+    docLink: /permission-analysis
+  - title: SOC 2 Type II report
+    description: Jetstream completed a SOC 2 Type II audit, and the report is available to customers on request under an NDA.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Permission Analysis documentation
+
+The Permission Analysis documentation was rewritten to describe the scan and its results rather than comparing it to Manage Permissions. It now covers:
+
+- All twelve issue codes with their severity, so a code in the findings modal is something you can look up.
+- The sixteen system permissions Jetstream treats as high risk, grouped by tier.
+- Common uses for the scan: quarterly access reviews, audit preparation, offboarding, cleanup after a migration, and tracing why a user can see something.
+- Downloads, which the page never covered. Every result grid exports to Excel, CSV, JSON, or straight to Google Drive.
+
+Manage Permissions now links across to Permission Analysis as well.
+
+### Documentation links inside Permission Analysis
+
+The documentation is now reachable from the places where a question comes up:
+
+- Home cards for paid features keep their Documentation link on plans that do not include them.
+- The upgrade screen describes what each tool does and links to the documentation for the one you opened.
+- The results toolbar has a Documentation link.
+- The findings modal has a "What do these codes mean?" link that opens the issue code table.
+
+### SOC 2 Type II report
+
+Jetstream completed a SOC 2 Type II audit with A-LIGN. The Privacy page explains what the audit covers and how to request the report, which is available to customers under an NDA by writing to sales@getjetstream.app. The data processing addendum records the same commitment.
+
+### Other fixes
+
+- The pricing page and the in-app billing page now list Permission Analysis and Field Usage Analysis under the Professional plan. Upgrading from the paywall previously landed on a page that mentioned neither.
+- The Permission Analysis documentation no longer carries a pre-release warning. The feature is generally available.

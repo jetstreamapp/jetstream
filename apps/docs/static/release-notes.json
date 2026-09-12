@@ -1,5 +1,29 @@
 [
   {
+    "slug": "v10.18.1",
+    "title": "10.18.1 - Permission Analysis documentation and SOC 2 Type II report",
+    "date": "2026-09-12",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.18.1", "desktop": "4.15.1", "extension": "3.18.1" },
+    "summary": "Permission Analysis is now fully documented, and the app links to those docs from the home card, upgrade screen, results toolbar, and findings modal. The Jetstream SOC 2 Type II report is available on request.",
+    "highlights": [
+      {
+        "title": "Permission Analysis documentation",
+        "description": "The documentation now lists every issue code with its severity, the system permissions treated as high risk, and what the scan is commonly used for.",
+        "docLink": "/permission-analysis"
+      },
+      {
+        "title": "Documentation links inside Permission Analysis",
+        "description": "The home card, upgrade screen, results toolbar, and findings modal all link to the documentation.",
+        "docLink": "/permission-analysis"
+      },
+      {
+        "title": "SOC 2 Type II report",
+        "description": "Jetstream completed a SOC 2 Type II audit, and the report is available to customers on request under an NDA."
+      }
+    ]
+  },
+  {
     "slug": "v10.18.0",
     "title": "10.18.0 - Desktop update controls and portable Windows build",
     "date": "2026-09-07",
