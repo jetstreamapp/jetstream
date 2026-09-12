@@ -138,6 +138,35 @@ describe('useDeployRecords batch submission', () => {
     expect(bulkApiCloseJobMock).toHaveBeenCalledWith(org, 'job-1');
   });
 
+  /**
+   * The unmount path `return`s out of the middle of the batch loop, which skipped the cleanup and left
+   * the job Open with nothing left running that would ever close it.
+   */
+  it('closes the job when the host unmounts part way through the load', async () => {
+    let unmountHost = () => undefined as void;
+    bulkApiAddBatchToJobMock.mockImplementationOnce(async () => {
+      // Unmount after the first batch lands, so the loop bails on its next iteration
+      unmountHost();
+      return { id: 'batch-1' };
+    });
+
+    const { result, unmount } = renderHook(() => useDeployRecords(org, vi.fn(), 'STAND-ALONE'));
+    unmountHost = unmount;
+
+    await result.current.loadDataForProvidedRecords({
+      records,
+      sobject: 'Account',
+      fields: ['Id', 'Industry'],
+      batchSize: 2,
+      serialMode: false,
+      configuration,
+      skipHistory: true,
+    });
+
+    expect(bulkApiAddBatchToJobMock).toHaveBeenCalledTimes(1);
+    expect(bulkApiCloseJobMock).toHaveBeenCalledWith(org, 'job-1');
+  });
+
   it('does not surface a failed cleanup close to the user', async () => {
     bulkApiAddBatchToJobMock.mockImplementationOnce(async () => {
       throw new Error(JOB_CLOSED_ERROR);

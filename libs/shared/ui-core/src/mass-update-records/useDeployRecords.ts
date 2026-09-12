@@ -142,57 +142,61 @@ export function useDeployRecords(
       }
 
       let currItem = 0;
-      // Only the final batch carries `closeJob`, so any path that never reaches it - stopping early, or
-      // the final batch itself failing - leaves the job Open, holding an org job slot until Salesforce
-      // expires it. Tracked here so the cleanup below knows whether the close actually happened.
+      // Only the final batch carries `closeJob`, so any path that never reaches it - stopping early, the
+      // final batch failing, or the host unmounting mid-load - leaves the job Open, holding an org job
+      // slot until Salesforce expires it. Tracked here so the cleanup below knows whether one was sent.
       let jobClosed = false;
-      for (const batch of batches) {
-        try {
-          if (!isMounted.current) {
-            return;
+      try {
+        for (const batch of batches) {
+          try {
+            if (!isMounted.current) {
+              return;
+            }
+            const isLastBatch = currItem === batches.length - 1;
+            const batchResult = await bulkApiAddBatchToJob(org, jobId, batch.csv, isLastBatch);
+            jobClosed = jobClosed || isLastBatch;
+            deployResults.batchIdToIndex = { ...deployResults.batchIdToIndex, [batchResult.id]: currItem };
+            deployResults.jobInfo = { ...deployResults.jobInfo };
+            deployResults.jobInfo.batches = deployResults.jobInfo.batches || [];
+            deployResults.jobInfo.batches = [...deployResults.jobInfo.batches, batchResult];
+
+            isMounted.current && onDeployResults(sobject, { ...deployResults });
+          } catch (ex) {
+            // error loading batch
+            logger.error('Error loading batch', ex);
+
+            // Log error for investigation of failure - but do not log for known errors
+            const errorMessage = getErrorMessage(ex)?.toLowerCase() || '';
+            if (!errorMessage.includes('aborted') && !errorMessage.includes('limit exceeded')) {
+              tracker.error('There was an error loading batch for mass record update', ex);
+            }
+
+            // Salesforce rejects everything sent after the job is closed, aborted or over a limit, so the
+            // remaining batches would each cost a doomed round trip and a duplicate error report. Fail them
+            // alongside this one instead - the records still land in `processingErrors` so the user sees
+            // what was skipped.
+            const isFatal = isFatalBulkApiError(ex);
+            const skippedBatches = isFatal ? batches.slice(currItem + 1).map(({ records: skippedRecords }) => skippedRecords) : [];
+            recordFailedBatches([batch.records, ...skippedBatches], getErrorMessage(ex));
+
+            if (isFatal) {
+              break;
+            }
+          } finally {
+            currItem++;
           }
-          const isLastBatch = currItem === batches.length - 1;
-          const batchResult = await bulkApiAddBatchToJob(org, jobId, batch.csv, isLastBatch);
-          jobClosed = jobClosed || isLastBatch;
-          deployResults.batchIdToIndex = { ...deployResults.batchIdToIndex, [batchResult.id]: currItem };
-          deployResults.jobInfo = { ...deployResults.jobInfo };
-          deployResults.jobInfo.batches = deployResults.jobInfo.batches || [];
-          deployResults.jobInfo.batches = [...deployResults.jobInfo.batches, batchResult];
-
-          isMounted.current && onDeployResults(sobject, { ...deployResults });
-        } catch (ex) {
-          // error loading batch
-          logger.error('Error loading batch', ex);
-
-          // Log error for investigation of failure - but do not log for known errors
-          const errorMessage = getErrorMessage(ex)?.toLowerCase() || '';
-          if (!errorMessage.includes('aborted') && !errorMessage.includes('limit exceeded')) {
-            tracker.error('There was an error loading batch for mass record update', ex);
-          }
-
-          // Salesforce rejects everything sent after the job is closed, aborted or over a limit, so the
-          // remaining batches would each cost a doomed round trip and a duplicate error report. Fail them
-          // alongside this one instead - the records still land in `processingErrors` so the user sees
-          // what was skipped.
-          const isFatal = isFatalBulkApiError(ex);
-          const skippedBatches = isFatal ? batches.slice(currItem + 1).map(({ records: skippedRecords }) => skippedRecords) : [];
-          recordFailedBatches([batch.records, ...skippedBatches], getErrorMessage(ex));
-
-          if (isFatal) {
-            break;
-          }
-        } finally {
-          currItem++;
         }
-      }
-
-      // Fire and forget, matching the load-records path: the user is already being shown results and an
-      // orphaned job is our problem, not theirs. A job Salesforce has already closed rejects this, which
-      // is exactly the case that got us here, so the rejection is expected and only worth a log line.
-      if (!jobClosed) {
-        bulkApiCloseJob(org, jobId).catch((ex) => {
-          logger.warn('Error closing job', ex);
-        });
+      } finally {
+        // Fire and forget, matching the load-records path: the user is already being shown results and an
+        // orphaned job is our problem, not theirs. A job Salesforce has already closed rejects this, which
+        // is exactly the case that got us here, so the rejection is expected and only worth a log line.
+        // In a `finally` so the unmount `return` above is covered too - that path abandons the load part
+        // way through and would otherwise strand the job.
+        if (!jobClosed) {
+          bulkApiCloseJob(org, jobId).catch((ex) => {
+            logger.warn('Error closing job', ex);
+          });
+        }
       }
 
       deployResults.status = 'In Progress';

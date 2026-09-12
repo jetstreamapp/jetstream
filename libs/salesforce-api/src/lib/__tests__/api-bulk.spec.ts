@@ -346,6 +346,49 @@ describe('ApiBulk XML parsing and type handling', () => {
     });
   });
 
+  describe('addBatchToJob - closeJob failure', () => {
+    /**
+     * Salesforce has accepted the batch by the time the close is attempted, so a rejection here would
+     * hand the caller an error for a batch that is going to be processed. Callers treat that as "this
+     * batch failed" and record every row in it as an error.
+     */
+    it('should return the accepted batch when closing the job fails', async () => {
+      const closeJobUrl = '/services/async/65.0/job/750Kf00000R1wzRIAR';
+      const mockFetch = vi.fn((url: string | URL) => {
+        const urlStr = typeof url === 'string' ? url : url.toString();
+        const isCloseRequest = urlStr.endsWith(closeJobUrl);
+        return Promise.resolve({
+          ok: !isCloseRequest,
+          status: isCloseRequest ? 500 : 200,
+          statusText: isCloseRequest ? 'Internal Server Error' : 'OK',
+          headers: new Headers({ 'content-type': 'text/xml; charset=UTF-8' }),
+          type: 'basic' as ResponseType,
+          url: urlStr,
+          text: () =>
+            Promise.resolve(
+              isCloseRequest
+                ? `<?xml version="1.0" encoding="UTF-8"?><error><exceptionCode>InvalidJobState</exceptionCode><exceptionMessage>Closing already Closed Job</exceptionMessage></error>`
+                : BULK_XML_RESPONSES.BATCH_INFO_QUEUED,
+            ),
+          json: () => Promise.reject(new Error('Not JSON')),
+          clone() {
+            return this;
+          },
+        } as any);
+      });
+
+      const connection = createConnectionWithXmlParsing(mockFetch);
+      const apiBulk = new ApiBulk(connection);
+
+      const result = await apiBulk.addBatchToJob('csv,data', '750Kf00000R1wzRIAR', true);
+
+      expect(result.id).toBe('751Kf000018uaV7IAI');
+      expect(result.state).toBe('Queued');
+      // The close was still attempted, it just did not take the batch result down with it
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('getQueryResultsJobIds - XML parsing', () => {
     it('should parse result-list XML with single result', async () => {
       const mockFetch = createMockFetch({

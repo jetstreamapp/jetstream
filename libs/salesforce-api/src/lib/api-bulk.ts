@@ -1,5 +1,5 @@
 import { HTTP } from '@jetstream/shared/constants';
-import { bulkApiEnsureTyped, ensureArray } from '@jetstream/shared/utils';
+import { bulkApiEnsureTyped, ensureArray, getErrorMessage } from '@jetstream/shared/utils';
 import {
   BulkApiCreateJobRequestPayload,
   BulkApiDownloadType,
@@ -80,7 +80,15 @@ export class ApiBulk extends SalesforceApi {
     }).then(({ batchInfo }) => bulkApiEnsureTyped(batchInfo));
 
     if (closeJob) {
-      await this.closeJob(jobId, 'Closed');
+      // Salesforce has already accepted the batch by this point, so letting a failed close reject the
+      // whole call would throw away a result the caller needs - callers treat a rejection as "this batch
+      // failed" and record every row in it as an error, while Salesforce goes on to process them. The
+      // job is left Open instead, which Salesforce eventually expires on its own.
+      try {
+        await this.closeJob(jobId, 'Closed');
+      } catch (ex) {
+        this.logger.warn({ message: getErrorMessage(ex), jobId }, 'Batch was accepted but closing the job failed');
+      }
     }
 
     return result;
