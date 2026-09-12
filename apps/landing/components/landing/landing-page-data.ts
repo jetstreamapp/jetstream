@@ -2,6 +2,7 @@ import {
   ChatBubbleLeftRightIcon,
   ChatBubbleOvalLeftEllipsisIcon,
   CircleStackIcon,
+  CloudIcon,
   CodeBracketIcon,
   Cog6ToothIcon,
   ComputerDesktopIcon,
@@ -9,6 +10,7 @@ import {
   HeartIcon,
   PuzzlePieceIcon,
   RocketLaunchIcon,
+  ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 import { ForwardRefExoticComponent, RefAttributes, SVGProps } from 'react';
 import { ENVIRONMENT, ROUTES } from '../../utils/environment';
@@ -24,6 +26,8 @@ export interface TrustSignal {
   icon: HeroIcon;
   title: string;
   description: string;
+  cta: string;
+  href: string;
 }
 
 export interface ValuePillar {
@@ -63,6 +67,25 @@ export interface CommunityLink {
   description: string;
   href: string;
 }
+
+export const TRUST_SIGNALS: TrustSignal[] = [
+  {
+    icon: CloudIcon,
+    title: 'On the Salesforce AppExchange',
+    description:
+      'Jetstream passed the Salesforce Security Review and is published on the AppExchange, the Salesforce marketplace of vetted partner apps.',
+    cta: 'View our listing',
+    href: ROUTES.EXTERNAL.APP_EXCHANGE,
+  },
+  {
+    icon: ShieldCheckIcon,
+    title: 'SOC 2 Type II audited',
+    description:
+      'A-LIGN, an independent audit firm, verified that our security controls are designed well and operate effectively over time. The report is available under NDA.',
+    cta: 'Read about our SOC 2 report',
+    href: `${ROUTES.PRIVACY}#soc-2`,
+  },
+];
 
 export const VALUE_PILLARS: ValuePillar[] = [
   {
