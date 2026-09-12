@@ -14,12 +14,20 @@ import {
 } from '@jetstream/types';
 import { formatISO, fromUnixTime } from 'date-fns';
 import { isObject, isString } from 'lodash';
+import { createHash } from 'node:crypto';
 import Stripe from 'stripe';
 import * as subscriptionDbService from '../db/subscription.db';
 import * as teamDbService from '../db/team.db';
 import * as userDbService from '../db/user.db';
 
 const STRIPE_API_VERSION = '2026-08-26.dahlia';
+
+/**
+ * Upper bound on customers returned when resolving a user's customer by metadata. One is the norm;
+ * more than one only happens for users affected by the duplicate-customer bug, and a handful is plenty
+ * to pick the right one from.
+ */
+const CUSTOMER_SEARCH_LIMIT = 10;
 
 const stripe = ENV.STRIPE_API_KEY ? new Stripe(ENV.STRIPE_API_KEY, { apiVersion: STRIPE_API_VERSION }) : ({} as Stripe);
 
@@ -197,13 +205,43 @@ export async function fetchCustomerEntitlements({
   return await stripe.entitlements.activeEntitlements.list({ customer: customerId });
 }
 
-export async function fetchCustomerWithSubscriptionsByJetstreamId({ userId }: { userId: string }): Promise<Stripe.Customer> {
-  const customerWithSubscriptions = await stripe.customers.search({
+/**
+ * Finds the Stripe customer for a Jetstream user by the `userId` we stamp into customer metadata.
+ *
+ * Historically a bug in checkout could mint more than one customer per user, so this must cope with
+ * duplicates rather than taking an arbitrary first result. A customer carrying subscriptions wins,
+ * since that is the one money has moved through; ties break on the earliest created so that repeated
+ * calls always resolve to the same customer.
+ *
+ * Prefer `billingAccount.customerId` from our own database where it exists — that is authoritative.
+ * This is for the case where we have no record yet and need to avoid creating a second customer.
+ */
+export async function fetchCustomerWithSubscriptionsByJetstreamId({ userId }: { userId: string }): Promise<Stripe.Customer | null> {
+  const { data: customers } = await stripe.customers.search({
     query: `metadata["userId"]:"${userId}"`,
-    limit: 1,
-    expand: ['subscriptions', 'entitlements'],
+    limit: CUSTOMER_SEARCH_LIMIT,
+    expand: ['data.subscriptions'],
   });
-  return customerWithSubscriptions.data[0];
+
+  if (customers.length === 0) {
+    return null;
+  }
+
+  if (customers.length > 1) {
+    logger.warn(
+      { userId, customerIds: customers.map(({ id }) => id) },
+      'Multiple Stripe customers found for one user - resolving to the best match',
+    );
+  }
+
+  return customers.reduce((best, candidate) => {
+    const bestHasSubscriptions = (best.subscriptions?.data.length ?? 0) > 0;
+    const candidateHasSubscriptions = (candidate.subscriptions?.data.length ?? 0) > 0;
+    if (bestHasSubscriptions !== candidateHasSubscriptions) {
+      return candidateHasSubscriptions ? candidate : best;
+    }
+    return candidate.created < best.created ? candidate : best;
+  });
 }
 
 export async function getUserFacingStripeCustomer({ customerId }: { customerId: string }): Promise<StripeUserFacingCustomer | null> {
@@ -255,23 +293,78 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
   return customerWithSubscriptions;
 }
 
+function hashForIdempotencyKey(...parts: Maybe<string>[]): string {
+  return createHash('sha256')
+    .update(parts.map((part) => part ?? '').join('\u0000'))
+    .digest('hex')
+    .slice(0, 16);
+}
+
+/**
+ * Resolves the Stripe customer to use for a user, creating one only when they genuinely have none.
+ *
+ * Checkout used to call `createCustomer` unconditionally whenever our database held no billing account,
+ * so every visit to the upgrade button minted another customer. The search closes the long tail of
+ * repeat visits; the idempotency key inside `createCustomer` closes the seconds-apart double submission
+ * that the search cannot see, because Stripe's search index lags writes by up to a minute.
+ */
+export async function findOrCreateCustomer({
+  user,
+  type,
+}: {
+  user: Pick<UserProfile, 'id' | 'name' | 'email'>;
+  type: 'TEAM' | 'USER';
+}): Promise<Stripe.Customer> {
+  const existingCustomer = await fetchCustomerWithSubscriptionsByJetstreamId({ userId: user.id }).catch((ex) => {
+    // A search outage must not block checkout; falling through to create is the pre-existing behaviour
+    // and the idempotency key still prevents the duplicate that prompted this.
+    logger.warn({ userId: user.id, ...getErrorMessageAndStackObj(ex) }, 'Unable to search for an existing Stripe customer');
+    return null;
+  });
+
+  if (existingCustomer && !existingCustomer.deleted) {
+    logger.info({ userId: user.id, customerId: existingCustomer.id }, 'Reusing existing Stripe customer');
+    if (type === 'TEAM') {
+      await ensureBankTransferFundingInstructions(existingCustomer.id);
+    }
+    return existingCustomer;
+  }
+
+  return await createCustomer(user, type);
+}
+
+/**
+ * Team customers pay by bank transfer, which requires funding instructions on the customer. Stripe
+ * returns the existing instructions when they are already present, so this is safe to call for a
+ * reused customer that was first created under a personal plan.
+ */
+async function ensureBankTransferFundingInstructions(customerId: string) {
+  await stripe.customers.createFundingInstructions(customerId, {
+    currency: 'usd',
+    funding_type: 'bank_transfer',
+    bank_transfer: { type: 'us_bank_transfer' },
+  });
+}
+
 export async function createCustomer(
   user: Pick<UserProfile, 'id' | 'name' | 'email'>,
   type: 'TEAM' | 'USER',
 ): Promise<Stripe.Response<Stripe.Customer>> {
-  const customer = await stripe.customers.create({
-    email: user.email,
-    name: user.name,
-    metadata: { userId: user.id, teamId: null, type },
-  });
+  const customer = await stripe.customers.create(
+    {
+      email: user.email,
+      name: user.name,
+      metadata: { userId: user.id, teamId: null, type },
+    },
+    // Two clicks on the checkout button used to mint two customers. Stripe honours an idempotency key
+    // for 24 hours, so a repeated submission resolves to the customer the first one created. The key
+    // includes the request fields because Stripe rejects a reused key whose parameters changed, which
+    // would fail checkout outright - a profile edit between attempts intentionally yields a new key and
+    // falls back to the metadata search in `findOrCreateCustomer`.
+    { idempotencyKey: `customer-create:${type}:${user.id}:${hashForIdempotencyKey(user.email, user.name)}` },
+  );
   if (type === 'TEAM') {
-    await stripe.customers.createFundingInstructions(customer.id, {
-      currency: 'usd',
-      funding_type: 'bank_transfer',
-      bank_transfer: {
-        type: 'us_bank_transfer',
-      },
-    });
+    await ensureBankTransferFundingInstructions(customer.id);
   }
   return customer;
 }
@@ -296,13 +389,7 @@ export async function updateCustomerMetadata(
     metadata,
   });
   if (type === 'TEAM') {
-    await stripe.customers.createFundingInstructions(customer.id, {
-      currency: 'usd',
-      funding_type: 'bank_transfer',
-      bank_transfer: {
-        type: 'us_bank_transfer',
-      },
-    });
+    await ensureBankTransferFundingInstructions(customer.id);
   }
   return customer;
 }
@@ -717,9 +804,10 @@ export async function createCheckoutSession({
 }): Promise<Stripe.Response<Stripe.Checkout.Session>> {
   const urlParams = new URLSearchParams({ sessionId: 'CHECKOUT_SESSION_ID', type, priceId, userId: user.id, mode });
 
-  // Create customer if one does not exist
+  // Reuse the user's existing customer where there is one - creating unconditionally here is what
+  // produced duplicate customers for the same user.
   if (!customerId) {
-    const customer = await createCustomer(user, type);
+    const customer = await findOrCreateCustomer({ user, type });
     customerId = customer.id;
   }
 
