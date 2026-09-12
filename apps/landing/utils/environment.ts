@@ -23,6 +23,7 @@ export const ROUTES = {
     DOCS: 'https://docs.getjetstream.app',
     DOCS_PERMISSION_ANALYSIS: 'https://docs.getjetstream.app/permission-analysis',
     DOCS_DATA_ANALYSIS: 'https://docs.getjetstream.app/data-analysis',
+    APP_EXCHANGE: 'https://appexchange.salesforce.com/appxListingDetail?listingId=1a2b1a6e-013e-40b9-9113-3481282cb415',
     STATUS: 'https://status.getjetstream.app',
     SUPPORT_EMAIL: 'mailto:support@getjetstream.app',
     DISCORD: 'https://discord.gg/sfxd',

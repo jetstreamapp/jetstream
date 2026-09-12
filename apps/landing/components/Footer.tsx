@@ -45,6 +45,14 @@ export const Footer = ({ omitLinks = [] }: FooterProps) => (
           </Link>
           <p className="text-gray-500 text-base">Providing tools to help you get your job done faster.</p>
           <Soc2Badge className="inline-block" imageClassName="h-28 w-auto" />
+          <a
+            href={ROUTES.EXTERNAL.APP_EXCHANGE}
+            className="block text-base text-gray-500 hover:text-gray-900"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Find us on the Salesforce AppExchange &rarr;
+          </a>
         </div>
         <div className="mt-12 grid grid-cols-3 gap-8 xl:mt-0 xl:col-span-2">
           <div className="md:grid md:grid-cols-1 md:gap-8">

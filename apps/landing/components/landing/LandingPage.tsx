@@ -3,6 +3,7 @@ import { FooterCta } from './FooterCta';
 import { HeroSection } from './HeroSection';
 import { PlatformSection } from './PlatformSection';
 import { PricingPreview } from './PricingPreview';
+import { TrustSignals } from './TrustSignals';
 import { ValueProposition } from './ValueProposition';
 
 export const LandingPage = () => (
@@ -23,6 +24,7 @@ export const LandingPage = () => (
 
     <HeroSection />
     <ValueProposition />
+    <TrustSignals />
     <FeatureShowcase />
     <PlatformSection />
     <PricingPreview />
