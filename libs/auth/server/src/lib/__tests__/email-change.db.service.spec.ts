@@ -25,6 +25,7 @@ const prismaMock = vi.hoisted(() => ({
     updateMany: vi.fn(),
   },
   passwordResetToken: { deleteMany: vi.fn() },
+  blockedEmailDomain: { findMany: vi.fn() },
   $executeRaw: vi.fn(),
   $transaction: vi.fn(),
 }));
@@ -76,6 +77,7 @@ beforeEach(() => {
   prismaMock.emailChangeRequest.findFirst.mockResolvedValue(null);
   prismaMock.user.findFirst.mockResolvedValue(null);
   prismaMock.authIdentity.findFirst.mockResolvedValue(null);
+  prismaMock.blockedEmailDomain.findMany.mockResolvedValue([]);
   authDbMock.getLoginConfiguration.mockResolvedValue(null);
 });
 
@@ -100,6 +102,17 @@ describe('assertEmailChangeAllowedOrThrow', () => {
   it('should reject changing to the address already on the account', async () => {
     mockUser();
     await expect(assertEmailChangeAllowedOrThrow({ userId: USER_ID, newEmail: CURRENT_EMAIL.toUpperCase() })).rejects.toThrow(
+      EmailChangeNotAllowed,
+    );
+  });
+
+  it('should reject changing to a blocked (disposable) email domain', async () => {
+    // Otherwise the registration-time block is trivially sidestepped: register with a real address,
+    // then change to a burner.
+    mockUser();
+    prismaMock.blockedEmailDomain.findMany.mockResolvedValue([{ domain: 'burner.example', blocked: true }]);
+
+    await expect(assertEmailChangeAllowedOrThrow({ userId: USER_ID, newEmail: 'someone@burner.example' })).rejects.toThrow(
       EmailChangeNotAllowed,
     );
   });

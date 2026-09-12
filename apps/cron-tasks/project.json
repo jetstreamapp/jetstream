@@ -17,6 +17,7 @@
         "bundle": true,
         "main": "apps/cron-tasks/src/main.ts",
         "additionalEntryPoints": [
+          "apps/cron-tasks/src/blocked-email-domain-sync.ts",
           "apps/cron-tasks/src/clean-up-user-sync-history.ts",
           "apps/cron-tasks/src/geo-ip-api-updater.ts",
           "apps/cron-tasks/src/geo-ip-db-updater.ts",
