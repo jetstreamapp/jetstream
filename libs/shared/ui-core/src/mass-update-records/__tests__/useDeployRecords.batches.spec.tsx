@@ -102,20 +102,25 @@ describe('useDeployRecords batch submission', () => {
     expect(deployResults.processingErrors).toHaveLength(2);
   });
 
-  it('closes the job on the final batch only', async () => {
+  /**
+   * The close rides on its own request rather than the final batch: `addBatchToJob` swallows a close
+   * failure so the accepted batch survives, which makes a failed close on that path indistinguishable
+   * from a successful one.
+   */
+  it('closes the job with a separate request rather than on the final batch', async () => {
     await deployAndGetResults();
 
     expect(bulkApiAddBatchToJobMock).toHaveBeenCalledTimes(3);
-    expect(bulkApiAddBatchToJobMock.mock.calls.map(([, , , closeJob]) => closeJob)).toEqual([false, false, true]);
-    // The final batch already carried `closeJob`, so no separate close is needed
-    expect(bulkApiCloseJobMock).not.toHaveBeenCalled();
+    expect(bulkApiAddBatchToJobMock.mock.calls.map(([, , , closeJob]) => closeJob)).toEqual([undefined, undefined, undefined]);
+    expect(bulkApiCloseJobMock).toHaveBeenCalledTimes(1);
+    expect(bulkApiCloseJobMock).toHaveBeenCalledWith(org, 'job-1');
   });
 
   /**
-   * Only the final batch carries `closeJob`, so stopping before it would otherwise strand the job in
-   * `Open` and hold one of the org's job slots until Salesforce expires it.
+   * Stopping part way through would otherwise strand the job in `Open`, holding one of the org's job
+   * slots until Salesforce expires it.
    */
-  it('closes the job when it stops early and no batch carried the close flag', async () => {
+  it('closes the job when it stops early on a fatal error', async () => {
     bulkApiAddBatchToJobMock.mockImplementationOnce(async () => {
       throw new Error(JOB_CLOSED_ERROR);
     });

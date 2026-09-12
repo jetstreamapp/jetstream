@@ -142,19 +142,13 @@ export function useDeployRecords(
       }
 
       let currItem = 0;
-      // Only the final batch carries `closeJob`, so any path that never reaches it - stopping early, the
-      // final batch failing, or the host unmounting mid-load - leaves the job Open, holding an org job
-      // slot until Salesforce expires it. Tracked here so the cleanup below knows whether one was sent.
-      let jobClosed = false;
       try {
         for (const batch of batches) {
           try {
             if (!isMounted.current) {
               return;
             }
-            const isLastBatch = currItem === batches.length - 1;
-            const batchResult = await bulkApiAddBatchToJob(org, jobId, batch.csv, isLastBatch);
-            jobClosed = jobClosed || isLastBatch;
+            const batchResult = await bulkApiAddBatchToJob(org, jobId, batch.csv);
             deployResults.batchIdToIndex = { ...deployResults.batchIdToIndex, [batchResult.id]: currItem };
             deployResults.jobInfo = { ...deployResults.jobInfo };
             deployResults.jobInfo.batches = deployResults.jobInfo.batches || [];
@@ -187,16 +181,17 @@ export function useDeployRecords(
           }
         }
       } finally {
+        // Closing is always its own request rather than riding along on the final batch. Piggybacking it
+        // makes a silent close failure indistinguishable from success, and every path that stops before
+        // the final batch - a fatal error, or the host unmounting mid-load - would skip it entirely and
+        // leave the job Open, holding an org job slot until Salesforce expires it.
+        //
         // Fire and forget, matching the load-records path: the user is already being shown results and an
         // orphaned job is our problem, not theirs. A job Salesforce has already closed rejects this, which
         // is exactly the case that got us here, so the rejection is expected and only worth a log line.
-        // In a `finally` so the unmount `return` above is covered too - that path abandons the load part
-        // way through and would otherwise strand the job.
-        if (!jobClosed) {
-          bulkApiCloseJob(org, jobId).catch((ex) => {
-            logger.warn('Error closing job', ex);
-          });
-        }
+        bulkApiCloseJob(org, jobId).catch((ex) => {
+          logger.warn('Error closing job', ex);
+        });
       }
 
       deployResults.status = 'In Progress';
