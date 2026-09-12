@@ -142,6 +142,13 @@ const createCheckoutSessionHandler = createRoute(
         productionOrgId,
       });
     } else {
+      // The billing page disables personal plans for team members; hold the same line here so a direct API call
+      // cannot add a personal subscription alongside the team's.
+      if (teamMember?.status === 'ACTIVE') {
+        throw new UserFacingError(
+          'You are currently part of a team, contact support if you would like to downgrade to an individual plan.',
+        );
+      }
       session = await stripeService.createCheckoutSession({
         mode: 'subscription',
         priceId,
