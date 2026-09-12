@@ -41,6 +41,24 @@ const tiers = [
     description: 'Perfect for individual users',
     features: [
       'Everything in Free plan',
+      <a
+        key="permission-analysis"
+        href={ROUTES.EXTERNAL.DOCS_PERMISSION_ANALYSIS}
+        target="_blank"
+        rel="noreferrer"
+        className="text-cyan-500 hover:underline"
+      >
+        Permission Analysis
+      </a>,
+      <a
+        key="field-usage-analysis"
+        href={ROUTES.EXTERNAL.DOCS_DATA_ANALYSIS}
+        target="_blank"
+        rel="noreferrer"
+        className="text-cyan-500 hover:underline"
+      >
+        Field Usage Analysis
+      </a>,
       <Link key="desktop-application" href={ROUTES.DESKTOP} className="text-cyan-500 hover:underline">
         Desktop Application
       </Link>,

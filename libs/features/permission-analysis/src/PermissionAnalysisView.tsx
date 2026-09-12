@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal, queryWithCache } from '@jetstream/shared/data';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { escapeSoqlString, formatNumber } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, gzipDecode, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import type { AsyncJob, PermissionExportAnalysisJob, PermissionExportFullResult } from '@jetstream/types';
@@ -15,6 +16,7 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
   Tooltip,
+  ViewDocsLink,
 } from '@jetstream/ui';
 import { PermissionAnalysisHistoryModal, RequireMetadataApiBanner, jobsState } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
@@ -991,6 +993,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             `}
           >
             <ToolbarItemActions>
+              <ViewDocsLink className="slds-m-right_small slds-align-middle" path={APP_ROUTES.PERMISSION_ANALYSIS.DOCS} textReset />
               <Tooltip ariaRole="label" content="View past permission export runs for this org">
                 <button
                   type="button"

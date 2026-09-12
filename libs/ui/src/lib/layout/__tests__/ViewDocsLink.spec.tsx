@@ -20,6 +20,20 @@ describe('ViewDocsLink', () => {
     expect(screen.getByRole('link', { name: /documentation/i }).classList.contains('slds-text-body_regular')).toEqual(false);
   });
 
+  test('Custom label replaces the default link text', async () => {
+    render(<ViewDocsLink path="/permission-analysis#what-jetstream-checks-for" label="What do these codes mean?" />);
+
+    const link = screen.getByRole('link', { name: 'What do these codes mean?' });
+    expect(link.getAttribute('href')).toEqual('https://docs.getjetstream.app/permission-analysis#what-jetstream-checks-for');
+    expect(screen.queryByRole('link', { name: /^documentation$/i })).toBeNull();
+  });
+
+  test('Nothing rendered when path is undefined', async () => {
+    render(<ViewDocsLink path={undefined} />);
+
+    expect(screen.queryByRole('link')).toBeNull();
+  });
+
   test('Nothing rendered if host is invalid', async () => {
     const path = 'https://getjetstream.app/deploy-fields';
     render(<ViewDocsLink path={path} />);

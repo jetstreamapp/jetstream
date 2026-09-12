@@ -29,6 +29,15 @@ Jetstream makes it easy to view and modify object and field level security acros
 
 To get started, choose at least one profile and/or permission set and select one or more objects to view permissions for.
 
+:::tip[Looking for an audit instead of an edit?]
+
+[Permission Analysis](/permission-analysis) is the read-only companion to this page. It scans the profiles and
+permission sets you pick for over-access, dangerous system permissions, field security that is not backed by
+object access, and unused permission sets, then lets you export any of it to Excel, CSV or JSON. Jump straight
+there with the **Open in Permission Analysis** button on this screen.
+
+:::
+
 ## Adjusting Permissions
 
 By default, field permissions will be shown. You can toggle the Object Permissions by clicking on the **Object Permissions** tab.
@@ -60,3 +69,8 @@ If you apply a filter to limit which fields are shown, only the non-filtered fie
 Click the **Edit Row** link next to the field to apply a specific permission to all profiles and permission sets for that row.
 
 Click the **Edit All** link to apply a change to all profiles and permission sets for the non-filtered fields.
+
+## See also
+
+- [Permission Analysis](/permission-analysis) — read-only audit of object, field, tab and system permissions with automatic issue detection and export.
+- [Data Analysis (Field Usage)](/data-analysis) — find unused fields and measure data coverage across your objects.

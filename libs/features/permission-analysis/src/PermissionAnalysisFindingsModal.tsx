@@ -1,8 +1,14 @@
 import { css } from '@emotion/react';
-import { ColumnWithFilter, Grid, Modal } from '@jetstream/ui';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
+import { ColumnWithFilter, Grid, Modal, ViewDocsLink } from '@jetstream/ui';
 import { GridDownloadButton } from '@jetstream/ui-core';
 import { FunctionComponent, ReactNode } from 'react';
 import { getFindingCodeDisplayParts, getFindingLabelForCode, type PermissionAnalysisFinding } from './permission-export-result-view';
+
+/** Deep link to the issue code reference table in the docs. Undefined only if the route ever loses its DOCS entry. */
+const ISSUE_CODE_DOCS_URL = APP_ROUTES.PERMISSION_ANALYSIS.DOCS
+  ? `${APP_ROUTES.PERMISSION_ANALYSIS.DOCS}#what-jetstream-checks-for`
+  : undefined;
 
 function severityLabelForFinding(finding: PermissionAnalysisFinding): string {
   const normalized = String(finding.severity ?? '').toLowerCase();
@@ -142,7 +148,15 @@ export const PermissionAnalysisFindingsModal: FunctionComponent<PermissionAnalys
           text-align: left;
         `}
       >
-        <div className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">{summaryLine}</div>
+        <div className="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-bottom_small">
+          <span className="slds-text-body_small slds-text-color_weak">{summaryLine}</span>
+          <ViewDocsLink
+            className="slds-text-body_small slds-shrink-none slds-m-left_small"
+            path={ISSUE_CODE_DOCS_URL}
+            label="What do these codes mean?"
+            textReset
+          />
+        </div>
         <div
           className="slds-m-bottom_none"
           css={css`

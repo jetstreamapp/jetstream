@@ -19,7 +19,7 @@ export const DataAnalysis: FunctionComponent = () => {
     return <Navigate to={APP_ROUTES.HOME.ROUTE} replace />;
   }
   if (!hasAnalysisToolsAccess) {
-    return <AnalysisToolsPaywall featureLabel="Field Usage Analysis" />;
+    return <AnalysisToolsPaywall featureLabel="Field Usage Analysis" docsPath={APP_ROUTES.DATA_ANALYSIS.DOCS} />;
   }
   return <Outlet />;
 };

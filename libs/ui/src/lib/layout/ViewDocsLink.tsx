@@ -6,10 +6,10 @@ import Icon from '../widgets/Icon';
 const allowedHosts = ['docs.getjetstream.app'];
 const DOCS_BASE_PATH = 'https://docs.getjetstream.app';
 
-function getSanitizedDocsUrl(path: string): string | null {
+function getSanitizedDocsUrl(path: string | undefined): string | null {
   try {
     if (!path) {
-      return path;
+      return null;
     }
     const url = new URL(path, DOCS_BASE_PATH);
     if (!allowedHosts.includes(url.host)) {
@@ -25,11 +25,14 @@ function getSanitizedDocsUrl(path: string): string | null {
 
 export interface ViewDocsLinkProps {
   className?: string;
-  path: string;
+  /** Absolute docs URL or a path relative to the docs site. Renders nothing when omitted, so optional `APP_ROUTES.*.DOCS` values can be passed straight through. */
+  path: string | undefined;
   textReset?: boolean;
+  /** Link text — override when "Documentation" is too vague for the context, e.g. deep links to a specific section. */
+  label?: string;
 }
 
-export const ViewDocsLink: FunctionComponent<ViewDocsLinkProps> = ({ className, path, textReset }) => {
+export const ViewDocsLink: FunctionComponent<ViewDocsLinkProps> = ({ className, path, textReset, label = 'Documentation' }) => {
   const href = useMemo(() => getSanitizedDocsUrl(path), [path]);
   if (!href) {
     return null;
@@ -37,7 +40,7 @@ export const ViewDocsLink: FunctionComponent<ViewDocsLinkProps> = ({ className, 
 
   return (
     <a href={href} target="_blank" rel="noreferrer" className={classNames('slds-grid', { 'slds-text-body_regular': textReset }, className)}>
-      Documentation
+      {label}
       <Icon type="utility" icon="new_window" className="slds-icon slds-text-link slds-icon_xx-small slds-m-left_xx-small" />
     </a>
   );

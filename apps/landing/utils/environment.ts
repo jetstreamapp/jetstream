@@ -21,6 +21,8 @@ export const ROUTES = {
   PRICING: '/pricing',
   EXTERNAL: {
     DOCS: 'https://docs.getjetstream.app',
+    DOCS_PERMISSION_ANALYSIS: 'https://docs.getjetstream.app/permission-analysis',
+    DOCS_DATA_ANALYSIS: 'https://docs.getjetstream.app/data-analysis',
     STATUS: 'https://status.getjetstream.app',
     SUPPORT_EMAIL: 'mailto:support@getjetstream.app',
     DISCORD: 'https://discord.gg/sfxd',
