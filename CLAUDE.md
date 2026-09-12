@@ -103,6 +103,21 @@ pnpm sf:api query "SELECT Id, Name FROM ApexClass" --tooling
 
 This targets a personal dev org, so it is safe to create and modify records there.
 
+### Syncing local files across worktrees
+
+Gitignored local files (`.env`, the signing assets in `build-resources/`) do not travel with git, so
+new worktrees start without them and edits in one worktree leave the rest stale. `pnpm worktree:sync`
+copies them from the worktree you are in to the other registered worktrees, printing a
+create/overwrite/unchanged plan and asking for confirmation before writing. Files git tracks are never
+copied, and a target that is a symlink is skipped rather than written through.
+
+```bash
+pnpm worktree:sync                      # .env + build-resources -> every other worktree
+pnpm worktree:sync .env --diff          # review the drift before overwriting
+pnpm worktree:sync --to workspace-8     # seed a newly created worktree
+pnpm worktree:sync --from jetstream     # pull from the main checkout instead of pushing
+```
+
 ### Writing documentation (apps/docs)
 
 Docusaurus 3 admonitions must never have a space-separated title. `:::tip Some Title` silently renders

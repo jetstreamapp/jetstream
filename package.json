@@ -23,6 +23,7 @@
   "scripts": {
     "preinstall": "node scripts/check-package-manager.mjs",
     "init:project": "zx ./scripts/init-project.mjs",
+    "worktree:sync": "node scripts/sync-worktree-files.mjs",
     "update:pnpm": "node scripts/update-pnpm.mjs",
     "release-notes:generate": "zx ./scripts/generate-release-notes.ts",
     "release-notes:context": "node ./scripts/release-notes-context.mjs",
