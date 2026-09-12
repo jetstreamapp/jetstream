@@ -107,11 +107,19 @@ export const updateSubscriptionStateForCustomer = async ({
   subscriptions: Stripe.Subscription[];
 }) => {
   const priceIds = subscriptions.flatMap((subscription) => subscription.items.data.map((item) => item.price.id));
+  const subscriptionIds = subscriptions.map(({ id }) => id);
 
   await prisma.$transaction([
-    // Delete all subscriptions that are no longer active in Stripe
+    // Delete all subscriptions that are no longer active in Stripe.
+    // Repointing a billing account cascades the previous customer's rows onto this `customerId` while they keep
+    // their original `subscriptionId`, so matching on price alone stranded them whenever both customers were on
+    // the same price. A row is stale when either identifier is no longer current.
     prisma.subscription.deleteMany({
-      where: { userId, customerId, priceId: { notIn: priceIds } },
+      where: {
+        userId,
+        customerId,
+        OR: [{ subscriptionId: { notIn: subscriptionIds } }, { priceId: { notIn: priceIds } }],
+      },
     }),
     // Create/Update all current subscriptions from Stripe
     ...subscriptions.flatMap((subscription) =>
