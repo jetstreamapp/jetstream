@@ -1,5 +1,17 @@
 # Changelog
 
+## [10.19.0](https://github.com/jetstreamapp/jetstream/compare/v10.18.0...v10.19.0) (2026-09-12)
+
+### Features
+
+- **analysis-tools:** explain Permission Analysis before asking users to upgrade ([63c5b86](https://github.com/jetstreamapp/jetstream/commit/63c5b863206d633d0f2f047a6c8ea1a01565f409))
+- **landing:** add the SOC 2 Type II badge and report availability ([9e387ab](https://github.com/jetstreamapp/jetstream/commit/9e387ab74e70658262e6ff4e0a523ccbf5e4a02a))
+
+### Bug Fixes
+
+- **analysis-tools:** correct overstated claims in Permission Analysis copy ([4766aa3](https://github.com/jetstreamapp/jetstream/commit/4766aa31e70096e21b84724a7876ab97892bec08))
+- **analysis-tools:** correct Permission Analysis requirements and export claims ([1cc2e6f](https://github.com/jetstreamapp/jetstream/commit/1cc2e6f1240eb0b3b5be78bf90aaf6be16a8514b))
+
 ## [10.18.0](https://github.com/jetstreamapp/jetstream/compare/v10.17.0...v10.18.0) (2026-09-07)
 
 ### Features
