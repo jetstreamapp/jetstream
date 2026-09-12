@@ -28,6 +28,8 @@ import * as stripeService from './stripe.service';
 
 /** How long a previewed proration date stays valid; matches the copy shown with the preview. */
 const PREVIEW_VALIDITY_MS = 15 * 60 * 1000;
+/** Tolerance for clock drift between the instance that issued the preview and the one committing it */
+const PRORATION_CLOCK_SKEW_MS = 60 * 1000;
 
 /**
  * Everything a seat change needs from Stripe and the billing account. Loading it rejects every team
@@ -232,9 +234,16 @@ export async function previewSeatChange({ teamId, seats }: { teamId: string; sea
   };
 }
 
+/**
+ * The proration date is echoed back from a preview this server issued, so it can only be in the past.
+ * A future one would let a caller push Stripe's proration window forward and pay less for seats they
+ * receive immediately, so it is bounded on both sides.
+ */
 function assertProrationDateIsFresh(prorationDate: number | null | undefined, context: SeatContext): asserts prorationDate is number {
-  const isExpired = !prorationDate || Date.now() - prorationDate * 1000 > PREVIEW_VALIDITY_MS;
-  const isOutsideCurrentPeriod = !!prorationDate && prorationDate < context.item.current_period_start;
+  const ageMs = prorationDate ? Date.now() - prorationDate * 1000 : Number.POSITIVE_INFINITY;
+  const isExpired = ageMs > PREVIEW_VALIDITY_MS || ageMs < -PRORATION_CLOCK_SKEW_MS;
+  const isOutsideCurrentPeriod =
+    !!prorationDate && (prorationDate < context.item.current_period_start || prorationDate > context.item.current_period_end);
   if (isExpired || isOutsideCurrentPeriod) {
     throw seatError('PREVIEW_EXPIRED', 'The preview has expired. Review the updated preview and try again.');
   }

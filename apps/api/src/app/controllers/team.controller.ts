@@ -831,7 +831,7 @@ const updateTeamMemberStatusAndRole = createRoute(
 
     // This endpoint carries both reactivations and role changes, and only the member's current status
     // tells them apart, so the audit trail would otherwise label every block a reactivation
-    const currentMember = await teamDb.findMemberStatus({ teamId, userId });
+    const currentMember = await teamDb.findMemberRoleAndStatus({ teamId, userId });
     const isReactivation = currentMember?.status === TEAM_MEMBER_STATUS_INACTIVE;
 
     const { team, previousMember, allSessionsRevoked } = await withSeatBlockAudit(
@@ -842,7 +842,8 @@ const updateTeamMemberStatusAndRole = createRoute(
         attemptedAction: isReactivation ? 'REACTIVATE' : 'ROLE_CHANGE',
         resource: AuditLogResource.TEAM_MEMBER,
         resourceId: userId,
-        role: role || TEAM_MEMBER_ROLE_MEMBER,
+        // Reactivation can leave the role untouched, so fall back to the role the member already holds
+        role: role || currentMember?.role || TEAM_MEMBER_ROLE_MEMBER,
         targetUserId: userId,
       },
       () => teamService.updateTeamMemberStatusAndRole({ teamId, userId, status, role, runningUserId: user.id }),

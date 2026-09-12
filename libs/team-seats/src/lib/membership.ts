@@ -22,11 +22,11 @@ export async function addMemberFromInvitation(
   { teamId, userId, invitation }: { teamId: string; userId: string; invitation: AcceptedInvitation },
 ): Promise<{ role: string; status: string }> {
   await lockTeamForSeatChange(tx, teamId);
-  // The caller read the invitation before taking the lock. Re-read it here so a role change in the
-  // meantime cannot slip a billable member past the seat check on the strength of a stale snapshot,
-  // and so a revoked invitation cannot still grant its privileges.
-  const { role, features } = await tx.teamMemberInvitation.findUniqueOrThrow({
-    where: { id: invitation.id },
+  // The caller read the invitation before taking the lock. Re-read it here, expiry included, so one
+  // revoked, re-roled or expired in the meantime cannot still grant its privileges or its seat: an
+  // expired invitation stops reserving a seat, so accepting it would push the team past its cap.
+  const { role, features } = await tx.teamMemberInvitation.findFirstOrThrow({
+    where: { id: invitation.id, expiresAt: { gte: new Date() } },
     select: { role: true, features: true },
   });
   if (isBillableRole(role)) {

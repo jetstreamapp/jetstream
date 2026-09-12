@@ -1,6 +1,14 @@
 import { ENV, getLogger } from '@jetstream/api-config';
 import { refreshSessionUser } from '@jetstream/auth/server';
-import { CheckoutSessionRequestSchema, STRIPE_PRICE_KEYS, TeamMemberRole, TeamMemberRoleSchema, UserProfileUi } from '@jetstream/types';
+import {
+  CheckoutSessionRequestSchema,
+  STRIPE_PRICE_KEYS,
+  TEAM_MEMBER_STATUS_ACTIVE,
+  TEAM_STATUS_ACTIVE,
+  TeamMemberRole,
+  TeamMemberRoleSchema,
+  UserProfileUi,
+} from '@jetstream/types';
 import Stripe from 'stripe';
 import { z } from 'zod';
 import * as subscriptionDbService from '../db/subscription.db';
@@ -117,7 +125,11 @@ const createCheckoutSessionHandler = createRoute(
     let session: Stripe.Response<Stripe.Checkout.Session> | null = null;
 
     if (type === 'TEAM') {
-      if (team && teamMember?.role !== 'ADMIN' && teamMember?.role !== 'BILLING') {
+      // Membership is returned regardless of status, so a deactivated admin would otherwise keep the
+      // ability to open checkout against the team's Stripe customer
+      const isActiveTeamMember = team?.status === TEAM_STATUS_ACTIVE && teamMember?.status === TEAM_MEMBER_STATUS_ACTIVE;
+      const hasBillingRole = teamMember?.role === 'ADMIN' || teamMember?.role === 'BILLING';
+      if (team && (!isActiveTeamMember || !hasBillingRole)) {
         throw new UserFacingError(`You do not have permission to create a billing session for this team`);
       }
       if (!seats) {
@@ -144,10 +156,10 @@ const createCheckoutSessionHandler = createRoute(
       session = await stripeService.createCheckoutSession({
         mode: 'subscription',
         priceId,
-        // An existing team already bills against its own customer; using the buyer's personal customer
-        // would put the subscription somewhere the team's seat sync never looks.
+        // An existing team bills against its own customer, and a team without one gets a dedicated
+        // TEAM customer rather than borrowing the buyer's personal billing.
         // Customer will be created if it doesn't exist
-        customerId: team?.billingAccount?.customerId ?? user.billingAccount?.customerId,
+        customerId: team ? team.billingAccount?.customerId : user.billingAccount?.customerId,
         user,
         type: 'TEAM',
         teamId: team?.id,

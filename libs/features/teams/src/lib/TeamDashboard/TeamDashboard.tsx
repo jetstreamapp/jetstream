@@ -43,7 +43,7 @@ import { Link } from 'react-router';
 import { TeamSSOConfiguration } from './sso-configuration/TeamSSOConfiguration';
 import { TeamMembersTable } from './team-members/TeamMembersTable';
 import { getSeatBannerState } from './team-seats/team-seats.utils';
-import { TeamSeats } from './team-seats/TeamSeats';
+import { PAST_DUE_SEATS_HINT, TeamSeats } from './team-seats/TeamSeats';
 import { TeamSeatsManageModal } from './team-seats/TeamSeatsManageModal';
 import { TeamAuditLogModal } from './TeamAuditLogModal';
 import { TeamDomainConfiguration } from './TeamDomainConfiguration';
@@ -395,6 +395,8 @@ export function TeamDashboard() {
                       <button
                         type="button"
                         className="slds-button slds-button_neutral slds-m-left_small"
+                        disabled={isPastDue}
+                        title={isPastDue ? PAST_DUE_SEATS_HINT : undefined}
                         onClick={() => handleTeamGlobalAction('manage-seats')}
                       >
                         Manage Seats
