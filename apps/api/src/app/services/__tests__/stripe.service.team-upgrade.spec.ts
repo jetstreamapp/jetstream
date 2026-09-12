@@ -53,7 +53,8 @@ vi.mock('../../db/team.db', () => ({
 }));
 vi.mock('../../db/user.db', () => ({
   findById: mocks.findUserById,
-  upsertBillingAccount: vi.fn(async () => ({})),
+  claimBillingAccountForCustomer: vi.fn(async () => true),
+  findBillingAccountWithSubscriptionsByUserId: vi.fn(async () => null),
   findBillingAccountByCustomerId: vi.fn(),
 }));
 
