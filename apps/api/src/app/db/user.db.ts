@@ -362,12 +362,19 @@ export async function findBillingAccountByCustomerId({ customerId }: { customerI
   return billingAccount;
 }
 
+/**
+ * A user has at most one billing account (`userId` is unique), so this keys on `userId` alone.
+ *
+ * Keying on the `(userId, customerId)` pair instead meant that a second customer for the same user fell
+ * through to a create and hit the unique violation on `userId`. That aborted
+ * `saveSubscriptionFromCompletedSession`, so a subscription the user had already paid for was never
+ * recorded and the Stripe webhook retried the event forever. Pointing the account at the customer the
+ * payment actually belongs to is the recoverable outcome.
+ */
 export async function upsertBillingAccount({ userId, customerId }: { userId: string; customerId: string }) {
-  const existingCustomer = await prisma.billingAccount.findUnique({ where: { uniqueCustomer: { customerId, userId } } });
-  if (existingCustomer) {
-    return existingCustomer;
-  }
-  return await prisma.billingAccount.create({
-    data: { customerId, userId },
+  return await prisma.billingAccount.upsert({
+    where: { userId },
+    create: { customerId, userId },
+    update: { customerId },
   });
 }

@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { updateUser } from '../user.db';
+import { updateUser, upsertBillingAccount } from '../user.db';
 
 const prismaMock = vi.hoisted(() => ({
   user: {
     findUniqueOrThrow: vi.fn(),
     update: vi.fn(),
+  },
+  billingAccount: {
+    upsert: vi.fn(),
   },
 }));
 
@@ -61,5 +64,25 @@ describe('updateUser security regressions', () => {
         data: expect.objectContaining({ name }),
       }),
     );
+  });
+});
+
+describe('upsertBillingAccount', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prismaMock.billingAccount.upsert.mockResolvedValue({ userId: 'user-1', customerId: 'cus_new' });
+  });
+
+  // Regression: this keyed on the (userId, customerId) pair and then fell through to a create, which hit
+  // the unique violation on userId whenever a second Stripe customer existed for the same user. That
+  // aborted checkout completion, so a paid subscription went unrecorded.
+  it('keys on userId alone so a different customer repoints the account instead of colliding', async () => {
+    await upsertBillingAccount({ userId: 'user-1', customerId: 'cus_new' });
+
+    expect(prismaMock.billingAccount.upsert).toHaveBeenCalledWith({
+      where: { userId: 'user-1' },
+      create: { customerId: 'cus_new', userId: 'user-1' },
+      update: { customerId: 'cus_new' },
+    });
   });
 });
