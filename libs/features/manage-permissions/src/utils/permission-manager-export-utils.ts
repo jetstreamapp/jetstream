@@ -23,6 +23,15 @@ import { FIELD_AUDIT_COLUMNS, getFieldAuditExportHeaders } from './permission-ma
  */
 const AUDIT_DATE_EXCEL_FORMAT = 'yyyy-mm-dd hh:mm:ss';
 
+/**
+ * Every worksheet here is built in dense mode. Without it SheetJS stores each cell as its own property on the
+ * worksheet object, and V8 caps a single object near 8.4 million enumerable properties - a permission export
+ * covering many fields across many profiles and permission sets blows past that and throws
+ * `RangeError: Too many properties to enumerate`. Dense mode holds the cells in a 2D array instead and writes
+ * byte identical output.
+ */
+const WORKSHEET_OPTIONS = { dense: true } as const;
+
 type PermissionExportColumn =
   | ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>
   | ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>
@@ -185,7 +194,7 @@ function generateObjectWorksheet(columns: PermissionExportColumn[], rows: Permis
     excelRows.push(currRow);
   });
 
-  const worksheet = XLSX.utils.aoa_to_sheet(excelRows);
+  const worksheet = XLSX.utils.aoa_to_sheet(excelRows, WORKSHEET_OPTIONS);
   worksheet['!cols'] = getMaxWidthFromColumnContent(excelRows, new Set([0]));
   worksheet['!merges'] = merges;
   return worksheet;
@@ -231,7 +240,7 @@ export function generateFieldWorksheet(columns: PermissionExportColumn[], rows: 
     excelRows.push(currRow);
   });
 
-  const worksheet = XLSX.utils.aoa_to_sheet(excelRows, { cellDates: true, dateNF: AUDIT_DATE_EXCEL_FORMAT });
+  const worksheet = XLSX.utils.aoa_to_sheet(excelRows, { ...WORKSHEET_OPTIONS, cellDates: true, dateNF: AUDIT_DATE_EXCEL_FORMAT });
   // Column widths are measured from the stringified value, and a Date stringifies to the full js date string,
   // so the date cells are measured against how Excel will actually render them
   worksheet['!cols'] = getMaxWidthFromColumnContent(
@@ -279,7 +288,7 @@ function generateTabVisibilityWorksheet(columns: PermissionExportColumn[], rows:
     excelRows.push(currRow);
   });
 
-  const worksheet = XLSX.utils.aoa_to_sheet(excelRows);
+  const worksheet = XLSX.utils.aoa_to_sheet(excelRows, WORKSHEET_OPTIONS);
   worksheet['!cols'] = getMaxWidthFromColumnContent(excelRows, new Set([0]));
   worksheet['!merges'] = merges;
   return worksheet;
@@ -416,7 +425,7 @@ function generateSystemPermissionWorksheet(columns: PermissionExportColumn[], ro
     excelRows.push(currRow);
   });
 
-  const worksheet = XLSX.utils.aoa_to_sheet(excelRows);
+  const worksheet = XLSX.utils.aoa_to_sheet(excelRows, WORKSHEET_OPTIONS);
   worksheet['!cols'] = getMaxWidthFromColumnContent(excelRows, new Set([0, 1]));
   return worksheet;
 }
