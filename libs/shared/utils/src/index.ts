@@ -1,3 +1,4 @@
+export * from './lib/bulk-api-errors';
 export * from './lib/bulk-result-rows';
 export * from './lib/compression';
 export * from './lib/custom-field-tooling-names';

@@ -8,7 +8,14 @@ import {
   sobjectUploadBinaryUpload,
 } from '@jetstream/shared/data';
 import { generateCsv } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorStack, getHttpMethod, mimeFromExtension, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import {
+  getErrorMessage,
+  getErrorStack,
+  getHttpMethod,
+  isFatalBulkApiError,
+  mimeFromExtension,
+  splitArrayToMaxSize,
+} from '@jetstream/shared/utils';
 import {
   BulkJobBatchInfo,
   BulkJobWithBatches,
@@ -56,17 +63,6 @@ export async function prepareData(payloadData: PrepareDataPayload, progressCallb
   return preparedData;
 }
 
-// Salesforce errors that indicate the job will never accept more batches
-// Reference: https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/asynch_api_reference_errors.htm
-export const FATAL_BULK_ERROR_PATTERNS: ReadonlyArray<RegExp> = Object.freeze([
-  /ApiBatchItems Limit exceeded/i,
-  /InvalidBatch/i,
-  /InvalidJob/i,
-  /ExceededQuota/i,
-  /Job is in invalid state/i,
-  /Job already (aborted|closed|completed)/i,
-]);
-
 export const MAX_CONSECUTIVE_FAILURES = 5;
 
 // Salesforce Bulk API v1 rejects any batch CSV over 10,000,000 characters ("Failed to read request.
@@ -85,11 +81,6 @@ export const BULK_JOB_POLL_MAX_CHECKS = 200;
 /** Delay before the next job status check, growing linearly with the number of checks already made */
 export function getBulkJobPollInterval(checkCount: number): number {
   return Math.min(BULK_JOB_POLL_INITIAL_INTERVAL_MS + checkCount * BULK_JOB_POLL_INTERVAL_STEP_MS, BULK_JOB_POLL_MAX_INTERVAL_MS);
-}
-
-export function isFatalBulkApiError(error: unknown): boolean {
-  const message = getErrorMessage(error);
-  return FATAL_BULK_ERROR_PATTERNS.some((pattern) => pattern.test(message));
 }
 
 /** A single batch CSV along with the range of source records it was built from */

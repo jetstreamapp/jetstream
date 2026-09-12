@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiAddBatchToJob, bulkApiCreateJob, bulkApiGetJob } from '@jetstream/shared/data';
 import { checkIfBulkApiJobIsDone, convertDateToLocale, generateCsv, tracker, useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import { delay, getErrorMessage, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { delay, getErrorMessage, isFatalBulkApiError, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { BulkJobBatchInfo, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
@@ -128,6 +128,12 @@ export function useDeployRecords(
       deployResults.records = records;
       isMounted.current && onDeployResults(sobject, { ...deployResults });
 
+      /** Mark every record in a batch as failed, for a batch that was rejected or never submitted */
+      function recordFailedBatch(failedRecords: any[], errorMessage: string) {
+        deployResults.processingErrors = [...deployResults.processingErrors];
+        failedRecords.forEach((record, i) => deployResults.processingErrors.push({ record, errors: [errorMessage], row: i }));
+      }
+
       let currItem = 0;
       for (const batch of batches) {
         try {
@@ -151,8 +157,15 @@ export function useDeployRecords(
             tracker.error('There was an error loading batch for mass record update', ex);
           }
 
-          deployResults.processingErrors = [...deployResults.processingErrors];
-          batch.records.forEach((record, i) => deployResults.processingErrors.push({ record, errors: [getErrorMessage(ex)], row: i }));
+          recordFailedBatch(batch.records, getErrorMessage(ex));
+
+          // Salesforce rejects everything sent after the job is closed, aborted or over a limit, so the
+          // remaining batches would each cost a doomed round trip and a duplicate error report. Fail them
+          // here instead - the records still land in `processingErrors` so the user sees what was skipped.
+          if (isFatalBulkApiError(ex)) {
+            batches.slice(currItem + 1).forEach(({ records: skippedRecords }) => recordFailedBatch(skippedRecords, getErrorMessage(ex)));
+            break;
+          }
         } finally {
           currItem++;
         }
