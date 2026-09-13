@@ -22,7 +22,12 @@ export const FormRowButton: FunctionComponent<FormRowButtonProps> = ({ title, ic
         &nbsp;
       </span>
       <div className="slds-form-element__control">
-        <button className="slds-button slds-button_icon slds-button_icon-border-filled" title={title} onClick={() => onClick()}>
+        <button
+          type="button"
+          className="slds-button slds-button_icon slds-button_icon-border-filled"
+          title={title}
+          onClick={() => onClick()}
+        >
           <Icon type={icon.type} icon={icon.icon} description={icon.description || title} className="slds-button__icon" omitContainer />
         </button>
       </div>

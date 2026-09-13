@@ -68,7 +68,7 @@ export const CheckboxToggle: FunctionComponent<CheckboxCheckboxToggleProps> = ({
 
   return (
     <div className={classNames('slds-form-element', containerClassname)} {...extraProps}>
-      {/* HelpText renders a <button>, and a label's control is its first LABELABLE descendant — buttons
+      {/* HelpText renders a <button type="button">, and a label's control is its first LABELABLE descendant — buttons
           qualify. With the help button inside the toggle's label, the label attached itself to that
           button: the checkbox lost its name and clicking the label text no longer toggled it. The
           label is therefore split around the help button, each half associated via htmlFor. */}
