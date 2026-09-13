@@ -125,6 +125,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
               <div>
                 <Tooltip id={`sobject-list-refresh-tooltip`} content={lastRefreshed || ''}>
                   <button
+                    type="button"
                     className="slds-button slds-button_icon slds-button_icon-container"
                     aria-label={`Reload ${labels.descriptorPlural}`}
                     disabled={loading}
@@ -164,7 +165,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
           <p className="slds-p-around_medium slds-text-align_center">
             <span className="slds-text-color_error">There was an error loading {labels.descriptorPlural} for the selected org.</span>
             {errorReattempt && (
-              <button className="slds-button slds-m-left_xx-small" onClick={() => errorReattempt()}>
+              <button type="button" className="slds-button slds-m-left_xx-small" onClick={() => errorReattempt()}>
                 Try Again?
               </button>
             )}

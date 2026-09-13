@@ -58,7 +58,7 @@ export const ReadOnlyFormItem: FunctionComponent<ReadOnlyFormItemProps> = ({
       <div className="slds-form-element__control">
         <div className="slds-form-element__static">{children}</div>
         {!omitEdit && (
-          <button className="slds-button slds-button_icon" title={description} onClick={handleOnEdit}>
+          <button type="button" className="slds-button slds-button_icon" title={description} onClick={handleOnEdit}>
             <Icon type="utility" icon="edit" omitContainer className="slds-button__icon slds-button__icon_hint" description={description} />
           </button>
         )}
