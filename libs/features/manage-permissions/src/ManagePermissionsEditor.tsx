@@ -8,6 +8,7 @@ import {
   DirtyRow,
   FieldPermissionDefinitionMap,
   FieldPermissionRecordForSave,
+  FileExtAllTypes,
   ManagePermissionsEditorTableRef,
   ObjectPermissionDefinitionMap,
   ObjectPermissionRecordForSave,
@@ -48,6 +49,7 @@ import {
   Tooltip,
   fireToast,
   getModifierKey,
+  notifyExcelCellsTruncated,
 } from '@jetstream/ui';
 import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
@@ -104,6 +106,8 @@ import {
 const HEIGHT_BUFFER = 170;
 
 const FIELD_PERMISSIONS_TAB_ID = 'field-permissions';
+
+const EXPORT_FILE_TYPES: FileExtAllTypes[] = ['csv', 'xlsx', 'gdrive'];
 
 export function ErrorTooltip({ hasError, id, message }: { hasError: boolean; id: string; message?: string }) {
   if (!hasError) {
@@ -502,7 +506,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       switch (fileFormat) {
         case 'xlsx':
         case 'gdrive': {
-          const fileData = generateExcelWorkbookFromTable(
+          const fileData = await generateExcelWorkbookFromTable(
             {
               columns: getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
               rows: getObjectRows(selectedSObjects, objectPermissionMap || {}),
@@ -519,6 +523,8 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
               columns: getSystemPermissionColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
               rows: getSystemPermissionRows(systemPermissionMap || {}),
             },
+            // Any value past Excel's per-cell character limit is truncated by the writer, which the user needs to know about
+            { onCellsTruncated: (truncatedCellCount) => notifyExcelCellsTruncated(truncatedCellCount, EXPORT_FILE_TYPES) },
           );
 
           if (uploadToGoogle) {
@@ -792,7 +798,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           google_appId={google_appId}
           google_clientId={google_clientId}
           fileNameParts={['permissions', 'export']}
-          allowedTypes={['csv', 'xlsx', 'gdrive']}
+          allowedTypes={EXPORT_FILE_TYPES}
           onCancel={() => setFileDownloadModalOpen(false)}
           onDownload={handleExport}
           source="manage_permissions"

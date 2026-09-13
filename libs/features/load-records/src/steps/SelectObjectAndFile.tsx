@@ -4,11 +4,12 @@ import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import {
   GoogleApiClientConfig,
   filterLoadSobjects,
+  getFileParseErrorMessage,
+  getSkippedColumnsMessage,
   isBrowserExtension,
   isCanvasApp,
   isDesktop,
   parseFile,
-  parseWorkbook,
   removeEmptyRows,
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
@@ -33,6 +34,7 @@ import {
   ScopedNotification,
   XlsxSheetSelectionModalPromise,
   fireToast,
+  getFileExtension,
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { Fragment } from 'react';
@@ -120,9 +122,35 @@ export const LoadRecordsSelectObjectAndFile = ({
   // Desktop and browser extension have unlimited, pro users have 1GB, free users have 10MB
   const filesizeLimit = isDesktop() || isBrowserExtension() || isCanvasApp() ? Infinity : hasGoogleDriveAccess ? 1000 : 50;
 
+  /** Tell the user about parser complaints, whichever way the file arrived */
+  function notifyParseErrors(headers: string[], errors: string[]) {
+    if (errors.length === 0) {
+      return;
+    }
+    logger.warn(errors);
+    // suppress delimiter error if it is the only error and just one column of data
+    if (headers.length !== 1 || errors.length !== 1 || !errors[0].includes('auto-detect delimiting character')) {
+      fireToast({
+        message: `There were errors parsing the file. Check the file preview to ensure the data is correct. ${errors.join()}`,
+        type: 'warning',
+      });
+    }
+  }
+
+  function notifySkippedColumns(skippedColumnCount = 0) {
+    if (skippedColumnCount > 0) {
+      fireToast({ message: getSkippedColumnsMessage(skippedColumnCount), type: 'warning' });
+    }
+  }
+
   async function handleFile({ content, filename, isPasteFromClipboard, extension }: InputReadFileContent) {
     try {
-      const { data: rawData, headers, errors } = await parseFile(content, { onParsedMultipleWorkbooks, isPasteFromClipboard, extension });
+      const {
+        data: rawData,
+        headers,
+        errors,
+        skippedColumnCount,
+      } = await parseFile(content, { onParsedMultipleWorkbooks, isPasteFromClipboard, extension });
       const { data, removedCount } = removeEmptyRows(rawData);
       if (removedCount > 0) {
         fireToast({
@@ -131,38 +159,24 @@ export const LoadRecordsSelectObjectAndFile = ({
         });
       }
       onFileChange(data, headers, filename, 'local');
-      if (errors.length > 0) {
-        logger.warn(errors);
-        // suppress delimiter error if it is the only error and just one column of data
-        if (headers.length !== 1 || errors.length !== 1 || !errors[0].includes('auto-detect delimiting character')) {
-          fireToast({
-            message: `There were errors parsing the file. Check the file preview to ensure the data is correct. ${errors.join()}`,
-            type: 'warning',
-          });
-        }
-      }
+      notifySkippedColumns(skippedColumnCount);
+      notifyParseErrors(headers, errors);
     } catch (ex) {
       logger.warn('Error reading file', ex);
-      if (getErrorMessage(ex).includes('password-protected')) {
-        fireToast({
-          message: `Your file is password protected, remove the password and try again.`,
-          type: 'error',
-        });
-      } else {
-        fireToast({
-          message: `There was an error reading your file. ${getErrorMessage(ex)}`,
-          type: 'error',
-        });
-      }
+      fireToast({ message: getFileParseErrorMessage(ex), type: 'error' });
     }
   }
 
-  async function handleGoogleFile({ workbook, selectedFile }: InputReadGoogleSheet) {
+  async function handleGoogleFile({ name, bytes, selectedFile }: InputReadGoogleSheet) {
     try {
-      if (!selectedFile.name) {
-        throw new Error('Selected Google file is missing a name.');
-      }
-      const { data: rawData, headers } = await parseWorkbook(workbook, { onParsedMultipleWorkbooks });
+      // A native Google Sheet arrives as xlsx bytes, anything else arrives as whatever it is in Drive, so the
+      // file's own extension still decides the delimiter when it turns out to be a text file
+      const {
+        data: rawData,
+        headers,
+        errors,
+        skippedColumnCount,
+      } = await parseFile(bytes, { onParsedMultipleWorkbooks, extension: getFileExtension(name) });
       const { data, removedCount } = removeEmptyRows(rawData);
       if (removedCount > 0) {
         fireToast({
@@ -170,12 +184,14 @@ export const LoadRecordsSelectObjectAndFile = ({
           type: 'info',
         });
       }
-      onFileChange(data, headers, selectedFile.name, 'google', selectedFile);
+      onFileChange(data, headers, name, 'google', selectedFile);
+      notifySkippedColumns(skippedColumnCount);
+      notifyParseErrors(headers, errors);
     } catch (ex) {
-      fireToast({
-        message: `There was an error reading your file. ${getErrorMessage(ex)}`,
-        type: 'error',
-      });
+      logger.warn('Error reading Google file', ex);
+      fireToast({ message: getFileParseErrorMessage(ex), type: 'error' });
+      // Nothing was loaded, so the selector must not go on presenting this file as the selected one
+      throw ex;
     }
   }
 

@@ -129,8 +129,21 @@ export const LoadRecordsMultiObjectReview: FunctionComponent = () => {
     ];
   }, [sheetPreviews, datasets, groupsByRefId, groupNumbersByGraphId]);
 
+  // A workbook that could not be opened at all has no worksheets to preview, but the reason it failed still belongs
+  // on the page - the toast that also reports it is gone seconds later
   if (!datasets?.length) {
-    return null;
+    if (!allErrors.length) {
+      return null;
+    }
+    return (
+      <LoadRecordsMultiObjectErrorSummary
+        errors={allErrors}
+        warnings={workbookWarnings}
+        previewWorksheets={previewWorksheets}
+        onSelectWorksheet={(worksheet) => tabsRef.current?.changeTab(worksheet)}
+        onWarningsDismissed={() => setPreviewLayoutVersion((version) => version + 1)}
+      />
+    );
   }
 
   return (
