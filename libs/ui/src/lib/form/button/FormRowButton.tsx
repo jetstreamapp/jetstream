@@ -24,6 +24,7 @@ export const FormRowButton: FunctionComponent<FormRowButtonProps> = ({ title, ic
       </span>
       <div className="slds-form-element__control">
         <button
+          type="button"
           className="slds-button slds-button_icon slds-button_icon-border-filled"
           title={title}
           disabled={disabled}
