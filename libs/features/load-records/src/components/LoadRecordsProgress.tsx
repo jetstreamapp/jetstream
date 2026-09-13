@@ -22,6 +22,7 @@ export const LoadRecordsProgress: FunctionComponent<LoadRecordsProgressProps> = 
         Step {currentStepIdx + 1} of {steps.length}: {steps[currentStepIdx].label}
       </span>
       <ProgressStepIndicator
+        label="Load records steps"
         currentStep={currentStepIdx}
         className="slds-progress_shade"
         css={css`
