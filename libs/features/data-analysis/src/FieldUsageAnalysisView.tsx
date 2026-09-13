@@ -1597,6 +1597,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                 : ''}
             </p>
             <ProgressIndicator
+              label="Field usage analysis progress"
               currentValue={isJobRunning && liveProgress && Number.isFinite(liveProgress.percent) ? Math.round(liveProgress.percent) : 0}
               isIndeterminate={!isJobRunning || !liveProgress || !Number.isFinite(liveProgress.percent)}
             />
