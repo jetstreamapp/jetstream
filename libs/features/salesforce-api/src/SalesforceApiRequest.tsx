@@ -279,6 +279,8 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
           </Grid>
           <MonacoEditor
             height="150px"
+            label="Request headers"
+            primaryActionLabel="send the request"
             language="json"
             value={headers}
             options={{ minimap: { enabled: false }, scrollBeyondLastLine: false }}
@@ -328,6 +330,8 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
           <div className="slds-is-relative">
             <MonacoEditor
               height="60vh"
+              label="Request body"
+              primaryActionLabel="send the request"
               language={bodyType === 'TEXT' ? 'plaintext' : 'json'}
               value={body}
               options={{

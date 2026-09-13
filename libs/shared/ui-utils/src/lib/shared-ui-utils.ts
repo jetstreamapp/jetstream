@@ -1936,3 +1936,58 @@ export function disposeEditorRefs(disposables: Maybe<IDisposable | IDisposable[]
     logger.warn('Error disposing editor refs', ex);
   }
 }
+
+const TABBABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function isTabbable(element: HTMLElement) {
+  return !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true' && element.tabIndex >= 0;
+}
+
+/**
+ * Moves focus to the nearest tabbable element outside `element`, forwards or backwards in document
+ * order, skipping anything inside it. Returns whether focus actually moved.
+ *
+ * For widgets that swallow Tab (a code editor), so they can offer an explicit "leave me" key in both
+ * directions without dropping focus to `<body>`. Both directions matter: an editor that can only be
+ * left forwards is a one-way valve — everything before it becomes unreachable without cycling the
+ * whole page, because shift-tabbing back lands inside the editor again.
+ *
+ * Visibility is decided by attempting the focus and checking it took, rather than by a heuristic:
+ * `offsetParent` is also null for `position: fixed` elements, which are perfectly focusable.
+ */
+function focusAdjacentTabbable(element: HTMLElement | null | undefined, direction: 'forward' | 'backward'): boolean {
+  if (!element) {
+    return false;
+  }
+  const wanted = direction === 'forward' ? Node.DOCUMENT_POSITION_FOLLOWING : Node.DOCUMENT_POSITION_PRECEDING;
+  const candidates = Array.from(document.querySelectorAll<HTMLElement>(TABBABLE_SELECTOR)).filter(
+    // eslint-disable-next-line no-bitwise
+    (candidate) => !element.contains(candidate) && !!(element.compareDocumentPosition(candidate) & wanted),
+  );
+  // Walking outwards from the element means the nearest candidate first, which for `backward` is the
+  // end of the list
+  if (direction === 'backward') {
+    candidates.reverse();
+  }
+  for (const candidate of candidates) {
+    if (!isTabbable(candidate)) {
+      continue;
+    }
+    candidate.focus();
+    if (document.activeElement === candidate) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Moves focus to the first tabbable element AFTER `element`. See {@link focusAdjacentTabbable}. */
+export function focusNextTabbableAfter(element: HTMLElement | null | undefined): boolean {
+  return focusAdjacentTabbable(element, 'forward');
+}
+
+/** Moves focus to the last tabbable element BEFORE `element`. See {@link focusAdjacentTabbable}. */
+export function focusPreviousTabbableBefore(element: HTMLElement | null | undefined): boolean {
+  return focusAdjacentTabbable(element, 'backward');
+}
