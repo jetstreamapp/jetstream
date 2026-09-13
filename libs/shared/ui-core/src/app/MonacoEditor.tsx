@@ -1,7 +1,10 @@
 import { ClassNames, type ClassNamesContent } from '@emotion/react';
+import { focusNextTabbableAfter, focusPreviousTabbableBefore } from '@jetstream/shared/ui-utils';
 import { ColorScheme } from '@jetstream/types';
-import EditorImpl, { DiffEditor as DiffEditorImpl, DiffEditorProps, EditorProps } from '@monaco-editor/react';
-import { useMemo, useSyncExternalStore } from 'react';
+import { getModifierKey, getSpokenKeyboardShortcut, monacoEditorOwnsEscape } from '@jetstream/ui';
+import EditorImpl, { DiffEditor as DiffEditorImpl, DiffEditorProps, EditorProps, OnMount } from '@monaco-editor/react';
+import type { editor } from 'monaco-editor';
+import { KeyboardEvent, useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
 import { getEditorAccessibilitySupport } from '../settings/editor-screen-reader-mode';
 
 const SCHEME_CLASS_PREFIX = 'slds-color-scheme--';
@@ -144,19 +147,125 @@ function useEditorOptions<T extends { fixedOverflowWidgets?: boolean; accessibil
 }
 
 /**
+ * Monaco consumes Tab as indentation, so without an explicit affordance a keyboard user who focuses an
+ * editor cannot leave it — WCAG 2.1.2 also requires telling them how, which is why the instruction is
+ * appended to the editor's accessible name rather than left to Monaco's undiscoverable Ctrl+M default.
+ *
+ * Escape is guarded on Monaco's own context keys so it keeps closing autocomplete, find and the rest
+ * before it is treated as "leave the editor".
+ */
+const EXIT_HINT = 'Press Escape to move focus out of the editor, or Shift + Escape to move back.';
+
+/** Monaco surfaces that take focus themselves: the F1 command palette and the right-click menu */
+const MONACO_FOCUSED_OVERLAY_SELECTOR = '.quick-input-widget, .context-view, .monaco-menu';
+
+/**
+ * Escape still belongs to Monaco while it has something of its own to dismiss: an open overlay, extra
+ * cursors to collapse, or a selection to cancel (Monaco binds Escape to `cancelSelection`). Leaving on
+ * that same press would send the user's next keystrokes to whatever control follows the editor.
+ */
+function shouldMonacoKeepEscape(editorInstance: editor.IStandaloneCodeEditor | null, target: EventTarget | null): boolean {
+  const editorNode = editorInstance?.getDomNode();
+  if (!editorNode) {
+    return true;
+  }
+  if (target instanceof Element && target.closest(MONACO_FOCUSED_OVERLAY_SELECTOR)) {
+    return true;
+  }
+  const selections = editorInstance?.getSelections() ?? [];
+  return monacoEditorOwnsEscape(editorNode) || selections.length > 1 || selections.some((selection) => !selection.isEmpty());
+}
+
+/**
+ * Composes the editor's accessible name: what it is, how to run it, how to leave it.
+ *
+ * The control that performs the primary action sits in the card header — BEFORE the editor in the tab
+ * order — so a keyboard user who has just finished typing cannot reach it by tabbing forward. Rather
+ * than bend the tab order (positive `tabindex` hoists a control ahead of every natural tab stop on the
+ * page, document-wide), the shortcut is announced on the editor, where the user is standing when they
+ * want it.
+ */
+function useEditorAriaLabel(baseLabel: string | undefined, primaryActionLabel: string | undefined): string {
+  return useMemo(() => {
+    const name = (baseLabel?.trim() || 'Code editor').replace(/\.$/, '');
+    const actionHint = primaryActionLabel
+      ? ` Press ${getSpokenKeyboardShortcut([getModifierKey(), 'enter'])} to ${primaryActionLabel}.`
+      : '';
+    return `${name}.${actionHint} ${EXIT_HINT}`;
+  }, [baseLabel, primaryActionLabel]);
+}
+
+/**
+ * Escape moves focus to the next tab stop after the editor, so Monaco's capture of Tab is not a
+ * keyboard trap (WCAG 2.1.2).
+ *
+ * The handler runs in the CAPTURE phase, above the editor, so it acts before Monaco processes the
+ * key. Monaco reclaims its textarea while handling the same keydown, so a focus moved from inside a
+ * Monaco command (or a frame later) is silently bounced back — which made every candidate look
+ * unfocusable and walked the search off the end of the page to the last tab stop on it.
+ */
+function useExitOnEscape(onMount: OnMount | undefined) {
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+
+  const handleMount = useCallback<OnMount>(
+    (editorInstance, monaco) => {
+      editorRef.current = editorInstance;
+      onMount?.(editorInstance, monaco);
+    },
+    [onMount],
+  );
+
+  const handleKeyDownCapture = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
+    // An Escape that cancels an IME composition is part of typing, not a request to leave
+    if (event.key !== 'Escape' || event.nativeEvent.isComposing || shouldMonacoKeepEscape(editorRef.current, event.target)) {
+      return;
+    }
+    // Both directions: leaving only forwards makes the editor a one-way valve, since shift-tabbing
+    // back from the next control lands inside it again and Monaco captures Shift+Tab as outdent
+    const editorNode = editorRef.current?.getDomNode();
+    if (event.shiftKey) {
+      focusPreviousTabbableBefore(editorNode);
+    } else {
+      focusNextTabbableAfter(editorNode);
+    }
+  }, []);
+
+  return { handleMount, handleKeyDownCapture };
+}
+
+/**
  * Wrapper around `@monaco-editor/react`'s `<Editor>` that drives the `theme`
  * prop from the user's color scheme preference. The underlying React wrapper
  * defaults `theme` to `"light"` and re-applies it on every editor mount —
  * a global `monaco.editor.setTheme()` call gets clobbered as soon as another
  * editor renders. Passing the prop explicitly is the only reliable approach.
  */
-export function MonacoEditor(props: EditorProps) {
+export interface MonacoEditorProps extends EditorProps {
+  /** What the editor is, e.g. "Anonymous Apex code". Becomes the start of its accessible name. */
+  label?: string;
+  /**
+   * Verb phrase for the editor's Cmd/Ctrl+Enter action, completing "Press Command + Enter to …"
+   * (e.g. "execute the code"). Pass it wherever the editor registers the shared `modifier-enter`
+   * action, so the shortcut is announced on the editor instead of only in the button's tooltip.
+   */
+  primaryActionLabel?: string;
+}
+
+export function MonacoEditor({ label, primaryActionLabel, ...props }: MonacoEditorProps) {
   const theme = useMonacoTheme();
-  const options = useEditorOptions(props.options);
+  const ariaLabel = useEditorAriaLabel(label ?? props.options?.ariaLabel, primaryActionLabel);
+  const options = useEditorOptions(useMemo(() => ({ ...props.options, ariaLabel }), [props.options, ariaLabel]));
+  const { handleMount, handleKeyDownCapture } = useExitOnEscape(props.onMount);
   return (
     <ClassNames>
       {({ css, cx }) => (
-        <EditorImpl {...props} theme={theme} options={options} wrapperProps={buildEditorBorderWrapperProps(css, cx, props.wrapperProps)} />
+        <EditorImpl
+          {...props}
+          theme={theme}
+          options={options}
+          onMount={handleMount}
+          wrapperProps={{ ...buildEditorBorderWrapperProps(css, cx, props.wrapperProps), onKeyDownCapture: handleKeyDownCapture }}
+        />
       )}
     </ClassNames>
   );
