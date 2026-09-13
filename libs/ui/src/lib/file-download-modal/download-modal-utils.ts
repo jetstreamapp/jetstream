@@ -65,14 +65,20 @@ export const getInitialDownloadFileFormat = <T>(allowedTypes: T[], localStorageK
 /**
  * A generated .xlsx is not a faithful copy when any cell hit Excel's per-cell limit — the download
  * succeeds either way, so warn the user and point them at a format without the limit.
- * Pass as `onCellsTruncated` to `prepareExcelFile` from any interactive download.
+ * Call from `onCellsTruncated` of any interactive download, passing the formats that download offers so the
+ * hint never names one the user cannot pick.
  */
-export const notifyExcelCellsTruncated = (truncatedCellCount: number) => {
+export const notifyExcelCellsTruncated = (truncatedCellCount: number, offeredFormats: Iterable<string>) => {
+  const offered = new Set(offeredFormats);
+  const fullValueFormats = [RADIO_FORMAT_CSV, RADIO_FORMAT_JSON].filter((format) => offered.has(format));
+  const hint = fullValueFormats.length
+    ? ` Download as ${fullValueFormats.map((format) => format.toUpperCase()).join(' or ')} to get the full values.`
+    : '';
   fireToast({
     type: 'warning',
     message: `${formatNumber(truncatedCellCount)} ${pluralizeFromNumber('value', truncatedCellCount)} exceeded Excel's ${formatNumber(
       EXCEL_MAX_CELL_CHARS,
-    )} character cell limit and ${truncatedCellCount === 1 ? 'was' : 'were'} truncated. Download as CSV or JSON to get the full values.`,
+    )} character cell limit and ${truncatedCellCount === 1 ? 'was' : 'were'} truncated.${hint}`,
   });
 };
 

@@ -1,5 +1,6 @@
+import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
-import { parseFile } from '@jetstream/shared/ui-utils';
+import { getFileParseErrorMessage, parseFile } from '@jetstream/shared/ui-utils';
 import { REGEX, ensureBoolean } from '@jetstream/shared/utils';
 import { InputReadFileContent, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -54,8 +55,16 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows, onLo
   }
 
   async function handleImport({ content }: InputReadFileContent) {
+    let parsedFile: Awaited<ReturnType<typeof parseFile>>;
+    try {
+      parsedFile = await parseFile(content, { onParsedMultipleWorkbooks });
+    } catch (ex) {
+      logger.warn('Error reading import file', ex);
+      fireToast({ message: getFileParseErrorMessage(ex), type: 'error' });
+      return;
+    }
     // eslint-disable-next-line prefer-const
-    let { data, errors } = await parseFile(content, { onParsedMultipleWorkbooks });
+    let { data, errors } = parsedFile;
     trackEvent(ANALYTICS_KEYS.sobj_create_field_import_fields, {
       numFields: data.length,
       hasErrors: errors.length,
