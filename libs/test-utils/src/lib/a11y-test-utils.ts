@@ -1,4 +1,5 @@
 import type { AxeResults, NodeResult } from 'axe-core';
+import { expect } from 'vitest';
 import { axe } from 'vitest-axe';
 
 // Same scope as the Playwright sweep (apps/jetstream-e2e/src/tests/a11y/a11y.utils.ts) and
@@ -41,11 +42,19 @@ function isFloatingUiFocusGuard(root: Element, { target }: NodeResult): boolean 
  * Note: jsdom has no layout engine, so color-contrast checks come back `incomplete` rather than
  * as violations — contrast is covered by the Playwright a11y sweep and manual audit instead.
  *
+ * The scan asserts on its own: any remaining violation fails the test, so a bare `await axeScan(el)`
+ * is a complete assertion (the lint ratchet counts a spec as covered once it calls `axeScan(`). The
+ * filtered results are still returned for specs that want to inspect `incomplete` or `passes`.
+ *
+ * `knownViolations` names rule ids that are logged as open findings (e.g. `nested-interactive`, X4 in
+ * docs/accessibility/audit-2026/findings.md): they are left out of the assertion but stay in the
+ * returned `violations`, so a spec can still pin exactly which known rules it expects.
+ *
  * Usage:
- *   const results = await axeScan(baseElement);
- *   expect(results.violations).toEqual([]);
+ *   await axeScan(baseElement);
+ *   const results = await axeScan(baseElement, { knownViolations: ['nested-interactive'] });
  */
-export async function axeScan(element: Element): Promise<AxeResults> {
+export async function axeScan(element: Element, { knownViolations = [] }: { knownViolations?: string[] } = {}): Promise<AxeResults> {
   const results = await axe(element, { runOnly: { type: 'tag', values: WCAG_21_AA_TAGS } });
   const violations = results.violations
     .map((violation) => ({
@@ -53,5 +62,7 @@ export async function axeScan(element: Element): Promise<AxeResults> {
       nodes: violation.nodes.filter((node) => !isFloatingUiFocusGuard(element, node)),
     }))
     .filter(({ nodes }) => nodes.length > 0);
+  const unexpectedViolations = violations.filter(({ id }) => !knownViolations.includes(id));
+  expect(unexpectedViolations, 'axe found WCAG 2.1 AA violations').toEqual([]);
   return { ...results, violations };
 }
