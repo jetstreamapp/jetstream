@@ -280,7 +280,15 @@ export interface SessionData {
    * requires TEST_ENABLE_SCANNER_ROUTES + non-production server URL + basic auth.
    */
   isScannerSession?: boolean;
-  orgAuth?: { code_verifier: string; nonce: string; state: string; loginUrl: string; orgGroupId?: Maybe<string> };
+  orgAuth?: {
+    code_verifier: string;
+    nonce: string;
+    state: string;
+    loginUrl: string;
+    orgGroupId?: Maybe<string>;
+    /** Origin that opened the OAuth popup, only set in local development. See getDevClientOriginFromRequest(). */
+    clientUrl?: Maybe<string>;
+  };
   // SSO state
   ssoReturnUrl?: string;
   oidcState?: {

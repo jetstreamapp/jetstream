@@ -5,12 +5,14 @@ import dns from 'dns';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { defineConfig } from 'vite';
+import { DEV_SERVER_HOST, devServerBannerPlugin, resolveDevServerPort } from './vite.dev-port.mts';
 import { baseHrefPlugin, cspNoncePlugin } from './vite.plugins.mts';
 
 dns.setDefaultResultOrder('verbatim');
 
 // Everything the dev server should hand off to the local API server instead of serving itself.
-const API_SERVER_URL = 'http://localhost:3333';
+// One API server is shared by every worktree's dev server; JETSTREAM_DEV_API_URL points at a different one.
+const API_SERVER_URL = process.env.JETSTREAM_DEV_API_URL || 'http://localhost:3333';
 const API_SERVER_PROXY_PATHS = ['/oauth', '/api', '/socket.io', '/platform-event', '/assets', '/fonts', '/landing'];
 
 // Opt-in sourcemap upload to Better Stack / Sentry. Set to 'true' on Render so the
@@ -46,13 +48,14 @@ if (uploadSourcemaps && !releaseName) {
   uploadSourcemaps = false;
 }
 
-export default defineConfig(() => ({
+export default defineConfig(async ({ command }) => ({
   plugins: [
     react({
       jsxImportSource: '@emotion/react',
     }),
     baseHrefPlugin(),
     cspNoncePlugin(),
+    devServerBannerPlugin(API_SERVER_URL),
     // Sentry plugin must be LAST per docs. Reads SENTRY_AUTH_TOKEN / SENTRY_ORG /
     // SENTRY_PROJECT / SENTRY_URL from env automatically.
     ...(uploadSourcemaps
@@ -76,8 +79,13 @@ export default defineConfig(() => ({
   envPrefix: 'NX',
 
   server: {
-    port: 4200,
-    host: 'localhost',
+    // Chosen at startup so multiple worktrees can each run a dev server against the shared API.
+    // Builds never serve, so don't spend a port scan on them.
+    port: command === 'serve' ? await resolveDevServerPort() : undefined,
+    // The port above is already known to be free; fail loudly rather than drifting onto 4201/4202,
+    // which belong to the desktop client and canvas dev servers.
+    strictPort: true,
+    host: DEV_SERVER_HOST,
     open: '/app',
     fs: {
       allow: ['../../'],
