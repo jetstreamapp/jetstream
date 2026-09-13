@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DataHistoryItem, FileExtAllTypes, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, fireToast, Modal, Spinner } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -26,7 +26,7 @@ export interface DataHistoryFormatDownloadModalProps {
 
 /**
  * Download flow for a saved payload: reads the full payload, then opens the standard file download
- * modal (CSV / Excel / JSON) — the same experience as query results and load results downloads.
+ * modal (CSV / Excel / JSON / Google Drive) — the same experience as query results and load results downloads.
  * Payloads that cannot be format-converted (nested JSON, or too large to parse) are saved in their
  * stored format instead.
  */
@@ -39,6 +39,8 @@ export const DataHistoryFormatDownloadModal: FunctionComponent<DataHistoryFormat
 }) => {
   const { trackEvent } = useAmplitude();
   const orgs = useAtomValue(fromAppState.salesforceOrgsState);
+  const { google_apiKey, google_appId, google_clientId } = useAtomValue(fromAppState.applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(fromAppState.googleDriveAccessState);
   const [view, setView] = useState<DataHistoryPayloadView | null>(null);
   // The org is only used for the generated filename — history outlives org removal, so fall back to the label snapshot
   const org = orgs.find(({ uniqueId }) => uniqueId === item.org) ?? ({ username: item.orgLabel } as SalesforceOrgUi);
@@ -110,8 +112,12 @@ export const DataHistoryFormatDownloadModal: FunctionComponent<DataHistoryFormat
   return (
     <FileDownloadModal
       org={org}
-      googleIntegrationEnabled={false}
-      googleShowUpgradeToPro={false}
+      googleIntegrationEnabled={hasGoogleDriveAccess}
+      googleShowUpgradeToPro={googleShowUpgradeToPro}
+      google_apiKey={google_apiKey}
+      google_appId={google_appId}
+      google_clientId={google_clientId}
+      emitUploadToGoogleEvent={fromJetstreamEvents.emit}
       modalHeader={`Download ${target.label}`}
       allowedTypes={['xlsx', 'csv', 'json']}
       data={view.rows}
