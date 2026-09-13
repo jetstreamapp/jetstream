@@ -23,7 +23,6 @@ import {
 } from '@jetstream/shared/ui-utils';
 import {
   flattenRecords,
-  getErrorMessage,
   getMapOfBaseAndSubqueryRecords,
   getSubqueryParentPath,
   getSubqueryPathDepth,
@@ -52,6 +51,7 @@ import Modal from '../modal/Modal';
 import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import ScopedNotification from '../scoped-notification/ScopedNotification';
 import {
+  getExcelDownloadErrorMessage,
   getInitialDownloadFileFormat,
   getWhichRecordsDefaultValue,
   hasSelectableSubset,
@@ -130,9 +130,9 @@ const PROHIBITED_BULK_APEX_TYPES = new Set(['Address', 'Location', 'complexvalue
 const FILE_FORMAT_ALLOWED_BULK_API = new Set<RecordDownloadFileFormat>(['csv', 'gdrive']);
 const ALLOW_BULK_API_COUNT = 5_000;
 /**
- * A standard download is built entirely in the browser as a single string, so it fails with
- * `RangeError: Invalid string length` once the generated file crosses the ~512MB max string length.
- * XLSX reaches that ceiling first - its XML runs 2-3x the size of the equivalent CSV.
+ * A standard download pages every record through the REST API into browser memory before the file is written,
+ * which stops being viable long before the bulk API does. This is a limit on fetching the records, not on
+ * writing the file - the spreadsheet writer streams and is bounded by Excel's own 1,048,576 row per sheet cap.
  */
 const REQUIRE_BULK_API_COUNT = 500_000;
 
@@ -195,6 +195,10 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
   const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
   const inputEl = useRef<HTMLInputElement>(null);
+  // Closing or cancelling the modal while a workbook is being built aborts the build, so a download never
+  // appears after the user backed out (and nothing runs on after unmount)
+  const abortControllerRef = useRef<AbortController | null>(null);
+  useEffect(() => () => abortControllerRef.current?.abort(), []);
 
   const [isSignedInWithGoogle, setIsSignedInWithGoogle] = useState<boolean>(false);
   const [googleFolder, setGoogleFolder] = useState<Maybe<string>>(null);
@@ -203,6 +207,8 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
 
   const [invalidConfig, setInvalidConfig] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Building a workbook is async now, so a second click (or Enter) while it runs must not start a second build
+  const [isPreparingFile, setIsPreparingFile] = useState(false);
 
   const [isGooglePickerVisible, setIsGooglePickerVisible] = useState(false);
 
@@ -431,6 +437,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   }
 
   function handleModalClose(canceled?: boolean) {
+    abortControllerRef.current?.abort();
     onModalClose(canceled);
     if (whichFields !== 'specified') {
       setWhichFields('specified');
@@ -438,11 +445,21 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   }
 
   async function handleDownload() {
+    if (isPreparingFile) {
+      return;
+    }
     errorMessage && setErrorMessage(null);
     let fieldsToUse = fields;
     if (fieldsToUse.length === 0) {
       return;
     }
+    setIsPreparingFile(true);
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    const excelOptions = {
+      onCellsTruncated: (truncatedCellCount: number) => notifyExcelCellsTruncated(truncatedCellCount, allowedTypes),
+      signal: abortController.signal,
+    };
 
     // `hasSubqueryFields` only covers the formats that emit a worksheet per subquery - the load template has its
     // own opt-in, and without it the query sent to the server would have its subqueries stripped out
@@ -500,7 +517,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               data['records'] = flattenRecords(activeRecords, fields);
             }
 
-            fileData = prepareExcelFile(data, undefined, undefined, { onCellsTruncated: notifyExcelCellsTruncated });
+            fileData = await prepareExcelFile(data, undefined, undefined, excelOptions);
             mimeType = MIME_TYPES.XLSX;
             break;
           }
@@ -514,7 +531,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               childRelationships: includeSubqueriesInTemplate ? childRelationships.data : [],
               childRelationshipsByPath: includeSubqueriesInTemplate ? childRelationships.byPath : {},
             });
-            fileData = prepareExcelFile(data, undefined, undefined, { onCellsTruncated: notifyExcelCellsTruncated });
+            fileData = await prepareExcelFile(data, undefined, undefined, excelOptions);
             mimeType = MIME_TYPES.XLSX;
             break;
           }
@@ -533,6 +550,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
             throw new Error('A valid file type type has not been selected');
         }
 
+        if (abortController.signal.aborted) {
+          return;
+        }
         saveFile(fileData, fileNameWithExt, mimeType);
 
         if (onDownload) {
@@ -547,6 +567,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       }
       trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'RecordDownloadModal' });
     } catch (ex) {
+      if (abortController.signal.aborted) {
+        return;
+      }
       logger.error('Error downloading file', ex);
       tracker.error('Record download error', ex, {
         fileFormat,
@@ -554,14 +577,15 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
         fieldCount: fieldsToUse.length,
         downloadMethod,
       });
-      // Cell values are truncated before writing, but other SheetJS limits (e.g. the 1,048,576-row cap) can still throw.
-      if (getErrorMessage(ex).includes('32767')) {
-        setErrorMessage(`One or more values exceed Excel's 32,767 character cell limit. Download as CSV or JSON to get full values.`);
-      } else if (fileFormat === 'xlsx' || fileFormat === RADIO_FORMAT_XLSX_LOAD_TEMPLATE) {
-        setErrorMessage('There was a problem preparing your file download. Try downloading as CSV or JSON.');
+      // Oversized cells are truncated by the writer and reported through `onCellsTruncated`, but other Excel
+      // limits (e.g. the 1,048,576 row per sheet cap) still throw.
+      if (fileFormat === 'xlsx' || fileFormat === RADIO_FORMAT_XLSX_LOAD_TEMPLATE) {
+        setErrorMessage(getExcelDownloadErrorMessage(ex, allowedTypes));
       } else {
         setErrorMessage('There was a problem preparing your file download.');
       }
+    } finally {
+      setIsPreparingFile(false);
     }
   }
 
@@ -578,7 +602,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   // download and close the modal before it was ever seen. An Enter that commits an IME conversion is
   // part of typing the name, not a request to download.
   function handleFilenameKeyDown(event: KeyboardEvent<HTMLElement>) {
-    if (isEnterKey(event) && !isImeComposing(event.nativeEvent) && !invalidConfig && !isLoadingChildRelationships) {
+    if (isEnterKey(event) && !isImeComposing(event.nativeEvent) && !invalidConfig && !isLoadingChildRelationships && !isPreparingFile) {
       event.preventDefault();
       handleDownload();
     }
@@ -607,7 +631,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               <button
                 className="slds-button slds-button_brand"
                 onClick={handleDownload}
-                disabled={invalidConfig || isLoadingChildRelationships}
+                disabled={invalidConfig || isLoadingChildRelationships || isPreparingFile}
               >
                 Download
               </button>

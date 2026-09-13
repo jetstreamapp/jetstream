@@ -1,11 +1,17 @@
-import { describe, expect, test } from 'vitest';
+import { XlsxError } from '@jetstreamapp/simple-excel';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { fireToast } from '../../toast/AppToast';
 import {
+  getExcelDownloadErrorMessage,
   getWhichRecordsDefaultValue,
   hasSelectableSubset,
+  notifyExcelCellsTruncated,
   RADIO_ALL_BROWSER,
   RADIO_ALL_SERVER,
   RADIO_SELECTED,
 } from '../download-modal-utils';
+
+vi.mock('../../toast/AppToast', () => ({ fireToast: vi.fn() }));
 
 const records = [{ Id: '1' }, { Id: '2' }, { Id: '3' }];
 
@@ -48,5 +54,50 @@ describe('getWhichRecordsDefaultValue', () => {
   test('ignores the selection when every loaded record is selected, since the "Selected records" option is hidden', () => {
     expect(getWhichRecordsDefaultValue({ hasMoreRecords: false, records, selectedRecords: [...records] })).toBe(RADIO_ALL_BROWSER);
     expect(getWhichRecordsDefaultValue({ hasMoreRecords: true, records, selectedRecords: [...records] })).toBe(RADIO_ALL_SERVER);
+  });
+});
+
+describe('notifyExcelCellsTruncated', () => {
+  const getToastMessage = () => vi.mocked(fireToast).mock.calls[0][0].message;
+
+  beforeEach(() => {
+    vi.mocked(fireToast).mockClear();
+  });
+
+  test('points at both full-value formats when the download offers them', () => {
+    notifyExcelCellsTruncated(2, ['xlsx', 'csv', 'json', 'gdrive']);
+    expect(getToastMessage()).toMatch(/2 values exceeded .* and were truncated\. Download as CSV or JSON to get the full values\.$/);
+  });
+
+  test('only names the formats the download offers', () => {
+    notifyExcelCellsTruncated(1, ['csv', 'xlsx', 'gdrive']);
+    expect(getToastMessage()).toMatch(/1 value exceeded .* and was truncated\. Download as CSV to get the full values\.$/);
+  });
+
+  test('omits the hint when no full-value format is offered', () => {
+    notifyExcelCellsTruncated(3, new Set(['xlsx']));
+    expect(getToastMessage()).toMatch(/and were truncated\.$/);
+  });
+});
+
+describe('getExcelDownloadErrorMessage', () => {
+  const rowLimitError = new XlsxError('ROW_OUT_OF_RANGE', 'Row 1048577 is past the 1048576 rows a sheet can hold.');
+
+  test('names the row limit and the offered formats without it', () => {
+    expect(getExcelDownloadErrorMessage(rowLimitError, ['xlsx', 'csv', 'json'])).toBe(
+      'This download has more rows than an Excel sheet can hold (1,048,576). Download as CSV or JSON instead.',
+    );
+  });
+
+  test('omits the hint when the download offers only Excel', () => {
+    expect(getExcelDownloadErrorMessage(rowLimitError, ['xlsx'])).toBe(
+      'This download has more rows than an Excel sheet can hold (1,048,576).',
+    );
+  });
+
+  test('falls back to a general message for any other failure', () => {
+    expect(getExcelDownloadErrorMessage(new Error('boom'), new Set(['xlsx', 'csv']))).toBe(
+      'There was a problem preparing your file download. Download as CSV instead.',
+    );
   });
 });

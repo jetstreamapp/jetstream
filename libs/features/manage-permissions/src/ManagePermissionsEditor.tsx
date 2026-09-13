@@ -8,6 +8,7 @@ import {
   DirtyRow,
   FieldPermissionDefinitionMap,
   FieldPermissionRecordForSave,
+  FileExtAllTypes,
   ManagePermissionsEditorTableRef,
   ObjectPermissionDefinitionMap,
   ObjectPermissionRecordForSave,
@@ -53,6 +54,7 @@ import {
   Tooltip,
   fireToast,
   getModifierKey,
+  notifyExcelCellsTruncated,
 } from '@jetstream/ui';
 import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState, useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState, useOperationAccess } from '@jetstream/ui/app-state';
@@ -138,6 +140,8 @@ function NoObjectsSelectedNotice() {
     </ScopedNotification>
   );
 }
+
+const EXPORT_FILE_TYPES: FileExtAllTypes[] = ['csv', 'xlsx', 'gdrive'];
 
 export function ErrorTooltip({ hasError, id, message }: { hasError: boolean; id: string; message?: string }) {
   if (!hasError) {
@@ -687,7 +691,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       switch (fileFormat) {
         case 'xlsx':
         case 'gdrive': {
-          const fileData = generateExcelWorkbookFromTable(
+          const fileData = await generateExcelWorkbookFromTable(
             {
               columns: getObjectColumns(
                 selectedProfiles,
@@ -729,6 +733,8 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
               rows: getSystemPermissionRows(systemPermissionMap || {}),
             },
             getSetupEntityAccessExportData(),
+            // Any value past Excel's per-cell character limit is truncated by the writer, which the user needs to know about
+            { onCellsTruncated: (truncatedCellCount) => notifyExcelCellsTruncated(truncatedCellCount, EXPORT_FILE_TYPES) },
           );
 
           if (uploadToGoogle) {
@@ -1075,7 +1081,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           google_appId={google_appId}
           google_clientId={google_clientId}
           fileNameParts={['permissions', 'export']}
-          allowedTypes={['csv', 'xlsx', 'gdrive']}
+          allowedTypes={EXPORT_FILE_TYPES}
           onCancel={() => setFileDownloadModalOpen(false)}
           onDownload={handleExport}
           source="manage_permissions"

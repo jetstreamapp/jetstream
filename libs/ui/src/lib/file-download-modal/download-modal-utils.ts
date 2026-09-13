@@ -1,5 +1,5 @@
 import { FILE_FORMAT_XLSX_LOAD_TEMPLATE } from '@jetstream/shared/constants';
-import { EXCEL_MAX_CELL_CHARS, formatNumber } from '@jetstream/shared/ui-utils';
+import { EXCEL_MAX_CELL_CHARS, EXCEL_ROW_LIMIT_ERROR_MESSAGE, formatNumber, isExcelRowLimitError } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { FileExtCsv, FileExtJson, FileExtXLSX, FileExtXml, FileExtZip, Maybe } from '@jetstream/types';
 import { fireToast } from '../toast/AppToast';
@@ -65,16 +65,39 @@ export const getInitialDownloadFileFormat = <T>(allowedTypes: T[], localStorageK
 /**
  * A generated .xlsx is not a faithful copy when any cell hit Excel's per-cell limit — the download
  * succeeds either way, so warn the user and point them at a format without the limit.
- * Pass as `onCellsTruncated` to `prepareExcelFile` from any interactive download.
+ * Call from `onCellsTruncated` of any interactive download, passing the formats that download offers so the
+ * hint never names one the user cannot pick.
  */
-export const notifyExcelCellsTruncated = (truncatedCellCount: number) => {
+export const notifyExcelCellsTruncated = (truncatedCellCount: number, offeredFormats: Iterable<string>) => {
+  const formatsWithoutLimits = getOfferedFormatsWithoutExcelLimits(offeredFormats);
+  const hint = formatsWithoutLimits ? ` Download as ${formatsWithoutLimits} to get the full values.` : '';
   fireToast({
     type: 'warning',
     message: `${formatNumber(truncatedCellCount)} ${pluralizeFromNumber('value', truncatedCellCount)} exceeded Excel's ${formatNumber(
       EXCEL_MAX_CELL_CHARS,
-    )} character cell limit and ${truncatedCellCount === 1 ? 'was' : 'were'} truncated. Download as CSV or JSON to get the full values.`,
+    )} character cell limit and ${truncatedCellCount === 1 ? 'was' : 'were'} truncated.${hint}`,
   });
 };
+
+/**
+ * What to tell the user when an Excel file could not be built. A large enough query passes Excel's per-sheet row
+ * limit, so that failure names the limit; either way the message points at an offered format without Excel's limits.
+ */
+export const getExcelDownloadErrorMessage = (error: unknown, offeredFormats: Iterable<string>): string => {
+  const formatsWithoutLimits = getOfferedFormatsWithoutExcelLimits(offeredFormats);
+  const hint = formatsWithoutLimits ? ` Download as ${formatsWithoutLimits} instead.` : '';
+  if (isExcelRowLimitError(error)) {
+    return `${EXCEL_ROW_LIMIT_ERROR_MESSAGE}${hint}`;
+  }
+  return `There was a problem preparing your file download.${hint}`;
+};
+
+/** "CSV or JSON", naming only the formats this download offers, or null when it offers neither */
+function getOfferedFormatsWithoutExcelLimits(offeredFormats: Iterable<string>): string | null {
+  const offered = new Set(offeredFormats);
+  const formats = [RADIO_FORMAT_CSV, RADIO_FORMAT_JSON].filter((format) => offered.has(format));
+  return formats.length ? formats.map((format) => format.toUpperCase()).join(' or ') : null;
+}
 
 export const saveFileFormatToStorage = (type: string, localStorageKey: string) => {
   try {

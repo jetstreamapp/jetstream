@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
 import { getFilename, isBrowserExtension, isCanvasApp, isDesktop, isEnterKey, isImeComposing } from '@jetstream/shared/ui-utils';
 import {
@@ -19,6 +20,7 @@ import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';
 import RadioGroup from '../form/radio/RadioGroup';
 import Modal from '../modal/Modal';
+import { fireToast } from '../toast/AppToast';
 import {
   getInitialDownloadFileFormat,
   RADIO_FORMAT_CSV,
@@ -54,7 +56,7 @@ export interface FileFauxDownloadModalProps {
     mimeType: MimeType;
     uploadToGoogle: boolean;
     googleFolder?: Maybe<string>;
-  }) => void;
+  }) => void | Promise<void>;
 }
 
 const LS_KEY = 'FileFauxDownloadModal';
@@ -96,6 +98,8 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
   const [filenameEmpty, setFilenameEmpty] = useState(false);
 
   const [googleFolder, setGoogleFolder] = useState<Maybe<string>>(null);
+  // The caller may build a workbook asynchronously; until it settles, another click must not start a second build
+  const [isPreparingFile, setIsPreparingFile] = useState(false);
 
   useEffect(() => {
     if (!fileName && !filenameEmpty) {
@@ -117,7 +121,11 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
     setAllowedTypesSet(new Set(allowedTypes));
   }, [allowedTypes]);
 
-  function handleDownload() {
+  async function handleDownload() {
+    if (isPreparingFile) {
+      return;
+    }
+    setIsPreparingFile(true);
     try {
       let _fileFormat = fileFormat;
       let mimeType: MimeType;
@@ -162,11 +170,22 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
           throw new Error('A valid file type type has not been selected');
       }
 
-      onDownload({ fileName, fileFormat: _fileFormat, mimeType, uploadToGoogle, googleFolder });
+      await onDownload({ fileName, fileFormat: _fileFormat, mimeType, uploadToGoogle, googleFolder });
       trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'FileFauxDownloadModal' });
       saveFileFormatToStorage(fileFormat, LS_KEY);
-    } catch {
-      // TODO: show error message somewhere
+    } catch (ex) {
+      // The caller owns the build, so once the modal has handed off this is the only place a failure in it surfaces
+      logger.error('[FILE DOWNLOAD][ERROR]', ex);
+      fireToast({ message: 'There was a problem preparing your download.', type: 'error' });
+    } finally {
+      setIsPreparingFile(false);
+    }
+  }
+
+  /** The caller owns the build, so while it runs the only safe thing to do is to wait for it */
+  function handleCancel() {
+    if (!isPreparingFile) {
+      onCancel();
     }
   }
 
@@ -175,7 +194,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
   // download and close the modal before it was ever seen. An Enter that commits an IME conversion is
   // part of typing the name, not a request to download.
   function handleFilenameKeyDown(event: KeyboardEvent<HTMLElement>) {
-    if (isEnterKey(event) && !isImeComposing(event.nativeEvent) && !filenameEmpty) {
+    if (isEnterKey(event) && !isImeComposing(event.nativeEvent) && !filenameEmpty && !isPreparingFile) {
       event.preventDefault();
       handleDownload();
     }
@@ -193,18 +212,18 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
       overrideZIndex={1001}
       footer={
         <Fragment>
-          <button className="slds-button slds-button_neutral" onClick={() => onCancel()}>
+          <button className="slds-button slds-button_neutral" onClick={handleCancel} disabled={isPreparingFile}>
             Cancel
           </button>
           {!alternateDownloadButton && (
-            <button className="slds-button slds-button_brand" onClick={handleDownload} disabled={filenameEmpty}>
+            <button className="slds-button slds-button_brand" onClick={handleDownload} disabled={filenameEmpty || isPreparingFile}>
               Download
             </button>
           )}
           {alternateDownloadButton}
         </Fragment>
       }
-      onClose={() => onCancel()}
+      onClose={handleCancel}
     >
       <div>
         <RadioGroup
