@@ -47,7 +47,7 @@ import {
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { DataHistoryEntryHandle, buildBulkJobHistoryCounts } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { LoadFailureReach, captureBulkApiLoadResults, settleHistoryForFailedLoad } from '../../utils/data-history-capture';
 import {
   BULK_JOB_POLL_MAX_CHECKS,
@@ -147,6 +147,7 @@ export const LoadRecordsBulkApiResults = ({
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
   const [prepareDataProgress, setPrepareDataProgress] = useState(0);
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
+  const statusId = useId();
   const [fatalError, setFatalError] = useState<Maybe<string>>(null);
   const [downloadError, setDownloadError] = useState<Maybe<string>>(null);
   const [jobInfo, setJobInfo] = useState<BulkJobWithBatches>();
@@ -769,13 +770,14 @@ export const LoadRecordsBulkApiResults = ({
           <AssistiveStatus message={`${status} ${getUploadingText() || ''}`.trim()} />
           <h3 className="slds-text-heading_small slds-grid">
             <Grid verticalAlign="center">
-              <span className="slds-m-right_x-small">
+              <span id={statusId} className="slds-m-right_x-small">
                 {status} <span className="slds-text-title">{getUploadingText()}</span>
               </span>
               {status === STATUSES.PREPARING && (
                 <div>
                   {!!prepareDataProgress && (
                     <ProgressRing
+                      aria-labelledby={statusId}
                       className="slds-m-right_x-small"
                       fillPercent={prepareDataProgress / 100}
                       size="medium"
