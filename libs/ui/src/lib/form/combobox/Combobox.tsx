@@ -431,6 +431,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       (showSelectionAsButton || showClearButton) && onClear && selectedItemLabel ? (
         <div className="slds-input__icon-group slds-input__icon-group_right">
           <button
+            type="button"
             className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
             onClick={handleRemoveItem}
             title="Clear value"

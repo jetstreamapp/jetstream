@@ -194,6 +194,7 @@ export const DuelingPicklist: FunctionComponent<DuelingPicklistProps> = ({
           {/* CENTER */}
           <div className="slds-dueling-list__column">
             <button
+              type="button"
               className="slds-button slds-button_icon slds-button_icon-container"
               title="Move Selection to Second Category"
               disabled={disabled}
@@ -208,6 +209,7 @@ export const DuelingPicklist: FunctionComponent<DuelingPicklistProps> = ({
               />
             </button>
             <button
+              type="button"
               className="slds-button slds-button_icon slds-button_icon-container"
               title="Move Selection to First Category"
               disabled={disabled}
@@ -232,6 +234,7 @@ export const DuelingPicklist: FunctionComponent<DuelingPicklistProps> = ({
           {!omitReorder && (
             <div className="slds-dueling-list__column">
               <button
+                type="button"
                 className="slds-button slds-button_icon slds-button_icon-container"
                 title="Move Selection Up"
                 disabled={disabled}
@@ -240,6 +243,7 @@ export const DuelingPicklist: FunctionComponent<DuelingPicklistProps> = ({
                 <Icon type="utility" icon="up" className="slds-button__icon" omitContainer description="Move Selection Up" />
               </button>
               <button
+                type="button"
                 className="slds-button slds-button_icon slds-button_icon-container"
                 title="Move Selection Down"
                 disabled={disabled}
