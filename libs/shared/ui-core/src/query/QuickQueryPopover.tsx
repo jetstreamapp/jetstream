@@ -352,6 +352,8 @@ export const QuickQueryPopover = () => {
                 }
               >
                 <MonacoEditor
+                  label="Quick query SOQL"
+                  primaryActionLabel="run the query"
                   height="400px"
                   language="soql"
                   value={soql}

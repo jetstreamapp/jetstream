@@ -203,6 +203,8 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
       >
         <MonacoEditor
           height="50vh"
+          label="SOQL query"
+          primaryActionLabel="run the query"
           language="soql"
           value={userSoql}
           options={{
