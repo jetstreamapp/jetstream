@@ -31,6 +31,12 @@ export default defineConfig(() => ({
         main: resolve(import.meta.dirname, 'index.html'),
         // preferences: resolve(import.meta.dirname, 'preferences', 'index.html'),
       },
+      output: {
+        // configure-zod has to be its own chunk. Merged into the entry chunk it would run after every
+        // chunk the entry imports — including the one that builds schemas, which is too late.
+        // See libs/shared/utils/src/lib/configure-zod.ts
+        advancedChunks: { groups: [{ name: 'configure-zod', test: /configure-zod/, priority: 100 }] },
+      },
     },
   },
   plugins: [

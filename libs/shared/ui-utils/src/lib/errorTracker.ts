@@ -32,6 +32,13 @@ const ignoredMessagePatterns = [INVALID_QUERY_LOCATOR_REGEX];
 const ignoredExactMessages = new Set(['Canceled', 'ChunkLoadError', '(unknown)', 'DatabaseClosedError']);
 const extensionUrlPrefixes = ['chrome-extension://', 'moz-extension://', 'safari-web-extension://', 'safari-extension://'];
 
+// How browsers word a worker whose script could not be fetched: Firefox reports a bare NetworkError,
+// Chromium names importScripts explicitly.
+const workerScriptLoadFailurePattern = /^NetworkError: A network error occurred\.$|Failed to execute 'importScripts'/;
+// A worker reports failure as an ErrorEvent, which Sentry wraps rather than reporting directly. The
+// real message is quoted inside.
+const wrappedErrorEventPattern = /^Event `ErrorEvent` captured as exception with message `(.+)`$/;
+
 const PER_SESSION_MINUTE_LIMIT = 10;
 const PER_SESSION_TOTAL_LIMIT = 20;
 
@@ -58,7 +65,8 @@ function isRateLimited(): boolean {
   return false;
 }
 
-function shouldIgnore(event: Sentry.ErrorEvent): boolean {
+/** Exported for testing — the ignore rules are the only thing standing between us and alert storms. */
+export function shouldIgnore(event: Sentry.ErrorEvent): boolean {
   const candidates: string[] = [];
   if (event.message) {
     candidates.push(event.message);
@@ -89,7 +97,40 @@ function shouldIgnore(event: Sentry.ErrorEvent): boolean {
   if (allFrames.some((frame) => extensionUrlPrefixes.some((prefix) => frame.filename?.startsWith(prefix)))) {
     return true;
   }
+  if (
+    isWorkerScriptLoadFailure(
+      candidates,
+      allFrames.some((frame) => frame.filename?.startsWith('blob:')),
+    )
+  ) {
+    return true;
+  }
   return false;
+}
+
+/**
+ * Monaco builds its editor workers from a `blob:` bootstrap that `importScripts()` the real worker
+ * file. When that fetch is blocked (browser extension, tracking protection, corporate proxy) the
+ * failure arrives in two shapes, neither of which the `/js/monaco/vs/` rule can match: the raw error,
+ * whose only stack frame is the blob URL, and the worker's ErrorEvent, whose frames are all Sentry
+ * internals. Monaco catches this itself and falls back to running worker code on the main thread, so
+ * neither is actionable.
+ *
+ * Filtering here is the only thing that stops the noise: every occurrence carries a fresh blob UUID,
+ * so error tracking groups each one as a brand-new error and re-alerts. Marking them resolved
+ * upstream does nothing.
+ */
+function isWorkerScriptLoadFailure(candidates: string[], hasBlobFrame: boolean): boolean {
+  return candidates.some((candidate) => {
+    const wrappedMessage = wrappedErrorEventPattern.exec(candidate)?.[1];
+    if (!workerScriptLoadFailurePattern.test(wrappedMessage ?? candidate)) {
+      return false;
+    }
+    // An ErrorEvent means the failure came from a worker rather than app code, which is attribution
+    // enough on its own. A raw error needs the blob: frame, so a failed `fetch` in app code — which
+    // Firefox words identically — still gets reported.
+    return wrappedMessage !== undefined || hasBlobFrame;
+  });
 }
 
 /**

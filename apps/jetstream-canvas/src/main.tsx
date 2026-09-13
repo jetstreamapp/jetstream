@@ -1,4 +1,6 @@
 // DO NOT CHANGE ORDER OF IMPORTS
+import '@jetstream/shared/utils/configure-zod';
+
 import { CONFIG } from './app/core/config';
 // DO NOT CHANGE ORDER OF IMPORTS
 
