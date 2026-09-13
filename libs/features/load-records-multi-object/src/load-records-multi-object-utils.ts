@@ -1,14 +1,13 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { MAX_RECORDS_PER_GROUP } from '@jetstream/shared/constants';
 import { describeSObject } from '@jetstream/shared/data';
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { formatNumber, openLoadMultiObjectTemplateWorkbook, type LoadMultiObjectTemplateSheet } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getHttpMethod, groupByFlat, pluralizeFromNumber, transformRecordForDataLoad } from '@jetstream/shared/utils';
 import { CompositeGraphRequest, Field, InsertUpdateUpsert, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { DepGraph, DepGraphCycleError } from 'dependency-graph';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
-import * as XLSX from 'xlsx';
 import {
   BuildDataGraphResult,
   LoadMultiObjectData,
@@ -260,173 +259,171 @@ export function applyDatasetConfiguration(
 }
 
 /**
- * Parses an excel workbook and builds datasets that can be validated and previewed.
- * Datasets are always returned, even when they contain errors, so the UI can render the data with errors annotated.
+ * Turns one worksheet of the template into a dataset. Every problem becomes an error on the dataset rather than
+ * an exception, so a worksheet that is half-filled-in still renders in the preview with its problems annotated.
  */
-export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgUi): Promise<ParseWorkbookResult> {
-  const workbookErrors: LoadMultiObjectDataError[] = [];
-  const sheetNames = workbook.SheetNames.filter((sheetName) => {
-    const isSkipped = sheetName.toLowerCase().includes('instructions');
-    // The template ships with a tab named exactly "Instructions" - only warn when some other sheet is skipped by the name rule
-    if (isSkipped && sheetName.trim().toLowerCase() !== 'instructions') {
-      workbookErrors.push({
-        property: null,
-        worksheet: sheetName,
-        location: null,
-        locationType: 'SHEET',
-        severity: 'warning',
-        message: `The worksheet "${sheetName}" was skipped because its name contains "instructions".`,
-      });
-    }
-    return !isSkipped;
-  });
+function buildDataset(sheetName: string, sheet: LoadMultiObjectTemplateSheet): LoadMultiObjectData {
+  const errors: LoadMultiObjectDataError[] = [];
+  const dataset: Partial<LoadMultiObjectData> = { worksheet: sheetName, errors };
 
-  if (sheetNames.length === 0) {
-    workbookErrors.push({
-      property: null,
-      worksheet: 'Workbook',
-      location: null,
-      locationType: 'SHEET',
-      message: `No data worksheets were found in this file. Add at least one worksheet based on the template. Any worksheet with "instructions" in its name is skipped.`,
+  if (sheet.sobject == null) {
+    errors.push({
+      property: 'sobject',
+      worksheet: sheetName,
+      location: WORKSHEET_LOCATIONS.sobject,
+      locationType: 'CELL',
+      message: `Cell B1 must contain the Object API Name (e.g. "Account"). The cell is blank or could not be read.`,
     });
-    return { datasets: [], workbookErrors };
+  } else {
+    dataset.sobject = sheet.sobject.toLowerCase();
   }
 
-  const datasets = sheetNames.reduce((output: LoadMultiObjectData[], sheetName) => {
-    const worksheet = workbook.Sheets[sheetName];
-    const dataset: Partial<LoadMultiObjectData> = { worksheet: sheetName, errors: [] };
+  if (sheet.operation == null) {
+    errors.push({
+      property: 'operation',
+      worksheet: sheetName,
+      location: WORKSHEET_LOCATIONS.operation,
+      locationType: 'CELL',
+      message: `Cell B2 must contain the operation: Insert, Update, or Upsert. The cell is blank or could not be read.`,
+    });
+  } else {
+    dataset.operation = sheet.operation.toUpperCase() as InsertUpdateUpsert;
+  }
 
-    try {
-      dataset.sobject = worksheet[WORKSHEET_LOCATIONS.sobject].v.toLowerCase();
-    } catch (ex) {
-      logger.warn('Error parsing object name', ex);
-      dataset.errors = dataset.errors || [];
-      dataset.errors.push({
-        property: 'sobject',
+  // A blank B3 is only a problem for upsert, which validateObjectData reports against the same cell
+  dataset.externalId = sheet.externalId ?? undefined;
+
+  // Headers keep their column position, blanks included: dropping them would shift every later column onto the
+  // wrong data. Only the populated ones have to be unique.
+  const dataHeaders = sheet.columnHeaders;
+  const populatedHeaders = dataHeaders.filter(Boolean);
+
+  if (populatedHeaders.length !== new Set(populatedHeaders).size) {
+    errors.push({
+      property: 'data',
+      worksheet: sheetName,
+      location: `${WORKSHEET_LOCATIONS.dataStartRow + 1}`,
+      locationType: 'ROW',
+      message: `There are duplicate values in your header, every value must be unique. "${populatedHeaders.join('", "')}".`,
+    });
+  }
+
+  dataset.data = sheet.dataRows.map((row) =>
+    row.reduce((currRow: Record<string, unknown>, cell, i) => {
+      if (!dataHeaders[i]) {
+        return currRow;
+      }
+      currRow[normalizeHeader(dataHeaders[i])] = cell;
+      return currRow;
+    }, {}),
+  );
+
+  dataset.referenceColumnHeader = normalizeHeader(sheet.referenceIdHeader);
+  const headers = populatedHeaders.filter((header) => normalizeHeader(header) !== dataset.referenceColumnHeader);
+  dataset.headers = headers.map(normalizeHeader);
+  dataset.referenceHeaders = new Set(headers.filter((header) => IS_REFERENCE_RGX.test(header.trim())).map(normalizeHeader));
+  dataset.dataById = dataset.data.reduce((output: Record<string, any>, row, i) => {
+    const referenceId = getReferenceId(row, dataset.referenceColumnHeader) || uniqueId('reference_');
+    if (output[referenceId]) {
+      errors.push({
+        property: 'data',
         worksheet: sheetName,
-        location: WORKSHEET_LOCATIONS.sobject,
+        location: `A${getExcelRow(i)}`,
         locationType: 'CELL',
-        message: `Cell B1 must contain the Object API Name (e.g. "Account"). The cell is blank or could not be read.`,
+        rowIndexes: [i],
+        message: `The Reference Id "${referenceId}" is used for multiple records. Every record across all worksheets must have a unique Reference Id.`,
       });
     }
-    try {
-      dataset.operation = worksheet[WORKSHEET_LOCATIONS.operation].v.toUpperCase();
-    } catch (ex) {
-      logger.warn('Error parsing operation', ex);
-      dataset.errors = dataset.errors || [];
-      dataset.errors.push({
-        property: 'operation',
-        worksheet: sheetName,
-        location: WORKSHEET_LOCATIONS.operation,
-        locationType: 'CELL',
-        message: `Cell B2 must contain the operation: Insert, Update, or Upsert. The cell is blank or could not be read.`,
-      });
-    }
-    try {
-      dataset.externalId = worksheet[WORKSHEET_LOCATIONS.externalId]?.v;
-    } catch (ex) {
-      logger.warn('Error parsing external Id', ex);
-      // only return error if this is an upsert operation
-      if (dataset.operation?.toLowerCase() === 'upsert') {
-        dataset.errors = dataset.errors || [];
-        dataset.errors.push({
-          property: 'externalId',
-          worksheet: sheetName,
-          location: WORKSHEET_LOCATIONS.externalId,
-          locationType: 'CELL',
-          message: `Cell B3 must contain the API name of an External Id field when the operation is Upsert. The cell is blank or could not be read.`,
-        });
-      }
-    }
-    try {
-      // Parse data to array of array, then build objects
-      const data: string[][] = XLSX.utils.sheet_to_json(worksheet, {
-        dateNF: 'yyyy"-"mm"-"dd"T"hh:mm:ss',
-        defval: '',
-        blankrows: false,
-        rawNumbers: true,
-        range: WORKSHEET_LOCATIONS.dataStartRow,
-        header: 1,
-      });
+    output[referenceId] = row;
+    return output;
+  }, {});
 
-      const dataHeaders = (data[0] || []).filter(Boolean).map((header) => header.trim());
+  if (dataset.data.length === 0) {
+    errors.push({
+      property: 'data',
+      worksheet: sheetName,
+      location: null,
+      locationType: 'SHEET',
+      message: `This worksheet has no data rows. Add records starting on row 6, or remove the worksheet.`,
+    });
+  }
 
-      if (dataHeaders.length !== new Set(dataHeaders).size) {
-        dataset.errors = dataset.errors || [];
-        dataset.errors.push({
-          property: 'data',
-          worksheet: sheetName,
-          location: `${WORKSHEET_LOCATIONS.dataStartRow + 1}`,
-          locationType: 'ROW',
-          message: `There are duplicate values in your header, every value must be unique. "${dataHeaders.join('", "')}".`,
-        });
-      }
+  return dataset as LoadMultiObjectData;
+}
 
-      dataset.data = data.slice(1).map((row) =>
-        row.reduce((currRow: Record<string, string | null>, cell, i) => {
-          if (!dataHeaders[i] || dataHeaders[i].toLowerCase().startsWith('__empty')) {
-            return currRow;
-          }
-
-          currRow[normalizeHeader(dataHeaders[i])] = cell ?? null;
-          return currRow;
-        }, {}),
-      );
-
-      // init remaining data
-      dataset.referenceColumnHeader = normalizeHeader(worksheet[WORKSHEET_LOCATIONS.referenceId]?.v);
-      const headers = dataHeaders.filter(
-        (field) => !!field && !field.toLowerCase().startsWith('__empty') && normalizeHeader(field) !== dataset.referenceColumnHeader,
-      );
-      dataset.headers = headers.map(normalizeHeader);
-      dataset.referenceHeaders = new Set(headers.filter((header) => IS_REFERENCE_RGX.test(header.trim())).map(normalizeHeader));
-      dataset.dataById = dataset.data.reduce((output: Record<string, any>, row, i) => {
-        const referenceId = getReferenceId(row, dataset.referenceColumnHeader) || uniqueId('reference_');
-        if (output[referenceId]) {
-          dataset.errors = dataset.errors || [];
-          dataset.errors.push({
-            property: 'data',
-            worksheet: sheetName,
-            location: `A${getExcelRow(i)}`,
-            locationType: 'CELL',
-            rowIndexes: [i],
-            message: `The Reference Id "${referenceId}" is used for multiple records. Every record across all worksheets must have a unique Reference Id.`,
-          });
-        }
-        output[referenceId] = row;
-        return output;
-      }, {});
-
-      if (dataset.data.length === 0) {
-        dataset.errors = dataset.errors || [];
-        dataset.errors.push({
-          property: 'data',
-          worksheet: sheetName,
-          location: null,
-          locationType: 'SHEET',
-          message: `This worksheet has no data rows. Add records starting on row 6, or remove the worksheet.`,
-        });
-      }
-    } catch (ex) {
-      logger.warn('Error parsing record data', ex);
-      dataset.errors = dataset.errors || [];
-      dataset.errors.push({
+/** Stand-in for a worksheet that could not be read at all, so the rest of the workbook is still usable */
+function buildUnreadableDataset(sheetName: string): LoadMultiObjectData {
+  const dataset: Partial<LoadMultiObjectData> = {
+    worksheet: sheetName,
+    data: [],
+    dataById: {},
+    headers: [],
+    referenceHeaders: new Set(),
+    errors: [
+      {
         property: 'data',
         worksheet: sheetName,
         location: WORKSHEET_LOCATIONS.dataStartCell,
         locationType: 'CELL',
         message: `Jetstream could not read the data on this worksheet. Check that headers are on row 5, data starts on row 6, and the sheet matches the template layout.`,
+      },
+    ],
+  };
+  return dataset as LoadMultiObjectData;
+}
+
+/**
+ * Parses an excel workbook and builds datasets that can be validated and previewed.
+ * Datasets are always returned, even when they contain errors, so the UI can render the data with errors annotated.
+ *
+ * Throws when the file itself cannot be opened (not a workbook, password protected, a legacy format) - the
+ * message on those errors already tells the user what to do with the file.
+ */
+export async function parseWorkbook(source: ArrayBuffer | Uint8Array | Blob, org: SalesforceOrgUi): Promise<ParseWorkbookResult> {
+  const workbookErrors: LoadMultiObjectDataError[] = [];
+  const datasets: LoadMultiObjectData[] = [];
+  const workbook = await openLoadMultiObjectTemplateWorkbook(source);
+
+  try {
+    // Listing sheets parses no sheet contents, so a skipped worksheet is never read
+    const sheetNames = workbook.sheetNames.filter((sheetName) => {
+      const isSkipped = sheetName.toLowerCase().includes('instructions');
+      // The template ships with a tab named exactly "Instructions" - only warn when some other sheet is skipped by the name rule
+      if (isSkipped && sheetName.trim().toLowerCase() !== 'instructions') {
+        workbookErrors.push({
+          property: null,
+          worksheet: sheetName,
+          location: null,
+          locationType: 'SHEET',
+          severity: 'warning',
+          message: `The worksheet "${sheetName}" was skipped because its name contains "instructions".`,
+        });
+      }
+      return !isSkipped;
+    });
+
+    if (sheetNames.length === 0) {
+      workbookErrors.push({
+        property: null,
+        worksheet: 'Workbook',
+        location: null,
+        locationType: 'SHEET',
+        message: `No data worksheets were found in this file. Add at least one worksheet based on the template. Any worksheet with "instructions" in its name is skipped.`,
       });
+      return { datasets: [], workbookErrors };
     }
 
-    // Ensure the dataset is always renderable by the preview UI, even when parsing partially failed
-    dataset.data = dataset.data || [];
-    dataset.dataById = dataset.dataById || {};
-    dataset.headers = dataset.headers || [];
-    dataset.referenceHeaders = dataset.referenceHeaders || new Set();
-
-    return [...output, dataset as LoadMultiObjectData];
-  }, []);
+    for (const sheetName of sheetNames) {
+      try {
+        datasets.push(buildDataset(sheetName, await workbook.readSheet(sheetName)));
+      } catch (ex) {
+        logger.warn('Error parsing record data', ex);
+        datasets.push(buildUnreadableDataset(sheetName));
+      }
+    }
+  } finally {
+    await workbook.close();
+  }
 
   await validateObjectData(org, datasets);
 

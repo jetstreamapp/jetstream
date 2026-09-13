@@ -1,5 +1,5 @@
 import { SalesforceOrgUi } from '@jetstream/types';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -69,7 +69,7 @@ describe('RecordDownloadModal file format persistence', () => {
     await userEvent.click(screen.getByLabelText('CSV'));
     await userEvent.click(screen.getByRole('button', { name: 'Download' }));
 
-    expect(saveFile).toHaveBeenCalled();
+    await waitFor(() => expect(saveFile).toHaveBeenCalled());
     expect(localStorage.getItem(LS_KEY)).toBe('csv');
   });
 
@@ -102,8 +102,22 @@ describe('RecordDownloadModal file format persistence', () => {
     await userEvent.click(screen.getByLabelText('Load template (Excel)'));
     await userEvent.click(screen.getByRole('button', { name: 'Download' }));
 
-    expect(saveFile).toHaveBeenCalled();
+    await waitFor(() => expect(saveFile).toHaveBeenCalled());
     expect(localStorage.getItem(LS_KEY)).toBe('csv');
+  });
+
+  /** The spreadsheet writer streams the file out as a Blob, which is handed to `saveFile` without being re-wrapped */
+  test('saves an Excel download as a Blob', async () => {
+    setup();
+
+    await userEvent.click(screen.getByLabelText('Excel'));
+    await userEvent.click(screen.getByRole('button', { name: 'Download' }));
+
+    await waitFor(() => expect(saveFile).toHaveBeenCalled());
+    const [fileData, fileNameWithExt] = saveFile.mock.calls[0];
+    expect(fileData).toBeInstanceOf(Blob);
+    expect(fileData.size).toBeGreaterThan(0);
+    expect(fileNameWithExt).toMatch(/\.xlsx$/);
   });
 });
 

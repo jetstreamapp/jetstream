@@ -16,7 +16,7 @@ import {
   useBrowserNotifications,
   useObservable,
 } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { getErrorMessage, pluralizeFromNumber, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import {
   AsyncJob,
   AsyncJobNew,
@@ -330,22 +330,31 @@ export const Jobs: FunctionComponent = () => {
             };
             setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
           } else {
-            const { fileData, useBulkApi, fileFormat, results, googleFolder } = data.results as {
+            const { fileData, useBulkApi, fileFormat, results, googleFolder, truncatedCells } = data.results as {
               fileData: any;
               useBulkApi?: boolean;
               mimeType: MimeType;
               fileFormat: string;
               results?: string;
               googleFolder?: string;
+              /** Cells the spreadsheet writer had to shorten to stay inside Excel's per-cell limit */
+              truncatedCells?: number;
             };
             let { fileName, mimeType } = data.results as { fileName: string; mimeType: MimeType };
+
+            // The download still succeeded, but the file is not a faithful copy - a background job has no other way to say so
+            const truncationWarning = truncatedCells
+              ? ` ${formatNumber(truncatedCells)} ${pluralizeFromNumber('value', truncatedCells)} exceeded Excel's cell limit and ${
+                  truncatedCells === 1 ? 'was' : 'were'
+                } truncated.`
+              : '';
 
             newJob = {
               ...newJob,
               finished: new Date(),
               lastActivity: new Date(),
-              status: 'success',
-              statusMessage: 'Records downloaded successfully',
+              status: truncationWarning ? 'finished-warning' : 'success',
+              statusMessage: `Records downloaded successfully.${truncationWarning}`,
               progress: undefined,
             };
             if (useBulkApi) {
@@ -425,8 +434,8 @@ export const Jobs: FunctionComponent = () => {
 
               newJob = {
                 ...newJob,
-                status: 'success',
-                statusMessage: 'Saved to Google successfully',
+                status: truncationWarning ? 'finished-warning' : 'success',
+                statusMessage: `Saved to Google successfully.${truncationWarning}`,
               };
 
               uploadToGoogleDrive({ fileData, fileName, googleFolder, newJob, fileType: 'xlsx' });

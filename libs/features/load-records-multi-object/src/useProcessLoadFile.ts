@@ -1,9 +1,10 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { getFileParseErrorMessage } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
+import { fireToast } from '@jetstream/ui';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useCallback, useEffect, useRef } from 'react';
-import type * as XLSX from 'xlsx';
 import { LoadMultiObjectDataError } from './load-records-multi-object-types';
 import { buildDataGraph, parseWorkbook } from './load-records-multi-object-utils';
 import {
@@ -18,13 +19,13 @@ import {
   workbookErrorsState,
 } from './load-records-multi-object.state';
 
-function toUnknownError(ex: unknown): LoadMultiObjectDataError {
+function toWorkbookError(message: string): LoadMultiObjectDataError {
   return {
     property: null,
     worksheet: 'Unknown',
     location: null,
     locationType: 'SHEET',
-    message: getErrorMessage(ex),
+    message,
   };
 }
 
@@ -54,12 +55,12 @@ export const useProcessLoadFile = (org: SalesforceOrgUi, apiVersion: string) => 
   }, []);
 
   const processFile = useCallback(
-    async (workbook: XLSX.WorkBook) => {
+    async (source: ArrayBuffer) => {
       setLoading(true);
       setDatasets(null);
       setWorkbookErrors([]);
       try {
-        const { datasets: parsedDatasets, workbookErrors } = await parseWorkbook(workbook, org);
+        const { datasets: parsedDatasets, workbookErrors } = await parseWorkbook(source, org);
         logger.info('[LOAD MULTI OBJ]', { datasets: parsedDatasets });
         if (isMounted.current) {
           setDatasets(parsedDatasets);
@@ -67,9 +68,12 @@ export const useProcessLoadFile = (org: SalesforceOrgUi, apiVersion: string) => 
         }
       } catch (ex) {
         logger.error('[LOAD MULTI OBJ] Error parsing file', ex);
+        // Nothing parsed, so the review panel that shows workbook errors is not rendered - the toast is what the user sees
+        const message = getFileParseErrorMessage(ex);
+        fireToast({ message, type: 'error' });
         if (isMounted.current) {
           setDatasets([]);
-          setWorkbookErrors([toUnknownError(ex)]);
+          setWorkbookErrors([toWorkbookError(message)]);
         }
       } finally {
         if (isMounted.current) {
@@ -97,7 +101,7 @@ export const useProcessLoadFile = (org: SalesforceOrgUi, apiVersion: string) => 
       setRequests(errors.length ? null : requests);
     } catch (ex) {
       logger.error('[LOAD MULTI OBJ] Error building graph', ex);
-      setGraphErrors([toUnknownError(ex)]);
+      setGraphErrors([toWorkbookError(getErrorMessage(ex))]);
       setGroupsByRefId({});
       setRequests(null);
     }

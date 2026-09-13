@@ -72,9 +72,9 @@ export interface FileDownloadModalProps {
   allowedTypes?: FileExtAllTypes[];
   org: SalesforceOrgUi;
   /**
-   * if data is Record<string, any[]> | ArrayBuffer then only excel is a supported option and header, if provided, should be the same type
+   * if data is Record<string, any[]> | Blob | ArrayBuffer then only excel is a supported option and header, if provided, should be the same type
    */
-  data: any[] | Record<string, any[]> | ArrayBuffer | string;
+  data: any[] | Record<string, any[]> | Blob | ArrayBuffer | string;
   /**
    * Header to use for download.
    * If omitted, then this will be auto-detected from the first row of data
@@ -185,24 +185,25 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
     }
   }, [onChange, fileName, fileFormat]);
 
-  function handleDownload() {
+  async function handleDownload() {
     try {
       const fileNameWithExt = `${fileName}.${fileFormat}`;
       let mimeType: MimeType;
-      let fileData;
+      let fileData: string | Blob | ArrayBuffer;
       if (fileFormat === 'gdrive') {
-        handleUploadToGoogle();
+        await handleUploadToGoogle();
       } else {
         switch (fileFormat) {
           case 'xlsx': {
-            if (data instanceof ArrayBuffer) {
+            // Callers that build their own workbook (e.g. the permission export) hand over finished file bytes
+            if (data instanceof Blob || data instanceof ArrayBuffer) {
               fileData = data;
             } else if (Array.isArray(data)) {
               const headerFields = (header ? header : Object.keys(data[0])) as string[];
               const _data = transformData ? transformData({ fileFormat, data, header: headerFields }) : data;
-              fileData = prepareExcelFile(_data, headerFields, undefined, { onCellsTruncated: notifyExcelCellsTruncated });
+              fileData = await prepareExcelFile(_data, headerFields, undefined, { onCellsTruncated: notifyExcelCellsTruncated });
             } else {
-              fileData = prepareExcelFile(data as any, header as Record<string, string[]>, undefined, {
+              fileData = await prepareExcelFile(data as any, header as Record<string, string[]>, undefined, {
                 onCellsTruncated: notifyExcelCellsTruncated,
               });
             }
@@ -226,13 +227,11 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
           case 'xml': {
             fileData = data as string;
             mimeType = MIME_TYPES.XML;
-            fileData = data;
             break;
           }
           case 'zip': {
-            fileData = data as string | ArrayBuffer;
+            fileData = data as string | Blob | ArrayBuffer;
             mimeType = MIME_TYPES.ZIP;
-            fileData = data;
             break;
           }
           default:
@@ -250,7 +249,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
     }
   }
 
-  function handleUploadToGoogle() {
+  async function handleUploadToGoogle() {
     let fileData: any;
     let fileType: FileExtCsvXLSX | FileExtZip;
     // Get fileData based on allowable formats.
@@ -262,15 +261,15 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
       fileData = prepareCsvFile(_data, headerFields);
     } else if (allowedTypesSet.has('xlsx')) {
       fileType = 'xlsx';
-      if (data instanceof ArrayBuffer) {
+      if (data instanceof Blob || data instanceof ArrayBuffer) {
         fileData = data;
       } else if (Array.isArray(data)) {
         const headerFields = (header ? header : Object.keys(data[0])) as string[];
         const _data =
           transformData && Array.isArray(data) ? transformData({ fileFormat: 'xlsx', data, header: headerFields }) : (data as any[]);
-        fileData = prepareExcelFile(_data, headerFields, undefined, { onCellsTruncated: notifyExcelCellsTruncated });
+        fileData = await prepareExcelFile(_data, headerFields, undefined, { onCellsTruncated: notifyExcelCellsTruncated });
       } else {
-        fileData = prepareExcelFile(data as any, header as Record<string, string[]>, undefined, {
+        fileData = await prepareExcelFile(data as any, header as Record<string, string[]>, undefined, {
           onCellsTruncated: notifyExcelCellsTruncated,
         });
       }

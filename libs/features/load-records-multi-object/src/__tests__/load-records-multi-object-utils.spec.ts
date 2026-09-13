@@ -2,7 +2,9 @@ import { MAX_RECORDS_PER_GROUP } from '@jetstream/shared/constants';
 import { describeSObject } from '@jetstream/shared/data';
 import { prepareLoadMultiObjectTemplate } from '@jetstream/shared/ui-utils';
 import { Field, SalesforceOrgUi } from '@jetstream/types';
-import * as XLSX from 'xlsx';
+import { collectToBytes, createWorkbookWriter, isXlsxError } from '@jetstreamapp/simple-excel';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { LoadMultiObjectData, LoadMultiObjectRequestWithResult } from '../load-records-multi-object-types';
 import {
   applyDatasetConfiguration,
@@ -73,17 +75,21 @@ function buildSheetAoa({ sobject, operation, externalId, headers, rows }: SheetS
   return [['Object Api Name', sobject], ['Operation', operation], ['External Id (for upsert)', externalId ?? ''], [], headers, ...rows];
 }
 
-function buildWorkbook(sheets: Record<string, SheetSpec | any[][]>): XLSX.WorkBook {
-  const workbook = XLSX.utils.book_new();
-  Object.entries(sheets).forEach(([sheetName, sheet]) => {
-    const aoa = Array.isArray(sheet) ? sheet : buildSheetAoa(sheet);
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(aoa), sheetName);
-  });
-  return workbook;
+/** Writes a real .xlsx file, which is what the loader is handed */
+async function buildWorkbook(sheets: Record<string, SheetSpec | any[][]>): Promise<Uint8Array> {
+  const sink = collectToBytes();
+  const workbook = createWorkbookWriter(sink);
+  for (const [sheetName, sheet] of Object.entries(sheets)) {
+    const sheetWriter = workbook.addSheet(sheetName);
+    await sheetWriter.writeRows(Array.isArray(sheet) ? sheet : buildSheetAoa(sheet));
+    await sheetWriter.close();
+  }
+  await workbook.close();
+  return sink.result();
 }
 
 /** The workbook shape of the downloadable template: parent accounts + contacts referencing them */
-function buildTemplateWorkbook(): XLSX.WorkBook {
+function buildTemplateWorkbook(): Promise<Uint8Array> {
   return buildWorkbook({
     Instructions: [['Instructions here']],
     'Create Accounts': {
@@ -109,7 +115,23 @@ function buildTemplateWorkbook(): XLSX.WorkBook {
   });
 }
 
-async function parseDatasets(workbook: XLSX.WorkBook): Promise<LoadMultiObjectData[]> {
+/** The template the page links to - parsing the real file is what proves the layout and the parser agree */
+const TEMPLATE_FILE_PATH = 'apps/api/src/assets/content/Jetstream - Load Records to Multiple Objects - Template.xlsx';
+
+/** The test runner's working directory is either the workspace root or this project, so the root is found rather than assumed */
+function readRepoFile(repoRelativePath: string): Uint8Array {
+  let directory = process.cwd();
+  while (!existsSync(join(directory, repoRelativePath))) {
+    const parentDirectory = dirname(directory);
+    if (parentDirectory === directory) {
+      throw new Error(`Could not find "${repoRelativePath}" in any directory above ${process.cwd()}`);
+    }
+    directory = parentDirectory;
+  }
+  return new Uint8Array(readFileSync(join(directory, repoRelativePath)));
+}
+
+async function parseDatasets(workbook: Uint8Array): Promise<LoadMultiObjectData[]> {
   const { datasets } = await parseWorkbook(workbook, ORG);
   return datasets;
 }
@@ -131,7 +153,7 @@ beforeEach(() => {
 
 describe('parseWorkbook', () => {
   it('parses the template shape, skipping the Instructions sheet with no warning', async () => {
-    const { datasets, workbookErrors } = await parseWorkbook(buildTemplateWorkbook(), ORG);
+    const { datasets, workbookErrors } = await parseWorkbook(await buildTemplateWorkbook(), ORG);
 
     expect(workbookErrors).toEqual([]);
     expect(datasets).toHaveLength(2);
@@ -151,8 +173,80 @@ describe('parseWorkbook', () => {
     expect(contacts.errors).toEqual([]);
   });
 
+  it('parses the template file the page hands out, header block and all', async () => {
+    const { datasets, workbookErrors } = await parseWorkbook(readRepoFile(TEMPLATE_FILE_PATH), ORG);
+
+    expect(workbookErrors).toEqual([]);
+    expect(datasets.map(({ worksheet }) => worksheet)).toEqual(['Create Accounts', 'Create Contacts']);
+
+    const [accounts, contacts] = datasets;
+    expect(accounts.sobject).toBe('Account');
+    expect(accounts.operation).toBe('INSERT');
+    expect(accounts.externalId).toBeUndefined();
+    expect(accounts.referenceColumnHeader).toBe('Reference Id');
+    expect(accounts.headers).toEqual(['Name', 'ParentId']);
+    expect(accounts.referenceHeaders).toEqual(new Set(['ParentId']));
+    // Row 6 and row 7 hold no value in the last column at all, so the padding is what keeps ParentId on the record
+    expect(accounts.data).toEqual([
+      { 'Reference Id': 'account1', Name: 'Account 1', ParentId: '' },
+      { 'Reference Id': 'account2', Name: 'Account 2', ParentId: '' },
+      { 'Reference Id': 'account3', Name: 'Account 3', ParentId: 'account1' },
+    ]);
+    expect(accounts.errors).toEqual([]);
+
+    expect(contacts.sobject).toBe('Contact');
+    expect(contacts.operation).toBe('INSERT');
+    expect(contacts.referenceHeaders).toEqual(new Set(['AccountId']));
+    expect(contacts.data).toEqual([
+      { 'Reference Id': 'contact1', FirstName: 'Bob', LastName: 'Smith', AccountId: 'account1' },
+      { 'Reference Id': 'contact2', FirstName: 'Janet', LastName: 'Smith', AccountId: 'account1' },
+      { 'Reference Id': 'contact3', FirstName: 'Alan', LastName: 'Jackson', AccountId: 'account2' },
+    ]);
+    expect(contacts.errors).toEqual([]);
+  });
+
+  it('rejects a file that is not a workbook instead of reporting an empty file', async () => {
+    const csvBytes = Uint8Array.from('Reference Id,Name\nrec1,Acme\n', (character) => character.charCodeAt(0));
+
+    const error = await parseWorkbook(csvBytes, ORG).catch((ex) => ex);
+
+    expect(isXlsxError(error)).toBe(true);
+    expect(error.code).toBe('NOT_XLSX');
+  });
+
+  it('keeps every column aligned with its data when a header in the middle is blank', async () => {
+    const workbook = await buildWorkbook({
+      Sheet1: {
+        sobject: 'Account',
+        operation: 'Insert',
+        headers: ['Reference Id', '', 'Name'],
+        rows: [['rec1', 'no header, so this value has nowhere to go', 'Acme']],
+      },
+    });
+    const [dataset] = await parseDatasets(workbook);
+
+    expect(dataset.headers).toEqual(['Name']);
+    expect(dataset.data).toEqual([{ 'Reference Id': 'rec1', Name: 'Acme' }]);
+    expect(dataset.errors).toEqual([]);
+  });
+
+  it('fills in trailing columns a row does not include, so every record has every field', async () => {
+    const workbook = await buildWorkbook({
+      Sheet1: {
+        sobject: 'Account',
+        operation: 'Insert',
+        headers: ['Reference Id', 'Name', '{ParentId}'],
+        rows: [['rec1', 'Acme']],
+      },
+    });
+    const [dataset] = await parseDatasets(workbook);
+
+    expect(dataset.data).toEqual([{ 'Reference Id': 'rec1', Name: 'Acme', ParentId: '' }]);
+    expect(dataset.errors).toEqual([]);
+  });
+
   it('reports a missing object name at cell B1', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: [[], ['Operation', 'Insert'], [], [], ['Reference Id', 'Name'], ['rec1', 'Test']],
     });
     const datasets = await parseDatasets(workbook);
@@ -165,7 +259,7 @@ describe('parseWorkbook', () => {
   });
 
   it('reports an invalid operation at cell B2', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: { sobject: 'Account', operation: 'Delete', headers: ['Reference Id', 'Name'], rows: [['rec1', 'Test']] },
     });
     const datasets = await parseDatasets(workbook);
@@ -177,7 +271,7 @@ describe('parseWorkbook', () => {
   });
 
   it('reports a missing external Id for upsert at cell B3 (not B1)', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: { sobject: 'Account', operation: 'Upsert', headers: ['Reference Id', 'Name'], rows: [['rec1', 'Test']] },
     });
     const datasets = await parseDatasets(workbook);
@@ -189,7 +283,7 @@ describe('parseWorkbook', () => {
   });
 
   it('requires the upsert external Id to be a column and flagged as external id in Salesforce', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: {
         sobject: 'Account',
         operation: 'Upsert',
@@ -206,7 +300,7 @@ describe('parseWorkbook', () => {
   });
 
   it('proper-cases a valid upsert external Id', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: {
         sobject: 'Account',
         operation: 'Upsert',
@@ -222,7 +316,7 @@ describe('parseWorkbook', () => {
   });
 
   it('reports duplicate headers on row 5', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: { sobject: 'Account', operation: 'Insert', headers: ['Reference Id', 'Name', 'Name'], rows: [['rec1', 'a', 'b']] },
     });
     const datasets = await parseDatasets(workbook);
@@ -234,7 +328,7 @@ describe('parseWorkbook', () => {
   });
 
   it('reports duplicate Reference Ids within a sheet with the exact cell and row index', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: {
         sobject: 'Account',
         operation: 'Insert',
@@ -253,7 +347,7 @@ describe('parseWorkbook', () => {
   });
 
   it('reports Reference Ids duplicated across worksheets', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: { sobject: 'Account', operation: 'Insert', headers: ['Reference Id', 'Name'], rows: [['rec1', 'a']] },
       Sheet2: { sobject: 'Contact', operation: 'Insert', headers: ['Reference Id', 'LastName'], rows: [['rec1', 'b']] },
     });
@@ -265,7 +359,7 @@ describe('parseWorkbook', () => {
   });
 
   it('reports each unknown field as its own non-blocking column warning with the header attached', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: {
         sobject: 'Account',
         operation: 'Insert',
@@ -284,7 +378,7 @@ describe('parseWorkbook', () => {
   });
 
   it('omits unknown columns from the record sent to Salesforce', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: {
         sobject: 'Account',
         operation: 'Insert',
@@ -301,7 +395,7 @@ describe('parseWorkbook', () => {
   });
 
   it('skips fields the operation cannot write and keeps them out of the request', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: {
         sobject: 'Account',
         operation: 'Insert',
@@ -322,7 +416,7 @@ describe('parseWorkbook', () => {
   });
 
   it('keeps the Id column for updates, since it identifies the record to update', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: {
         sobject: 'Account',
         operation: 'Update',
@@ -338,7 +432,7 @@ describe('parseWorkbook', () => {
   });
 
   it('loads a relationship column that resolves to an external Id on the related object', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: {
         sobject: 'Contact',
         operation: 'Insert',
@@ -357,7 +451,7 @@ describe('parseWorkbook', () => {
   });
 
   it('warns about a relationship column whose related field cannot be resolved instead of dropping it silently', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: {
         sobject: 'Contact',
         operation: 'Insert',
@@ -378,7 +472,7 @@ describe('parseWorkbook', () => {
   });
 
   it('does not flag every column as unknown when the object could not be described', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: {
         sobject: 'NotARealObject__c',
         operation: 'Insert',
@@ -395,7 +489,7 @@ describe('parseWorkbook', () => {
   });
 
   it('reports missing Reference Ids with the offending row indexes', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: {
         sobject: 'Account',
         operation: 'Insert',
@@ -415,7 +509,7 @@ describe('parseWorkbook', () => {
   });
 
   it('reports invalid Reference Ids with row indexes, and allows single-character Reference Ids', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: {
         sobject: 'Account',
         operation: 'Insert',
@@ -436,7 +530,7 @@ describe('parseWorkbook', () => {
 
   it('normalizes the Reference Id header from cell A5 so surrounding whitespace or braces still line up with the rows', async () => {
     for (const referenceHeader of ['Reference Id ', '{Reference Id}']) {
-      const workbook = buildWorkbook({
+      const workbook = await buildWorkbook({
         Sheet1: {
           sobject: 'Account',
           operation: 'Insert',
@@ -454,7 +548,7 @@ describe('parseWorkbook', () => {
   });
 
   it('normalizes Reference Id values, so numbers and stray whitespace are not reported as missing or invalid', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: {
         sobject: 'Account',
         operation: 'Insert',
@@ -473,7 +567,7 @@ describe('parseWorkbook', () => {
   });
 
   it('reports an empty data sheet as a sheet-level error', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: { sobject: 'Account', operation: 'Insert', headers: ['Reference Id', 'Name'], rows: [] },
     });
     const datasets = await parseDatasets(workbook);
@@ -484,7 +578,7 @@ describe('parseWorkbook', () => {
   });
 
   it('errors when the workbook has no data worksheets at all', async () => {
-    const workbook = buildWorkbook({ Instructions: [['only instructions']] });
+    const workbook = await buildWorkbook({ Instructions: [['only instructions']] });
     const { datasets, workbookErrors } = await parseWorkbook(workbook, ORG);
 
     expect(datasets).toEqual([]);
@@ -493,7 +587,7 @@ describe('parseWorkbook', () => {
   });
 
   it('warns when a non-template sheet is skipped by the instructions name rule', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       'Account instructions': [['this will be skipped']],
       Sheet1: { sobject: 'Account', operation: 'Insert', headers: ['Reference Id', 'Name'], rows: [['rec1', 'a']] },
     });
@@ -505,7 +599,7 @@ describe('parseWorkbook', () => {
   });
 
   it('reports an unknown object with guidance pointing at cell B1', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: { sobject: 'NotARealObject__c', operation: 'Insert', headers: ['Reference Id', 'Name'], rows: [['rec1', 'a']] },
     });
     const datasets = await parseDatasets(workbook);
@@ -519,7 +613,7 @@ describe('parseWorkbook', () => {
 
 describe('buildDataGraph', () => {
   it('builds one group per connected set of related records, topologically ordered', async () => {
-    const datasets = await parseDatasets(buildTemplateWorkbook());
+    const datasets = await parseDatasets(await buildTemplateWorkbook());
     const { requests, errors, groupsByRefId } = buildDataGraph(datasets, API_VERSION, GRAPH_OPTIONS);
 
     expect(errors).toEqual([]);
@@ -543,7 +637,7 @@ describe('buildDataGraph', () => {
   });
 
   it('emits the composite-graph reference syntax for dependent fields', async () => {
-    const datasets = await parseDatasets(buildTemplateWorkbook());
+    const datasets = await parseDatasets(await buildTemplateWorkbook());
     const { requests } = buildDataGraph(datasets, API_VERSION, GRAPH_OPTIONS);
 
     const contact1 = requests[0].recordWithResponseByRefId['contact1'];
@@ -553,7 +647,7 @@ describe('buildDataGraph', () => {
   });
 
   it('keeps unrelated records as independent single-record groups', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: {
         sobject: 'Account',
         operation: 'Insert',
@@ -589,7 +683,7 @@ describe('buildDataGraph', () => {
 
     // contact1 references accountA via the column and contactBoss (in accountB's cluster) via a cell-level
     // reference, chaining both clusters into one group
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Accounts: {
         sobject: 'Account',
         operation: 'Insert',
@@ -619,7 +713,7 @@ describe('buildDataGraph', () => {
   });
 
   it('detects dependencies for reference headers whose casing does not match the field API name', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Accounts: { sobject: 'Account', operation: 'Insert', headers: ['Reference Id', 'Name'], rows: [['account1', 'A']] },
       Contacts: {
         sobject: 'Contact',
@@ -637,7 +731,7 @@ describe('buildDataGraph', () => {
   });
 
   it('strips curly braces from cell values inside a reference column', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Accounts: {
         sobject: 'Account',
         operation: 'Insert',
@@ -656,7 +750,7 @@ describe('buildDataGraph', () => {
   });
 
   it('resolves numeric Reference Ids - the graph keys nodes by identity, so ids and lookups must both be strings', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Accounts: {
         sobject: 'Account',
         operation: 'Insert',
@@ -678,7 +772,7 @@ describe('buildDataGraph', () => {
   });
 
   it('reports an unknown Reference Id with the row it came from and does not throw', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Contacts: {
         sobject: 'Contact',
         operation: 'Insert',
@@ -700,7 +794,7 @@ describe('buildDataGraph', () => {
   });
 
   it('reports circular references as a readable loop instead of throwing', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Accounts: {
         sobject: 'Account',
         operation: 'Insert',
@@ -732,11 +826,11 @@ describe('buildDataGraph', () => {
       });
     }
 
-    const okResult = buildDataGraph(await parseDatasets(buildChainWorkbook(MAX_RECORDS_PER_GROUP - 1)), API_VERSION, GRAPH_OPTIONS);
+    const okResult = buildDataGraph(await parseDatasets(await buildChainWorkbook(MAX_RECORDS_PER_GROUP - 1)), API_VERSION, GRAPH_OPTIONS);
     expect(okResult.errors).toEqual([]);
     expect(okResult.groupsByRefId['parent'].size).toBe(MAX_RECORDS_PER_GROUP);
 
-    const overResult = buildDataGraph(await parseDatasets(buildChainWorkbook(MAX_RECORDS_PER_GROUP)), API_VERSION, GRAPH_OPTIONS);
+    const overResult = buildDataGraph(await parseDatasets(await buildChainWorkbook(MAX_RECORDS_PER_GROUP)), API_VERSION, GRAPH_OPTIONS);
     expect(overResult.requests).toEqual([]);
     expect(overResult.errors).toHaveLength(1);
     expect(overResult.errors[0].message).toContain('This limit is per group, not per file');
@@ -745,7 +839,7 @@ describe('buildDataGraph', () => {
   });
 
   it('is idempotent - running twice on the same datasets produces identical output (no input mutation)', async () => {
-    const datasets = await parseDatasets(buildTemplateWorkbook());
+    const datasets = await parseDatasets(await buildTemplateWorkbook());
 
     const first = buildDataGraph(datasets, API_VERSION, GRAPH_OPTIONS);
     const second = buildDataGraph(datasets, API_VERSION, GRAPH_OPTIONS);
@@ -755,7 +849,7 @@ describe('buildDataGraph', () => {
   });
 
   it('is idempotent for cell-level references in non-reference columns', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Accounts: { sobject: 'Account', operation: 'Insert', headers: ['Reference Id', 'Name'], rows: [['account1', 'A']] },
       Contacts: {
         sobject: 'Contact',
@@ -775,7 +869,7 @@ describe('buildDataGraph', () => {
   });
 
   it('builds upsert URLs with the external Id in the path and strips it from the body', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: {
         sobject: 'Account',
         operation: 'Upsert',
@@ -795,7 +889,7 @@ describe('buildDataGraph', () => {
   });
 
   it('builds update URLs with the record Id and PATCH', async () => {
-    const workbook = buildWorkbook({
+    const workbook = await buildWorkbook({
       Sheet1: {
         sobject: 'Account',
         operation: 'Update',
@@ -813,7 +907,7 @@ describe('buildDataGraph', () => {
   });
 
   it('carries worksheet, row index, and graph id onto every record result shell', async () => {
-    const datasets = await parseDatasets(buildTemplateWorkbook());
+    const datasets = await parseDatasets(await buildTemplateWorkbook());
     const { requests } = buildDataGraph(datasets, API_VERSION, GRAPH_OPTIONS);
 
     const contact3 = requests[0].recordWithResponseByRefId['contact3'];
@@ -826,7 +920,7 @@ describe('buildDataGraph', () => {
 describe('applyDatasetConfiguration', () => {
   async function buildAccountDataset(headers: string[], operation = 'Insert', externalId?: string): Promise<LoadMultiObjectData> {
     const datasets = await parseDatasets(
-      buildWorkbook({
+      await buildWorkbook({
         Sheet1: {
           sobject: 'Account',
           operation,
@@ -954,7 +1048,7 @@ describe('splitRequestsToMaxSize', () => {
 
 describe('buildRetryRequests', () => {
   async function buildLoadedRequests(): Promise<LoadMultiObjectRequestWithResult[]> {
-    const datasets = await parseDatasets(buildTemplateWorkbook());
+    const datasets = await parseDatasets(await buildTemplateWorkbook());
     return buildDataGraph(datasets, API_VERSION, GRAPH_OPTIONS).requests;
   }
 
@@ -1038,7 +1132,7 @@ describe('template generated from query results', () => {
   }
 
   it('parses and loads with each subquery record linked to the parent it came from', async () => {
-    const datasets = await parseDatasets(buildWorkbook(buildQueryResultTemplate()));
+    const datasets = await parseDatasets(await buildWorkbook(buildQueryResultTemplate()));
 
     expect(allErrors(datasets)).toEqual([]);
     expect(datasets.map(({ sobject }) => sobject)).toEqual(['Account', 'Contact']);

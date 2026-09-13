@@ -10,6 +10,7 @@ import {
   sanitizeExcelSheetName,
 } from '@jetstream/shared/utils';
 import type { ChildRelationship, Maybe } from '@jetstream/types';
+import { openWorkbook, type CellValue, type RawCell, type SourceInput } from '@jetstreamapp/simple-excel';
 
 export interface LoadMultiObjectTemplateOptions {
   sobject: string;
@@ -325,4 +326,87 @@ export function prepareLoadMultiObjectTemplate(options: LoadMultiObjectTemplateO
   });
 
   return output;
+}
+
+/**
+ * Cells the template reserves above the data. The loader points its error messages at these exact addresses,
+ * so they are spelled out rather than derived.
+ */
+const TEMPLATE_CELLS = { sobject: 'B1', operation: 'B2', externalId: 'B3', referenceIdHeader: 'A5' };
+/** 1-based worksheet row holding the column headers; records start on the row below it */
+const TEMPLATE_HEADER_ROW = 5;
+
+/** One worksheet of an uploaded template, read into the pieces the loader validates */
+export interface LoadMultiObjectTemplateSheet {
+  /** Cell B1 - the object API name, or null when the cell is blank */
+  sobject: string | null;
+  /** Cell B2 - the operation, or null when the cell is blank */
+  operation: string | null;
+  /** Cell B3 - the external Id field API name, only meaningful for upsert */
+  externalId: string | null;
+  /** Cell A5 - the header of the Reference Id column */
+  referenceIdHeader: string | null;
+  /** Row 5, index preserving: a blank header keeps its position so later columns stay aligned with their data */
+  columnHeaders: string[];
+  /** Rows 6 and below, each padded to the header width with '' for cells the file does not hold */
+  dataRows: CellValue[][];
+}
+
+export interface LoadMultiObjectTemplateWorkbook {
+  /** Worksheet names in workbook order. Listing them parses no sheet, so skipping a sheet costs nothing */
+  sheetNames: string[];
+  readSheet(sheetName: string): Promise<LoadMultiObjectTemplateSheet>;
+  close(): Promise<void>;
+}
+
+function getTemplateCellText(cells: Map<string, RawCell>, address: string): string | null {
+  const value = cells.get(address)?.value;
+  if (value == null) {
+    return null;
+  }
+  return String(value).trim() || null;
+}
+
+/**
+ * Opens an uploaded "Load Records to Multiple Objects" template for reading.
+ *
+ * Only the cells the loader actually uses are materialized: the header block comes from the first five rows and
+ * stops inflating there, and the data rows stream from row 5 on, so an oversized worksheet is never held twice.
+ */
+export async function openLoadMultiObjectTemplateWorkbook(source: SourceInput): Promise<LoadMultiObjectTemplateWorkbook> {
+  // errors: 'null' turns an error cell (#N/A, #REF!) into a blank cell rather than its text, so a stray formula
+  // error is never loaded into Salesforce as a literal value
+  const workbook = await openWorkbook(source, { errors: 'null' });
+
+  return {
+    sheetNames: workbook.sheets.filter(({ kind }) => kind === 'worksheet').map(({ name }) => name),
+    async readSheet(sheetName: string): Promise<LoadMultiObjectTemplateSheet> {
+      const sheet = workbook.sheet(sheetName);
+      const headerBlockCells = await sheet.head(TEMPLATE_HEADER_ROW);
+      const columnHeaders: string[] = [];
+      const dataRows: CellValue[][] = [];
+
+      let isHeaderRow = true;
+      for await (const row of sheet.rows({ startRow: TEMPLATE_HEADER_ROW })) {
+        if (isHeaderRow) {
+          isHeaderRow = false;
+          columnHeaders.push(...row.map((header) => (header == null ? '' : String(header).trim())));
+          continue;
+        }
+        // Rows arrive dense, with trailing empties trimmed and interior holes as null, so each is padded back out
+        // to the header width - otherwise a blank cell in the last column would drop its key from the record
+        dataRows.push(Array.from({ length: columnHeaders.length }, (_, index) => row[index] ?? ''));
+      }
+
+      return {
+        sobject: getTemplateCellText(headerBlockCells, TEMPLATE_CELLS.sobject),
+        operation: getTemplateCellText(headerBlockCells, TEMPLATE_CELLS.operation),
+        externalId: getTemplateCellText(headerBlockCells, TEMPLATE_CELLS.externalId),
+        referenceIdHeader: getTemplateCellText(headerBlockCells, TEMPLATE_CELLS.referenceIdHeader),
+        columnHeaders,
+        dataRows,
+      };
+    },
+    close: () => workbook.close(),
+  };
 }

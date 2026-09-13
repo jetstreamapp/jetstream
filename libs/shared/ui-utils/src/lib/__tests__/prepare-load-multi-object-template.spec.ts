@@ -1,5 +1,5 @@
 import { ChildRelationship } from '@jetstream/types';
-import * as XLSX from 'xlsx';
+import { openWorkbook } from '@jetstreamapp/simple-excel';
 import { planLoadMultiObjectTemplate, prepareLoadMultiObjectTemplate } from '../load-multi-object-template.utils';
 import { prepareExcelFile } from '../shared-ui-utils';
 
@@ -217,18 +217,22 @@ describe('prepareLoadMultiObjectTemplate', () => {
     });
   });
 
-  it('round-trips through prepareExcelFile as an array-of-array sheet', () => {
+  it('round-trips through prepareExcelFile as an array-of-array sheet', async () => {
     const output = prepareLoadMultiObjectTemplate({
       sobject: 'Account',
       fields: ['Id', 'Name'],
       records: [{ Id: '001000000000001', Name: 'Acme' }],
     });
 
-    const fileData = prepareExcelFile(output, undefined, undefined);
-    const workbook = XLSX.read(fileData, { type: 'array' });
-    expect(workbook.SheetNames).toEqual(['Account']);
+    const file = await prepareExcelFile(output, undefined, undefined);
+    const workbook = await openWorkbook(file);
+    expect(workbook.sheets.map(({ name }) => name)).toEqual(['Account']);
 
-    const rows = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets['Account'], { header: 1 });
+    const rows: unknown[][] = [];
+    for await (const row of workbook.sheet('Account').rows({ blankRows: true })) {
+      rows.push(row);
+    }
+    await workbook.close();
     expect(rows[0]).toEqual(['Object Api Name', 'Account']);
     expect(rows[1]).toEqual(['Operation', 'Insert']);
     expect(rows[2]).toEqual(['External Id (for upsert)', '']);

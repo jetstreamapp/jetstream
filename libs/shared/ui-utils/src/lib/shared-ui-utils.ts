@@ -2,7 +2,7 @@
 /* eslint-disable no-redeclare */
 import type { Placement } from '@floating-ui/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { DATE_FORMATS, HTTP, INPUT_ACCEPT_FILETYPES, JOB_CANCELED_ERROR_MESSAGE } from '@jetstream/shared/constants';
+import { DATE_FORMATS, HTTP, INPUT_ACCEPT_FILETYPES, JOB_CANCELED_ERROR_MESSAGE, MIME_TYPES } from '@jetstream/shared/constants';
 import {
   anonymousApex,
   bulkApiGetJob,
@@ -42,6 +42,8 @@ import type {
   UseReducerFetchAction,
   UseReducerFetchState,
 } from '@jetstream/types';
+import type * as SimpleExcel from '@jetstreamapp/simple-excel';
+import { SNIFF_BYTES, collectToBlob, createWorkbookWriter, openWorkbook, sniff } from '@jetstreamapp/simple-excel';
 import {
   HavingClause,
   HavingClauseWithRightCondition,
@@ -62,27 +64,27 @@ import isString from 'lodash/isString';
 import isUndefined from 'lodash/isUndefined';
 import type { IDisposable, editor } from 'monaco-editor';
 import { UnparseConfig, parse as parseCsv, unparse, unparse as unparseCsv } from 'papaparse';
-import * as XLSX from 'xlsx';
 import { parseJson } from './parse-json';
 
-let codepageTablePromise: Promise<void> | undefined;
-
 /**
- * Register the codepage table so XLSX can read workbooks saved in legacy non-unicode encodings.
- * Call this before reading or writing a workbook; the table is fetched at most once per session.
- *
- * It is loaded lazily rather than imported, since it appears to have been failing to load for at
- * least one user, and skipped entirely in the browser extension.
- * https://github.com/jetstreamapp/jetstream/issues/211
- * https://git.sheetjs.com/sheetjs/sheetjs/issues/2900
+ * The spreadsheet engine is `@jetstreamapp/simple-excel`. This module owns every call into it so the value contract
+ * (dates, blank cells, header naming, truncation, error copy) is decided once; the few callers that build custom
+ * sheets (the Permission Manager export) get the writer through these re-exports rather than importing the package.
  */
-export function ensureXlsxCodepageTable(): Promise<void> {
-  if (globalThis.__IS_BROWSER_EXTENSION__) {
-    return Promise.resolve();
-  }
-  codepageTablePromise ??= import('xlsx/dist/cpexcel.full.mjs').then((module) => XLSX.set_cptable(module)).catch(() => undefined);
-  return codepageTablePromise;
-}
+export { collectToBlob, createWorkbookWriter, formatRange, isXlsxError, sanitizeSheetName } from '@jetstreamapp/simple-excel';
+// Type aliases rather than an `export type { ... } from` list: the import organizer and the formatter disagree on
+// how to print a wrapped re-export list, and a list of these names does not fit on one line.
+export type CellInput = SimpleExcel.CellInput;
+export type CellStyle = SimpleExcel.CellStyle;
+export type ColumnOptions = SimpleExcel.ColumnOptions;
+export type SheetOptions = SimpleExcel.SheetOptions;
+export type SheetWriter = SimpleExcel.SheetWriter;
+export type StyleId = SimpleExcel.StyleId;
+export type WorkbookWriter = SimpleExcel.WorkbookWriter;
+export type WorkbookWriterOptions = SimpleExcel.WorkbookWriterOptions;
+export type WorkbookWriteResult = SimpleExcel.WorkbookWriteResult;
+export type XlsxError = SimpleExcel.XlsxError;
+export type XlsxErrorCode = SimpleExcel.XlsxErrorCode;
 
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 export function formatNumber(number?: number) {
@@ -292,7 +294,7 @@ export function polyfillFieldDefinition(field: Field): string {
   return `${prefix}${value}${suffix}`;
 }
 
-export type PrepareExcelFileOptions = XLSX.WritingOptions & {
+export type PrepareExcelFileOptions = Pick<WorkbookWriterOptions, 'strings' | 'onProgress' | 'signal' | 'deterministic'> & {
   /**
    * Called with the number of cells that exceeded Excel's per-cell limit and were truncated.
    * Only called when at least one cell was truncated — use it to tell the user the file is lossy.
@@ -300,134 +302,117 @@ export type PrepareExcelFileOptions = XLSX.WritingOptions & {
   onCellsTruncated?: (truncatedCellCount: number) => void;
 };
 
+// Excel's hard per-cell limit. Salesforce long text/rich text fields allow up to 131,072 characters and subquery
+// records are JSON-stringified into a single cell, so real data exceeds this regularly; the writer truncates such
+// cells (with EXCEL_TRUNCATION_SUFFIX) and reports the count, which is the only way to emit a valid .xlsx.
+export const EXCEL_MAX_CELL_CHARS = 32_767;
+const EXCEL_TRUNCATION_SUFFIX = '...(truncated)';
+
 /**
- * Prepares excel file
- * @param data Array of objects for one sheet, or map of multiple objects where the key is sheet name
- * @param header Array of strings id data is array, or map of strings[] where the key matches the sheet name This will be auto-detected if not provided
- * @param [defaultSheetName]
- * @returns excel file
+ * Convert a record value into what the spreadsheet writer accepts: Dates and primitives pass through,
+ * null/undefined become an empty cell, and anything else (nested objects that were not flattened) is JSON.
  */
-export function prepareExcelFile(data: any[], header?: string[], defaultSheetName?: string, options?: PrepareExcelFileOptions): ArrayBuffer;
+export function toExcelCellInput(value: unknown): CellInput {
+  if (value == null) {
+    return null;
+  }
+  if (
+    value instanceof Date ||
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'bigint'
+  ) {
+    return value;
+  }
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+  return String(value);
+}
+
+function* excelRowsFromObjects(data: any[], header: string[]): Generator<CellInput[]> {
+  for (const record of data) {
+    yield header.map((field) => toExcelCellInput(record?.[field]));
+  }
+}
+
+function* excelRowsFromArrays(data: any[][]): Generator<CellInput[]> {
+  for (const row of data) {
+    yield row.map(toExcelCellInput);
+  }
+}
+
+/**
+ * Prepares an Excel file as a Blob, streaming rows into the workbook as they are read so memory stays flat
+ * regardless of row count.
+ * @param data Array of objects for one sheet, or map of multiple objects where the key is sheet name
+ * @param header Array of strings if data is array, or map of strings[] where the key matches the sheet name. This will be auto-detected if not provided
+ * @param [defaultSheetName]
+ * @returns the .xlsx file
+ */
+export function prepareExcelFile(
+  data: any[],
+  header?: string[],
+  defaultSheetName?: string,
+  options?: PrepareExcelFileOptions,
+): Promise<Blob>;
 export function prepareExcelFile(
   data: Record<string, any[]>,
   header?: Record<string, string[]>,
   defaultSheetName?: void,
   options?: PrepareExcelFileOptions,
-): ArrayBuffer;
-export function prepareExcelFile(
+): Promise<Blob>;
+export async function prepareExcelFile(
   data: any,
   header: any,
   defaultSheetName: any = 'Records',
-  options?: PrepareExcelFileOptions,
-): ArrayBuffer {
-  const COMPRESS_SHEET_ROW_COUNT = 10_000;
-  const workbook = XLSX.utils.book_new();
-  const { onCellsTruncated, ...writingOptions } = { compression: false, ...options };
-  let truncatedCellCount = 0;
+  options: PrepareExcelFileOptions = {},
+): Promise<Blob> {
+  const { onCellsTruncated, ...writerOptions } = options;
+  const sink = collectToBlob(MIME_TYPES.XLSX_OPEN_OFFICE);
+  const workbook = createWorkbookWriter(sink, {
+    cellOverflow: 'truncate',
+    truncationSuffix: EXCEL_TRUNCATION_SUFFIX,
+    dates: 'local',
+    ...writerOptions,
+  });
 
-  /** Truncate over-limit cells for one sheet, accumulating the count across all sheets */
-  function truncate(rows: any[][]): any[][] {
-    const result = truncateCellsForExcel(rows);
-    truncatedCellCount += result.truncatedCellCount;
-    return result.rows;
-  }
-
-  if (Array.isArray(data)) {
-    header = header || Object.keys(data[0] || {});
-    const worksheet = XLSX.utils.aoa_to_sheet(truncate(convertArrayOfObjectToArrayOfArray(data, header as string[])), {
-      dense: true,
-    });
-    XLSX.utils.book_append_sheet(workbook, worksheet, defaultSheetName);
-    writingOptions.compression = writingOptions.compression || data.length > COMPRESS_SHEET_ROW_COUNT;
-  } else {
-    Object.keys(data).forEach((sheetName) => {
-      const values = data[sheetName];
-      if (values.length > 0) {
-        writingOptions.compression = writingOptions.compression || values.length > COMPRESS_SHEET_ROW_COUNT;
-        let currentHeader = header && header[sheetName];
-        let isArrayOfArray = false;
-        if (!currentHeader) {
-          if (Array.isArray(values[0])) {
-            isArrayOfArray = true;
-          } else {
-            currentHeader = Object.keys(values[0]);
-          }
+  try {
+    if (Array.isArray(data)) {
+      const sheetHeader: string[] = header || Object.keys(data[0] || {});
+      const sheet = workbook.addSheet(defaultSheetName || 'Records', { header: sheetHeader, headerStyle: false, rowCount: data.length });
+      await sheet.writeRows(excelRowsFromObjects(data, sheetHeader));
+      await sheet.close();
+    } else {
+      let sheetCount = 0;
+      for (const [sheetName, values] of Object.entries<any[]>(data)) {
+        if (!values?.length) {
+          continue;
         }
-        XLSX.utils.book_append_sheet(
-          workbook,
-          XLSX.utils.aoa_to_sheet(truncate(isArrayOfArray ? values : convertArrayOfObjectToArrayOfArray(values, currentHeader)), {
-            dense: true,
-          }),
-          sheetName,
-        );
+        const currentHeader: string[] | undefined = header?.[sheetName];
+        const isArrayOfArray = !currentHeader && Array.isArray(values[0]);
+        const sheetHeader = isArrayOfArray ? undefined : currentHeader || Object.keys(values[0]);
+        const sheet = workbook.addSheet(sheetName, { header: sheetHeader, headerStyle: false, rowCount: values.length });
+        await sheet.writeRows(sheetHeader ? excelRowsFromObjects(values, sheetHeader) : excelRowsFromArrays(values));
+        await sheet.close();
+        sheetCount++;
       }
-    });
-  }
-
-  if (truncatedCellCount > 0) {
-    onCellsTruncated?.(truncatedCellCount);
-  }
-
-  return excelWorkbookToArrayBuffer(workbook, writingOptions);
-}
-
-// Excel's hard per-cell limit — XLSX.write throws "Text length must not exceed 32767 characters" beyond it.
-// Salesforce long text/rich text fields allow up to 131,072 characters and subquery records are JSON-stringified
-// into a single cell, so real data exceeds this regularly. Truncation is the only way to emit a valid .xlsx.
-export const EXCEL_MAX_CELL_CHARS = 32_767;
-const EXCEL_TRUNCATION_SUFFIX = '...(truncated)';
-
-function isOversizedExcelCell(value: unknown): value is string {
-  return typeof value === 'string' && value.length > EXCEL_MAX_CELL_CHARS;
-}
-
-/**
- * Truncate any cell over Excel's per-cell limit. Runs immediately before the workbook is written —
- * the peak-memory moment of an export — so rows are scanned first and only rows that actually
- * contain an oversized cell are re-allocated. The common case (nothing over the limit) returns the
- * original array untouched. Rows are never mutated in place because callers may own them.
- */
-function truncateCellsForExcel(rows: any[][]): { rows: any[][]; truncatedCellCount: number } {
-  let truncatedCellCount = 0;
-  const rowIndexesToTruncate = new Set<number>();
-  rows.forEach((row, index) => {
-    for (const value of row) {
-      if (isOversizedExcelCell(value)) {
-        rowIndexesToTruncate.add(index);
-        truncatedCellCount++;
+      if (sheetCount === 0) {
+        // A workbook needs at least one sheet to be a valid file
+        await workbook.addSheet(defaultSheetName || 'Records').close();
       }
     }
-  });
-
-  if (truncatedCellCount === 0) {
-    return { rows, truncatedCellCount };
+    const result = await workbook.close();
+    if (result.truncatedCells > 0) {
+      onCellsTruncated?.(result.truncatedCells);
+    }
+  } catch (ex) {
+    await workbook.abort(ex);
+    throw ex;
   }
 
-  return {
-    rows: rows.map((row, index) =>
-      rowIndexesToTruncate.has(index)
-        ? row.map((value) =>
-            isOversizedExcelCell(value)
-              ? `${value.slice(0, EXCEL_MAX_CELL_CHARS - EXCEL_TRUNCATION_SUFFIX.length)}${EXCEL_TRUNCATION_SUFFIX}`
-              : value,
-          )
-        : row,
-    ),
-    truncatedCellCount,
-  };
-}
-
-export function excelWorkbookToArrayBuffer(workbook: XLSX.WorkBook, options?: XLSX.WritingOptions): ArrayBuffer {
-  // https://github.com/sheetjs/sheetjs#writing-options
-  const workbookArrayBuffer: ArrayBuffer = XLSX.write(workbook, {
-    bookType: 'xlsx',
-    bookSST: false,
-    type: 'array',
-    // Compression=true is slower, but helps avoid "Invalid Array Length" errors on large files
-    compression: false,
-    ...options,
-  });
-  return workbookArrayBuffer;
+  return sink.result();
 }
 
 export function prepareCsvFile(data: Record<string, string>[], header: string[]): string {
@@ -443,7 +428,7 @@ export function prepareCsvFile(data: Record<string, string>[], header: string[])
 /**
  * Helper method to allow auto-detecting column widths for excel export
  */
-export function getMaxWidthFromColumnContent(data: string[][], skipRows: Set<number> = new Set(), defaultIfSkipped = 15): XLSX.ColInfo[] {
+export function getMaxWidthFromColumnContent(data: string[][], skipRows: Set<number> = new Set(), defaultIfSkipped = 15): ColumnOptions[] {
   const output: number[] = [];
   data.forEach((row, rowIdx) => {
     row.forEach((col, i) => {
@@ -456,7 +441,8 @@ export function getMaxWidthFromColumnContent(data: string[][], skipRows: Set<num
       output[i] = output[i] > width ? output[i] : width;
     });
   });
-  return output.map((width): XLSX.ColInfo => ({ width: width + 2 }));
+  // Excel's schema caps a column width at 255 character units
+  return output.map((width): ColumnOptions => ({ width: Math.min(width + 2, 255) }));
 }
 
 export function getFilename(org: Pick<SalesforceOrgUi, 'username'>, parts: string[]) {
@@ -467,8 +453,9 @@ export function getFilenameWithoutOrg(parts: string[]) {
   return `${parts.join('-')}-${new Date().getTime()}`.replace(REGEX.SAFE_FILENAME, '_');
 }
 
-export function saveFile(content: any, filename: string, type: MimeType) {
-  const blob = new Blob([content], { type });
+export function saveFile(content: Blob | ArrayBuffer | Uint8Array | string, filename: string, type?: MimeType) {
+  // A Blob (e.g. from prepareExcelFile) already carries its type; wrapping it again would only copy the bytes
+  const blob = content instanceof Blob ? content : new Blob([content as BlobPart], { type });
   saveAs(blob, filename);
 }
 
@@ -1242,19 +1229,58 @@ export function readFile(file: File, type: 'text' | 'array_buffer' | 'data_url' 
   });
 }
 
+function binaryStringToBytes(content: string): Uint8Array {
+  const bytes = new Uint8Array(content.length);
+  for (let i = 0; i < content.length; i++) {
+    bytes[i] = content.charCodeAt(i) & 0xff;
+  }
+  return bytes;
+}
+
+function parseCsvContent(
+  content: string,
+  options: { isPasteFromClipboard?: boolean; extension?: string },
+): { data: any[]; headers: string[]; errors: string[] } {
+  let csvResult = parseCsv(content, {
+    delimiter: options.isPasteFromClipboard ? undefined : detectDelimiter(options.extension),
+    header: true,
+    skipEmptyLines: true,
+  });
+  // Check if it is likely an incorrect delimiter was used and re-parse file with auto-detect delimiter
+  if (
+    Array.isArray(csvResult.meta.fields) &&
+    csvResult.meta.fields.length === 1 &&
+    ((csvResult.meta.fields[0].includes(',') && csvResult.meta.delimiter === ';') ||
+      (csvResult.meta.fields[0].includes(';') && csvResult.meta.delimiter === ','))
+  ) {
+    csvResult = parseCsv(content, {
+      header: true,
+      skipEmptyLines: true,
+    });
+  }
+  return {
+    data: csvResult.data,
+    headers: Array.from(new Set(csvResult.meta.fields)), // remove duplicates, if any
+    errors: csvResult.errors.map((error) => (error.row ? `Row ${error.row}: ${error.message}` : error.message)),
+  };
+}
+
 /**
  * Parse file
  * Supported Types: CSV / TSV / XLSX / JSON
  *
- * TODO: support other filetypes (.zip)
+ * Bytes are sniffed first: a workbook goes to the spreadsheet engine, text that arrived as bytes (an Electron
+ * open-with .csv, a Drive download) goes to papaparse, and anything else (a password-protected workbook, a legacy
+ * .xls, .ods, .xlsb) throws an XlsxError whose message tells the user what to do.
  *
- * @param content string | ArrayBuffer
+ * @param content string | ArrayBuffer | Uint8Array | Blob
  * @param options - If onParsedMultipleWorkbooks is provided, then this is called to ask the user which worksheet to use
  */
 export async function parseFile(
-  content: string | ArrayBuffer,
+  content: string | ArrayBuffer | Uint8Array | Blob,
   options?: {
     onParsedMultipleWorkbooks?: (worksheets: string[]) => Promise<string>;
+    /** The string is a binary string (each char code is one byte), e.g. from the gapi client, not text */
     isBinaryString?: boolean;
     isPasteFromClipboard?: boolean;
     extension?: string;
@@ -1266,44 +1292,41 @@ export async function parseFile(
 }> {
   options = options || {};
   if (options.extension === INPUT_ACCEPT_FILETYPES.JSON) {
-    // FileSelector reads .json as text, but the signature permits an ArrayBuffer, so decode rather than assume
-    return parseJson(isString(content) ? content : new TextDecoder().decode(content));
+    // FileSelector reads .json as text, but the signature permits bytes, so decode rather than assume
+    return parseJson(isString(content) ? content : await bytesToText(content));
   }
-  if (!options.isBinaryString && isString(content)) {
-    // csv - read from papaparse
-    let csvResult = parseCsv(content, {
-      delimiter: options.isPasteFromClipboard ? undefined : detectDelimiter(options.extension),
-      header: true,
-      skipEmptyLines: true,
-    });
-    // Check if it is likely an incorrect delimiter was used and re-parse file with auto-detect delimiter
-    if (
-      Array.isArray(csvResult.meta.fields) &&
-      csvResult.meta.fields.length === 1 &&
-      ((csvResult.meta.fields[0].includes(',') && csvResult.meta.delimiter === ';') ||
-        (csvResult.meta.fields[0].includes(';') && csvResult.meta.delimiter === ','))
-    ) {
-      csvResult = parseCsv(content, {
-        header: true,
-        skipEmptyLines: true,
-      });
-    }
-    return {
-      data: csvResult.data,
-      headers: Array.from(new Set(csvResult.meta.fields)), // remove duplicates, if any
-      errors: csvResult.errors.map((error) => (error.row ? `Row ${error.row}: ${error.message}` : error.message)),
-    };
-  } else {
-    // ArrayBuffer / binary string - xlsx file
-    const workbook = options.isBinaryString
-      ? XLSX.read(content, { cellText: false, cellDates: true, type: 'binary' })
-      : XLSX.read(content, { cellText: false, cellDates: true, type: 'array' });
-    return parseWorkbook(workbook, options);
+  if (isString(content) && !options.isBinaryString) {
+    return parseCsvContent(content, options);
   }
+
+  const source: Uint8Array | Blob = isString(content)
+    ? binaryStringToBytes(content)
+    : content instanceof ArrayBuffer
+      ? new Uint8Array(content)
+      : content;
+  const head = source instanceof Blob ? new Uint8Array(await source.slice(0, SNIFF_BYTES).arrayBuffer()) : source.subarray(0, SNIFF_BYTES);
+  if (sniff(head) === 'text') {
+    return parseCsvContent(await bytesToText(source), options);
+  }
+  return parseWorkbook(source, options);
 }
 
+async function bytesToText(content: string | ArrayBuffer | Uint8Array | Blob): Promise<string> {
+  if (isString(content)) {
+    return content;
+  }
+  if (content instanceof Blob) {
+    return content.text();
+  }
+  return new TextDecoder().decode(content);
+}
+
+/**
+ * Parse the first worksheet (or the one the user picks) into records, the way the load flows expect them:
+ * every cell is a string, number, boolean or Date, absent cells are '', blank rows are skipped, error cells are ''.
+ */
 export async function parseWorkbook(
-  workbook: XLSX.WorkBook,
+  source: SimpleExcel.SourceInput,
   options?: {
     onParsedMultipleWorkbooks?: (worksheets: string[]) => Promise<string>;
   },
@@ -1312,27 +1335,28 @@ export async function parseWorkbook(
   headers: string[];
   errors: string[];
 }> {
-  let selectedSheet = workbook.Sheets[workbook.SheetNames[0]];
-  if (workbook.SheetNames.length > 1 && typeof options?.onParsedMultipleWorkbooks === 'function') {
-    const sheetName = await options.onParsedMultipleWorkbooks(workbook.SheetNames);
-    if (workbook.Sheets[sheetName]) {
-      selectedSheet = workbook.Sheets[sheetName];
+  // errors: 'null' turns error cells (#N/A, #REF!...) into empty cells rather than their text, so a stray
+  // formula error is never loaded into Salesforce as a literal value
+  const workbook = await openWorkbook(source, { errors: 'null' });
+  try {
+    // Listing sheets parses no sheet XML, so the picker is free even on a very large file
+    const sheetNames = workbook.sheets.filter(({ kind }) => kind === 'worksheet').map(({ name }) => name);
+    if (sheetNames.length === 0) {
+      return { data: [], headers: [], errors: [] };
     }
+    let selectedSheet = sheetNames[0];
+    if (sheetNames.length > 1 && typeof options?.onParsedMultipleWorkbooks === 'function') {
+      const sheetName = await options.onParsedMultipleWorkbooks(sheetNames);
+      if (sheetNames.includes(sheetName)) {
+        selectedSheet = sheetName;
+      }
+    }
+    // Columns with a blank header cell cannot be mapped to anything, so they are dropped rather than named __EMPTY
+    const { rows, headers } = await workbook.sheet(selectedSheet).toObjects({ dropEmptyHeaders: true });
+    return { data: rows, headers, errors: [] };
+  } finally {
+    await workbook.close();
   }
-
-  const data = XLSX.utils.sheet_to_json(selectedSheet, {
-    dateNF: 'yyyy"-"mm"-"dd"T"hh:mm:ss',
-    defval: '',
-    blankrows: false,
-    rawNumbers: true,
-  });
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const headers = data.length > 0 ? Object.keys(data[0]!) : [];
-  return {
-    data,
-    headers: headers.filter((field) => !field.startsWith('__empty')),
-    errors: [],
-  };
 }
 
 /**

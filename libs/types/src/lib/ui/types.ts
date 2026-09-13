@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="google.picker" />
 import type { ReactNode } from 'react';
-import type * as XLSX from 'xlsx';
 import { DeployOptions, DeployResult, DeployResultStatus, ListMetadataResult } from '../salesforce/metadata.types';
 import { FileNameFormat } from '../salesforce/query.types';
 import { ChildRelationship, DescribeSObjectResult, Field } from '../salesforce/sobject.types';
@@ -728,8 +727,13 @@ export interface ImageWithUpload extends InputReadFileContent<string> {
   deleteToken?: string;
 }
 
+/**
+ * A file downloaded from Google Drive. Native Google Sheets are exported as xlsx, everything else is downloaded
+ * as-is, so the bytes are handed on unparsed and the caller decides how to read them.
+ */
 export interface InputReadGoogleSheet {
-  workbook: XLSX.WorkBook;
+  name: string;
+  bytes: ArrayBuffer;
   selectedFile: google.picker.DocumentObject;
 }
 
