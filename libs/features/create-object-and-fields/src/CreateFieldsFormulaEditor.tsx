@@ -321,6 +321,8 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
                   `}
                 >
                   <MonacoEditor
+                    label="Formula"
+                    primaryActionLabel="test the formula"
                     defaultLanguage="sfdc-formula"
                     value={formulaValue}
                     options={{
