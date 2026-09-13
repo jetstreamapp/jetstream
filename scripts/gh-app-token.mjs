@@ -2,15 +2,21 @@
 
 /**
  * Mint a GitHub App installation token so CLI tooling (and AI agents) can post PR comments and
- * reviews as the App's bot account instead of a personal account. Uses the same GitHub App that
- * the release workflow uses (.github/workflows/release.yml).
+ * reviews as the App's bot account instead of a personal account.
+ *
+ * This is a dedicated, low-privilege GitHub App. It is deliberately NOT the release app used by
+ * .github/workflows/release.yml - that app is on the main-branch ruleset bypass list, and its
+ * private key must never live on a developer machine.
  *
  * Setup (one time):
- *   1. In the GitHub App settings (https://github.com/organizations/jetstreamapp/settings/apps),
- *      make sure the App has "Pull requests: Read and write" and "Issues: Read and write"
- *      repository permissions, then generate/download a private key (.pem).
- *   2. Store the .pem outside the repo (e.g. ~/.config/jetstream/gh-app.pem) with mode 0600.
- *   3. Fill in the GH_BOT_* variables in `.env` (see `--help`).
+ *   1. Create a GitHub App under the jetstreamapp org
+ *      (https://github.com/organizations/jetstreamapp/settings/apps) with only the repository
+ *      permissions "Pull requests: Read and write" and "Issues: Read and write", webhook disabled,
+ *      installable only on this account. Install it on the jetstream repository.
+ *   2. Generate a private key (.pem) in the app settings. An OAuth client secret does NOT work
+ *      here - installation tokens are minted with a JWT signed by the private key.
+ *   3. Store the .pem outside the repo (e.g. ~/.config/jetstream/gh-bot.pem) with mode 0600.
+ *   4. Fill in the GH_BOT_* variables in `.env` (see `--help`).
  *
  * Usage:
  *   pnpm gh:bot token                                  # print an installation token
@@ -44,9 +50,9 @@ Usage:
   pnpm gh:bot clear-cache       Delete the cached token
 
 Environment variables (in .env):
-  GH_BOT_CLIENT_ID              GitHub App client ID (same app as the release workflow)
+  GH_BOT_CLIENT_ID              Client ID of the dedicated comment/review GitHub App (not the release app)
   GH_BOT_PRIVATE_KEY_PATH       Path to the app's private key .pem file, or
-  GH_BOT_PRIVATE_KEY_BASE64     Base64 encoded private key PEM
+  GH_BOT_PRIVATE_KEY_BASE64     Base64 encoded private key PEM (an OAuth client secret will not work)
   GH_BOT_REPO                   Optional owner/repo override (defaults to the git origin remote)
 `;
 
@@ -113,10 +119,11 @@ async function githubApi(path, { method = 'GET', token, body } = {}) {
   return { response, responseBody };
 }
 
-function readTokenCache(repo) {
+function readTokenCache(repo, clientId) {
   try {
     const cache = JSON.parse(readFileSync(TOKEN_CACHE_FILE, 'utf8'));
-    if (cache.repo === repo && cache.createdAt + TOKEN_CACHE_TTL_MS > Date.now()) {
+    // Keyed on the client id too, so switching apps in .env never replays a token minted by the old app.
+    if (cache.repo === repo && cache.clientId === clientId && cache.createdAt + TOKEN_CACHE_TTL_MS > Date.now()) {
       return cache;
     }
   } catch {
@@ -132,15 +139,15 @@ function writeTokenCache(cache) {
 
 async function getInstallationToken() {
   const repo = getRepo();
-  const cached = readTokenCache(repo);
-  if (cached) {
-    return cached;
-  }
-
   const clientId = process.env.GH_BOT_CLIENT_ID;
   if (!clientId) {
     fail('Set GH_BOT_CLIENT_ID in .env (run with --help for setup).');
   }
+  const cached = readTokenCache(repo, clientId);
+  if (cached) {
+    return cached;
+  }
+
   const appJwt = buildAppJwt(clientId, getPrivateKey());
 
   const installation = await githubApi(`/repos/${repo}/installation`, { token: appJwt });
@@ -167,6 +174,7 @@ async function getInstallationToken() {
   const appSlug = installation.responseBody.app_slug;
   const cache = {
     repo,
+    clientId,
     token: tokenResult.responseBody.token,
     botLogin: `${appSlug}[bot]`,
     permissions: tokenResult.responseBody.permissions,
