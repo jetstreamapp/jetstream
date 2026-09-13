@@ -43,12 +43,7 @@ export async function sendEmail({
 }) {
   if (!mailgun) {
     logger.warn('[EMAIL][ERROR] Mail client not configured, skipping sending email');
-    prisma.emailActivity
-      .create({
-        data: { email: to, subject, status: `unsent` },
-        select: { id: true },
-      })
-      .catch((err) => logger.error({ message: err?.message }, '[EMAIL][ERROR] Error logging email activity'));
+    await logEmailActivity({ email: to, subject, status: `unsent` });
     return;
   }
 
@@ -63,10 +58,22 @@ export async function sendEmail({
     ...rest,
   });
 
-  prisma.emailActivity
-    .create({
-      data: { email: to, subject, status: `${results.status}` || null, providerId: results.id },
-      select: { id: true },
-    })
+  await logEmailActivity({ email: to, subject, status: `${results.status}` || null, providerId: results.id });
+}
+
+/**
+ * Records the send in `email_activity`.
+ *
+ * Awaited rather than fire-and-forget: every cron task calls `process.exit` as soon as its work
+ * resolves, which drops an in-flight insert and leaves no local record that the mail went out. The
+ * Cloudflare WAF spike detector additionally reads this table to enforce its alert cooldown, so a
+ * lost row makes it re-alert on the same window.
+ *
+ * Failures are logged and swallowed so that logging can never break delivery of an email that Mailgun
+ * has already accepted.
+ */
+async function logEmailActivity(data: { email: string; subject: string; status: string | null; providerId?: string }) {
+  await prisma.emailActivity
+    .create({ data, select: { id: true } })
     .catch((err) => logger.error({ message: err?.message }, '[EMAIL][ERROR] Error logging email activity'));
 }
