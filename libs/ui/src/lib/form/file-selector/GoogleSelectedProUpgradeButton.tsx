@@ -41,6 +41,7 @@ export const GoogleSelectedProUpgradeButton = ({
             <Grid>
               <span>
                 <button
+                  type="button"
                   className="slds-is-relative slds-button slds-button_neutral"
                   disabled
                   aria-labelledby={`${labelId}`}

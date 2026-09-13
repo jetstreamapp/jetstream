@@ -151,12 +151,21 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
       />
       <Grid align="spread" className="slds-m-horizontal_small">
         <GridCol>
-          <button className="slds-button slds-align_absolute-center slds-text-link" onClick={() => handleClear()} disabled={!selectedDate}>
+          <button
+            type="button"
+            className="slds-button slds-align_absolute-center slds-text-link"
+            onClick={() => handleClear()}
+            disabled={!selectedDate}
+          >
             Clear
           </button>
         </GridCol>
         <GridCol>
-          <button className="slds-button slds-align_absolute-center slds-text-link" onClick={() => handleSelection(startOfDay(new Date()))}>
+          <button
+            type="button"
+            className="slds-button slds-align_absolute-center slds-text-link"
+            onClick={() => handleSelection(startOfDay(new Date()))}
+          >
             Today
           </button>
         </GridCol>
