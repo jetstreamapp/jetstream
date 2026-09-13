@@ -267,6 +267,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
         className={classNames('slds-dropdown-trigger slds-dropdown-trigger_click', className, { 'slds-is-open': isOpen })}
       >
         <button
+          type="button"
           ref={(element) => {
             triggerButtonRef.current = element;
             if (triggerRef) {
