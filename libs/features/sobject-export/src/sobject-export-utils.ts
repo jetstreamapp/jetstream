@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject, queryAllUsingOffset } from '@jetstream/shared/data';
-import { tracker } from '@jetstream/shared/ui-utils';
+import { sanitizeSheetName, tracker } from '@jetstream/shared/ui-utils';
 import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ApiResponse, ChildRelationship, DescribeSObjectResult, Field, SalesforceOrgUi } from '@jetstream/types';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
@@ -128,6 +128,12 @@ export function prepareExport(
   const sobjectAttributes: any[] = [];
   const rowsBySobject: Record<string, any[]> = {};
   const output: Record<string, any[]> = {};
+  /**
+   * Every key of `output` becomes a worksheet name, so it has to be the name the writer will actually produce.
+   * Truncating to 31 characters here without de-duplicating meant two objects with a long shared prefix silently
+   * overwrote each other and one object's fields never made it into the file.
+   */
+  const takenSheetNames = new Set<string>();
 
   const selectedAttributesSet = new Set(selectedAttributes);
   // this ensures that the order is based on original list instead of order of selected attributes
@@ -185,15 +191,15 @@ export function prepareExport(
   });
 
   if (errors.length) {
-    output['ERRORS'] = errors;
+    output[sanitizeSheetName('ERRORS', takenSheetNames)] = errors;
   }
 
   if (sobjectAttributes.length) {
-    output['Object Metadata'] = sobjectAttributes;
+    output[sanitizeSheetName('Object Metadata', takenSheetNames)] = sobjectAttributes;
   }
 
   if (options.worksheetLayout === 'combined') {
-    output['Field Metadata'] = sobjectMetadata.reduce((output: any[], { sobject, error }) => {
+    output[sanitizeSheetName('Field Metadata', takenSheetNames)] = sobjectMetadata.reduce((output: any[], { sobject, error }) => {
       if (!error && rowsBySobject[sobject]) {
         rowsBySobject[sobject].forEach((row) => output.push(row));
       }
@@ -203,9 +209,8 @@ export function prepareExport(
     // Worksheet per sobject
     sobjectMetadata.forEach(({ sobject, error }) => {
       if (!error && rowsBySobject[sobject]) {
-        output[sobject.substring(0, 31)] = rowsBySobject[sobject];
+        output[sanitizeSheetName(sobject, takenSheetNames)] = rowsBySobject[sobject];
       }
-      return output;
     });
   }
 
