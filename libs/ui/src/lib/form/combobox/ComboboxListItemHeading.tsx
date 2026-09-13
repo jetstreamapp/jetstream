@@ -37,7 +37,7 @@ export const ComboboxListItemHeading = forwardRef<HTMLLIElement, ComboboxListIte
           </h3>
         </div>
         {actionLabel && onActionClick && (
-          <button className="slds-button slds-m-right_medium" onClick={handleClick} onKeyDown={handleKeyDown}>
+          <button type="button" className="slds-button slds-m-right_medium" onClick={handleClick} onKeyDown={handleKeyDown}>
             {actionLabel}
           </button>
         )}
