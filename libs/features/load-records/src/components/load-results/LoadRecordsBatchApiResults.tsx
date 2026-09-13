@@ -22,7 +22,7 @@ import { fromJetstreamEvents, getFieldHeaderFromMapping, LoadRecordsResultsModal
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { LoadFailureReach, settleHistoryForFailedLoad } from '../../utils/data-history-capture';
 import { loadBatchApiData, LoadTypeDisplayNames, prepareData } from '../../utils/load-records-process';
 import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
@@ -106,6 +106,7 @@ export const LoadRecordsBatchApiResults = ({
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
   const [prepareDataProgress, setPrepareDataProgress] = useState(0);
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
+  const statusId = useId();
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [processingStartTime, setProcessingStartTime] = useState<Maybe<string>>(null);
   const [processingEndTime, setProcessingEndTime] = useState<Maybe<string>>(null);
@@ -507,11 +508,14 @@ export const LoadRecordsBatchApiResults = ({
           <AssistiveStatus message={status} />
           <h3 className="slds-text-heading_small">
             <Grid verticalAlign="center">
-              <span className="slds-m-right_x-small">{status}</span>
+              <span id={statusId} className="slds-m-right_x-small">
+                {status}
+              </span>
               {status === STATUSES.PREPARING && (
                 <div>
                   {!!prepareDataProgress && (
                     <ProgressRing
+                      aria-labelledby={statusId}
                       className="slds-m-right_x-small"
                       fillPercent={prepareDataProgress / 100}
                       size="medium"

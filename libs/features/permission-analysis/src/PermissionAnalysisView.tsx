@@ -1070,6 +1070,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
                 : ''}
             </p>
             <ProgressIndicator
+              label="Permission analysis progress"
               currentValue={isJobRunning && liveProgress && Number.isFinite(liveProgress.percent) ? Math.round(liveProgress.percent) : 0}
               isIndeterminate={!isJobRunning || !liveProgress || !Number.isFinite(liveProgress.percent)}
             />
