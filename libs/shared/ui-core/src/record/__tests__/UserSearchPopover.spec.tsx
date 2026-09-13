@@ -117,7 +117,7 @@ describe('UserSearchPopover', () => {
   // out here so the scan still guards everything else.
   it('has no axe violations while open, other than the known nested-interactive rows', async () => {
     const { baseElement } = await renderOpen();
-    const results = await axeScan(baseElement);
+    const results = await axeScan(baseElement, { knownViolations: ['nested-interactive'] });
     expect(results.violations.map(({ id }) => id)).toEqual(['nested-interactive']);
   });
 });
