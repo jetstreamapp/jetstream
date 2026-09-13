@@ -188,6 +188,8 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
             >
               <MonacoEditor
                 height="350px"
+                label="SOQL query"
+                primaryActionLabel="run the query"
                 language="soql"
                 value={soql}
                 options={{

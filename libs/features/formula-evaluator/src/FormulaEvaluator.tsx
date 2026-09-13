@@ -414,6 +414,8 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                 <MonacoEditor
                   className="slds-m-top_small"
                   height="95%"
+                  label="Formula"
+                  primaryActionLabel="test the formula"
                   defaultLanguage="sfdc-formula"
                   value={formulaValue}
                   options={{
