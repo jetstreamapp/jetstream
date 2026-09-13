@@ -433,6 +433,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
               `}
             >
               <ProgressIndicator
+                label="Record fetch progress"
                 currentValue={fetchProgress && fetchProgress.total ? (fetchProgress.fetched / fetchProgress.total) * 100 : 0}
                 isIndeterminate={!fetchProgress}
               />
