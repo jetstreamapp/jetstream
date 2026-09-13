@@ -264,6 +264,9 @@ importers:
       '@jetstreamapp/sf-formula-parser':
         specifier: ^2.2.0
         version: 2.2.0
+      '@jetstreamapp/simple-excel':
+        specifier: ^0.1.0
+        version: 0.1.0
       '@jetstreamapp/simple-xml':
         specifier: ^1.1.1
         version: 1.1.1
@@ -558,9 +561,6 @@ importers:
       write-file-atomic:
         specifier: ^8.0.0
         version: 8.0.0
-      xlsx:
-        specifier: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
-        version: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
       xml2js:
         specifier: 0.6.2
         version: 0.6.2
@@ -3834,6 +3834,10 @@ packages:
 
   '@jetstreamapp/sf-formula-parser@2.2.0':
     resolution: {integrity: sha512-33VG7CbDHrFVvWMHhnKBCNdtNqGMzXD/P6eMRMtZ79Gbssw8USOgTBHViRvL2ahSRZI1AfaOFwQDqhGNiL0Hjw==}
+
+  '@jetstreamapp/simple-excel@0.1.0':
+    resolution: {integrity: sha512-+wXN6PGxEpgmEv2vpwNsmYquNTNMFznYvyQk071S0NSnW9XZKy9XX/pxl61EOnHWEf2MIBmwdPTu/z4TFHryVg==}
+    engines: {node: '>=20'}
 
   '@jetstreamapp/simple-xml@1.1.1':
     resolution: {integrity: sha512-H3LeZEvOb/JD8S2vs5vzK0HOlFoKu+IQCueTNbOJ1+smUEEMNWGFni38EEQK7cMYkQKPFGfrGFb5S4hynnDJaA==}
@@ -16279,12 +16283,6 @@ packages:
     resolution: {integrity: sha512-GCPAHLvrIH13+c0SuacwvRYj2SxJXQ4kaVTT5xgL3kPrz56XxkF21IGhjSE1+W0aw7gpBWRGXLCPnPby6lSpmQ==}
     engines: {node: '>=12'}
 
-  xlsx@https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz:
-    resolution: {integrity: sha512-oLDq3jw7AcLqKWH2AhCpVTZl8mf6X2YReP+Neh0SJUzV/BdZYjth94tG5toiMB1PPrYtxOCfaoUCkvtuH+3AJA==, tarball: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz}
-    version: 0.20.3
-    engines: {node: '>=0.8'}
-    hasBin: true
-
   xml-crypto@6.1.2:
     resolution: {integrity: sha512-leBOVQdVi8FvPJrMYoum7Ici9qyxfE4kVi+AkpUoYCSXaQF4IlBm1cneTK9oAxR61LpYxTx7lNcsnBIeRpGW2w==}
     engines: {node: '>=16'}
@@ -21469,6 +21467,8 @@ snapshots:
       chalk: 4.1.2
 
   '@jetstreamapp/sf-formula-parser@2.2.0': {}
+
+  '@jetstreamapp/simple-excel@0.1.0': {}
 
   '@jetstreamapp/simple-xml@1.1.1': {}
 
@@ -36529,8 +36529,6 @@ snapshots:
       powershell-utils: 0.1.0
 
   xdg-basedir@5.1.0: {}
-
-  xlsx@https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz: {}
 
   xml-crypto@6.1.2:
     dependencies:

@@ -1,7 +1,7 @@
 /// <reference types="google.picker" />
 import { GooglePickerResultSuccess } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
-import { ensureXlsxCodepageTable, GoogleApiClientConfig, useDriveExternalPicker } from '@jetstream/shared/ui-utils';
+import { GoogleApiClientConfig, useDriveExternalPicker } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { InputReadGoogleSheet, Maybe } from '@jetstream/types';
 import { applicationCookieState } from '@jetstream/ui/app-state';
@@ -9,7 +9,6 @@ import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import * as XLSX from 'xlsx';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
 import Spinner from '../../widgets/Spinner';
@@ -123,17 +122,16 @@ export const GoogleFileSelectorExternalButton: FunctionComponent<GoogleFileSelec
         setDownloading(true);
         setErrorMessage(null);
 
-        const arrayBuffer = await downloadGoogleDriveFile(fileId, mimeType, googleAccessToken);
-        await ensureXlsxCodepageTable();
-        const workbook = XLSX.read(arrayBuffer, { cellText: false, cellDates: true, type: 'array' });
+        const bytes = await downloadGoogleDriveFile(fileId, mimeType, googleAccessToken);
 
         const syntheticDoc = { id: fileId, name: fileName, mimeType } as google.picker.DocumentObject;
 
+        // The file is handed on unparsed - whoever receives it decides how to read it and reports its own errors
         setSelectedFile(syntheticDoc);
         setManagedFilename(fileName);
-        callbackRefs.current.onReadFile && callbackRefs.current.onReadFile({ workbook, selectedFile: syntheticDoc });
+        callbackRefs.current.onReadFile && callbackRefs.current.onReadFile({ name: fileName, bytes, selectedFile: syntheticDoc });
       } catch (ex) {
-        logger.error('Error downloading or parsing Google Drive file', ex);
+        logger.error('Error downloading Google Drive file', ex);
         const message = getErrorMessage(ex);
         setErrorMessage(`Error loading selected file. ${message}`);
         callbackRefs.current.onError && callbackRefs.current.onError(`Error loading selected file. ${message}`);

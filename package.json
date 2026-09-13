@@ -258,6 +258,7 @@
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^5.9.1",
     "@jetstreamapp/sf-formula-parser": "^2.2.0",
+    "@jetstreamapp/simple-excel": "^0.1.0",
     "@jetstreamapp/simple-xml": "^1.1.1",
     "@jetstreamapp/soql-parser-js": "^8.1.0",
     "@marsidev/react-turnstile": "^1.6.1",
@@ -356,7 +357,6 @@
     "uuid": "^14.0.2",
     "webextension-polyfill": "^0.12.0",
     "write-file-atomic": "^8.0.0",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "xml2js": "0.6.2",
     "zod": "^4.5.4",
     "zod-openapi": "^6.0.2"

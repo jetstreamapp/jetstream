@@ -1,4 +1,5 @@
 export * from './lib/errorTracker';
+export * from './lib/file-parse-error.utils';
 export * from './lib/google-access-token';
 export * from './lib/hooks/useBrowserNotifications';
 export * from './lib/hooks/useCombinedRefs';

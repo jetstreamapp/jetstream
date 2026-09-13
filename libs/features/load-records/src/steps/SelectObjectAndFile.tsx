@@ -4,11 +4,11 @@ import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import {
   GoogleApiClientConfig,
   filterLoadSobjects,
+  getFileParseErrorMessage,
   isBrowserExtension,
   isCanvasApp,
   isDesktop,
   parseFile,
-  parseWorkbook,
   removeEmptyRows,
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
@@ -84,6 +84,12 @@ const onParsedMultipleWorkbooks = async (worksheets: string[]): Promise<string> 
   return await XlsxSheetSelectionModalPromise({ worksheets });
 };
 
+/** A Google Drive file name may have no extension at all (a native Sheet), which is not an error */
+function getExtensionFromName(name: string): string | undefined {
+  const lastDotIndex = name.lastIndexOf('.');
+  return lastDotIndex === -1 ? undefined : name.substring(lastDotIndex).toLowerCase();
+}
+
 export const LoadRecordsSelectObjectAndFile = ({
   hasGoogleDriveAccess,
   googleShowUpgradeToPro,
@@ -143,26 +149,18 @@ export const LoadRecordsSelectObjectAndFile = ({
       }
     } catch (ex) {
       logger.warn('Error reading file', ex);
-      if (getErrorMessage(ex).includes('password-protected')) {
-        fireToast({
-          message: `Your file is password protected, remove the password and try again.`,
-          type: 'error',
-        });
-      } else {
-        fireToast({
-          message: `There was an error reading your file. ${getErrorMessage(ex)}`,
-          type: 'error',
-        });
-      }
+      fireToast({ message: getFileParseErrorMessage(ex), type: 'error' });
     }
   }
 
-  async function handleGoogleFile({ workbook, selectedFile }: InputReadGoogleSheet) {
+  async function handleGoogleFile({ name, bytes, selectedFile }: InputReadGoogleSheet) {
     try {
       if (!selectedFile.name) {
         throw new Error('Selected Google file is missing a name.');
       }
-      const { data: rawData, headers } = await parseWorkbook(workbook, { onParsedMultipleWorkbooks });
+      // A native Google Sheet arrives as xlsx bytes, anything else arrives as whatever it is in Drive, so the
+      // file's own extension still decides the delimiter when it turns out to be a text file
+      const { data: rawData, headers } = await parseFile(bytes, { onParsedMultipleWorkbooks, extension: getExtensionFromName(name) });
       const { data, removedCount } = removeEmptyRows(rawData);
       if (removedCount > 0) {
         fireToast({
@@ -172,10 +170,8 @@ export const LoadRecordsSelectObjectAndFile = ({
       }
       onFileChange(data, headers, selectedFile.name, 'google', selectedFile);
     } catch (ex) {
-      fireToast({
-        message: `There was an error reading your file. ${getErrorMessage(ex)}`,
-        type: 'error',
-      });
+      logger.warn('Error reading Google file', ex);
+      fireToast({ message: getFileParseErrorMessage(ex), type: 'error' });
     }
   }
 

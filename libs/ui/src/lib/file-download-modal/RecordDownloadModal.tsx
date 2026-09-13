@@ -21,7 +21,6 @@ import {
 } from '@jetstream/shared/ui-utils';
 import {
   flattenRecords,
-  getErrorMessage,
   getMapOfBaseAndSubqueryRecords,
   getSubqueryParentPath,
   getSubqueryPathDepth,
@@ -125,9 +124,9 @@ const PROHIBITED_BULK_APEX_TYPES = new Set(['Address', 'Location', 'complexvalue
 const FILE_FORMAT_ALLOWED_BULK_API = new Set<RecordDownloadFileFormat>(['csv', 'gdrive']);
 const ALLOW_BULK_API_COUNT = 5_000;
 /**
- * A standard download is built entirely in the browser as a single string, so it fails with
- * `RangeError: Invalid string length` once the generated file crosses the ~512MB max string length.
- * XLSX reaches that ceiling first - its XML runs 2-3x the size of the equivalent CSV.
+ * A standard download pages every record through the REST API into browser memory before the file is written,
+ * which stops being viable long before the bulk API does. This is a limit on fetching the records, not on
+ * writing the file - the spreadsheet writer streams and is bounded by Excel's own 1,048,576 row per sheet cap.
  */
 const REQUIRE_BULK_API_COUNT = 500_000;
 
@@ -488,7 +487,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               data['records'] = flattenRecords(activeRecords, fields);
             }
 
-            fileData = prepareExcelFile(data, undefined, undefined, { onCellsTruncated: notifyExcelCellsTruncated });
+            fileData = await prepareExcelFile(data, undefined, undefined, { onCellsTruncated: notifyExcelCellsTruncated });
             mimeType = MIME_TYPES.XLSX;
             break;
           }
@@ -502,7 +501,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               childRelationships: includeSubqueriesInTemplate ? childRelationships.data : [],
               childRelationshipsByPath: includeSubqueriesInTemplate ? childRelationships.byPath : {},
             });
-            fileData = prepareExcelFile(data, undefined, undefined, { onCellsTruncated: notifyExcelCellsTruncated });
+            fileData = await prepareExcelFile(data, undefined, undefined, { onCellsTruncated: notifyExcelCellsTruncated });
             mimeType = MIME_TYPES.XLSX;
             break;
           }
@@ -542,10 +541,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
         fieldCount: fieldsToUse.length,
         downloadMethod,
       });
-      // Cell values are truncated before writing, but other SheetJS limits (e.g. the 1,048,576-row cap) can still throw.
-      if (getErrorMessage(ex).includes('32767')) {
-        setErrorMessage(`One or more values exceed Excel's 32,767 character cell limit. Download as CSV or JSON to get full values.`);
-      } else if (fileFormat === 'xlsx' || fileFormat === RADIO_FORMAT_XLSX_LOAD_TEMPLATE) {
+      // Oversized cells are truncated by the writer and reported through `onCellsTruncated`, but other Excel
+      // limits (e.g. the 1,048,576 row per sheet cap) still throw.
+      if (fileFormat === 'xlsx' || fileFormat === RADIO_FORMAT_XLSX_LOAD_TEMPLATE) {
         setErrorMessage('There was a problem preparing your file download. Try downloading as CSV or JSON.');
       } else {
         setErrorMessage('There was a problem preparing your file download.');

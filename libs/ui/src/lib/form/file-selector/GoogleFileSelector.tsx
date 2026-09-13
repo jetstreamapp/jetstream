@@ -1,19 +1,30 @@
 /// <reference types="@maxim_mazurok/gapi.client.drive-v3" />
 /// <reference types="google.picker" />
 import { logger } from '@jetstream/shared/client-logger';
-import { ensureXlsxCodepageTable, GoogleApiClientConfig, useDrivePicker } from '@jetstream/shared/ui-utils';
+import { GoogleApiClientConfig, useDrivePicker } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { InputReadGoogleSheet, Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
-import * as XLSX from 'xlsx';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
 import Spinner from '../../widgets/Spinner';
 import Tooltip from '../../widgets/Tooltip';
 import { SCRIPT_LOAD_ERR_MESSAGE } from './file-selector-utils';
 import { useFilename } from './useFilename';
+
+/**
+ * The gapi client hands back a response body as a binary string (one byte per char code) rather than bytes,
+ * so it is converted once here and every consumer downstream works with the file's actual bytes.
+ */
+function binaryStringToArrayBuffer(content: string): ArrayBuffer {
+  const bytes = new Uint8Array(content.length);
+  for (let i = 0; i < content.length; i++) {
+    bytes[i] = content.charCodeAt(i) & 0xff;
+  }
+  return bytes.buffer;
+}
 
 export interface GoogleFileSelectorProps {
   apiConfig: GoogleApiClientConfig;
@@ -90,24 +101,18 @@ export const GoogleFileSelector: FunctionComponent<GoogleFileSelectorProps> = ({
           });
           resultBody = results.body;
         } else {
+          // Anything that is not a native Google doc comes back byte-for-byte as it is stored in Drive,
+          // so a .csv stays a .csv and is parsed as one by whoever receives it
           const results = await gapi.client.drive.files.get({
             fileId: selectedItem.id,
             alt: 'media',
           });
           resultBody = results.body;
         }
-        try {
-          await ensureXlsxCodepageTable();
-          const workbook = XLSX.read(resultBody, { cellText: false, cellDates: true, type: 'binary' });
-          setSelectedFile(selectedItem);
-          setManagedFilename(selectedItem.name);
-          onReadFile({ workbook, selectedFile: selectedItem });
-        } catch (ex) {
-          logger.error('Error processing file', ex);
-          const errorMessage = (ex as { result?: { error?: { message?: string } } })?.result?.error?.message || getErrorMessage(ex) || '';
-          onError && onError(`Error parsing file. ${errorMessage}`);
-          setErrorMessage(`Error loading selected file. ${errorMessage}`);
-        }
+        // The file is handed on unparsed - whoever receives it decides how to read it and reports its own errors
+        setSelectedFile(selectedItem);
+        setManagedFilename(selectedItem.name);
+        onReadFile({ name: selectedItem.name || '', bytes: binaryStringToArrayBuffer(resultBody), selectedFile: selectedItem });
       } catch (ex) {
         logger.error('Error exporting file', ex);
         const errorMessage = (ex as { result?: { error?: { message?: string } } })?.result?.error?.message || getErrorMessage(ex) || '';

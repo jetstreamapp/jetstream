@@ -283,12 +283,50 @@ export class JobWorker {
             },
           });
 
+          /**
+           * The spreadsheet writer streams rows, which gives the job two things it never had: a live row count while
+           * the file is built, and a cancellation point. Truncated cells are counted so the job can tell the user the
+           * file is lossy - this path has no way to show a toast of its own.
+           */
+          const fileWriteAbortController = new AbortController();
+          let truncatedCells = 0;
+          const excelFileOptions = {
+            onCellsTruncated: (count: number) => {
+              truncatedCells = count;
+            },
+            onProgress: ({ rows }: { rows: number }) => {
+              if (this.canceledJobIds.has(job.id)) {
+                fileWriteAbortController.abort();
+                return;
+              }
+              this.replyToMessage(name, {
+                job,
+                lastActivityUpdate: true,
+                results: {
+                  progress: {
+                    current: rows,
+                    // Rows are counted per worksheet, so a percentage against the record count would be wrong for subqueries
+                    total: downloadedRecords.length,
+                    percent: -1,
+                    label: `Preparing file for download… (${formatNumber(rows)} ${pluralizeFromNumber('row', rows)})`,
+                  },
+                },
+              });
+            },
+            signal: fileWriteAbortController.signal,
+          };
+
           switch (fileFormat) {
             case 'xlsx': {
               if (includeSubquery && subqueryFields) {
-                fileData = prepareExcelFile(getMapOfBaseAndSubqueryRecords(downloadedRecords, fields, subqueryFields));
+                fileData = await prepareExcelFile(
+                  getMapOfBaseAndSubqueryRecords(downloadedRecords, fields, subqueryFields),
+                  undefined,
+                  undefined,
+                  excelFileOptions,
+                );
               } else {
-                fileData = prepareExcelFile(flattenRecords(downloadedRecords, fields), fields);
+                fileData = await prepareExcelFile(flattenRecords(downloadedRecords, fields), fields, undefined, excelFileOptions);
               }
               mimeType = MIME_TYPES.XLSX;
               break;
@@ -297,7 +335,7 @@ export class JobWorker {
               if (!loadTemplate) {
                 throw new Error('The load template requires the child relationships for the object being downloaded');
               }
-              fileData = prepareExcelFile(
+              fileData = await prepareExcelFile(
                 prepareLoadMultiObjectTemplate({
                   sobject: loadTemplate.sobject,
                   fields,
@@ -308,6 +346,9 @@ export class JobWorker {
                   childRelationships: loadTemplate.childRelationships,
                   childRelationshipsByPath: loadTemplate.childRelationshipsByPath,
                 }),
+                undefined,
+                undefined,
+                excelFileOptions,
               );
               mimeType = MIME_TYPES.XLSX;
               break;
@@ -324,9 +365,14 @@ export class JobWorker {
             }
             case 'gdrive': {
               if (includeSubquery && subqueryFields) {
-                fileData = prepareExcelFile(getMapOfBaseAndSubqueryRecords(downloadedRecords, fields, subqueryFields));
+                fileData = await prepareExcelFile(
+                  getMapOfBaseAndSubqueryRecords(downloadedRecords, fields, subqueryFields),
+                  undefined,
+                  undefined,
+                  excelFileOptions,
+                );
               } else {
-                fileData = prepareExcelFile(flattenRecords(downloadedRecords, fields), fields);
+                fileData = await prepareExcelFile(flattenRecords(downloadedRecords, fields), fields, undefined, excelFileOptions);
               }
               mimeType = MIME_TYPES.GSHEET;
               break;
@@ -335,13 +381,15 @@ export class JobWorker {
               throw new Error('A valid file type type has not been selected');
           }
 
-          const results = { fileData, mimeType, fileName, fileFormat, googleFolder };
+          const results = { fileData, mimeType, fileName, fileFormat, googleFolder, truncatedCells };
 
           const response: AsyncJobWorkerMessageResponse = { job, results };
           this.replyToMessage(name, response);
         } catch (ex) {
           const response: AsyncJobWorkerMessageResponse = { job };
-          this.replyToMessage(name, response, getErrorMessage(ex));
+          // An aborted file write surfaces as the writer's own error, but the user's intent was to cancel the job
+          const errorMessage = this.canceledJobIds.has(job.id) ? JOB_CANCELED_ERROR_MESSAGE : getErrorMessage(ex);
+          this.replyToMessage(name, response, errorMessage);
           logger.error('Error in BulkDownload job:', ex);
         }
         break;

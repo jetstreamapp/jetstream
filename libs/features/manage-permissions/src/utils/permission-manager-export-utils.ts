@@ -1,5 +1,14 @@
-import { DATE_FORMATS } from '@jetstream/shared/constants';
-import { ensureXlsxCodepageTable, excelWorkbookToArrayBuffer, getMaxWidthFromColumnContent } from '@jetstream/shared/ui-utils';
+import { DATE_FORMATS, MIME_TYPES } from '@jetstream/shared/constants';
+import {
+  collectToBlob,
+  createWorkbookWriter,
+  formatRange,
+  getMaxWidthFromColumnContent,
+  type CellInput,
+  type ColumnOptions,
+  type StyleId,
+  type WorkbookWriter,
+} from '@jetstream/shared/ui-utils';
 import {
   Maybe,
   PermissionTableFieldCell,
@@ -14,7 +23,6 @@ import { isValid as isDateValid } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
 import JSZip from 'jszip';
 import { unparse } from 'papaparse';
-import * as XLSX from 'xlsx';
 import { FIELD_AUDIT_COLUMNS, getFieldAuditExportHeaders } from './permission-manager-field-audit-columns';
 
 /**
@@ -23,20 +31,42 @@ import { FIELD_AUDIT_COLUMNS, getFieldAuditExportHeaders } from './permission-ma
  */
 const AUDIT_DATE_EXCEL_FORMAT = 'yyyy-mm-dd hh:mm:ss';
 
-/**
- * Every worksheet here is built in dense mode. Without it SheetJS stores each cell as its own property on the
- * worksheet object, and V8 caps a single object near 8.4 million enumerable properties - a permission export
- * covering many fields across many profiles and permission sets blows past that and throws
- * `RangeError: Too many properties to enumerate`. Dense mode holds the cells in a 2D array instead and writes
- * byte identical output.
- */
-const WORKSHEET_OPTIONS = { dense: true } as const;
-
 type PermissionExportColumn =
   | ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>
   | ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>
   | ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>
   | ColumnWithFilter<PermissionTableSystemPermissionCell, PermissionTableSummaryRow>;
+
+/**
+ * A sheet assembled in memory before it is streamed into the workbook.
+ *
+ * The writer has no worksheet object to decorate after the fact - rows, merges and column widths all have to be
+ * known by the time the sheet is opened - so each `generate*Worksheet` returns this and `writeWorksheet` does the
+ * writing for all four sheets.
+ */
+interface PermissionWorksheet {
+  /** Written above the data in bold. Every sheet but System Permissions has two: the group header and its sub-columns */
+  headerRows: CellInput[][];
+  dataRows: CellInput[][];
+  /** A1 ranges for the profile / permission set group headers */
+  merges: string[];
+  columns: ColumnOptions[];
+  /** Column indexes of the data rows that hold a `Date`, so those cells get the audit date number format */
+  dateColumnIndexes?: number[];
+}
+
+interface PermissionWorksheetStyles {
+  headerStyle: StyleId;
+  auditDateStyle: StyleId;
+}
+
+export interface GenerateExcelWorkbookOptions {
+  /** Called once with the total number of cells that exceeded Excel's per-cell character limit and were truncated */
+  onCellsTruncated?: (truncatedCellCount: number) => void;
+}
+
+/** Columns of the field permissions export that come before the audit columns */
+const FIELD_EXPORT_LEAD_COLUMNS = ['Object', 'Field Api Name', 'Field Label'];
 
 /**
  * Leading columns of the field permissions export, before the per profile / permission set groups.
@@ -45,7 +75,7 @@ type PermissionExportColumn =
  * they are most useful there.
  */
 function getFieldExportPrefix(): string[] {
-  return ['Object', 'Field Api Name', 'Field Label', ...getFieldAuditExportHeaders()];
+  return [...FIELD_EXPORT_LEAD_COLUMNS, ...getFieldAuditExportHeaders()];
 }
 
 /** Audit timestamps arrive as raw ISO strings from the Tooling API */
@@ -94,25 +124,93 @@ function getFieldWorksheetRowPrefix(row: PermissionTableFieldCell): (string | Da
   return getFieldExportRowPrefix(row, (date) => date);
 }
 
-export function generateExcelWorkbookFromTable(
+export async function generateExcelWorkbookFromTable(
   objectData: { columns: PermissionExportColumn[]; rows: PermissionTableObjectCell[] },
   tabVisibilityData: { columns: PermissionExportColumn[]; rows: PermissionTableTabVisibilityCell[] },
   fieldData: { columns: PermissionExportColumn[]; rows: PermissionTableFieldCell[] },
   systemPermissionData: { columns: PermissionExportColumn[]; rows: PermissionTableSystemPermissionCell[] },
-) {
-  ensureXlsxCodepageTable();
-  const workbook = XLSX.utils.book_new();
-  const objectWorksheet = generateObjectWorksheet(objectData.columns, objectData.rows);
-  const tabVisibilityWorksheet = generateTabVisibilityWorksheet(tabVisibilityData.columns, tabVisibilityData.rows);
-  const fieldWorksheet = generateFieldWorksheet(fieldData.columns, fieldData.rows);
-  const systemPermissionWorksheet = generateSystemPermissionWorksheet(systemPermissionData.columns, systemPermissionData.rows);
+  { onCellsTruncated }: GenerateExcelWorkbookOptions = {},
+): Promise<Blob> {
+  const sink = collectToBlob(MIME_TYPES.XLSX_OPEN_OFFICE);
+  const workbook = createWorkbookWriter(sink, {
+    cellOverflow: 'truncate',
+    // Every permission cell is TRUE or FALSE and every object name repeats across sheets, so the bounded shared
+    // string table is worth its memory here - this is what `bookSST: true` used to give us
+    strings: 'auto',
+  });
+  const styles: PermissionWorksheetStyles = {
+    headerStyle: workbook.registerStyle({ font: { bold: true } }),
+    auditDateStyle: workbook.registerStyle({ numFmt: AUDIT_DATE_EXCEL_FORMAT }),
+  };
 
-  XLSX.utils.book_append_sheet(workbook, objectWorksheet, 'Object Permissions');
-  XLSX.utils.book_append_sheet(workbook, tabVisibilityWorksheet, 'Tab Visibility');
-  XLSX.utils.book_append_sheet(workbook, fieldWorksheet, 'Field Permissions');
-  XLSX.utils.book_append_sheet(workbook, systemPermissionWorksheet, 'System Permissions');
+  try {
+    await writeWorksheet(workbook, 'Object Permissions', generateObjectWorksheet(objectData.columns, objectData.rows), styles);
+    await writeWorksheet(
+      workbook,
+      'Tab Visibility',
+      generateTabVisibilityWorksheet(tabVisibilityData.columns, tabVisibilityData.rows),
+      styles,
+    );
+    await writeWorksheet(workbook, 'Field Permissions', generateFieldWorksheet(fieldData.columns, fieldData.rows), styles);
+    await writeWorksheet(
+      workbook,
+      'System Permissions',
+      generateSystemPermissionWorksheet(systemPermissionData.columns, systemPermissionData.rows),
+      styles,
+    );
 
-  return excelWorkbookToArrayBuffer(workbook, { bookSST: true, compression: true });
+    const { truncatedCells } = await workbook.close();
+    if (truncatedCells > 0) {
+      onCellsTruncated?.(truncatedCells);
+    }
+  } catch (ex) {
+    await workbook.abort(ex);
+    throw ex;
+  }
+
+  return sink.result();
+}
+
+/** Streams one prepared sheet into the workbook: the bold header rows, the merged group ranges, then the data */
+async function writeWorksheet(
+  workbook: WorkbookWriter,
+  sheetName: string,
+  { headerRows, dataRows, merges, columns, dateColumnIndexes }: PermissionWorksheet,
+  { headerStyle, auditDateStyle }: PermissionWorksheetStyles,
+): Promise<void> {
+  // No `header` option - these sheets have two header rows, and it only writes one
+  const sheet = workbook.addSheet(sheetName, { columns });
+  for (const headerRow of headerRows) {
+    await sheet.writeRow(headerRow, headerStyle);
+  }
+  merges.forEach((range) => sheet.merge(range));
+
+  if (dateColumnIndexes?.length) {
+    // One style id per cell, and every data row has the same shape, so the array is built once. Cells past the end
+    // of it get the default style, which for a Date is already this same format code - this pins the intent.
+    const dataRowStyles: (StyleId | undefined)[] = [];
+    dateColumnIndexes.forEach((columnIndex) => {
+      dataRowStyles[columnIndex] = auditDateStyle;
+    });
+    for (const dataRow of dataRows) {
+      await sheet.writeRow(dataRow, dataRowStyles);
+    }
+  } else {
+    await sheet.writeRows(dataRows);
+  }
+
+  await sheet.close();
+}
+
+/**
+ * Column widths are measured from the text Excel will render, so a Date is measured as the audit date format
+ * rather than as the full javascript date string.
+ */
+function getColumnWidths(rows: CellInput[][], skipRows: Set<number>): ColumnOptions[] {
+  return getMaxWidthFromColumnContent(
+    rows.map((row) => row.map((value) => (value instanceof Date ? formatDate(value, DATE_FORMATS.yyyy_MM_dd_HH_mm_ss) : `${value ?? ''}`))),
+    skipRows,
+  );
 }
 
 export async function generateCsvFilesFromTable(
@@ -143,69 +241,53 @@ export async function generateCsvFilesFromTable(
   return zipFile;
 }
 
-function generateObjectWorksheet(columns: PermissionExportColumn[], rows: PermissionTableObjectCell[]) {
-  const merges: XLSX.Range[] = [];
+function generateObjectWorksheet(columns: PermissionExportColumn[], rows: PermissionTableObjectCell[]): PermissionWorksheet {
+  const merges: string[] = [];
   const header1: string[] = [''];
   const header2: string[] = ['Object'];
-  const excelRows = [header1, header2];
+  const dataRows: string[][] = [];
 
   const permissionKeys: string[] = [];
 
   columns
     .filter((col) => col.key?.endsWith('-read'))
     .forEach((col) => {
-      // header 1
-      header1.push(col.name as string);
-      header1.push('');
-      header1.push('');
-      header1.push('');
-      header1.push('');
-      header1.push('');
-      header1.push('');
-      // merge the added cells
-      merges.push({
-        s: { r: 0, c: header1.length - 7 },
-        e: { r: 0, c: header1.length - 1 },
-      });
+      // header 1 - the group name followed by 6 cells it is merged over
+      header1.push(col.name as string, '', '', '', '', '', '');
+      merges.push(formatRange(0, header1.length - 7, 0, header1.length - 1));
       // header 2
-      header2.push('Read');
-      header2.push('Create');
-      header2.push('Edit');
-      header2.push('Delete');
-      header2.push('View All');
-      header2.push('Modify All');
-      header2.push('View All Fields');
+      header2.push('Read', 'Create', 'Edit', 'Delete', 'View All', 'Modify All', 'View All Fields');
       // keep track of group order to ensure same across all rows
       permissionKeys.push(col.key.split('-')[0]);
     });
 
-  rows.forEach((row, _i) => {
+  rows.forEach((row) => {
     const currRow = [row.sobject];
     permissionKeys.forEach((key) => {
       const permission = row.permissions[key];
-      currRow.push(permission.read ? 'TRUE' : 'FALSE');
-      currRow.push(permission.create ? 'TRUE' : 'FALSE');
-      currRow.push(permission.edit ? 'TRUE' : 'FALSE');
-      currRow.push(permission.delete ? 'TRUE' : 'FALSE');
-      currRow.push(permission.viewAll ? 'TRUE' : 'FALSE');
-      currRow.push(permission.modifyAll ? 'TRUE' : 'FALSE');
-      currRow.push(permission.viewAllFields ? 'TRUE' : 'FALSE');
+      currRow.push(
+        permission.read ? 'TRUE' : 'FALSE',
+        permission.create ? 'TRUE' : 'FALSE',
+        permission.edit ? 'TRUE' : 'FALSE',
+        permission.delete ? 'TRUE' : 'FALSE',
+        permission.viewAll ? 'TRUE' : 'FALSE',
+        permission.modifyAll ? 'TRUE' : 'FALSE',
+        permission.viewAllFields ? 'TRUE' : 'FALSE',
+      );
     });
-    excelRows.push(currRow);
+    dataRows.push(currRow);
   });
 
-  const worksheet = XLSX.utils.aoa_to_sheet(excelRows, WORKSHEET_OPTIONS);
-  worksheet['!cols'] = getMaxWidthFromColumnContent(excelRows, new Set([0]));
-  worksheet['!merges'] = merges;
-  return worksheet;
+  const headerRows = [header1, header2];
+  return { headerRows, dataRows, merges, columns: getColumnWidths([...headerRows, ...dataRows], new Set([0])) };
 }
 
-export function generateFieldWorksheet(columns: PermissionExportColumn[], rows: PermissionTableFieldCell[]) {
-  const merges: XLSX.Range[] = [];
+function generateFieldWorksheet(columns: PermissionExportColumn[], rows: PermissionTableFieldCell[]): PermissionWorksheet {
+  const merges: string[] = [];
   const exportPrefix = getFieldExportPrefix();
   const header1: string[] = exportPrefix.map(() => '');
   const header2: string[] = [...exportPrefix];
-  const excelRows: (string | Date)[][] = [header1, header2];
+  const dataRows: (string | Date)[][] = [];
 
   const permissionKeys: string[] = [];
 
@@ -213,85 +295,77 @@ export function generateFieldWorksheet(columns: PermissionExportColumn[], rows: 
     .filter((col) => col.key?.endsWith('-read'))
     .forEach((col) => {
       if (col.colSpan) {
-        // header 1
-        header1.push(col.name as string);
-        header1.push('');
-        // merge the added cells
-        merges.push({
-          s: { r: 0, c: header1.length - 2 },
-          e: { r: 0, c: header1.length - 1 },
-        });
+        // header 1 - the group name followed by the one cell it is merged over
+        header1.push(col.name as string, '');
+        merges.push(formatRange(0, header1.length - 2, 0, header1.length - 1));
         // header 2
-        header2.push('Read');
-        header2.push('Edit');
+        header2.push('Read', 'Edit');
         // keep track of group order to ensure same across all rows
         // key: `${id}-${actionKey}`,
         permissionKeys.push(col.key.split('-')[0]);
       }
     });
 
-  rows.forEach((row, _i) => {
+  rows.forEach((row) => {
     const currRow = getFieldWorksheetRowPrefix(row);
     permissionKeys.forEach((key) => {
       const permission = row.permissions[key];
-      currRow.push(permission.read ? 'TRUE' : 'FALSE');
-      currRow.push(permission.edit ? 'TRUE' : 'FALSE');
+      currRow.push(permission.read ? 'TRUE' : 'FALSE', permission.edit ? 'TRUE' : 'FALSE');
     });
-    excelRows.push(currRow);
+    dataRows.push(currRow);
   });
 
-  const worksheet = XLSX.utils.aoa_to_sheet(excelRows, { ...WORKSHEET_OPTIONS, cellDates: true, dateNF: AUDIT_DATE_EXCEL_FORMAT });
-  // Column widths are measured from the stringified value, and a Date stringifies to the full js date string,
-  // so the date cells are measured against how Excel will actually render them
-  worksheet['!cols'] = getMaxWidthFromColumnContent(
-    excelRows.map((row) => row.map((value) => (value instanceof Date ? formatDate(value, DATE_FORMATS.yyyy_MM_dd_HH_mm_ss) : value))),
-    new Set([0]),
-  );
-  worksheet['!merges'] = merges;
-  return worksheet;
+  const headerRows = [header1, header2];
+  return {
+    headerRows,
+    dataRows,
+    merges,
+    columns: getColumnWidths([...headerRows, ...dataRows], new Set([0])),
+    dateColumnIndexes: getFieldAuditDateColumnIndexes(),
+  };
 }
 
-function generateTabVisibilityWorksheet(columns: PermissionExportColumn[], rows: PermissionTableTabVisibilityCell[]) {
-  const merges: XLSX.Range[] = [];
+/** Where the audit timestamps land in a field row, derived from the same list the headers and values come from */
+function getFieldAuditDateColumnIndexes(): number[] {
+  return FIELD_AUDIT_COLUMNS.reduce<number[]>((columnIndexes, { type }, index) => {
+    if (type === 'date') {
+      columnIndexes.push(FIELD_EXPORT_LEAD_COLUMNS.length + index);
+    }
+    return columnIndexes;
+  }, []);
+}
+
+function generateTabVisibilityWorksheet(columns: PermissionExportColumn[], rows: PermissionTableTabVisibilityCell[]): PermissionWorksheet {
+  const merges: string[] = [];
   const header1: string[] = [''];
   const header2: string[] = ['Object'];
-  const excelRows = [header1, header2];
+  const dataRows: string[][] = [];
 
   const permissionKeys: string[] = [];
 
   columns
     .filter((col) => col.key?.endsWith('-available'))
     .forEach((col) => {
-      // header 1
-      header1.push(col.name as string);
-      header1.push('');
-      // header1.push('');
-      // merge the added cells
-      merges.push({
-        s: { r: 0, c: header1.length - 2 },
-        e: { r: 0, c: header1.length - 1 },
-      });
+      // header 1 - the group name followed by the one cell it is merged over
+      header1.push(col.name as string, '');
+      merges.push(formatRange(0, header1.length - 2, 0, header1.length - 1));
       // header 2
-      header2.push('Available');
-      header2.push('Visible');
+      header2.push('Available', 'Visible');
       // keep track of group order to ensure same across all rows
       permissionKeys.push(col.key.split('-')[0]);
     });
 
-  rows.forEach((row, _i) => {
+  rows.forEach((row) => {
     const currRow = [row.sobject];
     permissionKeys.forEach((key) => {
       const permission = row.permissions[key];
-      currRow.push(permission.available ? 'TRUE' : 'FALSE');
-      currRow.push(permission.visible ? 'TRUE' : 'FALSE');
+      currRow.push(permission.available ? 'TRUE' : 'FALSE', permission.visible ? 'TRUE' : 'FALSE');
     });
-    excelRows.push(currRow);
+    dataRows.push(currRow);
   });
 
-  const worksheet = XLSX.utils.aoa_to_sheet(excelRows, WORKSHEET_OPTIONS);
-  worksheet['!cols'] = getMaxWidthFromColumnContent(excelRows, new Set([0]));
-  worksheet['!merges'] = merges;
-  return worksheet;
+  const headerRows = [header1, header2];
+  return { headerRows, dataRows, merges, columns: getColumnWidths([...headerRows, ...dataRows], new Set([0])) };
 }
 
 function generateObjectCsv(columns: PermissionExportColumn[], rows: PermissionTableObjectCell[]) {
@@ -403,9 +477,12 @@ function generateTabVisibilityCsv(columns: PermissionExportColumn[], rows: Permi
 
 // System permissions have a single value per profile/permission set, so each column maps to one
 // header cell (no merged sub-columns like the object/field/tab sheets).
-function generateSystemPermissionWorksheet(columns: PermissionExportColumn[], rows: PermissionTableSystemPermissionCell[]) {
+function generateSystemPermissionWorksheet(
+  columns: PermissionExportColumn[],
+  rows: PermissionTableSystemPermissionCell[],
+): PermissionWorksheet {
   const header: string[] = ['System Permission', 'API Name'];
-  const excelRows = [header];
+  const dataRows: string[][] = [];
 
   const permissionKeys: string[] = [];
 
@@ -422,12 +499,11 @@ function generateSystemPermissionWorksheet(columns: PermissionExportColumn[], ro
       const permission = row.permissions[key];
       currRow.push(permission.enabled ? 'TRUE' : 'FALSE');
     });
-    excelRows.push(currRow);
+    dataRows.push(currRow);
   });
 
-  const worksheet = XLSX.utils.aoa_to_sheet(excelRows, WORKSHEET_OPTIONS);
-  worksheet['!cols'] = getMaxWidthFromColumnContent(excelRows, new Set([0, 1]));
-  return worksheet;
+  const headerRows = [header];
+  return { headerRows, dataRows, merges: [], columns: getColumnWidths([...headerRows, ...dataRows], new Set([0, 1])) };
 }
 
 function generateSystemPermissionCsv(columns: PermissionExportColumn[], rows: PermissionTableSystemPermissionCell[]) {
