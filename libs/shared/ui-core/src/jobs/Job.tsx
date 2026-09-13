@@ -81,7 +81,11 @@ export const Job: FunctionComponent<JobProps> = ({ job, cancelJob, dismiss }) =>
                 {job.progress.label && job.progress.label !== status && (
                   <p className="slds-text-body_small slds-m-bottom_x-small">{job.progress.label}</p>
                 )}
-                <ProgressIndicator currentValue={job.progress.percent} isIndeterminate={job.progress.percent === -1} />
+                <ProgressIndicator
+                  label={`${job.title} progress`}
+                  currentValue={job.progress.percent}
+                  isIndeterminate={job.progress.percent === -1}
+                />
                 <p className="slds-text-body_small slds-m-top_x-small slds-text-align_center">
                   {formatNumber(job.progress.current)}
                   {job.progress.total > 0 ? ` of ${formatNumber(job.progress.total)}` : ''}
