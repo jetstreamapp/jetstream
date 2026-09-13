@@ -344,6 +344,8 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
               </Grid>
               <MonacoEditor
                 height="80vh"
+                label="Anonymous Apex code"
+                primaryActionLabel="execute the code"
                 defaultLanguage="apex"
                 value={apex}
                 options={{ contextmenu: false }}
@@ -394,6 +396,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
             />
             <MonacoEditor
               height="80vh"
+              label="Apex execution log"
               defaultLanguage="apex-log"
               options={{
                 readOnly: true,
