@@ -191,6 +191,7 @@ export const GoogleFileSelectorExternalButton: FunctionComponent<GoogleFileSelec
       <div className="slds-form-element__control">
         <label className="slds-file-selector__body" htmlFor={id}>
           <button
+            type="button"
             className="slds-is-relative slds-button slds-button_neutral"
             onClick={handleOpenPicker}
             disabled={loading || disabled}

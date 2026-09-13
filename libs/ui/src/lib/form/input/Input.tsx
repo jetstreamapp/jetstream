@@ -146,6 +146,7 @@ export const Input: FunctionComponent<InputProps> = ({
               <Spinner className="slds-spinner slds-spinner_brand slds-spinner_x-small slds-input__spinner" hasContainer={false} />
               {clearButton && (
                 <button
+                  type="button"
                   className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
                   title={clearButtonLabel}
                   aria-label={clearButtonLabel}
@@ -161,6 +162,7 @@ export const Input: FunctionComponent<InputProps> = ({
           {rightAddon && <span className="slds-form-element__addon">{rightAddon}</span>}
           {!rightAddon && clearButton && !loading && (
             <button
+              type="button"
               className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
               title={clearButtonLabel}
               aria-label={clearButtonLabel}
