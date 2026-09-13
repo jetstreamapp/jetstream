@@ -78,6 +78,21 @@ Server logs go to `dist/e2e-server.log`; traces, screenshots and `error-context.
 
 ## Common Development Tasks
 
+### Running the app (and running several worktrees at once)
+
+`pnpm start:api` starts the api server on `3333`; `pnpm start` starts the web dev server, which proxies `/api`,
+`/oauth`, `/socket.io` and friends to it.
+
+One api server serves every worktree. Start it once, then run `pnpm start` in as many worktrees as you like — the
+dev server port is picked at startup and printed in the terminal (`4200` first, then `4210`, `4211`, ...; `4201`
+and `4202` are reserved for the desktop client and canvas dev servers). All instances share one login session,
+one database and one set of connected orgs, and no `.env` changes are ever needed. `JETSTREAM_DEV_PORT` pins a
+port and `JETSTREAM_DEV_API_URL` points at a different api server.
+
+Do not give a worktree its own api server: connected orgs are stored against `JETSTREAM_SERVER_URL`
+(`salesforce-org.db.ts`), so a different api port shows an empty org list and forces re-authorization, and the
+Salesforce/Google OAuth callback urls are port-specific.
+
 ### Working with Database
 
 Never create migration files unless explicitly asked to.

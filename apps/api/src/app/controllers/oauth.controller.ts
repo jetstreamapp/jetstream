@@ -18,6 +18,7 @@ import { z } from 'zod';
 import * as jetstreamOrganizationsDb from '../db/organization.db';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import * as sfdcEncService from '../services/salesforce-org-encryption.service';
+import { getDevClientOriginFromRequest } from '../utils/oauth.utils';
 import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export interface OauthLinkParams {
@@ -76,7 +77,14 @@ const salesforceOauthInitAuth = createRoute(routeDefinition.salesforceOauthInitA
     addLoginParam,
     loginHint,
   });
-  req.session.orgAuth = { code_verifier, nonce, state, loginUrl, orgGroupId: orgGroupId || jetstreamOrganizationId };
+  req.session.orgAuth = {
+    code_verifier,
+    nonce,
+    state,
+    loginUrl,
+    orgGroupId: orgGroupId || jetstreamOrganizationId,
+    clientUrl: getDevClientOriginFromRequest(req),
+  };
   res.redirect(authorizationUrl.toString());
 });
 
@@ -88,7 +96,9 @@ const salesforceOauthInitAuth = createRoute(routeDefinition.salesforceOauthInitA
 const salesforceOauthCallback = createRoute(
   routeDefinition.salesforceOauthCallback.validators,
   async ({ query: queryParams, user }, req, res) => {
-    const clientUrl = new URL(ENV.JETSTREAM_CLIENT_URL).origin;
+    // Read before the try block clears req.session.orgAuth below; in development this is the dev
+    // server origin that opened the popup, which is what the result must be posted back to.
+    const clientUrl = req.session.orgAuth?.clientUrl || new URL(ENV.JETSTREAM_CLIENT_URL).origin;
     const returnParams: OauthLinkParams = {
       type: 'salesforce',
       clientUrl,

@@ -169,12 +169,34 @@ If you want to create your own:
   - Start Jetstream
     - terminal 1: `pnpm start:api` to start api server
       - This runs on `http://localhost:3333` - most endpoints are prefixed at the `/api` path
-    - terminal 2: `pnpm start` to start api server
+    - terminal 2: `pnpm start` to start the web development server
       - This runs on `http://localhost:4200` and you will need to access the application here `http://localhost:4200/app`
+      - The port is chosen at startup and printed in the terminal. If `4200` is taken the next server picks `4210`, then `4211`, and so on, so several git worktrees can run a development server at the same time against the one api server. See [Running several worktrees at once](#running-several-worktrees-at-once).
   - Optional
     - `pnpm start:ui:storybook` to start the storybook server
       - This runs on `http://localhost:4400`
       - You can check out the public version of this at https://storybook.getjetstream.app
+
+### Running several worktrees at once
+
+Only one api server is needed no matter how many copies of the repo you have checked out. Start it once with
+`pnpm start:api`, then run `pnpm start` in each worktree you want a web development server for. Every development
+server proxies `/api`, `/oauth`, `/socket.io` and friends to that shared api server, so they all share one login
+session, one database and one set of connected Salesforce orgs — switching between them requires no logging in and
+no `.env` changes.
+
+Ports are assigned automatically: the first server started takes `4200`, and any others take `4210`, `4211` and
+upwards. `4201`-`4209` are never used, so they stay free for the desktop client (`4201`) and canvas (`4202`)
+development servers.
+
+Two environment variables override this when needed:
+
+- `JETSTREAM_DEV_PORT` - pin the development server to a specific port instead of searching for a free one
+- `JETSTREAM_DEV_API_URL` - proxy to an api server other than `http://localhost:3333`
+
+Giving a worktree its own api server is deliberately not supported. Connected orgs are stored against
+`JETSTREAM_SERVER_URL`, so a second api server on a different port sees an empty org list and every org has to be
+re-authorized, and the Salesforce and Google OAuth callback urls are registered against a specific port.
 
 ### Start Jetstream (with docker)
 
