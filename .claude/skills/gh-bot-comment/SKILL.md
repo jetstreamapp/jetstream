@@ -8,7 +8,8 @@ description: Post GitHub PR/issue comments, reviews, and review replies as the J
 Any **write** to PR or issue conversations (comments, reviews, review replies) must be
 posted as the app's bot account, not the user's personal account. A GitHub App
 installation token does this automatically - anything posted with it shows up as
-`<app-slug>[bot]`.
+`<app-slug>[bot]`. The app is a dedicated one that can only read/write pull requests and issues
+on this repository - it is not the release app and has no ruleset bypass.
 
 Mint the token and run the command in one step:
 
