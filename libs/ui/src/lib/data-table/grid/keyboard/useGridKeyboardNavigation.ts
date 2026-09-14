@@ -4,7 +4,14 @@ import { FocusEvent as ReactFocusEvent, KeyboardEvent as ReactKeyboardEvent, use
 import { isFrozenColumn } from '../components/grid-layout';
 import { ActiveCell } from '../components/GridRow';
 import { getCellText, getColumnHeaderText } from '../grid-clipboard';
-import { getSummaryRowId, getSummaryRowIndex, HEADER_ROW_ID, isSummaryRowId, SELECT_COLUMN_KEY } from '../grid-constants';
+import {
+  getSummaryRowId,
+  getSummaryRowIndex,
+  HEADER_ROW_ID,
+  isSummaryRowId,
+  isTextEntryElement,
+  SELECT_COLUMN_KEY,
+} from '../grid-constants';
 import { ColSpanArgs, TanstackColumn, TanstackRow, TanstackTable } from '../grid-types';
 import {
   addOrExcludeCellRange,
@@ -726,6 +733,14 @@ export function useGridKeyboardNavigation<TRow extends object>({
 
   const handleKeyDown = useCallback(
     (event: ReactKeyboardEvent) => {
+      // A focused text-entry control (the summary row's column filter input, a header filter's search
+      // box, an open cell editor) owns every key it receives — caret movement, text selection and the
+      // clipboard shortcuts. Without this the grid treated them as navigation and moved the active cell
+      // out from under the caret. Escape stays with the grid so the keyboard can leave the control, and
+      // Tab is left alone entirely (neither the grid nor the control handles it — the browser does).
+      if (event.key !== 'Escape' && event.key !== 'Tab' && isTextEntryElement(event.target)) {
+        return;
+      }
       const rows = table.getRowModel().rows;
       const columns = table.getVisibleLeafColumns();
       if (!rows.length || !columns.length) {

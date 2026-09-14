@@ -9,7 +9,7 @@ import { EditorHost } from '../editors/EditorHost';
 import { computeEdgeScrollVelocity, createEdgeAutoScroller } from '../grid-auto-scroll';
 import { copyGridDataToClipboard, copyGridGroupRowsToClipboard, GridCopyResult } from '../grid-clipboard';
 import { reorderColumnOrder } from '../grid-column-utils';
-import { HEADER_ROW_ID, isSummaryRowId, NON_DATA_COLUMN_KEYS, TABLE_CONTEXT_MENU_ITEMS } from '../grid-constants';
+import { HEADER_ROW_ID, isSummaryRowId, isTextEntryElement, NON_DATA_COLUMN_KEYS, TABLE_CONTEXT_MENU_ITEMS } from '../grid-constants';
 import { GridRuntime, GridRuntimeContext, selectRowModelInputs } from '../grid-context';
 import {
   COPY_GROUP_ACTION,
@@ -501,6 +501,11 @@ export function GridContainer<TRow extends object = RowWithKey>({
   const handleDomPaste = useCallback(
     (event: React.ClipboardEvent) => {
       if (!onPaste || !activeCell || editingCell) {
+        return;
+      }
+      // A text-entry control inside a cell (the summary row's column filter input) owns its own paste —
+      // the active cell is that control's summary cell, so without this the grid swallowed the paste.
+      if (isTextEntryElement(event.target)) {
         return;
       }
       const text = event.clipboardData?.getData('text/plain') ?? '';

@@ -52,3 +52,15 @@ export const DEFAULT_HEADER_ROW_HEIGHT = 35;
 export const DEFAULT_SUMMARY_ROW_HEIGHT = 34;
 export const DEFAULT_COLUMN_WIDTH = 200;
 export const DEFAULT_MIN_COLUMN_WIDTH = 50;
+
+/**
+ * Controls that own their own keyboard and clipboard behavior while focused, even though they live
+ * inside a grid cell (the summary row's column filter input, a header filter's search box, an open
+ * cell editor). Checkbox/radio/button inputs are deliberately excluded — those are activated by the
+ * grid's own Enter/Space handling.
+ */
+const TEXT_ENTRY_SELECTOR =
+  'input:not([type="checkbox"]):not([type="radio"]):not([type="button"]), textarea, select, [contenteditable="true"]';
+
+export const isTextEntryElement = (target: EventTarget | null): boolean =>
+  target instanceof HTMLElement && target.matches(TEXT_ENTRY_SELECTOR);
