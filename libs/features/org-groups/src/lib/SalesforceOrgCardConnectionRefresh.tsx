@@ -1,10 +1,18 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
-import { ORG_INACTIVITY_EXPIRATION_DAYS, pluralizeFromNumber } from '@jetstream/shared/utils';
-import { AddOrgHandlerFn, BadgeType, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { ORG_INACTIVITY_EXPIRATION_DAYS } from '@jetstream/shared/utils';
+import { AddOrgHandlerFn, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, ConfirmationModalPromise, Grid, Icon, Spinner, Tooltip, fireToast } from '@jetstream/ui';
-import { AddOrg, OrgExpirationStatus, useAmplitude, useOrgExpiration, useUpdateOrgs } from '@jetstream/ui-core';
+import {
+  AddOrg,
+  OrgExpirationStatus,
+  getOrgExpirationBadge,
+  getOrgExpirationTooltip,
+  useAmplitude,
+  useOrgExpiration,
+  useUpdateOrgs,
+} from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useSetAtom } from 'jotai';
 import { useState } from 'react';
@@ -20,36 +28,27 @@ interface SalesforceOrgCardConnectionRefreshProps {
   onRemoveOrg: ReturnType<typeof useUpdateOrgs>['handleRemoveOrg'];
 }
 
+/**
+ * An org inside the warning window still works and only needs to be used, so it gets amber, a clock and
+ * a refresh action. One that has already been cut off gets red, a ban icon and a reconnect action -
+ * different at a glance rather than differing only in the tense of a date.
+ */
 function getConnectionState(orgExpiration: OrgExpirationStatus, connectionError: Maybe<string>) {
-  const hasConnectionError = !!connectionError;
-  const connectionState = {
-    badge: {
-      isVisible: !!orgExpiration.isExpiring,
-      label: orgExpiration.isExpired ? 'Disconnected' : `Ends ${orgExpiration.expiryDate}`,
-      tooltip: orgExpiration.isExpired
-        ? `Salesforce ended this connection because the org was not used in Jetstream for ${ORG_INACTIVITY_EXPIRATION_DAYS} days. Reconnect the org to continue using it, or remove it if you no longer need it.`
-        : `Salesforce will end this connection in ${orgExpiration.daysUntilExpiration} ${pluralizeFromNumber('day', orgExpiration.daysUntilExpiration || 0)} unless the org is used. Open or refresh the org in Jetstream to keep it connected.`,
-      badgeType: (orgExpiration.severity === 'error' ? 'error' : 'warning') as BadgeType,
-    },
+  const { status } = orgExpiration;
+  const isStillUsable = status === 'expiring';
+  return {
+    badge: getOrgExpirationBadge(orgExpiration),
+    tooltip: getOrgExpirationTooltip(orgExpiration, connectionError) ?? '',
     refreshIcon: {
-      isVisible: (hasConnectionError && !orgExpiration.isExpired) || orgExpiration.isExpiring,
-      tooltip: orgExpiration.isExpiring
+      isVisible: status === 'expiring' || status === 'error',
+      tooltip: isStillUsable
         ? `Refresh the connection now to reset the ${ORG_INACTIVITY_EXPIRATION_DAYS}-day inactivity clock`
         : `There was an error connecting to this org. You can try refreshing the connection otherwise you will need to reconnect the org. Error: ${connectionError}`,
     },
     reconnectOrg: {
-      isVisible: hasConnectionError || orgExpiration.isExpired,
+      isVisible: status === 'disconnected' || status === 'error',
     },
   };
-
-  if (!connectionState.badge.isVisible && hasConnectionError) {
-    connectionState.badge.isVisible = true;
-    connectionState.badge.label = 'Connection Error';
-    connectionState.badge.tooltip = `There was an error connecting to this org. You can try refreshing the connection otherwise you will need to reconnect the org. Error: ${connectionError}`;
-    connectionState.badge.badgeType = 'error';
-  }
-
-  return connectionState;
 }
 
 export function SalesforceOrgCardConnectionRefresh({
@@ -92,8 +91,7 @@ export function SalesforceOrgCardConnectionRefresh({
       setIsRefreshing(false);
       trackEvent(ANALYTICS_KEYS.sfdc_org_refresh_connection, {
         success,
-        isExpiring: orgExpiration.isExpiring,
-        isExpired: orgExpiration.isExpired,
+        status: orgExpiration.status,
         hadConnectionError: !!org.connectionError,
       });
     }
@@ -101,24 +99,32 @@ export function SalesforceOrgCardConnectionRefresh({
 
   const handleRemoveOrg = async () => {
     if (await ConfirmationModalPromise({ content: 'Are you sure you want to remove this org from Jetstream?', confirm: 'Remove Org' })) {
-      trackEvent(ANALYTICS_KEYS.sfdc_org_removed, { source: 'org-groups-card', isExpired: orgExpiration.isExpired });
+      trackEvent(ANALYTICS_KEYS.sfdc_org_removed, { source: 'org-groups-card', status: orgExpiration.status });
       onRemoveOrg(org);
     }
   };
 
-  if (!orgExpiration.isExpiring && !org.connectionError) {
+  if (orgExpiration.status === 'connected') {
     return null;
   }
 
-  const { badge, refreshIcon, reconnectOrg } = getConnectionState(orgExpiration, org.connectionError);
+  const { badge, tooltip, refreshIcon, reconnectOrg } = getConnectionState(orgExpiration, org.connectionError);
 
   return (
     <Grid verticalAlign="center" className="slds-m-top_xx-small">
       {isRefreshing && <Spinner />}
-      {badge.isVisible && (
+      {badge && (
         <Grid verticalAlign="center">
-          <Tooltip content={badge.tooltip}>
-            <Badge type={badge.badgeType}>{badge.label}</Badge>
+          <Tooltip content={tooltip}>
+            <Badge type={badge.badgeType}>
+              <Icon
+                type="utility"
+                icon={badge.icon}
+                className="slds-icon_xx-small slds-m-right_xx-small"
+                containerClassname="slds-icon_container slds-current-color"
+              />
+              {badge.label}
+            </Badge>
           </Tooltip>
         </Grid>
       )}

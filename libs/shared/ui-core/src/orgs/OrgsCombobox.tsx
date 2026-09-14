@@ -2,12 +2,12 @@ import { css, SerializedStyles } from '@emotion/react';
 import { getOrgType } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { ListItem, ListItemGroup, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Badge, ComboboxWithGroupedItems } from '@jetstream/ui';
+import { Badge, ComboboxWithGroupedItems, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import groupBy from 'lodash/groupBy';
 import sortBy from 'lodash/sortBy';
-import { FunctionComponent, ReactNode, useMemo } from 'react';
-import { calculateOrgExpiration } from './useOrgExpiration';
+import { Fragment, FunctionComponent, ReactNode, useMemo } from 'react';
+import { calculateOrgExpiration, getOrgExpirationBadge, OrgExpirationStatus } from './useOrgExpiration';
 
 /**
  * Everything a user might reasonably search the org list by. The default combobox filter only looks
@@ -82,11 +82,17 @@ function getDropdownOrgStyle(org: Maybe<SalesforceOrgUi>): SerializedStyles | un
   });
 }
 
+/**
+ * Reserved for orgs that have actually stopped working. An org inside the expiration warning window is
+ * still perfectly usable, so painting the selector red for it both overstates the problem and makes a
+ * broken org indistinguishable from a healthy one that simply has not been used lately.
+ */
 function orgHasError(org: Maybe<SalesforceOrgUi>): boolean {
   if (!org) {
     return false;
   }
-  return !!org.connectionError || !!org.expirationScheduledFor;
+  const { status } = calculateOrgExpiration(org);
+  return status === 'disconnected' || status === 'error';
 }
 
 function getOrgTypeBadge(org: Maybe<SalesforceOrgUi>) {
@@ -101,14 +107,52 @@ function getOrgTypeBadge(org: Maybe<SalesforceOrgUi>) {
   );
 }
 
+/**
+ * Carries the urgency for a non-healthy org. Colour, icon and wording all differ by status so the two
+ * states are never told apart by reading a date.
+ */
+function getOrgStatusBadge(expiration: OrgExpirationStatus) {
+  const badge = getOrgExpirationBadge(expiration);
+  if (!badge) {
+    return undefined;
+  }
+  return (
+    <Badge type={badge.badgeType} title={badge.label}>
+      <Icon
+        type="utility"
+        icon={badge.icon}
+        className="slds-icon_xx-small slds-m-right_xx-small"
+        containerClassname="slds-icon_container slds-current-color"
+      />
+      {badge.label}
+    </Badge>
+  );
+}
+
+function getOrgBadges(org: Maybe<SalesforceOrgUi>) {
+  if (!org) {
+    return undefined;
+  }
+  return (
+    <Fragment>
+      {getOrgTypeBadge(org)}
+      {getOrgStatusBadge(calculateOrgExpiration(org))}
+    </Fragment>
+  );
+}
+
 function groupOrgs(orgs: SalesforceOrgUi[]): ListItemGroup<string, SalesforceOrgUi>[] {
   const orgsById = groupBy(sortBy(orgs, ['label']), 'orgName');
   return Object.keys(orgsById).map((key): ListItemGroup => ({
     id: key,
     label: key,
     items: orgsById[key].map((org) => {
-      const { isExpired, expiryDate } = calculateOrgExpiration(org);
-      const expiryMessage: Maybe<string> = expiryDate ? `${isExpired ? 'Ended' : 'Ends'} on ${expiryDate}` : undefined;
+      const expiration = calculateOrgExpiration(org);
+      const showExpiryDate = expiration.status === 'expiring' || expiration.status === 'disconnected';
+      const expiryMessage: Maybe<string> =
+        showExpiryDate && expiration.expiryDate
+          ? `${expiration.status === 'disconnected' ? 'Ended' : 'Ends'} on ${expiration.expiryDate.toLocaleDateString()}`
+          : undefined;
 
       return {
         id: org.uniqueId,
@@ -188,7 +232,7 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
         itemProps={(item) => ({
           hasError: orgHasError(item.meta),
           textBodyCss: getDropdownOrgStyle(item.meta),
-          labelSuffix: getOrgTypeBadge(item.meta),
+          labelSuffix: getOrgBadges(item.meta),
           allowWrap: true,
         })}
         groups={groupedOrgs}
