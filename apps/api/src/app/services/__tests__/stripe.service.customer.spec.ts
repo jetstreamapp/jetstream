@@ -13,6 +13,12 @@ const mocks = vi.hoisted(() => ({
   claimBillingAccountForCustomer: vi.fn(async () => true),
   findBillingAccountWithSubscriptionsByUserId: vi.fn(async (): Promise<BillingAccountHolder | null> => null),
   updateSubscriptionStateForCustomer: vi.fn(async () => ({})),
+  claimTeamBillingAccountForCustomer: vi.fn(async () => true),
+  findTeamBillingAccountWithSubscriptionsByTeamId: vi.fn(async (): Promise<BillingAccountHolder | null> => null),
+  updateTeamSubscriptionStateForCustomer: vi.fn(async () => ({})),
+  updateTeamEntitlements: vi.fn(async () => ({})),
+  checkoutSessionsRetrieve: vi.fn(),
+  customersRetrieve: vi.fn(),
 }));
 
 vi.mock('stripe', () => ({
@@ -21,10 +27,10 @@ vi.mock('stripe', () => ({
       search: mocks.customersSearch,
       create: mocks.customersCreate,
       createFundingInstructions: mocks.createFundingInstructions,
-      retrieve: vi.fn(),
+      retrieve: mocks.customersRetrieve,
       update: mocks.customersUpdate,
     };
-    checkout = { sessions: { create: mocks.checkoutSessionsCreate } };
+    checkout = { sessions: { create: mocks.checkoutSessionsCreate, retrieve: mocks.checkoutSessionsRetrieve } };
     entitlements = { activeEntitlements: { list: vi.fn(async () => ({ data: [] })) } };
     webhooks = { constructEvent: vi.fn() };
     prices = { list: vi.fn() };
@@ -36,12 +42,19 @@ vi.mock('@jetstream/api-config', () => ({
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
   prisma: {},
 }));
-vi.mock('@jetstream/email', () => ({ sendWelcomeToProEmail: vi.fn() }));
+vi.mock('@jetstream/email', () => ({ sendWelcomeToProEmail: vi.fn(async () => undefined) }));
 vi.mock('../../db/subscription.db', () => ({
   updateSubscriptionStateForCustomer: mocks.updateSubscriptionStateForCustomer,
+  updateTeamSubscriptionStateForCustomer: mocks.updateTeamSubscriptionStateForCustomer,
   cancelAllSubscriptionsForUser: vi.fn(async () => ({})),
+  updateUserEntitlements: vi.fn(async () => ({})),
+  updateTeamEntitlements: mocks.updateTeamEntitlements,
 }));
-vi.mock('../../db/team.db', () => ({}));
+vi.mock('../../db/team.db', () => ({
+  claimTeamBillingAccountForCustomer: mocks.claimTeamBillingAccountForCustomer,
+  findTeamBillingAccountWithSubscriptionsByTeamId: mocks.findTeamBillingAccountWithSubscriptionsByTeamId,
+  upsertTeamWithBillingAccount: vi.fn(async () => ({ id: 'team_1' })),
+}));
 vi.mock('../../db/user.db', () => ({
   findById: vi.fn(async () => ({ email: user.email })),
   findBillingAccountByCustomerId: vi.fn(),
@@ -129,7 +142,9 @@ describe('findOrCreateCustomer', () => {
     expect(createCalls.map(([params]) => params)).toEqual([{ metadata: { userId: 'user-1' } }, { metadata: { userId: 'user-1' } }]);
   });
 
-  it('applies the mutable profile and plan type in the follow-up update', async () => {
+  // `teamId` stays out of the update: the idempotency key can return a customer from an earlier attempt that
+  // already carries a real one, and Stripe deletes a metadata key written as `null`.
+  it('applies the mutable profile and plan type in the follow-up update without clearing the team', async () => {
     mocks.customersSearch.mockResolvedValue({ data: [] });
 
     await stripeService.findOrCreateCustomer({ user, type: 'USER' });
@@ -137,7 +152,7 @@ describe('findOrCreateCustomer', () => {
     expect(mocks.customersUpdate).toHaveBeenCalledWith('cus_created', {
       email: user.email,
       name: user.name,
-      metadata: { userId: 'user-1', teamId: null, type: 'USER' },
+      metadata: { userId: 'user-1', type: 'USER' },
     });
   });
 
@@ -203,6 +218,22 @@ describe('findOrCreateCustomer', () => {
       mocks.customersSearch.mockResolvedValue({
         data: [
           customer({ id: 'cus_canceled', created: 100, subscriptions: [subscriptionWithStatus('canceled')] }),
+          customer({ id: 'cus_active', created: 200, subscriptions: [subscriptionWithStatus('active')] }),
+        ],
+      });
+
+      const result = await stripeService.findOrCreateCustomer({ user, type: 'USER' });
+
+      expect(result.id).toBe('cus_active');
+    });
+
+    // `incomplete` means Stripe is still waiting on the initial invoice, so it must not rank alongside a
+    // subscription that has been paid for - the earliest-created tie-break would otherwise hand the next
+    // checkout to the unpaid duplicate, which is the older of the two in the usual shape of this bug.
+    it('prefers a paid subscription over an older customer whose initial invoice is unpaid', async () => {
+      mocks.customersSearch.mockResolvedValue({
+        data: [
+          customer({ id: 'cus_incomplete', created: 100, subscriptions: [subscriptionWithStatus('incomplete')] }),
           customer({ id: 'cus_active', created: 200, subscriptions: [subscriptionWithStatus('active')] }),
         ],
       });
@@ -373,6 +404,201 @@ describe('saveOrUpdateSubscription when a user has duplicate customers', () => {
     await stripeService.saveOrUpdateSubscription({ customer: customerWithSubscriptions('cus_orphan', []), sendWelcomeEmail: false });
 
     expect(mocks.updateSubscriptionStateForCustomer).not.toHaveBeenCalled();
+  });
+});
+
+describe('saveOrUpdateSubscription when a team has duplicate customers', () => {
+  let stripeService: typeof StripeService;
+
+  const teamCustomer = (id: string, subscriptions: unknown[]) =>
+    ({
+      id,
+      deleted: undefined,
+      metadata: { userId: user.id, teamId: 'team_1', type: 'TEAM' },
+      subscriptions: { object: 'list', data: subscriptions },
+    }) as unknown as Parameters<typeof StripeService.saveOrUpdateSubscription>[0]['customer'];
+
+  const teamSubscription = (status: string) => ({
+    id: `sub_${status}`,
+    status,
+    items: { object: 'list', data: [{ id: 'si_1', price: { id: 'price_team', lookup_key: 'TEAM_MONTHLY' } }] },
+  });
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    stripeService = await import('../stripe.service');
+    mocks.claimTeamBillingAccountForCustomer.mockResolvedValue(true);
+    mocks.findTeamBillingAccountWithSubscriptionsByTeamId.mockResolvedValue(null);
+  });
+
+  // The team billing account used to be repointed at whichever customer emitted the event. Because
+  // `team_subscription.customerId` cascades on that update, an abandoned duplicate could drag the paying
+  // customer's rows across and have them deleted by the reconciliation that follows.
+  it('does not let a customer whose team subscription has ended take the account from another one', async () => {
+    await stripeService.saveOrUpdateSubscription({
+      customer: teamCustomer('cus_stale', [teamSubscription('canceled')]),
+      sendWelcomeEmail: false,
+    });
+
+    expect(mocks.claimTeamBillingAccountForCustomer).toHaveBeenCalledWith(
+      expect.objectContaining({ teamId: 'team_1', customerId: 'cus_stale', allowRepoint: false }),
+    );
+  });
+
+  it('still repoints the team account when the customer is the one being paid for', async () => {
+    await stripeService.saveOrUpdateSubscription({
+      customer: teamCustomer('cus_paying', [teamSubscription('active')]),
+      sendWelcomeEmail: false,
+    });
+
+    expect(mocks.claimTeamBillingAccountForCustomer).toHaveBeenCalledWith(
+      expect.objectContaining({ teamId: 'team_1', customerId: 'cus_paying', allowRepoint: true }),
+    );
+  });
+
+  it('stops without touching team subscriptions when another customer holds the account', async () => {
+    mocks.claimTeamBillingAccountForCustomer.mockResolvedValue(false);
+
+    await stripeService.saveOrUpdateSubscription({ customer: teamCustomer('cus_stale', []), sendWelcomeEmail: false });
+
+    expect(mocks.updateTeamSubscriptionStateForCustomer).not.toHaveBeenCalled();
+  });
+
+  it('logs an error when the team repoint displaces a customer that is also being paid for', async () => {
+    mocks.findTeamBillingAccountWithSubscriptionsByTeamId.mockResolvedValue({
+      customerId: 'cus_other',
+      subscriptions: [{ status: 'ACTIVE' }],
+    });
+
+    await stripeService.saveOrUpdateSubscription({
+      customer: teamCustomer('cus_paying', [teamSubscription('active')]),
+      sendWelcomeEmail: false,
+    });
+
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ teamId: 'team_1', claimingCustomerId: 'cus_paying', displacedCustomerId: 'cus_other' }),
+      expect.stringContaining('repointed away from a customer that is also being paid for'),
+    );
+  });
+});
+
+describe('saveSubscriptionFromCompletedSession', () => {
+  let stripeService: typeof StripeService;
+
+  const session = (subscriptionStatus: string) => ({
+    id: 'cs_1',
+    customer: 'cus_completed',
+    client_reference_id: user.id,
+    metadata: { type: 'USER' },
+    custom_fields: [] as { key: string; text: { value: string } }[],
+    subscription: {
+      id: 'sub_1',
+      status: subscriptionStatus,
+      items: { object: 'list', data: [{ id: 'si_1', price: { id: 'price_pro' } }] },
+    },
+  });
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    stripeService = await import('../stripe.service');
+    mocks.claimBillingAccountForCustomer.mockResolvedValue(true);
+    mocks.customersRetrieve.mockResolvedValue({
+      id: 'cus_completed',
+      deleted: undefined,
+      metadata: { userId: user.id, type: 'USER' },
+      subscriptions: { object: 'list', data: [] },
+    });
+  });
+
+  it('lets a paid checkout take the account from an abandoned duplicate', async () => {
+    mocks.checkoutSessionsRetrieve.mockResolvedValue(session('active'));
+
+    await stripeService.saveSubscriptionFromCompletedSession({ sessionId: 'cs_1' });
+
+    expect(mocks.claimBillingAccountForCustomer).toHaveBeenCalledWith(
+      expect.objectContaining({ customerId: 'cus_completed', allowRepoint: true }),
+    );
+  });
+
+  // A delayed payment method leaves the subscription `incomplete` until Stripe collects, and this service does
+  // not let an unpaid customer displace a paying one anywhere else either.
+  it('does not let a checkout whose invoice is unpaid take the account over', async () => {
+    mocks.checkoutSessionsRetrieve.mockResolvedValue(session('incomplete'));
+
+    await stripeService.saveSubscriptionFromCompletedSession({ sessionId: 'cs_1' });
+
+    expect(mocks.claimBillingAccountForCustomer).toHaveBeenCalledWith(
+      expect.objectContaining({ customerId: 'cus_completed', allowRepoint: false }),
+    );
+  });
+
+  // The success URL can be replayed against a session that is still open or has expired, which carries no
+  // subscription at all - an unknown status must not be read as a paid one.
+  it('does not let a session without a subscription take the account over', async () => {
+    mocks.checkoutSessionsRetrieve.mockResolvedValue({ ...session('active'), subscription: null });
+
+    await stripeService.saveSubscriptionFromCompletedSession({ sessionId: 'cs_1' });
+
+    expect(mocks.claimBillingAccountForCustomer).toHaveBeenCalledWith(
+      expect.objectContaining({ customerId: 'cus_completed', allowRepoint: false }),
+    );
+  });
+
+  // Retrying cannot help until the invoice clears, and reconciling against a customer that does not hold the
+  // account would overwrite the paying customer's rows.
+  it('stops after stamping metadata when an unpaid checkout cannot claim the account', async () => {
+    mocks.checkoutSessionsRetrieve.mockResolvedValue({
+      ...session('incomplete'),
+      custom_fields: [{ key: 'productionOrgId', text: { value: '00D5e000000HEcBEAW' } }],
+    });
+    mocks.claimBillingAccountForCustomer.mockResolvedValue(false);
+
+    await stripeService.saveSubscriptionFromCompletedSession({ sessionId: 'cs_1' });
+
+    // The org id is only ever entered at checkout, so it has to be kept even though the rest of completion stops
+    expect(mocks.customersUpdate).toHaveBeenCalledWith('cus_completed', {
+      metadata: { userId: user.id, teamId: null, type: 'USER', productionOrgId: '00D5e000000HEcBEAW' },
+    });
+    expect(mocks.customersRetrieve).not.toHaveBeenCalled();
+    expect(mocks.updateSubscriptionStateForCustomer).not.toHaveBeenCalled();
+  });
+
+  // Entitlements are looked up through the billing account, so refreshing them for a team customer that lost the
+  // claim would throw and fail the whole completion instead of leaving the paying customer's state alone.
+  it('skips the entitlement refresh when an unpaid team checkout cannot claim the account', async () => {
+    mocks.checkoutSessionsRetrieve.mockResolvedValue({ ...session('incomplete'), metadata: { type: 'TEAM', teamId: 'team_1' } });
+    mocks.customersUpdate.mockImplementation(async (customerId: string) => ({ id: customerId }));
+    mocks.customersRetrieve.mockResolvedValue({
+      id: 'cus_completed',
+      deleted: undefined,
+      metadata: { userId: user.id, teamId: 'team_1', type: 'TEAM' },
+      subscriptions: {
+        object: 'list',
+        data: [
+          {
+            id: 'sub_incomplete',
+            status: 'incomplete',
+            items: { object: 'list', data: [{ id: 'si_1', price: { id: 'price_team', lookup_key: 'TEAM_MONTHLY' } }] },
+          },
+        ],
+      },
+    });
+    mocks.claimTeamBillingAccountForCustomer.mockResolvedValue(false);
+
+    await expect(stripeService.saveSubscriptionFromCompletedSession({ sessionId: 'cs_1' })).resolves.toMatchObject({ type: 'TEAM' });
+
+    expect(mocks.updateTeamSubscriptionStateForCustomer).not.toHaveBeenCalled();
+    expect(mocks.updateTeamEntitlements).not.toHaveBeenCalled();
+  });
+
+  // A refusal despite a paid subscription is a concurrent claim, which the webhook retry can still resolve.
+  it('throws when a paid checkout loses the claim to a concurrent event', async () => {
+    mocks.checkoutSessionsRetrieve.mockResolvedValue(session('active'));
+    mocks.claimBillingAccountForCustomer.mockResolvedValue(false);
+
+    await expect(stripeService.saveSubscriptionFromCompletedSession({ sessionId: 'cs_1' })).rejects.toThrow(
+      'held by another Stripe customer',
+    );
   });
 });
 

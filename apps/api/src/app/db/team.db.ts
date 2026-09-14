@@ -843,16 +843,60 @@ export async function updateTeamMemberStatusAndRole({
   };
 }
 
-export async function createBillingAccountIfNotExists({ teamId, customerId }: { teamId: string; customerId: string }) {
-  const existingCustomer = await prisma.teamBillingAccount.findUnique({ where: { uniqueCustomer: { customerId, teamId } } });
-  if (existingCustomer) {
-    return existingCustomer;
-  }
-  return await prisma.teamBillingAccount.upsert({
-    create: { teamId, customerId },
-    update: { customerId },
+/**
+ * Returns the customer that currently holds the team's billing account along with the subscription rows
+ * recorded against it, so a caller about to repoint the account can tell whether it is taking it away from a
+ * customer that is still being paid for.
+ */
+export async function findTeamBillingAccountWithSubscriptionsByTeamId({ teamId }: { teamId: string }) {
+  return await prisma.teamBillingAccount.findUnique({
     where: { teamId },
+    select: { customerId: true, subscriptions: { select: { status: true } } },
   });
+}
+
+/**
+ * Points the team's billing account at `customerId`, creating it when there is none, and reports whether the
+ * customer now holds the account.
+ *
+ * The user-side mirror of this is `claimBillingAccountForCustomer`, and the reasoning is the same. A team has
+ * at most one billing account (`teamId` is unique), and a user affected by the duplicate-customer bug has more
+ * than one Stripe customer emitting events, so only a customer whose subscription is actually being paid for
+ * may take the account off another one. `team_subscription.customerId` references
+ * `team_billing_account.customerId` ON UPDATE CASCADE, so an unguarded repoint drags the paying customer's
+ * rows onto the claiming customer and the reconciliation that runs next deletes them.
+ *
+ * The comparison happens inside the write rather than as a read followed by an unconditional write - the
+ * `updateMany` filter is the compare - and a unique violation on the create means a concurrent event claimed
+ * the account between the two statements.
+ */
+export async function claimTeamBillingAccountForCustomer({
+  teamId,
+  customerId,
+  allowRepoint,
+}: {
+  teamId: string;
+  customerId: string;
+  allowRepoint: boolean;
+}): Promise<boolean> {
+  const { count } = await prisma.teamBillingAccount.updateMany({
+    where: allowRepoint ? { teamId } : { teamId, customerId },
+    data: { customerId },
+  });
+  if (count > 0) {
+    return true;
+  }
+
+  try {
+    await prisma.teamBillingAccount.create({ data: { teamId, customerId } });
+    return true;
+  } catch (ex) {
+    if (ex instanceof Prisma.PrismaClientKnownRequestError && ex.code === 'P2002') {
+      logger.warn({ teamId, customerId }, 'Team billing account is held by another Stripe customer, not claiming it');
+      return false;
+    }
+    throw ex;
+  }
 }
 
 export async function getTeamInvitations({ teamId }: { teamId: string }) {
