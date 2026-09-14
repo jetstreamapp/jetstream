@@ -8,6 +8,7 @@ import { Fragment, FunctionComponent, useEffect } from 'react';
 import { OrgsCombobox, useOrgPermissions } from '..';
 import { hasOrderByConfigured } from '../state-management/query.state';
 import { AddOrg } from './AddOrg';
+import { OrgActivitySync } from './OrgActivitySync';
 import { OrganizationGroupSelector } from './OrganizationGroupSelector';
 import { OrgInfoPopover } from './OrgInfoPopover';
 import { OrgPersistence } from './OrgPersistence';
@@ -87,6 +88,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
   return (
     <Fragment>
       <OrgPersistence />
+      <OrgActivitySync />
       <Grid vertical>
         {!omitOrganizationSelector && hasOrgGroupsConfigured && (
           <OrganizationGroupSelector

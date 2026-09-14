@@ -49,6 +49,11 @@ const CONNECTED: OrgExpirationStatus = { status: 'connected', expiryDate: null, 
  * can honestly maintain itself (see `OrgActivitySync`), so the countdown self-heals on use.
  *
  * `expirationScheduledFor` remains the fallback for orgs with no recorded activity.
+ *
+ * Both the deadline and the countdown are calendar-day figures in the browser's timezone, so a user far
+ * enough from the server can see a deadline a day either side of the one the cron will act on. That skew
+ * predates deriving the date here - the countdown was always a local calendar-day difference - and the
+ * cron remains the authority on when credentials are actually scrubbed.
  */
 function getExpiryDate(org: SalesforceOrgUi): Date | null {
   if (org.lastActivityAt) {
