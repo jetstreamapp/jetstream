@@ -46,7 +46,8 @@ vi.mock('../../db/subscription.db', () => ({
 }));
 vi.mock('../../db/team.db', () => ({
   upsertTeamWithBillingAccount: mocks.upsertTeamWithBillingAccount,
-  createBillingAccountIfNotExists: vi.fn(async () => ({})),
+  claimTeamBillingAccountForCustomer: vi.fn(async () => true),
+  findTeamBillingAccountWithSubscriptionsByTeamId: vi.fn(async () => null),
   // The billing account is required or team synchronization early-returns before recording anything
   findById: vi.fn(async () => ({ id: 'team_new', billingAccount: { customerId: 'cus_1' } })),
   findEntitlements: vi.fn(async () => ({})),

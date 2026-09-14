@@ -106,20 +106,20 @@ export const updateSubscriptionStateForCustomer = async ({
   customerId: string;
   subscriptions: Stripe.Subscription[];
 }) => {
-  const priceIds = subscriptions.flatMap((subscription) => subscription.items.data.map((item) => item.price.id));
-  const subscriptionIds = subscriptions.map(({ id }) => id);
+  const currentSubscriptionItems = subscriptions.flatMap((subscription) =>
+    subscription.items.data.map((item) => ({ subscriptionId: subscription.id, priceId: item.price.id })),
+  );
 
   await prisma.$transaction([
     // Delete all subscriptions that are no longer active in Stripe.
     // Repointing a billing account cascades the previous customer's rows onto this `customerId` while they keep
     // their original `subscriptionId`, so matching on price alone stranded them whenever both customers were on
-    // the same price. A row is stale when either identifier is no longer current.
+    // the same price. Testing each identifier on its own leaves the mirror-image gap: when one subscription
+    // moves to the price another subscription already holds, the superseded row's subscription and price are
+    // each still current even though the pair is not. A row survives only if Stripe still reports that exact
+    // pair, and `NOT: []` constrains nothing, so a customer with nothing left in Stripe has every row cleared.
     prisma.subscription.deleteMany({
-      where: {
-        userId,
-        customerId,
-        OR: [{ subscriptionId: { notIn: subscriptionIds } }, { priceId: { notIn: priceIds } }],
-      },
+      where: { userId, customerId, NOT: currentSubscriptionItems },
     }),
     // Create/Update all current subscriptions from Stripe
     ...subscriptions.flatMap((subscription) =>
@@ -153,7 +153,9 @@ export const updateTeamSubscriptionStateForCustomer = async ({
   customerId: string;
   subscriptions: Stripe.Subscription[];
 }) => {
-  const priceIds = subscriptions.flatMap((subscription) => subscription.items.data.map((item) => item.price.id));
+  const currentSubscriptionItems = subscriptions.flatMap((subscription) =>
+    subscription.items.data.map((item) => ({ subscriptionId: subscription.id, priceId: item.price.id })),
+  );
 
   /**
    * Calculate team billing status and update it
@@ -178,9 +180,10 @@ export const updateTeamSubscriptionStateForCustomer = async ({
   }
 
   await prisma.$transaction([
-    // Delete all subscriptions that are no longer active in Stripe
+    // Delete all subscriptions that are no longer active in Stripe. Matched on exact
+    // `(subscriptionId, priceId)` pairs for the same reasons as the user-side reconciliation above.
     prisma.teamSubscription.deleteMany({
-      where: { teamId, customerId, priceId: { notIn: priceIds } },
+      where: { teamId, customerId, NOT: currentSubscriptionItems },
     }),
     // Create/Update all current subscriptions from Stripe
     ...subscriptions.flatMap((subscription) =>
