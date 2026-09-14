@@ -4,6 +4,7 @@ import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { Fragment } from 'react';
 import { useOrgPermissions } from '..';
+import { OrgActivitySync } from './OrgActivitySync';
 import { OrgInfoPopover } from './OrgInfoPopover';
 import { OrgPersistence } from './OrgPersistence';
 
@@ -16,6 +17,7 @@ export const SelectedOrgReadOnly = () => {
   return (
     <Fragment>
       <OrgPersistence />
+      <OrgActivitySync />
       <Grid noWrap verticalAlign="center">
         {!hasMetadataAccess && (
           <Tooltip

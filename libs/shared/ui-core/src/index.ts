@@ -72,6 +72,7 @@ export * from './mass-update-records/MassUpdateRecordsObjectRowValueStaticInput'
 export * from './mass-update-records/useDeployRecords';
 export * from './metadata/useDeployMetadataPackage';
 export * from './orgs/AddOrg';
+export * from './orgs/OrgActivitySync';
 export * from './orgs/OrgInfoPopover';
 export * from './orgs/OrgLabelBadge';
 export * from './orgs/OrgPersistence';

@@ -214,6 +214,19 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
 }
 
 export async function addOrgsToLocal(req: express.Request, res: express.Response, next: express.NextFunction) {
+  /**
+   * Orgs whose inactivity deadline this request pushed back, published as a response header so the
+   * client can drop an expiration warning it is showing for an org that has just been used. This runs
+   * before the route handler, so the deadline moves even when the handler itself goes on to fail, and
+   * the header is written as each org resolves rather than at the end - resolving the target org can
+   * fail into `next(ex)`, which may commit the response before any later code would run.
+   */
+  const orgsWithActivity: string[] = [];
+  const recordOrgActivity = (uniqueId: string) => {
+    orgsWithActivity.push(uniqueId);
+    res.set(HTTP.HEADERS.X_SFDC_ORG_ACTIVITY, orgsWithActivity.join(','));
+  };
+
   try {
     if (req.get(HTTP.HEADERS.X_SFDC_ID) || req.query[HTTP.HEADERS.X_SFDC_ID]) {
       res.locals = res.locals || {};
@@ -225,10 +238,13 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
         res.locals.requestId,
       );
       if (results) {
-        const { org, jetstreamConn } = results;
+        const { org, jetstreamConn, activityRecorded } = results;
         res.locals.org = org;
         res.locals.jetstreamConn = jetstreamConn;
         enrichRequestContext({ orgId: org.id });
+        if (activityRecorded) {
+          recordOrgActivity(org.uniqueId);
+        }
       }
     }
     if (req.get(HTTP.HEADERS.X_SFDC_ID_TARGET) || req.query[HTTP.HEADERS.X_SFDC_ID_TARGET]) {
@@ -241,10 +257,11 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
         res.locals.requestId,
       );
       if (results) {
-        if (results) {
-          const { org, jetstreamConn } = results;
-          res.locals.targetOrg = org;
-          res.locals.targetJetstreamConn = jetstreamConn;
+        const { org, jetstreamConn, activityRecorded } = results;
+        res.locals.targetOrg = org;
+        res.locals.targetJetstreamConn = jetstreamConn;
+        if (activityRecorded) {
+          recordOrgActivity(org.uniqueId);
         }
       }
     }
@@ -355,6 +372,14 @@ export async function getOrgForRequest(
     );
   }
 
+  /**
+   * Reaching this point means the request is being made with live credentials, so it counts as
+   * activity against the org's inactivity deadline whether or not a DB write was needed. Reported
+   * back to the caller so the response can tell the client, which otherwise has no way to observe
+   * that a warning it is displaying has just been made obsolete.
+   */
+  let activityRecorded = false;
+
   // Clear expiration and update last activity when org is accessed
   // This should be done after decryption so that the org stays expired if decryption failed (we use placeholder decryption token)
   if (org.expirationScheduledFor) {
@@ -365,10 +390,12 @@ export async function getOrgForRequest(
      */
     try {
       await salesforceOrgsDb.clearExpiration(org.id, user.id);
+      activityRecorded = true;
     } catch (err) {
       getLogger().error({ orgId: org.id, userId: user.id, err }, '[ORG][UPDATE] Error clearing expirationScheduledFor');
     }
   } else {
+    activityRecorded = true;
     // Only update lastActivityAt if it's null or older than 1 day to reduce DB writes
     const oneDayAgo = addDays(new Date(), -1);
     if (!org.lastActivityAt || isBefore(new Date(org.lastActivityAt), oneDayAgo)) {
@@ -510,7 +537,7 @@ export async function getOrgForRequest(
     handleConnectionError,
   );
 
-  return { org, jetstreamConn };
+  return { org, jetstreamConn, activityRecorded };
 }
 
 export function verifyCaptcha(req: express.Request, res: express.Response, next: express.NextFunction) {

@@ -72,6 +72,8 @@ export const HTTP = {
     X_SFDC_ID_TARGET: 'X-SFDC-ID-TARGET',
     X_SFDC_API_TARGET_VERSION: 'X-SFDC-API-TARGET-VERSION',
     X_SFDC_ORG_CONNECTION_ERROR: 'X-SFDC-ORG-CONNECTION-ERROR',
+    /** Comma separated uniqueIds of the orgs whose inactivity clock this request reset */
+    X_SFDC_ORG_ACTIVITY: 'X-SFDC-ORG-ACTIVITY',
     X_SFDC_Session: 'X-SFDC-SESSION',
     X_INCLUDE_CALL_OPTIONS: 'X_INCLUDE_CALL_OPTIONS',
     X_CACHE_RESPONSE: 'X-CACHE-RESPONSE',
