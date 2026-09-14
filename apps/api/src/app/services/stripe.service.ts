@@ -127,6 +127,40 @@ function hasAccountClaimingSubscriptions(subscriptions: Stripe.Subscription[]) {
   return subscriptions.some((subscription) => accountClaimingSubscriptionStatuses.has(subscription.status));
 }
 
+/**
+ * Two customers that are both being paid for is the double-charge case, and whichever event arrives last wins
+ * the account. That needs a human to refund and cancel one of them, so make it visible rather than letting the
+ * account change hands silently.
+ */
+function logRepointDisplacingAPaidCustomer({
+  owner,
+  claimingCustomerId,
+  currentAccount,
+}: {
+  owner: { userId: string } | { teamId: string };
+  claimingCustomerId: string;
+  currentAccount: Maybe<{ customerId: string; subscriptions: { status: string }[] }>;
+}) {
+  if (!currentAccount || currentAccount.customerId === claimingCustomerId) {
+    return;
+  }
+  const displacedIsAlsoPaidFor = currentAccount.subscriptions.some(({ status }) =>
+    accountClaimingSubscriptionStatuses.has(status.toLowerCase()),
+  );
+  if (!displacedIsAlsoPaidFor) {
+    return;
+  }
+  logger.error(
+    {
+      ...owner,
+      claimingCustomerId,
+      displacedCustomerId: currentAccount.customerId,
+      remedy: 'User is likely paying on two Stripe customers - refund and cancel the duplicate, then re-sync',
+    },
+    'Billing account is being repointed away from a customer that is also being paid for',
+  );
+}
+
 function findTeamPlanSubscription(subscriptions: Stripe.Subscription[]) {
   return subscriptions.find(({ items }) => items.data.some((item) => item.price.lookup_key?.startsWith('TEAM_')));
 }
@@ -228,10 +262,11 @@ export async function fetchCustomerEntitlements({
  * Finds the Stripe customer for a Jetstream user by the `userId` we stamp into customer metadata.
  *
  * Historically a bug in checkout could mint more than one customer per user, so this must cope with
- * duplicates rather than taking an arbitrary first result. Ranking runs in order: an active subscription
- * beats a merely historical one, any subscription beats none — that is where money has moved — and ties
- * break on the earliest created, then on the customer id, so that repeated calls always resolve to the same
- * customer even though Stripe's search ordering is not a deterministic tie-breaker.
+ * duplicates rather than taking an arbitrary first result. Ranking runs in order: a subscription that is
+ * actually being paid for beats one Stripe is still waiting on payment for, any live subscription beats a
+ * merely historical one, any subscription beats none — that is where money has moved — and ties break on the
+ * earliest created, then on the customer id, so that repeated calls always resolve to the same customer even
+ * though Stripe's search ordering is not a deterministic tie-breaker.
  *
  * Prefer `billingAccount.customerId` from our own database where it exists — that is authoritative.
  * This is for the case where we have no record yet and need to avoid creating a second customer.
@@ -262,6 +297,14 @@ export async function fetchCustomerWithSubscriptionsByJetstreamId({ userId }: { 
   }
 
   return customers.reduce((best, candidate) => {
+    // `hasActiveSubscriptions` counts `incomplete`, which means Stripe has not been paid yet, so it cannot
+    // separate an abandoned unpaid duplicate from the customer that actually paid - without this first rank
+    // the two tie and the earliest-created one wins, which is the unpaid duplicate more often than not.
+    const bestIsPaidFor = hasAccountClaimingSubscriptions(best.subscriptions?.data ?? []);
+    const candidateIsPaidFor = hasAccountClaimingSubscriptions(candidate.subscriptions?.data ?? []);
+    if (bestIsPaidFor !== candidateIsPaidFor) {
+      return candidateIsPaidFor ? candidate : best;
+    }
     const bestHasActiveSubscriptions = hasActiveSubscriptions(best);
     const candidateHasActiveSubscriptions = hasActiveSubscriptions(candidate);
     if (bestHasActiveSubscriptions !== candidateHasActiveSubscriptions) {
@@ -399,10 +442,13 @@ export async function createCustomer(
     { metadata: { userId: user.id } },
     { idempotencyKey: `customer-create:${user.id}` },
   );
+  // `teamId` is deliberately left out. It is never known at create time, and the idempotency key can hand back
+  // a customer from an earlier attempt that has since had a real one stamped on it by checkout completion,
+  // which a `null` here would remove. Omitted keys are preserved by Stripe; `null` deletes them.
   const customer = await stripe.customers.update(createdCustomer.id, {
     email: user.email,
     name: user.name,
-    metadata: { userId: user.id, teamId: null, type },
+    metadata: { userId: user.id, type },
   });
   if (type === 'TEAM') {
     await ensureBankTransferFundingInstructions(customer.id);
@@ -517,12 +563,30 @@ export async function saveSubscriptionFromCompletedSession({ sessionId }: { sess
     const team = await teamDbService.upsertTeamWithBillingAccount({ userId, billingAccountCustomerId: customerId });
     teamId = team.id;
   } else {
-    // Checkout just completed on this customer, so it is the one the payment belongs to and may take the
-    // account from an abandoned duplicate. A refusal means a concurrent event claimed the account first;
-    // throwing leaves the webhook to retry, which is what the unique violation used to do here.
-    const claimedBillingAccount = await userDbService.claimBillingAccountForCustomer({ userId, customerId, allowRepoint: true });
-    if (!claimedBillingAccount) {
+    // Checkout just completed on this customer, so it is normally the one the payment belongs to and may take
+    // the account from an abandoned duplicate. `incomplete` is the exception - a delayed payment method leaves
+    // the subscription there until Stripe collects - and an unpaid customer must not displace a paying one,
+    // which is the same rule `saveOrUpdateSubscription` applies to the webhook path.
+    const allowRepoint = !isObject(subscription) || accountClaimingSubscriptionStatuses.has(subscription.status);
+    const claimedBillingAccount = await userDbService.claimBillingAccountForCustomer({ userId, customerId, allowRepoint });
+
+    if (!claimedBillingAccount && allowRepoint) {
+      // A refusal despite a paid subscription means a concurrent event claimed the account first; throwing
+      // leaves the webhook to retry, which is what the unique violation used to do here.
       throw new Error(`Unable to claim billing account for customer ${customerId} - it is held by another Stripe customer`);
+    }
+
+    if (!claimedBillingAccount) {
+      // Retrying cannot help until the invoice clears, so stamp the identity onto the customer and stop.
+      // Reconciling subscriptions or entitlements against a customer that does not hold the account would
+      // overwrite the paying customer's state; the subscription event that follows payment claims the account
+      // through the same guarded path.
+      logger.error(
+        { userId, customerId, remedy: 'Confirm the user is not paying on two Stripe customers' },
+        'Checkout completed on a customer whose subscription has not been paid for - leaving the billing account where it is',
+      );
+      await updateCustomerMetadata(customerId, { userId, teamId, type });
+      return { userId, teamId, type };
     }
   }
 
@@ -751,26 +815,12 @@ export async function saveOrUpdateSubscription({
     // claiming it.
     const allowRepoint = hasAccountClaimingSubscriptions(activeSubscriptions);
 
-    // Two customers that are both being paid for is the double-charge case, and whichever event arrives last
-    // wins the account. That needs a human to refund and cancel one of them, so make it visible rather than
-    // letting the account change hands silently.
     if (allowRepoint) {
-      const currentBillingAccount = await userDbService.findBillingAccountWithSubscriptionsByUserId({ userId });
-      const displacedIsAlsoPaidFor =
-        !!currentBillingAccount &&
-        currentBillingAccount.customerId !== customer.id &&
-        currentBillingAccount.subscriptions.some(({ status }) => accountClaimingSubscriptionStatuses.has(status.toLowerCase()));
-      if (displacedIsAlsoPaidFor) {
-        logger.error(
-          {
-            userId,
-            claimingCustomerId: customer.id,
-            displacedCustomerId: currentBillingAccount.customerId,
-            remedy: 'User is likely paying on two Stripe customers - refund and cancel the duplicate, then re-sync',
-          },
-          'Billing account is being repointed away from a customer that is also being paid for',
-        );
-      }
+      logRepointDisplacingAPaidCustomer({
+        owner: { userId },
+        claimingCustomerId: customer.id,
+        currentAccount: await userDbService.findBillingAccountWithSubscriptionsByUserId({ userId }),
+      });
     }
 
     const claimedBillingAccount = await userDbService.claimBillingAccountForCustomer({
@@ -783,8 +833,28 @@ export async function saveOrUpdateSubscription({
       return;
     }
   } else if (teamId && type === 'TEAM') {
-    // For new subscriptions, create a billing account if it does not exist
-    await teamDbService.createBillingAccountIfNotExists({ teamId, customerId: customer.id });
+    // Teams are exposed to the duplicate-customer bug exactly as users are - the same checkout minted the
+    // duplicates - and `team_subscription.customerId` cascades on a repoint just like its user-side
+    // counterpart, so the team billing account is claimed under the same rule rather than repointed on sight.
+    const allowRepoint = hasAccountClaimingSubscriptions(activeSubscriptions);
+
+    if (allowRepoint) {
+      logRepointDisplacingAPaidCustomer({
+        owner: { teamId },
+        claimingCustomerId: customer.id,
+        currentAccount: await teamDbService.findTeamBillingAccountWithSubscriptionsByTeamId({ teamId }),
+      });
+    }
+
+    const claimedBillingAccount = await teamDbService.claimTeamBillingAccountForCustomer({
+      teamId,
+      customerId: customer.id,
+      allowRepoint,
+    });
+    if (!claimedBillingAccount) {
+      logger.warn({ teamId, customerId: customer.id }, 'Ignoring event from a Stripe customer that does not hold the team billing account');
+      return;
+    }
   } else {
     // This could happen depending on the order of webhook events for subscription creation vs checkout session completion
     // it should self heal since we call this code path in both cases

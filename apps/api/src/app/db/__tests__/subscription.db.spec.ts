@@ -47,7 +47,7 @@ describe('updateSubscriptionStateForCustomer stale row removal', () => {
     expect(deleteArgs().where).toEqual({
       userId: 'user-1',
       customerId: 'cus_paying',
-      OR: [{ subscriptionId: { notIn: ['sub_new'] } }, { priceId: { notIn: ['price_pro'] } }],
+      NOT: [{ subscriptionId: 'sub_new', priceId: 'price_pro' }],
     });
   });
 
@@ -60,12 +60,11 @@ describe('updateSubscriptionStateForCustomer stale row removal', () => {
     });
 
     expect(deleteArgs().where).toMatchObject({
-      OR: [{ subscriptionId: { notIn: ['sub_1'] } }, { priceId: { notIn: ['price_annual'] } }],
+      NOT: [{ subscriptionId: 'sub_1', priceId: 'price_annual' }],
     });
   });
 
-  // Both rows of a multi-item subscription share a current subscriptionId and a current priceId, so neither
-  // arm of the OR may match them.
+  // Both rows of a multi-item subscription are pairs Stripe still reports, so neither may be deleted.
   it('keeps every row of a multi-item subscription', async () => {
     await updateSubscriptionStateForCustomer({
       userId: 'user-1',
@@ -74,20 +73,36 @@ describe('updateSubscriptionStateForCustomer stale row removal', () => {
     });
 
     expect(deleteArgs().where).toMatchObject({
-      OR: [{ subscriptionId: { notIn: ['sub_1'] } }, { priceId: { notIn: ['price_seat', 'price_addon'] } }],
+      NOT: [
+        { subscriptionId: 'sub_1', priceId: 'price_seat' },
+        { subscriptionId: 'sub_1', priceId: 'price_addon' },
+      ],
     });
     expect(prismaMock.subscription.upsert).toHaveBeenCalledTimes(2);
   });
 
-  // `notIn: []` matches every row, so a customer with nothing left in Stripe still has all of its rows cleared.
+  // `NOT: []` places no constraint, so a customer with nothing left in Stripe still has all of its rows cleared.
   it('clears every row when the customer has no subscriptions left', async () => {
     await updateSubscriptionStateForCustomer({ userId: 'user-1', customerId: 'cus_paying', subscriptions: [] });
 
-    expect(deleteArgs().where).toEqual({
+    expect(deleteArgs().where).toEqual({ userId: 'user-1', customerId: 'cus_paying', NOT: [] });
+    expect(prismaMock.subscription.upsert).not.toHaveBeenCalled();
+  });
+
+  // Each identifier on its own is still current here - `sub_1` is a live subscription and `price_legacy` is a
+  // live price on `sub_2` - but the pair is not, so the superseded row has to go.
+  it('removes a row whose subscription has moved to a price another subscription still holds', async () => {
+    await updateSubscriptionStateForCustomer({
       userId: 'user-1',
       customerId: 'cus_paying',
-      OR: [{ subscriptionId: { notIn: [] } }, { priceId: { notIn: [] } }],
+      subscriptions: [subscription('sub_1', ['price_pro']), subscription('sub_2', ['price_legacy'])],
     });
-    expect(prismaMock.subscription.upsert).not.toHaveBeenCalled();
+
+    expect(deleteArgs().where).toMatchObject({
+      NOT: [
+        { subscriptionId: 'sub_1', priceId: 'price_pro' },
+        { subscriptionId: 'sub_2', priceId: 'price_legacy' },
+      ],
+    });
   });
 });
