@@ -362,12 +362,60 @@ export async function findBillingAccountByCustomerId({ customerId }: { customerI
   return billingAccount;
 }
 
-export async function upsertBillingAccount({ userId, customerId }: { userId: string; customerId: string }) {
-  const existingCustomer = await prisma.billingAccount.findUnique({ where: { uniqueCustomer: { customerId, userId } } });
-  if (existingCustomer) {
-    return existingCustomer;
-  }
-  return await prisma.billingAccount.create({
-    data: { customerId, userId },
+/**
+ * Returns the customer that currently holds the user's billing account along with the subscription rows
+ * recorded against it, so a caller about to repoint the account can tell whether it is taking it away from a
+ * customer that is still being paid for.
+ */
+export async function findBillingAccountWithSubscriptionsByUserId({ userId }: { userId: string }) {
+  return await prisma.billingAccount.findUnique({
+    where: { userId },
+    select: { customerId: true, subscriptions: { select: { status: true } } },
   });
+}
+
+/**
+ * Points the user's billing account at `customerId`, creating it when there is none, and reports whether
+ * the customer now holds the account.
+ *
+ * A user has at most one billing account (`userId` is unique), so this keys on `userId` alone. Keying on the
+ * `(userId, customerId)` pair instead meant that a second customer for the same user fell through to a create
+ * and hit the unique violation on `userId`. That aborted `saveSubscriptionFromCompletedSession`, so a
+ * subscription the user had already paid for was never recorded and the Stripe webhook retried the event
+ * forever. Pointing the account at the customer the payment actually belongs to is the recoverable outcome.
+ *
+ * Only a customer whose subscription is actually being paid for may take the account away from another one -
+ * an abandoned duplicate emits events too, and letting one through would repoint the account off the customer
+ * that is paying and then delete its cascaded subscription rows. Reading the account first and then writing
+ * it left a window for exactly that, so the comparison happens inside the write instead: the `updateMany`
+ * filter is the compare, and a unique violation on the create means a concurrent event claimed the account
+ * between the two statements.
+ */
+export async function claimBillingAccountForCustomer({
+  userId,
+  customerId,
+  allowRepoint,
+}: {
+  userId: string;
+  customerId: string;
+  allowRepoint: boolean;
+}): Promise<boolean> {
+  const { count } = await prisma.billingAccount.updateMany({
+    where: allowRepoint ? { userId } : { userId, customerId },
+    data: { customerId },
+  });
+  if (count > 0) {
+    return true;
+  }
+
+  try {
+    await prisma.billingAccount.create({ data: { customerId, userId } });
+    return true;
+  } catch (ex) {
+    if (ex instanceof Prisma.PrismaClientKnownRequestError && ex.code === 'P2002') {
+      logger.warn({ userId, customerId }, 'Billing account is held by another Stripe customer, not claiming it');
+      return false;
+    }
+    throw ex;
+  }
 }
