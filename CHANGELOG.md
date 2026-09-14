@@ -1,5 +1,22 @@
 # Changelog
 
+## [10.20.0](https://github.com/jetstreamapp/jetstream/compare/v10.19.0...v10.20.0) (2026-09-14)
+
+### Features
+
+- **data-history:** offer Google Drive as a download format for saved data ([1338c11](https://github.com/jetstreamapp/jetstream/commit/1338c111d8a12df32bcbcf55e13d2750606632d6))
+- **landing:** call out the AppExchange listing and Salesforce Security Review ([d25b225](https://github.com/jetstreamapp/jetstream/commit/d25b225175eacc118f93e8690d29b75a02dc25c1))
+
+### Bug Fixes
+
+- **bulk-api:** keep an accepted batch when closing the job fails ([467fb2c](https://github.com/jetstreamapp/jetstream/commit/467fb2c3e9bbf817ae712719eba8586a7436c2af))
+- **data-table:** let in-cell text inputs keep their own keys and paste ([42172d6](https://github.com/jetstreamapp/jetstream/commit/42172d6bc33dead2fb7d8c493c09e451efbb4a05)), closes [#2055](https://github.com/jetstreamapp/jetstream/issues/2055)
+- **jobs:** stop reporting canceled downloads as errors ([41669e8](https://github.com/jetstreamapp/jetstream/commit/41669e831e675c48aa70172f1fef5b04c8acbb95))
+- **mass-update:** close the bulk job when a load stops before the final batch ([f3ed429](https://github.com/jetstreamapp/jetstream/commit/f3ed4294c6349b782fa52eb8a6bf25c3caa72e36))
+- **mass-update:** close the bulk job with its own request ([13025ba](https://github.com/jetstreamapp/jetstream/commit/13025bad0f12c3c35b0f7556e2ea0e79678ce30a))
+- **mass-update:** stop posting batches to a bulk job salesforce already closed ([8debbfc](https://github.com/jetstreamapp/jetstream/commit/8debbfc0371a96285258a29919864f5c416d874c))
+- **permission-manager:** allow large permission exports to xlsx ([93300ae](https://github.com/jetstreamapp/jetstream/commit/93300ae1ee78da8cede956e650fa70e056feb1f1))
+
 ## [10.19.0](https://github.com/jetstreamapp/jetstream/compare/v10.18.0...v10.19.0) (2026-09-12)
 
 ### Features
