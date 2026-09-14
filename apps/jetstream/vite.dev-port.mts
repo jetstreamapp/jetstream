@@ -23,6 +23,18 @@ export const DEV_SERVER_HOST = 'localhost';
  */
 const CANDIDATE_PORTS = [4200, ...Array.from({ length: 90 }, (_, index) => 4210 + index)];
 
+/**
+ * Process-scoped record of the port chosen by the first `resolveDevServerPort()` call.
+ *
+ * Vite re-evaluates the config file (and everything it imports, so module state is lost) whenever
+ * the dev server restarts — a config or `.env` change, or the `r` shortcut — and it resolves the
+ * new server's config *before* closing the old server. A fresh port scan at that point finds our
+ * own server on the port and drifts to the next candidate. `process.env` is the one thing that
+ * survives the config reload, so the chosen port is kept there and reused for the rest of the
+ * process. Not meant to be set by hand: use JETSTREAM_DEV_PORT to pin a port.
+ */
+export const RETAINED_PORT_ENV = 'JETSTREAM_DEV_PORT_RETAINED';
+
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const server = createServer();
@@ -35,6 +47,9 @@ function isPortAvailable(port: number): Promise<boolean> {
 /**
  * Finds a free dev server port so that several worktrees can run `pnpm start` at the same time
  * against one shared API. Set JETSTREAM_DEV_PORT to bypass the search and pin a specific port.
+ *
+ * The search only runs once per process: a Vite server restart calls this again and must land on
+ * the port the server already owns (see RETAINED_PORT_ENV).
  *
  * There is a small window between releasing the probed port and Vite binding it. `strictPort` is
  * enabled in vite.config.mts so that losing that race fails loudly rather than silently drifting
@@ -50,8 +65,14 @@ export async function resolveDevServerPort(): Promise<number> {
     return explicitPort;
   }
 
+  const retainedPort = Number(process.env[RETAINED_PORT_ENV]);
+  if (Number.isInteger(retainedPort) && retainedPort > 0) {
+    return retainedPort;
+  }
+
   for (const port of CANDIDATE_PORTS) {
     if (await isPortAvailable(port)) {
+      process.env[RETAINED_PORT_ENV] = String(port);
       return port;
     }
   }
