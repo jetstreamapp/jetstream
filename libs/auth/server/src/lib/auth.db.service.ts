@@ -226,6 +226,9 @@ export async function getLoginConfiguration({ teamId }: { teamId: string; skipCa
             requireMfa: true,
             ssoRequireMfa: true,
             ssoBypassEnabled: true,
+            // Omitting this let the schema default (['ADMIN']) stand in for the team's real setting,
+            // so SSO bypass was always evaluated against ADMIN no matter what the team configured
+            ssoBypassEnabledRoles: true,
             ssoEnabled: true,
             ssoJitProvisioningEnabled: true,
             ssoProvider: true,
@@ -1613,6 +1616,11 @@ function throwIfProviderNotAllowed(provider: OauthProviderType | 'credentials', 
   }
 }
 
+/**
+ * Known gap (#2079): this only runs for users that already exist. The paths that create or link a user
+ * while accepting an invite (credentials register, OAuth new user, OAuth auto-link) are gated by
+ * `allowedProviders` alone, so a new invitee can join an SSO-required team without SSO.
+ */
 function throwIfInvalidSsoConfig({
   provider,
   providerType,
@@ -1687,6 +1695,11 @@ async function getTeamInviteConfiguration({ email, teamInvite }: { email: string
               ssoProvider: true,
               ssoEnabled: true,
               ssoJitProvisioningEnabled: true,
+              // Same trap as getLoginConfiguration - a pending invite keeps this configuration for the
+              // rest of sign in, so omitting these would evaluate SSO bypass against the schema defaults
+              // (bypass enabled, ADMIN only) instead of what the inviting team configured
+              ssoBypassEnabled: true,
+              ssoBypassEnabledRoles: true,
               requireMfa: true,
               team: { select: { id: true } },
             },
