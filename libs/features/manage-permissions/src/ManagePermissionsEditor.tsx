@@ -48,6 +48,7 @@ import {
   Tooltip,
   fireToast,
   getModifierKey,
+  notifyExcelCellsTruncated,
 } from '@jetstream/ui';
 import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
@@ -502,7 +503,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       switch (fileFormat) {
         case 'xlsx':
         case 'gdrive': {
-          const fileData = generateExcelWorkbookFromTable(
+          const fileData = await generateExcelWorkbookFromTable(
             {
               columns: getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
               rows: getObjectRows(selectedSObjects, objectPermissionMap || {}),
@@ -519,6 +520,8 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
               columns: getSystemPermissionColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
               rows: getSystemPermissionRows(systemPermissionMap || {}),
             },
+            // Any value past Excel's per-cell character limit is truncated by the writer, which the user needs to know about
+            { onCellsTruncated: notifyExcelCellsTruncated },
           );
 
           if (uploadToGoogle) {

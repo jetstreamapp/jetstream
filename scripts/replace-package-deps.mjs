@@ -17,11 +17,8 @@ async function replaceDependencies() {
     const rootPackageJson = JSON.parse(rootPackageJsonData);
     const distPackageJson = JSON.parse(distPackageJsonData);
 
-    const xlsx = rootPackageJson.dependencies.xlsx;
-
     // Replace the dependencies and devDependencies
     rootPackageJson.dependencies = distPackageJson.dependencies;
-    rootPackageJson.dependencies.xlsx = xlsx;
     rootPackageJson.devDependencies = {};
 
     // Write the updated package.json back to the root package.json file

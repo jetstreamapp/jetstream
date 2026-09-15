@@ -7,7 +7,6 @@ import {
   dateFromTimestamp,
   flattenRecord,
   getErrorMessage,
-  getExcelSafeSheetName,
   getFullNameFromListMetadata,
   getIdAndObjFromRecordUrl,
   getIdFromRecordUrl,
@@ -16,6 +15,7 @@ import {
   getRecordIdFromAttributes,
   getSObjectFromRecordUrl,
   getSObjectNameFromAttributes,
+  getSubquerySheetName,
   groupByFlat,
   multiWordObjectFilter,
   multiWordStringFilter,
@@ -31,41 +31,20 @@ import {
   truncate,
 } from '../utils';
 
-describe('utils.getExcelSafeSheetName', () => {
-  it('should handle simple cases', () => {
-    expect(getExcelSafeSheetName('')).toEqual('Sheet0');
-    expect(getExcelSafeSheetName('records')).toEqual('records');
+describe('utils.getSubquerySheetName', () => {
+  it('uses the relationship path when it fits', () => {
+    expect(getSubquerySheetName('Contacts')).toEqual('Contacts');
+    expect(getSubquerySheetName('Contacts.Cases')).toEqual('Contacts.Cases');
   });
 
-  it('should handle truncation cases', () => {
-    expect(getExcelSafeSheetName('recordsrecordsrecordsrecordsrecordsrecords')).toEqual('recordsrecordsrecordsrecordsrec');
+  it('suffixes a name that is already taken, ignoring case', () => {
+    expect(getSubquerySheetName('Contacts', ['Contacts'])).toEqual('Contacts (2)');
+    expect(getSubquerySheetName('Contacts', ['contacts', 'Contacts (2)'])).toEqual('Contacts (3)');
   });
 
-  it('should handle duplicate cases', () => {
-    expect(getExcelSafeSheetName('Accounts', ['Accounts'])).toEqual('Accounts1');
-    expect(getExcelSafeSheetName('Accounts', ['Accounts', 'Accounts1'])).toEqual('Accounts2');
-  });
-
-  it('should handle truncation and duplicate cases', () => {
-    expect(getExcelSafeSheetName('recordsrecordsrecordsrecordsrecordsrecords', ['recordsrecordsrecordsrecordsrec'])).toEqual(
-      'recordsrecordsrecordsrecordsre1',
-    );
-    expect(
-      getExcelSafeSheetName('recordsrecordsrecordsrecordsrecordsrecords', [
-        'recordsrecordsrecordsrecordsrec',
-        'recordsrecordsrecordsrecordsre1',
-        'recordsrecordsrecordsrecordsre2',
-        'recordsrecordsrecordsrecordsre3',
-        'recordsrecordsrecordsrecordsre5',
-        'recordsrecordsrecordsrecordsre6',
-        'recordsrecordsrecordsrecordsre7',
-        'recordsrecordsrecordsrecordsre8',
-        'recordsrecordsrecordsrecordsre9',
-        'recordsrecordsrecordsrecordsr10',
-        'recordsrecordsrecordsrecordsr11',
-        'recordsrecordsrecordsrecordsr12',
-      ]),
-    ).toEqual('recordsrecordsrecordsrecordsr13');
+  it('names a deep path by its own relationship and depth instead of truncating the shared prefix', () => {
+    expect(getSubquerySheetName('ChildAccounts.ChildAccounts.ChildAccounts')).toEqual('ChildAccounts (L3)');
+    expect(getSubquerySheetName('ChildAccounts.ChildAccounts.ChildAccounts', ['ChildAccounts (L3)'])).toEqual('ChildAccounts (L3) (2)');
   });
 });
 
