@@ -26,10 +26,9 @@ const orgActivityListeners = new Set<OrgActivityListenerFn>();
 /**
  * Subscribe to orgs the server has just confirmed activity on. Returns an unsubscribe function.
  *
- * Every request made on behalf of an org resolves that org server-side, which resets its inactivity
- * clock and clears any scheduled expiration. Nothing in the response says so, so without this the
- * client keeps showing an expiration warning for an org it just successfully used until the org list
- * is re-fetched.
+ * Resolving an org server-side resets its inactivity clock and clears any scheduled expiration, and
+ * happens before the route handler runs. Without this the client keeps showing an expiration warning
+ * for an org it has just used until the org list is re-fetched.
  */
 export function onOrgActivity(listener: OrgActivityListenerFn): () => void {
   orgActivityListeners.add(listener);
@@ -38,7 +37,11 @@ export function onOrgActivity(listener: OrgActivityListenerFn): () => void {
   };
 }
 
-/** Called for every successful response the server actually produced on behalf of an org */
+/**
+ * Called for every response the server produced after resolving this org - failed ones included, since
+ * the clock is reset before the route handler that failed ever ran. Removing the error path would
+ * reintroduce a stale warning after any failed request against the org.
+ */
 export function notifyOrgActivity(org: SalesforceOrgUi) {
   orgActivityListeners.forEach((listener) => listener(org));
 }

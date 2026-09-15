@@ -1,4 +1,4 @@
-import { notifyOrgActivity } from '@jetstream/shared/data';
+import { getOrgs, notifyOrgActivity } from '@jetstream/shared/data';
 import { ORG_INACTIVITY_EXPIRATION_DAYS } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { fromAppState } from '@jetstream/ui/app-state';
@@ -7,6 +7,11 @@ import { addDays } from 'date-fns';
 import { createStore, Provider } from 'jotai';
 import { OrgActivitySync } from '../OrgActivitySync';
 import { calculateOrgExpiration } from '../useOrgExpiration';
+
+vi.mock('@jetstream/shared/data', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@jetstream/shared/data')>()),
+  getOrgs: vi.fn(),
+}));
 
 function buildOrg(uniqueId: string, overrides: Partial<SalesforceOrgUi> = {}): SalesforceOrgUi {
   return {
@@ -96,6 +101,43 @@ describe('OrgActivitySync', () => {
     act(() => notifyOrgActivity(errored));
 
     expect(orgs()).toBe(before);
+  });
+
+  describe('calendar day rollover', () => {
+    function becomeVisible() {
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+    }
+
+    beforeEach(() => {
+      vi.mocked(getOrgs).mockReset();
+      vi.mocked(getOrgs).mockResolvedValue([]);
+    });
+
+    /**
+     * Expiration is measured in whole days, so nothing recomputes a countdown rendered yesterday - a tab
+     * left open overnight kept counting down from the day it was opened.
+     */
+    it('refreshes orgs when the tab becomes visible on a later day', () => {
+      vi.useFakeTimers();
+      renderWithOrgs([buildOrg('expiring', { lastActivityAt: lastUsedDaysAgo(ORG_INACTIVITY_EXPIRATION_DAYS - 2) })]);
+
+      vi.setSystemTime(addDays(new Date(), 1));
+      becomeVisible();
+      vi.useRealTimers();
+
+      expect(getOrgs).toHaveBeenCalledTimes(1);
+    });
+
+    /** One request per day per tab, not one per alt-tab */
+    it('does not refresh when the tab becomes visible on the same day', () => {
+      renderWithOrgs([buildOrg('expiring', { lastActivityAt: lastUsedDaysAgo(ORG_INACTIVITY_EXPIRATION_DAYS - 2) })]);
+
+      becomeVisible();
+
+      expect(getOrgs).not.toHaveBeenCalled();
+    });
   });
 
   it('stops listening once unmounted', () => {

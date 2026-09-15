@@ -266,6 +266,14 @@ function retryInterceptor(config: AxiosRequestConfig, options: RequestOptions = 
       (statusCodes.has(error.response?.status || -1) || isRetryableNetworkError) &&
       endpoints.some((endpoint) => endpoint.test(config.url || ''))
     ) {
+      /**
+       * The response about to be discarded may already carry recorded activity - the org is resolved
+       * before the handler that failed. The retry replaces it, so nothing downstream would ever see it.
+       */
+      if (error.response) {
+        notifyOrgActivityFromResponse(error.response, options);
+      }
+
       retryCount++;
       await delay(retryDelay(retryCount));
       logger.warn(`[HTTP][RETRYING REQUEST]`, config.url, { retryCount, error: error.message });

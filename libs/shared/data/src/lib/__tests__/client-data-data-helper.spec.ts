@@ -176,6 +176,33 @@ describe('org activity reporting', () => {
     expect(activeOrgs).toEqual(['org-1']);
   });
 
+  /**
+   * Retryable failures are swallowed by the retry interceptor, which replaces the response - so the
+   * activity the first attempt reported has to be read before it is thrown away.
+   */
+  it('reports activity from a response that is discarded in favour of a retry', async () => {
+    vi.useFakeTimers();
+    const config = { method: 'get', url: '/api/query-more' } as InternalAxiosRequestConfig;
+    mockedAdapter
+      .mockRejectedValueOnce(
+        new AxiosError('Request failed with status code 503', AxiosError.ERR_BAD_RESPONSE, config, {}, {
+          config,
+          data: { error: true, message: 'Service Unavailable' },
+          status: 503,
+          statusText: '',
+          headers: { [activityHeader]: 'org-1' },
+        } as AxiosResponse),
+      )
+      .mockRejectedValueOnce(new AxiosError('Network Error', AxiosError.ERR_NETWORK, config, {}));
+
+    const result = captureResult(handleRequest({ method: 'GET', url: '/api/query-more' }, { org }));
+    await vi.runAllTimersAsync();
+    await result;
+    vi.useRealTimers();
+
+    expect(activeOrgs).toEqual(['org-1']);
+  });
+
   /** A deferred response commits its status before the Salesforce call, so errors arrive in the body */
   it('reports activity from a deferred response carrying an error', async () => {
     mockedAdapter.mockImplementation(async (config) => ({

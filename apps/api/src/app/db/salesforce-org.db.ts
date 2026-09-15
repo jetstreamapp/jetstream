@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { ENV, prisma } from '@jetstream/api-config';
+import { ENV, logger, prisma } from '@jetstream/api-config';
 import { AuditLogAction, AuditLogResource, createAuditLog } from '@jetstream/audit-logs';
 import { Prisma, SalesforceOrg } from '@jetstream/prisma';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
@@ -394,7 +394,12 @@ export async function clearExpiration(orgId: number, userId: string) {
     },
   });
 
-  await createAuditLog({
+  /**
+   * Logged after the fact and never awaited into the caller's error path: the reset above has already
+   * happened, so letting an audit-log failure surface would tell the caller the org is still expiring
+   * when the row says otherwise.
+   */
+  createAuditLog({
     userId,
     action: AuditLogAction.ORG_REACTIVATED,
     resource: AuditLogResource.SALESFORCE_ORG,
@@ -403,5 +408,7 @@ export async function clearExpiration(orgId: number, userId: string) {
       orgId,
       reactivatedAt: new Date().toISOString(),
     },
+  }).catch((err) => {
+    logger.error({ orgId, userId, err }, '[ORG][UPDATE] Error writing org reactivation audit log');
   });
 }
