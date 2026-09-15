@@ -1,5 +1,7 @@
+import { ORG_INACTIVITY_EXPIRATION_DAYS } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { fireEvent, render, waitFor, within } from '@testing-library/react';
+import { addDays } from 'date-fns';
 import { OrgsCombobox } from '../OrgsCombobox';
 
 function buildOrg(overrides: Partial<SalesforceOrgUi>): SalesforceOrgUi {
@@ -113,6 +115,58 @@ describe('OrgsCombobox', () => {
       const listbox = await search('nomatch.my.salesforce.com');
       expect(within(listbox).queryAllByRole('option')).toHaveLength(1);
       expect(within(listbox).getByText('There are no items for selection')).toBeTruthy();
+    });
+  });
+
+  describe('connection status', () => {
+    function lastUsedDaysAgo(daysAgo: number) {
+      return addDays(new Date(), -daysAgo).toISOString();
+    }
+
+    function renderWithOrg(org: SalesforceOrgUi) {
+      const result = render(<OrgsCombobox orgs={[org]} selectedOrg={org} onSelected={vi.fn()} />);
+      const input = result.container.querySelector('input') as HTMLInputElement;
+      fireEvent.click(input);
+      return { ...result, input, listbox: result.container.querySelector('[role="listbox"]') as HTMLElement };
+    }
+
+    const expiringOrg = buildOrg({ uniqueId: 'expiring', lastActivityAt: lastUsedDaysAgo(ORG_INACTIVITY_EXPIRATION_DAYS - 2) });
+    const disconnectedOrg = buildOrg({ uniqueId: 'gone', lastActivityAt: lastUsedDaysAgo(ORG_INACTIVITY_EXPIRATION_DAYS + 2) });
+
+    it('says how long an expiring org has left', () => {
+      const { listbox } = renderWithOrg(expiringOrg);
+      expect(within(listbox).getByText('Ends in 2 days')).toBeTruthy();
+    });
+
+    it('says a disconnected org is disconnected', () => {
+      const { listbox } = renderWithOrg(disconnectedOrg);
+      expect(within(listbox).getByText('Disconnected')).toBeTruthy();
+    });
+
+    /**
+     * An org inside the warning window still works, so painting the selector red both overstates the
+     * problem and makes it indistinguishable from an org that has genuinely stopped working.
+     */
+    it('does not put the selector into an error state for an org that still works', () => {
+      const { container } = renderWithOrg(expiringOrg);
+      expect(container.querySelector('.slds-has-error')).toBeNull();
+    });
+
+    it('puts the selector into an error state once the org has actually disconnected', () => {
+      const { container } = renderWithOrg(disconnectedOrg);
+      expect(container.querySelector('.slds-has-error')).toBeTruthy();
+    });
+
+    it('keeps showing the org type alongside the status', () => {
+      const { listbox } = renderWithOrg(buildOrg({ ...expiringOrg, orgIsSandbox: true }));
+      expect(within(listbox).getByText('Sandbox')).toBeTruthy();
+      expect(within(listbox).getByText('Ends in 2 days')).toBeTruthy();
+    });
+
+    it('says nothing about a healthy org', () => {
+      const { listbox } = renderWithOrg(buildOrg({ uniqueId: 'healthy', lastActivityAt: lastUsedDaysAgo(1) }));
+      expect(within(listbox).queryByText('Disconnected')).toBeNull();
+      expect(within(listbox).queryByText(/^Ends/)).toBeNull();
     });
   });
 

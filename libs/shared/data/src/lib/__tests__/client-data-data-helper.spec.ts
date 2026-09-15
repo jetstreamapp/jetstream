@@ -1,8 +1,10 @@
 import { HTTP } from '@jetstream/shared/constants';
+import { SalesforceOrgUi } from '@jetstream/types';
 import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AxiosAdapterConfig, handleRequest } from '../client-data-data-helper';
 import { ApiRequestError, isAuthenticationFailure } from '../client-data-errors';
+import { onOrgActivity } from '../middleware';
 
 const mockedAdapter = vi.fn<(config: InternalAxiosRequestConfig) => Promise<AxiosResponse>>();
 
@@ -94,5 +96,126 @@ describe('handleRequest', () => {
 
     expect(mockedAdapter).toHaveBeenCalledTimes(1);
     expect(isAuthenticationFailure(error)).toBe(false);
+  });
+});
+
+describe('org activity reporting', () => {
+  const org = { uniqueId: 'org-1' } as SalesforceOrgUi;
+  const targetOrg = { uniqueId: 'org-2' } as SalesforceOrgUi;
+  const activityHeader = HTTP.HEADERS.X_SFDC_ORG_ACTIVITY;
+
+  let activeOrgs: string[];
+  let unsubscribe: () => void;
+
+  beforeEach(() => {
+    mockedAdapter.mockReset();
+    AxiosAdapterConfig.adapter = mockedAdapter;
+    activeOrgs = [];
+    unsubscribe = onOrgActivity(({ uniqueId }) => activeOrgs.push(uniqueId));
+  });
+
+  afterEach(() => {
+    unsubscribe();
+    AxiosAdapterConfig.adapter = undefined;
+  });
+
+  function respondWith(headers: Record<string, string>) {
+    mockedAdapter.mockImplementation(async (config) => ({
+      config,
+      data: { data: {} },
+      status: 200,
+      statusText: 'OK',
+      headers,
+      request: {},
+    }));
+  }
+
+  it('reports the orgs the server says it recorded activity for', async () => {
+    respondWith({ [activityHeader]: 'org-1,org-2' });
+
+    await handleRequest({ method: 'GET', url: '/api/query' }, { org, targetOrg });
+
+    expect(activeOrgs).toEqual(['org-1', 'org-2']);
+  });
+
+  it('ignores orgs the server did not report, even when the request carried them', async () => {
+    respondWith({ [activityHeader]: 'org-1' });
+
+    await handleRequest({ method: 'GET', url: '/api/query' }, { org, targetOrg });
+
+    expect(activeOrgs).toEqual(['org-1']);
+  });
+
+  it('reports nothing for a response the server did not produce', async () => {
+    respondWith({});
+
+    await handleRequest({ method: 'GET', url: '/api/query' }, { org });
+
+    expect(activeOrgs).toEqual([]);
+  });
+
+  /**
+   * The deadline is pushed back in middleware that runs before the route handler, so a handler that
+   * fails afterwards has still reset the clock - missing this was what left a just-used org showing
+   * an expiration warning after any failed request against it.
+   */
+  it('reports activity from a failed response', async () => {
+    const config = { method: 'get', url: '/api/query' } as InternalAxiosRequestConfig;
+    mockedAdapter.mockRejectedValue(
+      new AxiosError('Request failed with status code 400', AxiosError.ERR_BAD_RESPONSE, config, {}, {
+        config,
+        data: { error: true, message: 'INVALID_FIELD' },
+        status: 400,
+        statusText: '',
+        headers: { [activityHeader]: 'org-1' },
+      } as AxiosResponse),
+    );
+
+    await captureResult(handleRequest({ method: 'GET', url: '/api/query' }, { org }));
+
+    expect(activeOrgs).toEqual(['org-1']);
+  });
+
+  /**
+   * Retryable failures are swallowed by the retry interceptor, which replaces the response - so the
+   * activity the first attempt reported has to be read before it is thrown away.
+   */
+  it('reports activity from a response that is discarded in favour of a retry', async () => {
+    vi.useFakeTimers();
+    const config = { method: 'get', url: '/api/query-more' } as InternalAxiosRequestConfig;
+    mockedAdapter
+      .mockRejectedValueOnce(
+        new AxiosError('Request failed with status code 503', AxiosError.ERR_BAD_RESPONSE, config, {}, {
+          config,
+          data: { error: true, message: 'Service Unavailable' },
+          status: 503,
+          statusText: '',
+          headers: { [activityHeader]: 'org-1' },
+        } as AxiosResponse),
+      )
+      .mockRejectedValueOnce(new AxiosError('Network Error', AxiosError.ERR_NETWORK, config, {}));
+
+    const result = captureResult(handleRequest({ method: 'GET', url: '/api/query-more' }, { org }));
+    await vi.runAllTimersAsync();
+    await result;
+    vi.useRealTimers();
+
+    expect(activeOrgs).toEqual(['org-1']);
+  });
+
+  /** A deferred response commits its status before the Salesforce call, so errors arrive in the body */
+  it('reports activity from a deferred response carrying an error', async () => {
+    mockedAdapter.mockImplementation(async (config) => ({
+      config,
+      data: { error: true, message: 'INVALID_FIELD' },
+      status: 200,
+      statusText: 'OK',
+      headers: { [activityHeader]: 'org-1', [HTTP.HEADERS.X_DEFERRED_RESPONSE]: '1' },
+      request: {},
+    }));
+
+    await captureResult(handleRequest({ method: 'GET', url: '/api/query' }, { org }));
+
+    expect(activeOrgs).toEqual(['org-1']);
   });
 });
