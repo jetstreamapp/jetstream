@@ -601,7 +601,18 @@ model TeamBillingAccount {
   teamId            String   @unique @db.Uuid
   customerId        String   @unique
   manualBilling     Boolean  @default(false)
+  /// Purchased seats, the enforced cap. Mirrors max(seatQuantity, includedSeats) for self-serve teams; hand-set for manual billing.
   licenseCountLimit Int?
+  /// Mirror of the Stripe TEAM_ subscription item; null for manual billing or when there is no active subscription
+  seatQuantity           Int?
+  /// Seats covered by the price's flat first tier (legacy plans include 5); 0 for per-seat pricing
+  includedSeats          Int       @default(0)
+  seatSubscriptionItemId String?
+  seatPeriodEnd          DateTime?
+  /// A decrease scheduled with Stripe that takes effect at the end of the current period
+  pendingSeatQuantity    Int?
+  pendingSeatEffectiveAt DateTime?
+  seatScheduleId         String?
   createdAt         DateTime @default(now()) @db.Timestamp(6)
   updatedAt         DateTime @updatedAt
 

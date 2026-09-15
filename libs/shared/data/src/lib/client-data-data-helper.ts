@@ -360,8 +360,9 @@ function responseErrorInterceptor(options: {
     const { org } = options;
     logger.error('[HTTP][RESPONSE][ERROR]', error.name, error.message);
     let message = 'An unknown error has occurred';
+    let additionalData: Record<string, unknown> | undefined;
     if (error.response) {
-      const response = error.response as AxiosResponse<{ error: boolean; message: string }>;
+      const response = error.response as AxiosResponse<{ error: boolean; message: string; data?: unknown }>;
       logger.error(`[HTTP][RES][${response.config.method?.toUpperCase()}][${response.status}]`, response.config.url, {
         clientRequestId: response.headers['x-client-request-id'],
         requestId: response.headers['x-request-id'],
@@ -374,6 +375,12 @@ function responseErrorInterceptor(options: {
       // Include the HTTP status in the fallback so non-JSON error responses (e.g. Cloudflare 524 HTML pages)
       // and empty bodies surface a diagnosable message instead of the generic literal.
       message = responseBody?.message || `An unknown error has occurred (HTTP ${response.status})`;
+      // The API puts a failure's structured context under `data`; forward it so call sites can branch
+      // on it instead of matching on message text
+      const errorData = (responseBody as { data?: unknown }).data;
+      if (errorData && typeof errorData === 'object' && !Array.isArray(errorData)) {
+        additionalData = errorData as Record<string, unknown>;
+      }
       // take user to login page
       const shouldLogout =
         getHeader(response.headers, HTTP.HEADERS.X_LOGOUT) === '1' ||
@@ -404,7 +411,7 @@ function responseErrorInterceptor(options: {
     }
     // Carries the status so callers can distinguish a rejection by the server from a request that
     // never completed — a plain `Error` in every other respect.
-    throw new ApiRequestError(message, error.response?.status ?? null);
+    throw new ApiRequestError(message, error.response?.status ?? null, additionalData);
   };
 }
 
