@@ -373,11 +373,14 @@ export async function getOrgForRequest(
   }
 
   /**
-   * Reaching this point means the request is being made with live credentials, so it counts as
-   * activity against the org's inactivity deadline whether or not a DB write was needed. Reported
-   * back to the caller so the response can tell the client, which otherwise has no way to observe
-   * that a warning it is displaying has just been made obsolete.
+   * A request made with usable credentials counts as activity against the org's inactivity deadline,
+   * and is reported back to the caller so the response can tell the client - which otherwise has no way
+   * to observe that a warning it is displaying has just been made obsolete.
+   *
+   * The early exit above only covers an unusable token on an org already inside the warning window;
+   * decryption can fail on an org with no scheduled expiration too, and that is not activity.
    */
+  const hasUsableCredentials = accessToken !== sfdcEncService.DUMMY_INVALID_ENCRYPTED_TOKEN;
   let activityRecorded = false;
 
   // Clear expiration and update last activity when org is accessed
@@ -390,18 +393,27 @@ export async function getOrgForRequest(
      */
     try {
       await salesforceOrgsDb.clearExpiration(org.id, user.id);
-      activityRecorded = true;
+      activityRecorded = hasUsableCredentials;
     } catch (err) {
       getLogger().error({ orgId: org.id, userId: user.id, err }, '[ORG][UPDATE] Error clearing expirationScheduledFor');
     }
   } else {
-    activityRecorded = true;
     // Only update lastActivityAt if it's null or older than 1 day to reduce DB writes
     const oneDayAgo = addDays(new Date(), -1);
-    if (!org.lastActivityAt || isBefore(new Date(org.lastActivityAt), oneDayAgo)) {
-      salesforceOrgsDb.updateLastActivity(org.id).catch((err) => {
+    const needsActivityWrite = !org.lastActivityAt || isBefore(new Date(org.lastActivityAt), oneDayAgo);
+    if (!needsActivityWrite) {
+      activityRecorded = hasUsableCredentials;
+    } else {
+      /**
+       * Awaited so the header only claims a deadline the stored row actually reflects. It runs at most
+       * once per org per day, against a connection this request has already read from.
+       */
+      try {
+        await salesforceOrgsDb.updateLastActivity(org.id);
+        activityRecorded = hasUsableCredentials;
+      } catch (err) {
         getLogger().error({ orgId: org.id, userId: user.id, err }, '[ORG][UPDATE] Error updating lastActivityAt');
-      });
+      }
     }
   }
 

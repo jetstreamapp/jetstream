@@ -138,6 +138,89 @@ describe('OrgActivitySync', () => {
 
       expect(getOrgs).not.toHaveBeenCalled();
     });
+
+    /** Two dropdowns can be on screen at once, but the org list only needs fetching once */
+    it('makes one request when several instances see the same day change', async () => {
+      const org = buildOrg('expiring', { lastActivityAt: lastUsedDaysAgo(ORG_INACTIVITY_EXPIRATION_DAYS - 2) });
+      const store = createStore();
+      store.set(fromAppState.salesforceOrgsState, [org]);
+      render(
+        <Provider store={store}>
+          <OrgActivitySync />
+          <OrgActivitySync />
+        </Provider>,
+      );
+
+      vi.useFakeTimers();
+      vi.setSystemTime(addDays(new Date(), 1));
+      becomeVisible();
+      vi.useRealTimers();
+      await vi.waitFor(() => expect(getOrgs).toHaveBeenCalled());
+
+      expect(getOrgs).toHaveBeenCalledTimes(1);
+    });
+
+    /** A blip must not cost the whole day's refresh */
+    it('retries on the next visibility change when the refresh fails', async () => {
+      vi.mocked(getOrgs).mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([]);
+      renderWithOrgs([buildOrg('expiring', { lastActivityAt: lastUsedDaysAgo(ORG_INACTIVITY_EXPIRATION_DAYS - 2) })]);
+
+      vi.useFakeTimers();
+      vi.setSystemTime(addDays(new Date(), 1));
+      becomeVisible();
+      vi.useRealTimers();
+      // Let the failure settle so the retry is not merged into the in-flight request
+      await act(async () => undefined);
+      expect(getOrgs).toHaveBeenCalledTimes(1);
+
+      vi.useFakeTimers();
+      vi.setSystemTime(addDays(new Date(), 1));
+      becomeVisible();
+      vi.useRealTimers();
+      await vi.waitFor(() => expect(getOrgs).toHaveBeenCalledTimes(2));
+    });
+
+    /**
+     * The user can use an org while the refresh is in flight - the response predates that activity and
+     * must not resurrect the warning it just cleared.
+     */
+    it('keeps activity recorded while the refresh was in flight', async () => {
+      const org = buildOrg('expiring', { lastActivityAt: lastUsedDaysAgo(ORG_INACTIVITY_EXPIRATION_DAYS - 2) });
+      let respond: (orgs: SalesforceOrgUi[]) => void = () => undefined;
+      vi.mocked(getOrgs).mockReturnValueOnce(new Promise((resolve) => (respond = resolve)));
+      const { orgById } = renderWithOrgs([org]);
+
+      vi.useFakeTimers();
+      vi.setSystemTime(addDays(new Date(), 1));
+      becomeVisible();
+      vi.useRealTimers();
+      await vi.waitFor(() => expect(getOrgs).toHaveBeenCalled());
+
+      act(() => notifyOrgActivity(org));
+      expect(calculateOrgExpiration(orgById('expiring')).status).toBe('connected');
+
+      await act(async () => {
+        respond([org]);
+      });
+
+      expect(calculateOrgExpiration(orgById('expiring')).status).toBe('connected');
+    });
+
+    /**
+     * The browser extension and canvas resolve their single org from the host page and answer
+     * `/api/orgs` with an empty array - refetching there would replace the active org with nothing.
+     */
+    it('does not refresh when no org has a server-tracked deadline', () => {
+      vi.useFakeTimers();
+      const { orgs } = renderWithOrgs([buildOrg('host-supplied')]);
+
+      vi.setSystemTime(addDays(new Date(), 1));
+      becomeVisible();
+      vi.useRealTimers();
+
+      expect(getOrgs).not.toHaveBeenCalled();
+      expect(orgs()).toHaveLength(1);
+    });
   });
 
   it('stops listening once unmounted', () => {
