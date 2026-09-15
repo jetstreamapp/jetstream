@@ -4,12 +4,12 @@ import { ANALYTICS_KEYS, DATE_FORMATS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
-import { ButtonGroupContainer, Card, CopyToClipboard, Grid, GridCol, Icon, Spinner, Textarea } from '@jetstream/ui';
+import { ButtonGroupContainer, Card, CopyToClipboard, Grid, GridCol, Icon, Spinner, Textarea, useEscapeToCloseLayer } from '@jetstream/ui';
 import { queryHistoryDb } from '@jetstream/ui/db';
 import { isQueryValid } from '@jetstreamapp/soql-parser-js';
 import { formatDate } from 'date-fns/format';
 import clamp from 'lodash/clamp';
-import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { useAmplitude } from '../..';
 import { MonacoEditor } from '../../app/MonacoEditor';
@@ -28,7 +28,9 @@ export interface QueryHistoryItemCardProps {
   selectedOrg: SalesforceOrgUi;
   onExecute: (item: QueryHistoryItem) => void;
   onSave: (item: QueryHistoryItem, value: boolean) => void;
-  onQueryUpdated?: () => void;
+  /** Called after a save is persisted. `updatedKey` may DIFFER from `item.key` (the key derives from
+   * the SOQL text), in which case this card unmounts on refresh — the parent owns focus recovery. */
+  onQueryUpdated?: (updatedKey: QueryHistoryItem['key']) => void;
   startRestore: () => void;
   endRestore: (isTooling: boolean, fatalError: boolean, errors?: QueryRestoreErrors) => void;
 }
@@ -53,6 +55,11 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
 
   const [isRemoving, setIsRemoving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const soqlEditorId = useId();
+  // Escape while editing cancels the edit (and is consumed here) instead of closing the whole
+  // Query History modal and discarding the unsaved changes with it
+  useEscapeToCloseLayer(isEditing, () => handleCancelEdit());
+  const editButtonRef = useRef<HTMLButtonElement>(null);
   const [editedSoql, setEditedSoql] = useState(soql);
   const [editedCustomLabel, setEditedCustomLabel] = useState(customLabel || label);
   const [isSaving, setIsSaving] = useState(false);
@@ -114,6 +121,11 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
     }
   }
 
+  /** Return focus to the Edit button after leaving edit mode — the buttons the user activated unmount */
+  function focusEditButton() {
+    window.setTimeout(() => editButtonRef.current?.focus());
+  }
+
   async function handleEdit() {
     setIsEditing(true);
     setEditedSoql(soql);
@@ -127,6 +139,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
     setEditedSoql(soql);
     setEditedCustomLabel(customLabel || label);
     setError(null);
+    focusEditButton();
   }
 
   async function handleSaveEdit() {
@@ -135,6 +148,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
 
     if (!soqlChanged && !nameChanged) {
       setIsEditing(false);
+      focusEditButton();
       return;
     }
 
@@ -158,10 +172,13 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
       // Exit edit mode
       setIsEditing(false);
       setIsSaving(false);
+      focusEditButton();
 
-      // Notify parent to refresh the list
+      // Notify parent to refresh the list. Editing the SOQL changes the item's key (it derives from
+      // the query text), which remounts this card on refresh and unmounts the Edit button that
+      // focusEditButton() just targeted — the parent restores focus to the new card by this key.
       if (onQueryUpdated) {
-        onQueryUpdated();
+        onQueryUpdated(updatedItem.key);
       }
     } catch (ex) {
       logger.error('[ERROR] Failed to update saved query', ex);
@@ -184,6 +201,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
   return (
     <Card
       className="modal-card-override"
+      actionsAlignment={isEditing ? 'start' : undefined}
       icon={isTooling ? METADATA_QUERY_ICON : SOBJECT_QUERY_ICON}
       testId={`query-history-${soql}`}
       title={
@@ -191,8 +209,10 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
           <GridCol size={12}>
             {isEditing ? (
               <input
-                id="query-label"
+                id={`${soqlEditorId}-label`}
+                aria-label="Query label"
                 className="slds-input"
+                autoFocus
                 placeholder="Leave empty to use default label"
                 value={editedCustomLabel}
                 onChange={(e) => setEditedCustomLabel(e.target.value)}
@@ -218,28 +238,24 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
             </>
           ) : (
             <ButtonGroupContainer>
-              {currentItem.isFavorite && !isRemoving ? (
-                <button className="slds-button slds-button_brand" onClick={() => handleSave(false)}>
-                  <Icon
-                    type="utility"
-                    icon="check"
-                    description="Manually enter query"
-                    className="slds-button__icon slds-button__icon_left"
-                  />
-                  Saved
-                </button>
-              ) : (
-                <button className="slds-button slds-button_neutral" onClick={() => handleSave(true)}>
-                  <Icon
-                    type="utility"
-                    icon="favorite"
-                    description="Manually enter query"
-                    className="slds-button__icon slds-button__icon_left"
-                  />
-                  Save
-                </button>
-              )}
-              <button className="slds-button slds-button_neutral" onClick={handleEdit}>
+              {/* One stable toggle button (aria-pressed) — two swapped buttons dropped focus on
+                  toggle, and the stray icon description garbled the announcement */}
+              {(() => {
+                const isSaved = currentItem.isFavorite && !isRemoving;
+                return (
+                  <button
+                    className={isSaved ? 'slds-button slds-button_brand' : 'slds-button slds-button_neutral'}
+                    aria-pressed={isSaved}
+                    onClick={() => handleSave(!isSaved)}
+                  >
+                    <Icon type="utility" icon={isSaved ? 'check' : 'favorite'} className="slds-button__icon slds-button__icon_left" />
+                    {isSaved ? 'Saved' : 'Save'}
+                  </button>
+                );
+              })()}
+              {/* Deterministic id so the parent can focus THIS query's Edit button across a remount
+                  (the card's key changes when its SOQL is edited) */}
+              <button id={`edit-query-${item.key}`} ref={editButtonRef} className="slds-button slds-button_neutral" onClick={handleEdit}>
                 <Icon type="utility" icon="edit" description="Edit query" className="slds-button__icon slds-button__icon_left" />
                 Edit
               </button>
@@ -287,7 +303,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
           {soql && (
             <div>
               <Textarea
-                id="soql"
+                id={soqlEditorId}
                 label={
                   <span>
                     SOQL Query
@@ -301,6 +317,8 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
                   value={isEditing ? editedSoql : soql}
                   onChange={isEditing ? (value) => setEditedSoql(value || '') : undefined}
                   options={{
+                    // The visible "SOQL Query" label cannot target Monaco's internal textarea, so name it directly
+                    ariaLabel: 'SOQL Query',
                     readOnly: !isEditing,
                     minimap: { enabled: false },
                     tabSize: 2,

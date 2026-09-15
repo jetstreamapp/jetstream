@@ -1,14 +1,40 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal } from '@jetstream/shared/data';
-import { appActionObservable, convertId15To18, hasModifierKey, isKKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
-import { getModifierKey, Grid, Icon, Input, KeyboardShortcut, Popover, PopoverRef, ScopedNotification, Spinner } from '@jetstream/ui';
+import {
+  appActionObservable,
+  convertId15To18,
+  hasModifierKey,
+  isArrowDownKey,
+  isKKey,
+  useGlobalEventHandler,
+} from '@jetstream/shared/ui-utils';
+import {
+  ariaDisabledButtonProps,
+  focusListEntryRow,
+  getAriaKeyshortcuts,
+  getModifierKey,
+  Grid,
+  Icon,
+  Input,
+  KeyboardShortcut,
+  List,
+  Popover,
+  PopoverRef,
+  ScopedNotification,
+  Spinner,
+} from '@jetstream/ui';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { addRecentRecordToStorage, getRecentRecordsFromStorage, RecentRecord } from './record-utils';
 
+function isValidRecordIdLength(recordId: string) {
+  return recordId.length === 15 || recordId.length === 18;
+}
+
 export const RecordSearchPopover: FunctionComponent = () => {
   const popoverRef = useRef<PopoverRef>(null);
+  const recentRecordsListRef = useRef<HTMLUListElement>(null);
   const retainRecordId = useRef<boolean>(false);
   const selectedOrg = useAtomValue(selectedOrgState);
 
@@ -55,6 +81,10 @@ export const RecordSearchPopover: FunctionComponent = () => {
         event.preventDefault();
       }
       _recordId = _recordId || recordId;
+      // Enter in the input submits the form no matter what state the Submit button is in
+      if (!isValidRecordIdLength(_recordId)) {
+        return;
+      }
       setErrorMessage(null);
       setLoading(true);
       const keyPrefix = _recordId.substring(0, 3);
@@ -64,7 +94,7 @@ export const RecordSearchPopover: FunctionComponent = () => {
         setErrorMessage(`An object with the prefix "${keyPrefix}" was not found.`);
         return;
       }
-      if (recordId.length === 15) {
+      if (_recordId.length === 15) {
         try {
           _recordId = convertId15To18(_recordId);
           setRecordId(_recordId);
@@ -75,8 +105,12 @@ export const RecordSearchPopover: FunctionComponent = () => {
       setLoading(false);
       saveRecentRecords(_recordId, sobject.name);
       retainRecordId.current = false;
-      appActionObservable.next({ action: 'VIEW_RECORD', payload: { recordId: _recordId } });
+      // Close before asking the record modal to open. As the popover unmounts it hands focus back to
+      // its trigger (a microtask); the modal mounts later, after its own async describe, and takes
+      // focus from that settled state — and returns it to the trigger when it closes, rather than to
+      // a row that no longer exists.
       popoverRef.current?.close();
+      appActionObservable.next({ action: 'VIEW_RECORD', payload: { recordId: _recordId } });
     } catch {
       setErrorMessage('An unexpected error has occurred.');
     } finally {
@@ -94,7 +128,7 @@ export const RecordSearchPopover: FunctionComponent = () => {
     }
   }
 
-  const isDisabled = !recordId || (recordId.length !== 15 && recordId.length !== 18);
+  const isDisabled = !isValidRecordIdLength(recordId);
 
   if (!selectedOrg?.uniqueId || !!selectedOrg.connectionError) {
     return null;
@@ -129,7 +163,7 @@ export const RecordSearchPopover: FunctionComponent = () => {
             <Grid verticalAlign="end">
               <Input id="record-id" label="Record Id" className="slds-grow">
                 <input
-                  id="record-id-input"
+                  id="record-id"
                   className="slds-input"
                   max={18}
                   min={15}
@@ -138,14 +172,26 @@ export const RecordSearchPopover: FunctionComponent = () => {
                   autoComplete="off"
                   autoFocus
                   onChange={(event) => setRecordId(event.target.value.trim())}
+                  onKeyDown={(event) => {
+                    if (isArrowDownKey(event)) {
+                      event.preventDefault();
+                      focusListEntryRow(recentRecordsListRef.current);
+                    }
+                  }}
                 />
               </Input>
               <div>
+                {/* aria-disabled (not disabled) keeps the button in the tab order while the id is
+                    invalid — a natively disabled button made Tab from the input leave the popover,
+                    which closes it. A submit button's click also raises the form's submit, so the
+                    click cancels the native path and submits itself: one submission per activation. */}
                 <button
                   type="submit"
                   className="slds-button slds-button_brand slds-m-left_x-small"
-                  disabled={isDisabled}
-                  onClick={() => handleSubmit()}
+                  {...ariaDisabledButtonProps(isDisabled, (event) => {
+                    event.preventDefault();
+                    handleSubmit();
+                  })}
                 >
                   Submit
                 </button>
@@ -154,25 +200,20 @@ export const RecordSearchPopover: FunctionComponent = () => {
           </form>
           {!!recentRecords?.length && (
             <Fragment>
-              <h2 className="slds-text-heading_small slds-m-top_small" title="Refresh Metadata">
-                Recent Records
-              </h2>
-              <ul className="slds-has-dividers_top-space slds-dropdown_length-10">
-                {recentRecords.map((recentRecord) => (
-                  <li
-                    key={recentRecord.recordId}
-                    className="slds-item slds-text-link"
-                    onClick={() => setFromHistory(recentRecord.recordId)}
-                  >
-                    <div className="slds-truncate" title={recentRecord.recordId}>
-                      {recentRecord.recordId} {recentRecord.name && <span title={recentRecord.name}>- {recentRecord.name}</span>}
-                    </div>
-                    <div className="slds-truncate slds-text-color_weak" title={recentRecord.sobject}>
-                      {recentRecord.sobject}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <h2 className="slds-text-heading_small slds-m-top_small">Recent Records</h2>
+              <List
+                ref={recentRecordsListRef}
+                ariaLabel="Recent records"
+                className="slds-dropdown_length-10"
+                items={recentRecords}
+                isActive={() => false}
+                getContent={({ recordId, name, sobject }: RecentRecord) => ({
+                  key: recordId,
+                  heading: name ? `${recordId} - ${name}` : recordId,
+                  subheading: sobject,
+                })}
+                onSelected={(key) => setFromHistory(key)}
+              />
             </Fragment>
           )}
         </div>
@@ -180,7 +221,9 @@ export const RecordSearchPopover: FunctionComponent = () => {
       buttonProps={{
         className:
           'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
-        title: 'View Record Details - ctrl/command + k',
+        // The shortcut is conveyed by aria-keyshortcuts below; repeating it in the name doubled the announcement
+        title: 'View Record Details',
+        'aria-keyshortcuts': getAriaKeyshortcuts([getModifierKey(), 'k']),
         disabled: !selectedOrg || !!selectedOrg.connectionError,
       }}
     >

@@ -1,6 +1,6 @@
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { LoginConfigurationIdentityDisplayNames, TeamLoginConfigRequest } from '@jetstream/types';
-import { Card, Checkbox, fireToast, Grid, GridCol, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Card, Checkbox, fireToast, Grid, GridCol, Spinner } from '@jetstream/ui';
 import { abilityState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
@@ -125,6 +125,11 @@ export function TeamLoginConfiguration({ loginConfiguration, hasSsoConfigured, s
 
   async function onSubmit(ev: React.SubmitEvent<HTMLFormElement>) {
     ev.preventDefault();
+    // Enter anywhere in the form submits implicitly, which never runs the Save button's click
+    // handler — so the aria-disabled guard has to be repeated here or a stale/invalid save gets through
+    if (!dirty.isDirty || errors.hasError || loading) {
+      return;
+    }
     try {
       setLoading(true);
       const payload = formData.data;
@@ -137,6 +142,16 @@ export function TeamLoginConfiguration({ loginConfiguration, hasSsoConfigured, s
         ssoRequireMfa: payload.ssoRequireMfa,
       };
       await onUpdate(data);
+      // Re-baseline against what was just saved so the form settles to not-dirty in place. The parent
+      // used to force a remount to achieve this, which threw focus to <body> on every keyboard save.
+      setFormData((prev) => ({
+        data: prev.data,
+        originalData: {
+          ...prev.data,
+          allowedMfaMethods: new Set(prev.data.allowedMfaMethods),
+          allowedProviders: new Set(prev.data.allowedProviders),
+        },
+      }));
     } catch (ex) {
       fireToast({
         type: 'error',
@@ -153,11 +168,12 @@ export function TeamLoginConfiguration({ loginConfiguration, hasSsoConfigured, s
       title="Login Configuration"
       icon={{ type: 'standard', icon: 'settings' }}
       actions={
+        // aria-disabled keeps focus on the button while the submit disables it; the guarded click blocks re-submits
         <button
           form="team-login-configuration-form"
           type="submit"
           className="slds-button slds-button_brand"
-          disabled={!dirty.isDirty || errors.hasError || loading}
+          {...ariaDisabledButtonProps(!dirty.isDirty || errors.hasError || loading, () => {})}
         >
           Save
         </button>

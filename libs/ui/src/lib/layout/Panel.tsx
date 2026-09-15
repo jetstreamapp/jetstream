@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { PositionLeftRight, SizeSmMdLgXlFull } from '@jetstream/types';
 import classNames from 'classnames';
-import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, RefObject, useEffect, useRef, useState } from 'react';
 import Icon from '../widgets/Icon';
 
 export interface PanelProps {
@@ -33,6 +33,13 @@ export interface PanelProps {
    * Note: fullHeight panels use `position: fixed` and anchor to the viewport.
    */
   zIndex?: number;
+  /**
+   * The control that opens the panel. Focus returns to it on close when nothing was focused at open
+   * time — Safari does not focus a button on mouse click, so `document.activeElement` is `<body>` and
+   * there would otherwise be nowhere to return to. A focused element at open time still wins, so a
+   * keyboard shortcut used from inside a grid returns to the cell the user was on.
+   */
+  returnFocusTo?: RefObject<HTMLElement | null>;
   onClosed: () => void;
   children?: React.ReactNode;
 }
@@ -76,11 +83,57 @@ export const Panel: FunctionComponent<PanelProps> = ({
   closeOnEscape = false,
   closeOnOutsideClick = false,
   zIndex,
+  returnFocusTo,
   onClosed,
   children,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+
+  // Non-modal drawer focus contract: opening moves focus INTO the panel (announcing its heading),
+  // closing returns focus to whatever opened it — unless the user closed it by moving focus
+  // elsewhere themselves (e.g. an outside click), in which case focus is left alone.
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    const activeAtOpen = document.activeElement;
+    const focusedElementAtOpen = activeAtOpen instanceof HTMLElement && activeAtOpen !== document.body ? activeAtOpen : null;
+    returnFocusRef.current = focusedElementAtOpen ?? returnFocusTo?.current ?? null;
+    const panelEl = panelRef.current;
+    panelEl?.querySelector<HTMLElement>('[data-panel-focus-target]')?.focus();
+    return () => {
+      const active = document.activeElement;
+      const focusWasInsidePanel = !active || active === document.body || !!panelEl?.contains(active);
+      const returnTarget = returnFocusRef.current;
+      if (focusWasInsidePanel && returnTarget && document.contains(returnTarget)) {
+        returnTarget.focus();
+      }
+    };
+  }, [isOpen, returnFocusTo]);
+
+  // Escape with focus INSIDE the panel always closes it (a keyboard user must be able to leave the
+  // drawer the way they entered); the closeOnEscape prop additionally closes on Escape from anywhere.
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    const handler = (event: KeyboardEvent) => {
+      if (
+        event.key === 'Escape' &&
+        !event.defaultPrevented &&
+        panelRef.current?.contains(document.activeElement) &&
+        document.activeElement !== document.body
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        onClosed();
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [isOpen, onClosed]);
 
   useEffect(() => {
     if (!isOpen || !closeOnEscape) {
@@ -131,6 +184,10 @@ export const Panel: FunctionComponent<PanelProps> = ({
       `}
     >
       <div
+        role="region"
+        aria-label={heading}
+        tabIndex={-1}
+        data-panel-focus-target
         className={classNames('slds-panel slds-panel_docked slds-is-open', getPositionClass(position), getSizeClass(size))}
         aria-hidden="false"
       >
@@ -149,8 +206,13 @@ export const Panel: FunctionComponent<PanelProps> = ({
             {heading}
           </h2>
 
-          <button className="slds-button slds-button_icon slds-button_icon-small" onClick={() => setExpanded(!expanded)}>
+          <button
+            className="slds-button slds-button_icon slds-button_icon-small"
+            title={expanded ? `Restore ${heading} size` : `Expand ${heading} to full width`}
+            onClick={() => setExpanded(!expanded)}
+          >
             <Icon type="utility" icon={expandCollapseIcon} className="slds-button__icon" />
+            <span className="slds-assistive-text">{expanded ? `Restore ${heading} size` : `Expand ${heading} to full width`}</span>
           </button>
           <button
             className="slds-button slds-button_icon slds-button_icon-small slds-panel__close"

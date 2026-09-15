@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { updateTeamMemberStatus } from '@jetstream/shared/data';
 import { TeamMemberRole, TeamUserAction, TeamUserFacing } from '@jetstream/types';
-import { fireToast, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, fireToast, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { useState } from 'react';
 import { TeamMemberRoleDropdown } from './TeamMemberRoleDropdown';
 
@@ -47,11 +47,12 @@ export function TeamMemberStatusUpdateModal({ teamId, teamMember, action, hasMan
           <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>
             Cancel
           </button>
+          {/* aria-disabled keeps focus on the button while the submit disables it; the guarded click blocks re-submits */}
           <button
             type="submit"
             form="team-member-status-update-form"
             className="slds-button slds-button_brand slds-is-relative"
-            disabled={loading}
+            {...ariaDisabledButtonProps(loading, () => {})}
           >
             Save
             {loading && <Spinner className="slds-spinner slds-spinner_small" />}

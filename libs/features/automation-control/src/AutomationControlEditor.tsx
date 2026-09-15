@@ -4,6 +4,7 @@ import { formatNumber, useGoBackShortcut, usePrimaryActionShortcut, useTitle } f
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { FileExtAllTypes, ListMetadataResult, Maybe, MimeType, RetrievePackageFromListMetadataJob } from '@jetstream/types';
 import {
+  AssistiveStatus,
   AutoFullHeightContainer,
   Badge,
   ButtonGroupContainer,
@@ -19,7 +20,9 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
   Tooltip,
+  getAriaKeyshortcuts,
   getModifierKey,
+  useAnnouncer,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, fromAutomationControlState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
@@ -42,10 +45,16 @@ import {
   isValidationRecord,
   isWorkflowRuleRecord,
 } from './automation-control-data-utils';
-import { TableRowItem } from './automation-control-types';
+import { TableRowItem, TableRowOrItemOrChild } from './automation-control-types';
 import { useAutomationControlData } from './useAutomationControlData';
 
 const HEIGHT_BUFFER = 170;
+
+/** Object group rows and version children are structure, not items — count only what the user asked to load */
+function getLoadedItemsMessage(rows: TableRowOrItemOrChild[]) {
+  const itemCount = rows.filter(isTableRowItem).length;
+  return `${formatNumber(itemCount)} automation ${pluralizeFromNumber('item', itemCount)} loaded`;
+}
 
 export const AutomationControlEditor = () => {
   useTitle(TITLES.AUTOMATION_CONTROL);
@@ -66,6 +75,8 @@ export const AutomationControlEditor = () => {
 
   const [exportDataModalOpen, setExportDataModalOpen] = useState<boolean>(false);
   const [exportDataModalData, setExportDataModalData] = useState<any[]>([]);
+
+  const { announce, announcer } = useAnnouncer();
 
   const [exportMetadataModalOpen, setExportMetadataModalOpen] = useState<boolean>(false);
 
@@ -238,6 +249,12 @@ export const AutomationControlEditor = () => {
     trackEvent(ANALYTICS_KEYS.automation_export, { type: 'spreadsheet' });
   }
 
+  /** Toggling all rows gives sighted users flipped checkboxes + the modified-count badge — announce the same outcome */
+  function handleToggleAll(value: boolean) {
+    toggleAll(value);
+    announce(`All visible items marked ${value ? 'active' : 'inactive'}`);
+  }
+
   return (
     <div>
       {exportDataModalOpen && (
@@ -291,6 +308,7 @@ export const AutomationControlEditor = () => {
             <Link
               className="slds-button slds-button_brand"
               title="Go back"
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'shift', 'enter'])}
               to=".."
               // onClick={handleGoBack}
             >
@@ -322,6 +340,7 @@ export const AutomationControlEditor = () => {
             <Tooltip content="Downloading as a metadata zip package will allow you to re-deploy the changes on the Deploy Metadata page.">
               <button
                 className="slds-button slds-button_neutral slds-button_first collapsible-button collapsible-button-xl"
+                title="Export as Zip"
                 disabled={loading}
                 onClick={exportPackage}
               >
@@ -340,6 +359,7 @@ export const AutomationControlEditor = () => {
             </button>
           </ButtonGroupContainer>
           <Tooltip
+            className="slds-m-left_x-small"
             openDelay={500}
             content={
               <div className="slds-p-bottom_small">
@@ -347,7 +367,12 @@ export const AutomationControlEditor = () => {
               </div>
             }
           >
-            <button className="slds-button slds-button_brand" disabled={loading || !dirtyCount} onClick={handleReviewChanges}>
+            <button
+              className="slds-button slds-button_brand"
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+              disabled={loading || !dirtyCount}
+              onClick={handleReviewChanges}
+            >
               <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
               Review Changes
             </button>
@@ -358,12 +383,20 @@ export const AutomationControlEditor = () => {
         <Grid>
           <Grid className="slds-grow slds-box_small slds-theme_default slds-is-relative" verticalAlign="center" wrap>
             {loading && <Spinner size="small"></Spinner>}
-            <SearchInput id="quick-filter" placeholder="Filter items..." onChange={setQuickFilterText} />
+            {/* The table mounts with its rows already loaded, so the grid's own count announcement (which
+                reacts to filter changes) never fires for the initial load */}
+            <AssistiveStatus message={loading ? 'Loading automation items' : getLoadedItemsMessage(rows)} />
+            <SearchInput
+              id="quick-filter"
+              ariaLabel="Filter automation items"
+              placeholder="Filter items..."
+              onChange={setQuickFilterText}
+            />
             <ButtonGroupContainer className="slds-m-horizontal_small">
               <button
                 className={classNames('slds-button slds-button_neutral')}
                 title="Enable All"
-                onClick={() => toggleAll(true)}
+                onClick={() => handleToggleAll(true)}
                 disabled={loading}
               >
                 <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
@@ -372,13 +405,14 @@ export const AutomationControlEditor = () => {
               <button
                 className={classNames('slds-button slds-button_neutral')}
                 title="Disable All"
-                onClick={() => toggleAll(false)}
+                onClick={() => handleToggleAll(false)}
                 disabled={loading}
               >
                 <Icon type="utility" icon="dash" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Disable All
               </button>
             </ButtonGroupContainer>
+            {announcer}
             <Badge>
               {formatNumber(dirtyCount)} {pluralizeFromNumber('item', dirtyCount)} modified
             </Badge>

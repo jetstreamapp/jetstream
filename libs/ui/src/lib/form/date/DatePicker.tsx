@@ -11,7 +11,9 @@ import { isSameDay } from 'date-fns/isSameDay';
 import { isValid as isValidDate } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
 import { startOfDay } from 'date-fns/startOfDay';
-import { ChangeEvent, FocusEvent, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import uniqueId from 'lodash/uniqueId';
+import { ChangeEvent, FocusEvent, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { useEscapeToCloseLayer } from '../../hooks/useEscapeToCloseLayer';
 import PopoverContainer from '../../popover/PopoverContainer';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
@@ -77,8 +79,12 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const datePickerRef = useRef<HTMLInputElement>(null);
   const entireContainerEl = useRef<HTMLDivElement>(null);
+  const triggerButtonRef = useRef<HTMLButtonElement>(null);
 
-  const [id] = useState<string>(`${_id || 'date-picker'}-${Date.now()}`); // used to avoid auto-complete
+  // Unique per mount to avoid auto-complete. Must be collision-proof: the old Date.now() suffix gave
+  // two pickers mounted in the same millisecond (e.g. a From/To range) IDENTICAL ids, cross-wiring
+  // their label associations — the first input announced both labels, the second announced none.
+  const [id] = useState<string>(() => uniqueId(`${_id || 'date-picker'}-`));
   const [value, setValue] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState(() => (isValidDate(initialSelectedDate) ? initialSelectedDate : undefined));
   const [isOpen, setIsOpen] = useState(openOnInit);
@@ -152,9 +158,26 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
     }
   }
 
+  // Escape closes ONLY the calendar popup — consumed at document capture so an ancestor
+  // modal/popover cannot also close on the same press. Focus is pulled back to the trigger only
+  // when it sat inside the popup (which unmounts); when the user is typing in the text input
+  // (the popup opens on input click), focus must stay in the input.
+  useEscapeToCloseLayer(isOpen, () => {
+    setIsOpen(false);
+    if (datePickerRef.current?.contains(document.activeElement)) {
+      triggerButtonRef.current?.focus();
+    }
+  });
+
+  // The popup unmounts on close, so focus must be handed back to the calendar trigger or it drops to <body>
+  function returnFocusToTrigger() {
+    triggerButtonRef.current?.focus();
+  }
+
   function handleDateSelection(date: Date) {
     if (!selectedDate || !isSameDay(selectedDate, date)) {
       setIsOpen(false);
+      returnFocusToTrigger();
     }
     setSelectedDate(startOfDay(date));
   }
@@ -203,9 +226,12 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
       >
         <input
           ref={inputRef}
-          aria-describedby={errorMessageId}
+          aria-describedby={[!hideLabel && labelHelp ? `${id}-label-help-text` : undefined, `${id}-date-format`, errorMessageId]
+            .filter(Boolean)
+            .join(' ')}
           type="text"
-          autoComplete="false"
+          aria-invalid={hasError || undefined}
+          autoComplete="off"
           id={id}
           placeholder=""
           className="slds-input"
@@ -218,61 +244,96 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
               handleToggleOpen(true);
             }
           }}
-          onKeyUp={(event: KeyboardEvent<HTMLInputElement>) => {
-            if (isOpen && event.keyCode === 27) {
-              handleToggleOpen(false);
-            }
-          }}
           disabled={disabled}
           {...inputProps}
         />
-        <div className={classNames({ 'slds-input__icon-group slds-input__icon-group_right': showClearButton })}>
+        <div
+          className="slds-input__icon-group slds-input__icon-group_right"
+          // SLDS positions and centers the group itself (absolute, right 0, top 50%, negative margin).
+          // The buttons deliberately do NOT get slds-input__icon: that class absolutely positions each
+          // icon (collapsing both onto the same spot) at higher specificity than an override can win —
+          // instead they are plain icon buttons laid out as a flex row inside the group.
+          css={css`
+            display: flex;
+            align-items: center;
+            z-index: 2;
+            padding-inline-end: 0.25rem;
+            & > .slds-button + .slds-button {
+              margin-left: 0.25rem;
+            }
+          `}
+        >
           {showClearButton && (
             <button
               type="button"
-              className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
-              // The icon group stacks both buttons at the same offset, so shift the clear button inward
-              // to sit alongside the calendar button rather than underneath it.
-              css={css`
-                right: 1.75rem;
-              `}
-              title="Clear date"
-              onClick={handleClear}
+              className="slds-button slds-button_icon"
+              title={`Clear date for ${label}`}
+              onClick={() => {
+                handleClear();
+                // The clear button removes itself when the value empties — keep focus in the field
+                inputRef.current?.focus();
+              }}
               disabled={disabled}
             >
-              <Icon type="utility" icon="clear" className="slds-button__icon" omitContainer description="Clear date" />
+              <Icon type="utility" icon="clear" className="slds-button__icon" omitContainer description={`Clear date for ${label}`} />
             </button>
           )}
-          <button
-            type="button"
-            className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
-            title="Select a date"
-            onClick={() => handleToggleOpen(!isOpen)}
-            disabled={disabled}
-          >
-            {!readOnly && <Icon type="utility" icon="event" className="slds-button__icon" omitContainer description="Select a date" />}
-          </button>
+          {/* Read-only fields have no calendar to open, so the trigger is omitted rather than rendered as
+              an empty, inert button that still announces haspopup/expanded */}
+          {!readOnly && (
+            <button
+              ref={triggerButtonRef}
+              type="button"
+              className="slds-button slds-button_icon"
+              aria-haspopup="dialog"
+              aria-expanded={isOpen}
+              title={`Select a date for ${label}`}
+              onClick={() => handleToggleOpen(!isOpen)}
+              disabled={disabled}
+            >
+              {/* Scoped per field — a date range renders two otherwise-identical "Select a date" triggers */}
+              <Icon type="utility" icon="event" className="slds-button__icon" omitContainer description={`Select a date for ${label}`} />
+            </button>
+          )}
         </div>
       </div>
-      <div className="slds-assistive-text slds-form-element__help">Format: yyyy-mm-dd</div>
+      <div id={`${id}-date-format`} className="slds-assistive-text slds-form-element__help">
+        Format: yyyy-mm-dd
+      </div>
       <PopoverContainer
         isOpen={isOpen}
+        role="dialog"
+        aria-label="Choose a date"
         className={`slds-datepicker`}
         referenceElement={inputRef.current}
         onBlur={handleBlur}
+        // Clicking non-focusable popup chrome (month heading, weekday labels) must not blur the input
+        // and close the popup; focusable controls (days, buttons, the year select) still take focus
+        onMouseDown={(event) => {
+          if (!(event.target as HTMLElement).closest('button, select, input, [tabindex]')) {
+            event.preventDefault();
+          }
+        }}
         usePortal={usePortal}
       >
         <DatePickerPopup
           ref={datePickerRef}
+          id={id}
           initialSelectedDate={selectedDate}
           initialVisibleDate={initialVisibleDate || selectedDate}
           availableYears={availableYears}
           minAvailableDate={minAvailableDate}
           maxAvailableDate={maxAvailableDate}
           dropDownPosition={dropDownPosition}
-          onClose={() => handleToggleOpen(false)}
+          onClose={() => {
+            handleToggleOpen(false);
+            returnFocusToTrigger();
+          }}
           onSelection={handleDateSelection}
-          onClear={handleClear}
+          onClear={() => {
+            handleClear();
+            returnFocusToTrigger();
+          }}
         />
       </PopoverContainer>
       {helpText && <div className="slds-form-element__help">{helpText}</div>}

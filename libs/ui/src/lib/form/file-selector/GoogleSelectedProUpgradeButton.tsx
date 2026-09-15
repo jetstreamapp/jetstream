@@ -36,10 +36,12 @@ export const GoogleSelectedProUpgradeButton = ({
         </span>
         {labelHelp && label && !hideLabel && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
         <div className="slds-form-element__control">
-          <label className="slds-file-selector__body" htmlFor={id}>
+          {/* Not a label: there is no file input here to associate (the upgrade CTA stands in for it) */}
+          <div className="slds-file-selector__body">
             <Grid>
               <span>
                 <button
+                  type="button"
                   className="slds-is-relative slds-button slds-button_neutral"
                   disabled
                   aria-labelledby={`${labelId}`}
@@ -53,7 +55,7 @@ export const GoogleSelectedProUpgradeButton = ({
                 <UpgradeToProButton showOpenInNewTabIcon trackEvent={trackEvent} source={source} />
               </div>
             </Grid>
-          </label>
+          </div>
         </div>
       </div>
     </div>

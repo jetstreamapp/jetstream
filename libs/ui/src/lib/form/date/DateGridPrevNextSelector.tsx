@@ -39,6 +39,7 @@ export const DateGridPrevNextSelector: FunctionComponent<DateGridPrevNextSelecto
       <div className="slds-datepicker__filter_month slds-grid slds-grid_align-spread slds-grow">
         <div className="slds-align-middle">
           <button
+            type="button"
             className="slds-button slds-button_icon slds-button_icon-container"
             title="Previous Month"
             onClick={() => onPrev()}
@@ -52,6 +53,7 @@ export const DateGridPrevNextSelector: FunctionComponent<DateGridPrevNextSelecto
         </h2>
         <div className="slds-align-middle">
           <button
+            type="button"
             className="slds-button slds-button_icon slds-button_icon-container"
             title="Next Month"
             onClick={() => onNext()}

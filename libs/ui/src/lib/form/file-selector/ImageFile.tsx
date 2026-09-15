@@ -81,6 +81,7 @@ export const ImageFile: FunctionComponent<ImageFileProps> = ({
           </a>
           {onDelete && (
             <button
+              type="button"
               className="slds-button slds-button_icon slds-button_icon slds-button_icon-x-small"
               title="Delete"
               onClick={() => onDelete({ filename, extension, content })}

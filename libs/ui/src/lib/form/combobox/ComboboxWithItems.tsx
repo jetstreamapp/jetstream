@@ -85,9 +85,35 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
       [],
     );
 
+    // Reset the filter on close: without this, reopening the dropdown briefly showed the previous
+    // search's subset and then jumped when the full list replaced it.
+    // This is the ONLY close notification path — Combobox fires it for natural closes AND from the
+    // imperative close(), so selection handlers must not also call onClose (that double-fired it).
+    const handleClose = useCallback(() => {
+      setFilterText('');
+      setFocusedIndex(null);
+      comboboxRef.current?.clearInputText();
+      comboboxProps.onClose?.();
+      onClose?.();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [comboboxProps.onClose, onClose]);
+
+    // Typing changes (and re-orders) visibleItems, so a focused index from before the filter
+    // points at a different item — without the reset, ArrowDown resumed from the stale position
+    const handleInputChange = useCallback((value: string) => {
+      setFilterText(value);
+      setFocusedIndex(null);
+    }, []);
+
+    // Enter from the input picks the first selectable option. Close explicitly: the close-on-selection
+    // effect only fires when the selected label CHANGES, so re-selecting the current item left the list open
     const onInputEnter = useCallback(() => {
-      if (visibleItems.length > 0) {
-        onSelected(visibleItems[0]);
+      const item = visibleItems.find((visibleItem) => !visibleItem.disabled);
+      if (item) {
+        onSelected(item);
+        if (!item.isDrillInItem) {
+          comboboxRef.current?.close();
+        }
       }
     }, [onSelected, visibleItems]);
 
@@ -132,6 +158,11 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
           break;
         }
         case 'enter': {
+          // A disabled option is announced as disabled and must not activate — mirrors the
+          // pointer guard in ComboboxListItem
+          if (isNumber(focusedIndex) && visibleItems[focusedIndex]?.disabled) {
+            return;
+          }
           if (isNumber(tempFocusedIndex)) {
             tempFocusedIndex = null;
             setFocusedIndex(tempFocusedIndex);
@@ -149,7 +180,6 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
               }
             } else {
               comboboxRef.current?.close();
-              onClose && onClose();
             }
             return;
           }
@@ -197,9 +227,9 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
         selectedItemTitle={selectedItemTitle}
         isEmpty={visibleItems.length === 0}
         onKeyboardNavigation={handleKeyboardNavigation}
-        onInputChange={setFilterText}
+        onInputChange={handleInputChange}
         onInputEnter={onInputEnter}
-        onClose={onClose}
+        onClose={handleClose}
       >
         {heading && <ComboboxListItemHeading label={heading.label} actionLabel={heading.actionLabel} onActionClick={handleHeadingClick} />}
         {visibleItems.map((item, i) =>
@@ -218,7 +248,6 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
                 onSelected(item);
                 if (!item.isDrillInItem) {
                   comboboxRef.current?.close();
-                  onClose && onClose();
                 }
               }}
               {...itemProps(item)}
@@ -233,7 +262,6 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
                 onSelected(item);
                 if (!item.isDrillInItem) {
                   comboboxRef.current?.close();
-                  onClose && onClose();
                 }
               }}
               {...itemProps(item)}

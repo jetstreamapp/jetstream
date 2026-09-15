@@ -33,6 +33,13 @@ export interface TooltipProps {
    */
   ariaRole?: 'tooltip' | 'label';
   onClick?: (event: MouseEvent<HTMLElement>) => void;
+  /**
+   * Makes the trigger wrapper itself focusable. Needed when children contain no focusable element
+   * (e.g. a bare info icon) — without focus, keyboard users can never reveal the tooltip (WCAG 1.4.13).
+   */
+  triggerTabIndex?: number;
+  /** Extra attributes for the trigger wrapper (e.g. data-grid-inner-focus so grid navigation focuses it) */
+  triggerProps?: React.HTMLAttributes<HTMLElement> & { [dataAttribute: `data-${string}`]: string | boolean | undefined };
   children?: React.ReactNode;
 }
 
@@ -43,6 +50,8 @@ const TooltipComponent: FunctionComponent<TooltipProps> = ({
   closeDelay,
   ariaRole = 'tooltip',
   onClick,
+  triggerTabIndex,
+  triggerProps,
   children,
 }) => {
   const { portalRoot } = usePortalContext();
@@ -181,7 +190,32 @@ const TooltipComponent: FunctionComponent<TooltipProps> = ({
 
   return (
     <>
-      <span ref={refs.setReference} className={className} onClick={onClick} style={{ display: 'inline-block' }} {...getReferenceProps()}>
+      <span
+        ref={refs.setReference}
+        className={className}
+        style={{ display: 'inline-block' }}
+        {...getReferenceProps({
+          ...triggerProps,
+          // Entries are conditional so an absent prop can't clobber a same-named handler or
+          // attribute supplied via triggerProps with `undefined`
+          ...(onClick && { onClick }),
+          ...(triggerTabIndex !== undefined && { tabIndex: triggerTabIndex }),
+          ...(onClick &&
+            triggerTabIndex !== undefined && {
+              // A focusable trigger with a click action is a de-facto button: expose the role and
+              // support keyboard activation, since a span provides neither natively
+              role: 'button',
+              onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  // Dispatch a real click so onClick receives a genuine MouseEvent
+                  event.currentTarget.click();
+                }
+              },
+            }),
+        })}
+      >
         {children}
       </span>
       {tooltipContent && <FloatingPortal root={portalRoot}>{tooltipContent}</FloatingPortal>}

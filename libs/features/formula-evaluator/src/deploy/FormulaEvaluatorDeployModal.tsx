@@ -2,7 +2,18 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useFetchPageLayouts, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { Field, Maybe, NullNumberBehavior, SalesforceOrgUi } from '@jetstream/types';
-import { FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner, Tabs, Tooltip, fireToast } from '@jetstream/ui';
+import {
+  ariaDisabledButtonProps,
+  FileDownloadModal,
+  fireToast,
+  Grid,
+  Icon,
+  Modal,
+  ScopedNotification,
+  Spinner,
+  Tabs,
+  Tooltip,
+} from '@jetstream/ui';
 import {
   ConfirmPageChange,
   FieldValues,
@@ -200,7 +211,11 @@ export const FormulaEvaluatorDeployModal = ({
                 <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>
                   Close
                 </button>
-                <button className="slds-button slds-button_brand" disabled={actionButtonDisabled} onClick={() => handleActionClick()}>
+                {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
+                <button
+                  className="slds-button slds-button_brand"
+                  {...ariaDisabledButtonProps(actionButtonDisabled, () => handleActionClick())}
+                >
                   {deployLabel}
                 </button>
               </div>

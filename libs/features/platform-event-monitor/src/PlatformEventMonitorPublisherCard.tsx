@@ -3,10 +3,13 @@ import { clearCacheForOrg, describeSObject } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { DescribeSObjectResult, ListItem, Maybe, PicklistFieldValues, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
-import { Card, ComboboxWithItems, Grid, Icon, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
+import { AssistiveStatus, Card, ComboboxWithItems, Grid, Icon, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
 import { formatRelative } from 'date-fns/formatRelative';
 import { Fragment, FunctionComponent, useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { PlatformEventObject } from './platform-event-monitor.types';
+
+/** The submit button renders in the Card's action slot, outside the form, so it associates by id */
+const PUBLISH_FORM_ID = 'publish-platform-event-form';
 
 export interface PlatformEventMonitorPublisherCardProps {
   selectedOrg: SalesforceOrgUi;
@@ -127,6 +130,14 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
     [publish, selectedPublishEvent],
   );
 
+  function handleSubmit(ev: React.FormEvent<HTMLFormElement>) {
+    ev.preventDefault();
+    if (!sobjectDescribeLoaded || !sobjectDescribeData || publishLoading) {
+      return;
+    }
+    publishEvent(publishEventRecord);
+  }
+
   function handlePlatformEventChange(item: ListItem<string, any>) {
     onSelectedPublishEvent(item.id);
     clearForm();
@@ -137,6 +148,15 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
     setPublishKey((key) => key + 1);
   }
 
+  // The publish outcome renders as a static notification, which screen readers do not announce
+  const publishStatusMessage = publishLoading
+    ? 'Publishing event'
+    : publishEventResponse
+      ? publishEventResponse.success
+        ? `Event published. Event Id: ${publishEventResponse.eventId}`
+        : `There was an error publishing your event: ${publishEventResponse.errorMessage}`
+      : '';
+
   return (
     <Card
       testId="platform-event-monitor-publisher-card"
@@ -145,9 +165,10 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
       title="Publish Event"
       actions={
         <button
+          type="submit"
+          form={PUBLISH_FORM_ID}
           className="slds-button slds-button_brand slds-is-relative"
           disabled={!sobjectDescribeLoaded || !sobjectDescribeData}
-          onClick={() => publishEvent(publishEventRecord)}
         >
           Publish Event
           {publishLoading && <Spinner className="slds-spinner slds-spinner_small" />}
@@ -155,82 +176,92 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
       }
     >
       {(loadingPlatformEvents || sobjectDescribeLoading) && <Spinner />}
-      <Grid vertical>
-        <Grid verticalAlign="end">
-          <div className="slds-grow">
-            <ComboboxWithItems
-              key={picklistKey}
-              comboboxProps={{
-                label: 'Platform Events',
-                itemLength: 10,
-              }}
-              items={platformEventsList}
-              selectedItemId={selectedPublishEvent}
-              onSelected={handlePlatformEventChange}
-            />
+      <AssistiveStatus debounceMs={300} message={publishStatusMessage} />
+      <form id={PUBLISH_FORM_ID} onSubmit={handleSubmit}>
+        <Grid vertical>
+          <Grid verticalAlign="end">
+            <div className="slds-grow">
+              <ComboboxWithItems
+                key={picklistKey}
+                comboboxProps={{
+                  label: 'Platform Events',
+                  itemLength: 10,
+                }}
+                items={platformEventsList}
+                selectedItemId={selectedPublishEvent}
+                onSelected={handlePlatformEventChange}
+              />
+            </div>
+          </Grid>
+          {publishEventResponse && publishEventResponse.success && (
+            <div className="slds-m-top_x-small">
+              <ScopedNotification theme="success">Event Id: {publishEventResponse.eventId}</ScopedNotification>
+            </div>
+          )}
+          {publishEventResponse && !publishEventResponse.success && (
+            <div className="slds-m-top_x-small">
+              <ScopedNotification theme="error">
+                There was an error publishing your event:
+                <p>{publishEventResponse.errorMessage}</p>
+              </ScopedNotification>
+            </div>
+          )}
+          {sobjectDescribeError && (
+            <div className="slds-m-top_x-small">
+              <ScopedNotification theme="error">
+                There was a problem loading the fields for the event:
+                <p>{sobjectDescribeErrorMsg}</p>
+              </ScopedNotification>
+            </div>
+          )}
+          <div>
+            {sobjectDescribeLoaded && sobjectDescribeData && (
+              <Fragment>
+                {!!sobjectDescribeData.describe.fields.length && (
+                  <Fragment>
+                    <UiRecordForm
+                      key={publishKey}
+                      org={selectedOrg}
+                      action="create"
+                      sobjectFields={sobjectDescribeData.describe.fields}
+                      picklistValues={sobjectDescribeData.picklistValues}
+                      record={publishEventRecord}
+                      onChange={setPublishEventRecord}
+                    />
+                    <Grid align="end" className="slds-m-right_xx-small">
+                      <button type="button" className="slds-button slds-button_neutral" onClick={clearForm}>
+                        <Icon type="utility" icon="clear" className="slds-button__icon slds-button__icon_left" omitContainer />
+                        Clear Form
+                      </button>
+                    </Grid>
+                  </Fragment>
+                )}
+                {!sobjectDescribeData.describe.fields.length && (
+                  <div className="slds-m-top_medium">
+                    This platform event does not have any custom fields.
+                    <Tooltip id={`sobject-list-refresh-tooltip`} content={sobjectDescribeData.lastRefreshed}>
+                      <button
+                        type="button"
+                        className="slds-button slds-button_icon slds-button_icon-container"
+                        disabled={loadingPlatformEvents}
+                        onClick={() => fetchSobjectDescribe(true)}
+                      >
+                        <Icon
+                          type="utility"
+                          icon="refresh"
+                          description="Reload platform events"
+                          className="slds-button__icon"
+                          omitContainer
+                        />
+                      </button>
+                    </Tooltip>
+                  </div>
+                )}
+              </Fragment>
+            )}
           </div>
         </Grid>
-        {publishEventResponse && publishEventResponse.success && (
-          <div className="slds-m-top_x-small">
-            <ScopedNotification theme="success">Event Id: {publishEventResponse.eventId}</ScopedNotification>
-          </div>
-        )}
-        {publishEventResponse && !publishEventResponse.success && (
-          <div className="slds-m-top_x-small">
-            <ScopedNotification theme="error">
-              There was an error publishing your event:
-              <p>{publishEventResponse.errorMessage}</p>
-            </ScopedNotification>
-          </div>
-        )}
-        {sobjectDescribeError && (
-          <div className="slds-m-top_x-small">
-            <ScopedNotification theme="error">
-              There was a problem loading the fields for the event:
-              <p>{sobjectDescribeErrorMsg}</p>
-            </ScopedNotification>
-          </div>
-        )}
-        <div>
-          {sobjectDescribeLoaded && sobjectDescribeData && (
-            <Fragment>
-              {!!sobjectDescribeData.describe.fields.length && (
-                <Fragment>
-                  <UiRecordForm
-                    key={publishKey}
-                    org={selectedOrg}
-                    action="create"
-                    sobjectFields={sobjectDescribeData.describe.fields}
-                    picklistValues={sobjectDescribeData.picklistValues}
-                    record={publishEventRecord}
-                    onChange={setPublishEventRecord}
-                  />
-                  <Grid align="end" className="slds-m-right_xx-small">
-                    <button className="slds-button slds-button_neutral" onClick={clearForm}>
-                      <Icon type="utility" icon="clear" className="slds-button__icon slds-button__icon_left" omitContainer />
-                      Clear Form
-                    </button>
-                  </Grid>
-                </Fragment>
-              )}
-              {!sobjectDescribeData.describe.fields.length && (
-                <div className="slds-m-top_medium">
-                  This platform event does not have any custom fields.
-                  <Tooltip id={`sobject-list-refresh-tooltip`} content={sobjectDescribeData.lastRefreshed}>
-                    <button
-                      className="slds-button slds-button_icon slds-button_icon-container"
-                      disabled={loadingPlatformEvents}
-                      onClick={() => fetchSobjectDescribe(true)}
-                    >
-                      <Icon type="utility" icon="refresh" className="slds-button__icon" omitContainer />
-                    </button>
-                  </Tooltip>
-                </div>
-              )}
-            </Fragment>
-          )}
-        </div>
-      </Grid>
+      </form>
     </Card>
   );
 };

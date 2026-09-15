@@ -218,6 +218,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
         className: classNames('slds-m-left_xx-small slds-button slds-button_icon', {
           'slds-text-color_brand': hasFiltersApplied,
         }),
+        'aria-label': 'Filter objects',
       }}
       // Rendered as a sibling of the trigger button since a button cannot be nested within another button
       triggerAfterContent={
@@ -229,8 +230,11 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
             css={css`
               position: absolute;
               background-color: var(--slds-g-color-error-base-30, #ba0517);
-              top: -0.4rem;
-              right: -0.4rem;
+              /* Sits inside the trigger's bounds (overlapping its corner) — the old negative
+                 offsets hung outside the wrapper and were clipped by overflow ancestors on
+                 tighter layouts like the mass-update page */
+              top: 0;
+              right: 0;
               border: none;
               border-radius: 50%;
               padding: 0;
