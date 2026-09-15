@@ -19,8 +19,6 @@ import {
   TeamLoginConfigRequest,
   TeamLoginConfigSchema,
   TeamMemberRole,
-  TeamMemberRoleSchema,
-  TeamMemberStatusSchema,
   TeamMemberUpdateRequest,
   TeamStatus,
   TeamUserFacing,
@@ -28,7 +26,6 @@ import {
 import capitalize from 'lodash/capitalize';
 import * as teamDbService from '../db/team.db';
 import { NotAllowedError, UserFacingError } from '../utils/error-handler';
-import * as stripeService from './stripe.service';
 
 /**
  * Verifies that the running user has permission to update the target user based on role hierarchy.
@@ -127,7 +124,7 @@ export async function updateTeamMember({
   userId: string;
   data: TeamMemberUpdateRequest;
 }): Promise<{ team: TeamUserFacing; previousMember: { role: string; features: string[]; email: string } }> {
-  const { teamMember, isBillableAction, previousMember } = await teamDbService.updateTeamMemberRole({
+  const { teamMember, previousMember } = await teamDbService.updateTeamMemberRole({
     teamId,
     userId,
     data,
@@ -147,11 +144,6 @@ export async function updateTeamMember({
 
   const team = await teamDbService.findByUserId({ userId: runningUserId });
 
-  // side-effect is not awaited, it will never throw
-  if (isBillableAction) {
-    syncUserCountWithStripe(teamId);
-  }
-
   return { team, previousMember };
 }
 
@@ -168,7 +160,7 @@ export async function updateTeamMemberStatusAndRole({
   status: typeof TEAM_MEMBER_STATUS_ACTIVE | typeof TEAM_MEMBER_STATUS_INACTIVE;
   role?: Maybe<TeamMemberRole>;
 }): Promise<{ team: TeamUserFacing; previousMember: { role: string; status: string; email: string }; allSessionsRevoked: boolean }> {
-  const { teamMember, previousMember, isBillableAction } = await teamDbService.updateTeamMemberStatusAndRole({
+  const { teamMember, previousMember } = await teamDbService.updateTeamMemberStatusAndRole({
     teamId,
     userId,
     status,
@@ -197,11 +189,6 @@ export async function updateTeamMemberStatusAndRole({
   }
 
   const team = await teamDbService.findByUserId({ userId: runningUserId });
-
-  // side-effect is not awaited, it will never throw
-  if (isBillableAction) {
-    syncUserCountWithStripe(teamId);
-  }
 
   return { team, previousMember, allSessionsRevoked };
 }
@@ -416,14 +403,7 @@ export async function acceptTeamInvitation({
   if (!canEnroll) {
     throw new UserFacingError('Please review the enrollment requirements and try again.');
   }
-  const { isBillableAction, email, role, features } = await teamDbService.acceptTeamInvitation({ teamId, token, user });
-
-  // side-effect is not awaited, it will never throw
-  if (isBillableAction) {
-    syncUserCountWithStripe(teamId);
-  }
-
-  return { email, role, features };
+  return await teamDbService.acceptTeamInvitation({ teamId, token, user });
 }
 
 export async function getTeamAuditLogs({
@@ -444,54 +424,4 @@ export async function getTeamAuditLogs({
 
 export async function getTeamAuditLogsForExport({ teamId, startDate, endDate }: { teamId: string; startDate: Date; endDate: Date }) {
   return auditLogLib.getTeamAuditLogsForExport({ teamId, startDate, endDate });
-}
-
-export async function syncUserCountWithStripe(teamId: string): ReturnType<typeof stripeService.updateSubscriptionItemQuantity> {
-  try {
-    const team = await teamDbService.findByIdWithBillingInfo_UNSAFE({ teamId });
-
-    if (!team) {
-      logger.warn({ teamId }, 'Team not found when syncing user count with Stripe');
-      return {
-        success: false,
-        didUpdate: false,
-        error: 'Team not Found',
-      };
-    }
-
-    if (!team.billingAccount) {
-      logger.warn({ teamId }, 'Team does not have a billing account when syncing user count with Stripe');
-      return {
-        success: false,
-        didUpdate: false,
-        error: 'Team does not have a billing account',
-      };
-    }
-
-    if (team.billingAccount.manualBilling) {
-      logger.warn({ teamId }, 'Team is on manual billing and is not eligible for automatic quantity adjustment');
-      return {
-        success: false,
-        didUpdate: false,
-        error: 'Team is on manual billing and is not eligible for automatic quantity adjustment',
-      };
-    }
-
-    const activeBillableMembers = team.members.filter(
-      ({ role, status }) => status === TeamMemberStatusSchema.enum.ACTIVE && role !== TeamMemberRoleSchema.enum.BILLING,
-    );
-
-    const results = await stripeService.updateSubscriptionItemQuantity(team.billingAccount.customerId, activeBillableMembers.length);
-
-    logger.info({ teamId, results }, 'Successfully synced user count with Stripe');
-
-    return results;
-  } catch (ex) {
-    logger.error({ teamId, error: getErrorMessage(ex) }, 'Error syncing user count with Stripe');
-    return {
-      success: false,
-      didUpdate: false,
-      error: getErrorMessage(ex),
-    };
-  }
 }

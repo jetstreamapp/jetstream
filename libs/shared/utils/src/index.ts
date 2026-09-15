@@ -11,4 +11,5 @@ export * from './lib/sobject-api-name-utils';
 export * from './lib/sso-certificate-expiration';
 export * from './lib/subquery-path-utils';
 export * from './lib/subquery-record-utils';
+export * from './lib/team-seats';
 export * from './lib/utils';

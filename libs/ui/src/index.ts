@@ -74,6 +74,7 @@ export * from './lib/form/form/FormRow';
 export * from './lib/form/form/FormRowItem';
 export * from './lib/form/form/ReadOnlyFormItem';
 export * from './lib/form/input/Input';
+export * from './lib/form/input/NumberStepperInput';
 export * from './lib/form/picklist/Picklist';
 export * from './lib/form/radio/Radio';
 export * from './lib/form/radio/RadioButton';
