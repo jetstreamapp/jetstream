@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { AUTH_ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
+import { getAuthErrorMessage, HTTP, isAuthErrorType, isLoginMethod } from '@jetstream/shared/constants';
 import { checkHeartbeat, disconnectSocket, initSocket, registerMiddleware, updateUserProfile } from '@jetstream/shared/data';
 import { initErrorTracker, setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/ui-utils';
 import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
@@ -54,6 +54,9 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnou
   const initDataHistoryAndSeedState = useInitDataHistory();
   const [searchParams, setSearchParams] = useSearchParams();
   const errorParam = searchParams.get('error');
+  // Only ProviderNotAllowed sends these - they let the message name the methods the team permits
+  const attemptedMethodParam = searchParams.get('attemptedMethod');
+  const allowedMethodsParam = searchParams.get('allowedMethods');
 
   useConditionalGoogleAnalytics(environment.googleAnalyticsSiteId, analytics === 'accepted');
 
@@ -69,11 +72,17 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnou
   use(ensureLocalStorageReady({ userId: activeUserId, dbName: LOCAL_STORE_DB_NAME }));
 
   useEffect(() => {
-    if (errorParam && AUTH_ERROR_MESSAGES[errorParam]) {
-      fireToast({ type: 'error', message: AUTH_ERROR_MESSAGES[errorParam] });
+    if (isAuthErrorType(errorParam)) {
+      fireToast({
+        type: 'error',
+        message: getAuthErrorMessage(errorParam, {
+          attemptedMethod: isLoginMethod(attemptedMethodParam) ? attemptedMethodParam : undefined,
+          allowedMethods: (allowedMethodsParam?.split(',') ?? []).filter(isLoginMethod),
+        }),
+      });
       setSearchParams({});
     }
-  }, [errorParam, setSearchParams]);
+  }, [errorParam, attemptedMethodParam, allowedMethodsParam, setSearchParams]);
 
   useEffect(() => {
     console.log(

@@ -25,6 +25,7 @@ import {
   UserSessionWithLocationAndUser,
 } from '@jetstream/auth/types';
 import { Prisma } from '@jetstream/prisma';
+import { LOGIN_METHODS, type LoginMethod } from '@jetstream/shared/constants';
 import { decryptString, encryptString } from '@jetstream/shared/node-utils';
 import {
   ACCOUNT_LOCKOUT_DURATION_MINUTES,
@@ -64,6 +65,7 @@ import {
   PasswordReused,
   ProviderEmailNotVerified,
   ProviderNotAllowed,
+  SsoRequired,
 } from './auth.errors';
 import { ensureAuthError, lookupGeoLocationFromIpAddresses } from './auth.service';
 import { checkUserAgentSimilarity, hashPassword, REMEMBER_DEVICE_DAYS, timingSafeStringCompare, verifyPassword } from './auth.utils';
@@ -1579,36 +1581,71 @@ function throwIfInactiveUser(user: AuthenticatedUser | null) {
   }
 }
 
+/**
+ * The sign in methods a team permits, which is the allowed provider list plus SSO when it is configured.
+ * SSO is not part of `allowedProviders` but is a way in, so it has to be included or the user is told
+ * to use a method their team turned off.
+ *
+ * Filtering LOGIN_METHODS rather than reading the stored list keeps the order canonical, so the message
+ * shown to the user does not change based on how the team's providers happen to be ordered in the database.
+ */
+function getAllowedLoginMethods(loginConfiguration: LoginConfiguration): LoginMethod[] {
+  return LOGIN_METHODS.filter((method) => {
+    if (method === 'sso') {
+      return loginConfiguration.ssoEnabled && loginConfiguration.ssoProvider !== 'NONE';
+    }
+    return loginConfiguration.allowedProviders.has(method);
+  });
+}
+
+/**
+ * The message is never shown to the user (the sign in screen builds its own copy from the error type
+ * and the attempted/allowed methods), it exists so the login activity audit trail records which
+ * provider was rejected and what was allowed.
+ */
+function throwIfProviderNotAllowed(provider: OauthProviderType | 'credentials', loginConfiguration: Maybe<LoginConfiguration>) {
+  if (loginConfiguration && !loginConfiguration.allowedProviders.has(provider)) {
+    const allowedMethods = getAllowedLoginMethods(loginConfiguration);
+    throw new ProviderNotAllowed(
+      `The ${provider} provider is not allowed for this team. Allowed methods: ${allowedMethods.join(', ') || 'none'}`,
+      { attemptedMethod: provider, allowedMethods },
+    );
+  }
+}
+
 function throwIfInvalidSsoConfig({
+  provider,
   providerType,
   loginConfiguration,
   user,
 }: {
   loginConfiguration: Maybe<LoginConfiguration>;
+  provider: OauthProviderType | 'credentials';
   providerType: ProviderType;
   user: AuthenticatedUser;
 }) {
   if (loginConfiguration && loginConfiguration.ssoEnabled && loginConfiguration.ssoProvider !== 'NONE') {
     if (!user.teamMembership?.role) {
       logger.warn(
-        { userId: user.id, providerType, loginConfigurationId: loginConfiguration.id },
+        { userId: user.id, provider, providerType, loginConfigurationId: loginConfiguration.id },
         'Cannot validate SSO bypass roles because user has no team membership role',
       );
-      throw new ProviderNotAllowed('SSO is required for this team. Login using SSO.');
+      throw new SsoRequired(`SSO is required for this team, the ${provider} provider cannot be used. Login using SSO.`);
     }
 
     if (!loginConfiguration.ssoBypassEnabled) {
       logger.warn(
-        { userId: user.id, providerType, loginConfigurationId: loginConfiguration.id },
+        { userId: user.id, provider, providerType, loginConfigurationId: loginConfiguration.id },
         'Cannot bypass SSO because SSO bypass is not enabled in login configuration',
       );
-      throw new ProviderNotAllowed('SSO is required for this team. Login using SSO.');
+      throw new SsoRequired(`SSO is required for this team, the ${provider} provider cannot be used. Login using SSO.`);
     }
 
     if (!loginConfiguration.ssoBypassEnabledRoles.includes(user.teamMembership.role)) {
       logger.warn(
         {
           userId: user.id,
+          provider,
           providerType,
           loginConfigurationId: loginConfiguration.id,
           userRole: user.teamMembership.role,
@@ -1616,7 +1653,9 @@ function throwIfInvalidSsoConfig({
         },
         'Cannot bypass SSO because user role is not allowed to bypass SSO',
       );
-      throw new ProviderNotAllowed('SSO is required for this team. Login using SSO.');
+      throw new SsoRequired(
+        `SSO is required for this team, the ${provider} provider cannot be used by the ${user.teamMembership.role} role. Login using SSO.`,
+      );
     }
   }
 }
@@ -1741,9 +1780,7 @@ export async function handleSignInOrRegistration(
     // this will be checked again in case there is a team without domains configured
     let loginConfiguration = teamInviteResponse?.loginConfiguration || null;
 
-    if (loginConfiguration && !loginConfiguration.allowedProviders.has(provider)) {
-      throw new ProviderNotAllowed();
-    }
+    throwIfProviderNotAllowed(provider, loginConfiguration);
 
     if (providerType === 'oauth') {
       const { providerUser } = payload;
@@ -1802,7 +1839,7 @@ export async function handleSignInOrRegistration(
         if (!loginConfiguration && user.teamMembership?.teamId) {
           loginConfiguration = await getLoginConfiguration({ teamId: user.teamMembership.teamId });
         }
-        throwIfInvalidSsoConfig({ providerType, loginConfiguration, user });
+        throwIfInvalidSsoConfig({ provider, providerType, loginConfiguration, user });
         // Update provider information
         await updateIdentityAttributesFromProvider(user.id, providerUser, provider);
       }
@@ -1837,7 +1874,7 @@ export async function handleSignInOrRegistration(
         if (!loginConfiguration && user.teamMembership?.teamId) {
           loginConfiguration = await getLoginConfiguration({ teamId: user.teamMembership.teamId });
         }
-        throwIfInvalidSsoConfig({ providerType, loginConfiguration, user });
+        throwIfInvalidSsoConfig({ provider, providerType, loginConfiguration, user });
       } else if (action === 'register') {
         const usersWithEmail = await findUsersByEmail(email);
         // Email already in use - go to verification flow with placeholder user, user will never be able to complete the process
@@ -1890,9 +1927,7 @@ export async function handleSignInOrRegistration(
      * If user is part of a team without domains configured, we need to re-check the login configuration
      * as we would not have enough information previously to determine if the provider was allowed
      */
-    if (loginConfiguration && !loginConfiguration.allowedProviders.has(provider)) {
-      throw new ProviderNotAllowed();
-    }
+    throwIfProviderNotAllowed(provider, loginConfiguration);
 
     if (loginConfiguration?.requireMfa) {
       // if email is allowed, then we don't need to force enrollment - but we will force email verification

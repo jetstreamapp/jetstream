@@ -218,6 +218,8 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
           error: boolean;
           errorType?: string;
           redirect?: string;
+          attemptedMethod?: string;
+          allowedMethods?: string[];
         };
       } = await response.json();
 
@@ -225,7 +227,16 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
       const errorType = responseData.errorType || responseData.data?.errorType;
 
       if (!response.ok || error) {
-        router.push(`${router.pathname}?${new URLSearchParams({ error: errorType || 'UNKNOWN_ERROR' })}`);
+        const errorParams = new URLSearchParams({ error: errorType || 'UNKNOWN_ERROR' });
+        // Only ProviderNotAllowed sends these - they let the banner name the methods the team permits
+        const { attemptedMethod, allowedMethods } = responseData.data ?? {};
+        if (allowedMethods?.length) {
+          errorParams.set('allowedMethods', allowedMethods.join(','));
+        }
+        if (attemptedMethod) {
+          errorParams.set('attemptedMethod', attemptedMethod);
+        }
+        router.push(`${router.pathname}?${errorParams}`);
         try {
           captchaRef?.current?.reset();
         } catch (ex) {

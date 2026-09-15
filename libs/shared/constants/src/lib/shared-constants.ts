@@ -6,6 +6,7 @@ import type {
   InputAcceptTypeTsv,
   InputAcceptTypeXml,
   InputAcceptTypeZip,
+  Maybe,
   MimeType,
 } from '@jetstream/types';
 
@@ -1246,13 +1247,66 @@ export const AUTH_ERROR_MESSAGES = {
   PasswordResetRequired: 'You must reset your password before signing in.',
   PasswordReused: 'You cannot reuse your previously used passwords. Choose a different password.',
   ProviderEmailNotVerified: 'You must first verify your email address with the provider in order to register.',
-  ProviderNotAllowed: `This login method is not allowed, login using an approved method.`,
+  ProviderNotAllowed: `This login method is not enabled for your team. Sign in with an approved method, or contact your Jetstream administrator.`,
   SsoAmbiguousAccount: 'Your account cannot be uniquely identified. Please contact your administrator for assistance.',
   SsoAutoProvisioningDisabled: 'You are not a member of this team. Ask an admin to invite you or enable auto-provisioning for SSO.',
   SsoInvalidAction:
     'Your credentials are invalid or you are not authorized to perform this action. Contact your administrator for assistance.',
   SsoLicenseLimitExceeded:
     'Your account cannot be provisioned because the team has reached its maximum user count or the account is not active. Please contact your administrator.',
+  SsoRequired: `Your team requires single sign-on. Use the "Continue with SSO" option to sign in.`,
   TooManyRequests: 'Too many attempts. Please wait a moment before trying again.',
   TooManyVerificationAttempts: 'Too many incorrect attempts. Please sign in again to request a new code.',
 };
+
+export type LoginMethod = 'credentials' | 'google' | 'salesforce' | 'sso';
+
+export const LOGIN_METHODS: LoginMethod[] = ['credentials', 'google', 'salesforce', 'sso'];
+
+/**
+ * `subject` starts a sentence ("Salesforce sign-in isn't enabled..."), `object` completes one
+ * ("Sign in with Salesforce"). Keeping both avoids awkward phrasing in either position.
+ */
+const LOGIN_METHOD_LABELS: Record<LoginMethod, { subject: string; object: string }> = {
+  credentials: { subject: 'Email and password sign-in', object: 'your email and password' },
+  google: { subject: 'Google sign-in', object: 'Google' },
+  salesforce: { subject: 'Salesforce sign-in', object: 'Salesforce' },
+  sso: { subject: 'Single sign-on', object: 'single sign-on' },
+};
+
+const loginMethodListFormatter = new Intl.ListFormat('en', { style: 'long', type: 'disjunction' });
+
+export type AuthErrorType = keyof typeof AUTH_ERROR_MESSAGES;
+
+/**
+ * Error types reach us from query params and API payloads, so they have to be checked rather than
+ * used as a key directly. `AUTH_ERROR_MESSAGES` is a plain object: a bare lookup resolves inherited
+ * members, so `?error=constructor` would hand back a function that crashes the render when React
+ * receives it as message text. Only own keys count.
+ */
+export function isAuthErrorType(value: unknown): value is AuthErrorType {
+  return typeof value === 'string' && Object.hasOwn(AUTH_ERROR_MESSAGES, value);
+}
+
+export function isLoginMethod(value: unknown): value is LoginMethod {
+  return typeof value === 'string' && LOGIN_METHODS.includes(value as LoginMethod);
+}
+
+/**
+ * Resolves the message shown on the sign in screen for a failed authentication attempt.
+ *
+ * `ProviderNotAllowed` is the one error where the static copy leaves the user stuck - the team
+ * restricts which methods can be used and nothing on the login screen says which. When the server
+ * tells us what the team allows, name the methods instead so the user knows where to go next.
+ */
+export function getAuthErrorMessage(
+  errorType: Maybe<string>,
+  { attemptedMethod, allowedMethods }: { attemptedMethod?: Maybe<LoginMethod>; allowedMethods?: Maybe<LoginMethod[]> } = {},
+): string {
+  if (errorType === 'ProviderNotAllowed' && allowedMethods?.length) {
+    const allowedLabels = loginMethodListFormatter.format(allowedMethods.map((method) => LOGIN_METHOD_LABELS[method].object));
+    const attemptedLabel = attemptedMethod ? LOGIN_METHOD_LABELS[attemptedMethod].subject : 'That login method';
+    return `${attemptedLabel} isn't enabled for your team. Sign in with ${allowedLabels}, or contact your Jetstream administrator.`;
+  }
+  return isAuthErrorType(errorType) ? AUTH_ERROR_MESSAGES[errorType] : AUTH_ERROR_MESSAGES.AuthError;
+}
