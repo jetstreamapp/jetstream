@@ -1,6 +1,6 @@
+import { getAuthErrorMessage, isLoginMethod, LoginMethod } from '@jetstream/shared/constants';
 import { Maybe } from '@jetstream/types';
 import { useSearchParams } from 'next/navigation';
-import { SIGN_IN_ERRORS } from '../utils/environment';
 import Alert from './Alert';
 
 interface ErrorQueryParamErrorBannerProps {
@@ -12,6 +12,11 @@ interface ErrorQueryParamErrorBannerProps {
   success?: Maybe<string>;
 }
 
+/** Sent alongside `error=ProviderNotAllowed` so the banner can name the methods the team permits */
+function parseLoginMethods(value: Maybe<string>): LoginMethod[] {
+  return (value?.split(',') ?? []).filter(isLoginMethod);
+}
+
 export function ErrorQueryParamErrorBanner({ error, message, success }: ErrorQueryParamErrorBannerProps) {
   const searchParams = useSearchParams();
 
@@ -20,9 +25,17 @@ export function ErrorQueryParamErrorBanner({ error, message, success }: ErrorQue
   success = success ?? searchParams?.get('success');
 
   if (error) {
+    const attemptedMethodParam = searchParams?.get('attemptedMethod');
     return (
       <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
-        <Alert dismissable type="error" message={SIGN_IN_ERRORS[error] ?? SIGN_IN_ERRORS.default} />
+        <Alert
+          dismissable
+          type="error"
+          message={getAuthErrorMessage(error, {
+            attemptedMethod: isLoginMethod(attemptedMethodParam) ? attemptedMethodParam : undefined,
+            allowedMethods: parseLoginMethods(searchParams?.get('allowedMethods')),
+          })}
+        />
       </div>
     );
   }
