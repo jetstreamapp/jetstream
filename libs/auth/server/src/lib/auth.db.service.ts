@@ -226,6 +226,9 @@ export async function getLoginConfiguration({ teamId }: { teamId: string; skipCa
             requireMfa: true,
             ssoRequireMfa: true,
             ssoBypassEnabled: true,
+            // Omitting this let the schema default (['ADMIN']) stand in for the team's real setting,
+            // so SSO bypass was always evaluated against ADMIN no matter what the team configured
+            ssoBypassEnabledRoles: true,
             ssoEnabled: true,
             ssoJitProvisioningEnabled: true,
             ssoProvider: true,
