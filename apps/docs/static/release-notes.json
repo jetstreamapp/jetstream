@@ -1,10 +1,40 @@
 [
   {
-    "slug": "v10.18.1",
-    "title": "10.18.1 - Permission Analysis documentation and SOC 2 Type II report",
-    "date": "2026-09-12",
+    "slug": "v10.20.0",
+    "title": "10.20.0 - Google Drive downloads in Data History and load fixes",
+    "date": "2026-09-13",
     "tags": ["web", "desktop", "extension"],
-    "versions": { "web": "10.18.1", "desktop": "4.15.1", "extension": "3.18.1" },
+    "versions": { "web": "10.20.0", "desktop": "4.16.0", "extension": "3.19.0" },
+    "summary": "Saved data in Data History can be sent straight to Google Drive. Mass updates now stop cleanly when Salesforce closes a bulk job, and large Permission Manager exports to Excel work again.",
+    "highlights": [
+      {
+        "title": "Google Drive downloads in Data History",
+        "description": "The Data History download modal now offers Google Drive alongside Excel, CSV, and JSON.",
+        "docLink": "/load/data-history"
+      },
+      {
+        "title": "Mass updates stop when Salesforce closes the bulk job",
+        "description": "A mass update that hits a closed bulk job now stops instead of sending every remaining batch, and the records that were never sent are listed as errors.",
+        "docLink": "/load/update-records"
+      },
+      {
+        "title": "Large permission exports to Excel",
+        "description": "Exporting a wide selection of profiles and permission sets from Manage Permissions to Excel no longer fails without producing a file.",
+        "docLink": "/permissions"
+      },
+      {
+        "title": "Paste into data table filter boxes",
+        "description": "Filter boxes inside a data table, including the Field column filter in Manage Permissions, now accept paste and let the arrow keys move the caret.",
+        "docLink": "/permissions"
+      }
+    ]
+  },
+  {
+    "slug": "v10.19.0",
+    "title": "10.19.0 - Permission Analysis documentation and SOC 2 Type II report",
+    "date": "2026-09-12",
+    "tags": ["web"],
+    "versions": { "web": "10.19.0" },
     "summary": "Permission Analysis is now fully documented, and the app links to those docs from the home card, upgrade screen, results toolbar, and findings modal. The Jetstream SOC 2 Type II report is available on request.",
     "highlights": [
       {

@@ -1,0 +1,48 @@
+---
+slug: v10.20.0
+title: 10.20.0 - Google Drive downloads in Data History and load fixes
+date: '2026-09-13'
+tags: [web, desktop, extension]
+versions:
+  web: 10.20.0
+  desktop: 4.16.0
+  extension: 3.19.0
+summary: Saved data in Data History can be sent straight to Google Drive. Mass updates now stop cleanly when Salesforce closes a bulk job, and large Permission Manager exports to Excel work again.
+highlights:
+  - title: Google Drive downloads in Data History
+    description: The Data History download modal now offers Google Drive alongside Excel, CSV, and JSON.
+    docLink: /load/data-history
+  - title: Mass updates stop when Salesforce closes the bulk job
+    description: A mass update that hits a closed bulk job now stops instead of sending every remaining batch, and the records that were never sent are listed as errors.
+    docLink: /load/update-records
+  - title: Large permission exports to Excel
+    description: Exporting a wide selection of profiles and permission sets from Manage Permissions to Excel no longer fails without producing a file.
+    docLink: /permissions
+  - title: Paste into data table filter boxes
+    description: Filter boxes inside a data table, including the Field column filter in Manage Permissions, now accept paste and let the arrow keys move the caret.
+    docLink: /permissions
+---
+
+{/* truncate */}
+
+## What's new
+
+### Google Drive downloads in Data History
+
+Saved payloads in Data History can now be written to Google Drive. The Google Drive option appears in the download modal next to Excel, CSV, and JSON, both from the row action menu in the history table and from the Download button in the detail modal. Picking it opens the Drive folder picker and uploads the records as a CSV. Google Drive downloads are a Pro feature on the web app and are available to everyone on the desktop app and the browser extension.
+
+### Mass updates stop when Salesforce closes the bulk job
+
+When Salesforce closes or aborts a bulk job partway through a mass update, every batch sent after that point is rejected with `the Job is not Open`. Update Records used to keep posting the remaining batches and report each rejection separately. It now stops on the first fatal bulk error and lists the records in the unsent batches as processing errors, so the results still account for every record. Load Records already behaved this way, and both now share the same list of fatal errors.
+
+### Large permission exports to Excel
+
+Exporting from Manage Permissions to Excel failed with `Too many properties to enumerate` when the selection produced a very wide field permissions sheet, and no file was written. All four worksheets are now built in a format that has no such limit.
+
+### Paste into data table filter boxes
+
+A data table claims paste and navigation keys for whichever cell has focus, which meant a text input rendered inside a cell never received them. Pasting into the Field column filter in Manage Permissions did nothing, and the arrow keys moved the table selection instead of the caret. Text inputs inside a cell now handle their own keys. Escape still returns focus to the table so cell navigation resumes.
+
+### Other fixes
+
+- Jetstream is now listed on the Salesforce AppExchange, which means it has passed the Salesforce Security Review. The home page and the security documentation cover what that review and the SOC 2 Type II audit each include.
