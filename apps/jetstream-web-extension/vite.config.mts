@@ -8,6 +8,7 @@ import {
   getServerUrlForMode,
   manifestTransformPlugin,
   placeholderHtmlPlugin,
+  sharedAssetsPlugin,
 } from './vite.plugins.mts';
 
 export default defineConfig(({ command, mode }) => {
@@ -38,6 +39,7 @@ export default defineConfig(({ command, mode }) => {
       }),
       manifestTransformPlugin(mode),
       placeholderHtmlPlugin(),
+      sharedAssetsPlugin(),
       extensionScriptsBuildPlugin(mode),
     ],
     resolve: { tsconfigPaths: true },

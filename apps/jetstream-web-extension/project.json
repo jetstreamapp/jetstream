@@ -4,6 +4,7 @@
   "sourceRoot": "apps/jetstream-web-extension/src",
   "projectType": "application",
   "tags": ["scope:browser"],
+  "implicitDependencies": ["shared-assets"],
   "targets": {
     "build": {
       "outputs": ["{workspaceRoot}/dist/apps/jetstream-web-extension"],

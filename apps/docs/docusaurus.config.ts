@@ -23,8 +23,10 @@ const config: Config = {
   tagline: 'Documentation',
   url: 'https://docs.getjetstream.app',
   baseUrl: '/',
+  // Brand images live in libs/shared/assets and are exposed here under /images/**; ./static keeps robots.txt etc.
+  staticDirectories: ['static', '../../libs/shared/assets/public'],
   onBrokenLinks: 'throw',
-  favicon: 'img/favicon-inverse.ico',
+  favicon: 'images/favicon-inverse.ico',
   organizationName: 'jetstream', // Usually your GitHub org/user name.
   projectName: 'jetstream', // Usually your repo name.
   trailingSlash: false,
@@ -100,13 +102,12 @@ const config: Config = {
       searchParameters: {},
       //... other Algolia params
     },
-    image:
-      'https://res.cloudinary.com/getjetstream/image/upload/b_rgb:ffffff,bo_3px_solid_rgb:ffffff,pg_1/v1634516631/public/jetstream-logo-1200w.png',
+    image: 'images/jetstream-logo-1200w-white-border.png',
     navbar: {
       logo: {
         alt: 'Jetstream logo',
-        src: 'img/jetstream-logo.svg',
-        srcDark: 'img/jetstream-logo-inverse.svg',
+        src: 'images/jetstream-logo.svg',
+        srcDark: 'images/jetstream-logo-inverse.svg',
       },
       items: [
         {

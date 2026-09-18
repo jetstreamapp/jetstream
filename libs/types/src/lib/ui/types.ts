@@ -720,14 +720,6 @@ export interface InputReadFileContent<T = string | ArrayBuffer> {
   isPasteFromClipboard?: boolean;
 }
 
-export interface ImageWithUpload extends InputReadFileContent<string> {
-  id: string;
-  uploading: boolean;
-  url?: string;
-  error?: string;
-  deleteToken?: string;
-}
-
 export interface InputReadGoogleSheet {
   workbook: XLSX.WorkBook;
   selectedFile: google.picker.DocumentObject;

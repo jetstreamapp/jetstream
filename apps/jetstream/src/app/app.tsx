@@ -6,6 +6,7 @@ import {
   ErrorBoundaryEmptyFallback,
   ErrorBoundaryFallback,
   HeaderNavbar,
+  NotificationsRequestModal,
   ThemeApplier,
   ViewEditCloneRecordWrapper,
 } from '@jetstream/ui-core';
@@ -19,7 +20,6 @@ import AppInitializer from './components/core/AppInitializer';
 import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange';
 import LogInitializer from './components/core/LogInitializer';
 import './components/core/monaco-loader';
-import NotificationsRequestModal from './components/core/NotificationsRequestModal';
 
 export const App = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);

@@ -68,7 +68,6 @@ export * from './lib/form/dueling-picklist/DuelingPicklistTypes';
 export * from './lib/form/file-selector/FileDropTarget';
 export * from './lib/form/file-selector/FileOrGoogleSelector';
 export * from './lib/form/file-selector/FileSelector';
-export * from './lib/form/file-selector/ImageSelector';
 export * from './lib/form/form/Form';
 export * from './lib/form/form/FormRow';
 export * from './lib/form/form/FormRowItem';

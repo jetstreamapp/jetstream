@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Body, Column, Container, Head, Heading, Hr, Html, Img, Link, Preview, Row, Section, Text } from 'react-email';
 import { EmailFooter } from '../../components/EmailFooter';
 import { EmailLogo } from '../../components/EmailLogo';
+import { getEmailImageUrl } from '../../email-assets';
 import { EMAIL_STYLES } from '../../shared-styles';
 
 void React.createElement;
@@ -76,7 +77,7 @@ export default WelcomeEmail;
 function getFeatures() {
   return [
     {
-      image: 'https://res.cloudinary.com/getjetstream/image/upload/c_scale,w_40/v1634490318/public/email/query.png',
+      image: getEmailImageUrl('email/query.png'),
       title: 'Query Records',
       content: [
         'Jetstream simplifies exploring records in your org.',
@@ -87,7 +88,7 @@ function getFeatures() {
       ],
     },
     {
-      image: 'https://res.cloudinary.com/getjetstream/image/upload/c_scale,w_40/v1634490318/public/email/load.png',
+      image: getEmailImageUrl('email/load.png'),
       title: 'Load Records',
       content: [
         'Easily update your record data with Jetstream.',
@@ -101,7 +102,7 @@ function getFeatures() {
       ],
     },
     {
-      image: 'https://res.cloudinary.com/getjetstream/image/upload/c_scale,w_40/v1634490318/public/email/automation.png',
+      image: getEmailImageUrl('email/automation.png'),
       title: 'Automation Control',
       content: [
         `Easily review and toggle automation in your org.`,
@@ -112,7 +113,7 @@ function getFeatures() {
       ],
     },
     {
-      image: 'https://res.cloudinary.com/getjetstream/image/upload/c_scale,w_40/v1634490318/public/email/permissions.png',
+      image: getEmailImageUrl('email/permissions.png'),
       title: 'Permission Manager',
       content: [
         'Updating field and object permissions has never been easier.',
@@ -123,7 +124,7 @@ function getFeatures() {
       ],
     },
     {
-      image: 'https://res.cloudinary.com/getjetstream/image/upload/c_scale,w_40/v1634490318/public/email/deploy.png',
+      image: getEmailImageUrl('email/deploy.png'),
       title: 'Metadata Tools',
       content: [
         'Jetstream offers a versatile set of metadata tools.',
@@ -142,7 +143,7 @@ function getFeatures() {
       ],
     },
     {
-      image: 'https://res.cloudinary.com/getjetstream/image/upload/c_scale,w_40/v1634490318/public/email/developer.png',
+      image: getEmailImageUrl('email/developer.png'),
       title: 'Developer Tools',
       content: [
         'Replace the Developer Console with Jetstream.',

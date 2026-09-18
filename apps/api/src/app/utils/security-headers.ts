@@ -48,7 +48,6 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
       'https://*.gstatic.com',
       'https://*.betterstackdata.com',
       'https://api.amplitude.com',
-      'https://api.cloudinary.com',
       'https://api.stripe.com',
       'https://challenges.cloudflare.com',
       'https://checkout.stripe.com',
@@ -83,7 +82,6 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
     imgSrc: [
       "'self'",
       'data:',
-      'https://*.cloudinary.com',
       'https://*.ctfassets.net',
       'https://*.documentforce.com',
       'https://*.force.com',

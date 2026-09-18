@@ -22,25 +22,7 @@ export function LoginOrSignUpOAuthButton({
   lastUsedLogin,
   setLastUsed,
 }: LoginOrSignUpOAuthButtonProps) {
-  const { logo, label } = useMemo(() => {
-    switch (provider.provider) {
-      case 'google':
-        return {
-          logo: 'https://res.cloudinary.com/getjetstream/image/upload/v1693697889/public/google-login-icon_bzw1hi.svg',
-          label: 'Google',
-        };
-      case 'salesforce':
-        return {
-          logo: 'https://res.cloudinary.com/getjetstream/image/upload/v1724511801/salesforce-blue_qdptxw.svg',
-          label: 'Salesforce',
-        };
-      default:
-        return {
-          logo: '',
-          label: provider.provider,
-        };
-    }
-  }, [provider.provider]);
+  const { icon, label } = provider;
 
   const actionUrl = useMemo(() => {
     if (!provider.signinUrl) {
@@ -68,7 +50,7 @@ export function LoginOrSignUpOAuthButton({
             },
           )}
         >
-          <img src={logo} alt={`Sign in with ${label} Logo`} className="h-5 w-5" />
+          <img src={icon} alt={`Sign in with ${label} Logo`} className="h-5 w-5" />
           <span className="text-sm font-semibold leading-6">{label}</span>
         </button>
         {action === 'login' && lastUsedLogin === provider.provider && <LastUsedBadge className="mt-1 justify-center" />}

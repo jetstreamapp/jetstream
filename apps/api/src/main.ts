@@ -334,9 +334,22 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
 
   // Helmet v8 sets Cross-Origin-Resource-Policy: same-origin globally, which is what
   // the previous per-mount setCrossOriginResourcePolicy middleware was doing for
-  // static assets. No extra per-route middleware needed here.
+  // static assets. No extra per-route middleware needed here, apart from the shared
+  // brand images below.
   app.use('/assets/js/monaco/vs', express.static(join(__dirname, '../../../node_modules/monaco-editor/min/vs')));
   app.use('/.well-known', express.static(join(__dirname, './assets/.well-known')));
+  // Brand images, favicons, marketing screenshots and email icons from libs/shared/assets (copied into assets/images at
+  // build time). Names are stable and content rarely changes, so let browsers and the Cloudflare edge cache them.
+  // These are public assets that other origins embed on purpose: emails, external pages, IdP configuration, and the
+  // landing and web app dev servers, which run on their own ports. They therefore opt out of the global same-origin
+  // CORP default, which would otherwise block them with ERR_BLOCKED_BY_RESPONSE.NotSameOrigin.
+  app.use(
+    '/assets/images',
+    express.static(join(__dirname, './assets/images'), {
+      maxAge: '1d',
+      setHeaders: (res) => res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'),
+    }),
+  );
   app.use('/assets', express.static(join(__dirname, './assets'), { maxAge: '1m' }));
   app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
   app.use(express.static(join(__dirname, '../landing')));
