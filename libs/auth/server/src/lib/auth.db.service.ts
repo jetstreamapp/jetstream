@@ -25,6 +25,7 @@ import {
   UserSessionWithLocationAndUser,
 } from '@jetstream/auth/types';
 import { Prisma } from '@jetstream/prisma';
+import { AUTH_ERROR_MESSAGES } from '@jetstream/shared/constants';
 import { decryptString, encryptString } from '@jetstream/shared/node-utils';
 import {
   ACCOUNT_LOCKOUT_DURATION_MINUTES,
@@ -53,6 +54,7 @@ import {
 import {
   AccountLocked,
   AuthError,
+  EmailDomainNotAllowed,
   IdentityLinkingNotAllowed,
   InactiveUser,
   InvalidAction,
@@ -67,6 +69,7 @@ import {
 } from './auth.errors';
 import { ensureAuthError, lookupGeoLocationFromIpAddresses } from './auth.service';
 import { checkUserAgentSimilarity, hashPassword, REMEMBER_DEVICE_DAYS, timingSafeStringCompare, verifyPassword } from './auth.utils';
+import { isEmailDomainBlocked } from './blocked-email-domain.db.service';
 import { expirePendingEmailChangeRequests } from './email-change.db.service';
 
 // This is potentially accessed multiple times in a transaction for a user, cache data to avoid DB access
@@ -1839,6 +1842,19 @@ export async function handleSignInOrRegistration(
         }
         throwIfInvalidSsoConfig({ providerType, loginConfiguration, user });
       } else if (action === 'register') {
+        // Checked before the already-in-use branch below, which deliberately hides whether an
+        // account exists. Rejecting only unregistered blocked-domain addresses would turn that
+        // branch into an enumeration oracle; rejecting every blocked domain reveals nothing the
+        // caller did not already supply.
+        //
+        // Applied to credentials registration (and email change) but NOT to the OAuth/SSO paths,
+        // where the address comes from a verified identity provider rather than being freely
+        // chosen, and a block would be an unfixable dead end for the user.
+        if (await isEmailDomainBlocked(email)) {
+          logger.warn({ email }, '[AUTH][REGISTER] Rejected registration from a blocked email domain');
+          throw new EmailDomainNotAllowed(AUTH_ERROR_MESSAGES.EmailDomainNotAllowed);
+        }
+
         const usersWithEmail = await findUsersByEmail(email);
         // Email already in use - go to verification flow with placeholder user, user will never be able to complete the process
         if (usersWithEmail.length > 0) {
