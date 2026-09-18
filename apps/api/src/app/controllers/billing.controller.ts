@@ -3,6 +3,7 @@ import { refreshSessionUser } from '@jetstream/auth/server';
 import { STRIPE_PRICE_KEYS, TeamMemberRole, TeamMemberRoleSchema, UserProfileUi } from '@jetstream/types';
 import Stripe from 'stripe';
 import { z } from 'zod';
+import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import * as teamDbService from '../db/team.db';
 import * as userDbService from '../db/user.db';
 import * as stripeService from '../services/stripe.service';
@@ -113,6 +114,7 @@ const createCheckoutSessionHandler = createRoute(
     const user = await userDbService.findByIdWithSubscriptions(sessionUser.id);
     const team = await teamDbService.findByUserIdWithSubscriptions({ userId: sessionUser.id });
     const teamMember = team?.members.find(({ userId }) => userId === sessionUser.id);
+    const productionOrgId = await salesforceOrgsDb.findProductionOrganizationId(sessionUser.id);
 
     const type = priceLookupKey.startsWith('TEAM_') ? 'TEAM' : 'USER';
     let session: Stripe.Response<Stripe.Checkout.Session> | null = null;
@@ -129,6 +131,7 @@ const createCheckoutSessionHandler = createRoute(
         user,
         type: 'TEAM',
         teamId: team?.id,
+        productionOrgId,
       });
     } else {
       session = await stripeService.createCheckoutSession({
@@ -138,6 +141,7 @@ const createCheckoutSessionHandler = createRoute(
         customerId: user.billingAccount?.customerId,
         user,
         type: 'USER',
+        productionOrgId,
       });
     }
 

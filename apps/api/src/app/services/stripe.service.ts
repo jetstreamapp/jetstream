@@ -39,6 +39,22 @@ export const ensureStripeIsInitialized = () => {
 
 export const activeSubscriptionStatuses = new Set(['active', 'trialing', 'incomplete']);
 
+/**
+ * Salesforce requires the customer's production org id on every order we submit, so it is collected at
+ * checkout and kept on the Stripe customer. Checkout has no tooltip or help text for a custom field and
+ * caps the label at 50 characters, so the label carries the "why" and the long form explanation is
+ * rendered next to the pay button (up to 1200 characters).
+ */
+export const PRODUCTION_ORG_ID_FIELD_KEY = 'productionOrgId';
+const PRODUCTION_ORG_ID_FIELD_LABEL = 'Production Org ID (required by Salesforce)';
+const PRODUCTION_ORG_ID_HELP_TEXT =
+  "As a Salesforce partner, we're required to report each order to Salesforce along with the Org ID of the customer's production org. " +
+  'The Org ID only identifies your org. It does not give us or anyone else access to it. ' +
+  'You can find it in your production org (not a sandbox) in Salesforce Setup under Company Information. ' +
+  'It starts with 00D and is 15 or 18 characters long. ' +
+  "Not sure which Org ID to use, or don't have a production org? Email support@getjetstream.app and we'll help.";
+const SALESFORCE_ORG_ID_REGEX = /^00D[a-zA-Z0-9]{12}(?:[a-zA-Z0-9]{3})?$/;
+
 export type StripeSyncFailureReason = 'NO_CUSTOMER_ID' | 'CUSTOMER_IS_DELETED' | 'MISSING_SUBSCRIPTIONS' | 'UNKNOWN_ERROR';
 
 /**
@@ -289,11 +305,12 @@ export async function updateCustomerEmail(customerId: string, email: string): Pr
  */
 export async function updateCustomerMetadata(
   customerId: string,
-  metadata: { userId: string; teamId: string | null; type: 'TEAM' | 'USER' },
+  { productionOrgId, ...metadata }: { userId: string; teamId: string | null; type: 'TEAM' | 'USER'; productionOrgId?: Maybe<string> },
 ): Promise<Stripe.Response<Stripe.Customer>> {
   const { type } = metadata;
+  // Stripe merges metadata keys, so leaving productionOrgId out keeps a previously collected value in place
   const customer = await stripe.customers.update(customerId, {
-    metadata,
+    metadata: productionOrgId ? { ...metadata, productionOrgId } : metadata,
   });
   if (type === 'TEAM') {
     await stripe.customers.createFundingInstructions(customer.id, {
@@ -358,6 +375,21 @@ export async function updateEntitlements(customerId: string, entitlements: Strip
 }
 
 /**
+ * Checkout can only enforce a length on a custom field, so the customer's input is kept as entered
+ * (it is the only copy) and anything that does not look like an org id is flagged for follow up.
+ */
+function getProductionOrgIdFromSession({ id: sessionId, custom_fields: customFields }: Stripe.Checkout.Session) {
+  const productionOrgId = customFields.find(({ key }) => key === PRODUCTION_ORG_ID_FIELD_KEY)?.text?.value?.trim();
+  if (!productionOrgId) {
+    return null;
+  }
+  if (!SALESFORCE_ORG_ID_REGEX.test(productionOrgId)) {
+    logger.warn({ sessionId, productionOrgId }, '[STRIPE]: Production org id collected at checkout is not a valid Salesforce org id');
+  }
+  return productionOrgId;
+}
+
+/**
  * This handles USER and TEAM subscriptions
  *
  * Upsert team
@@ -394,7 +426,7 @@ export async function saveSubscriptionFromCompletedSession({ sessionId }: { sess
   }
 
   // ensure stripe has proper metadata
-  await updateCustomerMetadata(customerId, { userId, teamId, type });
+  await updateCustomerMetadata(customerId, { userId, teamId, type, productionOrgId: getProductionOrgIdFromSession(session) });
 
   // Update customer subscriptions - will also be updated via webhook
   const customer = await fetchCustomerWithSubscriptionsById({ customerId });
@@ -608,7 +640,7 @@ export async function saveOrUpdateSubscription({
       return;
     }
     userId = billingAccount.userId;
-    await stripe.customers.update(customer.id, { metadata: { userId } });
+    await stripe.customers.update(customer.id, { metadata: { userId, type } });
   } else if (userId && type === 'USER') {
     // For new subscriptions, create a billing account if it does not exist
     await userDbService.upsertBillingAccount({ userId, customerId: customer.id });
@@ -698,6 +730,48 @@ export async function cancelAllSubscriptions({ customerId }: { customerId: strin
 }
 
 /**
+ * A returning customer who already gave us their org id is not asked again. A stored value that is not
+ * a valid org id counts as missing, so the customer gets the chance to correct it.
+ *
+ * Fails open: asking a customer a second time is a minor annoyance, while a failed lookup that stops
+ * them from reaching checkout is a lost sale.
+ */
+async function hasProductionOrgIdOnFile(customerId: string) {
+  try {
+    const customer = await stripe.customers.retrieve(customerId);
+    return !customer.deleted && SALESFORCE_ORG_ID_REGEX.test(customer.metadata[PRODUCTION_ORG_ID_FIELD_KEY] ?? '');
+  } catch (ex) {
+    logger.warn(
+      { customerId, ...getErrorMessageAndStackObj(ex) },
+      '[STRIPE]: Unable to check for a production org id on file, asking again',
+    );
+    return false;
+  }
+}
+
+/**
+ * The field and the help text that explains it always travel together, so checkout either shows both or neither
+ */
+function getProductionOrgIdCheckoutParams(
+  productionOrgId: Maybe<string>,
+): Pick<Stripe.Checkout.SessionCreateParams, 'custom_fields' | 'custom_text'> {
+  // Stripe rejects the entire session if the default breaks the field's length rules - never let a pre-fill block checkout
+  const defaultValue = productionOrgId && SALESFORCE_ORG_ID_REGEX.test(productionOrgId) ? productionOrgId : undefined;
+  return {
+    custom_fields: [
+      {
+        key: PRODUCTION_ORG_ID_FIELD_KEY,
+        label: { type: 'custom', custom: PRODUCTION_ORG_ID_FIELD_LABEL },
+        type: 'text',
+        optional: false,
+        text: { minimum_length: 15, maximum_length: 18, default_value: defaultValue },
+      },
+    ],
+    custom_text: { submit: { message: PRODUCTION_ORG_ID_HELP_TEXT } },
+  };
+}
+
+/**
  * CREATE BILLING PORTAL SESSION
  */
 export async function createCheckoutSession({
@@ -707,6 +781,7 @@ export async function createCheckoutSession({
   user,
   type,
   teamId,
+  productionOrgId,
 }: {
   user: Pick<UserProfile, 'id' | 'name' | 'email'>;
   priceId: string;
@@ -714,8 +789,13 @@ export async function createCheckoutSession({
   customerId?: string;
   type: 'TEAM' | 'USER';
   teamId?: string;
+  /** Pre-fills the production org id field, the customer can still change it. Unused when the customer already has one on file. */
+  productionOrgId?: Maybe<string>;
 }): Promise<Stripe.Response<Stripe.Checkout.Session>> {
   const urlParams = new URLSearchParams({ sessionId: 'CHECKOUT_SESSION_ID', type, priceId, userId: user.id, mode });
+
+  // A brand new customer has nothing on file, so only an existing customer needs to be checked
+  const shouldCollectProductionOrgId = !customerId || !(await hasProductionOrgIdOnFile(customerId));
 
   // Create customer if one does not exist
   if (!customerId) {
@@ -761,6 +841,7 @@ export async function createCheckoutSession({
     payment_method_data: {
       allow_redisplay: 'always',
     },
+    ...(shouldCollectProductionOrgId ? getProductionOrgIdCheckoutParams(productionOrgId) : {}),
     metadata: { userId: user.id, teamId: teamId || null, type },
   });
 
