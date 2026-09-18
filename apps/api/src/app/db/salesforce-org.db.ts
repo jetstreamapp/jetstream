@@ -187,6 +187,28 @@ export async function findByUserId(userId: string) {
   });
 }
 
+/**
+ * Best guess at the user's production org, used to pre-fill the org id collected at checkout.
+ *
+ * Only resolves when the connected orgs point at exactly one production org. Consultants commonly
+ * have several client production orgs connected, and a wrong pre-filled value that gets submitted
+ * without a second look is worse than a blank field.
+ */
+export async function findProductionOrganizationId(userId: string): Promise<string | null> {
+  const productionOrgs = await prisma.salesforceOrg.findMany({
+    select: { organizationId: true },
+    distinct: ['organizationId'],
+    where: {
+      ...findUsersOrgs({ userId }),
+      orgIsSandbox: false,
+      // `not` excludes NULL, so an org with an unknown edition is never assumed to be production
+      orgOrganizationType: { not: 'Developer Edition' },
+    },
+    take: 2,
+  });
+  return productionOrgs.length === 1 ? productionOrgs[0].organizationId : null;
+}
+
 export async function createOrUpdateSalesforceOrg(userId: string, salesforceOrgUi: Partial<SalesforceOrgUi>) {
   const userWithOrgs = await prisma.user.findFirstOrThrow({
     where: { id: userId },
