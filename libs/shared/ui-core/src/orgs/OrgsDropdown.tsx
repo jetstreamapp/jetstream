@@ -8,9 +8,11 @@ import { Fragment, FunctionComponent, useEffect } from 'react';
 import { OrgsCombobox, useOrgPermissions } from '..';
 import { hasOrderByConfigured } from '../state-management/query.state';
 import { AddOrg } from './AddOrg';
+import { OrgActivitySync } from './OrgActivitySync';
 import { OrganizationGroupSelector } from './OrganizationGroupSelector';
 import { OrgInfoPopover } from './OrgInfoPopover';
 import { OrgPersistence } from './OrgPersistence';
+import { getOrgExpirationBadge, getOrgExpirationTooltip, useOrgExpiration } from './useOrgExpiration';
 import { useUpdateOrgs } from './useUpdateOrgs';
 
 interface OrgsDropdownProps {
@@ -42,6 +44,8 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
   const activeOrgGroup = useAtomValue(fromAppState.jetstreamActiveGroupSelector);
 
   const { actionInProgress, orgLoading, handleAddOrg, handleRemoveOrg, handleUpdateOrg } = useUpdateOrgs();
+  const orgExpiration = useOrgExpiration(selectedOrg);
+  const expirationBadge = getOrgExpirationBadge(orgExpiration);
 
   // Save selected org to recently selected orgs in storage whenever it changes, so that it can be pre-selected when switching between groups
   useEffect(() => {
@@ -84,6 +88,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
   return (
     <Fragment>
       <OrgPersistence />
+      <OrgActivitySync />
       <Grid vertical>
         {!omitOrganizationSelector && hasOrgGroupsConfigured && (
           <OrganizationGroupSelector
@@ -110,6 +115,21 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
                 <Badge type="warning" title="Limited Access">
                   <Icon type="utility" icon="warning" className="slds-icon_xx-small slds-m-right_xx-small" />
                   Limited Access
+                </Badge>
+              </div>
+            </Tooltip>
+          )}
+          {expirationBadge && (
+            <Tooltip id="org-connection-status" content={getOrgExpirationTooltip(orgExpiration, selectedOrg?.connectionError)}>
+              <div className={classNames('slds-col slds-p-around_xx-small')}>
+                <Badge type={expirationBadge.badgeType} title={expirationBadge.label}>
+                  <Icon
+                    type="utility"
+                    icon={expirationBadge.icon}
+                    className="slds-icon_xx-small slds-m-right_xx-small"
+                    containerClassname="slds-icon_container slds-current-color"
+                  />
+                  {expirationBadge.label}
                 </Badge>
               </div>
             </Tooltip>

@@ -28,7 +28,7 @@ import { v4 as uuid } from 'uuid';
 import { getCacheItemHttp, saveCacheItemHttp } from './client-data-cache';
 import { SOBJECT_DESCRIBE_CACHED_RESPONSES } from './client-data-data-cached-responses';
 import { ApiRequestError, StepUpRequiredError } from './client-data-errors';
-import { errorMiddleware } from './middleware';
+import { errorMiddleware, notifyOrgActivity } from './middleware';
 
 interface RequestOptions {
   org?: SalesforceOrgUi;
@@ -266,6 +266,14 @@ function retryInterceptor(config: AxiosRequestConfig, options: RequestOptions = 
       (statusCodes.has(error.response?.status || -1) || isRetryableNetworkError) &&
       endpoints.some((endpoint) => endpoint.test(config.url || ''))
     ) {
+      /**
+       * The response about to be discarded may already carry recorded activity - the org is resolved
+       * before the handler that failed. The retry replaces it, so nothing downstream would ever see it.
+       */
+      if (error.response) {
+        notifyOrgActivityFromResponse(error.response, options);
+      }
+
       retryCount++;
       await delay(retryDelay(retryCount));
       logger.warn(`[HTTP][RETRYING REQUEST]`, config.url, { retryCount, error: error.message });
@@ -284,6 +292,27 @@ function retryInterceptor(config: AxiosRequestConfig, options: RequestOptions = 
 }
 
 /**
+ * Tell the app about orgs whose inactivity deadline the server just pushed back.
+ *
+ * The server resolves an org - and resets its deadline - in middleware that runs before the route
+ * handler, so this is reported on failed responses just as much as successful ones, and is checked on
+ * both. Reading it from a header rather than inferring it from a 2xx also means responses the client
+ * served itself, from its own cache or a local mock, correctly count as no activity at all.
+ */
+function notifyOrgActivityFromResponse(response: AxiosResponse, options: RequestOptions) {
+  const header = getHeader(response.headers, HTTP.HEADERS.X_SFDC_ORG_ACTIVITY);
+  if (!isString(header) || !header) {
+    return;
+  }
+  const uniqueIdsWithActivity = header.split(',');
+  [options.org, options.targetOrg].forEach((org) => {
+    if (org && uniqueIdsWithActivity.includes(org.uniqueId)) {
+      notifyOrgActivity(org);
+    }
+  });
+}
+
+/**
  * Handle successful responses
  */
 function responseInterceptor<T>(options: RequestOptions): (response: AxiosResponse) => Promise<AxiosResponse<T>> {
@@ -299,6 +328,8 @@ function responseInterceptor<T>(options: RequestOptions): (response: AxiosRespon
         response: response.data,
       });
     }
+
+    notifyOrgActivityFromResponse(response, options);
 
     // Deferred response mode: server returned 200 but body may contain an error
     // (status code was committed before the SF call completed)
@@ -346,12 +377,7 @@ function responseInterceptor<T>(options: RequestOptions): (response: AxiosRespon
 /**
  * Handle error responses
  */
-function responseErrorInterceptor(options: {
-  org?: SalesforceOrgUi;
-  useCache?: boolean;
-  useQueryParamsInCacheKey?: boolean;
-  useBodyInCacheKey?: boolean;
-}) {
+function responseErrorInterceptor(options: RequestOptions) {
   return (error: AxiosError | Error) => {
     // Re-throw non-Axios errors (e.g., deferred response errors thrown from responseInterceptor)
     if (!axios.isAxiosError(error)) {
@@ -369,6 +395,7 @@ function responseErrorInterceptor(options: {
       });
       // Run middleware for error responses
       errorMiddleware.forEach((middleware) => middleware(response, org));
+      notifyOrgActivityFromResponse(response, options);
       // An empty body must not inject a message here — it would mask the HTTP-status fallback below.
       const responseBody: { error: boolean; message: string } = response.data || { error: true, message: '' };
       // Include the HTTP status in the fallback so non-JSON error responses (e.g. Cloudflare 524 HTML pages)

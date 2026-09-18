@@ -8,26 +8,26 @@ import { useExpiringOrgs } from '../../orgs/useOrgExpiration';
 
 export const AppHomeOrgExpirationBanner = () => {
   const allOrgs = useAtomValue(fromAppState.salesforceOrgsState);
-  const { total, expired, expiringSoon } = useExpiringOrgs(allOrgs);
+  const { total, disconnected, expiringSoon } = useExpiringOrgs(allOrgs);
 
   if (total === 0) {
     return null;
   }
 
-  const expiredText = expired === 1 ? '1 org has disconnected' : `${expired} orgs have disconnected`;
+  const disconnectedText = disconnected === 1 ? '1 org has disconnected' : `${disconnected} orgs have disconnected`;
   const expiringSoonText = expiringSoon === 1 ? '1 org will disconnect soon' : `${expiringSoon} orgs will disconnect soon`;
 
   let message: string;
-  if (expired > 0 && expiringSoon > 0) {
-    message = `${expiredText} and ${expiringSoonText}`;
-  } else if (expired > 0) {
-    message = expiredText;
+  if (disconnected > 0 && expiringSoon > 0) {
+    message = `${disconnectedText} and ${expiringSoonText}`;
+  } else if (disconnected > 0) {
+    message = disconnectedText;
   } else {
     message = expiringSoonText;
   }
 
   return (
-    <ScopedNotification theme={expired > 0 ? 'error' : 'warning'} className="slds-m-bottom_x-small">
+    <ScopedNotification theme={disconnected > 0 ? 'error' : 'warning'} className="slds-m-bottom_x-small">
       {message}. Salesforce ends a connection when an org has not been used for {ORG_INACTIVITY_EXPIRATION_DAYS} days, and using an org in
       Jetstream keeps its connection alive. <Link to={APP_ROUTES.SALESFORCE_ORG_GROUPS.ROUTE}>View and manage your orgs</Link>.
     </ScopedNotification>
