@@ -1,4 +1,4 @@
-import { KeyboardEvent as ReactKeyboardEvent, useCallback } from 'react';
+import { KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useRef } from 'react';
 import { hasCtrlOrMeta, hasShiftModifierKey, isEnterKey } from '../shared-ui-keyboard';
 import { useGlobalEventHandler } from './useGlobalEventHandler';
 
@@ -12,10 +12,26 @@ interface KeyboardActionOptions {
    * the modal itself and keeps firing.
    */
   scope?: 'page' | 'dialog';
+  /**
+   * Set when the action reads values that fields only commit on blur (the record form). The focused field
+   * is committed first and the action runs once React has applied that update — otherwise the shortcut
+   * acts on a record that is silently missing the value the user is still typing.
+   */
+  commitFocusedField?: boolean;
 }
 
 function isModalDialogOpen() {
   return !!document.querySelector('[role="dialog"][aria-modal="true"]');
+}
+
+/** Blur commits the field; focus goes straight back so the user keeps their place. Comboboxes commit on selection. */
+function commitFocusedTextField() {
+  const { activeElement } = document;
+  const isTextField = activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement;
+  if (isTextField && activeElement.getAttribute('role') !== 'combobox') {
+    activeElement.blur();
+    activeElement.focus({ preventScroll: true });
+  }
 }
 
 /**
@@ -23,7 +39,16 @@ function isModalDialogOpen() {
  * Ignores Shift so it never collides with the go-back shortcut, and skips events already handled by
  * a focused Monaco editor (which binds Cmd+Enter itself and stops propagation).
  */
-export function usePrimaryActionShortcut(handler: () => void, { disabled, scope = 'page' }: KeyboardActionOptions = {}) {
+export function usePrimaryActionShortcut(
+  handler: () => void,
+  { disabled, scope = 'page', commitFocusedField = false }: KeyboardActionOptions = {},
+) {
+  // The deferred path below must call the handler from the render that follows the field commit
+  const latestHandlerRef = useRef(handler);
+  useEffect(() => {
+    latestHandlerRef.current = handler;
+  }, [handler]);
+
   const onKeydown = useCallback(
     (event: KeyboardEvent) => {
       if (disabled || event.defaultPrevented) {
@@ -36,10 +61,15 @@ export function usePrimaryActionShortcut(handler: () => void, { disabled, scope 
         }
         event.stopPropagation();
         event.preventDefault();
+        if (commitFocusedField) {
+          commitFocusedTextField();
+          setTimeout(() => latestHandlerRef.current());
+          return;
+        }
         handler();
       }
     },
-    [disabled, handler, scope],
+    [commitFocusedField, disabled, handler, scope],
   );
   useGlobalEventHandler('keydown', onKeydown);
 }
