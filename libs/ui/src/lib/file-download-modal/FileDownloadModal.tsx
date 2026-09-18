@@ -10,6 +10,7 @@ import {
   prepareCsvFile,
   prepareExcelFile,
   saveFile,
+  type PrepareExcelFileOptions,
 } from '@jetstream/shared/ui-utils';
 import { ensureError } from '@jetstream/shared/utils';
 import {
@@ -72,9 +73,9 @@ export interface FileDownloadModalProps {
   allowedTypes?: FileExtAllTypes[];
   org: SalesforceOrgUi;
   /**
-   * if data is Record<string, any[]> | ArrayBuffer then only excel is a supported option and header, if provided, should be the same type
+   * if data is Record<string, any[]> | Blob | ArrayBuffer then only excel is a supported option and header, if provided, should be the same type
    */
-  data: any[] | Record<string, any[]> | ArrayBuffer | string;
+  data: any[] | Record<string, any[]> | Blob | ArrayBuffer | string;
   /**
    * Header to use for download.
    * If omitted, then this will be auto-detected from the first row of data
@@ -140,9 +141,15 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
   const [doFocusInput, setDoFocusInput] = useState(true);
   const inputEl = useRef<HTMLInputElement>(null);
+  // Closing or cancelling the modal while a workbook is being built aborts the build, so a download never
+  // appears after the user backed out (and nothing runs on after unmount)
+  const abortControllerRef = useRef<AbortController | null>(null);
+  useEffect(() => () => abortControllerRef.current?.abort(), []);
   const [filenameEmpty, setFilenameEmpty] = useState(false);
 
   const [googleFolder, setGoogleFolder] = useState<Maybe<string>>(null);
+  // Building a workbook is async now, so a second click (or Enter) while it runs must not start a second build
+  const [isPreparingFile, setIsPreparingFile] = useState(false);
 
   useEffect(() => {
     if (!fileName && !filenameEmpty) {
@@ -185,26 +192,42 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
     }
   }, [onChange, fileName, fileFormat]);
 
-  function handleDownload() {
+  function handleClose(canceled?: boolean) {
+    abortControllerRef.current?.abort();
+    onModalClose(canceled);
+  }
+
+  async function handleDownload() {
+    if (isPreparingFile) {
+      return;
+    }
+    setIsPreparingFile(true);
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    const excelOptions = { onCellsTruncated: notifyExcelCellsTruncated, signal: abortController.signal };
     try {
       const fileNameWithExt = `${fileName}.${fileFormat}`;
       let mimeType: MimeType;
-      let fileData;
+      let fileData: string | Blob | ArrayBuffer;
       if (fileFormat === 'gdrive') {
-        handleUploadToGoogle();
+        // Queueing the upload closes the modal, and unmounting aborts the signal - so the signal cannot tell a
+        // queued upload from a cancelled build here, only the return value can
+        const wasUploadQueued = await handleUploadToGoogle(excelOptions);
+        if (!wasUploadQueued) {
+          return;
+        }
       } else {
         switch (fileFormat) {
           case 'xlsx': {
-            if (data instanceof ArrayBuffer) {
+            // Callers that build their own workbook (e.g. the permission export) hand over finished file bytes
+            if (data instanceof Blob || data instanceof ArrayBuffer) {
               fileData = data;
             } else if (Array.isArray(data)) {
               const headerFields = (header ? header : Object.keys(data[0])) as string[];
               const _data = transformData ? transformData({ fileFormat, data, header: headerFields }) : data;
-              fileData = prepareExcelFile(_data, headerFields, undefined, { onCellsTruncated: notifyExcelCellsTruncated });
+              fileData = await prepareExcelFile(_data, headerFields, undefined, excelOptions);
             } else {
-              fileData = prepareExcelFile(data as any, header as Record<string, string[]>, undefined, {
-                onCellsTruncated: notifyExcelCellsTruncated,
-              });
+              fileData = await prepareExcelFile(data as any, header as Record<string, string[]>, undefined, excelOptions);
             }
             mimeType = MIME_TYPES.XLSX;
             break;
@@ -226,31 +249,38 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
           case 'xml': {
             fileData = data as string;
             mimeType = MIME_TYPES.XML;
-            fileData = data;
             break;
           }
           case 'zip': {
-            fileData = data as string | ArrayBuffer;
+            fileData = data as string | Blob | ArrayBuffer;
             mimeType = MIME_TYPES.ZIP;
-            fileData = data;
             break;
           }
           default:
             throw new Error('A valid file type type has not been selected');
         }
 
+        if (abortController.signal.aborted) {
+          return;
+        }
         saveFile(fileData, fileNameWithExt, mimeType);
         onModalClose();
       }
       saveFileFormatToStorage(fileFormat, LS_KEY);
       trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'FileDownloadModal' });
     } catch (ex) {
+      if (abortController.signal.aborted) {
+        return;
+      }
       logger.error('[FILE DOWNLOAD][ERROR]', ex);
       onError && onError(ensureError(ex));
+    } finally {
+      setIsPreparingFile(false);
     }
   }
 
-  function handleUploadToGoogle() {
+  /** Resolves `true` once the upload job is queued, `false` if the build was cancelled before it got that far */
+  async function handleUploadToGoogle(excelOptions: PrepareExcelFileOptions & { signal: AbortSignal }): Promise<boolean> {
     let fileData: any;
     let fileType: FileExtCsvXLSX | FileExtZip;
     // Get fileData based on allowable formats.
@@ -262,21 +292,22 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
       fileData = prepareCsvFile(_data, headerFields);
     } else if (allowedTypesSet.has('xlsx')) {
       fileType = 'xlsx';
-      if (data instanceof ArrayBuffer) {
+      if (data instanceof Blob || data instanceof ArrayBuffer) {
         fileData = data;
       } else if (Array.isArray(data)) {
         const headerFields = (header ? header : Object.keys(data[0])) as string[];
         const _data =
           transformData && Array.isArray(data) ? transformData({ fileFormat: 'xlsx', data, header: headerFields }) : (data as any[]);
-        fileData = prepareExcelFile(_data, headerFields, undefined, { onCellsTruncated: notifyExcelCellsTruncated });
+        fileData = await prepareExcelFile(_data, headerFields, undefined, excelOptions);
       } else {
-        fileData = prepareExcelFile(data as any, header as Record<string, string[]>, undefined, {
-          onCellsTruncated: notifyExcelCellsTruncated,
-        });
+        fileData = await prepareExcelFile(data as any, header as Record<string, string[]>, undefined, excelOptions);
       }
     } else {
       fileType = 'zip';
       fileData = data;
+    }
+    if (excelOptions.signal.aborted) {
+      return false;
     }
     const jobs: AsyncJobNew<UploadToGoogleJob>[] = [
       {
@@ -288,10 +319,11 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
     ];
     emitUploadToGoogleEvent && emitUploadToGoogleEvent({ type: 'newJob', payload: jobs });
     onModalClose();
+    return true;
   }
 
   function handleKeyUp(event: KeyboardEvent<HTMLElement>) {
-    if (isEnterKey(event) && !filenameEmpty) {
+    if (isEnterKey(event) && !filenameEmpty && !isPreparingFile) {
       handleDownload();
     }
   }
@@ -310,10 +342,10 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
         <Fragment>
           {!alternateDownloadButton && (
             <Fragment>
-              <button className="slds-button slds-button_neutral" onClick={() => onModalClose(true)}>
+              <button className="slds-button slds-button_neutral" onClick={() => handleClose(true)}>
                 Cancel
               </button>
-              <button className="slds-button slds-button_brand" onClick={handleDownload} disabled={filenameEmpty}>
+              <button className="slds-button slds-button_brand" onClick={handleDownload} disabled={filenameEmpty || isPreparingFile}>
                 Download
               </button>
             </Fragment>
@@ -321,7 +353,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
           {alternateDownloadButton}
         </Fragment>
       }
-      onClose={() => onModalClose(true)}
+      onClose={() => handleClose(true)}
     >
       <div>
         <RadioGroup label="File Format" required className="slds-m-bottom_small">

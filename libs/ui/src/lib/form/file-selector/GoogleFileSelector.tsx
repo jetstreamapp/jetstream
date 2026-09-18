@@ -1,13 +1,12 @@
 /// <reference types="@maxim_mazurok/gapi.client.drive-v3" />
 /// <reference types="google.picker" />
 import { logger } from '@jetstream/shared/client-logger';
-import { ensureXlsxCodepageTable, GoogleApiClientConfig, useDrivePicker } from '@jetstream/shared/ui-utils';
+import { binaryStringToBytes, GoogleApiClientConfig, useDrivePicker } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { InputReadGoogleSheet, Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
-import * as XLSX from 'xlsx';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
 import Spinner from '../../widgets/Spinner';
@@ -30,7 +29,7 @@ export interface GoogleFileSelectorProps {
   disabled?: boolean;
   onSelectorVisible?: (isVisible: boolean) => void;
   onSelected?: (data: google.picker.ResponseObject) => void;
-  onReadFile: (fileContent: InputReadGoogleSheet) => void;
+  onReadFile: (fileContent: InputReadGoogleSheet) => void | Promise<void>;
   onError?: (error: string) => void;
 }
 
@@ -81,6 +80,9 @@ export const GoogleFileSelector: FunctionComponent<GoogleFileSelectorProps> = ({
     async (selectedItem: google.picker.DocumentObject) => {
       try {
         setLoading(true);
+        if (!selectedItem.name) {
+          throw new Error('The selected file has no name.');
+        }
         let resultBody: string;
         if (selectedItem.type === google.picker.Type.DOCUMENT) {
           const results = await gapi.client.drive.files.export({
@@ -90,24 +92,32 @@ export const GoogleFileSelector: FunctionComponent<GoogleFileSelectorProps> = ({
           });
           resultBody = results.body;
         } else {
+          // Anything that is not a native Google doc comes back byte-for-byte as it is stored in Drive,
+          // so a .csv stays a .csv and is parsed as one by whoever receives it
           const results = await gapi.client.drive.files.get({
             fileId: selectedItem.id,
             alt: 'media',
           });
           resultBody = results.body;
         }
+        // The file is handed on unparsed - whoever receives it decides how to read it and reports its own errors.
+        // Waiting on the receiver keeps the selector busy until the file is actually usable.
+        // The gapi client hands back the response body as a binary string (one byte per char code) rather than
+        // bytes, so it is converted once here and every consumer downstream works with the file's actual bytes.
         try {
-          await ensureXlsxCodepageTable();
-          const workbook = XLSX.read(resultBody, { cellText: false, cellDates: true, type: 'binary' });
-          setSelectedFile(selectedItem);
-          setManagedFilename(selectedItem.name);
-          onReadFile({ workbook, selectedFile: selectedItem });
+          await onReadFile({
+            name: selectedItem.name,
+            bytes: binaryStringToBytes(resultBody).buffer as ArrayBuffer,
+            selectedFile: selectedItem,
+          });
         } catch (ex) {
-          logger.error('Error processing file', ex);
-          const errorMessage = (ex as { result?: { error?: { message?: string } } })?.result?.error?.message || getErrorMessage(ex) || '';
-          onError && onError(`Error parsing file. ${errorMessage}`);
-          setErrorMessage(`Error loading selected file. ${errorMessage}`);
+          // The receiver has already told the user why the file is unusable, so the only thing left to do is to
+          // not present it as the selected file - whatever was loaded before stays loaded
+          logger.warn('Selected file was rejected by the receiver', ex);
+          return;
         }
+        setSelectedFile(selectedItem);
+        setManagedFilename(selectedItem.name);
       } catch (ex) {
         logger.error('Error exporting file', ex);
         const errorMessage = (ex as { result?: { error?: { message?: string } } })?.result?.error?.message || getErrorMessage(ex) || '';
