@@ -3,6 +3,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
+  ariaDisabledButtonProps,
   EmptyState,
   Grid,
   GridCol,
@@ -40,7 +41,26 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
 
   const modalBodyRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<TabsRef>(null);
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
   const [activeTab, setActiveTab] = useState('permissions');
+
+  /**
+   * Both "Upsert Object" buttons and the "Continue" button unmount as a result of their own
+   * activation (the results tab replaces them), which would drop keyboard focus to <body> — land on
+   * the results heading, or the Results tab while the heading has not rendered yet.
+   */
+  function focusResultsAfterUnmount() {
+    window.setTimeout(() => {
+      if (document.activeElement !== document.body) {
+        return;
+      }
+      if (resultsHeadingRef.current) {
+        resultsHeadingRef.current.focus();
+      } else {
+        tabsRef.current?.focusTab('results');
+      }
+    });
+  }
 
   const apiNameWithoutNamespace = useAtomValue(fromCreateObjectState.apiNameState);
   const createTab = useAtomValue(fromCreateObjectState.createTabState);
@@ -78,6 +98,7 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
     });
 
     tabsRef.current?.changeTab('results');
+    focusResultsAfterUnmount();
     await deployMetadata({
       apiName,
       createTab,
@@ -108,6 +129,9 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
         break;
     }
     tabsRef?.current?.changeTab(newTab);
+    if (newTab === 'results') {
+      focusResultsAfterUnmount();
+    }
   }
 
   return (
@@ -130,7 +154,14 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
                 </button>
               )}
               {activeTab === 'results' && (
-                <button className="slds-button slds-button_brand" form="create-object-form" type="submit" disabled={loading || !allValid}>
+                // The form's onSubmit owns the deploy; aria-disabled keeps focus on the button while its
+                // own click disables it, and the guarded click blocks the submit while disabled
+                <button
+                  className="slds-button slds-button_brand"
+                  form="create-object-form"
+                  type="submit"
+                  {...ariaDisabledButtonProps(loading || !allValid, () => {})}
+                >
                   Upsert Object
                 </button>
               )}
@@ -244,7 +275,9 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
 
                       {status !== 'NOT_STARTED' && (
                         <GridCol size={12}>
-                          <h2 className="slds-text-heading_medium slds-grow slds-m-bottom_xx-small">Object and Tab Results</h2>
+                          <h2 ref={resultsHeadingRef} tabIndex={-1} className="slds-text-heading_medium slds-grow slds-m-bottom_xx-small">
+                            Object and Tab Results
+                          </h2>
                           {results?.success && (
                             <SalesforceLogin
                               serverUrl={serverUrl}

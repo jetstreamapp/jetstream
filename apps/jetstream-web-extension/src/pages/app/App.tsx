@@ -20,8 +20,16 @@ import { SObjectExport } from '@jetstream/feature/sobject-export';
 import { MassUpdateRecords, MassUpdateRecordsDeployment, MassUpdateRecordsSelection } from '@jetstream/feature/update-records';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { appActionObservable, AppActionTypes } from '@jetstream/shared/ui-utils';
-import { UserFeedbackWidget } from '@jetstream/ui';
-import { AppHome, AppLoading, ErrorBoundaryEmptyFallback, ErrorBoundaryFallback, Feedback, HeaderNavbar } from '@jetstream/ui-core';
+import { SkipToContent, UserFeedbackWidget } from '@jetstream/ui';
+import {
+  AppHome,
+  AppLoading,
+  AppMainContent,
+  ErrorBoundaryEmptyFallback,
+  ErrorBoundaryFallback,
+  Feedback,
+  HeaderNavbar,
+} from '@jetstream/ui-core';
 import { Suspense, useEffect } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Navigate, Route, Routes, useNavigate } from 'react-router';
@@ -68,11 +76,9 @@ export function App() {
 
   return (
     <div>
-      <ErrorBoundary FallbackComponent={ErrorBoundaryEmptyFallback}>
-        <UserFeedbackWidget />
-      </ErrorBoundary>
+      <SkipToContent />
       <HeaderNavbar isBillingEnabled={false} isEmbeddedApp colorScheme={colorScheme} onColorSchemeChange={setColorScheme} />
-      <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
+      <AppMainContent>
         <Suspense fallback={<AppLoading />}>
           <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
             <Routes>
@@ -135,7 +141,11 @@ export function App() {
             </Routes>
           </ErrorBoundary>
         </Suspense>
-      </div>
+      </AppMainContent>
+      {/* Rendered after the content so the floating button is the LAST tab stop on the page, not the first. */}
+      <ErrorBoundary FallbackComponent={ErrorBoundaryEmptyFallback}>
+        <UserFeedbackWidget />
+      </ErrorBoundary>
     </div>
   );
 }

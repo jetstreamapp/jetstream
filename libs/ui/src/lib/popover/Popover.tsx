@@ -8,6 +8,7 @@ import {
   FloatingPortal,
   offset,
   shift,
+  size as sizeMiddleware,
   useClick,
   useDismiss,
   useFloating,
@@ -17,8 +18,20 @@ import {
 } from '@floating-ui/react';
 import { FullWidth, sizeXLarge, SmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
-import { createElement, CSSProperties, memo, ReactNode, RefObject, useCallback, useEffect, useImperativeHandle, useState } from 'react';
+import {
+  createElement,
+  CSSProperties,
+  memo,
+  ReactNode,
+  RefObject,
+  useCallback,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useState,
+} from 'react';
 import { Tooltip, TooltipProps } from '../..';
+import { useEscapeToCloseLayer } from '../hooks/useEscapeToCloseLayer';
 import { usePortalContext } from '../modal/PortalContext';
 import { Icon } from '../widgets/Icon';
 
@@ -45,7 +58,9 @@ export interface PopoverProps {
   header?: React.ReactNode;
   footer?: JSX.Element;
   panelStyle?: CSSProperties;
-  buttonProps?: React.HTMLProps<HTMLButtonElement> & { as?: string; 'data-testid'?: string };
+  buttonProps?: React.HTMLProps<HTMLButtonElement> & { as?: string; 'data-testid'?: string; 'data-grid-inner-focus'?: boolean };
+  /** Trap Tab inside the popover until it is explicitly closed (rich dialog-like popovers). */
+  trapFocus?: boolean;
   panelProps?: Omit<React.HTMLProps<HTMLDivElement>, 'children' | 'className' | 'as' | 'refName' | 'onKeyDown'>;
   buttonStyle?: CSSProperties;
   /**
@@ -60,6 +75,20 @@ export interface PopoverProps {
   triggerAfterContent?: ReactNode;
   children: ReactNode;
   onChange?: (isOpen: boolean) => void;
+}
+
+/**
+ * Height the panel takes with no max-height applied. The body is measured by `scrollHeight`, which is
+ * its full content height even while a cap clips it, so the measurement does not flip once the cap is
+ * on. The close button is pinned absolutely and takes no space.
+ */
+function getPopoverNaturalHeight(floating: HTMLElement): number {
+  return Array.from(floating.children).reduce((total, child) => {
+    if (!(child instanceof HTMLElement) || getComputedStyle(child).position === 'absolute') {
+      return total;
+    }
+    return total + (child.hasAttribute('data-popover-body') ? child.scrollHeight : child.offsetHeight);
+  }, 0);
 }
 
 const PopoverComponent = ({
@@ -77,6 +106,7 @@ const PopoverComponent = ({
   footer,
   panelStyle,
   buttonProps,
+  trapFocus = false,
   panelProps,
   buttonStyle,
   tooltipProps,
@@ -108,6 +138,21 @@ const PopoverComponent = ({
       offset(12),
       flip(),
       shift({ padding: 8 }),
+      // Cap the popover to the viewport: at high zoom a popover taller than the screen clips its
+      // header/close button off-screen no matter which side flip() picks — instead the panel gets a
+      // max-height and its body scrolls (see the flex/overflow rules on the section below).
+      // The cap is applied ONLY when the panel would not fit: a scrolling body clips any dropdown
+      // (picklist, date picker) that renders inside it without a portal, so it must stay a plain
+      // block in the common case.
+      sizeMiddleware({
+        padding: 8,
+        apply({ availableHeight, elements }) {
+          const maxHeight = Math.max(150, availableHeight);
+          const constrained = getPopoverNaturalHeight(elements.floating) > maxHeight;
+          elements.floating.style.maxHeight = constrained ? `${maxHeight}px` : '';
+          elements.floating.toggleAttribute('data-popover-constrained', constrained);
+        },
+      }),
       arrow({
         element: arrowElement,
       }),
@@ -121,8 +166,13 @@ const PopoverComponent = ({
   const dismiss = useDismiss(context, {
     outsidePressEvent: 'mousedown',
     ancestorScroll: false,
+    // Escape is owned by useEscapeToCloseLayer below — useDismiss's keydown handler neither
+    // consumes the event nor stops the keyup that a hosting Modal closes on
+    escapeKey: false,
   });
   const role = useRole(context);
+  // Names the dialog from its header content; header-less popovers pass `aria-label` via panelProps
+  const headerId = useId();
 
   const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role]);
 
@@ -141,6 +191,21 @@ const PopoverComponent = ({
   const handleClose = useCallback(() => {
     setIsOpen(false);
   }, []);
+
+  // Escape closes ONLY this popover — consumed at document capture (keydown AND keyup) so a hosting
+  // Modal, which closes on Escape keyup, cannot also close on the same press. A layer open INSIDE
+  // the popover (combobox, date picker) is above this one on the layer stack and closes first.
+  // FloatingFocusManager's returnFocus hands focus back to the trigger when the popover unmounts.
+  useEscapeToCloseLayer(
+    isOpen,
+    () => {
+      setIsOpen(false);
+      onChange?.(false);
+    },
+    // A popover action can open a modal (View Record, Manage Assignments) while the popover stays open
+    // underneath — Escape inside that modal is the modal's
+    { getLayerElement: () => refs.floating.current },
+  );
 
   /**
    * Popovers used in modals did not close when clicking outside of them.
@@ -196,14 +261,32 @@ const PopoverComponent = ({
       {triggerAfterContent}
       {isOpen && (
         <FloatingPortal root={portalRoot}>
-          <FloatingFocusManager context={context} modal={false} returnFocus>
+          <FloatingFocusManager context={context} modal={trapFocus} returnFocus>
             <section
               ref={refs.setFloating}
               data-testid={testId}
               style={{ ...floatingStyles, ...panelStyle }}
               {...getFloatingProps()}
+              aria-labelledby={header ? headerId : undefined}
               className={classNames('slds-popover', size ? `slds-popover_${size}` : undefined, containerClassName)}
               css={css`
+                /* Pairs with the size() middleware max-height: header/footer stay pinned and the
+                   body scrolls when the popover is taller than the viewport (high zoom). Scrolling is
+                   opted into per measurement — a scroll container clips non-portaled dropdowns. */
+                display: flex;
+                flex-direction: column;
+                &[data-popover-constrained] > [data-popover-body] {
+                  overflow-y: auto;
+                  min-height: 0;
+                }
+                /* The close button is positioned by slds-float_right, but floats are IGNORED on flex
+                   items — as a flex child it stacked above the header at the top-left. Pin it to the
+                   corner instead; its SLDS 0.25rem margin reproduces the floated inset exactly. */
+                & > .slds-popover__close {
+                  position: absolute;
+                  top: 0;
+                  right: 0;
+                }
                 &[data-placement^='right'] {
                   .popover-arrow {
                     left: -0.5rem;
@@ -287,8 +370,8 @@ const PopoverComponent = ({
                 <span className="slds-assistive-text">Close dialog</span>
               </button>
               {/* CONTENT */}
-              {header}
-              <div css={bodyStyle} className={bodyClassName}>
+              {header && <div id={headerId}>{header}</div>}
+              <div css={bodyStyle} className={bodyClassName} data-popover-body>
                 {content}
               </div>
               {footer}

@@ -6,7 +6,7 @@ import { Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, ConfirmationModalPromise, DropDown, Grid, Icon, ScopedNotification } from '@jetstream/ui';
 import { ConfirmPageChange, useAmplitude } from '@jetstream/ui-core';
 import { useAtomValue } from 'jotai';
-import { FunctionComponent, useMemo } from 'react';
+import { FunctionComponent, useEffect, useMemo, useRef } from 'react';
 import { LoadMultiObjectRun } from '../load-records-multi-object-types';
 import { buildRetryRequests } from '../load-records-multi-object-utils';
 import { groupsByRefIdState, loadProgressState, requestsState, totalRecordsToLoadState } from '../load-records-multi-object.state';
@@ -104,6 +104,29 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
 
   const progressPercent = progress && progress.recordsTotal ? Math.round((progress.recordsProcessed / progress.recordsTotal) * 100) : 0;
 
+  // The Load and Cancel buttons replace each other, unmounting whichever is focused. Hand focus on
+  // (Load -> progress on start, Cancel -> Load on finish), but only when focus was actually dropped to
+  // <body> so we never steal it from a user who moved elsewhere. Cancel is never the target: it has no
+  // confirmation, so a second Enter or a Space meant to scroll would cut the load short. Load is safe,
+  // a repeat load asks first.
+  const loadButtonRef = useRef<HTMLButtonElement>(null);
+  const progressRegionRef = useRef<HTMLDivElement>(null);
+  const wasLoadingRef = useRef(loading);
+  useEffect(() => {
+    const wasLoading = wasLoadingRef.current;
+    wasLoadingRef.current = loading;
+    if (wasLoading === loading) {
+      return;
+    }
+    window.setTimeout(() => {
+      const active = document.activeElement;
+      if (active && active !== document.body) {
+        return;
+      }
+      (loading ? progressRegionRef.current : loadButtonRef.current)?.focus({ preventScroll: true });
+    });
+  }, [loading]);
+
   return (
     <div>
       <ConfirmPageChange actionInProgress={loading} />
@@ -131,7 +154,7 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
           </ScopedNotification>
         )}
         {!loading && totalRecordCount > 0 && (
-          <button className="slds-button slds-button_brand" onClick={handleLoadStarted}>
+          <button ref={loadButtonRef} className="slds-button slds-button_brand" onClick={handleLoadStarted}>
             Load <strong className="slds-m-horizontal_xx-small">{formatNumber(totalRecordCount)}</strong>
             {pluralizeFromNumber('Record', totalRecordCount)} ({formatNumber(totalGroupCount)}{' '}
             {pluralizeFromNumber('Group', totalGroupCount)}
@@ -167,7 +190,7 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
       </div>
 
       {(loading || runs.length > 0) && (
-        <div className="slds-p-around_small">
+        <div ref={progressRegionRef} tabIndex={-1} role="region" aria-label="Load progress and results" className="slds-p-around_small">
           {loading && progress && (
             <div>
               <div className="slds-m-bottom_xx-small">

@@ -92,15 +92,18 @@ export function useUpdateOrgs() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleRemoveOrg = useCallback(async (org: SalesforceOrgUi) => {
+  /** Resolves to whether the org was removed, so callers can hand focus off only when the org is really gone */
+  const handleRemoveOrg = useCallback(async (org: SalesforceOrgUi): Promise<boolean> => {
     try {
       await deleteOrg(org);
       handleRefetchOrgs();
       handleRefetchOrganizations();
       setSelectedOrgId(null);
       deleteAllHistoryRecords(org);
+      return true;
     } catch (ex) {
       logger.warn('Error removing org', ex);
+      return false;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

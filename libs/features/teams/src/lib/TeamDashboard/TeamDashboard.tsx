@@ -65,7 +65,6 @@ export function TeamDashboard() {
   const [loading, setLoading] = useState(true);
   const [team, setTeam] = useState<TeamUserFacing>();
   const [loginConfiguration, setLoginConfiguration] = useState<TeamLoginConfig>();
-  const [loginConfigurationKey, setLoginConfigurationKey] = useState(new Date().getTime());
   const [domains, setDomains] = useState<DomainVerification[] | null>([]);
   const [ssoConfig, setSsoConfig] = useState<LoginConfigurationWithCallbacks | null>(null);
   const [loadingError, setLoadingError] = useState<string | null>(null);
@@ -162,7 +161,9 @@ export function TeamDashboard() {
     setTeam(updatedTeam);
     const loginConfig = TeamLoginConfigSchema.parse(updatedTeam.loginConfig || {});
     setLoginConfiguration(loginConfig);
-    setLoginConfigurationKey(new Date().getTime());
+    // Deliberately NOT re-keyed: remounting the form on save discarded keyboard focus. The form
+    // re-baselines its own dirty state once the save resolves.
+    fireToast({ type: 'success', message: 'Login configuration saved' });
   }
 
   async function handleTeamGlobalAction(action: TeamGlobalAction) {
@@ -356,7 +357,6 @@ export function TeamDashboard() {
           <div data-testid="team-login-configuration-container" className="slds-m-bottom_medium">
             {loginConfiguration && (
               <TeamLoginConfiguration
-                key={loginConfigurationKey}
                 loginConfiguration={loginConfiguration}
                 hasSsoConfigured={hasSsoConfigured}
                 ssoIsActive={hasSsoConfigured && !!ssoConfig?.ssoEnabled}
