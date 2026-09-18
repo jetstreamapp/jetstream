@@ -21,6 +21,15 @@ import * as userDbService from '../db/user.db';
 
 const STRIPE_API_VERSION = '2026-08-26.dahlia';
 
+/**
+ * Upper bound on customers returned when resolving a user's customer by metadata. One is the norm;
+ * more than one only happens for users affected by the duplicate-customer bug, which minted a customer
+ * per abandoned checkout and so has no natural bound. This is Stripe's per-page maximum, which keeps the
+ * subscribed customer in view for every plausible number of duplicates - only the first page is read, so a
+ * user somehow beyond this many customers is logged rather than silently ranked over a truncated list.
+ */
+const CUSTOMER_SEARCH_LIMIT = 100;
+
 const stripe = ENV.STRIPE_API_KEY ? new Stripe(ENV.STRIPE_API_KEY, { apiVersion: STRIPE_API_VERSION }) : ({} as Stripe);
 
 const priceCache = new WeakMap<
@@ -38,6 +47,16 @@ export const ensureStripeIsInitialized = () => {
 };
 
 export const activeSubscriptionStatuses = new Set(['active', 'trialing', 'incomplete']);
+
+/**
+ * Which statuses are allowed to take a billing account away from another Stripe customer.
+ *
+ * Deliberately narrower than `activeSubscriptionStatuses`, which answers the unrelated question of what to
+ * persist and entitle. `incomplete` means the initial invoice has not been paid - Stripe holds a subscription
+ * there for roughly a day before expiring it - so an unpaid duplicate must not be able to repoint the account
+ * off the customer that is actually paying and cascade-delete its rows.
+ */
+const accountClaimingSubscriptionStatuses = new Set(['active', 'trialing']);
 
 export type StripeSyncFailureReason = 'NO_CUSTOMER_ID' | 'CUSTOMER_IS_DELETED' | 'MISSING_SUBSCRIPTIONS' | 'UNKNOWN_ERROR';
 
@@ -98,6 +117,48 @@ export async function handleStripeWebhook({ signature, payload }: { signature?: 
 
 function filterInactiveSubscriptions(subscriptions: Stripe.Subscription[]) {
   return subscriptions.filter((subscription) => activeSubscriptionStatuses.has(subscription.status));
+}
+
+function hasActiveSubscriptions(customer: Stripe.Customer) {
+  return filterInactiveSubscriptions(customer.subscriptions?.data ?? []).length > 0;
+}
+
+function hasAccountClaimingSubscriptions(subscriptions: Stripe.Subscription[]) {
+  return subscriptions.some((subscription) => accountClaimingSubscriptionStatuses.has(subscription.status));
+}
+
+/**
+ * Two customers that are both being paid for is the double-charge case, and whichever event arrives last wins
+ * the account. That needs a human to refund and cancel one of them, so make it visible rather than letting the
+ * account change hands silently.
+ */
+function logRepointDisplacingAPaidCustomer({
+  owner,
+  claimingCustomerId,
+  currentAccount,
+}: {
+  owner: { userId: string } | { teamId: string };
+  claimingCustomerId: string;
+  currentAccount: Maybe<{ customerId: string; subscriptions: { status: string }[] }>;
+}) {
+  if (!currentAccount || currentAccount.customerId === claimingCustomerId) {
+    return;
+  }
+  const displacedIsAlsoPaidFor = currentAccount.subscriptions.some(({ status }) =>
+    accountClaimingSubscriptionStatuses.has(status.toLowerCase()),
+  );
+  if (!displacedIsAlsoPaidFor) {
+    return;
+  }
+  logger.error(
+    {
+      ...owner,
+      claimingCustomerId,
+      displacedCustomerId: currentAccount.customerId,
+      remedy: 'User is likely paying on two Stripe customers - refund and cancel the duplicate, then re-sync',
+    },
+    'Billing account is being repointed away from a customer that is also being paid for',
+  );
 }
 
 function findTeamPlanSubscription(subscriptions: Stripe.Subscription[]) {
@@ -197,13 +258,68 @@ export async function fetchCustomerEntitlements({
   return await stripe.entitlements.activeEntitlements.list({ customer: customerId });
 }
 
-export async function fetchCustomerWithSubscriptionsByJetstreamId({ userId }: { userId: string }): Promise<Stripe.Customer> {
-  const customerWithSubscriptions = await stripe.customers.search({
+/**
+ * Finds the Stripe customer for a Jetstream user by the `userId` we stamp into customer metadata.
+ *
+ * Historically a bug in checkout could mint more than one customer per user, so this must cope with
+ * duplicates rather than taking an arbitrary first result. Ranking runs in order: a subscription that is
+ * actually being paid for beats one Stripe is still waiting on payment for, any live subscription beats a
+ * merely historical one, any subscription beats none — that is where money has moved — and ties break on the
+ * earliest created, then on the customer id, so that repeated calls always resolve to the same customer even
+ * though Stripe's search ordering is not a deterministic tie-breaker.
+ *
+ * Prefer `billingAccount.customerId` from our own database where it exists — that is authoritative.
+ * This is for the case where we have no record yet and need to avoid creating a second customer.
+ */
+export async function fetchCustomerWithSubscriptionsByJetstreamId({ userId }: { userId: string }): Promise<Stripe.Customer | null> {
+  const { data: customers, has_more: hasMore } = await stripe.customers.search({
     query: `metadata["userId"]:"${userId}"`,
-    limit: 1,
-    expand: ['subscriptions', 'entitlements'],
+    limit: CUSTOMER_SEARCH_LIMIT,
+    expand: ['data.subscriptions'],
   });
-  return customerWithSubscriptions.data[0];
+
+  if (customers.length === 0) {
+    return null;
+  }
+
+  if (hasMore) {
+    logger.error(
+      { userId, customerCount: customers.length, remedy: "Reconcile this user's duplicate Stripe customers manually" },
+      'More Stripe customers for one user than a single search page - the paying customer may be out of view',
+    );
+  }
+
+  if (customers.length > 1) {
+    logger.warn(
+      { userId, customerIds: customers.map(({ id }) => id) },
+      'Multiple Stripe customers found for one user - resolving to the best match',
+    );
+  }
+
+  return customers.reduce((best, candidate) => {
+    // `hasActiveSubscriptions` counts `incomplete`, which means Stripe has not been paid yet, so it cannot
+    // separate an abandoned unpaid duplicate from the customer that actually paid - without this first rank
+    // the two tie and the earliest-created one wins, which is the unpaid duplicate more often than not.
+    const bestIsPaidFor = hasAccountClaimingSubscriptions(best.subscriptions?.data ?? []);
+    const candidateIsPaidFor = hasAccountClaimingSubscriptions(candidate.subscriptions?.data ?? []);
+    if (bestIsPaidFor !== candidateIsPaidFor) {
+      return candidateIsPaidFor ? candidate : best;
+    }
+    const bestHasActiveSubscriptions = hasActiveSubscriptions(best);
+    const candidateHasActiveSubscriptions = hasActiveSubscriptions(candidate);
+    if (bestHasActiveSubscriptions !== candidateHasActiveSubscriptions) {
+      return candidateHasActiveSubscriptions ? candidate : best;
+    }
+    const bestHasSubscriptions = (best.subscriptions?.data.length ?? 0) > 0;
+    const candidateHasSubscriptions = (candidate.subscriptions?.data.length ?? 0) > 0;
+    if (bestHasSubscriptions !== candidateHasSubscriptions) {
+      return candidateHasSubscriptions ? candidate : best;
+    }
+    if (candidate.created !== best.created) {
+      return candidate.created < best.created ? candidate : best;
+    }
+    return candidate.id < best.id ? candidate : best;
+  });
 }
 
 export async function getUserFacingStripeCustomer({ customerId }: { customerId: string }): Promise<StripeUserFacingCustomer | null> {
@@ -255,23 +371,87 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
   return customerWithSubscriptions;
 }
 
+/**
+ * Resolves the Stripe customer to use for a user, creating one only when they genuinely have none.
+ *
+ * Checkout used to call `createCustomer` unconditionally whenever our database held no billing account,
+ * so every visit to the upgrade button minted another customer. The search closes the long tail of
+ * repeat visits; the idempotency key inside `createCustomer` closes the seconds-apart double submission
+ * that the search cannot see, because Stripe's search index lags writes by up to a minute.
+ */
+export async function findOrCreateCustomer({
+  user,
+  type,
+}: {
+  user: Pick<UserProfile, 'id' | 'name' | 'email'>;
+  type: 'TEAM' | 'USER';
+}): Promise<Stripe.Customer> {
+  const existingCustomer = await fetchCustomerWithSubscriptionsByJetstreamId({ userId: user.id }).catch((ex) => {
+    // A search outage must not block checkout; falling through to create is the pre-existing behaviour
+    // and the idempotency key still prevents the duplicate that prompted this.
+    logger.warn({ userId: user.id, ...getErrorMessageAndStackObj(ex) }, 'Unable to search for an existing Stripe customer');
+    return null;
+  });
+
+  if (existingCustomer && !existingCustomer.deleted) {
+    logger.info({ userId: user.id, customerId: existingCustomer.id }, 'Reusing existing Stripe customer');
+    // The create path stamps the profile on every customer it mints, and checkout cannot correct it later -
+    // `customer_email` is omitted once a customer is attached and `customer_update` only refreshes the address
+    // fields. Without this, a customer minted before an email change keeps receiving the receipts and dunning
+    // notices at the old address. Metadata is deliberately left alone: `teamId` is not known here and writing
+    // it would wipe a real one, and checkout completion re-stamps metadata anyway.
+    const refreshedCustomer = await stripe.customers.update(existingCustomer.id, { email: user.email, name: user.name });
+    if (type === 'TEAM') {
+      await ensureBankTransferFundingInstructions(refreshedCustomer.id);
+    }
+    return refreshedCustomer;
+  }
+
+  return await createCustomer(user, type);
+}
+
+/**
+ * Team customers pay by bank transfer, which requires funding instructions on the customer. Stripe
+ * returns the existing instructions when they are already present, so this is safe to call for a
+ * reused customer that was first created under a personal plan.
+ */
+async function ensureBankTransferFundingInstructions(customerId: string) {
+  await stripe.customers.createFundingInstructions(customerId, {
+    currency: 'usd',
+    funding_type: 'bank_transfer',
+    bank_transfer: { type: 'us_bank_transfer' },
+  });
+}
+
+/**
+ * Two clicks on the checkout button used to mint two customers, and the metadata search cannot catch that
+ * because Stripe's search index lags writes by up to a minute. An idempotency key covers the gap, but only
+ * while the request it is paired with never varies - Stripe rejects a reused key whose parameters changed,
+ * which would fail checkout outright.
+ *
+ * So the customer is created from `userId` alone, which is invariant for a user, and everything mutable
+ * (email, name, plan type) is applied in the follow-up update. That keeps one key per user, so concurrent
+ * attempts resolve to the same customer even when they disagree about the plan type or the profile changed
+ * between them.
+ */
 export async function createCustomer(
   user: Pick<UserProfile, 'id' | 'name' | 'email'>,
   type: 'TEAM' | 'USER',
 ): Promise<Stripe.Response<Stripe.Customer>> {
-  const customer = await stripe.customers.create({
+  const createdCustomer = await stripe.customers.create(
+    { metadata: { userId: user.id } },
+    { idempotencyKey: `customer-create:${user.id}` },
+  );
+  // `teamId` is deliberately left out. It is never known at create time, and the idempotency key can hand back
+  // a customer from an earlier attempt that has since had a real one stamped on it by checkout completion,
+  // which a `null` here would remove. Omitted keys are preserved by Stripe; `null` deletes them.
+  const customer = await stripe.customers.update(createdCustomer.id, {
     email: user.email,
     name: user.name,
-    metadata: { userId: user.id, teamId: null, type },
+    metadata: { userId: user.id, type },
   });
   if (type === 'TEAM') {
-    await stripe.customers.createFundingInstructions(customer.id, {
-      currency: 'usd',
-      funding_type: 'bank_transfer',
-      bank_transfer: {
-        type: 'us_bank_transfer',
-      },
-    });
+    await ensureBankTransferFundingInstructions(customer.id);
   }
   return customer;
 }
@@ -296,13 +476,7 @@ export async function updateCustomerMetadata(
     metadata,
   });
   if (type === 'TEAM') {
-    await stripe.customers.createFundingInstructions(customer.id, {
-      currency: 'usd',
-      funding_type: 'bank_transfer',
-      bank_transfer: {
-        type: 'us_bank_transfer',
-      },
-    });
+    await ensureBankTransferFundingInstructions(customer.id);
   }
   return customer;
 }
@@ -389,8 +563,31 @@ export async function saveSubscriptionFromCompletedSession({ sessionId }: { sess
     const team = await teamDbService.upsertTeamWithBillingAccount({ userId, billingAccountCustomerId: customerId });
     teamId = team.id;
   } else {
-    // Ensure billing account exists
-    await userDbService.upsertBillingAccount({ userId, customerId });
+    // Checkout just completed on this customer, so it is normally the one the payment belongs to and may take
+    // the account from an abandoned duplicate. `incomplete` is the exception - a delayed payment method leaves
+    // the subscription there until Stripe collects - and an unpaid customer must not displace a paying one,
+    // which is the same rule `saveOrUpdateSubscription` applies to the webhook path.
+    const allowRepoint = !isObject(subscription) || accountClaimingSubscriptionStatuses.has(subscription.status);
+    const claimedBillingAccount = await userDbService.claimBillingAccountForCustomer({ userId, customerId, allowRepoint });
+
+    if (!claimedBillingAccount && allowRepoint) {
+      // A refusal despite a paid subscription means a concurrent event claimed the account first; throwing
+      // leaves the webhook to retry, which is what the unique violation used to do here.
+      throw new Error(`Unable to claim billing account for customer ${customerId} - it is held by another Stripe customer`);
+    }
+
+    if (!claimedBillingAccount) {
+      // Retrying cannot help until the invoice clears, so stamp the identity onto the customer and stop.
+      // Reconciling subscriptions or entitlements against a customer that does not hold the account would
+      // overwrite the paying customer's state; the subscription event that follows payment claims the account
+      // through the same guarded path.
+      logger.error(
+        { userId, customerId, remedy: 'Confirm the user is not paying on two Stripe customers' },
+        'Checkout completed on a customer whose subscription has not been paid for - leaving the billing account where it is',
+      );
+      await updateCustomerMetadata(customerId, { userId, teamId, type });
+      return { userId, teamId, type };
+    }
   }
 
   // ensure stripe has proper metadata
@@ -585,6 +782,7 @@ export async function saveOrUpdateSubscription({
 
   let { userId, teamId, type = 'USER' } = customer.metadata;
   const subscriptions = customer.subscriptions?.data ?? [];
+  const activeSubscriptions = filterInactiveSubscriptions(subscriptions);
   const hasTeamPlan = !!findTeamPlanSubscription(subscriptions);
 
   // Ensure team is auto-created if required and Stripe is updated to reflect this
@@ -610,11 +808,53 @@ export async function saveOrUpdateSubscription({
     userId = billingAccount.userId;
     await stripe.customers.update(customer.id, { metadata: { userId } });
   } else if (userId && type === 'USER') {
-    // For new subscriptions, create a billing account if it does not exist
-    await userDbService.upsertBillingAccount({ userId, customerId: customer.id });
+    // A user affected by the duplicate-customer bug has more than one Stripe customer but only one billing
+    // account, so an event from the abandoned customer would otherwise repoint the account away from the one
+    // that is actually paying and then delete its subscription rows. Only a customer whose subscription has
+    // actually been paid for may take the account over, which keeps an abandoned or unpaid duplicate from
+    // claiming it.
+    const allowRepoint = hasAccountClaimingSubscriptions(activeSubscriptions);
+
+    if (allowRepoint) {
+      logRepointDisplacingAPaidCustomer({
+        owner: { userId },
+        claimingCustomerId: customer.id,
+        currentAccount: await userDbService.findBillingAccountWithSubscriptionsByUserId({ userId }),
+      });
+    }
+
+    const claimedBillingAccount = await userDbService.claimBillingAccountForCustomer({
+      userId,
+      customerId: customer.id,
+      allowRepoint,
+    });
+    if (!claimedBillingAccount) {
+      logger.warn({ userId, customerId: customer.id }, 'Ignoring event from a Stripe customer that does not hold the billing account');
+      return;
+    }
   } else if (teamId && type === 'TEAM') {
-    // For new subscriptions, create a billing account if it does not exist
-    await teamDbService.createBillingAccountIfNotExists({ teamId, customerId: customer.id });
+    // Teams are exposed to the duplicate-customer bug exactly as users are - the same checkout minted the
+    // duplicates - and `team_subscription.customerId` cascades on a repoint just like its user-side
+    // counterpart, so the team billing account is claimed under the same rule rather than repointed on sight.
+    const allowRepoint = hasAccountClaimingSubscriptions(activeSubscriptions);
+
+    if (allowRepoint) {
+      logRepointDisplacingAPaidCustomer({
+        owner: { teamId },
+        claimingCustomerId: customer.id,
+        currentAccount: await teamDbService.findTeamBillingAccountWithSubscriptionsByTeamId({ teamId }),
+      });
+    }
+
+    const claimedBillingAccount = await teamDbService.claimTeamBillingAccountForCustomer({
+      teamId,
+      customerId: customer.id,
+      allowRepoint,
+    });
+    if (!claimedBillingAccount) {
+      logger.warn({ teamId, customerId: customer.id }, 'Ignoring event from a Stripe customer that does not hold the team billing account');
+      return;
+    }
   } else {
     // This could happen depending on the order of webhook events for subscription creation vs checkout session completion
     // it should self heal since we call this code path in both cases
@@ -626,7 +866,7 @@ export async function saveOrUpdateSubscription({
     await subscriptionDbService.updateSubscriptionStateForCustomer({
       userId,
       customerId: customer.id,
-      subscriptions: filterInactiveSubscriptions(subscriptions),
+      subscriptions: activeSubscriptions,
     });
 
     if (sendWelcomeEmail) {
@@ -640,7 +880,7 @@ export async function saveOrUpdateSubscription({
     await subscriptionDbService.updateTeamSubscriptionStateForCustomer({
       teamId,
       customerId: customer.id,
-      subscriptions: filterInactiveSubscriptions(subscriptions),
+      subscriptions: activeSubscriptions,
     });
   } else {
     throw new Error(`Invalid type for subscription update: ${type}`);
@@ -717,10 +957,16 @@ export async function createCheckoutSession({
 }): Promise<Stripe.Response<Stripe.Checkout.Session>> {
   const urlParams = new URLSearchParams({ sessionId: 'CHECKOUT_SESSION_ID', type, priceId, userId: user.id, mode });
 
-  // Create customer if one does not exist
+  // Reuse the user's existing customer where there is one - creating unconditionally here is what
+  // produced duplicate customers for the same user.
   if (!customerId) {
-    const customer = await createCustomer(user, type);
+    const customer = await findOrCreateCustomer({ user, type });
     customerId = customer.id;
+  } else if (type === 'TEAM') {
+    // The personal-to-team upgrade arrives with the customer already on the billing account, which is the
+    // path `findOrCreateCustomer` never sees. Without this, a customer first created under a personal plan
+    // reaches team checkout with no funding instructions.
+    await ensureBankTransferFundingInstructions(customerId);
   }
 
   urlParams.set('customerId', customerId);
