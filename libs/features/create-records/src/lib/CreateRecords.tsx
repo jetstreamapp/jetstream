@@ -332,7 +332,7 @@ export const CreateRecords = () => {
   }
 
   const saveDisabled = !selectedObject || loading || saving;
-  usePrimaryActionShortcut(handleSave, { disabled: saveDisabled });
+  usePrimaryActionShortcut(handleSave, { disabled: saveDisabled, commitFocusedField: true });
 
   return (
     <Page key={selectedOrg.uniqueId} testId="manage-permissions-page">
