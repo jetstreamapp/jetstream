@@ -332,7 +332,7 @@ export const CreateRecords = () => {
   }
 
   const saveDisabled = !selectedObject || loading || saving;
-  usePrimaryActionShortcut(handleSave, { disabled: saveDisabled });
+  usePrimaryActionShortcut(handleSave, { disabled: saveDisabled, commitFocusedField: true });
 
   return (
     <Page key={selectedOrg.uniqueId} testId="manage-permissions-page">
@@ -421,41 +421,40 @@ export const CreateRecords = () => {
                 </ul>
               </ScopedNotification>
             )}
-            {selectedObject &&
-              sobjectMetadata?.fields && (
-                // Landmark so screen reader users can jump straight to the form for the chosen object
-                <section aria-label={`${selectedObject.label} record form`}>
-                  {Array.isArray(recordTypes) && (
-                    <div className="slds-p-horizontal_xx-small">
-                      <ComboboxWithItems
-                        comboboxProps={{
-                          label: 'Record Type',
-                          labelHelp: 'The Record Type controls which picklist values are available',
-                          // Prevents overlapping picklist value requests from applying out of order
-                          disabled: loading || saving,
-                        }}
-                        items={recordTypes}
-                        selectedItemId={selectedRecordTypeId}
-                        onSelected={(item) => handleRecordTypeChange(item.id)}
-                      />
-                      <hr className="slds-m-vertical_small" />
-                    </div>
-                  )}
-                  <UiRecordForm
-                    key={formKey}
-                    org={selectedOrg}
-                    controlClassName="slds-p-bottom_x-small slds-p-horizontal_xx-small"
-                    action="create"
-                    sobjectFields={sobjectMetadata.fields || []}
-                    picklistValues={picklistValues || {}}
-                    record={initialRecord}
-                    initialModifiedRecord={modifiedRecord}
-                    saveErrors={formErrors.fieldErrors}
-                    disabled={loading || saving}
-                    onChange={handleRecordChange}
-                  />
-                </section>
-              )}
+            {selectedObject && sobjectMetadata?.fields && (
+              // Landmark so screen reader users can jump straight to the form for the chosen object
+              <section aria-label={`${selectedObject.label} record form`}>
+                {Array.isArray(recordTypes) && (
+                  <div className="slds-p-horizontal_xx-small">
+                    <ComboboxWithItems
+                      comboboxProps={{
+                        label: 'Record Type',
+                        labelHelp: 'The Record Type controls which picklist values are available',
+                        // Prevents overlapping picklist value requests from applying out of order
+                        disabled: loading || saving,
+                      }}
+                      items={recordTypes}
+                      selectedItemId={selectedRecordTypeId}
+                      onSelected={(item) => handleRecordTypeChange(item.id)}
+                    />
+                    <hr className="slds-m-vertical_small" />
+                  </div>
+                )}
+                <UiRecordForm
+                  key={formKey}
+                  org={selectedOrg}
+                  controlClassName="slds-p-bottom_x-small slds-p-horizontal_xx-small"
+                  action="create"
+                  sobjectFields={sobjectMetadata.fields || []}
+                  picklistValues={picklistValues || {}}
+                  record={initialRecord}
+                  initialModifiedRecord={modifiedRecord}
+                  saveErrors={formErrors.fieldErrors}
+                  disabled={loading || saving}
+                  onChange={handleRecordChange}
+                />
+              </section>
+            )}
           </AutoFullHeightContainer>
         </Split>
       </AutoFullHeightContainer>
