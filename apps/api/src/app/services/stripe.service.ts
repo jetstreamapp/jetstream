@@ -608,7 +608,7 @@ export async function saveOrUpdateSubscription({
       return;
     }
     userId = billingAccount.userId;
-    await stripe.customers.update(customer.id, { metadata: { userId } });
+    await stripe.customers.update(customer.id, { metadata: { userId, type } });
   } else if (userId && type === 'USER') {
     // For new subscriptions, create a billing account if it does not exist
     await userDbService.upsertBillingAccount({ userId, customerId: customer.id });
