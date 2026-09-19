@@ -1,6 +1,6 @@
 # syntax = docker/dockerfile:1
 
-ARG NODE_VERSION=24
+ARG NODE_VERSION=24.21.0
 ARG ENVIRONMENT=production
 
 FROM node:${NODE_VERSION}-slim AS base
