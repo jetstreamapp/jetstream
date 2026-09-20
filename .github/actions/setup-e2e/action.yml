@@ -10,8 +10,9 @@ description: >-
 inputs:
   affected-projects:
     description: >-
-      Extended-regex alternation of app names that should trigger this suite, e.g.
-      "api|jetstream". Matched against `nx show projects --affected --type=app`.
+      Extended-regex alternation of project names that should trigger this suite, e.g.
+      "api|jetstream". Matched, whole-name, against `nx show projects --affected` — which covers
+      the suite's own e2e project, so a change to a spec or fixture still runs it.
     required: true
   suite-name:
     description: Human-readable suite name, used only in the skip/run notices.
@@ -64,8 +65,11 @@ runs:
           echo "::notice::Running $SUITE_NAME — push event always runs the full suite"
           exit 0
         fi
-        affected=$(pnpm nx show projects --affected --type=app)
-        echo "Affected apps:"
+        # No `--type` filter: the suites are triggered by their own e2e project too, and nx types
+        # those as `e2e` rather than `app`, so `--type=app` silently dropped them. Matching stays
+        # precise because the grep below anchors on the whole project name.
+        affected=$(pnpm nx show projects --affected)
+        echo "Affected projects:"
         echo "$affected"
         if echo "$affected" | grep -qE "^($AFFECTED_PROJECTS)$"; then
           echo "should_run=true" >> "$GITHUB_OUTPUT"
