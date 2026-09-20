@@ -221,7 +221,9 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
           hideLabel,
           placeholder,
           helpText,
-          itemLength: 7,
+          // Org rows are several lines tall - a label, a username and any status badges - so the
+          // default of 7 showed only a handful of orgs. 10 is the tallest SLDS offers.
+          itemLength: 10,
           hasError: orgHasError(selectedOrg),
           disabled,
           inputCss: getSelectedItemStyle(selectedOrg),
