@@ -5,8 +5,9 @@
  * Pin sites kept in sync:
  *   - package.json            -> engines.pnpm, devEngines.packageManager.version, packageManager (with corepack hash)
  *   - apps/docs/package.json  -> engines.pnpm (any range prefix like `~` is preserved), devEngines.packageManager.version
- *   - .github/workflows/*.yml -> the `version:` passed to pnpm/action-setup (every workflow that uses the
- *     action is discovered automatically, so new ones stay in sync without editing this script)
+ *   - .github/workflows and .github/actions -> the `version:` passed to pnpm/action-setup, in both
+ *     workflows and local composite actions (every file that uses the action is discovered
+ *     automatically, so new ones stay in sync without editing this script)
  *   - Dockerfile / Dockerfile.e2e -> ARG PNPM_VERSION
  *
  * The pnpm-lock.yaml `packageManagerDependencies` block is auto-managed by pnpm, so it is refreshed by
@@ -26,7 +27,7 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-const WORKFLOWS_DIR = '.github/workflows';
+const GITHUB_DIR = '.github';
 
 const args = process.argv.slice(2);
 const checkOnly = args.includes('--check');
@@ -82,17 +83,28 @@ function replaceOrThrow(text, regex, replacer, description, expected = null) {
 }
 
 /**
- * Finds every workflow file that pins a pnpm version via pnpm/action-setup. Discovering them at runtime
- * means newly added workflows are kept in sync automatically instead of drifting until someone remembers
- * to extend a hard-coded list here.
+ * Finds every workflow and local composite action that pins a pnpm version via pnpm/action-setup.
+ * Walking .github at runtime means new ones are kept in sync automatically instead of drifting until
+ * someone remembers to extend a hard-coded list here. Composite actions under .github/actions were
+ * missed while this only scanned .github/workflows, which left the E2E jobs installing a stale pnpm.
  */
-function findWorkflowFilesWithPnpmPin() {
-  const workflowsPath = join(repoRoot, WORKFLOWS_DIR);
-  return readdirSync(workflowsPath)
-    .filter((name) => name.endsWith('.yml') || name.endsWith('.yaml'))
-    .sort()
-    .map((name) => join(WORKFLOWS_DIR, name))
-    .filter((relativePath) => readFileSync(join(repoRoot, relativePath), 'utf8').includes('pnpm/action-setup'));
+function findGithubFilesWithPnpmPin() {
+  const yamlFiles = [];
+
+  const collectYamlFiles = (relativeDir) => {
+    for (const entry of readdirSync(join(repoRoot, relativeDir), { withFileTypes: true })) {
+      const relativePath = join(relativeDir, entry.name);
+      if (entry.isDirectory()) {
+        collectYamlFiles(relativePath);
+      } else if (entry.name.endsWith('.yml') || entry.name.endsWith('.yaml')) {
+        yamlFiles.push(relativePath);
+      }
+    }
+  };
+
+  collectYamlFiles(GITHUB_DIR);
+
+  return yamlFiles.sort().filter((relativePath) => readFileSync(join(repoRoot, relativePath), 'utf8').includes('pnpm/action-setup'));
 }
 
 function buildFileEditors(version, hash) {
@@ -149,7 +161,7 @@ function buildFileEditors(version, hash) {
     },
   };
 
-  for (const relativePath of findWorkflowFilesWithPnpmPin()) {
+  for (const relativePath of findGithubFilesWithPnpmPin()) {
     editors[relativePath] = actionSetupVersion;
   }
 

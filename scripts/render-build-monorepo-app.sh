@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Use this script to build a nested workspace project (e.g. docs, apps-sfdx) on Render.
-# It ensures Corepack is enabled and the correct version of pnpm is used, then installs
+# It sources the Corepack helper (which puts the pinned pnpm on PATH), then installs
 # the target project's dependencies (plus its workspace deps) and runs its build script.
 # Examples:
 #   ./scripts/render-build-monorepo-app.sh docs
@@ -17,7 +17,8 @@ fi
 PROJECT="$1"
 SCRIPT="${2:-build}"
 
-"$(dirname "$0")/render-enable-corepack.sh"
+# shellcheck source=./render-enable-corepack.sh
+source "$(dirname "$0")/render-enable-corepack.sh"
 
 pnpm install --prod=false --filter "${PROJECT}..."
 pnpm --filter "${PROJECT}" "${SCRIPT}"
