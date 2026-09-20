@@ -448,16 +448,6 @@ jobs:
           pattern: a11y-results-*
           merge-multiple: true
 
-      # The a11y specs land on whichever shards Playwright assigns them to, so a shard without results
-      # is normal. What must never pass silently is the suite running with NO shard producing any —
-      # that means the a11y specs were skipped or broken and the ratchet did not run.
-      - name: Check a11y scan results exist
-        run: |
-          if [ -n "$(ls -A all-blob-reports 2>/dev/null)" ] && [ -z "$(ls -A all-a11y-results 2>/dev/null)" ]; then
-            echo "::error::E2E ran but no a11y scan results were produced — the a11y specs did not run"
-            exit 1
-          fi
-
       # The E2E job exits successfully without producing reports when the affected-guard skips it,
       # so an empty download here is expected rather than an error.
       #
@@ -493,6 +483,17 @@ jobs:
           path: playwright-summary.json
           retention-days: 30
 
+      # The a11y specs land on whichever shards Playwright assigns them to, so a shard without results
+      # is normal. What must never pass silently is the suite running with NO shard producing any —
+      # that means the a11y specs were skipped or broken and the ratchet did not run. Checked last, so the
+      # merged report that explains why is still uploaded when this fails.
+      - name: Check a11y scan results exist
+        run: |
+          if [ -n "$(ls -A all-blob-reports 2>/dev/null)" ] && [ -z "$(ls -A all-a11y-results 2>/dev/null)" ]; then
+            echo "::error::E2E ran but no a11y scan results were produced — the a11y specs did not run"
+            exit 1
+          fi
+
   # The check branch protection points at.
   #
   # A matrix job reports one context per shard ("e2e-shard (1, 4)" … "e2e-shard (4, 4)") and none
@@ -502,9 +503,13 @@ jobs:
   #
   # `needs['e2e-shard'].result` aggregates every shard: success only when all of them succeeded.
   # The bracket form is required — `needs.e2e-shard` would parse as a subtraction.
+  #
+  # merge-e2e-reports is depended on for its result, not its artifacts: it owns the "the a11y specs
+  # produced no results" assertion, and it is not itself a protected context, so folding its result
+  # in here is what makes that assertion able to block a merge.
   e2e:
     if: always()
-    needs: [e2e-shard]
+    needs: [e2e-shard, merge-e2e-reports]
     runs-on: ubuntu-latest
     steps:
       - name: Verify all e2e shards passed
@@ -512,5 +517,13 @@ jobs:
           echo "e2e matrix result: ${{ needs['e2e-shard'].result }}"
           if [ "${{ needs['e2e-shard'].result }}" != "success" ]; then
             echo "::error::E2E did not pass (result: ${{ needs['e2e-shard'].result }})"
+            exit 1
+          fi
+
+      - name: Verify the report merge and a11y result check passed
+        run: |
+          echo "merge-e2e-reports result: ${{ needs['merge-e2e-reports'].result }}"
+          if [ "${{ needs['merge-e2e-reports'].result }}" != "success" ]; then
+            echo "::error::E2E report merge did not pass (result: ${{ needs['merge-e2e-reports'].result }})"
             exit 1
           fi
