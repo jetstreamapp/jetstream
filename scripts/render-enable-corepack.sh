@@ -25,3 +25,5 @@ mkdir -p "${COREPACK_BIN_DIR}"
 corepack enable --install-directory "${COREPACK_BIN_DIR}"
 export PATH="${COREPACK_BIN_DIR}:${PATH}"
 corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+echo "corepack: using pnpm $(pnpm --version) from $(command -v pnpm)"
