@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Fragment, useEffect, useState } from 'react';
-import { ROUTES, SIGN_IN_ERRORS } from '../../utils/environment';
+import { ROUTES } from '../../utils/environment';
 import { ErrorQueryParamErrorBanner } from '../ErrorQueryParamErrorBanner';
 
 type EmailChangeActionType = 'confirm' | 'cancel';
@@ -81,7 +81,7 @@ export function EmailChangeAction({ action, csrfToken, token }: EmailChangeActio
       const responseData: { data?: { error?: boolean; errorType?: string; email?: string }; errorType?: string } = await response
         .json()
         .catch(() => ({}));
-      const errorType = (responseData.errorType || responseData.data?.errorType) as keyof typeof SIGN_IN_ERRORS | undefined;
+      const errorType = responseData.errorType || responseData.data?.errorType;
 
       if (!response.ok || responseData.data?.error) {
         router.push(`${router.pathname}?${new URLSearchParams({ error: errorType || 'InvalidOrExpiredEmailChangeToken' })}`);

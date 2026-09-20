@@ -1,8 +1,9 @@
 import { Providers } from '@jetstream/auth/types';
+import { getAuthErrorMessage } from '@jetstream/shared/constants';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { useCsrfToken, useUserProfile } from '../../hooks/auth.hooks';
-import { ENVIRONMENT, ROUTES, SIGN_IN_ERRORS } from '../../utils/environment';
+import { ENVIRONMENT, ROUTES } from '../../utils/environment';
 import Alert from '../Alert';
 import { LoginOrSignUp } from './LoginOrSignUp';
 
@@ -48,7 +49,7 @@ export function LoginOrSignUpWrapper({ action }: LoginOrSignUpWrapperProps) {
   if (resolvedError) {
     return (
       <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
-        <Alert message={SIGN_IN_ERRORS[resolvedError] ?? SIGN_IN_ERRORS.default} />
+        <Alert message={getAuthErrorMessage(resolvedError)} />
       </div>
     );
   }

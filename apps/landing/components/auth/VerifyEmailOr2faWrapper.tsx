@@ -1,7 +1,8 @@
+import { getAuthErrorMessage } from '@jetstream/shared/constants';
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 import { useCsrfToken, useUserProfile } from '../../hooks/auth.hooks';
-import { ENVIRONMENT, ROUTES, SIGN_IN_ERRORS } from '../../utils/environment';
+import { ENVIRONMENT, ROUTES } from '../../utils/environment';
 import Alert from '../Alert';
 import { VerifyEmailOr2fa } from './VerifyEmailOr2fa';
 
@@ -26,7 +27,7 @@ export function VerifyEmailOr2faWrapper() {
   if (error) {
     return (
       <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
-        <Alert message={SIGN_IN_ERRORS[error] ?? SIGN_IN_ERRORS.default} />
+        <Alert message={getAuthErrorMessage(error)} />
       </div>
     );
   }

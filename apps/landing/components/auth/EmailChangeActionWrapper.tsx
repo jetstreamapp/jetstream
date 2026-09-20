@@ -1,8 +1,9 @@
+import { getAuthErrorMessage } from '@jetstream/shared/constants';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { useCsrfToken } from '../../hooks/auth.hooks';
-import { ROUTES, SIGN_IN_ERRORS } from '../../utils/environment';
+import { ROUTES } from '../../utils/environment';
 import Alert from '../Alert';
 import { EmailChangeAction } from './EmailChangeAction';
 
@@ -46,7 +47,7 @@ function EmailChangeActionContent({ action }: { action: 'confirm' | 'cancel' }) 
   if (error) {
     return (
       <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
-        <Alert message={SIGN_IN_ERRORS[error] ?? SIGN_IN_ERRORS.default} />
+        <Alert message={getAuthErrorMessage(error)} />
       </div>
     );
   }
