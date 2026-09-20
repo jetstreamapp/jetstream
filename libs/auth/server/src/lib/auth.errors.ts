@@ -1,3 +1,5 @@
+import type { LoginMethod } from '@jetstream/shared/constants';
+
 type ErrorType =
   | 'AccountLocked'
   | 'AuthError'
@@ -28,6 +30,7 @@ type ErrorType =
   | 'SsoAutoProvisioningDisabled'
   | 'SsoInvalidAction'
   | 'SsoLicenseLimitExceeded'
+  | 'SsoRequired'
   | 'TooManyVerificationAttempts';
 
 type ErrorOptions = Error | Record<string, unknown>;
@@ -148,8 +151,28 @@ export class MissingEntitlement extends AuthError {
   static type: ErrorType = 'MissingEntitlement';
 }
 
+/**
+ * `attemptedMethod`/`allowedMethods` are surfaced to the sign in screen so it can name the methods
+ * the team permits - without them the user is told their method is not allowed and nothing else.
+ */
 export class ProviderNotAllowed extends AuthError {
   static type: ErrorType = 'ProviderNotAllowed';
+  attemptedMethod?: LoginMethod;
+  allowedMethods?: LoginMethod[];
+
+  constructor(message?: string, options?: { attemptedMethod?: LoginMethod; allowedMethods?: LoginMethod[] }) {
+    super(message);
+    this.attemptedMethod = options?.attemptedMethod;
+    this.allowedMethods = options?.allowedMethods;
+  }
+}
+
+/**
+ * Distinct from ProviderNotAllowed so the sign in screen can point the user at the SSO button
+ * instead of listing methods their team has turned off.
+ */
+export class SsoRequired extends AuthError {
+  static type: ErrorType = 'SsoRequired';
 }
 
 export class ProviderEmailNotVerified extends AuthError {

@@ -1,5 +1,5 @@
 import { ENV, errorTracker, getLogger, prisma } from '@jetstream/api-config';
-import { AuthError, createCSRFToken, getCookieConfig, StepUpAuthRequiredError } from '@jetstream/auth/server';
+import { AuthError, createCSRFToken, getCookieConfig, ProviderNotAllowed, StepUpAuthRequiredError } from '@jetstream/auth/server';
 import { isPrismaError, Prisma, SalesforceOrg, toTypedPrismaError } from '@jetstream/prisma';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { getErrorMessage } from '@jetstream/shared/utils';
@@ -28,6 +28,18 @@ export async function healthCheck(_: express.Request, res: express.Response) {
       message: `Unhealthy: ${getErrorMessage(ex)}`,
     });
   }
+}
+
+/**
+ * ProviderNotAllowed is the only auth error where the error type alone leaves the user stuck - the
+ * sign in screen cannot name the methods their team permits without being told. Every other auth
+ * error maps to static copy on the client.
+ */
+function getLoginMethodDetails(err: AuthError) {
+  if (err instanceof ProviderNotAllowed && err.allowedMethods?.length) {
+    return { attemptedMethod: err.attemptedMethod, allowedMethods: err.allowedMethods };
+  }
+  return undefined;
 }
 
 export function setCsrfCookie(res: Response) {
@@ -301,6 +313,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       res.status(status || 400);
       // These errors are emitted during the authentication process
       responseLogger.warn({ err, type: err.type }, '[RESPONSE][AUTH_ERROR]');
+      const loginMethodDetails = getLoginMethodDetails(err);
       if (isJson) {
         return res.json({
           error: true,
@@ -311,11 +324,18 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
             success: false,
             errorType: err.type,
             message: err.message,
+            ...loginMethodDetails,
           },
         });
       }
-      const params = new URLSearchParams({ error: err.type }).toString();
-      return res.redirect(`${ENV.JETSTREAM_SERVER_URL}/auth/login/?${params}`);
+      const params = new URLSearchParams({ error: err.type });
+      if (loginMethodDetails) {
+        params.set('allowedMethods', loginMethodDetails.allowedMethods.join(','));
+        if (loginMethodDetails.attemptedMethod) {
+          params.set('attemptedMethod', loginMethodDetails.attemptedMethod);
+        }
+      }
+      return res.redirect(`${ENV.JETSTREAM_SERVER_URL}/auth/login/?${params.toString()}`);
     } else if (err instanceof UserFacingError) {
       // Prefer the normalized connection-error status over Salesforce's upstream status (which can be a
       // 5xx, e.g. SOAP INVALID_SESSION_ID) so an auth failure is reported as a 4xx; otherwise fall back to

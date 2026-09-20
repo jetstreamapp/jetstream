@@ -1,4 +1,4 @@
-import { StepUpAuthRequiredError } from '@jetstream/auth/server';
+import { AuthError, ProviderNotAllowed, StepUpAuthRequiredError } from '@jetstream/auth/server';
 import { ApiRequestError } from '@jetstream/salesforce-api';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { PassThrough } from 'node:stream';
@@ -45,18 +45,36 @@ vi.mock('@jetstream/api-config', () => ({
   },
 }));
 
-vi.mock('@jetstream/auth/server', () => ({
-  AuthError: class AuthError extends Error {
+vi.mock('@jetstream/auth/server', () => {
+  class AuthError extends Error {
     type = 'auth_error';
-  },
-  // Mirrors the real class: extends Error, NOT AuthError. See the "step-up" describe block below.
-  StepUpAuthRequiredError: class StepUpAuthRequiredError extends Error {
-    status = 403;
-    errorType = 'STEP_UP_AUTH_REQUIRED';
-  },
-  createCSRFToken: vi.fn(),
-  getCookieConfig: vi.fn(),
-}));
+  }
+
+  // Mirrors the real class: extends AuthError, so the handler's AuthError branch claims it first.
+  class ProviderNotAllowed extends AuthError {
+    override type = 'ProviderNotAllowed';
+    attemptedMethod?: string;
+    allowedMethods?: string[];
+
+    constructor(message?: string, options?: { attemptedMethod?: string; allowedMethods?: string[] }) {
+      super(message);
+      this.attemptedMethod = options?.attemptedMethod;
+      this.allowedMethods = options?.allowedMethods;
+    }
+  }
+
+  return {
+    AuthError,
+    ProviderNotAllowed,
+    // Mirrors the real class: extends Error, NOT AuthError. See the "step-up" describe block below.
+    StepUpAuthRequiredError: class StepUpAuthRequiredError extends Error {
+      status = 403;
+      errorType = 'STEP_UP_AUTH_REQUIRED';
+    },
+    createCSRFToken: vi.fn(),
+    getCookieConfig: vi.fn(),
+  };
+});
 
 vi.mock('@jetstream/prisma', () => ({
   isPrismaError: (error: unknown) => Boolean((error as { isPrismaError?: boolean })?.isPrismaError),
@@ -72,9 +90,9 @@ vi.mock('../../db/salesforce-org.db', () => ({
   updateOrg_UNSAFE: vi.fn(),
 }));
 
-function createMockReq() {
+function createMockReq(accept = 'application/json') {
   return {
-    get: vi.fn(() => 'application/json'),
+    get: vi.fn(() => accept),
     method: 'POST',
     originalUrl: '/api/test',
     params: {},
@@ -115,8 +133,8 @@ function createMockRes() {
   return res;
 }
 
-async function handleError(error: unknown, locals?: Record<string, unknown>) {
-  const req = createMockReq();
+async function handleError(error: unknown, locals?: Record<string, unknown>, accept?: string) {
+  const req = createMockReq(accept);
   const res = createMockRes();
   if (locals) {
     Object.assign(res.locals, locals);
@@ -233,6 +251,65 @@ describe('uncaughtErrorHandler logging levels', () => {
     expect(res.log.error).toHaveBeenCalledWith(
       { err: expect.objectContaining({ message: 'Upstream unavailable' }), res: { statusCode: 503 } },
       '[RESPONSE][ERROR]',
+    );
+  });
+});
+
+/**
+ * The sign in screen cannot name the methods a team permits on its own, so ProviderNotAllowed is the
+ * one auth error whose details have to survive the trip to the client - as JSON for the app and as
+ * query params for the browser redirect. Every other auth error maps to static copy.
+ */
+describe('uncaughtErrorHandler auth error login method details', () => {
+  const providerNotAllowed = () =>
+    new ProviderNotAllowed('The credentials provider is not allowed for this team', {
+      attemptedMethod: 'credentials',
+      allowedMethods: ['google', 'sso'],
+    });
+
+  it('includes the attempted and allowed methods in the JSON response', async () => {
+    const { res } = await handleError(providerNotAllowed());
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorType: 'ProviderNotAllowed',
+        data: expect.objectContaining({
+          errorType: 'ProviderNotAllowed',
+          attemptedMethod: 'credentials',
+          allowedMethods: ['google', 'sso'],
+        }),
+      }),
+    );
+  });
+
+  it('carries the attempted and allowed methods through the login redirect', async () => {
+    const { res } = await handleError(providerNotAllowed(), undefined, 'text/html');
+
+    expect(res.redirect).toHaveBeenCalledWith(
+      'https://getjetstream.app/auth/login/?error=ProviderNotAllowed&allowedMethods=google%2Csso&attemptedMethod=credentials',
+    );
+  });
+
+  it('omits the details when the team permits no methods at all', async () => {
+    // An empty allowed list would render as an empty query param, leaving the screen with copy it
+    // cannot fill in - the generic message for the error type is the better fallback.
+    const { res } = await handleError(
+      new ProviderNotAllowed('No providers allowed', { attemptedMethod: 'credentials', allowedMethods: [] }),
+      undefined,
+      'text/html',
+    );
+
+    expect(res.redirect).toHaveBeenCalledWith('https://getjetstream.app/auth/login/?error=ProviderNotAllowed');
+  });
+
+  it('leaves other auth errors without login method details', async () => {
+    const { res } = await handleError(new AuthError('Something else went wrong'));
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.not.objectContaining({ allowedMethods: expect.anything() }),
+      }),
     );
   });
 });

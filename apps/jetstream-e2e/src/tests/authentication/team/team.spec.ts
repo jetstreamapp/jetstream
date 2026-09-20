@@ -648,7 +648,15 @@ test.describe('Team Dashboard', () => {
       const memberPage = await context.newPage();
       const memberAuth = new AuthenticationPage(memberPage);
       await memberAuth.fillOutLoginForm(member1.user.email, member1.user.password);
-      await expect(memberPage.getByText('method is not allowed')).toBeVisible();
+
+      // The banner must name the methods the team still allows - a user who is only told their
+      // method is rejected has no way to discover which one to use instead.
+      await expect(
+        memberPage.getByText(
+          `Email and password sign-in isn't enabled for your team. Sign in with Google or Salesforce, or contact your Jetstream administrator.`,
+        ),
+      ).toBeVisible();
+
       await context.close();
     });
   });

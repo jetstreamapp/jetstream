@@ -19,6 +19,12 @@ export interface SsoFixtureOptions {
   seedUser?: boolean;
   addTeamMember?: boolean;
   ssoRequireMfa?: boolean;
+  /** Non-SSO providers the team permits */
+  allowedProviders?: ('credentials' | 'google' | 'salesforce')[];
+  /** When false, team members cannot sign in with anything other than SSO */
+  ssoBypassEnabled?: boolean;
+  /** Roles permitted to sign in without SSO while `ssoBypassEnabled` is true */
+  ssoBypassEnabledRoles?: string[];
   oidcIssuer?: string;
   oidcClientId?: string;
   oidcClientSecret?: string;
@@ -34,6 +40,9 @@ export async function createSsoFixture(options: SsoFixtureOptions = {}): Promise
     seedUser = true,
     addTeamMember = true,
     ssoRequireMfa = false,
+    allowedProviders = ['credentials', 'google', 'salesforce'],
+    ssoBypassEnabled = true,
+    ssoBypassEnabledRoles = ['ADMIN'],
     oidcIssuer = 'http://localhost:5555',
     oidcClientId = 'client-id',
     oidcClientSecret = 'client-secret',
@@ -88,12 +97,14 @@ export async function createSsoFixture(options: SsoFixtureOptions = {}): Promise
       loginConfig: {
         create: {
           allowedMfaMethods: ['otp', 'email'],
-          allowedProviders: ['credentials', 'google', 'salesforce'],
+          allowedProviders,
           allowIdentityLinking: true,
           requireMfa: false,
           ssoProvider,
           ssoEnabled,
           ssoRequireMfa,
+          ssoBypassEnabled,
+          ssoBypassEnabledRoles,
           ssoJitProvisioningEnabled: true,
           domains: domainStatus === 'VERIFIED' ? [domain] : [],
         },
