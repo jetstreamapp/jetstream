@@ -18,20 +18,23 @@ const allowWrapCss = css`
 `;
 
 /**
- * Lays the label and its suffix out side-by-side. With no suffix there is nothing to lay out, so the
- * label is emitted as-is rather than adding a wrapper element to every combobox item in the app.
+ * The suffix sits on its own row beneath the text rather than beside it. Alongside the label it could
+ * not shrink, so a row carrying more than one badge squeezed the label into a column a few characters
+ * wide - and `allowWrap` then broke an org username apart one character per line. On its own row both
+ * the label and the badges get the full width of the list.
  */
-const LabelRow: React.FunctionComponent<{ labelSuffix?: React.ReactNode; children: React.ReactNode }> = ({ labelSuffix, children }) => {
-  if (!labelSuffix) {
-    return <Fragment>{children}</Fragment>;
+const labelSuffixRowCss = css`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  margin-top: 0.25rem;
+
+  /* SLDS spaces adjacent badges with a margin, which would both compound with the gap and indent the
+     first badge of a wrapped line. The gap owns the spacing here so it stays even in both directions. */
+  .slds-badge + .slds-badge {
+    margin-left: 0;
   }
-  return (
-    <div className="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
-      {children}
-      <div className="slds-m-left_x-small slds-no-flex">{labelSuffix}</div>
-    </div>
-  );
-};
+`;
 
 export interface ComboboxListItemProps {
   id: string;
@@ -53,8 +56,8 @@ export interface ComboboxListItemProps {
    */
   isDrillInItem?: boolean;
   /**
-   * Rendered next to the label, outside of the truncating/wrapping text flow.
-   * Intended for a short status indicator such as a badge.
+   * Rendered on its own row beneath the label, outside of the truncating/wrapping text flow.
+   * Intended for status indicators such as badges.
    */
   labelSuffix?: React.ReactNode;
   /**
@@ -167,27 +170,23 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
             css={textBodyCss}
           >
             {label && (!secondaryLabel || !secondaryLabelOnNewLine) && (
-              <LabelRow labelSuffix={labelSuffix}>
-                <span className={classNames({ 'slds-truncate': !allowWrap }, textClassName)} title={title} css={[wrapCss, textCss]}>
-                  <span>{label}</span>
-                  {secondaryLabel && <span className="slds-text-color_weak slds-m-left_xx-small">{secondaryLabel}</span>}
-                  {tertiaryLabel && (
-                    <span className="slds-listbox__option-meta">
-                      <div className="slds-truncate">
-                        <strong>{tertiaryLabel}</strong>
-                      </div>
-                    </span>
-                  )}
-                </span>
-              </LabelRow>
+              <span className={classNames({ 'slds-truncate': !allowWrap }, textClassName)} title={title} css={[wrapCss, textCss]}>
+                <span>{label}</span>
+                {secondaryLabel && <span className="slds-text-color_weak slds-m-left_xx-small">{secondaryLabel}</span>}
+                {tertiaryLabel && (
+                  <span className="slds-listbox__option-meta">
+                    <div className="slds-truncate">
+                      <strong>{tertiaryLabel}</strong>
+                    </div>
+                  </span>
+                )}
+              </span>
             )}
             {label && secondaryLabel && secondaryLabelOnNewLine && (
               <Fragment>
-                <LabelRow labelSuffix={labelSuffix}>
-                  <div className="slds-listbox__option-text slds-listbox__option-text_entity" css={wrapCss}>
-                    {label}
-                  </div>
-                </LabelRow>
+                <div className="slds-listbox__option-text slds-listbox__option-text_entity" css={wrapCss}>
+                  {label}
+                </div>
                 <div className="slds-listbox__option-meta">
                   <div className={classNames({ 'slds-truncate': !allowWrap })} title={secondaryLabel} css={wrapCss}>
                     {secondaryLabel}
@@ -207,6 +206,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
                 )}
               </Fragment>
             )}
+            {labelSuffix && <div css={labelSuffixRowCss}>{labelSuffix}</div>}
             {children}
           </span>
           {isDrillInItem && (
