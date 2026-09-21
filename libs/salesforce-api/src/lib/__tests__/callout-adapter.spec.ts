@@ -840,6 +840,86 @@ describe('callout-adapter XML parsing', () => {
     });
   });
 
+  describe('HTML error page handling', () => {
+    // Verbatim bodies observed in production; the maintenance page is newline-prefixed rather than
+    // starting at the first character, which is exactly what makes a naive `startsWith('<')` miss it.
+    const MAINTENANCE_PAGE = `<html>\n<body>\n<center>\n\t<table bgcolor="white" cellpadding="0" cellspacing="0" width="758">\n\t\t<tbody>\n\t\t<tr>\n\t\t\t<td><span style="font-family: Verdana;">We are down for maintenance.</span><br><br>Sorry for the inconvenience. We'll be back shortly.</td><br>\n\t\t</tr>\n\t\t</tbody>\n\t</table>\n</center>\n</body>\n</html>`;
+    const UPSTREAM_ERROR_PAGE = `<!doctypehtml><html lang=en-US><meta charset=UTF-8><title>Upstream Error Page</title><style>/*! normalize.css */</style>`;
+    const INTERNAL_ERROR_PAGE = `\n      <html>\n<head><title>An internal server error has occurred</title></head>\n<body>\n  <div style="display:none">x</div>\n</body>\n</html>`;
+
+    it.each([
+      ['maintenance page (503)', MAINTENANCE_PAGE, 503],
+      ['upstream error page (503)', UPSTREAM_ERROR_PAGE, 503],
+      ['internal server error page (500)', INTERNAL_ERROR_PAGE, 500],
+    ])('replaces the %s with a readable message instead of the raw markup', async (_label, body, status) => {
+      const mockFetch = createMockFetch({
+        '/services/data/': { status, body, headers: { 'content-type': 'text/html' } },
+      });
+
+      const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+      try {
+        await apiRequest({
+          url: '/services/data/v65.0/query',
+          method: 'GET',
+          sessionInfo: mockSessionInfo,
+          outputType: 'json',
+        });
+        expect(true).toBe(false);
+      } catch (error) {
+        const { message } = error as ApiRequestError;
+        expect(message).toBe(
+          `Salesforce returned an error page instead of a response (HTTP ${status}). The org may be temporarily unavailable or undergoing maintenance - please try again shortly.`,
+        );
+        expect(message).not.toContain('<');
+      }
+    });
+
+    it('still surfaces the Salesforce message for a structured JSON error', async () => {
+      const mockFetch = createMockFetch({
+        '/services/data/': {
+          status: 500,
+          body: JSON.stringify([{ message: 'INVALID_TYPE_FOR_OPERATION: App Attestation entity query not allowed', errorCode: 'X' }]),
+          headers: { 'content-type': 'application/json' },
+        },
+      });
+
+      const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+      try {
+        await apiRequest({
+          url: '/services/data/v65.0/query',
+          method: 'GET',
+          sessionInfo: mockSessionInfo,
+          outputType: 'json',
+        });
+        expect(true).toBe(false);
+      } catch (error) {
+        expect((error as ApiRequestError).message).toBe('INVALID_TYPE_FOR_OPERATION: App Attestation entity query not allowed');
+      }
+    });
+
+    it('still surfaces the faultstring for a SOAP fault, whose body also opens with a tag', async () => {
+      const mockFetch = createMockFetch({
+        '/services/Soap/m/': { status: 500, body: MOCK_RESPONSES.SOAP_ERROR_GENERIC },
+      });
+
+      const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+      try {
+        await apiRequest({
+          url: '/services/Soap/m/65.0',
+          method: 'POST',
+          sessionInfo: mockSessionInfo,
+          outputType: 'soap',
+        });
+        expect(true).toBe(false);
+      } catch (error) {
+        expect((error as ApiRequestError).message).toBe('Invalid request data');
+      }
+    });
+  });
+
   describe('SSRF origin pinning', () => {
     it('throws and never calls fetch when the url would escape the instance origin', async () => {
       const mockFetch = vi.fn() as unknown as FetchFn;

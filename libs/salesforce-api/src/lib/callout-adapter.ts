@@ -9,6 +9,17 @@ const SOAP_API_AUTH_ERROR_REGEX = /<faultcode>[a-zA-Z]+:INVALID_SESSION_ID<\/fau
 const BULK_XML_AUTH_ERROR_REGEX = /<exceptionCode>InvalidSessionId<\/exceptionCode>/;
 // Shows up for certain API requests, such as Identity
 const BAS_ACCESS_TOKEN_403 = 'Bad_OAuth_Token';
+/**
+ * Salesforce's edge serves a full HTML page instead of a structured API error during maintenance windows,
+ * upstream failures, and org-level outages. We have observed at least four distinct pages across 500/503
+ * responses, so matching them by content is the only way to cover the class.
+ *
+ * Deliberately matched on the body rather than the `content-type` header: the header check would also
+ * capture the HTML-bodied 420 handled below, which has its own message, and every one of these pages opens
+ * with a doctype or `<html>` regardless of what headers the edge sets. No Salesforce API error body — JSON,
+ * SOAP, or Bulk XML — starts this way, so a real error message can never be shadowed by this.
+ */
+const HTML_ERROR_PAGE_REGEX = /^\s*<(?:!doctype|html)/i;
 
 export class ApiRequestError extends Error {
   readonly status: number;
@@ -331,6 +342,8 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
               }
             }
           } else if (response.status === 420 && response.headers.get(HTTP.HEADERS.CONTENT_TYPE) === 'text/html') {
+            // Keeps its own message ahead of the generic HTML-page handling in `handleSalesforceApiError`,
+            // which no longer sees a markup body once this replaces it.
             responseText = 'An unexpected response was received from Salesforce. Please try again.';
           }
           // don't throw if caller wants the response back
@@ -338,7 +351,7 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
             return response as Response;
           }
 
-          throw new ApiRequestError(handleSalesforceApiError(outputType || 'json', responseText), response);
+          throw new ApiRequestError(handleSalesforceApiError(outputType || 'json', responseText, response.status), response);
         })
         .then((response) => {
           return response as Response;
@@ -348,8 +361,15 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
   };
 }
 
-function handleSalesforceApiError(outputType: ApiRequestOutputType, responseText?: string) {
+function handleSalesforceApiError(outputType: ApiRequestOutputType, responseText?: string, status?: number) {
   let output = responseText;
+  // Checked ahead of the per-format parsing: each branch below falls back to the raw body when parsing
+  // fails, which would otherwise surface an entire HTML document as the error message.
+  if (typeof responseText === 'string' && HTML_ERROR_PAGE_REGEX.test(responseText)) {
+    return `Salesforce returned an error page instead of a response${
+      status ? ` (HTTP ${status})` : ''
+    }. The org may be temporarily unavailable or undergoing maintenance - please try again shortly.`;
+  }
   if (outputType === 'json' && typeof responseText === 'string') {
     try {
       const tempResult = JSON.parse(responseText) as { message: string } | { message: string }[];
