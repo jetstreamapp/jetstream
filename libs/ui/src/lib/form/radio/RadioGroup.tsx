@@ -9,7 +9,7 @@ export interface RadioGroupProps {
   formControlClassName?: string;
   helpTextClassName?: string;
   label?: string;
-  /** Keeps the label for screen readers only */
+  /** Keep the label for assistive technology only, for a group whose purpose is already clear on screen */
   hideLabel?: boolean;
   /** Id of an element outside the group that describes it */
   ariaDescribedBy?: string;
@@ -19,6 +19,12 @@ export interface RadioGroupProps {
   hasError?: boolean;
   isButtonGroup?: boolean;
   errorMessage?: string | null;
+  /**
+   * Set when the group also holds controls that are not radios (a checkbox, an upgrade button, a file
+   * picker). The fieldset then keeps its native group role: a radiogroup role would present those controls
+   * as part of a set of radio buttons.
+   */
+  hasNonRadioControls?: boolean;
   children?: React.ReactNode;
 }
 
@@ -36,6 +42,7 @@ export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
   hasError,
   errorMessage,
   isButtonGroup,
+  hasNonRadioControls,
   children,
 }) => {
   const { labelHelpId, helpTextId, errorMessageId, legendId } = useFormIds(idPrefix);
@@ -51,7 +58,7 @@ export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
       // Explicit role + labelledby: screen readers announce the group label when focus enters,
       // which plain fieldset/legend does unreliably in VoiceOver — vital when adjacent groups
       // share value labels (e.g. two filter groups both starting with "All")
-      role="radiogroup"
+      role={hasNonRadioControls ? undefined : 'radiogroup'}
       aria-labelledby={label ? legendId : undefined}
       aria-describedby={ariaDescribedbyText}
       aria-invalid={hasError || undefined}
