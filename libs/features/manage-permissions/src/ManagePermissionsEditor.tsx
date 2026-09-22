@@ -1200,6 +1200,8 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         {hasLoaded && (
           <Tabs
             initialActiveId={initialTabId}
+            // Each tab is a full permissions grid, too costly to build for every tab the arrow keys pass
+            activationMode="manual"
             onChange={setActiveTabId}
             tabs={[
               {
