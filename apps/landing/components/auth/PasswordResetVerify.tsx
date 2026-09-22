@@ -6,7 +6,7 @@ import { useRouter } from 'next/router';
 import { Fragment, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { ROUTES, SIGN_IN_ERRORS } from '../../utils/environment';
+import { ROUTES } from '../../utils/environment';
 import { ErrorQueryParamErrorBanner } from '../ErrorQueryParamErrorBanner';
 import { Input } from '../form/Input';
 import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
@@ -89,7 +89,7 @@ export function PasswordResetVerify({ csrfToken, email, token }: PasswordResetVe
     } = await response.json();
 
     const error = responseData.data.error;
-    const errorType = responseData.data.errorType as keyof typeof SIGN_IN_ERRORS | undefined;
+    const errorType = responseData.data.errorType;
 
     if (!response.ok || error) {
       // Error banner will show specific error message based on query param - let user try again

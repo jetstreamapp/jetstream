@@ -1,5 +1,3 @@
-import { AUTH_ERROR_MESSAGES } from '@jetstream/shared/constants';
-
 export const ENVIRONMENT = {
   BILLING_ENABLED: process.env.NX_PUBLIC_BILLING_ENABLED === 'true',
   CLIENT_URL: process.env.NX_PUBLIC_CLIENT_URL || 'https://getjetstream.app/app',
@@ -60,9 +58,4 @@ export const ROUTES = {
   API: {
     desktop_downloads: `${process.env.NX_PUBLIC_SERVER_URL || 'https://getjetstream.app'}/desktop-assets/downloads`,
   },
-};
-
-export const SIGN_IN_ERRORS = {
-  ...AUTH_ERROR_MESSAGES,
-  default: 'Check your details and try again.',
 };
