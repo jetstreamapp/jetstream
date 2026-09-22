@@ -1107,6 +1107,9 @@ export const PermissionAnalysisView: FunctionComponent = () => {
               <Tabs
                 key={resultTabs.map((tab) => tab.id).join('|')}
                 initialActiveId={resultTabs[0]?.id ?? 'assignments'}
+                // Each tab is a results grid (profiles × fields in a large org), too costly to build for every
+                // tab the arrow keys pass
+                activationMode="manual"
                 tabs={resultTabs}
               />
             </Fragment>

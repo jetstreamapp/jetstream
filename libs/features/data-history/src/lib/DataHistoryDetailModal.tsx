@@ -241,7 +241,8 @@ export const DataHistoryDetailModal: FunctionComponent<DataHistoryDetailModalPro
             {fileError.message}
           </ScopedNotification>
         )}
-        <Tabs ref={tabsRef} tabs={tabs} initialActiveId={activeTabId} onChange={setActiveTabId} />
+        {/* The payload tabs are record grids, too costly to build for every tab the arrow keys pass */}
+        <Tabs ref={tabsRef} tabs={tabs} initialActiveId={activeTabId} activationMode="manual" onChange={setActiveTabId} />
       </Modal>
       {downloadTarget && (
         <DataHistoryFormatDownloadModal

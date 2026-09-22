@@ -1657,7 +1657,8 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                   </ScopedNotification>
                 </div>
               )}
-              <Tabs key={resultTabs.map((tab) => tab.id).join('|')} initialActiveId="objects" tabs={resultTabs} />
+              {/* Each tab is a results grid, too costly to build for every tab the arrow keys pass */}
+              <Tabs key={resultTabs.map((tab) => tab.id).join('|')} initialActiveId="objects" activationMode="manual" tabs={resultTabs} />
             </Fragment>
           </DataTableSelectedContext.Provider>
         )}
