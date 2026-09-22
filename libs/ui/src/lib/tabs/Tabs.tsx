@@ -31,6 +31,12 @@ export interface TabsProps {
   renderAllContent?: boolean;
   /** Set false when the tab bar scrolls horizontally — labels keep full width and the bar scrolls */
   truncateLabels?: boolean;
+  /**
+   * `automatic` (default): the arrow keys select the tab they move to. `manual`: the arrow keys only move
+   * focus and Enter/Space select — for tabs whose content is expensive to mount (large grids), where
+   * selecting every tab the user arrows past would build each one in turn.
+   */
+  activationMode?: 'automatic' | 'manual';
   onFilterValueChange?: (value: string) => void;
   onChange?: (activeId: string) => void;
   children?: ReactNode;
@@ -51,6 +57,7 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
       emptyState = <h3 className="slds-text-heading_medium slds-m-around_medium">Select an item to continue</h3>,
       renderAllContent = false,
       truncateLabels,
+      activationMode = 'automatic',
       onFilterValueChange,
       onChange,
       children,
@@ -102,17 +109,27 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
       }
     }
 
-    // WAI-ARIA tabs pattern: arrow keys (orientation-aware) plus Home/End move between tabs with
-    // automatic activation. Guarded to events from the tabs themselves so the vertical filter
-    // input's cursor keys are unaffected.
+    // WAI-ARIA tabs pattern: arrow keys (orientation-aware) plus Home/End move between tabs, selecting
+    // them as they go unless activationMode is manual. Guarded to events from the tabs themselves so the
+    // vertical filter input's cursor keys are unaffected.
     function handleTabListKeyDown(event: React.KeyboardEvent<HTMLUListElement>) {
       const target = event.target as HTMLElement;
       if (target.getAttribute('role') !== 'tab' || filteredTabs.length === 0) {
         return;
       }
+      // The focused tab, which under manual activation can be a different one from the selected tab
+      const focusedIndex = filteredTabs.findIndex((tab) => `tab-${tab.id}` === target.id);
+      const hasModifier = event.metaKey || event.ctrlKey || event.altKey || event.shiftKey;
+      // Modified presses belong to page shortcuts (Cmd/Ctrl+Enter saves, Cmd/Ctrl+Shift+Enter goes back)
+      if (activationMode === 'manual' && !hasModifier && (event.key === 'Enter' || event.key === ' ') && focusedIndex >= 0) {
+        event.preventDefault();
+        setActiveId(filteredTabs[focusedIndex].id);
+        onChange?.(filteredTabs[focusedIndex].id);
+        return;
+      }
       const previousKey = position === 'vertical' ? 'ArrowUp' : 'ArrowLeft';
       const nextKey = position === 'vertical' ? 'ArrowDown' : 'ArrowRight';
-      const currentIndex = filteredTabs.findIndex((tab) => tab.id === activeId);
+      const currentIndex = focusedIndex >= 0 ? focusedIndex : filteredTabs.findIndex((tab) => tab.id === activeId);
       let nextIndex: number | null = null;
       if (event.key === previousKey) {
         nextIndex = currentIndex <= 0 ? filteredTabs.length - 1 : currentIndex - 1;
@@ -128,8 +145,10 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
       }
       event.preventDefault();
       const nextTab = filteredTabs[nextIndex];
-      setActiveId(nextTab.id);
-      onChange?.(nextTab.id);
+      if (activationMode === 'automatic') {
+        setActiveId(nextTab.id);
+        onChange?.(nextTab.id);
+      }
       document.getElementById(`tab-${nextTab.id}`)?.focus();
     }
 

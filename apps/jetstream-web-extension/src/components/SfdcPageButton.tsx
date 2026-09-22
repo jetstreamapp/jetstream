@@ -335,7 +335,10 @@ export function SfdcPageButton() {
               word-wrap: break-word;
             `}
           >
+            {/* Manual activation: User Search focuses its input when it mounts, so selecting tabs as the arrows
+                pass would pull focus out of the tab list on the way to Quick Links */}
             <Tabs
+              activationMode="manual"
               tabs={[
                 {
                   id: 'actions',

@@ -1,6 +1,7 @@
 import { axeScan } from '@jetstream/test-utils';
 import { UiTabSection } from '@jetstream/types';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { vi } from 'vitest';
 import Tabs from '../Tabs';
 
 const tabs: UiTabSection[] = [
@@ -83,6 +84,39 @@ describe('Tabs', () => {
     const betaTab = screen.getAllByRole('tab').find((tab) => tab.getAttribute('aria-controls') === 'tab-beta')!;
     fireEvent.keyDown(betaTab, { key: 'End' });
     expect(screen.getByRole('tabpanel').textContent).toContain('Gamma Content');
+  });
+
+  test('with manual activation the arrow keys only move focus, and Enter or Space select the focused tab', () => {
+    const onChange = vi.fn();
+    render(<Tabs tabs={tabs} activationMode="manual" onChange={onChange} />);
+    const getTab = (id: string) => screen.getAllByRole('tab').find((tab) => tab.getAttribute('aria-controls') === id)!;
+
+    fireEvent.keyDown(getTab('tab-alpha'), { key: 'ArrowRight' });
+    expect(document.activeElement).toBe(getTab('tab-beta'));
+    fireEvent.keyDown(getTab('tab-beta'), { key: 'ArrowRight' });
+    expect(document.activeElement).toBe(getTab('tab-gamma'));
+    // Nothing selected on the way: the expensive panels were never built
+    expect(screen.getByRole('tabpanel').textContent).toContain('Alpha Content');
+    expect(onChange).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(getTab('tab-gamma'), { key: 'Enter' });
+    expect(screen.getByRole('tabpanel').textContent).toContain('Gamma Content');
+    expect(onChange).toHaveBeenCalledWith('tab-gamma');
+
+    fireEvent.keyDown(getTab('tab-gamma'), { key: 'Home' });
+    fireEvent.keyDown(getTab('tab-alpha'), { key: ' ' });
+    expect(screen.getByRole('tabpanel').textContent).toContain('Alpha Content');
+  });
+
+  test('with manual activation Cmd/Ctrl+Enter on a tab is left to the page shortcuts', () => {
+    render(<Tabs tabs={tabs} activationMode="manual" />);
+    const betaTab = screen.getAllByRole('tab').find((tab) => tab.getAttribute('aria-controls') === 'tab-beta')!;
+
+    // fireEvent returns false only when the handler called preventDefault — the page's save shortcut
+    // ignores a press that was already handled
+    expect(fireEvent.keyDown(betaTab, { key: 'Enter', metaKey: true })).toBe(true);
+    expect(fireEvent.keyDown(betaTab, { key: 'Enter', ctrlKey: true, shiftKey: true })).toBe(true);
+    expect(screen.getByRole('tabpanel').textContent).toContain('Alpha Content');
   });
 
   test('only the active tab is in the tab order (roving tabindex)', () => {
