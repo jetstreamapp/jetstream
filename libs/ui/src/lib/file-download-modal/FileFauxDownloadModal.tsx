@@ -206,7 +206,12 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
       onClose={() => onCancel()}
     >
       <div>
-        <RadioGroup label="File Format" required className="slds-m-bottom_small">
+        <RadioGroup
+          label="File Format"
+          required
+          className="slds-m-bottom_small"
+          hasNonRadioControls={!googleIntegrationEnabled && googleShowUpgradeToPro}
+        >
           {allowedTypesSet.has('xlsx') && (
             <Radio
               name="radio-download-file-format"

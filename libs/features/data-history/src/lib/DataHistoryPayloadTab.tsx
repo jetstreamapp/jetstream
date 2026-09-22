@@ -207,7 +207,7 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
       {announcer}
       <div className="slds-grid slds-grid_vertical-align-center slds-m-bottom_x-small">
         {viewTables.length > 1 && (
-          <RadioGroup label="View" isButtonGroup className="slds-m-right_x-small">
+          <RadioGroup label="View" hideLabel isButtonGroup className="slds-m-right_x-small">
             {viewTables.map(({ id, label }) => (
               <RadioButton
                 key={id}

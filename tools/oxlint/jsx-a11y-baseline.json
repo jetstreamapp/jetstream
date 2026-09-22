@@ -149,7 +149,6 @@
     "libs/ui/src/lib/file-download-modal/__tests__/RecordDownloadModal.spec.tsx",
     "libs/ui/src/lib/form/checkbox/__tests__/Checkbox.spec.tsx",
     "libs/ui/src/lib/form/combobox/__tests__/ComboboxListItem.spec.tsx",
-    "libs/ui/src/lib/form/radio/__tests__/Radio.spec.tsx",
     "libs/ui/src/lib/grid/__tests__/Grid.spec.tsx",
     "libs/ui/src/lib/layout/__tests__/ViewDocsLink.spec.tsx",
     "libs/ui/src/lib/list/__tests__/List.spec.tsx",

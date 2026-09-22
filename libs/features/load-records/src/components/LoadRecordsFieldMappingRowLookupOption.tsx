@@ -31,6 +31,7 @@ export const LoadRecordsFieldMappingRowLookupOption: FunctionComponent<LoadRecor
         className="slds-m-top_small"
         idPrefix={idPrefix}
         label="Map to Lookup Options"
+        hasNonRadioControls
         helpText={
           disabled
             ? 'Salesforce will handle mapping your record to the related record using the External Id.'
