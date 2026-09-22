@@ -669,7 +669,12 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 />
               )}
             </RadioGroup>
-            <RadioGroup label="File Format" required className="slds-m-bottom_small">
+            <RadioGroup
+              label="File Format"
+              required
+              className="slds-m-bottom_small"
+              hasNonRadioControls={(!googleIntegrationEnabled && googleShowUpgradeToPro) || fileFormat === 'gdrive'}
+            >
               <Radio
                 name="radio-download-file-format"
                 label="Excel"
