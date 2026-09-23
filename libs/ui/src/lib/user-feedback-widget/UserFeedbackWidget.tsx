@@ -245,6 +245,8 @@ export const UserFeedbackWidget = () => {
     setPosition(newPosition);
     localStorage.setItem(STORAGE_KEY, newPosition);
     setShowContextMenu(false);
+    // The chosen item unmounts with the menu; the button (now in its new corner) takes focus back
+    buttonRef.current?.focus();
   };
 
   const handleHideForSession = () => {
