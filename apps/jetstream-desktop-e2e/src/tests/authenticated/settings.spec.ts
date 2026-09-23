@@ -20,7 +20,7 @@ test.describe('Desktop Settings screen', () => {
       await electronApp.evaluate(({ BrowserWindow }) => {
         BrowserWindow.getAllWindows()[0]?.webContents.send('open-settings');
       });
-      await expect(mainWindow.getByRole('heading', { name: 'General Settings' })).toBeVisible({ timeout: FIVE_SECONDS });
+      await expect(mainWindow.getByRole('heading', { name: 'General', exact: true })).toBeVisible({ timeout: FIVE_SECONDS });
     }).toPass();
   });
 });

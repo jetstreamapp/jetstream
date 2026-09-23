@@ -1,7 +1,8 @@
 import { fireToast, Spinner } from '@jetstream/ui';
 import { getDataHistoryStorageLocation, reindexHistoryFromActiveBackend } from '@jetstream/ui/data-history';
-import { FunctionComponent } from 'react';
+import { FunctionComponent, ReactNode } from 'react';
 import { openHistoryFolder, useDataHistoryStorage } from './data-history-hooks';
+import { SettingsRow } from './layout/SettingsSection';
 
 export interface DataHistoryStorageLocationProps {
   /** Called after any storage-location change so the parent can refresh usage numbers */
@@ -11,7 +12,7 @@ export interface DataHistoryStorageLocationProps {
 const ANALYTICS_LOCATION = 'settings-storage-location';
 
 /**
- * "Storage location" controls for Data History: the Chromium user-chosen-folder backend (File
+ * "Storage location" row for Data History: the Chromium user-chosen-folder backend (File
  * System Access API) on the web, or the native filesystem backend on desktop. Renders nothing in
  * environments that support neither (Firefox/Safari web, canvas).
  */
@@ -44,75 +45,95 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
   const isNativeActive = status.active === 'native';
   const canReindexFolder = isDirectoryActive && !status.permissionNeeded && !status.folderUnavailable;
 
-  return (
-    <div className="slds-m-top_small slds-is-relative">
-      {working && <Spinner size="small" />}
-      <h3 className="slds-text-title_caps slds-m-bottom_xx-small">Storage Location</h3>
+  let description: ReactNode;
+  if (location.kind === 'native') {
+    description = (
+      <>
+        Saved to{' '}
+        <button className="slds-button" title="Open this folder in your file manager" onClick={() => openHistoryFolder(location.path)}>
+          {location.path}
+        </button>
+      </>
+    );
+  } else if (location.kind === 'directory') {
+    description = `Saved to the folder "${location.name}" on your computer.`;
+  } else if (status.nativeSupported) {
+    description = 'Saved in app-managed storage (default).';
+  } else {
+    description = 'Saved in browser storage (default).';
+  }
 
+  return (
+    <SettingsRow
+      id="setting-data-history-storage"
+      title="Storage location"
+      description={description}
+      // With a folder in use there are several actions, which fit better under the text than beside it
+      stacked={isDirectoryActive || isNativeActive}
+      details={
+        (status.folderUnavailable || status.permissionNeeded || migrationProgress) && (
+          <>
+            {status.nativeSupported && status.folderUnavailable && (
+              <p className="slds-text-color_error">
+                Your history folder{status.nativePath ? ` (${status.nativePath})` : ''} can’t be opened — it may have been moved, deleted,
+                or be on a drive that isn’t connected. New history is temporarily saved to app-managed storage. Choose a different folder or
+                switch back to app-managed storage.
+              </p>
+            )}
+            {!status.nativeSupported && status.permissionNeeded && (
+              <p className="slds-text-color_error">
+                Jetstream no longer has permission to your history folder — new history is temporarily saved to browser storage.
+              </p>
+            )}
+            {!status.nativeSupported && status.folderUnavailable && (
+              <p className="slds-text-color_error">
+                Your history folder{status.directoryName ? ` ("${status.directoryName}")` : ''} can’t be opened — it may have been moved or
+                deleted. New history is temporarily saved to browser storage. Choose a different folder or switch back to browser storage.
+              </p>
+            )}
+            {migrationProgress && (
+              <p className="slds-text-color_weak">
+                {`Moving history — ${migrationProgress.migrated.toLocaleString()} of ${migrationProgress.total.toLocaleString()} entries…`}
+              </p>
+            )}
+          </>
+        )
+      }
+    >
+      {working && <Spinner size="small" />}
       {status.nativeSupported ? (
-        <div>
-          {location.kind === 'native' ? (
-            <p>
-              Files are saved to:{' '}
-              <button
-                className="slds-button"
-                title="Open this folder in your file manager"
-                onClick={() => openHistoryFolder(location.path)}
-              >
-                {location.path}
-              </button>
-            </p>
-          ) : (
-            <p>App-managed storage (default)</p>
-          )}
-          {status.folderUnavailable && (
-            <p className="slds-text-color_error slds-m-top_xx-small">
-              Your history folder{status.nativePath ? ` (${status.nativePath})` : ''} can’t be opened — it may have been moved, deleted, or
-              be on a drive that isn’t connected. New history is temporarily saved to app-managed storage. Choose a different folder or
-              switch back to app-managed storage.
-            </p>
-          )}
+        <>
           {canStoreInFolder && (
-            <button className="slds-button slds-button_neutral slds-m-top_x-small" disabled={working} onClick={storeInFolder}>
+            <button className="slds-button slds-button_neutral" disabled={working} onClick={storeInFolder}>
               Store History in a Folder on Disk
             </button>
           )}
           {isNativeActive && (
-            <div className="slds-m-top_x-small">
+            <>
               <button className="slds-button slds-button_neutral" disabled={working} onClick={changeFolder}>
                 Change Folder…
               </button>
               <button
-                className="slds-button slds-button_neutral slds-m-left_x-small"
+                className="slds-button slds-button_neutral"
                 disabled={working}
                 onClick={switchBackToDefault}
                 title="Copy history back to app-managed storage. The files already on disk are left in place."
               >
                 Switch Back to App-Managed Storage
               </button>
-            </div>
+            </>
           )}
-        </div>
+        </>
       ) : (
-        <div>
-          <p>{location.kind === 'directory' ? `Files are saved to: ${location.name}` : 'Browser storage (default)'}</p>
+        <>
           {status.permissionNeeded && (
-            <p className="slds-text-color_error slds-m-top_xx-small">
-              Jetstream no longer has permission to your history folder — new history is temporarily saved to browser storage.
-              <button className="slds-button slds-m-left_x-small" disabled={working} onClick={reconnectFolder}>
-                Re-connect Folder
-              </button>
-            </p>
-          )}
-          {status.folderUnavailable && (
-            <p className="slds-text-color_error slds-m-top_xx-small">
-              Your history folder{status.directoryName ? ` ("${status.directoryName}")` : ''} can’t be opened — it may have been moved or
-              deleted. New history is temporarily saved to browser storage. Choose a different folder or switch back to browser storage.
-            </p>
+            <button className="slds-button slds-button_brand" disabled={working} onClick={reconnectFolder}>
+              Re-connect Folder
+            </button>
           )}
           {canStoreInFolder && (
             <button
-              className="slds-button slds-button_neutral slds-m-top_x-small"
+              className="slds-button slds-button_neutral"
               disabled={working}
               onClick={storeInFolder}
               title="Store history as regular files in a folder you choose — visible, backed up with your other files, and kept when browser data is cleared"
@@ -121,9 +142,9 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
             </button>
           )}
           {isDirectoryActive && (
-            <div className="slds-m-top_x-small">
+            <>
               <button
-                className="slds-button slds-button_neutral slds-m-right_x-small"
+                className="slds-button slds-button_neutral"
                 disabled={working}
                 onClick={changeFolder}
                 title="Pick a different folder — your history is copied there; files in the old folder are left in place"
@@ -154,23 +175,17 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
                 </button>
               )}
               <button
-                className="slds-button slds-button_neutral slds-m-left_x-small"
+                className="slds-button slds-button_neutral"
                 disabled={working}
                 onClick={switchBackToDefault}
                 title="Copy history back to browser storage. The files already in your folder are left in place."
               >
                 Switch Back to Browser Storage
               </button>
-            </div>
+            </>
           )}
-        </div>
+        </>
       )}
-
-      {migrationProgress && (
-        <p className="slds-text-color_weak slds-m-top_xx-small">
-          {`Moving history — ${migrationProgress.migrated.toLocaleString()} of ${migrationProgress.total.toLocaleString()} entries…`}
-        </p>
-      )}
-    </div>
+    </SettingsRow>
   );
 };

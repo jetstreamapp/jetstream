@@ -1,17 +1,13 @@
-import { logger } from '@jetstream/shared/client-logger';
+import { css } from '@emotion/react';
+import { AutoFullHeightContainer, Page, PageHeader, PageHeaderRow, PageHeaderTitle, ScopedNotification } from '@jetstream/ui';
 import {
-  AutoFullHeightContainer,
-  CheckboxToggle,
-  Page,
-  PageHeader,
-  PageHeaderRow,
-  PageHeaderTitle,
-  ScopedNotification,
-  Spinner,
-} from '@jetstream/ui';
-import { DataHistorySettingsSection, SoqlQueryFormatConfig } from '@jetstream/ui-core';
-import { dexieDataSync } from '@jetstream/ui/db';
-import { useState } from 'react';
+  DataHistorySettingsSection,
+  HistorySyncSettings,
+  SettingsGroup,
+  SettingsSection,
+  SettingsToggleRow,
+  SoqlQueryFormatSettings,
+} from '@jetstream/ui-core';
 import { AppWrapper } from '../../core/AppWrapper';
 import { applyExtensionThemeBeforeMount } from '../../core/ExtensionThemeApplier';
 import { useExtensionSettings } from '../../hooks/useExtensionSettings';
@@ -24,6 +20,15 @@ applyExtensionThemeBeforeMount().finally(() => {
     </AppWrapper>,
   );
 });
+
+const contentCss = css`
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1rem 0 3rem;
+`;
 
 export function AdditionalSettings() {
   const {
@@ -40,18 +45,6 @@ export function AdditionalSettings() {
     setSoqlQueryFormatOptions,
     authError,
   } = useExtensionSettings();
-  const [resetSyncLoading, setResetSyncLoading] = useState(false);
-
-  async function resetSync() {
-    try {
-      setResetSyncLoading(true);
-      await dexieDataSync.reset(recordSyncEnabled);
-    } catch (ex) {
-      logger.error('[DB] Error resetting sync', ex);
-    } finally {
-      setResetSyncLoading(false);
-    }
-  }
 
   return (
     <div className="slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
@@ -67,57 +60,49 @@ export function AdditionalSettings() {
               {authError}
             </ScopedNotification>
           )}
-          {loggedIn && authTokens && (
-            <>
-              <h2 className="slds-text-heading_medium slds-m-vertical_small">Extension Settings</h2>
-              <CheckboxToggle
-                id="enable-extension-button"
-                checked={enabled}
-                label="Jetstream Page Button"
-                labelHelp="If disabled, the Jetstream floating button will not be visible when you are on a Salesforce page."
-                labelPosition="right"
-                onChange={(value) => setEnabled(value)}
-              />
+          <div css={contentCss}>
+            {loggedIn && authTokens && (
+              <>
+                <SettingsSection id="extension" title="Extension">
+                  <SettingsGroup>
+                    <SettingsToggleRow
+                      id="enable-extension-button"
+                      title="Jetstream page button"
+                      description="Show the floating Jetstream button when you are on a Salesforce page."
+                      checked={enabled}
+                      onChange={(value) => setEnabled(value)}
+                    />
 
-              {/* TEMPORARILY DISABLED alongside the error tracker itself - there is nothing to opt out of
-                  while crash reporting is off, and offering the toggle would imply reports are still sent.
-              <CheckboxToggle
-                id="enable-crash-reporting"
-                checked={crashReportingEnabled}
-                label="Send crash reports to Jetstream"
-                labelHelp="Automatically send error and crash reports to help us diagnose and fix issues."
-                labelPosition="right"
-                onChange={(value) => setCrashReportingEnabled(value)}
-              /> */}
+                    {/* TEMPORARILY DISABLED alongside the error tracker itself - there is nothing to opt out of
+                        while crash reporting is off, and offering the toggle would imply reports are still sent.
+                    <SettingsToggleRow
+                      id="enable-crash-reporting"
+                      title="Send crash reports to Jetstream"
+                      description="Automatically send error and crash reports to help us diagnose and fix issues."
+                      checked={crashReportingEnabled}
+                      onChange={(value) => setCrashReportingEnabled(value)}
+                    /> */}
+                  </SettingsGroup>
+                </SettingsSection>
 
-              <SoqlQueryFormatConfig
-                className="slds-m-top_large"
-                location="AdditionalSettings"
-                value={soqlQueryFormatOptions}
-                onChange={setSoqlQueryFormatOptions}
-              />
-            </>
-          )}
+                <SettingsSection id="query" title="Query">
+                  <SoqlQueryFormatSettings
+                    location="AdditionalSettings"
+                    value={soqlQueryFormatOptions}
+                    onChange={setSoqlQueryFormatOptions}
+                  />
+                </SettingsSection>
+              </>
+            )}
 
-          <h2 className="slds-text-heading_medium slds-m-vertical_small">Sync Settings</h2>
-          <CheckboxToggle
-            id="enable-record-sync-button"
-            checked={recordSyncEnabled}
-            label="Data Sync"
-            labelHelp="Enable to sync Query History with the Jetstream server."
-            onChange={(value) => setRecordSyncEnabled(value)}
-          />
-          <button className="slds-button slds-button_text-destructive slds-m-top_small slds-is-relative" onClick={resetSync}>
-            {resetSyncLoading && <Spinner className="slds-spinner slds-spinner_small" />}
-            Reset Sync
-          </button>
-          <p className=" slds-m-top_small">
-            If you have having an issue with your data syncing from Jetstream to the Extension, you can reset your extension data to pull in
-            all your Jetstream data.
-          </p>
-
-          {/* No link into the app — this page has no Salesforce `host` param, so Data History is reached from the app nav */}
-          <DataHistorySettingsSection hideViewHistoryLink />
+            <SettingsSection id="data-storage" title="Data & Storage">
+              {/* No link into the app — this page has no Salesforce `host` param, so Data History is reached from the app nav */}
+              <DataHistorySettingsSection hideViewHistoryLink />
+              <SettingsGroup title="Sync">
+                <HistorySyncSettings enabled={recordSyncEnabled} onChange={(value) => setRecordSyncEnabled(value)} />
+              </SettingsGroup>
+            </SettingsSection>
+          </div>
         </AutoFullHeightContainer>
       </Page>
     </div>

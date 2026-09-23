@@ -82,7 +82,8 @@ export interface ElectronApiRequestResponse {
   checkAuth: () => Promise<{ userProfile: UserProfileUi; authInfo: DesktopAuthInfo } | undefined>;
   selectFolder: () => Promise<Maybe<string>>;
   getPreferences: () => Promise<DesktopUserPreferences>;
-  setPreferences: (preferences: DesktopUserPreferences) => Promise<DesktopUserPreferences>;
+  /** Merges the given preferences into the stored ones and resolves to the full result */
+  setPreferences: (preferences: Partial<DesktopUserPreferences>) => Promise<DesktopUserPreferences>;
   /**
    * Hand the (public, build-time-baked) error-tracking DSN from the renderer to the main process so
    * it can initialize crash reporting for the Node/Electron main process.

@@ -3,7 +3,6 @@ import { updateUser } from '../user.db';
 
 const prismaMock = vi.hoisted(() => ({
   user: {
-    findUniqueOrThrow: vi.fn(),
     update: vi.fn(),
   },
 }));
@@ -24,15 +23,6 @@ const sessionUser = {
 describe('updateUser security regressions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    prismaMock.user.findUniqueOrThrow.mockResolvedValue({
-      id: sessionUser.id,
-      name: 'Existing User',
-      preferences: {
-        skipFrontdoorLogin: false,
-        recordSyncEnabled: true,
-        soqlQueryFormatOptions: {},
-      },
-    });
     prismaMock.user.update.mockResolvedValue({});
   });
 
@@ -41,7 +31,6 @@ describe('updateUser security regressions', () => {
 
     await updateUser(sessionUser as any, { name });
 
-    expect(prismaMock.user.findUniqueOrThrow).toHaveBeenCalledWith(expect.objectContaining({ where: { id: sessionUser.id } }));
     expect(prismaMock.user.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: sessionUser.id },
@@ -61,5 +50,35 @@ describe('updateUser security regressions', () => {
         data: expect.objectContaining({ name }),
       }),
     );
+  });
+});
+
+describe('updateUser preferences', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prismaMock.user.update.mockResolvedValue({});
+  });
+
+  it('writes only the preferences that were sent, so concurrent partial updates cannot undo each other', async () => {
+    await updateUser(sessionUser as any, { preferences: { recordSyncEnabled: false } });
+
+    const { data } = prismaMock.user.update.mock.calls[0][0];
+    expect(data.name).toBeUndefined();
+    expect(data.preferences.upsert.update).toEqual({
+      skipFrontdoorLogin: undefined,
+      recordSyncEnabled: false,
+      soqlQueryFormatOptions: undefined,
+    });
+  });
+
+  it('fills in defaults for preferences that were not sent when creating the preferences record', async () => {
+    await updateUser(sessionUser as any, { preferences: { skipFrontdoorLogin: true } });
+
+    const { data } = prismaMock.user.update.mock.calls[0][0];
+    expect(data.preferences.upsert.create).toEqual({
+      skipFrontdoorLogin: true,
+      recordSyncEnabled: true,
+      soqlQueryFormatOptions: expect.objectContaining({ numIndent: 1, fieldMaxLineLength: 1 }),
+    });
   });
 });

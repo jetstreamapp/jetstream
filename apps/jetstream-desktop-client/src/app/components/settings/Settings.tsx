@@ -4,37 +4,75 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { isEscapeKey, useGlobalEventHandler, useTitle } from '@jetstream/shared/ui-utils';
-import { SoqlQueryFormatOptions, SoqlQueryFormatOptionsSchema } from '@jetstream/types';
-import { AutoFullHeightContainer, CheckboxToggle, Grid, Icon, Input, Page, Spinner, fireToast } from '@jetstream/ui';
-import { DataHistorySettingsSection, SoqlQueryFormatConfig, useAmplitude } from '@jetstream/ui-core';
+import { SoqlQueryFormatOptionsSchema } from '@jetstream/types';
+import { AutoFullHeightContainer, fireToast, Icon, Page } from '@jetstream/ui';
+import {
+  AccountSummary,
+  AppearanceSetting,
+  DataHistorySettingsSection,
+  DiagnosticLoggingSetting,
+  getPreferencesToRestore,
+  HistorySyncSettings,
+  RecentObjectsSetting,
+  SalesforceAutoLoginSetting,
+  SettingsGroup,
+  SettingsLayout,
+  SettingsNavItem,
+  SettingsRow,
+  SettingsSection,
+  SettingsToggleRow,
+  SoqlQueryFormatSettings,
+  useAmplitude,
+} from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
-import { dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useAtom, useAtomValue } from 'jotai';
+import { useAtomCallback } from 'jotai/utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { desktopUserPreferences } from '../core/AppDesktopState';
-import LoggerConfig from './LoggerConfig';
+import { desktopUserPreferences, desktopUserPreferencesSyncState } from '../core/AppDesktopState';
 
 const HEIGHT_BUFFER = 170;
+
+const SECTIONS: SettingsNavItem[] = [
+  { id: 'account', label: 'Account' },
+  { id: 'general', label: 'General' },
+  { id: 'query', label: 'Query' },
+  { id: 'data-storage', label: 'Data & Storage' },
+  { id: 'diagnostics', label: 'Diagnostics' },
+];
+
+// The title is centered like a native macOS window title, which keeps it clear of the traffic light
+// buttons that sit over the left of this bar (the mac window has a hidden title bar)
+const titleBarCss = css`
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  min-height: 50px;
+  width: 100%;
+  padding: 0 0.5rem;
+  background-color: var(--slds-g-color-surface-container-1, #fff);
+  border-bottom: 1px solid var(--slds-g-color-border-1, #e5e5e5);
+  app-region: drag;
+`;
+
+const downloadPathCss = css`
+  word-break: break-all;
+`;
 
 export const Settings = () => {
   useTitle(TITLES.SETTINGS);
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
   const navigate = useNavigate();
-  const setUserProfile = useSetAtom(fromAppState.userProfileState);
+  const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
+  const { serverUrl } = useAtomValue(fromAppState.applicationCookieState);
+  const { version } = useAtomValue(fromAppState.appInfoState);
   const ability = useAtomValue(fromAppState.abilityState);
-  const [preferences, setPreferences] = useAtom(desktopUserPreferences);
-  const [modifiedPreferences, setModifiedPreferences] = useState<DesktopUserPreferences>(() => ({ ...preferences }));
-  const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
-
+  const preferences = useAtomValue(desktopUserPreferences);
   const [updatePolicy, setUpdatePolicy] = useState<UpdatePolicy | null>(null);
-  const [resetSyncLoading, setResetSyncLoading] = useState(false);
-  const [recentRecentItemLoading, setRecentRecentItemLoading] = useState<false | 'all' | 'current'>(false);
 
-  const recordSyncEnabled = ability.can('access', 'RecordSync');
-
-  const soqlQueryFormatOptions = preferences?.soqlQueryFormatOptions ?? SoqlQueryFormatOptionsSchema.parse({});
+  const recordSyncEntitled = ability.can('access', 'RecordSync');
+  const downloadPath = preferences?.fileDownload?.downloadPath;
 
   useEffect(() => {
     isMounted.current = true;
@@ -71,119 +109,80 @@ export const Settings = () => {
 
   useGlobalEventHandler('keydown', onKeydown);
 
-  useEffect(() => {
-    if (preferences) {
-      setModifiedPreferences({ ...preferences });
-    }
-  }, [preferences]);
+  // Shows the change immediately, so controls reflect a click before the save finishes
+  const mergePreferences = useAtomCallback(
+    useCallback((get, set, changes: Partial<DesktopUserPreferences>) => {
+      set(desktopUserPreferences, { ...get(desktopUserPreferencesSyncState), ...changes });
+    }, []),
+  );
 
-  async function handleSave(_preferences?: DesktopUserPreferences) {
-    try {
-      _preferences = _preferences || modifiedPreferences;
-      if (!_preferences || !window.electronAPI) {
+  // What the main process has saved - once a save settles, the settings it tried to change show this again,
+  // except for settings changed again since
+  const savedPreferencesRef = useRef(preferences);
+  const showSavedPreferences = useAtomCallback(
+    useCallback((get, set, changes: Partial<DesktopUserPreferences>) => {
+      const currentPreferences = get(desktopUserPreferencesSyncState);
+      set(desktopUserPreferences, {
+        ...currentPreferences,
+        ...getPreferencesToRestore(currentPreferences, changes, savedPreferencesRef.current),
+      });
+    }, []),
+  );
+
+  // Saves carry only the changed settings and are sent one at a time - the main process merges each one into
+  // what it has stored, so quick changes (or settings the main process owns) cannot overwrite each other
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  function savePreferences(changes: Partial<DesktopUserPreferences>) {
+    mergePreferences(changes);
+    saveQueueRef.current = saveQueueRef.current.then(async () => {
+      if (!window.electronAPI) {
         return;
       }
-      const updatedPreferences = await window.electronAPI.setPreferences(_preferences);
-      setPreferences(updatedPreferences);
-      setModifiedPreferences(updatedPreferences);
-      // Ensure app state is updated to match user preference changes
-      setUserProfile((prev) => ({
-        ...prev,
-        preferences: updatedPreferences,
-      }));
-      trackEvent(ANALYTICS_KEYS.settings_update_user);
-    } catch (ex) {
-      logger.warn('Error updating user settings', ex);
-      fireToast({
-        message: 'There was a problem updating your settings. Try again or file a support ticket for assistance.',
-        type: 'error',
-      });
-    }
-  }
-
-  function handleFrontdoorLoginChange(skipFrontdoorLogin: boolean) {
-    const _modifiedPreferences = { ...preferences, skipFrontdoorLogin };
-    setModifiedPreferences(_modifiedPreferences);
-    handleSave(_modifiedPreferences);
-  }
-
-  function handleAutoUpdateChange(autoUpdateEnabled: boolean) {
-    const _modifiedPreferences = { ...preferences, autoUpdateEnabled };
-    setModifiedPreferences(_modifiedPreferences);
-    handleSave(_modifiedPreferences);
-  }
-
-  function handleQueryFormatOptionsChange(soqlQueryFormatOptions: SoqlQueryFormatOptions) {
-    const _modifiedPreferences = { ...preferences, soqlQueryFormatOptions };
-    setModifiedPreferences(_modifiedPreferences);
-    handleSave(_modifiedPreferences);
-  }
-
-  async function handleChooseFolder() {
-    if (!window.electronAPI) {
-      return;
-    }
-    const downloadPath = await window.electronAPI.selectFolder();
-    if (!downloadPath) {
-      // user canceled the folder selection
-      return;
-    }
-    const _modifiedPreferences = { ...preferences, fileDownload: { omitPrompt: true, downloadPath } };
-    setModifiedPreferences(_modifiedPreferences);
-    handleSave(_modifiedPreferences);
-  }
-
-  async function handleClearFolder() {
-    if (!window.electronAPI) {
-      return;
-    }
-    const _modifiedPreferences = { ...preferences, fileDownload: { omitPrompt: false, downloadPath: '' } };
-    setModifiedPreferences(_modifiedPreferences);
-    handleSave(_modifiedPreferences);
-  }
-
-  function handleRecordSyncChange(recordSyncEnabled: boolean) {
-    const _modifiedPreferences = { ...preferences, recordSyncEnabled };
-    setModifiedPreferences(_modifiedPreferences);
-    handleSave(_modifiedPreferences);
-  }
-
-  async function resetSync() {
-    try {
-      setResetSyncLoading(true);
-      await dexieDataSync.reset(recordSyncEnabled);
-    } catch (ex) {
-      logger.error('[DB] Error resetting sync', ex);
-    } finally {
-      setResetSyncLoading(false);
-      fireToast({
-        message: 'Sync reset successfully',
-        type: 'success',
-      });
-    }
-  }
-
-  async function resetRecentHistoryItems(type: 'all' | 'current') {
-    try {
-      setRecentRecentItemLoading(type);
-      if (type === 'current' && selectedOrg) {
-        await recentHistoryItemsDb.clearRecentHistoryItemsForCurrentOrg(selectedOrg.uniqueId);
-      } else if (type === 'all') {
-        await recentHistoryItemsDb.clearRecentHistoryItemsForAllOrgs();
+      try {
+        const savedPreferences = await window.electronAPI.setPreferences(changes);
+        savedPreferencesRef.current = savedPreferences;
+        // The main process logs a change it cannot store and resolves anyway, so show what it actually kept
+        showSavedPreferences(changes);
+        setUserProfile((prev) => ({
+          ...prev,
+          preferences: savedPreferences,
+        }));
+        trackEvent(ANALYTICS_KEYS.settings_update_user);
+      } catch (ex) {
+        showSavedPreferences(changes);
+        logger.warn('Error updating user settings', ex);
+        fireToast({
+          message: 'There was a problem updating your settings. Try again or file a support ticket for assistance.',
+          type: 'error',
+        });
       }
-      fireToast({
-        message: 'History reset successfully',
-        type: 'success',
-      });
-    } catch (ex) {
-      logger.error('[DB] Error resetting sync', ex);
-      fireToast({
-        message: 'There was a problem resetting your history. Try again or file a support ticket for assistance.',
-        type: 'warning',
-      });
-    } finally {
-      setRecentRecentItemLoading(false);
+    });
+  }
+
+  async function handleChooseDownloadFolder() {
+    const selectedPath = await window.electronAPI?.selectFolder();
+    // Nothing is returned when the folder selection is canceled
+    if (selectedPath) {
+      savePreferences({ fileDownload: { omitPrompt: true, downloadPath: selectedPath } });
     }
+  }
+
+  /** The desktop app has no profile or team pages of its own, so these open the web app in the default browser */
+  function openWebAppPage(route: string) {
+    // `/app` is the web client's router basename
+    window.open(`${serverUrl}/app${route}`, '_blank');
+  }
+
+  let updatePolicyNote: string | null = null;
+  if (updatePolicy?.managed) {
+    updatePolicyNote =
+      updatePolicy.source === 'portable'
+        ? 'The portable version does not update itself. Download a new copy to move to a newer version.'
+        : 'Updates are managed by your organization and cannot be changed here.';
+  } else if (updatePolicy?.perMachineInstall) {
+    updatePolicyNote =
+      'Jetstream is installed for all users on this computer, so installing an update requires administrator approval. Updates are never installed automatically - you will be asked first.';
   }
 
   // TODO: animate in and out like discord
@@ -197,151 +196,135 @@ export const Settings = () => {
         z-index: 101;
       `}
     >
-      <div
-        css={css`
-          min-height: 50px;
-          width: 100%;
-          background-color: white;
-          app-region: drag;
-        `}
-      >
-        {/* Close button */}
-        <Grid align="end" verticalAlign="center">
-          <button
-            css={css`
-              app-region: no-drag;
-              margin-top: 17px;
-              margin-right: 15px;
-            `}
-            className="slds-button slds-button_icon slds-modal__close"
-            title="Close"
-            disabled={false}
-            onClick={() => navigate(APP_ROUTES.HOME.ROUTE)}
-          >
-            <Icon type="utility" icon="close" className="slds-button__icon slds-button__icon_large" omitContainer />
-            <span className="slds-assistive-text">Close</span>
-          </button>
-        </Grid>
+      <div css={titleBarCss}>
+        <h1
+          className="slds-text-heading_medium"
+          css={css`
+            grid-column: 2;
+          `}
+        >
+          Settings
+        </h1>
+        <button
+          css={css`
+            justify-self: end;
+            app-region: no-drag;
+          `}
+          className="slds-button slds-button_icon slds-button_icon-large"
+          title="Close"
+          onClick={() => navigate(APP_ROUTES.HOME.ROUTE)}
+        >
+          <Icon type="utility" icon="close" className="slds-button__icon slds-button__icon_large" omitContainer />
+          <span className="slds-assistive-text">Close</span>
+        </button>
       </div>
       <Page testId="settings-page">
-        <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
-          {/* Settings */}
-          <div className="slds-m-top_medium">
-            <h2 className="slds-text-heading_medium slds-m-vertical_small">General Settings</h2>
-            <CheckboxToggle
-              id="frontdoor-toggle"
-              checked={modifiedPreferences?.skipFrontdoorLogin ?? false}
-              label="Don't Auto-Login on Link Clicks"
-              labelHelp="When enabled, Jetstream will not attempt to auto-login to Salesforce when you click a link in Jetstream. If you have issues with multi-factor authentication when clicking links, enable this."
-              onChange={handleFrontdoorLoginChange}
-            />
+        <AutoFullHeightContainer className="slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
+          <SettingsLayout sections={SECTIONS}>
+            <SettingsSection id="account" title="Account">
+              <AccountSummary
+                userProfile={userProfile}
+                actions={
+                  <>
+                    <button
+                      className="slds-button slds-button_neutral"
+                      title="Opens your Jetstream profile in your browser"
+                      onClick={() => openWebAppPage(APP_ROUTES.PROFILE.ROUTE)}
+                    >
+                      Manage Account
+                      <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_right" omitContainer />
+                    </button>
+                    {ability.can('read', 'Team') && (
+                      <button
+                        className="slds-button slds-button_neutral"
+                        title="Opens the Team Dashboard in your browser"
+                        onClick={() => openWebAppPage(APP_ROUTES.TEAM_DASHBOARD.ROUTE)}
+                      >
+                        Team Dashboard
+                        <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_right" omitContainer />
+                      </button>
+                    )}
+                  </>
+                }
+              />
+            </SettingsSection>
 
-            <CheckboxToggle
-              id="auto-update-toggle"
-              // A managed policy can pin updates on as well as off, so show what it decided rather than the stored preference
-              checked={updatePolicy?.managed ? updatePolicy.autoUpdateEnabled : (modifiedPreferences?.autoUpdateEnabled ?? true)}
-              disabled={updatePolicy?.managed ?? false}
-              label="Automatically Download Updates"
-              labelHelp="When enabled, Jetstream checks for new versions in the background and downloads them. When disabled, you can still update at any time with File > Check for Updates."
-              onChange={handleAutoUpdateChange}
-            />
-            {updatePolicy?.managed && (
-              <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
-                {updatePolicy.source === 'portable'
-                  ? 'The portable version does not update itself. Download a new copy to move to a newer version.'
-                  : 'Updates are managed by your organization and cannot be changed here.'}
-              </p>
-            )}
-            {updatePolicy?.perMachineInstall && !updatePolicy.managed && (
-              <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
-                Jetstream is installed for all users on this computer, so installing an update requires administrator approval. Updates are
-                never installed automatically - you will be asked first.
-              </p>
-            )}
-
-            <Grid verticalAlign="end">
-              <Input
-                id="download-path"
-                label="Save Download Without Prompt Location"
-                labelHelp="Specify the location to download saved files to. If provided, the file save dialog will not be shown."
-                className="slds-grow"
-              >
-                <input id="download-path" className="slds-input" value={modifiedPreferences?.fileDownload?.downloadPath || ''} disabled />
-              </Input>
-              <div className="slds-m-left_xx-small">
-                <button
-                  aria-label="Query History"
-                  className="slds-button slds-button_icon slds-button_icon-border-filled"
-                  onClick={() => handleChooseFolder()}
-                >
-                  <Icon type="utility" icon="file" className="slds-button__icon" omitContainer />
-                </button>
-              </div>
-              {modifiedPreferences?.fileDownload?.downloadPath && (
-                <div className="slds-m-left_xx-small">
-                  <button
-                    aria-label="Query History"
-                    className="slds-button slds-button_icon slds-button_icon-border-filled"
-                    onClick={() => handleClearFolder()}
-                  >
-                    <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
-                  </button>
-                </div>
-              )}
-            </Grid>
-
-            <SoqlQueryFormatConfig location="Settings" value={soqlQueryFormatOptions} onChange={handleQueryFormatOptionsChange} />
-
-            {recordSyncEnabled && (
-              <div className="slds-m-top_large">
-                <h2 className="slds-text-heading_medium slds-m-vertical_small">History Data Sync</h2>
-                <CheckboxToggle
-                  id="enable-record-sync-button"
-                  checked={modifiedPreferences?.recordSyncEnabled ?? false}
-                  label="Data Sync"
-                  labelHelp="Enable to sync Query History with the Jetstream server."
-                  onChange={handleRecordSyncChange}
+            <SettingsSection id="general" title="General">
+              <SettingsGroup>
+                <AppearanceSetting />
+                <SalesforceAutoLoginSetting
+                  skipFrontdoorLogin={preferences?.skipFrontdoorLogin ?? false}
+                  onChange={(skipFrontdoorLogin) => savePreferences({ skipFrontdoorLogin })}
                 />
-                <button className="slds-button slds-button_text-destructive slds-m-top_small slds-is-relative" onClick={resetSync}>
-                  {resetSyncLoading && <Spinner className="slds-spinner slds-spinner_small" />}
-                  Reset Sync
-                </button>
-                <p className=" slds-m-top_small">
-                  You can reset your sync history, this will push and pull Query History data from the Jetstream server to make sure both
-                  are in sync.
-                </p>
-              </div>
-            )}
+                <SettingsToggleRow
+                  id="auto-update-toggle"
+                  title="Download updates automatically"
+                  description="Jetstream checks for new versions in the background and downloads them. You can always update with File > Check for Updates."
+                  details={updatePolicyNote && <p className="slds-text-body_small">{updatePolicyNote}</p>}
+                  // A managed policy can pin updates on as well as off, so show what it decided rather than the stored preference
+                  checked={updatePolicy?.managed ? updatePolicy.autoUpdateEnabled : (preferences?.autoUpdateEnabled ?? true)}
+                  disabled={updatePolicy?.managed ?? false}
+                  onChange={(autoUpdateEnabled) => savePreferences({ autoUpdateEnabled })}
+                />
+                <SettingsRow
+                  id="setting-download-location"
+                  title="Download location"
+                  description={
+                    downloadPath ? (
+                      <>
+                        Files are saved to <span css={downloadPathCss}>{downloadPath}</span> without asking.
+                      </>
+                    ) : (
+                      'You are asked where to save each download.'
+                    )
+                  }
+                >
+                  <button className="slds-button slds-button_neutral" onClick={handleChooseDownloadFolder}>
+                    {downloadPath ? 'Change Folder…' : 'Choose Folder…'}
+                  </button>
+                  {downloadPath && (
+                    <button
+                      className="slds-button slds-button_neutral"
+                      onClick={() => savePreferences({ fileDownload: { omitPrompt: false, downloadPath: '' } })}
+                    >
+                      Ask Every Time
+                    </button>
+                  )}
+                </SettingsRow>
+              </SettingsGroup>
+            </SettingsSection>
 
-            <div className="slds-m-top_large">
-              <h2 className="slds-text-heading_medium slds-m-top_x-small">Recent Objects</h2>
-              <button
-                className="slds-button slds-button_text-destructive slds-m-top_small slds-is-relative"
-                disabled={!selectedOrg}
-                onClick={() => resetRecentHistoryItems('current')}
-              >
-                {recentRecentItemLoading === 'current' && <Spinner className="slds-spinner slds-spinner_small" />}
-                Reset for Current Org
-              </button>
-              <button
-                className="slds-button slds-button_text-destructive slds-m-top_small slds-is-relative"
-                onClick={() => resetRecentHistoryItems('all')}
-              >
-                {recentRecentItemLoading === 'all' && <Spinner className="slds-spinner slds-spinner_small" />}
-                Reset for All Orgs
-              </button>
-              <p className=" slds-m-top_small">
-                Reset your list of recent objects. This will clear the list of objects you have recently viewed in Jetstream.
-              </p>
-            </div>
+            <SettingsSection id="query" title="Query">
+              <SoqlQueryFormatSettings
+                value={preferences?.soqlQueryFormatOptions ?? SoqlQueryFormatOptionsSchema.parse({})}
+                onChange={(soqlQueryFormatOptions) => savePreferences({ soqlQueryFormatOptions })}
+              />
+            </SettingsSection>
 
-            <DataHistorySettingsSection />
+            <SettingsSection id="data-storage" title="Data & Storage">
+              <DataHistorySettingsSection />
+              {recordSyncEntitled && (
+                <SettingsGroup title="Sync">
+                  <HistorySyncSettings
+                    enabled={preferences?.recordSyncEnabled ?? false}
+                    onChange={(recordSyncEnabled) => savePreferences({ recordSyncEnabled })}
+                  />
+                </SettingsGroup>
+              )}
+              <SettingsGroup>
+                <RecentObjectsSetting />
+              </SettingsGroup>
+            </SettingsSection>
 
-            <div className="slds-m-top_large">
-              <h2 className="slds-text-heading_medium slds-m-vertical_small">Logging</h2>
-              <LoggerConfig />
-            </div>
-          </div>
+            <SettingsSection id="diagnostics" title="Diagnostics">
+              <SettingsGroup>
+                <DiagnosticLoggingSetting />
+                <SettingsRow id="setting-app-version" title="App version" description="Include this when contacting Jetstream Support.">
+                  <span className="slds-text-font_monospace">{version}</span>
+                </SettingsRow>
+              </SettingsGroup>
+            </SettingsSection>
+          </SettingsLayout>
         </AutoFullHeightContainer>
       </Page>
     </div>

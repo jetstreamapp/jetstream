@@ -1,5 +1,5 @@
-import { css } from '@emotion/react';
-import { Grid, Icon, Textarea } from '@jetstream/ui';
+import { Textarea } from '@jetstream/ui';
+import { SettingsGroup, SettingsRow } from '@jetstream/ui-core';
 import { FunctionComponent, useState } from 'react';
 
 export interface SettingsDeleteAccountProps {
@@ -10,72 +10,45 @@ export const SettingsDeleteAccount: FunctionComponent<SettingsDeleteAccountProps
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [reason, setReason] = useState('');
 
-  function handleInitialDelete() {
-    setShowConfirmation(true);
-  }
-
   function handleCancel() {
     setShowConfirmation(false);
     setReason('');
   }
 
   return (
-    <div
-      css={css`
-        max-width: 33rem;
-        margin-top: 3rem;
-        padding: 1rem;
-        border-radius: 0.25rem;
-        border: 1px solid var(--slds-g-color-error-base-40, #ea001e);
-      `}
-    >
-      <Grid verticalAlign="center" className="slds-m-bottom_small">
-        <Icon
-          type="utility"
-          icon="error"
-          className="slds-icon slds-icon-text-error slds-m-right_small slds-icon_small"
-          containerClassname="slds-icon_container slds-icon-utility-error"
-        />
-        <div className="slds-text-heading_medium slds-text-color_destructive">Danger Zone</div>
-      </Grid>
-      <p className=" slds-m-bottom_small">Would you like to delete your account and all of your stored data?</p>
-      <p className=" slds-m-bottom_small">Any active subscriptions will be cancelled at the end of your current billing period.</p>
-      {!showConfirmation && (
-        <button className="slds-button slds-button_text-destructive" onClick={handleInitialDelete}>
-          Delete Account
-        </button>
-      )}
+    <SettingsGroup variant="danger">
+      <SettingsRow
+        id="setting-delete-account"
+        title="Delete account"
+        description="Permanently delete your Jetstream account and all of your stored data. Any active subscriptions are cancelled at the end of your current billing period."
+      >
+        {!showConfirmation && (
+          <button className="slds-button slds-button_text-destructive" onClick={() => setShowConfirmation(true)}>
+            Delete Account
+          </button>
+        )}
+      </SettingsRow>
       {showConfirmation && (
-        <Grid vertical>
-          <div className="slds-text-color_destructive">
-            <p>Are you sure you want to delete your account?</p>
-            <p>This action is not reversible.</p>
-          </div>
-          <div>
-            <Textarea
+        <div className="slds-p-horizontal_large slds-p-vertical_medium">
+          <p className="slds-text-heading_small slds-text-color_destructive">Are you sure you want to delete your account?</p>
+          <p className="slds-text-color_destructive">This action is not reversible.</p>
+          <Textarea id="delete-confirmation" className="slds-m-vertical_small" label="Do you have any feedback you would like to provide?">
+            <textarea
               id="delete-confirmation"
-              className="slds-m-vertical_small"
-              label="Do you have any feedback you would like to provide?"
-            >
-              <textarea
-                id="delete-confirmation"
-                className="slds-textarea"
-                value={reason}
-                rows={5}
-                onChange={(event) => setReason(event.target.value)}
-              />
-            </Textarea>
-          </div>
-          <div>
-            <button className="slds-button slds-button_neutral" onClick={handleCancel}>
-              Cancel
-            </button>
-            <button className="slds-button slds-button_destructive" onClick={() => onDeleteAccount(reason)}>
-              Yes, Permanently Delete My Account
-            </button>
-          </div>
-        </Grid>
+              className="slds-textarea"
+              value={reason}
+              rows={4}
+              onChange={(event) => setReason(event.target.value)}
+            />
+          </Textarea>
+          <button className="slds-button slds-button_neutral" onClick={handleCancel}>
+            Cancel
+          </button>
+          <button className="slds-button slds-button_destructive" onClick={() => onDeleteAccount(reason)}>
+            Yes, Permanently Delete My Account
+          </button>
+        </div>
       )}
-    </div>
+    </SettingsGroup>
   );
 };

@@ -65,6 +65,8 @@ async function clearRecentHistoryItemsForCurrentOrg(orgUniqueId: string) {
     await getDexieDb().recent_history_item.where('org').equals(orgUniqueId).delete();
   } catch (ex) {
     logger.error('Error deleting item to recent history items', ex);
+    // Rethrown so a user-initiated clear does not report success when nothing was removed
+    throw ex;
   }
 }
 
@@ -73,6 +75,8 @@ async function clearRecentHistoryItemsForAllOrgs() {
     await getDexieDb().recent_history_item.clear();
   } catch (ex) {
     logger.error('Error deleting item to recent history items', ex);
+    // Rethrown so a user-initiated clear does not report success when nothing was removed
+    throw ex;
   }
 }
 
