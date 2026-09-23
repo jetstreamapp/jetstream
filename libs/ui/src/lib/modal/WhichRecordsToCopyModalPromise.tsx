@@ -52,7 +52,6 @@ const WhichRecordsToCopyModal: FunctionComponent<WhichRecordsToCopyModalProps> =
       <div>
         <RadioGroup>
           <Radio
-            idPrefix="all"
             id="radio-all"
             name="which-records"
             label={`All Records (${formatNumber(records.length)})`}
@@ -62,7 +61,6 @@ const WhichRecordsToCopyModal: FunctionComponent<WhichRecordsToCopyModalProps> =
           />
           {hasFilteredRecords && (
             <Radio
-              idPrefix="filtered"
               id="radio-filtered"
               name="which-records"
               label={`Filtered Records (${formatNumber(filteredRecords?.length || 0)})`}
@@ -73,7 +71,6 @@ const WhichRecordsToCopyModal: FunctionComponent<WhichRecordsToCopyModalProps> =
           )}
           {hasSelectedRecords && (
             <Radio
-              idPrefix="selected"
               id="radio-selected"
               name="which-records"
               label={`Selected Records (${formatNumber(selectedRecords?.length || 0)})`}

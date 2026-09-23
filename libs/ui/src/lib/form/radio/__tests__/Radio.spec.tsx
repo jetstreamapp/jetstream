@@ -108,3 +108,16 @@ test('a group that also holds other controls keeps the native group role', async
   expect(screen.getByRole('group', { name: 'Map to Lookup Options' })).toBeTruthy();
   await axeScan(baseElement);
 });
+
+test('the group, not each radio, carries the help text and error descriptions', () => {
+  render(
+    <RadioGroup idPrefix="lookup" label="If multiple matches" helpText="Applies to every row" hasError errorMessage="Choose one">
+      <Radio name="lookup" label="Use first match" value="first" checked={false} onChange={() => undefined} />
+    </RadioGroup>,
+  );
+
+  const group = screen.getByRole('radiogroup', { name: 'If multiple matches' });
+  const descriptionIds = group.getAttribute('aria-describedby')?.split(' ') ?? [];
+  expect(descriptionIds.map((id) => document.getElementById(id)?.textContent)).toEqual(['Applies to every row', 'Choose one']);
+  expect(screen.getByRole('radio', { name: 'Use first match' }).hasAttribute('aria-describedby')).toBe(false);
+});

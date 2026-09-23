@@ -153,7 +153,6 @@ export const CreateFieldsRowField = forwardRef<unknown, CreateFieldsRowFieldProp
               {values.map((_value) => (
                 <Radio
                   key={_value.id}
-                  idPrefix={id}
                   id={`${id}-${_value.id}`}
                   // `id` is row-scoped; a bare field label would put every row's radios in one native group
                   name={`${id}-${field.label}`}
