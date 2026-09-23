@@ -221,6 +221,22 @@ describe('FormGroupDropdown', () => {
       expect(document.activeElement).toBe(trigger);
     });
 
+    test('Escape on the closed trigger is left to the surrounding layer, which closes a modal on an Escape it saw', () => {
+      const onParentKeyDown = vi.fn();
+      const onSelected = vi.fn();
+      render(
+        <div role="presentation" onKeyDown={(event) => onParentKeyDown(event.key)}>
+          <FormGroupDropdown label="Filter by object" items={items} onSelected={onSelected} />
+        </div>,
+      );
+      const trigger = screen.getByRole('combobox', { name: 'Filter by object' });
+      trigger.focus();
+
+      expect(fireEvent.keyDown(trigger, { key: 'Escape' })).toBe(true);
+      expect(onParentKeyDown).toHaveBeenCalledWith('Escape');
+      expect(screen.queryByRole('listbox')).toBeNull();
+    });
+
     test('modified keys on the trigger are left to the browser and page shortcuts', () => {
       const { trigger } = renderDropdown();
       trigger.focus();
