@@ -102,7 +102,7 @@ export interface ComboboxProps {
   isVirtual?: boolean;
   usePortal?: boolean;
   /**
-   * Sizes the open dropdown panel independently of the input, which is otherwise pinned to the
+   * Sizes the open dropdown panel to its content, between these bounds, instead of pinning it to the
    * input width. Both values must be provided - omitting maxWidth falls back to a narrower default
    * than the input in most layouts. Omit entirely for the default fluid behavior.
    */
@@ -456,6 +456,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                     })}
                     minWidth={dropdownWidth?.minWidth}
                     maxWidth={dropdownWidth?.maxWidth}
+                    width={dropdownWidth ? 'max-content' : undefined}
                     id={listId}
                     role="listbox"
                     isEager={isVirtual}

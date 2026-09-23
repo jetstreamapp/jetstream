@@ -15,6 +15,11 @@ export interface PopoverContainerProps extends Omit<HTMLAttributes<HTMLDivElemen
   minWidth?: string;
   /** Max width in CSS unit. If provided classname includes "_fluid", no max width wil be set */
   maxWidth?: string;
+  /**
+   * Width in CSS unit, clamped by minWidth/maxWidth. Without it the popover shrink-wraps to at most the
+   * width of its positioned ancestor, so content that is allowed to wrap never grows it past that.
+   */
+  width?: string;
   children: ReactNode;
 }
 
@@ -23,7 +28,18 @@ export interface PopoverContainerProps extends Omit<HTMLAttributes<HTMLDivElemen
  */
 export const PopoverContainer = forwardRef<HTMLElement, PopoverContainerProps>(
   (
-    { className, isOpen, referenceElement, usePortal = false, isEager = false, minWidth = '15rem', maxWidth = '20rem', children, ...rest },
+    {
+      className,
+      isOpen,
+      referenceElement,
+      usePortal = false,
+      isEager = false,
+      minWidth = '15rem',
+      maxWidth = '20rem',
+      width,
+      children,
+      ...rest
+    },
     ref,
   ) => {
     const { portalRoot } = usePortalContext();
@@ -70,6 +86,7 @@ export const PopoverContainer = forwardRef<HTMLElement, PopoverContainerProps>(
         css={css`
           z-index: 7000;
           ${className?.includes('_fluid') ? `min-width: ${minWidth};` : `min-width: ${minWidth}; max-width: ${maxWidth};`}
+          ${width ? `width: ${width};` : ''}
           border: 1px solid var(--slds-g-color-border-1, #e5e5e5);
           border-radius: 0.25rem;
           padding: 0.25rem 0;
