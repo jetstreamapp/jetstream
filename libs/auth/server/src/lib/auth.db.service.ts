@@ -31,6 +31,7 @@ import {
   ACCOUNT_LOCKOUT_DURATION_MINUTES,
   getErrorMessageAndStackObj,
   groupByFlat,
+  isSsoRequiredForRole,
   MAX_FAILED_LOGIN_ATTEMPTS,
   PASSWORD_HISTORY_COUNT,
 } from '@jetstream/shared/utils';
@@ -1648,38 +1649,25 @@ function throwIfInvalidSsoConfig({
   userId?: string;
   role: Maybe<string>;
 }) {
-  if (loginConfiguration && loginConfiguration.ssoEnabled && loginConfiguration.ssoProvider !== 'NONE') {
-    if (!role) {
-      logger.warn(
-        { userId, provider, providerType, loginConfigurationId: loginConfiguration.id },
-        'Cannot validate SSO bypass roles because user has no team membership role',
-      );
-      throw new SsoRequired(`SSO is required for this team, the ${provider} provider cannot be used. Login using SSO.`);
-    }
-
-    if (!loginConfiguration.ssoBypassEnabled) {
-      logger.warn(
-        { userId, provider, providerType, loginConfigurationId: loginConfiguration.id },
-        'Cannot bypass SSO because SSO bypass is not enabled in login configuration',
-      );
-      throw new SsoRequired(`SSO is required for this team, the ${provider} provider cannot be used. Login using SSO.`);
-    }
-
-    if (!loginConfiguration.ssoBypassEnabledRoles.some((bypassRole) => bypassRole === role)) {
-      logger.warn(
-        {
-          userId,
-          provider,
-          providerType,
-          loginConfigurationId: loginConfiguration.id,
-          userRole: role,
-          allowedRoles: loginConfiguration.ssoBypassEnabledRoles,
-        },
-        'Cannot bypass SSO because user role is not allowed to bypass SSO',
-      );
-      throw new SsoRequired(`SSO is required for this team, the ${provider} provider cannot be used by the ${role} role. Login using SSO.`);
-    }
+  if (!loginConfiguration || !isSsoRequiredForRole(loginConfiguration, role)) {
+    return;
   }
+  // The bypass settings and role are logged together so the reason for the refusal can be read off one entry
+  logger.warn(
+    {
+      userId,
+      provider,
+      providerType,
+      loginConfigurationId: loginConfiguration.id,
+      userRole: role,
+      ssoBypassEnabled: loginConfiguration.ssoBypassEnabled,
+      allowedRoles: loginConfiguration.ssoBypassEnabledRoles,
+    },
+    'Cannot bypass SSO because the team requires it for the user role',
+  );
+  throw new SsoRequired(
+    `SSO is required for this team, the ${provider} provider cannot be used${role ? ` by the ${role} role` : ''}. Login using SSO.`,
+  );
 }
 
 async function getTeamInviteConfiguration({ email, teamInvite }: { email: string; teamInvite: Maybe<{ token: string; teamId: string }> }) {

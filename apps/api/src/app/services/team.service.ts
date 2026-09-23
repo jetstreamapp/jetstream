@@ -3,7 +3,7 @@ import * as auditLogLib from '@jetstream/audit-logs';
 import * as authDbService from '@jetstream/auth/server';
 import { OauthProviderType, SsoProviderType, UserProfileSession } from '@jetstream/auth/types';
 import { sendTeamInviteEmail } from '@jetstream/email';
-import { getErrorMessage } from '@jetstream/shared/utils';
+import { getErrorMessage, isSsoRequiredForRole } from '@jetstream/shared/utils';
 import {
   LoginConfigurationIdentityDisplayNames,
   LoginConfigurationMdaDisplayNames,
@@ -317,6 +317,11 @@ export async function verifyTeamInvitation({
   // When SSO is active, it is always a valid login method ('saml'/'oidc') even though it is not part of allowedProviders
   const activeSsoProvider = loginConfig.ssoEnabled && loginConfig.ssoProvider !== 'NONE' ? loginConfig.ssoProvider.toLowerCase() : null;
 
+  // SSO is never part of allowedProviders, so the provider checks alone would let a password or social session join a
+  // team that requires SSO for this role. The only way in is signing in with SSO, which accepts the invitation as part
+  // of signing in and applies the team's MFA rules itself.
+  const ssoRequired = currentSessionProvider !== activeSsoProvider && isSsoRequiredForRole(loginConfig, invitation.role);
+
   const teamInviteVerification: TeamInviteVerificationResponse = {
     teamName: team.name,
     canEnroll: true,
@@ -344,12 +349,15 @@ export async function verifyTeamInvitation({
     },
   };
 
-  if (loginConfig.requireMfa && authFactors.size === 0) {
+  // Enrolling in MFA cannot get someone past an SSO requirement, so asking them to would only mislead
+  const mfaEnrollmentRequired = loginConfig.requireMfa && !ssoRequired;
+
+  if (mfaEnrollmentRequired && authFactors.size === 0) {
     teamInviteVerification.canEnroll = false;
     teamInviteVerification.mfa.isValid = false;
     teamInviteVerification.mfa.action = 'ENROLL';
     teamInviteVerification.mfa.message = `Before accepting this invitation, you must setup a valid MFA method. This team allows the following MFA methods: ${loginConfig.allowedMfaMethods.map((method) => LoginConfigurationMdaDisplayNames[method]).join(', ')}.`;
-  } else if (loginConfig.requireMfa && loginConfig.allowedMfaMethods.every((method) => !authFactors.has(method))) {
+  } else if (mfaEnrollmentRequired && loginConfig.allowedMfaMethods.every((method) => !authFactors.has(method))) {
     teamInviteVerification.canEnroll = false;
     teamInviteVerification.mfa.isValid = true;
     teamInviteVerification.mfa.action = 'ENROLL';
@@ -361,6 +369,17 @@ export async function verifyTeamInvitation({
     teamInviteVerification.identityProvider.isValid = false;
     teamInviteVerification.identityProvider.action = 'LINK';
     teamInviteVerification.identityProvider.message = `You don't have a valid login method configured, one of the following is required to join this team: ${loginConfig.allowedProviders.map((provider) => LoginConfigurationIdentityDisplayNames[provider]).join(', ')}.`;
+  } else if (ssoRequired) {
+    // Signing in with SSO only works when the invitee's email domain is one the team has verified
+    const emailDomain = user.email.split('@')[1]?.toLowerCase();
+    teamInviteVerification.canEnroll = false;
+    if (emailDomain && loginConfig.domains.includes(emailDomain)) {
+      teamInviteVerification.session.action = 'SSO_REQUIRED';
+      teamInviteVerification.session.message = `This team requires single sign-on (SSO). Sign out, then choose "Continue with SSO" on the sign in page to join the team.`;
+    } else {
+      teamInviteVerification.session.action = 'SSO_UNAVAILABLE';
+      teamInviteVerification.session.message = `This team requires single sign-on (SSO), but your email domain is not set up for this team's SSO. Contact a team administrator for help joining.`;
+    }
   } else if (
     !loginConfig.allowedProviders.includes(currentSessionProvider as OauthProviderType | 'credentials') &&
     currentSessionProvider !== activeSsoProvider

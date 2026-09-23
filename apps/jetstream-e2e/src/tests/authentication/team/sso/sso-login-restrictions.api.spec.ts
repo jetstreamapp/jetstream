@@ -1,5 +1,6 @@
 import { prisma } from '@jetstream/api-config';
 import { CURRENT_TOS_VERSION } from '@jetstream/auth/server';
+import { HTTP } from '@jetstream/shared/constants';
 import { APIRequestContext, expect, test } from '@playwright/test';
 import { addDays } from 'date-fns';
 import { cleanupSsoFixture, createSsoFixture } from '../../../../utils/auth-fixtures';
@@ -32,6 +33,12 @@ async function signInWithPassword(request: APIRequestContext, email: string, pas
   });
   const body = await response.json().catch(() => null);
   return { response, body, errorType: body?.errorType || body?.data?.errorType };
+}
+
+function createMemberInvite(teamId: string, email: string) {
+  return prisma.teamMemberInvitation.create({
+    data: { teamId, email, role: 'MEMBER', expiresAt: addDays(new Date(), 7), lastSentAt: new Date() },
+  });
 }
 
 test.describe('Login configuration restrictions on password sign in', () => {
@@ -123,9 +130,7 @@ test.describe('Login configuration restrictions on password registration from a 
   /** Invites a new MEMBER and follows the emailed link, which is what stores the invite in a cookie for sign up */
   async function inviteNewMember(request: APIRequestContext, fixture: Awaited<ReturnType<typeof createSsoFixture>>) {
     const email = `invitee@${fixture.domain}`;
-    const invite = await prisma.teamMemberInvitation.create({
-      data: { teamId: fixture.teamId, email, role: 'MEMBER', expiresAt: addDays(new Date(), 7), lastSentAt: new Date() },
-    });
+    const invite = await createMemberInvite(fixture.teamId, email);
     const params = new URLSearchParams({
       action: 'team-invite',
       email,
@@ -170,6 +175,78 @@ test.describe('Login configuration restrictions on password registration from a 
 
     expect(errorType).toBeFalsy();
     const membership = await prisma.teamMember.findFirst({ where: { teamId: fixture.teamId, user: { email } } });
+    expect(membership?.role).toBe('MEMBER');
+  });
+});
+
+/**
+ * Someone already signed in accepts from the invitation page instead of while signing in. That page has to hold them
+ * to the same SSO rules, or signing in first and opening the invite link afterwards would skip SSO.
+ */
+test.describe('Login configuration restrictions on accepting a team invite from the invitation page', () => {
+  const fixtures: Awaited<ReturnType<typeof createSsoFixture>>[] = [];
+
+  test.afterAll(async () => {
+    await Promise.all(fixtures.map((fixture) => cleanupSsoFixture(fixture)));
+  });
+
+  /**
+   * Signs in with a password as an existing user who is not on any team, so no team rule applies yet, then invites
+   * them as a MEMBER. Email 2FA is turned off so the password sign in completes without a code.
+   */
+  async function signInThenInvite(request: APIRequestContext, options: Parameters<typeof createSsoFixture>[0]) {
+    const fixture = await createSsoFixture({ ...options, addTeamMember: false });
+    fixtures.push(fixture);
+    await prisma.authFactors.updateMany({ where: { userId: fixture.userId }, data: { enabled: false } });
+
+    const { errorType } = await signInWithPassword(request, fixture.email, fixture.password!);
+    expect(errorType).toBeFalsy();
+
+    // The /api/teams routes require the double-submit CSRF cookie set at sign in to be echoed in a header
+    const { cookies } = await request.storageState();
+    const csrfToken = cookies.find(({ name }) => name.endsWith(HTTP.COOKIE.CSRF_SUFFIX))?.value ?? '';
+    const invite = await createMemberInvite(fixture.teamId, fixture.email);
+    const invitationUrl = `/api/teams/${fixture.teamId}/invitations/${invite.token}`;
+
+    const verifyInvitation = async () => {
+      const response = await request.get(`${invitationUrl}/verify`);
+      return (await response.json())?.data?.inviteVerification;
+    };
+    const acceptInvitation = () => request.post(`${invitationUrl}/accept`, { headers: { [HTTP.HEADERS.X_CSRF_TOKEN]: csrfToken } });
+
+    return { fixture, verifyInvitation, acceptInvitation };
+  }
+
+  test('refuses to join from a password session when the invite role cannot bypass SSO', async ({ request }) => {
+    const { fixture, verifyInvitation, acceptInvitation } = await signInThenInvite(request, {
+      ssoEnabled: true,
+      ssoBypassEnabled: true,
+      ssoBypassEnabledRoles: ['ADMIN'],
+    });
+
+    const verification = await verifyInvitation();
+    expect(verification?.canEnroll).toBe(false);
+    expect(verification?.session?.action).toBe('SSO_REQUIRED');
+
+    const response = await acceptInvitation();
+    expect(response.ok()).toBeFalsy();
+    expect(await prisma.teamMember.count({ where: { teamId: fixture.teamId, userId: fixture.userId } })).toBe(0);
+  });
+
+  test('joins from a password session when the invite role may bypass SSO', async ({ request }) => {
+    // Control for the test above - proves the refusal comes from the bypass rules and not from SSO being enabled
+    const { fixture, verifyInvitation, acceptInvitation } = await signInThenInvite(request, {
+      ssoEnabled: true,
+      ssoBypassEnabled: true,
+      ssoBypassEnabledRoles: ['MEMBER'],
+    });
+
+    const verification = await verifyInvitation();
+    expect(verification?.canEnroll).toBe(true);
+
+    const response = await acceptInvitation();
+    expect(response.ok()).toBeTruthy();
+    const membership = await prisma.teamMember.findFirst({ where: { teamId: fixture.teamId, userId: fixture.userId } });
     expect(membership?.role).toBe('MEMBER');
   });
 });

@@ -206,12 +206,18 @@ export const TeamMemberStatusUpdateRequestSchema = z.object({
 });
 export type TeamMemberStatusUpdateRequest = z.infer<typeof TeamMemberStatusUpdateRequestSchema>;
 
+/**
+ * SSO_REQUIRED - the invitee has to sign out and sign in with SSO, which joins the team as part of signing in
+ * SSO_UNAVAILABLE - the team requires SSO but the invitee's email domain is not verified for it, so only an admin can help
+ */
+export type TeamInviteSessionAction = 'CURRENT_PROVIDER_INVALID' | 'SSO_REQUIRED' | 'SSO_UNAVAILABLE';
+
 export interface TeamInviteVerificationResponse {
   teamName: string;
   canEnroll: boolean;
   session: {
     expireOnAcceptance: boolean;
-    action: string;
+    action: TeamInviteSessionAction;
     message: string | null;
   };
   mfa: {
