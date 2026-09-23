@@ -252,8 +252,11 @@ async function fetchUserProfile(): Promise<UserProfileUi> {
  * Lazy so the storage read happens on first render (after `ensureLocalStorageReady` has scoped the
  * store to the current user) instead of at module evaluation, which would read the shared un-scoped
  * store while every write lands in the per-user one.
+ *
+ * Only that initial read is a Promise - writes store the plain value. Readers sit directly under the
+ * app's top level Suspense boundary, so writing a Promise re-suspends them and flashes the whole page.
  */
-const userPreferenceState = atomWithLazy<Promise<UserProfilePreferences>>(getUserPreferences);
+const userPreferenceState = atomWithLazy<Promise<UserProfilePreferences> | UserProfilePreferences>(getUserPreferences);
 
 export const actionInProgressState = atom<boolean>(false);
 
@@ -505,17 +508,15 @@ export const selectedOrgType = atom<Maybe<SalesforceOrgUiType>>((get) => {
   return getOrgType(org);
 });
 
-export const selectUserPreferenceState = atom<Promise<UserProfilePreferences>>(async (get) => {
-  const userPreferences = await get(userPreferenceState);
-  return userPreferences;
-});
+/** Read-only view of the preferences - must stay synchronous, see `userPreferenceState` */
+export const selectUserPreferenceState = atom((get) => get(userPreferenceState));
 
 export const useUserPreferenceState = (): [UserProfilePreferences | undefined, (pref: UserProfilePreferences) => void] => {
   const [userPreference] = useAtom(selectUserPreferenceState);
   const setUserPreferenceState = useSetAtom(userPreferenceState);
 
   async function setUserPreferences(_userPreference: UserProfilePreferences) {
-    setUserPreferenceState(Promise.resolve(_userPreference));
+    setUserPreferenceState(_userPreference);
     try {
       getLocalStore().setItem<UserProfilePreferences>(INDEXED_DB.KEYS.userPreferences, _userPreference);
     } catch {

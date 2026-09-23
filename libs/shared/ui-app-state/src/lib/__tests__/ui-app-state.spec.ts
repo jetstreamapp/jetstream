@@ -1,6 +1,8 @@
 import { ApiRequestError } from '@jetstream/shared/data';
 import type { UserProfileUi } from '@jetstream/types';
-import { createStore } from 'jotai';
+import { act, renderHook } from '@testing-library/react';
+import { createStore, Provider } from 'jotai';
+import { createElement, ReactNode, Suspense } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockedGetUserProfile, mockedIsBrowserExtension, mockedIsCanvasApp, mockedIsDesktop, mockedApplyVerifiedFeatureFlags } = vi.hoisted(
@@ -112,5 +114,37 @@ describe('userProfileState', () => {
 
     await expect(createStore().get(userProfileState)).resolves.toEqual(DEFAULT_PROFILE);
     expect(mockedGetUserProfile).not.toHaveBeenCalled();
+  });
+});
+
+describe('useUserPreferenceState', () => {
+  /**
+   * Preference readers (theme, header, notifications prompt, analytics) sit directly under the app's
+   * top level Suspense boundary, so a write that re-suspends them swaps the whole page for the loading
+   * fallback.
+   */
+  it('updates preferences without re-suspending the components reading them', async () => {
+    const { useUserPreferenceState } = await loadAppState();
+    const store = createStore();
+    let fallbackRenders = 0;
+    const Fallback = () => {
+      fallbackRenders++;
+      return null;
+    };
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(Provider, { store }, createElement(Suspense, { fallback: createElement(Fallback) }, children));
+
+    // The first read is an async storage lookup, so the initial render is expected to suspend once
+    const { result } = await act(async () => renderHook(() => useUserPreferenceState(), { wrapper }));
+    expect(result.current[0]).toEqual({ colorScheme: 'light' });
+    const fallbackRendersAfterLoad = fallbackRenders;
+
+    act(() => {
+      const [userPreferences, setUserPreferences] = result.current;
+      setUserPreferences({ ...userPreferences, deniedNotifications: true });
+    });
+
+    expect(result.current[0]).toEqual({ colorScheme: 'light', deniedNotifications: true });
+    expect(fallbackRenders).toBe(fallbackRendersAfterLoad);
   });
 });
