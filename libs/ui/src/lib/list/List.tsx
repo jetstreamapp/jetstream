@@ -2,7 +2,7 @@
 
 import { css } from '@emotion/react';
 import {
-  hasMetaModifierKey,
+  hasModifierKey,
   isArrowDownKey,
   isArrowLeftKey,
   isArrowRightKey,
@@ -266,7 +266,8 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
           }
         }
         return;
-      } else if (!useCheckbox && !hasMetaModifierKey(event) && isEnterOrSpace(event)) {
+      } else if (!useCheckbox && !hasModifierKey(event) && isEnterOrSpace(event)) {
+        // A modified Enter (Cmd/Ctrl/Alt) belongs to page and dialog shortcuts, not to row selection
         event.stopPropagation();
         event.preventDefault();
         if (!isNil(currFocusedItem) && items[currFocusedItem]) {
@@ -306,75 +307,74 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
     return (
       // eslint-disable-next-line react/jsx-no-useless-fragment
       <Fragment>
-        {Array.isArray(items) &&
-          items.length > 0 && (
-            // Composite-widget pattern the rule cannot see: the ul is the list's single tab stop and
-            // its keydown handler delegates for the focusable rows/checkboxes inside it. In checkbox
-            // mode the ul is deliberately NOT a listbox (options cannot contain interactive children).
-            // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
-            <ul
-              ref={ref}
-              // Checkbox mode moves focus into the checkboxes themselves, and options must not contain
-              // interactive children — so checkbox lists are plain lists of labeled checkboxes, while
-              // single-select lists keep listbox/option semantics.
-              role={useCheckbox ? undefined : 'listbox'}
-              aria-label={ariaLabel}
-              aria-multiselectable={useCheckbox ? undefined : isMultiSelect}
-              className={classNames('slds-has-dividers_bottom-space', className)}
-              tabIndex={0}
-              onKeyDown={handleKeyDown}
-              onFocus={handleFocus}
-              css={css`
-                /* Inset outlines: Safari paints no default focus ring on lists/items, and an outline
+        {Array.isArray(items) && items.length > 0 && (
+          // Composite-widget pattern the rule cannot see: the ul is the list's single tab stop and
+          // its keydown handler delegates for the focusable rows/checkboxes inside it. In checkbox
+          // mode the ul is deliberately NOT a listbox (options cannot contain interactive children).
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
+          <ul
+            ref={ref}
+            // Checkbox mode moves focus into the checkboxes themselves, and options must not contain
+            // interactive children — so checkbox lists are plain lists of labeled checkboxes, while
+            // single-select lists keep listbox/option semantics.
+            role={useCheckbox ? undefined : 'listbox'}
+            aria-label={ariaLabel}
+            aria-multiselectable={useCheckbox ? undefined : isMultiSelect}
+            className={classNames('slds-has-dividers_bottom-space', className)}
+            tabIndex={0}
+            onKeyDown={handleKeyDown}
+            onFocus={handleFocus}
+            css={css`
+              /* Inset outlines: Safari paints no default focus ring on lists/items, and an outline
                  drawn outside the element is clipped left/right by the scrolling container */
-                &:focus-visible,
-                & li:focus-visible {
-                  outline: 2px solid var(--slds-g-color-brand-base-50, #0176d3);
-                  outline-offset: -2px;
-                }
-              `}
-            >
-              {items.map((item, i) => {
-                const { key, id, testId, label, heading, subheading, trailingHeader, children } = itemContents[i];
-                return useCheckbox ? (
-                  <ListItemCheckbox
-                    inputRef={elRefs.current[i] as RefObject<HTMLInputElement>}
-                    key={key}
-                    id={id || key}
-                    label={label}
-                    testId={testId}
-                    isActive={isActive(item)}
-                    heading={heading}
-                    subheading={subheading}
-                    subheadingPlaceholder={subheadingPlaceholder}
-                    searchTerm={searchTerm}
-                    highlightText={highlightText}
-                    disabled={disabled}
-                    onSelected={() => handleSelect(key, i)}
-                  >
-                    {children}
-                  </ListItemCheckbox>
-                ) : (
-                  <ListItem
-                    key={key}
-                    testId={testId}
-                    liRef={elRefs.current[i] as RefObject<HTMLLIElement>}
-                    isActive={isActive(item)}
-                    heading={heading}
-                    subheading={subheading}
-                    trailingHeader={trailingHeader}
-                    subheadingPlaceholder={subheadingPlaceholder}
-                    searchTerm={searchTerm}
-                    highlightText={highlightText}
-                    disabled={disabled}
-                    onSelected={() => handleSelect(key, i)}
-                  >
-                    {children}
-                  </ListItem>
-                );
-              })}
-            </ul>
-          )}
+              &:focus-visible,
+              & li:focus-visible {
+                outline: 2px solid var(--slds-g-color-brand-base-50, #0176d3);
+                outline-offset: -2px;
+              }
+            `}
+          >
+            {items.map((item, i) => {
+              const { key, id, testId, label, heading, subheading, trailingHeader, children } = itemContents[i];
+              return useCheckbox ? (
+                <ListItemCheckbox
+                  inputRef={elRefs.current[i] as RefObject<HTMLInputElement>}
+                  key={key}
+                  id={id || key}
+                  label={label}
+                  testId={testId}
+                  isActive={isActive(item)}
+                  heading={heading}
+                  subheading={subheading}
+                  subheadingPlaceholder={subheadingPlaceholder}
+                  searchTerm={searchTerm}
+                  highlightText={highlightText}
+                  disabled={disabled}
+                  onSelected={() => handleSelect(key, i)}
+                >
+                  {children}
+                </ListItemCheckbox>
+              ) : (
+                <ListItem
+                  key={key}
+                  testId={testId}
+                  liRef={elRefs.current[i] as RefObject<HTMLLIElement>}
+                  isActive={isActive(item)}
+                  heading={heading}
+                  subheading={subheading}
+                  trailingHeader={trailingHeader}
+                  subheadingPlaceholder={subheadingPlaceholder}
+                  searchTerm={searchTerm}
+                  highlightText={highlightText}
+                  disabled={disabled}
+                  onSelected={() => handleSelect(key, i)}
+                >
+                  {children}
+                </ListItem>
+              );
+            })}
+          </ul>
+        )}
         {/* Read after the option's name and state via aria-describedby (see handleFocus); `hidden` keeps it
             out of the reading order, where it would be stray text */}
         {!useCheckbox && Array.isArray(items) && items.length > 0 && (
