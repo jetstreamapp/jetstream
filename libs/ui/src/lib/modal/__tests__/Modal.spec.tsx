@@ -97,4 +97,58 @@ describe('Modal', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(opener));
   });
+
+  it('leaves an Escape to a widget inside that handled its keydown (a code editor closing its autocomplete)', () => {
+    const onClose = vi.fn();
+    render(
+      <Modal header="Edit query" onClose={onClose}>
+        <textarea
+          aria-label="SOQL"
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.stopPropagation();
+            }
+          }}
+        />
+      </Modal>,
+    );
+    const editor = screen.getByRole('textbox', { name: 'SOQL' });
+
+    fireEvent.keyDown(editor, { key: 'Escape' });
+    fireEvent.keyUp(editor, { key: 'Escape' });
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('stays open when Escape cancels an IME conversion', () => {
+    const onClose = vi.fn();
+    render(
+      <Modal header="Edit query" onClose={onClose}>
+        <input aria-label="Name" />
+      </Modal>,
+    );
+    const nameInput = screen.getByRole('textbox', { name: 'Name' });
+
+    // Chromium and Firefox: the Escape arrives while the composition is still open
+    fireEvent.compositionStart(nameInput);
+    fireEvent.keyDown(nameInput, { key: 'Escape', isComposing: true });
+    fireEvent.keyUp(nameInput, { key: 'Escape' });
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('closes on an Escape the modal saw from start to finish', () => {
+    const onClose = vi.fn();
+    render(
+      <Modal header="Edit query" onClose={onClose}>
+        <input aria-label="Name" />
+      </Modal>,
+    );
+    const nameInput = screen.getByRole('textbox', { name: 'Name' });
+
+    fireEvent.keyDown(nameInput, { key: 'Escape' });
+    fireEvent.keyUp(nameInput, { key: 'Escape' });
+
+    expect(onClose).toHaveBeenCalled();
+  });
 });

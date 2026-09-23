@@ -9,10 +9,10 @@ import {
   useInteractions,
   useRole,
 } from '@floating-ui/react';
-import { isEscapeKey } from '@jetstream/shared/ui-utils';
+import { isEscapeKey, isImeComposing } from '@jetstream/shared/ui-utils';
 import { Maybe, SizeSmMdLg } from '@jetstream/types';
 import classNames from 'classnames';
-import { KeyboardEvent, ReactNode, RefObject, useEffect, useState } from 'react';
+import { KeyboardEvent, ReactNode, RefObject, useEffect, useRef, useState } from 'react';
 import Icon from '../widgets/Icon';
 import { PortalProvider } from './PortalContext';
 
@@ -124,6 +124,7 @@ export const Modal = ({
   const role = useRole(context, { role: 'dialog' });
 
   const { getFloatingProps } = useInteractions([dismiss, role]);
+  const floatingProps = getFloatingProps();
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -136,8 +137,25 @@ export const Modal = ({
     }
   }, [hide]);
 
+  // Escape closes on keyup only when the modal also saw that press's keydown. A widget inside that handled
+  // the keydown and stopped it owns the whole press: a code editor dismissing its autocomplete or clearing a
+  // selection must not also close the modal, discarding an edit in progress. An Escape that cancels an IME
+  // conversion is typing, not a request to close (floating-ui's keydown dismissal skips it too).
+  const escapeKeyDownSeenRef = useRef(false);
+
+  function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (isEscapeKey(event)) {
+      escapeKeyDownSeenRef.current = !event.defaultPrevented && !isImeComposing(event.nativeEvent);
+    }
+  }
+
   function handleKeyUp(event: KeyboardEvent<HTMLElement>) {
-    if (!closeDisabled && closeOnEsc && isEscapeKey(event)) {
+    if (!isEscapeKey(event)) {
+      return;
+    }
+    const sawKeyDown = escapeKeyDownSeenRef.current;
+    escapeKeyDownSeenRef.current = false;
+    if (sawKeyDown && !closeDisabled && closeOnEsc) {
       onClose();
     }
   }
@@ -166,7 +184,12 @@ export const Modal = ({
           <FloatingFocusManager context={context} modal initialFocus={initialFocus} returnFocus>
             <section
               ref={refs.setFloating}
-              {...getFloatingProps()}
+              {...floatingProps}
+              onKeyDown={(event) => {
+                // useDismiss handles Escape through the floating element's onKeyDown as well
+                (floatingProps.onKeyDown as ((event: KeyboardEvent<HTMLElement>) => void) | undefined)?.(event);
+                handleKeyDown(event);
+              }}
               role="dialog"
               tabIndex={-1}
               className={classNames('slds-modal slds-slide-up-open', getSizeClass(size))}
