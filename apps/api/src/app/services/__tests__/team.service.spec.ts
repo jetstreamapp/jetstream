@@ -305,8 +305,12 @@ describe('verifyTeamInvitation', () => {
       expect(result.canEnroll).toBe(false);
       expect(result.session.expireOnAcceptance).toBe(true);
       expect(result.session.action).toBe('CURRENT_PROVIDER_INVALID');
-      expect(result.session.message).toContain('You have linked identities that are not allowed on this team');
+      // The linked identities warning used to overwrite this instruction, leaving no hint to sign in with Google
+      expect(result.session.message).toContain('You must be signed in with a different login method');
       expect(result.session.message).toContain(LoginConfigurationIdentityDisplayNames.google);
+      expect(result.linkedIdentities.message).toContain(
+        `you will no longer be able to login using: ${LoginConfigurationIdentityDisplayNames.credentials}.`,
+      );
     });
 
     it('should add credentials provider when user has password set', async () => {
@@ -369,8 +373,12 @@ describe('verifyTeamInvitation', () => {
 
       expect(result.canEnroll).toBe(true);
       expect(result.linkedIdentities.isValid).toBe(false);
-      expect(result.session.message).toContain('You have linked identities that are not allowed on this team');
-      expect(result.session.message).toContain('you will no longer be able to login using');
+      expect(result.linkedIdentities.message).toContain('You have linked identities that are not allowed on this team');
+      // Names the methods the user loses, not the ones the team allows
+      expect(result.linkedIdentities.message).toContain(
+        `you will no longer be able to login using: ${LoginConfigurationIdentityDisplayNames.google}, ${LoginConfigurationIdentityDisplayNames.salesforce}.`,
+      );
+      expect(result.linkedIdentities.message).not.toContain(LoginConfigurationIdentityDisplayNames.credentials);
     });
 
     it('should pass when all linked identities are allowed', async () => {

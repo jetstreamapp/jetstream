@@ -30,6 +30,8 @@ import * as teamDbService from '../db/team.db';
 import { NotAllowedError, UserFacingError } from '../utils/error-handler';
 import * as stripeService from './stripe.service';
 
+const SSO_DISPLAY_NAME = 'Single Sign-On (SSO)';
+
 /**
  * Verifies that the running user has permission to update the target user based on role hierarchy.
  * @throws {NotAllowedError} If the running user doesn't have permission to modify the target user
@@ -388,7 +390,7 @@ export async function verifyTeamInvitation({
     // (it may even be the only valid login method, in which case allowedProviders is empty)
     const validLoginMethods = [
       ...loginConfig.allowedProviders.map((provider) => LoginConfigurationIdentityDisplayNames[provider]),
-      ...(activeSsoProvider ? ['Single Sign-On (SSO)'] : []),
+      ...(activeSsoProvider ? [SSO_DISPLAY_NAME] : []),
     ];
     teamInviteVerification.canEnroll = false;
     teamInviteVerification.session.expireOnAcceptance = true;
@@ -396,14 +398,20 @@ export async function verifyTeamInvitation({
     teamInviteVerification.session.message = `You must be signed in with a different login method to join this team. This team requires one of the following login methods: ${validLoginMethods.join(', ')}.`;
   }
 
-  if (Array.from(providers).some((provider) => !allowedProviders.has(provider) && provider !== activeSsoProvider)) {
+  const disallowedProviders = Array.from(providers).filter((provider) => !allowedProviders.has(provider) && provider !== activeSsoProvider);
+  if (disallowedProviders.length > 0) {
     teamInviteVerification.linkedIdentities.isValid = false;
-    teamInviteVerification.session.message = `You have linked identities that are not allowed on this team. You do not need to take any action, but after joining, you will no longer be able to login using: ${loginConfig.allowedProviders
-      .map((provider) => LoginConfigurationIdentityDisplayNames[provider])
-      .join(', ')}.`;
+    teamInviteVerification.linkedIdentities.message = `You have linked identities that are not allowed on this team. You do not need to take any action, but after joining, you will no longer be able to login using: ${disallowedProviders.map(getLoginMethodDisplayName).join(', ')}.`;
   }
 
   return teamInviteVerification;
+}
+
+/** A user's identities can include an SSO login from a team they have since left, which has no display name entry */
+function getLoginMethodDisplayName(provider: string) {
+  return provider in LoginConfigurationIdentityDisplayNames
+    ? LoginConfigurationIdentityDisplayNames[provider as keyof typeof LoginConfigurationIdentityDisplayNames]
+    : SSO_DISPLAY_NAME;
 }
 
 export async function revokeTeamInvitation({
