@@ -1,4 +1,7 @@
+import { prisma } from '@jetstream/api-config';
+import { CURRENT_TOS_VERSION } from '@jetstream/auth/server';
 import { APIRequestContext, expect, test } from '@playwright/test';
+import { addDays } from 'date-fns';
 import { cleanupSsoFixture, createSsoFixture } from '../../../../utils/auth-fixtures';
 
 /**
@@ -97,5 +100,76 @@ test.describe('Login configuration restrictions on password sign in', () => {
 
     expect(errorType).toBe('ProviderNotAllowed');
     expect(body?.data?.allowedMethods).toEqual(['google']);
+  });
+});
+
+/**
+ * Someone invited to the team has no membership yet, so SSO bypass is judged by the role on their invite.
+ * A refused registration must not leave an account behind, and the invite must still be usable through SSO.
+ */
+test.describe('Login configuration restrictions on password registration from a team invite', () => {
+  const fixtures: Awaited<ReturnType<typeof createSsoFixture>>[] = [];
+
+  async function createFixture(options: Parameters<typeof createSsoFixture>[0]) {
+    const fixture = await createSsoFixture(options);
+    fixtures.push(fixture);
+    return fixture;
+  }
+
+  test.afterAll(async () => {
+    await Promise.all(fixtures.map((fixture) => cleanupSsoFixture(fixture)));
+  });
+
+  /** Invites a new MEMBER and follows the emailed link, which is what stores the invite in a cookie for sign up */
+  async function inviteNewMember(request: APIRequestContext, fixture: Awaited<ReturnType<typeof createSsoFixture>>) {
+    const email = `invitee@${fixture.domain}`;
+    const invite = await prisma.teamMemberInvitation.create({
+      data: { teamId: fixture.teamId, email, role: 'MEMBER', expiresAt: addDays(new Date(), 7), lastSentAt: new Date() },
+    });
+    const params = new URLSearchParams({
+      action: 'team-invite',
+      email,
+      teamId: fixture.teamId,
+      token: invite.token,
+      redirectUrl: `/app/teams/invite?teamId=${fixture.teamId}&token=${invite.token}`,
+    });
+    await request.get(`/redirect?${params.toString()}`, { maxRedirects: 0 });
+    return { email, invite };
+  }
+
+  async function registerWithPassword(request: APIRequestContext, email: string) {
+    const csrfToken = await getCsrf(request);
+    const response = await request.post('/api/auth/callback/credentials', {
+      headers: { Accept: 'application/json' },
+      form: { action: 'register', email, name: 'Invitee', password: 'Invitee-Password1!', tosVersion: CURRENT_TOS_VERSION, csrfToken },
+      maxRedirects: 0,
+    });
+    const body = await response.json().catch(() => null);
+    return { response, errorType: body?.errorType || body?.data?.errorType };
+  }
+
+  test('refuses registration with SsoRequired when the invite role cannot bypass SSO', async ({ request }) => {
+    const fixture = await createFixture({ ssoEnabled: true, ssoBypassEnabled: true, ssoBypassEnabledRoles: ['ADMIN'] });
+    const { email, invite } = await inviteNewMember(request, fixture);
+
+    const { response, errorType } = await registerWithPassword(request, email);
+
+    expect(response.ok()).toBeFalsy();
+    expect(errorType).toBe('SsoRequired');
+    expect(await prisma.user.count({ where: { email } })).toBe(0);
+    expect(await prisma.teamMemberInvitation.count({ where: { id: invite.id } })).toBe(1);
+  });
+
+  test('allows registration and joins the team when the invite role may bypass SSO', async ({ request }) => {
+    // Control for the test above - proves it fails because of the bypass rules and not because SSO being
+    // enabled blocks password registration outright.
+    const fixture = await createFixture({ ssoEnabled: true, ssoBypassEnabled: true, ssoBypassEnabledRoles: ['MEMBER'] });
+    const { email } = await inviteNewMember(request, fixture);
+
+    const { errorType } = await registerWithPassword(request, email);
+
+    expect(errorType).toBeFalsy();
+    const membership = await prisma.teamMember.findFirst({ where: { teamId: fixture.teamId, user: { email } } });
+    expect(membership?.role).toBe('MEMBER');
   });
 });

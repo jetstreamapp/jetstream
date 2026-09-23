@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CURRENT_TOS_VERSION } from '../auth.constants';
 import { handleSignInOrRegistration } from '../auth.db.service';
 import { SsoRequired } from '../auth.errors';
 
@@ -12,18 +13,27 @@ import { SsoRequired } from '../auth.errors';
  * ADMIN only) are permissive enough to let someone past a gate their team had closed. A mocked
  * Prisma client returns whatever the test hands it regardless of the select, so that omission can
  * only be caught by asserting the query itself - hence the select assertion below.
+ *
+ * Someone accepting an invite has no membership on the inviting team yet, so SSO bypass is judged
+ * against the role they were invited with. That check has to run on every path that creates a user or
+ * links an identity, and before it does so, or a refused invitee is left with a half-made account.
  */
 
 const prismaMock = vi.hoisted(() => ({
+  team: { findFirst: vi.fn() },
   teamMemberInvitation: { findFirst: vi.fn(), delete: vi.fn() },
   teamMember: { create: vi.fn() },
+  authIdentity: { create: vi.fn() },
+  passwordHistory: { create: vi.fn() },
   user: {
+    create: vi.fn(),
     findFirst: vi.fn(),
+    findMany: vi.fn(),
     findUnique: vi.fn(),
     findFirstOrThrow: vi.fn(),
     update: vi.fn(),
   },
-  // Accepting the invite passes an array of operations, the failed-login accounting passes a callback
+  // Accepting the invite passes an array of operations, the failed-login accounting and registration pass a callback
   $transaction: vi.fn(async (operationsOrCallback: unknown[] | ((tx: unknown) => unknown)) =>
     Array.isArray(operationsOrCallback) ? Promise.all(operationsOrCallback) : operationsOrCallback(prismaMock),
   ),
@@ -57,44 +67,46 @@ vi.mock('../auth.utils', async (importOriginal) => {
 const USER_ID = 'aaaaaaaa-0000-4000-8000-aaaaaaaaaaaa';
 const TEAM_ID = 'bbbbbbbb-0000-4000-8000-bbbbbbbbbbbb';
 const EMAIL = 'invitee@example.com';
+const TEAM_INVITE = { token: 'invite-token', teamId: TEAM_ID };
 
-/** The inviting team requires SSO - only the bypass settings differ between tests */
-function mockPendingInvite(loginConfig: { ssoBypassEnabled: boolean; ssoBypassEnabledRoles: string[] }) {
+type TeamMembership = { teamId: string; role: string; status: string } | null;
+
+const ADMIN_MEMBERSHIP: TeamMembership = { teamId: TEAM_ID, role: 'ADMIN', status: 'ACTIVE' };
+
+type SsoBypassConfig = { ssoBypassEnabled: boolean; ssoBypassEnabledRoles: string[] };
+
+/** The team requires SSO - only the bypass settings differ between tests */
+function buildSsoRequiredLoginConfig(ssoBypassConfig: SsoBypassConfig) {
+  return {
+    id: 'cccccccc-0000-4000-8000-cccccccccccc',
+    allowedMfaMethods: ['otp'],
+    allowedProviders: ['credentials', 'google'],
+    allowIdentityLinking: true,
+    domains: [],
+    autoAddToTeam: false,
+    ssoProvider: 'SAML',
+    ssoEnabled: true,
+    ssoJitProvisioningEnabled: false,
+    requireMfa: false,
+    team: { id: TEAM_ID },
+    ...ssoBypassConfig,
+  };
+}
+
+/** The user is invited as a MEMBER */
+function mockPendingInvite(ssoBypassConfig: SsoBypassConfig) {
   prismaMock.teamMemberInvitation.findFirst.mockResolvedValue({
     id: 'invite-id',
     email: EMAIL,
     role: 'MEMBER',
     features: [],
     createdById: 'inviter-id',
-    team: {
-      id: TEAM_ID,
-      name: 'Acme',
-      loginConfig: {
-        id: 'cccccccc-0000-4000-8000-cccccccccccc',
-        allowedMfaMethods: ['otp'],
-        allowedProviders: ['credentials'],
-        allowIdentityLinking: true,
-        domains: [],
-        autoAddToTeam: false,
-        ssoProvider: 'SAML',
-        ssoEnabled: true,
-        ssoJitProvisioningEnabled: false,
-        requireMfa: false,
-        team: { id: TEAM_ID },
-        ...loginConfig,
-      },
-    },
+    team: { id: TEAM_ID, name: 'Acme', loginConfig: buildSsoRequiredLoginConfig(ssoBypassConfig) },
   });
 }
 
-/** Signs the user in with a correct password, as an ADMIN of the team they already belong to */
-function mockSuccessfulPasswordLogin() {
-  prismaMock.user.findFirst.mockResolvedValue({ id: USER_ID, password: 'hashed-password' });
-  prismaMock.user.findUnique
-    .mockResolvedValueOnce({ lockedUntil: null, failedLoginAttempts: 0 })
-    .mockResolvedValueOnce({ forcePasswordReset: false, passwordResetReason: null });
-  authUtilsMock.verifyPassword.mockResolvedValue(true);
-  prismaMock.user.findFirstOrThrow.mockResolvedValue({
+function buildUser(teamMembership: TeamMembership) {
+  return {
     id: USER_ID,
     userId: 'jetstream|invitee',
     name: 'Invitee',
@@ -102,8 +114,27 @@ function mockSuccessfulPasswordLogin() {
     emailVerified: true,
     tosAcceptedVersion: null,
     authFactors: [],
-    teamMembership: { teamId: TEAM_ID, role: 'ADMIN', status: 'ACTIVE' },
-  });
+    teamMembership,
+  };
+}
+
+/** Signs the user in with a correct password, as an ADMIN of the inviting team unless told otherwise */
+function mockSuccessfulPasswordLogin(teamMembership: TeamMembership = ADMIN_MEMBERSHIP) {
+  prismaMock.user.findFirst.mockResolvedValue({ id: USER_ID, password: 'hashed-password' });
+  prismaMock.user.findUnique
+    .mockResolvedValueOnce({ lockedUntil: null, failedLoginAttempts: 0 })
+    .mockResolvedValueOnce({ forcePasswordReset: false, passwordResetReason: null });
+  authUtilsMock.verifyPassword.mockResolvedValue(true);
+  prismaMock.user.findFirstOrThrow.mockResolvedValue(buildUser(teamMembership));
+}
+
+/** No account uses the invitee's email, so registration creates one */
+function mockNewUser() {
+  prismaMock.user.findFirst.mockResolvedValue(null);
+  prismaMock.user.findMany.mockResolvedValue([]);
+  prismaMock.user.create.mockResolvedValue(buildUser(null));
+  prismaMock.user.update.mockResolvedValue(buildUser(null));
+  prismaMock.user.findFirstOrThrow.mockResolvedValue(buildUser({ teamId: TEAM_ID, role: 'MEMBER', status: 'ACTIVE' }));
 }
 
 function signIn() {
@@ -112,8 +143,41 @@ function signIn() {
     action: 'login',
     email: EMAIL,
     password: 'correct-password',
-    teamInvite: { token: 'invite-token', teamId: TEAM_ID },
+    teamInvite: TEAM_INVITE,
   });
+}
+
+function register() {
+  return handleSignInOrRegistration({
+    providerType: 'credentials',
+    action: 'register',
+    email: EMAIL,
+    name: 'Invitee',
+    password: 'correct-password',
+    tosVersion: CURRENT_TOS_VERSION,
+    teamInvite: TEAM_INVITE,
+  });
+}
+
+function signInWithGoogle(teamInvite: typeof TEAM_INVITE | null = TEAM_INVITE) {
+  return handleSignInOrRegistration({
+    providerType: 'oauth',
+    provider: 'google',
+    providerUser: {
+      id: 'google-account-id',
+      email: EMAIL,
+      emailVerified: true,
+      username: EMAIL,
+      name: 'Invitee',
+    },
+    teamInvite,
+  });
+}
+
+function expectNothingCreated() {
+  expect(prismaMock.user.create).not.toHaveBeenCalled();
+  expect(prismaMock.authIdentity.create).not.toHaveBeenCalled();
+  expect(prismaMock.teamMember.create).not.toHaveBeenCalled();
 }
 
 beforeEach(() => {
@@ -156,5 +220,117 @@ describe('pending team invite login configuration', () => {
     mockSuccessfulPasswordLogin();
 
     await expect(signIn()).resolves.toEqual(expect.objectContaining({ provider: 'credentials' }));
+  });
+});
+
+describe('existing user without a team accepting an invite', () => {
+  it('judges SSO bypass by the role they were invited with', async () => {
+    mockPendingInvite({ ssoBypassEnabled: true, ssoBypassEnabledRoles: ['MEMBER'] });
+    mockSuccessfulPasswordLogin(null);
+
+    await expect(signIn()).resolves.toEqual(expect.objectContaining({ provider: 'credentials' }));
+    expect(prismaMock.teamMember.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ role: 'MEMBER' }) }),
+    );
+  });
+
+  it('rejects the login when the invite role is not one the team lets bypass SSO', async () => {
+    mockPendingInvite({ ssoBypassEnabled: true, ssoBypassEnabledRoles: ['ADMIN'] });
+    mockSuccessfulPasswordLogin(null);
+
+    await expect(signIn()).rejects.toBeInstanceOf(SsoRequired);
+    expect(prismaMock.teamMember.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('new user registering with a password from an invite', () => {
+  it('refuses to create the account when the inviting team has turned SSO bypass off', async () => {
+    mockPendingInvite({ ssoBypassEnabled: false, ssoBypassEnabledRoles: ['ADMIN', 'MEMBER'] });
+    mockNewUser();
+
+    await expect(register()).rejects.toBeInstanceOf(SsoRequired);
+    expectNothingCreated();
+  });
+
+  it('refuses to create the account when the invite role is not one the team lets bypass SSO', async () => {
+    mockPendingInvite({ ssoBypassEnabled: true, ssoBypassEnabledRoles: ['ADMIN'] });
+    mockNewUser();
+
+    await expect(register()).rejects.toBeInstanceOf(SsoRequired);
+    expectNothingCreated();
+  });
+
+  it('creates the account and joins the team when the invite role may bypass SSO', async () => {
+    mockPendingInvite({ ssoBypassEnabled: true, ssoBypassEnabledRoles: ['MEMBER'] });
+    mockNewUser();
+
+    await expect(register()).resolves.toEqual(expect.objectContaining({ isNewUser: true }));
+    expect(prismaMock.user.create).toHaveBeenCalled();
+    expect(prismaMock.teamMember.create).toHaveBeenCalled();
+  });
+});
+
+describe('new user signing up with an OAuth provider from an invite', () => {
+  it('refuses to create the account when the inviting team has turned SSO bypass off', async () => {
+    mockPendingInvite({ ssoBypassEnabled: false, ssoBypassEnabledRoles: ['ADMIN', 'MEMBER'] });
+    mockNewUser();
+
+    await expect(signInWithGoogle()).rejects.toBeInstanceOf(SsoRequired);
+    expectNothingCreated();
+  });
+
+  it('refuses to create the account when the invite role is not one the team lets bypass SSO', async () => {
+    mockPendingInvite({ ssoBypassEnabled: true, ssoBypassEnabledRoles: ['ADMIN'] });
+    mockNewUser();
+
+    await expect(signInWithGoogle()).rejects.toBeInstanceOf(SsoRequired);
+    expectNothingCreated();
+  });
+
+  it('creates the account and joins the team when the invite role may bypass SSO', async () => {
+    mockPendingInvite({ ssoBypassEnabled: true, ssoBypassEnabledRoles: ['MEMBER'] });
+    mockNewUser();
+
+    await expect(signInWithGoogle()).resolves.toEqual(expect.objectContaining({ isNewUser: true }));
+    expect(prismaMock.user.create).toHaveBeenCalled();
+    expect(prismaMock.teamMember.create).toHaveBeenCalled();
+  });
+});
+
+describe('OAuth provider auto-linked to an existing user', () => {
+  /** A password user with the same verified email signs in with Google for the first time */
+  function mockExistingUserWithSameEmail(teamMembership: TeamMembership = null) {
+    prismaMock.user.findFirst.mockResolvedValue(null);
+    prismaMock.user.findMany.mockResolvedValue([buildUser(teamMembership)]);
+    prismaMock.user.findFirstOrThrow.mockResolvedValue(buildUser(teamMembership));
+  }
+
+  it('refuses to link the identity when the invite role is not one the team lets bypass SSO', async () => {
+    mockPendingInvite({ ssoBypassEnabled: true, ssoBypassEnabledRoles: ['ADMIN'] });
+    mockExistingUserWithSameEmail();
+
+    await expect(signInWithGoogle()).rejects.toBeInstanceOf(SsoRequired);
+    expectNothingCreated();
+  });
+
+  it('links the identity and joins the team when the invite role may bypass SSO', async () => {
+    mockPendingInvite({ ssoBypassEnabled: true, ssoBypassEnabledRoles: ['MEMBER'] });
+    mockExistingUserWithSameEmail();
+
+    await expect(signInWithGoogle()).resolves.toEqual(expect.objectContaining({ isNewUser: false }));
+    expect(prismaMock.authIdentity.create).toHaveBeenCalled();
+    expect(prismaMock.teamMember.create).toHaveBeenCalled();
+  });
+
+  it('refuses to link the identity for a team member whose role cannot bypass SSO, without any invite', async () => {
+    // Only sign ins with an already linked provider used to be checked, so a member's first sign in
+    // with a new provider got past SSO
+    prismaMock.team.findFirst.mockResolvedValue({
+      loginConfig: buildSsoRequiredLoginConfig({ ssoBypassEnabled: true, ssoBypassEnabledRoles: ['MEMBER'] }),
+    });
+    mockExistingUserWithSameEmail(ADMIN_MEMBERSHIP);
+
+    await expect(signInWithGoogle(null)).rejects.toBeInstanceOf(SsoRequired);
+    expectNothingCreated();
   });
 });

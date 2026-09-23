@@ -1617,25 +1617,41 @@ function throwIfProviderNotAllowed(provider: OauthProviderType | 'credentials', 
 }
 
 /**
- * Known gap (#2079): this only runs for users that already exist. The paths that create or link a user
- * while accepting an invite (credentials register, OAuth new user, OAuth auto-link) are gated by
- * `allowedProviders` alone, so a new invitee can join an SSO-required team without SSO.
+ * The role SSO bypass is evaluated against - the one the user holds, or for someone accepting an invite,
+ * the one they are about to be given. Without the invite role an existing user accepting an invite would
+ * always be refused, even when the team lets that role bypass SSO.
+ *
+ * Pass `null` for the user when they are registering and do not exist yet.
+ */
+function getRoleForSsoCheck(
+  user: Maybe<AuthenticatedUser>,
+  teamInviteResponse: Awaited<ReturnType<typeof getTeamInviteConfiguration>>,
+): Maybe<string> {
+  return user?.teamMembership?.role ?? teamInviteResponse?.role;
+}
+
+/**
+ * Takes a role instead of a user so it can run before an invitee's user is created or their identity is
+ * linked, which means a rejected attempt leaves nothing behind.
  */
 function throwIfInvalidSsoConfig({
   provider,
   providerType,
   loginConfiguration,
-  user,
+  userId,
+  role,
 }: {
   loginConfiguration: Maybe<LoginConfiguration>;
   provider: OauthProviderType | 'credentials';
   providerType: ProviderType;
-  user: AuthenticatedUser;
+  /** Omitted when the user is registering */
+  userId?: string;
+  role: Maybe<string>;
 }) {
   if (loginConfiguration && loginConfiguration.ssoEnabled && loginConfiguration.ssoProvider !== 'NONE') {
-    if (!user.teamMembership?.role) {
+    if (!role) {
       logger.warn(
-        { userId: user.id, provider, providerType, loginConfigurationId: loginConfiguration.id },
+        { userId, provider, providerType, loginConfigurationId: loginConfiguration.id },
         'Cannot validate SSO bypass roles because user has no team membership role',
       );
       throw new SsoRequired(`SSO is required for this team, the ${provider} provider cannot be used. Login using SSO.`);
@@ -1643,27 +1659,25 @@ function throwIfInvalidSsoConfig({
 
     if (!loginConfiguration.ssoBypassEnabled) {
       logger.warn(
-        { userId: user.id, provider, providerType, loginConfigurationId: loginConfiguration.id },
+        { userId, provider, providerType, loginConfigurationId: loginConfiguration.id },
         'Cannot bypass SSO because SSO bypass is not enabled in login configuration',
       );
       throw new SsoRequired(`SSO is required for this team, the ${provider} provider cannot be used. Login using SSO.`);
     }
 
-    if (!loginConfiguration.ssoBypassEnabledRoles.includes(user.teamMembership.role)) {
+    if (!loginConfiguration.ssoBypassEnabledRoles.some((bypassRole) => bypassRole === role)) {
       logger.warn(
         {
-          userId: user.id,
+          userId,
           provider,
           providerType,
           loginConfigurationId: loginConfiguration.id,
-          userRole: user.teamMembership.role,
+          userRole: role,
           allowedRoles: loginConfiguration.ssoBypassEnabledRoles,
         },
         'Cannot bypass SSO because user role is not allowed to bypass SSO',
       );
-      throw new SsoRequired(
-        `SSO is required for this team, the ${provider} provider cannot be used by the ${user.teamMembership.role} role. Login using SSO.`,
-      );
+      throw new SsoRequired(`SSO is required for this team, the ${provider} provider cannot be used by the ${role} role. Login using SSO.`);
     }
   }
 }
@@ -1845,6 +1859,14 @@ export async function handleSignInOrRegistration(
             throw new IdentityLinkingNotAllowed();
           }
 
+          throwIfInvalidSsoConfig({
+            provider,
+            providerType,
+            loginConfiguration,
+            userId: existingUser.id,
+            role: getRoleForSsoCheck(existingUser, teamInviteResponse),
+          });
+
           // TODO: should we allow auto-linking accounts, or reject and make user login and link?
           user = await addIdentityToUser(existingUser.id, providerUser, provider);
         }
@@ -1852,7 +1874,13 @@ export async function handleSignInOrRegistration(
         if (!loginConfiguration && user.teamMembership?.teamId) {
           loginConfiguration = await getLoginConfiguration({ teamId: user.teamMembership.teamId });
         }
-        throwIfInvalidSsoConfig({ provider, providerType, loginConfiguration, user });
+        throwIfInvalidSsoConfig({
+          provider,
+          providerType,
+          loginConfiguration,
+          userId: user.id,
+          role: getRoleForSsoCheck(user, teamInviteResponse),
+        });
         // Update provider information
         await updateIdentityAttributesFromProvider(user.id, providerUser, provider);
       }
@@ -1864,6 +1892,7 @@ export async function handleSignInOrRegistration(
         if (!providerUser.emailVerified) {
           throw new ProviderEmailNotVerified();
         }
+        throwIfInvalidSsoConfig({ provider, providerType, loginConfiguration, role: getRoleForSsoCheck(null, teamInviteResponse) });
         user = await createUserFromProvider(providerUser, provider, loginConfiguration);
         isNewUser = true;
       }
@@ -1887,7 +1916,13 @@ export async function handleSignInOrRegistration(
         if (!loginConfiguration && user.teamMembership?.teamId) {
           loginConfiguration = await getLoginConfiguration({ teamId: user.teamMembership.teamId });
         }
-        throwIfInvalidSsoConfig({ provider, providerType, loginConfiguration, user });
+        throwIfInvalidSsoConfig({
+          provider,
+          providerType,
+          loginConfiguration,
+          userId: user.id,
+          role: getRoleForSsoCheck(user, teamInviteResponse),
+        });
       } else if (action === 'register') {
         const usersWithEmail = await findUsersByEmail(email);
         // Email already in use - go to verification flow with placeholder user, user will never be able to complete the process
@@ -1918,6 +1953,7 @@ export async function handleSignInOrRegistration(
          * 3. see if users with this email domain can sign up on their own (based on login configuration, domain may not allow users to sign up outside their team)
          */
 
+        throwIfInvalidSsoConfig({ provider, providerType, loginConfiguration, role: getRoleForSsoCheck(null, teamInviteResponse) });
         user = await createUserFromUserInfo(payload.email, payload.name, password, loginConfiguration, payload.tosVersion);
         isNewUser = true;
       } else {
