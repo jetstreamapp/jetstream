@@ -3,7 +3,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { queryRemaining, queryRemainingSubqueryRecords } from '@jetstream/shared/data';
-import { formatNumber, hasCtrlOrMeta, isEnterKey, isModalDialogOpen, tracker, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
+import { formatNumber, tracker } from '@jetstream/shared/ui-utils';
 import {
   flattenRecord,
   getErrorMessage,
@@ -64,6 +64,7 @@ import { replaceSubqueryOnRecord } from './grid/grid-row-utils';
 import { RowsChangeData } from './grid/rdg-compat';
 import { getRowErrorMessages, mapSaveErrorsToRow, summarizeRowErrors, validateRow } from './grid/validate-cell-value';
 import { DownloadConfig, MAX_SAVE_BATCH_SIZE, PreviewChangesModal } from './PreviewChangesModal';
+import { usePreviewChangesShortcut } from './usePreviewChangesShortcut';
 
 const SFDC_EMPTY_ID = '000000000000000AAA';
 const MAX_UNDO_STEPS = 50;
@@ -762,31 +763,17 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       }
     };
 
-    // Cmd/Ctrl+Enter opens the Preview Changes modal (the modal then owns the shortcut to actually save).
-    // A live ref (updated in an effect, never during render) lets the stable global handler read the latest
-    // state, and deferring to the next tick lets an in-progress cell edit (committed on Enter) settle into
-    // dirty state first. No-ops when there is nothing to preview or the modal is already open, and stands
-    // down entirely while any modal is open: this listener is registered first, so claiming the key there
-    // would keep a modal's own Cmd/Ctrl+Enter (saving the record opened from a row) from ever firing.
-    const openPreviewRef = useRef<() => void>(() => undefined);
-    useEffect(() => {
-      openPreviewRef.current = () => {
+    usePreviewChangesShortcut({
+      hasDirtyRows: dirtyRows.length > 0,
+      isSaving: isSavingRecords,
+      onPreview: () => {
         if (showPreview || isSavingRef.current || !dirtyRows.length) {
           return;
         }
         setShowPreview(true);
         trackEvent(ANALYTICS_KEYS.query_InlineEditPreview, { changeCount: dirtyRows.length });
-      };
+      },
     });
-    const handlePreviewShortcut = useCallback((event: KeyboardEvent) => {
-      if (!isEnterKey(event as any) || !hasCtrlOrMeta(event as any) || isModalDialogOpen()) {
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      window.setTimeout(() => openPreviewRef.current());
-    }, []);
-    useGlobalEventHandler('keydown', handlePreviewShortcut);
 
     function handleSubqueryFieldsChanged(relationshipPath: string, newFields: string[], columnOrder: number[]) {
       onSubqueryFieldReorder(relationshipPath, newFields, columnOrder);
