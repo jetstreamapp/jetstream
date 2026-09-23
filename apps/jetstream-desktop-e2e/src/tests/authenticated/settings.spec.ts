@@ -23,4 +23,19 @@ test.describe('Desktop Settings screen', () => {
       await expect(mainWindow.getByRole('heading', { name: 'General', exact: true })).toBeVisible({ timeout: FIVE_SECONDS });
     }).toPass();
   });
+
+  // The desktop app has no profile page, so the user menu and the top of Settings are where the signed in account is shown
+  test('shows the signed in account from the user menu', async ({ mainWindow }) => {
+    const avatarButton = mainWindow.getByRole('button', { name: 'Avatar' });
+    await expect(avatarButton).toBeVisible();
+    const signedInAs = await avatarButton.getAttribute('title');
+    expect(signedInAs).toMatch(/^Signed in as .+@.+/);
+    const email = signedInAs?.replace('Signed in as ', '');
+
+    await avatarButton.click();
+    await mainWindow.getByRole('menuitem', { name: 'Account' }).click();
+
+    await expect(mainWindow.getByTestId('account-summary-email')).toHaveText(email ?? '');
+    await expect(mainWindow.getByRole('button', { name: 'Manage Account' })).toBeVisible();
+  });
 });

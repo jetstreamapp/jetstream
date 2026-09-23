@@ -131,7 +131,7 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
                     </span>
                   }
                   position="right"
-                  actionText="view user options"
+                  actionText={userProfile?.email ? `Signed in as ${userProfile.email}` : 'view user options'}
                   items={userMenuItems}
                   onSelected={onUserMenuItemSelected}
                 />
