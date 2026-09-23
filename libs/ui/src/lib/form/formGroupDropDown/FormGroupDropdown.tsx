@@ -124,16 +124,17 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
         return;
       }
 
-      event.preventDefault();
-      event.stopPropagation();
-      let newFocusedItem;
-
       // While open, Escape never reaches here (useEscapeToCloseLayer consumes it at document
       // capture); this guard covers the CLOSED state, keeping Escape out of the type-ahead buffer
-      // in the fallback branch below
+      // in the fallback branch below. It runs before the key is swallowed so a closed dropdown
+      // leaves Escape to the surrounding layer (a modal only closes on an Escape it saw)
       if (isEscapeKey(event)) {
         return;
       }
+
+      event.preventDefault();
+      event.stopPropagation();
+      let newFocusedItem;
 
       if (!isOpen && (isEnterKey(event) || isSpaceKey(event))) {
         setIsOpen(true);
