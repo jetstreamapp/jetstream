@@ -31,6 +31,9 @@ export const changesetPackage = atomWithReset<string>('');
 
 export const changesetPackages = atomWithReset<ListItem<string, ChangeSet>[] | null>(null);
 
+/** Deployment table view preference, intentionally kept when the selected org changes */
+export const hideEmptyMetadataTypesState = atomWithReset(false);
+
 export const hasSelectionsMadeSelector = atom<boolean>((get) => {
   const metadataSelectionType = get(metadataSelectionTypeState);
   const userSelection = get(userSelectionState);

@@ -227,6 +227,12 @@ export function getColumnDefinitions(onViewItem?: (row: DeployMetadataTableRow) 
         const { row } = args;
         if (row.loading) {
           return null;
+        } else if (row.error) {
+          return (
+            <Grid align="center" className="slds-text-color_error">
+              <em>Error loading metadata</em>
+            </Grid>
+          );
         } else if (!row.metadata) {
           return (
             <Grid align="center" className="slds-text-color_weak">
@@ -431,6 +437,11 @@ const dataTableDateFormatter = (dateOrDateTime: Maybe<Date | string>): ReactNode
     return String(dateOrDateTime);
   }
 };
+
+/** A metadata type that finished loading without error and has no components (shown as "No metadata found") */
+export function isEmptyMetadataTypeRow({ loading, error, metadata }: DeployMetadataTableRow): boolean {
+  return !loading && !error && !metadata;
+}
 
 export function getRows(listMetadataItems: Record<string, ListMetadataResultItem>): DeployMetadataTableRow[] {
   const output: DeployMetadataTableRow[] = [];
