@@ -1,19 +1,29 @@
 import { css } from '@emotion/react';
 import { createInvitation } from '@jetstream/shared/data';
-import { getErrorMessage } from '@jetstream/shared/utils';
-import { Feature, TeamInviteUserFacing, TeamMemberRole } from '@jetstream/types';
+import { getErrorMessage, SsoRequirementConfig } from '@jetstream/shared/utils';
+import { Feature, Maybe, TeamInviteUserFacing, TeamMemberRole } from '@jetstream/types';
 import { Input, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { useState } from 'react';
+import { getSsoInviteWarning } from './team-member-invite.utils';
 import { TeamMemberRoleDropdown } from './TeamMemberRoleDropdown';
 
 interface TeamMemberInviteModalProps {
   teamId: string;
   hasManualBilling: boolean;
   userRole: TeamMemberRole;
+  ssoConfig: Maybe<SsoRequirementConfig>;
+  verifiedDomains: string[];
   onClose: (invitations?: TeamInviteUserFacing[]) => void;
 }
 
-export function TeamMemberInviteModal({ teamId, hasManualBilling, userRole, onClose }: TeamMemberInviteModalProps) {
+export function TeamMemberInviteModal({
+  teamId,
+  hasManualBilling,
+  userRole,
+  ssoConfig,
+  verifiedDomains,
+  onClose,
+}: TeamMemberInviteModalProps) {
   const [email, setEmail] = useState('');
   const [invalidEmail, setInvalidEmail] = useState(false);
   const [role, setRole] = useState<TeamMemberRole>('MEMBER');
@@ -21,6 +31,8 @@ export function TeamMemberInviteModal({ teamId, hasManualBilling, userRole, onCl
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const ssoWarning = getSsoInviteWarning({ email, role, ssoConfig, verifiedDomains });
 
   const handleInvite = async () => {
     setErrorMessage(null);
@@ -84,6 +96,7 @@ export function TeamMemberInviteModal({ teamId, hasManualBilling, userRole, onCl
         `}
       >
         {errorMessage && <ScopedNotification theme="error">{errorMessage}</ScopedNotification>}
+        {ssoWarning && <ScopedNotification theme="warning">{ssoWarning}</ScopedNotification>}
 
         <TeamMemberRoleDropdown role={role} disabled={loading} limitBasedOnCurrentRole={userRole} onChange={(value) => setRole(value)} />
 
