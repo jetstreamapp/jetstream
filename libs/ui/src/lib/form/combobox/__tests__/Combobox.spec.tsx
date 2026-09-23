@@ -18,6 +18,7 @@ describe('Combobox dropdownWidth', () => {
   test('defaults to fluid (panel pinned to input width)', () => {
     const listbox = renderOpen({});
     expect(listbox.className).toContain('slds-dropdown_fluid');
+    expect(getComputedStyle(listbox).width).not.toBe('max-content');
   });
 
   test('drops fluid and applies the provided widths', () => {
@@ -29,5 +30,8 @@ describe('Combobox dropdownWidth', () => {
     const styles = getComputedStyle(listbox);
     expect(styles.minWidth).toBe('100%');
     expect(styles.maxWidth).toBe('512px');
+    // Without an explicit width the panel shrink-wraps to the input, because wrappable content never
+    // pushes it wider - the bounds above would never come into play.
+    expect(styles.width).toBe('max-content');
   });
 });
