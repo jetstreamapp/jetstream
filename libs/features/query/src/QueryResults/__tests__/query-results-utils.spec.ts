@@ -1,6 +1,6 @@
 import { parseQuery } from '@jetstreamapp/soql-parser-js';
 import { describe, expect, it } from 'vitest';
-import { applyColumnOrderToFields, reorderSubqueryFields } from '../query-results-utils';
+import { applyColumnOrderToFields, getTotalRecordCount, reorderSubqueryFields } from '../query-results-utils';
 
 function subqueryFieldNamesFor(fields: any[], relationshipName: string): string[] {
   const match = fields.find((field) => field.type === 'FieldSubquery' && field.subquery.relationshipName === relationshipName);
@@ -64,5 +64,43 @@ describe('reorderSubqueryFields', () => {
     );
 
     expect(reorderSubqueryFields(fields || [], ['Tasks'], [3, 2, 1, 0])).toBeNull();
+  });
+});
+
+describe('getTotalRecordCount', () => {
+  it('uses totalSize for a COUNT() query, which returns no records', () => {
+    const queryResult = { totalSize: 1788, done: true, records: [] };
+
+    expect(getTotalRecordCount(queryResult, queryResult.records)).toBe(1788);
+  });
+
+  it('returns 0 when nothing matched', () => {
+    const queryResult = { totalSize: 0, done: true, records: [] };
+
+    expect(getTotalRecordCount(queryResult, queryResult.records)).toBe(0);
+  });
+
+  it('uses the loaded records once every page is fetched', () => {
+    const records = [{ Id: '001000000000001' }, { Id: '001000000000002' }];
+
+    expect(getTotalRecordCount({ totalSize: 2, done: true, records }, records)).toBe(2);
+  });
+
+  it('uses the loaded records for a fully fetched big object query, which reports -1 as totalSize', () => {
+    const records = [{ Id: '001000000000001' }, { Id: '001000000000002' }];
+
+    expect(getTotalRecordCount({ totalSize: -1, done: true, records }, records)).toBe(2);
+  });
+
+  it('does not report a negative count for a big object query with no records', () => {
+    const queryResult = { totalSize: -1, done: true, records: [] };
+
+    expect(getTotalRecordCount(queryResult, queryResult.records)).toBe(0);
+  });
+
+  it('uses totalSize while more pages remain', () => {
+    const records = [{ Id: '001000000000001' }];
+
+    expect(getTotalRecordCount({ totalSize: 5000, done: false, records }, records)).toBe(5000);
   });
 });

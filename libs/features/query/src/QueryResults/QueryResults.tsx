@@ -31,7 +31,6 @@ import {
   CloneEditView,
   QueryResults as IQueryResults,
   Maybe,
-  QueryResult,
   SalesforceRecord,
   SobjectCollectionResponse,
   SoqlQueryFormatOptions,
@@ -85,7 +84,7 @@ import QueryResultsDownloadButton from './QueryResultsDownloadButton';
 import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 import QueryResultsMoreActions from './QueryResultsMoreActions';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
-import { reorderSubqueryFields } from './query-results-utils';
+import { getTotalRecordCount, reorderSubqueryFields } from './query-results-utils';
 import { useQueryResultsFetchMetadata } from './useQueryResultsFetchMetadata';
 
 type SourceAction = 'STANDARD' | 'ORG_CHANGE' | 'BULK_DELETE' | 'HISTORY' | 'RECORD_ACTION' | 'RECORD_BULK_ACTION' | 'MANUAL' | 'RELOAD';
@@ -98,14 +97,6 @@ const SOURCE_RECORD_ACTION: SourceAction = 'RECORD_ACTION';
 const RECORD_BULK_ACTION: SourceAction = 'RECORD_BULK_ACTION';
 const SOURCE_MANUAL: SourceAction = 'MANUAL';
 const SOURCE_RELOAD: SourceAction = 'RELOAD';
-
-function getTotalRecordCount(queryResult: QueryResult<unknown>, records: unknown[]) {
-  if (queryResult.done) {
-    return records.length;
-  }
-  // Big objects report -1 as totalSize
-  return queryResult.totalSize < 0 ? queryResult.totalSize + 1 : queryResult.totalSize;
-}
 
 export const QueryResults = React.memo(() => {
   const isMounted = useRef(true);

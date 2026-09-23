@@ -1,4 +1,14 @@
+import { QueryResult } from '@jetstream/types';
 import { FieldType as QueryFieldType, isFieldSubquery } from '@jetstreamapp/soql-parser-js';
+
+export function getTotalRecordCount(queryResult: QueryResult<unknown>, records: unknown[]) {
+  if (queryResult.done) {
+    // A COUNT() query returns no records, so totalSize is the only place the count exists
+    return records.length || Math.max(queryResult.totalSize, 0);
+  }
+  // Big objects report -1 as totalSize
+  return queryResult.totalSize < 0 ? queryResult.totalSize + 1 : queryResult.totalSize;
+}
 
 /**
  * Applies `columnOrder` to a subquery's own fields.
