@@ -26,6 +26,7 @@ import {
   ScopedNotification,
   Spinner,
   Tooltip,
+  ariaDisabledButtonProps,
   getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
@@ -253,11 +254,13 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
                   </div>
                 }
               >
+                {/* aria-disabled while the export runs: the click that starts it would otherwise disable the
+                    focused button and drop keyboard focus to the page */}
                 <button
                   className="slds-button slds-button_brand"
                   aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
-                  disabled={!hasSelectionsMade || loading}
-                  onClick={handleExport}
+                  disabled={!hasSelectionsMade}
+                  {...ariaDisabledButtonProps(loading, handleExport)}
                 >
                   Download
                 </button>
