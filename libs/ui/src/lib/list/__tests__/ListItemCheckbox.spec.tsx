@@ -155,4 +155,23 @@ describe('List row-local navigation (listbox mode)', () => {
     expect(option.hasAttribute('aria-describedby')).toBe(false);
   });
 
+  test('Ctrl+Enter on an option is left for page shortcuts instead of selecting the row', () => {
+    const onSelected = vi.fn();
+    render(
+      <List
+        ariaLabel="Objects"
+        items={[{ key: 'account' }]}
+        isActive={() => false}
+        getContent={() => ({ key: 'account', heading: 'Account' })}
+        onSelected={onSelected}
+      />,
+    );
+    const option = screen.getByRole('option');
+    option.focus();
+    expect(fireEvent.keyDown(option, { key: 'Enter', ctrlKey: true })).toBe(true);
+    expect(onSelected).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(option, { key: 'Enter' });
+    expect(onSelected).toHaveBeenCalledWith('account');
+  });
 });
