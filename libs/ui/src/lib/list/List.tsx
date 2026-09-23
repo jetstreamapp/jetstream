@@ -2,7 +2,7 @@
 
 import { css } from '@emotion/react';
 import {
-  hasMetaModifierKey,
+  hasModifierKey,
   isArrowDownKey,
   isArrowLeftKey,
   isArrowRightKey,
@@ -266,7 +266,8 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
           }
         }
         return;
-      } else if (!useCheckbox && !hasMetaModifierKey(event) && isEnterOrSpace(event)) {
+      } else if (!useCheckbox && !hasModifierKey(event) && isEnterOrSpace(event)) {
+        // A modified Enter (Cmd/Ctrl/Alt) belongs to page and dialog shortcuts, not to row selection
         event.stopPropagation();
         event.preventDefault();
         if (!isNil(currFocusedItem) && items[currFocusedItem]) {
