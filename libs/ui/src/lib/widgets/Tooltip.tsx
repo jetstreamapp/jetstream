@@ -76,15 +76,26 @@ const TooltipComponent: FunctionComponent<TooltipProps> = ({
 
   const { x: arrowX, y: arrowY } = middlewareData.arrow || {};
 
+  // A tooltip with nothing to show must not open on hover/focus: an open tooltip claims Escape, so an
+  // invisible one would swallow the press meant for the surrounding modal or popover
+  const hasContent = !!content;
   const hover = useHover(context, {
+    enabled: hasContent,
     delay: {
       open: openDelay,
       close: closeDelay,
     },
   });
-  const focus = useFocus(context);
+  const focus = useFocus(context, { enabled: hasContent });
   const role = useRole(context, { role: ariaRole });
-  const dismiss = useDismiss(context);
+  const dismiss = useDismiss(context, { enabled: hasContent });
+
+  // With the interactions disabled nothing would close a tooltip whose content went away while it was open
+  useEffect(() => {
+    if (!hasContent) {
+      setOpen(false);
+    }
+  }, [hasContent]);
 
   const { getReferenceProps, getFloatingProps } = useInteractions([hover, focus, role, dismiss]);
 
