@@ -515,7 +515,6 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           labelHelp="The Bulk API is optimized for loading in large datasets and you can view the progress within Salesforce. The Batch API will load records in sets of up to 200 at a time and cannot be used with large datasets."
         >
           <Radio
-            idPrefix="apiMode"
             id="apiMode-bulk"
             name="api-mode"
             label={bulkApiModeLabel}
@@ -525,7 +524,6 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             onChange={setApiMode as (value: string) => void}
           />
           <Radio
-            idPrefix="apiMode"
             id="apiMode-batch"
             name="api-mode"
             label={batchApiModeLabel}

@@ -154,7 +154,6 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
               labelHelp="Salesforce has limited support for obtaining changesets, if your changeset is not shown below, manually enter the name."
             >
               <Radio
-                idPrefix="package"
                 id="package-list"
                 name="package"
                 label="Choose changeset from list"
@@ -164,7 +163,6 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
                 onChange={(value) => setChangesetEntryType(value as 'list' | 'manual')}
               />
               <Radio
-                idPrefix="package"
                 id="package-manual-entry"
                 name="package"
                 label="Manually enter changeset name"
