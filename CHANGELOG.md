@@ -1,5 +1,26 @@
 # Changelog
 
+## [10.21.0](https://github.com/jetstreamapp/jetstream/compare/v10.20.0...v10.21.0) (2026-09-23)
+
+### Features
+
+- **deploy:** add a "Hide Empty Types" option to the deploy metadata table ([d62e3f4](https://github.com/jetstreamapp/jetstream/commit/d62e3f48446a6879b10db31af8886a9a3f5ba477)), closes [#2085](https://github.com/jetstreamapp/jetstream/issues/2085)
+- **orgs:** show more orgs at once in the org dropdown ([880b33f](https://github.com/jetstreamapp/jetstream/commit/880b33ff5c7603aa8cb5ddf734dc0ceae829a469))
+
+### Bug Fixes
+
+- **api:** replace Salesforce HTML error pages with a readable message ([627f0b0](https://github.com/jetstreamapp/jetstream/commit/627f0b0f1055c9d75109252c6b141876531e5f0f))
+- **auth:** apply the SSO bypass roles a team has configured ([f42e629](https://github.com/jetstreamapp/jetstream/commit/f42e6293de9f8651ce05ddfcbd8ec97989cd99b0))
+- **auth:** name the login methods a team allows when one is rejected ([2465aec](https://github.com/jetstreamapp/jetstream/commit/2465aecf8c38e7dadc74b6fb98d256c49a57bdcb))
+- **build:** install Corepack shims into a writable directory on Render ([448f9e3](https://github.com/jetstreamapp/jetstream/commit/448f9e3373dc7a010232ebc9446918fa66cbefe7))
+- **build:** stop nested pnpm calls on Render falling back to the image pnpm ([72c8d97](https://github.com/jetstreamapp/jetstream/commit/72c8d9717e0a125addd436e119bf95e28c03fbeb))
+- **orgs:** clear an org's expiration warning as soon as the org is used ([a8ecbaa](https://github.com/jetstreamapp/jetstream/commit/a8ecbaa2eed331403d253c19c5b7c055916a4929))
+- **orgs:** let the org dropdown grow wider than its input ([6b8d1cc](https://github.com/jetstreamapp/jetstream/commit/6b8d1cc5c531954414df5050d1106cfb190e33ef))
+- **orgs:** stop status badges from squeezing the org name out of the org list ([e2123d2](https://github.com/jetstreamapp/jetstream/commit/e2123d2fe0c691be324ee3e369b057535e52397e))
+- **orgs:** tell an org that is about to disconnect apart from one that already has ([03b39de](https://github.com/jetstreamapp/jetstream/commit/03b39de6ce6a0130e67eecf5d0e189c8ee8c3e4d))
+- **query:** show the record count for SELECT COUNT() queries ([67f2557](https://github.com/jetstreamapp/jetstream/commit/67f2557440c587cb9a1f21a0bfcb45b824999981))
+- stop the page flashing white when dismissing the notifications prompt ([9569453](https://github.com/jetstreamapp/jetstream/commit/956945322c934aa6fb45344b4e1b9d28913994d7))
+
 ## [10.20.0](https://github.com/jetstreamapp/jetstream/compare/v10.19.0...v10.20.0) (2026-09-14)
 
 ### Features
