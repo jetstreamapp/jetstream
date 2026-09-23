@@ -40,7 +40,6 @@ export const LoadRecordsFieldMappingRowLookupOption: FunctionComponent<LoadRecor
         helpTextClassName="slds-m-top_x-small slds-text-color_weak"
       >
         <Radio
-          idPrefix={idPrefix}
           id={`${idPrefix}-first`}
           name={idPrefix}
           label="Use first found record if multiple matches"
@@ -50,7 +49,6 @@ export const LoadRecordsFieldMappingRowLookupOption: FunctionComponent<LoadRecor
           onChange={handleLookupOptionChange as (value: string) => void}
         />
         <Radio
-          idPrefix={idPrefix}
           id={`${idPrefix}-error`}
           name={idPrefix}
           label="Mark record as failed if multiple matches found"
