@@ -1,0 +1,66 @@
+---
+slug: v10.21.0
+title: 10.21.0 - Hide empty types in Deploy Metadata and clearer org status
+date: '2026-09-23'
+tags: [web, desktop, extension]
+versions:
+  web: 10.21.0
+  desktop: 4.17.0
+  extension: 3.20.0
+summary: Deploy Metadata can hide metadata types with no components, and SELECT COUNT() queries show their record count again. In the web app, orgs that are about to expire are shown apart from disconnected ones, and sign-in errors name the login methods your team allows.
+highlights:
+  - title: Hide empty types in Deploy Metadata
+    description: A new Hide Empty Types checkbox removes metadata types that loaded with no components from the Deploy Metadata table.
+    docLink: /deploy-metadata
+  - title: Expiring orgs are shown apart from disconnected orgs
+    description: An org close to its 30-day inactivity limit gets an amber countdown badge instead of the red error state, and the warning clears as soon as you use the org.
+    platforms: [web]
+  - title: Record count for SELECT COUNT() queries
+    description: SELECT COUNT() queries show the record count instead of the message that no records matched.
+  - title: Wider org dropdown with room for more orgs
+    description: The org dropdown is taller and can grow wider than the org selector, with badges on their own line under the org name.
+  - title: Sign-in errors name the allowed login methods
+    description: Signing in with a login method your team does not allow now tells you which methods do work.
+    platforms: [web]
+    docLink: /team-management
+  - title: Readable errors when Salesforce is unavailable
+    description: When Salesforce responds with an error page, such as its maintenance page, Jetstream shows a short message instead of the page's HTML.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Hide empty types in Deploy Metadata
+
+The Deploy Metadata table has a new **Hide Empty Types** checkbox above the table. It hides metadata types that finished loading with no components, which each used to take up a group row plus a "No metadata found" row. Types that are still loading or failed to load stay visible, and failed types now read "Error loading metadata" instead of "No metadata found". The "Showing X of Y objects" count above the table leaves out the hidden types.
+
+### Expiring orgs are shown apart from disconnected orgs
+
+Salesforce ends an org connection after 30 days without use, and Jetstream warns you during the last 7 days. An org in that window still works, but it used to put the org selector into the same red error state as an org that had already disconnected.
+
+- An expiring org shows an amber badge with a countdown, such as "Ends in 2 days", and offers to refresh the connection. The selector keeps its normal look, and the header shows the badge while that org is selected.
+- A disconnected org shows a red "Disconnected" badge, puts the selector in the error state, and offers to reconnect the org.
+- The warning clears as soon as you use the org. It used to stay until you reloaded the page or refreshed the org from Manage Orgs.
+
+### Record count for SELECT COUNT() queries
+
+A `SELECT COUNT()` query returns its count without any records, and Query Results showed "There are no records matching your query" instead of the count. It now shows the record count. `COUNT(Id)` and `GROUP BY` queries were not affected.
+
+### Wider org dropdown with room for more orgs
+
+The org dropdown is taller, so more orgs fit before you need to scroll. It can also grow wider than the org selector, so usernames no longer wrap at the selector's width. Status and org type badges now sit on their own line under the org name. An org with more than one badge used to squeeze its username into a narrow column that wrapped one character per line.
+
+### Sign-in errors name the allowed login methods
+
+When your team limits which login methods are allowed and you sign in with a different one, the error now names the methods that work, for example: "Email and password sign-in isn't enabled for your team. Sign in with Google or Salesforce, or contact your Jetstream administrator." If your team requires SSO, the message points you to the "Continue with SSO" option instead. Every blocked method used to show the same "This login method is not allowed" message.
+
+### Readable errors when Salesforce is unavailable
+
+When Salesforce responds with an HTML error page, such as its "We are down for maintenance" page during an outage, Jetstream used to show the page's markup as the error message. It now shows: "Salesforce returned an error page instead of a response (HTTP 503). The org may be temporarily unavailable or undergoing maintenance - please try again shortly." Errors that Salesforce returns in its usual format are unchanged.
+
+### Other fixes
+
+- Choosing Diamond, Pencil, Castle, Telescope, Thermometer, Treasure chest, Stack of Cash or CRT TV as the tab style when creating an object now sets that icon instead of a different one.
+- The SSO bypass roles selected in a team's SSO settings are now applied at sign-in, including for users with a pending team invitation. Previously, only admins could bypass SSO no matter which roles were selected.
+- Dismissing the notifications prompt or changing the color scheme from the header menu no longer makes the page flash.

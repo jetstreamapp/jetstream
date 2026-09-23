@@ -1,5 +1,43 @@
 [
   {
+    "slug": "v10.21.0",
+    "title": "10.21.0 - Hide empty types in Deploy Metadata and clearer org status",
+    "date": "2026-09-23",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.21.0", "desktop": "4.17.0", "extension": "3.20.0" },
+    "summary": "Deploy Metadata can hide metadata types with no components, and SELECT COUNT() queries show their record count again. In the web app, orgs that are about to expire are shown apart from disconnected ones, and sign-in errors name the login methods your team allows.",
+    "highlights": [
+      {
+        "title": "Hide empty types in Deploy Metadata",
+        "description": "A new Hide Empty Types checkbox removes metadata types that loaded with no components from the Deploy Metadata table.",
+        "docLink": "/deploy-metadata"
+      },
+      {
+        "title": "Expiring orgs are shown apart from disconnected orgs",
+        "description": "An org close to its 30-day inactivity limit gets an amber countdown badge instead of the red error state, and the warning clears as soon as you use the org.",
+        "platforms": ["web"]
+      },
+      {
+        "title": "Record count for SELECT COUNT() queries",
+        "description": "SELECT COUNT() queries show the record count instead of the message that no records matched."
+      },
+      {
+        "title": "Wider org dropdown with room for more orgs",
+        "description": "The org dropdown is taller and can grow wider than the org selector, with badges on their own line under the org name."
+      },
+      {
+        "title": "Sign-in errors name the allowed login methods",
+        "description": "Signing in with a login method your team does not allow now tells you which methods do work.",
+        "platforms": ["web"],
+        "docLink": "/team-management"
+      },
+      {
+        "title": "Readable errors when Salesforce is unavailable",
+        "description": "When Salesforce responds with an error page, such as its maintenance page, Jetstream shows a short message instead of the page's HTML."
+      }
+    ]
+  },
+  {
     "slug": "v10.20.0",
     "title": "10.20.0 - Google Drive downloads in Data History and load fixes",
     "date": "2026-09-13",
