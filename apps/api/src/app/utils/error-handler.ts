@@ -2,7 +2,33 @@ import { logger } from '@jetstream/api-config';
 import { StepUpAuthRequiredError } from '@jetstream/auth/server';
 import { isPrismaError } from '@jetstream/prisma';
 import { ApiRequestError } from '@jetstream/salesforce-api';
+import { ERROR_MESSAGES } from '@jetstream/shared/constants';
 import z, { ZodError } from 'zod';
+
+// undici surfaces the real reason on `error.cause`. These two mean the request reached Salesforce and
+// we gave up waiting for the response, so the work may have been done — the distinction that matters
+// to the user. Everything else (UND_ERR_CONNECT_TIMEOUT included) failed before Salesforce saw the
+// request, and is reported as unreachable so the user can simply retry.
+const UPSTREAM_TIMEOUT_CODES = new Set(['UND_ERR_HEADERS_TIMEOUT', 'UND_ERR_BODY_TIMEOUT']);
+
+/**
+ * Node's fetch collapses every transport failure into an opaque `TypeError: fetch failed`, which we
+ * passed straight through to users ("Error saving permissions: fetch failed"). Returns replacement
+ * copy, or null when this is not a fetch transport failure.
+ *
+ * The copy names Salesforce because every raw `fetch failed` that reaches here comes from the
+ * Salesforce callout layer: the route wrapper turns any unknown controller error into a
+ * UserFacingError, and the other server-side fetch callers (SAML metadata, OIDC discovery, domain
+ * verification, geo-IP) either handle their own transport errors or throw a message string, so they
+ * never hit this branch. Revisit the wording if a non-Salesforce callout starts bubbling raw.
+ */
+function getUpstreamFetchFailureMessage(error: Error): string | null {
+  if (error.message !== 'fetch failed') {
+    return null;
+  }
+  const { code } = (error.cause ?? {}) as { code?: string };
+  return code && UPSTREAM_TIMEOUT_CODES.has(code) ? ERROR_MESSAGES.SFDC_UPSTREAM_TIMEOUT : ERROR_MESSAGES.SFDC_UPSTREAM_UNREACHABLE;
+}
 
 function initStatus(data: unknown, fallback: number) {
   if (data && typeof data === 'object' && 'status' in data && typeof data.status === 'number') {
@@ -49,6 +75,11 @@ export class UserFacingError extends Error {
       if (message.message.startsWith('<?xml')) {
         logger.warn({ message: message.message }, '[XML ERROR]');
         message.message = 'An unexpected error has occurred';
+      }
+      const upstreamFailureMessage = getUpstreamFetchFailureMessage(message);
+      if (upstreamFailureMessage) {
+        logger.warn({ cause: message.cause }, '[UPSTREAM FETCH FAILURE]');
+        message.message = upstreamFailureMessage;
       }
       super(message.message);
       this.additionalData = additionalData;
