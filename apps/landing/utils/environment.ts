@@ -23,6 +23,7 @@ export const ROUTES = {
     DOCS_DATA_ANALYSIS: 'https://docs.getjetstream.app/data-analysis',
     APP_EXCHANGE: 'https://appexchange.salesforce.com/appxListingDetail?listingId=1a2b1a6e-013e-40b9-9113-3481282cb415',
     STATUS: 'https://status.getjetstream.app',
+    TRUST_CENTER: 'https://trust.upguard.com/3be075a6-bfdf-4133-8b38-35057abfebae',
     SUPPORT_EMAIL: 'mailto:support@getjetstream.app',
     DISCORD: 'https://discord.gg/sfxd',
     GITHUB_ISSUE: 'https://github.com/jetstreamapp/jetstream/issues',

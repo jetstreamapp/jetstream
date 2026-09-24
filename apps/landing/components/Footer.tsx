@@ -2,7 +2,14 @@ import Link from 'next/link';
 import { ROUTES } from '../utils/environment';
 import { Soc2Badge } from './Soc2Badge';
 
-const footerNavigation = {
+interface FooterNavItem {
+  name: string;
+  href: string;
+  /** Set for external links, which render as a plain anchor instead of a client-side route */
+  target?: string;
+}
+
+const footerNavigation: Record<'support' | 'resources' | 'legal', FooterNavItem[]> = {
   support: [
     { name: 'Documentation', href: ROUTES.EXTERNAL.DOCS, target: '_blank' },
     { name: 'Status', href: ROUTES.EXTERNAL.STATUS, target: '_blank' },
@@ -18,10 +25,28 @@ const footerNavigation = {
   legal: [
     { name: 'About', href: ROUTES.ABOUT },
     { name: 'Privacy & Security', href: ROUTES.PRIVACY },
+    { name: 'Trust Center', href: ROUTES.EXTERNAL.TRUST_CENTER, target: '_blank' },
     { name: 'Terms of Service', href: ROUTES.TERMS_OF_SERVICE },
     { name: 'Data Processing Agreement', href: ROUTES.DPA },
     { name: 'Data Sub-Processors', href: ROUTES.SUB_PROCESSORS },
   ],
+};
+
+const FOOTER_LINK_CLASS_NAME = 'text-base text-gray-500 hover:text-gray-900';
+
+const FooterNavLink = ({ name, href, target }: FooterNavItem) => {
+  if (target) {
+    return (
+      <a href={href} className={FOOTER_LINK_CLASS_NAME} target={target} rel="noreferrer">
+        {name}
+      </a>
+    );
+  }
+  return (
+    <Link href={href} className={FOOTER_LINK_CLASS_NAME}>
+      {name}
+    </Link>
+  );
 };
 
 export interface FooterProps {
@@ -59,16 +84,7 @@ export const Footer = ({ omitLinks = [] }: FooterProps) => (
                   .filter((item) => !omitLinks.includes(item.href))
                   .map((item) => (
                     <li key={item.name}>
-                      {item.target && (
-                        <a href={item.href} className="text-base text-gray-500 hover:text-gray-900" target={item.target} rel="noreferrer">
-                          {item.name}
-                        </a>
-                      )}
-                      {!item.target && (
-                        <Link href={item.href} className="text-base text-gray-500 hover:text-gray-900">
-                          {item.name}
-                        </Link>
-                      )}
+                      <FooterNavLink {...item} />
                     </li>
                   ))}
               </ul>
@@ -81,9 +97,7 @@ export const Footer = ({ omitLinks = [] }: FooterProps) => (
                 .filter((item) => !omitLinks.includes(item.href))
                 .map((item) => (
                   <li key={item.name}>
-                    <Link href={item.href} className="text-base text-gray-500 hover:text-gray-900">
-                      {item.name}
-                    </Link>
+                    <FooterNavLink {...item} />
                   </li>
                 ))}
             </ul>
@@ -95,9 +109,7 @@ export const Footer = ({ omitLinks = [] }: FooterProps) => (
                 .filter((item) => !omitLinks.includes(item.href))
                 .map((item) => (
                   <li key={item.name}>
-                    <Link href={item.href} className="text-base text-gray-500 hover:text-gray-900">
-                      {item.name}
-                    </Link>
+                    <FooterNavLink {...item} />
                   </li>
                 ))}
             </ul>
