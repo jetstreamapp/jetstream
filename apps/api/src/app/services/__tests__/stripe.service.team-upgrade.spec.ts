@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   updateSubscriptionStateForCustomer: vi.fn(async () => ({})),
   updateTeamSubscriptionStateForCustomer: vi.fn(async () => ({})),
   findUserById: vi.fn(),
+  findBillingAccountByCustomerId: vi.fn(),
 }));
 
 vi.mock('stripe', () => ({
@@ -54,7 +55,7 @@ vi.mock('../../db/team.db', () => ({
 vi.mock('../../db/user.db', () => ({
   findById: mocks.findUserById,
   upsertBillingAccount: vi.fn(async () => ({})),
-  findBillingAccountByCustomerId: vi.fn(),
+  findBillingAccountByCustomerId: mocks.findBillingAccountByCustomerId,
 }));
 
 const subscriptionWithPrice = (lookupKey: string) => ({
@@ -63,11 +64,11 @@ const subscriptionWithPrice = (lookupKey: string) => ({
   items: { object: 'list', data: [{ id: 'si_1', price: { id: `price_${lookupKey}`, lookup_key: lookupKey } }] },
 });
 
-const customerWithPlan = (lookupKey: string) =>
+const customerWithPlan = (lookupKey: string, metadata: Record<string, string> = { userId: 'user_1', type: 'USER' }) =>
   ({
     id: 'cus_1',
     deleted: undefined,
-    metadata: { userId: 'user_1', type: 'USER' },
+    metadata,
     subscriptions: { object: 'list', data: [subscriptionWithPrice(lookupKey)] },
   }) as unknown as StripeCustomer;
 
@@ -126,5 +127,26 @@ describe('personal -> team plan upgrade', () => {
 
     expect(mocks.upsertTeamWithBillingAccount).not.toHaveBeenCalled();
     expect(mocks.updateSubscriptionStateForCustomer).toHaveBeenCalled();
+  });
+});
+
+describe('customer metadata repair', () => {
+  let stripeService: typeof StripeService;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    stripeService = await import('../stripe.service');
+  });
+
+  it('writes the user id and type back to a customer that is missing its user id', async () => {
+    mocks.findBillingAccountByCustomerId.mockResolvedValue({ userId: 'user_1', customerId: 'cus_1' });
+
+    await stripeService.saveOrUpdateSubscription({ customer: customerWithPlan('PRO_MONTHLY', {}), sendWelcomeEmail: false });
+
+    expect(mocks.customersUpdate).toHaveBeenCalledWith('cus_1', { metadata: { userId: 'user_1', type: 'USER' } });
+    expect(mocks.updateSubscriptionStateForCustomer).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user_1', customerId: 'cus_1' }),
+    );
   });
 });

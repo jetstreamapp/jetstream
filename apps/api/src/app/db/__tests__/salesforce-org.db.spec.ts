@@ -27,6 +27,9 @@ const txMock = vi.hoisted(() => ({
 
 const prismaMock = vi.hoisted(() => ({
   $transaction: vi.fn(),
+  salesforceOrg: {
+    findMany: vi.fn(),
+  },
 }));
 
 const encServiceMock = vi.hoisted(() => ({
@@ -36,7 +39,7 @@ const encServiceMock = vi.hoisted(() => ({
 }));
 
 vi.mock('@jetstream/api-config', () => ({
-  ENV: {},
+  ENV: { JETSTREAM_SERVER_URL: 'https://jetstream.test' },
   prisma: prismaMock,
 }));
 
@@ -48,7 +51,7 @@ vi.mock('@jetstream/audit-logs', () => ({
 
 vi.mock('../../services/salesforce-org-encryption.service', () => encServiceMock);
 
-const { refreshTokensWithLock } = await import('../salesforce-org.db');
+const { findProductionOrganizationId, refreshTokensWithLock } = await import('../salesforce-org.db');
 
 const ORG_ID = 42;
 const USER_ID = 'user-abc';
@@ -175,5 +178,51 @@ describe('refreshTokensWithLock', () => {
     ).rejects.toThrow('invalid_grant');
     expect(encServiceMock.encryptAccessToken).not.toHaveBeenCalled();
     expect(txMock.salesforceOrg.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('findProductionOrganizationId', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("only considers the user's orgs that are not a sandbox, a Developer Edition org, or a trial org", async () => {
+    prismaMock.salesforceOrg.findMany.mockResolvedValue([]);
+
+    await findProductionOrganizationId(USER_ID);
+
+    expect(prismaMock.salesforceOrg.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        distinct: ['organizationId'],
+        where: {
+          jetstreamUserId2: USER_ID,
+          jetstreamUrl: 'https://jetstream.test',
+          orgIsSandbox: false,
+          orgOrganizationType: { not: 'Developer Edition' },
+          orgTrialExpirationDate: null,
+        },
+      }),
+    );
+  });
+
+  it('returns the org id when exactly one production org is connected', async () => {
+    prismaMock.salesforceOrg.findMany.mockResolvedValue([{ organizationId: '00D5e000000HEcBEAW' }]);
+
+    await expect(findProductionOrganizationId(USER_ID)).resolves.toBe('00D5e000000HEcBEAW');
+  });
+
+  it('returns null when no production org is connected', async () => {
+    prismaMock.salesforceOrg.findMany.mockResolvedValue([]);
+
+    await expect(findProductionOrganizationId(USER_ID)).resolves.toBeNull();
+  });
+
+  it('returns null rather than guessing when several production orgs are connected', async () => {
+    prismaMock.salesforceOrg.findMany.mockResolvedValue([
+      { organizationId: '00D5e000000HEcBEAW' },
+      { organizationId: '00D7F000001aBcDUAU' },
+    ]);
+
+    await expect(findProductionOrganizationId(USER_ID)).resolves.toBeNull();
   });
 });
