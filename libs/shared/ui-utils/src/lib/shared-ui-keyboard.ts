@@ -180,7 +180,7 @@ export function isEnterKey(event: KeyboardEvent<unknown>): boolean {
 }
 
 export function isSpaceKey(event: KeyboardEvent<unknown>): boolean {
-  return event.keyCode === 32;
+  return event.key === ' ' || event.key === 'Spacebar' || event.keyCode === 32;
 }
 
 export function isEnterOrSpace(event: KeyboardEvent<unknown>): boolean {
@@ -189,6 +189,15 @@ export function isEnterOrSpace(event: KeyboardEvent<unknown>): boolean {
 
 export function isEscapeKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'Escape' || event.keyCode === 27;
+}
+
+/**
+ * Whether a keydown belongs to an IME composition (Japanese, Chinese, Korean input) rather than being a
+ * key press of its own — e.g. the Escape that cancels a conversion. Safari fires `compositionend` BEFORE
+ * that keydown, so `isComposing` is already false there; the IME's keyCode 229 still marks it.
+ */
+export function isImeComposing(event: globalThis.KeyboardEvent): boolean {
+  return event.isComposing || event.keyCode === 229;
 }
 export function isBackspaceKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'Delete' || event.keyCode === 46;

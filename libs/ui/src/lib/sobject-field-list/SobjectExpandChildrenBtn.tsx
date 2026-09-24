@@ -94,7 +94,9 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
               onSelected={(item) => setSelectedSObject(item.id)}
             />
           </div>
-          <button className="slds-button" onClick={handleExpand}>
+          {/* Stays in the page tab order, reached with Tab from the combobox: the combobox is a text field
+              that keeps ArrowLeft/Right for its caret, so the row's arrow-key navigation stops there */}
+          <button className="slds-button" aria-expanded={isExpanded} onClick={handleExpand}>
             <Icon type="utility" icon={isExpanded ? 'dash' : 'add'} className="slds-button__icon slds-button__icon_left" />
             {isExpanded ? 'Hide' : 'View'} {selectedSObject} Fields
             {selectedChildFields ? (
@@ -106,7 +108,8 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
         </Fragment>
       )}
       {showWhich === 'single' && (
-        <button className="slds-button" onClick={handleExpand}>
+        // Out of the page tab order — reached with ArrowRight from the row checkbox
+        <button className="slds-button" tabIndex={-1} aria-expanded={isExpanded} onClick={handleExpand}>
           <Icon type="utility" icon={isExpanded ? 'dash' : 'add'} className="slds-button__icon slds-button__icon_left" />
           {isExpanded ? 'Hide' : 'View'} {selectedSObject} Fields{' '}
           {selectedChildFields ? (

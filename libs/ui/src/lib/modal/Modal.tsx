@@ -9,10 +9,10 @@ import {
   useInteractions,
   useRole,
 } from '@floating-ui/react';
-import { isEscapeKey } from '@jetstream/shared/ui-utils';
+import { isEscapeKey, isImeComposing } from '@jetstream/shared/ui-utils';
 import { Maybe, SizeSmMdLg } from '@jetstream/types';
 import classNames from 'classnames';
-import { KeyboardEvent, ReactNode, useEffect } from 'react';
+import { KeyboardEvent, ReactNode, RefObject, useEffect, useRef, useState } from 'react';
 import Icon from '../widgets/Icon';
 import { PortalProvider } from './PortalContext';
 
@@ -37,6 +37,12 @@ export interface ModalProps {
   closeOnEsc?: boolean;
   closeOnBackdropClick?: boolean;
   overrideZIndex?: number;
+  /**
+   * Element to focus when the modal opens instead of its first tabbable element (the close button).
+   * Use this rather than `autoFocus` on a field: React applies `autoFocus` before floating-ui records which
+   * element opened the modal, so an autofocused field becomes the return-focus target and focus is lost on close.
+   */
+  initialFocus?: RefObject<HTMLElement | null>;
   children: ReactNode;
   onClose: () => void;
 }
@@ -70,11 +76,35 @@ export const Modal = ({
   closeOnEsc = true,
   closeOnBackdropClick = true,
   overrideZIndex,
+  initialFocus,
   children,
   onClose,
 }: ModalProps) => {
   const modalId = useId();
   const titleId = useId();
+
+  // The element that opened the modal, captured during the first render — before any child with
+  // `autoFocus` mounts. floating-ui records its return-focus target one render later, so a child that
+  // autofocuses becomes that target and, being gone with the modal, leaves focus on <body> at close.
+  const [openerAtMount] = useState(() =>
+    document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null,
+  );
+  useEffect(() => {
+    if (hide) {
+      return;
+    }
+    return () => {
+      // Two frames: floating-ui hands focus back in its own animation frame first. Only step in when
+      // that left focus nowhere — a click elsewhere or a follow-up modal already owns it otherwise.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (document.activeElement === document.body && openerAtMount?.isConnected) {
+            openerAtMount.focus();
+          }
+        });
+      });
+    };
+  }, [hide, openerAtMount]);
 
   const { refs, context } = useFloating<HTMLElement>({
     open: !hide,
@@ -94,6 +124,7 @@ export const Modal = ({
   const role = useRole(context, { role: 'dialog' });
 
   const { getFloatingProps } = useInteractions([dismiss, role]);
+  const floatingProps = getFloatingProps();
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -106,8 +137,25 @@ export const Modal = ({
     }
   }, [hide]);
 
+  // Escape closes on keyup only when the modal also saw that press's keydown. A widget inside that handled
+  // the keydown and stopped it owns the whole press: a code editor dismissing its autocomplete or clearing a
+  // selection must not also close the modal, discarding an edit in progress. An Escape that cancels an IME
+  // conversion is typing, not a request to close (floating-ui's keydown dismissal skips it too).
+  const escapeKeyDownSeenRef = useRef(false);
+
+  function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (isEscapeKey(event)) {
+      escapeKeyDownSeenRef.current = !event.defaultPrevented && !isImeComposing(event.nativeEvent);
+    }
+  }
+
   function handleKeyUp(event: KeyboardEvent<HTMLElement>) {
-    if (!closeDisabled && closeOnEsc && isEscapeKey(event)) {
+    if (!isEscapeKey(event)) {
+      return;
+    }
+    const sawKeyDown = escapeKeyDownSeenRef.current;
+    escapeKeyDownSeenRef.current = false;
+    if (sawKeyDown && !closeDisabled && closeOnEsc) {
       onClose();
     }
   }
@@ -133,10 +181,15 @@ export const Modal = ({
           }}
           onClick={handleBackdropClick}
         >
-          <FloatingFocusManager context={context} modal returnFocus>
+          <FloatingFocusManager context={context} modal initialFocus={initialFocus} returnFocus>
             <section
               ref={refs.setFloating}
-              {...getFloatingProps()}
+              {...floatingProps}
+              onKeyDown={(event) => {
+                // useDismiss handles Escape through the floating element's onKeyDown as well
+                (floatingProps.onKeyDown as ((event: KeyboardEvent<HTMLElement>) => void) | undefined)?.(event);
+                handleKeyDown(event);
+              }}
               role="dialog"
               tabIndex={-1}
               className={classNames('slds-modal slds-slide-up-open', getSizeClass(size))}

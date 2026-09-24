@@ -37,6 +37,10 @@ permissions:
 
 # Many of these are only needed for tests in CI environment
 env:
+  # `pnpm install` runs husky's prepare script, which would make every release-it version-bump commit run
+  # the developer pre-commit hook (format, lint, a11y ratchet over the whole workspace). A red check on
+  # main must not be able to block a release, and main is already verified by CI.
+  HUSKY: "0"
   NODE_OPTIONS: "--max_old_space_size=4096"
   NX_CLOUD_DISTRIBUTED_EXECUTION: false
   AUTH_SFDC_CLIENT_ID: ${{ secrets.SFDC_CONSUMER_KEY }}

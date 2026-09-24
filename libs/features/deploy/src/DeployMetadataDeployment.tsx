@@ -9,6 +9,7 @@ import {
   ButtonGroupContainer,
   DropDown,
   FileDownloadModal,
+  getAriaKeyshortcuts,
   getModifierKey,
   Grid,
   Icon,
@@ -323,7 +324,11 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
               </div>
             }
           >
-            <Link className="slds-button slds-button_brand" to="..">
+            <Link
+              className="slds-button slds-button_brand"
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'shift', 'enter'])}
+              to=".."
+            >
               <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
               Go Back
             </Link>

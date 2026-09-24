@@ -4,12 +4,14 @@ import { Children } from 'react';
 
 export interface ProgressStepIndicatorProps {
   className?: string;
+  /** Accessible name of the bar — say which flow is progressing */
+  label?: string;
   isVertical?: boolean;
   currentStep: number;
   children?: React.ReactNode;
 }
 
-export const ProgressStepIndicator = ({ className, isVertical, currentStep, children }: ProgressStepIndicatorProps) => {
+export const ProgressStepIndicator = ({ className, label = 'Progress', isVertical, currentStep, children }: ProgressStepIndicatorProps) => {
   const divisor = Math.max(Children.count(children) - 1, 1);
   const progressValue = (currentStep / divisor) * 100;
   return (
@@ -20,6 +22,7 @@ export const ProgressStepIndicator = ({ className, isVertical, currentStep, chil
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={progressValue}
+        aria-label={label}
         role="progressbar"
       >
         {isVertical && <span className="slds-assistive-text">Progress: {progressValue}%</span>}

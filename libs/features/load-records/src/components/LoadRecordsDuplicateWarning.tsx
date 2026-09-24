@@ -117,7 +117,7 @@ export const LoadRecordsDuplicateWarning: FunctionComponent<LoadRecordsDuplicate
           onClose={() => setIsOpen(false)}
         >
           <div className="slds-is-relative slds-scrollable_x">
-            <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={300}>
+            <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={300} minHeight="200px">
               {rows && columns && (
                 <DataTable
                   columns={columns}

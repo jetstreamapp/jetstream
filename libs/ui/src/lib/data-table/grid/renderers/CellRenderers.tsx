@@ -52,7 +52,8 @@ export function BooleanRenderer({ column, row }: DataTableCellProps<any>): React
       className="slds-align_absolute-center"
       id={`${column.key}-${getRowId(row)}`}
       checked={value}
-      label="value"
+      // Named after the column so screen readers hear e.g. "Read, checkbox, ticked" instead of "value"
+      label={typeof column.name === 'string' && column.name.trim() ? column.name : 'value'}
       hideLabel
       readOnly
     />
@@ -165,35 +166,60 @@ export function ActionRenderer({ row }: DataTableCellProps<any>): ReactNode {
     <Fragment>
       <ErrorMessageRenderer row={row} />
       <Tooltip ariaRole="label" content="View full record">
-        <button className="slds-button slds-button_icon slds-m-right_xx-small" tabIndex={-1} onClick={() => row._action(row, 'view')}>
+        <button
+          className="slds-button slds-button_icon slds-m-right_xx-small"
+          tabIndex={-1}
+          aria-label="View full record"
+          onClick={() => row._action(row, 'view')}
+        >
           <Icon type="utility" icon="preview" className="slds-button__icon" omitContainer title="View Record" />
         </button>
       </Tooltip>
       <Tooltip ariaRole="label" content="Edit">
-        <button className="slds-button slds-button_icon slds-m-right_xx-small" tabIndex={-1} onClick={() => row._action(row, 'edit')}>
+        <button
+          className="slds-button slds-button_icon slds-m-right_xx-small"
+          tabIndex={-1}
+          aria-label="Edit record"
+          onClick={() => row._action(row, 'edit')}
+        >
           <Icon type="utility" icon="edit" className="slds-button__icon" omitContainer title="Edit Record" />
         </button>
       </Tooltip>
       <Tooltip ariaRole="label" content="Clone">
-        <button className="slds-button slds-button_icon slds-m-right_xx-small" tabIndex={-1} onClick={() => row._action(row, 'clone')}>
+        <button
+          className="slds-button slds-button_icon slds-m-right_xx-small"
+          tabIndex={-1}
+          aria-label="Clone record"
+          onClick={() => row._action(row, 'clone')}
+        >
           <Icon type="utility" icon="copy" className="slds-button__icon" omitContainer title="Clone Record" />
         </button>
       </Tooltip>
       {isDeleted ? (
         <Tooltip ariaRole="label" content="Restore from Recycle Bin">
-          <button className="slds-button slds-button_icon slds-m-right_xx-small" tabIndex={-1} onClick={() => row._action(row, 'undelete')}>
+          <button
+            className="slds-button slds-button_icon slds-m-right_xx-small"
+            tabIndex={-1}
+            aria-label="Restore from Recycle Bin"
+            onClick={() => row._action(row, 'undelete')}
+          >
             <Icon type="utility" icon="undelete" className="slds-button__icon" omitContainer title="Restore from Recycle Bin" />
           </button>
         </Tooltip>
       ) : (
         <Tooltip ariaRole="label" content="Delete">
-          <button className="slds-button slds-button_icon slds-m-right_xx-small" tabIndex={-1} onClick={() => row._action(row, 'delete')}>
+          <button
+            className="slds-button slds-button_icon slds-m-right_xx-small"
+            tabIndex={-1}
+            aria-label="Delete record"
+            onClick={() => row._action(row, 'delete')}
+          >
             <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer title="Delete Record" />
           </button>
         </Tooltip>
       )}
       <Tooltip ariaRole="label" content="Turn Into Apex">
-        <button className="slds-button slds-button_icon" tabIndex={-1} onClick={() => row._action(row, 'apex')}>
+        <button className="slds-button slds-button_icon" tabIndex={-1} aria-label="Turn into Apex" onClick={() => row._action(row, 'apex')}>
           <Icon type="utility" icon="apex" className="slds-button__icon" omitContainer title="Turn Into Apex" />
         </button>
       </Tooltip>

@@ -145,7 +145,8 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
   const usagePercent = health && health.maxTotalBytes > 0 ? Math.min(100, Math.round((health.usedBytes / health.maxTotalBytes) * 100)) : 0;
 
   return (
-    <div className="slds-m-top_large">
+    // The id is the Settings#data-history deep link target (see FocusMainContentOnRouteChange)
+    <div id="data-history" className="slds-m-top_large">
       <h2 className="slds-text-heading_medium slds-m-vertical_small">Data History</h2>
       <CheckboxToggle
         id="data-history-enabled-toggle"

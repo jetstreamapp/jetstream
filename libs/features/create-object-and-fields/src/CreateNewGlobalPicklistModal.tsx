@@ -1,8 +1,8 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { REGEX, getErrorMessage } from '@jetstream/shared/utils';
+import { getErrorMessage, REGEX } from '@jetstream/shared/utils';
 import { GlobalValueSetRequest, SalesforceOrgUi } from '@jetstream/types';
-import { Checkbox, Grid, GridCol, Input, Modal, ScopedNotification, Spinner, Textarea } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Checkbox, Grid, GridCol, Input, Modal, ScopedNotification, Spinner, Textarea } from '@jetstream/ui';
 import { createGlobalPicklist, generateApiNameFromLabel, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { useAtom } from 'jotai';
@@ -118,12 +118,14 @@ export const CreateNewGlobalPicklistModal: FunctionComponent<CreateNewGlobalPick
               <button className="slds-button slds-button_neutral" onClick={handleCloseModal} disabled={loading}>
                 Cancel
               </button>
+              {/* The form's onSubmit owns the save (a click here submits the form); aria-disabled keeps
+                  focus on the button while its own click disables it, and the guarded click blocks
+                  the submit while disabled */}
               <button
                 className="slds-button slds-button_brand"
                 form="global-picklist-form"
                 type="submit"
-                onClick={handleSave}
-                disabled={!isValid || loading}
+                {...ariaDisabledButtonProps(!isValid || loading, () => {})}
               >
                 Save
               </button>
@@ -145,7 +147,13 @@ export const CreateNewGlobalPicklistModal: FunctionComponent<CreateNewGlobalPick
                 </ScopedNotification>
               </div>
             )}
-            <form id="global-picklist-form" onSubmit={handleSave}>
+            <form
+              id="global-picklist-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                handleSave();
+              }}
+            >
               <Grid vertical>
                 {loading && <Spinner size="small" />}
                 <Grid gutters wrap>

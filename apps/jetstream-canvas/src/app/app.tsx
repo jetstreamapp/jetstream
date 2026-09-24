@@ -1,6 +1,7 @@
-import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
+import { AppToast, ConfirmationServiceProvider, SkipToContent } from '@jetstream/ui';
 import {
   AppLoading,
+  AppMainContent,
   DownloadFileStream,
   ErrorBoundaryFallback,
   HeaderNavbar,
@@ -32,6 +33,8 @@ export const App = () => {
         <Suspense fallback={<AppLoading />}>
           <AppInitializer>
             <ThemeApplier forceScheme={colorScheme} />
+            {/* First in DOM order so it is the first tab stop even while a toast or modal is mounted */}
+            <SkipToContent />
             <ModalContainer />
             <AppToast />
             <DownloadFileStream />
@@ -47,13 +50,13 @@ export const App = () => {
                   onLogoutHandlerFn={() => Sfdc.canvas.oauth.logout()}
                 />
               </div>
-              <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
+              <AppMainContent>
                 <Suspense fallback={<AppLoading />}>
                   <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
                     <AppRoutes />
                   </ErrorBoundary>
                 </Suspense>
-              </div>
+              </AppMainContent>
             </div>
           </AppInitializer>
         </Suspense>

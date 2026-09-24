@@ -3,7 +3,7 @@ import { clearCacheForOrg, describeSObject } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { DescribeSObjectResult, ListItem, Maybe, PicklistFieldValues, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
-import { Card, ComboboxWithItems, Grid, Icon, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
+import { AssistiveStatus, Card, ComboboxWithItems, Grid, Icon, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
 import { formatRelative } from 'date-fns/formatRelative';
 import { Fragment, FunctionComponent, useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { PlatformEventObject } from './platform-event-monitor.types';
@@ -127,6 +127,17 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
     [publish, selectedPublishEvent],
   );
 
+  /**
+   * Deliberately a button click and not a form submit: record form fields commit their value on blur, so
+   * Enter in a field (implicit submission) would publish a real event without the value being typed.
+   */
+  function handlePublish() {
+    if (publishLoading) {
+      return;
+    }
+    publishEvent(publishEventRecord);
+  }
+
   function handlePlatformEventChange(item: ListItem<string, any>) {
     onSelectedPublishEvent(item.id);
     clearForm();
@@ -137,6 +148,15 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
     setPublishKey((key) => key + 1);
   }
 
+  // The publish outcome renders as a static notification, which screen readers do not announce
+  const publishStatusMessage = publishLoading
+    ? 'Publishing event'
+    : publishEventResponse
+      ? publishEventResponse.success
+        ? `Event published. Event Id: ${publishEventResponse.eventId}`
+        : `There was an error publishing your event: ${publishEventResponse.errorMessage}`
+      : '';
+
   return (
     <Card
       testId="platform-event-monitor-publisher-card"
@@ -145,9 +165,10 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
       title="Publish Event"
       actions={
         <button
+          type="button"
           className="slds-button slds-button_brand slds-is-relative"
           disabled={!sobjectDescribeLoaded || !sobjectDescribeData}
-          onClick={() => publishEvent(publishEventRecord)}
+          onClick={handlePublish}
         >
           Publish Event
           {publishLoading && <Spinner className="slds-spinner slds-spinner_small" />}
@@ -155,6 +176,7 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
       }
     >
       {(loadingPlatformEvents || sobjectDescribeLoading) && <Spinner />}
+      <AssistiveStatus debounceMs={300} message={publishStatusMessage} />
       <Grid vertical>
         <Grid verticalAlign="end">
           <div className="slds-grow">
@@ -206,7 +228,7 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
                     onChange={setPublishEventRecord}
                   />
                   <Grid align="end" className="slds-m-right_xx-small">
-                    <button className="slds-button slds-button_neutral" onClick={clearForm}>
+                    <button type="button" className="slds-button slds-button_neutral" onClick={clearForm}>
                       <Icon type="utility" icon="clear" className="slds-button__icon slds-button__icon_left" omitContainer />
                       Clear Form
                     </button>
@@ -218,11 +240,18 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
                   This platform event does not have any custom fields.
                   <Tooltip id={`sobject-list-refresh-tooltip`} content={sobjectDescribeData.lastRefreshed}>
                     <button
+                      type="button"
                       className="slds-button slds-button_icon slds-button_icon-container"
                       disabled={loadingPlatformEvents}
                       onClick={() => fetchSobjectDescribe(true)}
                     >
-                      <Icon type="utility" icon="refresh" className="slds-button__icon" omitContainer />
+                      <Icon
+                        type="utility"
+                        icon="refresh"
+                        description="Reload platform events"
+                        className="slds-button__icon"
+                        omitContainer
+                      />
                     </button>
                   </Tooltip>
                 </div>

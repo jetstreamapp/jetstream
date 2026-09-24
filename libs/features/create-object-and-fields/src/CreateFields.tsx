@@ -14,7 +14,9 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
   Tooltip,
+  getAriaKeyshortcuts,
   getModifierKey,
+  useAnnouncer,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
@@ -155,6 +157,37 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
   usePrimaryActionShortcut(handleSubmit, { disabled: !allValid });
   useGoBackShortcut(() => navigate('..'), {});
 
+  // Announces repeated adds/deletes to screen readers
+  const { announce, announcer } = useAnnouncer();
+
+  // Focus deliberately STAYS on the New Field button (users often add several fields, then fill
+  // them in) — the announcement is what tells screen reader users the row was appended above
+  function handleAddRow() {
+    addRow();
+    announce(`Field ${rows.length + 1} added`);
+  }
+
+  /** Clone appends a copy at the end of the list, out of view of the Clone button that was pressed */
+  function handleCloneRow(key: number) {
+    const sourceLabel = rows.find((row) => row._key === key)?.label.value;
+    cloneRow(key);
+    announce(`Field ${rows.length + 1} added as a copy of ${sourceLabel || 'the field'}`);
+  }
+
+  /** The Delete button unmounts with its card — focus the card that slides into the slot (or the last) */
+  function handleRemoveRow(key: number, index: number) {
+    const countBefore = rows.length;
+    removeRow(key);
+    announce('Field deleted');
+    window.setTimeout(() => {
+      const targetIndex = Math.min(index, countBefore - 2);
+      document
+        .querySelector(`[data-field-row-index="${targetIndex}"]`)
+        ?.querySelector<HTMLElement>('input, button, textarea, select')
+        ?.focus();
+    }, 50);
+  }
+
   return (
     <div>
       {deployModalOpen && (
@@ -189,6 +222,7 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
           >
             <Link
               className="slds-button slds-button_brand slds-m-right_x-small"
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'shift', 'enter'])}
               to=".."
               title="Going back will keep all of your fields configured as-is, but you can change your selected objects, profiles, and permission sets."
             >
@@ -232,46 +266,56 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
               )
             }
           >
-            <button className="slds-button slds-button_brand" onClick={() => handleSubmit()} disabled={!allValid}>
+            <button
+              className="slds-button slds-button_brand"
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+              onClick={() => handleSubmit()}
+              disabled={!allValid}
+            >
               <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
               Upsert Fields
             </button>
           </Tooltip>
         </ToolbarItemActions>
       </Toolbar>
+      {announcer}
       <div>
         <Grid className="slds-box_small slds-theme_default slds-is-relative" verticalAlign="center" wrap>
           <SelectedItemsBadge items={selectedSObjects} label="Object" />
           <SelectedItemsBadge labelListItem={profiles} items={selectedProfiles} label="Profile" />
           <SelectedItemsBadge labelListItem={permissionSets} items={selectedPermissionSets} label="Permission Set" />
           <div className="slds-col_bump-left">
-            <button className="slds-button slds-button_neutral" onClick={() => addRow()}>
+            <button className="slds-button slds-button_neutral" onClick={() => handleAddRow()}>
               <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
               New Field
             </button>
           </div>
         </Grid>
         <AutoFullHeightContainer className="slds-box_small slds-theme_default slds-is-relative">
-          {rows.map((row, i) => (
-            <CreateFieldsRow
-              key={row._key}
-              rows={rows}
-              rowIdx={i}
-              enableDelete={rows.length > 1}
-              selectedOrg={selectedOrg}
-              selectedSObjects={selectedSObjects}
-              values={row}
-              allValid={row._allValid}
-              onChange={(field, value) => changeRow(row._key, field, value)}
-              onClone={() => cloneRow(row._key)}
-              onDelete={() => removeRow(row._key)}
-              onBlur={(field) => touchRow(row._key, field)}
-              onRegenerateFullName={() => regenerateFullName(row._key)}
-              onChangePicklistOption={(value) => picklistOptionChanged(row._key, value)}
-            />
-          ))}
+          {/* Real list semantics: screen readers announce "list, N items" and each card announces
+              its field name + configuration status (see CreateFieldsRow) */}
+          <div role="list" aria-label="Fields to create">
+            {rows.map((row, i) => (
+              <CreateFieldsRow
+                key={row._key}
+                rows={rows}
+                rowIdx={i}
+                enableDelete={rows.length > 1}
+                selectedOrg={selectedOrg}
+                selectedSObjects={selectedSObjects}
+                values={row}
+                allValid={row._allValid}
+                onChange={(field, value) => changeRow(row._key, field, value)}
+                onClone={() => handleCloneRow(row._key)}
+                onDelete={() => handleRemoveRow(row._key, i)}
+                onBlur={(field) => touchRow(row._key, field)}
+                onRegenerateFullName={() => regenerateFullName(row._key)}
+                onChangePicklistOption={(value) => picklistOptionChanged(row._key, value)}
+              />
+            ))}
+          </div>
           <div className="slds-box_small">
-            <button className="slds-button slds-button_neutral" onClick={() => addRow()}>
+            <button className="slds-button slds-button_neutral" onClick={() => handleAddRow()}>
               <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
               New Field
             </button>
