@@ -4,7 +4,7 @@ import { TITLES } from '@jetstream/shared/constants';
 import { acceptInvitation, getUserProfile, verifyInvitation } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useTitle } from '@jetstream/shared/ui-utils';
-import { TeamInviteVerificationResponse } from '@jetstream/types';
+import { TeamInviteSessionAction, TeamInviteVerificationResponse } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   fireToast,
@@ -15,17 +15,20 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { abilityState, fromAppState } from '@jetstream/ui/app-state';
+import { abilityState, applicationCookieState, fromAppState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
 const HEIGHT_BUFFER = 170;
 
+const SSO_SESSION_ACTIONS = new Set<TeamInviteSessionAction>(['SSO_REQUIRED', 'SSO_UNAVAILABLE']);
+
 export function TeamInvitation() {
   useTitle(TITLES.TEAM);
   const navigate = useNavigate();
   const ability = useAtomValue(abilityState);
+  const { serverUrl } = useAtomValue(applicationCookieState);
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
@@ -143,7 +146,15 @@ export function TeamInvitation() {
                       <li className="slds-text-body_small slds-text-color_error slds-m-bottom_small">{teamVerification.session.message}</li>
                     )}
                   </ul>
-                  {!teamVerification.canEnroll && (
+                  {/* Profile settings cannot satisfy an SSO requirement, signing in with SSO is the only way in */}
+                  {!teamVerification.canEnroll && teamVerification.session.action === 'SSO_REQUIRED' && (
+                    <p>
+                      <a href={`${serverUrl}/api/auth/logout`} className="slds-text-link">
+                        Sign out
+                      </a>
+                    </p>
+                  )}
+                  {!teamVerification.canEnroll && !SSO_SESSION_ACTIONS.has(teamVerification.session.action) && (
                     <p>
                       <Link to={APP_ROUTES.PROFILE.ROUTE} target="_blank" className="slds-text-link">
                         Update your profile settings

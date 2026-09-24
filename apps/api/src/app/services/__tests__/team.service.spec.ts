@@ -305,8 +305,12 @@ describe('verifyTeamInvitation', () => {
       expect(result.canEnroll).toBe(false);
       expect(result.session.expireOnAcceptance).toBe(true);
       expect(result.session.action).toBe('CURRENT_PROVIDER_INVALID');
-      expect(result.session.message).toContain('You have linked identities that are not allowed on this team');
+      // The linked identities warning used to overwrite this instruction, leaving no hint to sign in with Google
+      expect(result.session.message).toContain('You must be signed in with a different login method');
       expect(result.session.message).toContain(LoginConfigurationIdentityDisplayNames.google);
+      expect(result.linkedIdentities.message).toContain(
+        `you will no longer be able to login using: ${LoginConfigurationIdentityDisplayNames.credentials}.`,
+      );
     });
 
     it('should add credentials provider when user has password set', async () => {
@@ -369,8 +373,12 @@ describe('verifyTeamInvitation', () => {
 
       expect(result.canEnroll).toBe(true);
       expect(result.linkedIdentities.isValid).toBe(false);
-      expect(result.session.message).toContain('You have linked identities that are not allowed on this team');
-      expect(result.session.message).toContain('you will no longer be able to login using');
+      expect(result.linkedIdentities.message).toContain('You have linked identities that are not allowed on this team');
+      // Names the methods the user loses, not the ones the team allows
+      expect(result.linkedIdentities.message).toContain(
+        `you will no longer be able to login using: ${LoginConfigurationIdentityDisplayNames.google}, ${LoginConfigurationIdentityDisplayNames.salesforce}.`,
+      );
+      expect(result.linkedIdentities.message).not.toContain(LoginConfigurationIdentityDisplayNames.credentials);
     });
 
     it('should pass when all linked identities are allowed', async () => {
@@ -401,6 +409,90 @@ describe('verifyTeamInvitation', () => {
 
       expect(result.canEnroll).toBe(true);
       expect(result.linkedIdentities.isValid).toBe(true);
+    });
+  });
+
+  describe('SSO requirement', () => {
+    /** The team requires SSO for MEMBERs, the invitee is a MEMBER on a verified domain signed in with a password */
+    function buildSsoInvitation({
+      role = 'MEMBER',
+      ssoBypassEnabled = true,
+      domains = ['example.com'],
+      requireMfa = false,
+    }: { role?: string; ssoBypassEnabled?: boolean; domains?: string[]; requireMfa?: boolean } = {}) {
+      return {
+        ...baseInvitation,
+        role,
+        team: {
+          ...baseInvitation.team,
+          loginConfig: {
+            ...baseInvitation.team.loginConfig,
+            requireMfa,
+            ssoEnabled: true,
+            ssoProvider: 'SAML',
+            ssoBypassEnabled,
+            ssoBypassEnabledRoles: ['ADMIN'],
+            domains,
+          },
+        },
+      };
+    }
+
+    function verifyWithPasswordSession() {
+      return verifyTeamInvitation({
+        user: mockUserProfileSession,
+        currentSessionProvider: 'credentials',
+        teamId: 'team-id',
+        token: 'valid-token',
+      });
+    }
+
+    it('refuses a password session and points to SSO when the invite role cannot bypass SSO', async () => {
+      mockTeamDbService.verifyTeamInvitation.mockResolvedValue(buildSsoInvitation() as any);
+
+      const result = await verifyWithPasswordSession();
+
+      expect(result.canEnroll).toBe(false);
+      expect(result.session.action).toBe('SSO_REQUIRED');
+      expect(result.session.message).toContain('Continue with SSO');
+    });
+
+    it('refuses every role when SSO bypass is off', async () => {
+      mockTeamDbService.verifyTeamInvitation.mockResolvedValue(buildSsoInvitation({ role: 'ADMIN', ssoBypassEnabled: false }) as any);
+
+      const result = await verifyWithPasswordSession();
+
+      expect(result.canEnroll).toBe(false);
+      expect(result.session.action).toBe('SSO_REQUIRED');
+    });
+
+    it('sends the invitee to an admin when their email domain cannot sign in with SSO', async () => {
+      mockTeamDbService.verifyTeamInvitation.mockResolvedValue(buildSsoInvitation({ domains: ['other.com'] }) as any);
+
+      const result = await verifyWithPasswordSession();
+
+      expect(result.canEnroll).toBe(false);
+      expect(result.session.action).toBe('SSO_UNAVAILABLE');
+      expect(result.session.message).toContain('Contact a team administrator');
+    });
+
+    it('does not ask for MFA enrollment when only SSO can get the invitee in', async () => {
+      mockTeamDbService.verifyTeamInvitation.mockResolvedValue(buildSsoInvitation({ requireMfa: true }) as any);
+
+      const result = await verifyWithPasswordSession();
+
+      expect(result.mfa.message).toBeNull();
+      expect(result.session.action).toBe('SSO_REQUIRED');
+    });
+
+    it('allows a password session when the invite role may bypass SSO', async () => {
+      // Control for the refusals above - proves they come from the bypass rules and not from SSO being enabled
+      mockTeamDbService.verifyTeamInvitation.mockResolvedValue(buildSsoInvitation({ role: 'ADMIN' }) as any);
+
+      const result = await verifyWithPasswordSession();
+
+      expect(result.canEnroll).toBe(true);
+      expect(result.session.message).toBeNull();
     });
   });
 

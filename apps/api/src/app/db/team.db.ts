@@ -1064,6 +1064,8 @@ export async function verifyTeamInvitation({
               ssoProvider: true,
               ssoEnabled: true,
               ssoJitProvisioningEnabled: true,
+              ssoBypassEnabled: true,
+              ssoBypassEnabledRoles: true,
             },
           },
         },
@@ -1076,16 +1078,22 @@ export async function verifyTeamInvitation({
     throw new NotFoundError(`Invitation Not Found.`);
   }
 
+  const loginConfig = existingInvitation.team.loginConfig;
   return {
     ...existingInvitation,
     user,
     team: {
       ...existingInvitation.team,
       loginConfig: {
-        // TeamLoginConfigSchema strips the SSO fields, but they are needed to know if SSO is a valid login method
-        ...TeamLoginConfigSchema.parse(existingInvitation.team.loginConfig || {}),
-        ssoEnabled: existingInvitation.team.loginConfig?.ssoEnabled ?? false,
-        ssoProvider: existingInvitation.team.loginConfig?.ssoProvider ?? 'NONE',
+        // TeamLoginConfigSchema strips the SSO fields, but they decide whether SSO is a valid login method and
+        // whether the invitee may join without it. The fallbacks only apply without a login configuration, where
+        // SSO is off anyway, and are strict so a missing value never lets someone skip SSO.
+        ...TeamLoginConfigSchema.parse(loginConfig || {}),
+        ssoEnabled: loginConfig?.ssoEnabled ?? false,
+        ssoProvider: loginConfig?.ssoProvider ?? 'NONE',
+        ssoBypassEnabled: loginConfig?.ssoBypassEnabled ?? false,
+        ssoBypassEnabledRoles: loginConfig?.ssoBypassEnabledRoles ?? [],
+        domains: loginConfig?.domains ?? [],
       },
     },
   };

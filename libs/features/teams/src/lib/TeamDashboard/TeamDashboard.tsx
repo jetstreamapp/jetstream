@@ -91,9 +91,10 @@ export function TeamDashboard() {
   const canReadAuditLog = ability.can('read', 'AuditLog');
 
   const hasManualBilling = !!team?.billingAccount?.manualBilling;
-  const hasVerifiedDomain = useMemo(() => {
-    return domains?.some((domain) => domain.status === 'VERIFIED') || false;
+  const verifiedDomains = useMemo(() => {
+    return (domains || []).filter(({ status }) => status === 'VERIFIED').map(({ domain }) => domain.toLowerCase());
   }, [domains]);
+  const hasVerifiedDomain = verifiedDomains.length > 0;
 
   const availableLicenses = useMemo(() => {
     const licenseCountLimit = team?.billingAccount?.licenseCountLimit ?? Infinity;
@@ -261,6 +262,8 @@ export function TeamDashboard() {
           teamId={team.id}
           hasManualBilling={hasManualBilling}
           userRole={userProfile.teamMembership?.role || TeamMemberRoleSchema.enum.MEMBER}
+          ssoConfig={ssoConfig}
+          verifiedDomains={verifiedDomains}
           onClose={(_invitations) => {
             fetchTeam();
             setInviteModalOpen(false);
