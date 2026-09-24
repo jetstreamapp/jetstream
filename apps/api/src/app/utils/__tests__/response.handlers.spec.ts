@@ -314,6 +314,23 @@ describe('uncaughtErrorHandler auth error login method details', () => {
   });
 });
 
+/**
+ * The app's HTTP client only reads the top-level message, so an auth error thrown from an in-app
+ * route (e.g. a rejected email change) needs it there to reach the user as anything but a generic error.
+ */
+describe('uncaughtErrorHandler auth error message', () => {
+  it('includes the message at the top level as well as in data', async () => {
+    const { res } = await handleError(new AuthError('Disposable email addresses are not supported'));
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Disposable email addresses are not supported',
+        data: expect.objectContaining({ message: 'Disposable email addresses are not supported' }),
+      }),
+    );
+  });
+});
+
 describe('uncaughtErrorHandler Salesforce connection error normalization', () => {
   it('normalizes an expired-token error to 401 (and marks the org invalid) even when Salesforce returned a 500', async () => {
     // Mirrors the incident: a SOAP/metadata auth failure whose refresh also fails re-throws with
