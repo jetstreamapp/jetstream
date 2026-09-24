@@ -17,6 +17,7 @@ minimumReleaseAgeExclude:
   - dmg-builder@26.16.1
   - electron-builder-squirrel-windows@26.16.1
   - electron-builder@26.16.1
+  - electron@44.4.5
 
 # Allow scripts from these specific libraries
 allowBuilds:
