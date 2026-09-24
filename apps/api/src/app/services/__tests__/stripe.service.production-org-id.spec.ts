@@ -7,8 +7,12 @@ const mocks = vi.hoisted(() => ({
   sessionsCreate: vi.fn(async (_params: Record<string, any>) => ({ id: 'cs_1', url: 'https://checkout.stripe.test/cs_1' })),
   sessionsRetrieve: vi.fn(),
   customersRetrieve: vi.fn(),
+  customersSearch: vi.fn(async () => ({ data: [] as unknown[] })),
   customersCreate: vi.fn(async (_params: Record<string, any>) => ({ id: 'cus_new', metadata: {} as Record<string, string> })),
-  customersUpdate: vi.fn(async (_customerId: string, _params: Record<string, any>) => ({ id: 'cus_1' })),
+  customersUpdate: vi.fn(async (customerId: string, params: Record<string, any>) => ({
+    id: customerId,
+    metadata: { ...params?.metadata },
+  })),
   loggerWarn: vi.fn(),
 }));
 
@@ -19,7 +23,7 @@ vi.mock('stripe', () => ({
       retrieve: mocks.customersRetrieve,
       update: mocks.customersUpdate,
       createFundingInstructions: vi.fn(async () => ({})),
-      search: vi.fn(),
+      search: mocks.customersSearch,
       create: mocks.customersCreate,
     };
     entitlements = { activeEntitlements: { list: vi.fn(async () => ({ data: [] })) } };
@@ -40,7 +44,8 @@ vi.mock('../../db/subscription.db', () => ({
 vi.mock('../../db/team.db', () => ({}));
 vi.mock('../../db/user.db', () => ({
   findById: vi.fn(async () => ({ id: 'user_1', billingAccount: { customerId: 'cus_1' } })),
-  upsertBillingAccount: vi.fn(async () => ({})),
+  claimBillingAccountForCustomer: vi.fn(async () => true),
+  findBillingAccountWithSubscriptionsByUserId: vi.fn(async () => null),
   findBillingAccountByCustomerId: vi.fn(),
 }));
 
@@ -148,7 +153,10 @@ describe('production org id collected at checkout', () => {
   });
 
   it('does not ask when the customer resolved for checkout already has an org id on file', async () => {
-    mocks.customersCreate.mockResolvedValueOnce({ id: 'cus_existing', metadata: { productionOrgId: PRODUCTION_ORG_ID } });
+    const existingCustomer = { ...customerWithMetadata({ productionOrgId: PRODUCTION_ORG_ID }), id: 'cus_existing' };
+    mocks.customersSearch.mockResolvedValueOnce({ data: [existingCustomer] });
+    // Stripe returns the whole customer from an update, metadata included
+    mocks.customersUpdate.mockResolvedValueOnce(existingCustomer);
 
     await createSession(undefined, { isNewCustomer: true });
 
