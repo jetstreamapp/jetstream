@@ -345,11 +345,17 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   // These are public assets that other origins embed on purpose: emails, external pages, IdP configuration, and the
   // landing and web app dev servers, which run on their own ports. They therefore opt out of the global same-origin
   // CORP default, which would otherwise block them with ERR_BLOCKED_BY_RESPONSE.NotSameOrigin.
+  // `no-transform` stops Cloudflare Polish upstream of our zone (Render's edge) from swapping PNGs for lossy WebP behind
+  // the .png URL - Gmail's image proxy re-encodes that WebP as JPEG, drops the alpha channel and turns the email logo
+  // into a black box. Cache-Control is written by hand because express.static's `maxAge` cannot add directives.
   app.use(
     '/assets/images',
     express.static(join(__dirname, './assets/images'), {
-      maxAge: '1d',
-      setHeaders: (res) => res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'),
+      cacheControl: false,
+      setHeaders: (res) => {
+        res.setHeader('Cache-Control', 'public, max-age=86400, no-transform');
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      },
     }),
   );
   app.use('/assets', express.static(join(__dirname, './assets'), { maxAge: '1m' }));
