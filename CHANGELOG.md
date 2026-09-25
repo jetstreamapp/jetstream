@@ -1,5 +1,11 @@
 # Changelog
 
+## [10.21.1](https://github.com/jetstreamapp/jetstream/compare/v10.21.0...v10.21.1) (2026-09-25)
+
+### Bug Fixes
+
+- **email:** stop the logo rendering as a black box in Gmail ([c123316](https://github.com/jetstreamapp/jetstream/commit/c123316192c12357ab360ad6c43da4e442873988))
+
 ## [10.21.0](https://github.com/jetstreamapp/jetstream/compare/v10.20.0...v10.21.0) (2026-09-23)
 
 ### Features
