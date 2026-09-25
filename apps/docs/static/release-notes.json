@@ -1,5 +1,56 @@
 [
   {
+    "slug": "v10.22.0",
+    "title": "10.22.0 - Redesigned Settings page and SSO rules for team invitations",
+    "date": "2026-09-25",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.22.0", "desktop": "4.18.0", "extension": "3.21.0" },
+    "summary": "The Settings page is redesigned, and every change is saved as soon as you make it. In the web app, team invitations now follow the team's SSO requirement.",
+    "highlights": [
+      {
+        "title": "Redesigned Settings page",
+        "description": "Settings are grouped into sections with a description under each setting, and every change is saved as soon as you make it.",
+        "docLink": "/user-profile-and-settings/settings"
+      },
+      {
+        "title": "Live preview for SOQL formatting",
+        "description": "The SOQL formatting settings show a preview of your choices as you change them, and Reset to Defaults restores the original formatting.",
+        "docLink": "/user-profile-and-settings/settings"
+      },
+      {
+        "title": "See which account is signed in to the desktop app",
+        "description": "A new Account item in the user menu opens the Account section of Settings, which shows your name, email, team, and role.",
+        "platforms": ["desktop"],
+        "docLink": "/user-profile-and-settings/settings"
+      },
+      {
+        "title": "Team invitations follow the team's SSO requirement",
+        "description": "When your team requires SSO for a role, people invited to that role join by signing in with SSO, and the invite modal warns you before you invite someone who cannot sign in with SSO.",
+        "platforms": ["web"],
+        "docLink": "/team-management"
+      },
+      {
+        "title": "Production Org ID and billing address at checkout",
+        "description": "Checkout asks for the Org ID of your production Salesforce org and a full billing address, which Jetstream is required to report to Salesforce with each order.",
+        "platforms": ["web"]
+      }
+    ]
+  },
+  {
+    "slug": "v10.21.1",
+    "title": "10.21.1 - Email logo fix for Gmail",
+    "date": "2026-09-25",
+    "tags": ["web"],
+    "versions": { "web": "10.21.1" },
+    "summary": "Fixes the Jetstream logo showing up as a black box in emails opened in Gmail.",
+    "highlights": [
+      {
+        "title": "Email logo fix for Gmail",
+        "description": "The Jetstream logo in emails from Jetstream shows correctly in Gmail instead of as a black box."
+      }
+    ]
+  },
+  {
     "slug": "v10.21.0",
     "title": "10.21.0 - Hide empty types in Deploy Metadata and clearer org status",
     "date": "2026-09-23",
