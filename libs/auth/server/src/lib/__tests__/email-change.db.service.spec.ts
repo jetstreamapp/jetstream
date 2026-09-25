@@ -31,6 +31,7 @@ const prismaMock = vi.hoisted(() => ({
 }));
 
 const authDbMock = vi.hoisted(() => ({
+  discoverSsoByEmail: vi.fn(),
   getLoginConfiguration: vi.fn(),
   revokeAllUserSessions: vi.fn(),
   withEmailAddressLock: vi.fn(),
@@ -79,6 +80,7 @@ beforeEach(() => {
   prismaMock.authIdentity.findFirst.mockResolvedValue(null);
   prismaMock.blockedEmailDomain.findMany.mockResolvedValue([]);
   authDbMock.getLoginConfiguration.mockResolvedValue(null);
+  authDbMock.discoverSsoByEmail.mockResolvedValue(null);
 });
 
 describe('assertEmailChangeAllowedOrThrow', () => {
@@ -124,6 +126,16 @@ describe('assertEmailChangeAllowedOrThrow', () => {
     authDbMock.getLoginConfiguration.mockResolvedValue({ ssoEnabled: true, ssoProvider: 'SAML' });
 
     await expect(assertEmailChangeAllowedOrThrow({ userId: USER_ID, newEmail: NEW_EMAIL })).rejects.toThrow(EmailChangeNotAllowed);
+  });
+
+  it('should reject changing to an address on a domain another team requires SSO for', async () => {
+    // Otherwise the registration-time SSO domain rule is trivially sidestepped: register with another
+    // address, then change to one on the domain.
+    mockUser();
+    authDbMock.discoverSsoByEmail.mockResolvedValue({ teamId: 'team-1', teamName: 'Acme', loginConfig: {} });
+
+    await expect(assertEmailChangeAllowedOrThrow({ userId: USER_ID, newEmail: NEW_EMAIL })).rejects.toThrow(EmailChangeNotAllowed);
+    expect(authDbMock.discoverSsoByEmail).toHaveBeenCalledWith(NEW_EMAIL);
   });
 
   it('should allow a team member whose team has SSO configured but disabled', async () => {
@@ -345,6 +357,20 @@ describe('completeEmailChange', () => {
 
     await expectGenericRejection(completeEmailChange({ confirmToken: CONFIRM_TOKEN, resolvedVia: 'EMAIL_LINK' }));
 
+    expect(prismaMock.emailChangeRequest.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'FAILED', failureReason: 'SSO_POLICY' }) }),
+    );
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it('should re-check the SSO domain rule for the new address at confirm time', async () => {
+    // A team verifying the domain or turning SSO on mid-flight must not be bypassable by sitting on a token.
+    prismaMock.emailChangeRequest.findUnique.mockResolvedValue(pendingRequest());
+    authDbMock.discoverSsoByEmail.mockResolvedValue({ teamId: 'team-1', teamName: 'Acme', loginConfig: {} });
+
+    await expectGenericRejection(completeEmailChange({ confirmToken: CONFIRM_TOKEN, resolvedVia: 'EMAIL_LINK' }));
+
+    expect(authDbMock.discoverSsoByEmail).toHaveBeenCalledWith(NEW_EMAIL);
     expect(prismaMock.emailChangeRequest.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'FAILED', failureReason: 'SSO_POLICY' }) }),
     );

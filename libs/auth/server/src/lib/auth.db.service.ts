@@ -1969,6 +1969,23 @@ export async function handleSignInOrRegistration(
           throw new EmailDomainNotAllowed(AUTH_ERROR_MESSAGES.EmailDomainNotAllowed);
         }
 
+        // Both SSO checks below also run before the already-in-use branch, for the same reason: every
+        // address gets the same answer, so they reveal nothing about which of them have an account.
+        //
+        // A pending invite is judged by the inviting team's login configuration, against the role it grants.
+        throwIfInvalidSsoConfig({ provider, providerType, loginConfiguration, role: getRoleForSsoCheck(null, teamInviteResponse) });
+
+        // A team that verified this domain and turned on SSO expects its people to come in through
+        // their identity provider, so a password account created outside the team is refused. An invite
+        // from that same team was judged above; an invite from any other team is no exemption, or that
+        // team could hand out password accounts on this team's domain. A same-team invitee who then
+        // cannot take a seat (see acceptInviteAndAddUserToTeam) is still created, outside the team,
+        // until they accept from the invitation page.
+        const domainSso = await discoverSsoByEmail(email);
+        if (domainSso && domainSso.teamId !== teamInviteResponse?.team.id) {
+          throwIfInvalidSsoConfig({ provider, providerType, loginConfiguration: domainSso.loginConfig, role: null });
+        }
+
         const usersWithEmail = await findUsersByEmail(email);
         // Email already in use - go to verification flow with placeholder user, user will never be able to complete the process.
         // The callback emails the address owner that they already have an account in place of a code.
@@ -1999,7 +2016,6 @@ export async function handleSignInOrRegistration(
          * 3. see if users with this email domain can sign up on their own (based on login configuration, domain may not allow users to sign up outside their team)
          */
 
-        throwIfInvalidSsoConfig({ provider, providerType, loginConfiguration, role: getRoleForSsoCheck(null, teamInviteResponse) });
         user = await createUserFromUserInfo(payload.email, payload.name, password, loginConfiguration, payload.tosVersion);
         isNewUser = true;
       } else {
@@ -2227,6 +2243,14 @@ export async function discoverSsoByDomain(domain: string): Promise<{
     teamName: loginConfig.team.name,
     loginConfig: LoginConfigurationSchema.parse(loginConfig),
   };
+}
+
+/**
+ * The SSO-enabled team whose verified domains include this address' domain, if any. A password account
+ * on that domain can only come from that team, so registration and email change both refuse it otherwise.
+ */
+export function discoverSsoByEmail(email: string) {
+  return discoverSsoByDomain(email.slice(email.lastIndexOf('@') + 1).toLowerCase());
 }
 
 /**
