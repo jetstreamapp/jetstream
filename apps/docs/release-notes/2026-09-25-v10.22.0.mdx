@@ -1,0 +1,78 @@
+---
+slug: v10.22.0
+title: 10.22.0 - Redesigned Settings page and SSO rules for team invitations
+date: '2026-09-25'
+tags: [web, desktop, extension]
+versions:
+  web: 10.22.0
+  desktop: 4.18.0
+  extension: 3.21.0
+summary: The Settings page is redesigned, and every change is saved as soon as you make it. In the web app, team invitations now follow the team's SSO requirement.
+highlights:
+  - title: Redesigned Settings page
+    description: Settings are grouped into sections with a description under each setting, and every change is saved as soon as you make it.
+    docLink: /user-profile-and-settings/settings
+  - title: Live preview for SOQL formatting
+    description: The SOQL formatting settings show a preview of your choices as you change them, and Reset to Defaults restores the original formatting.
+    docLink: /user-profile-and-settings/settings
+  - title: See which account is signed in to the desktop app
+    description: A new Account item in the user menu opens the Account section of Settings, which shows your name, email, team, and role.
+    platforms: [desktop]
+    docLink: /user-profile-and-settings/settings
+  - title: Team invitations follow the team's SSO requirement
+    description: When your team requires SSO for a role, people invited to that role join by signing in with SSO, and the invite modal warns you before you invite someone who cannot sign in with SSO.
+    platforms: [web]
+    docLink: /team-management
+  - title: Production Org ID and billing address at checkout
+    description: Checkout asks for the Org ID of your production Salesforce org and a full billing address, which Jetstream is required to report to Salesforce with each order.
+    platforms: [web]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Redesigned Settings page
+
+Settings in the web app, the desktop app, and the browser extension are grouped into sections, and each setting's description is shown under it instead of in a tooltip. Every change is saved as soon as you make it. In the web and desktop apps:
+
+- Settings is a single page, with a list of sections on the left that you can use to jump between them.
+- A new Account section shows the account you are signed in with, including your team and role.
+- Theme (Light, Dark, or Match Device) can be changed from Settings as well as from the user menu.
+- "Don't Auto-Login on Link Clicks" is now "Log in automatically when opening Salesforce links", with the toggle reversed to match. Your existing choice is kept.
+
+### Live preview for SOQL formatting
+
+SOQL formatting controls how Jetstream formats the queries it writes, such as the SOQL built by the Query Builder. It now shows a preview of your choices as you change them, and each change is saved right away without a separate Save button. **Reset to Defaults** restores the original formatting.
+
+### See which account is signed in to the desktop app
+
+The desktop user menu has a new **Account** item under your email address. It opens the Account section of Settings, which shows your name, email, team, and role. **Manage Account** opens your Jetstream profile in your browser, and team administrators and billing users also get a **Team Dashboard** button.
+
+### Team invitations follow the team's SSO requirement
+
+When a team requires SSO for a role, people invited to that role can only join the team by signing in with SSO. Signing up from the invitation with an email and password or a social login, or accepting the invitation while signed in some other way, is refused, and the invitation stays open so it can still be accepted through SSO.
+
+- The invitation page tells the invitee to sign out and choose **Continue with SSO**. If their email domain is not set up for the team's SSO, it tells them to contact a team administrator instead.
+- The invite modal warns administrators before they send an invitation that could never be accepted, because the team requires SSO for the selected role and the invitee's email domain is not one of the team's verified domains.
+
+### Production Org ID and billing address at checkout
+
+As a Salesforce partner, Jetstream is required to report each order to Salesforce along with the Org ID of the customer's production org and the customer's billing address, so checkout now asks for both.
+
+- The Org ID field is filled in for you when exactly one production org is connected to your account, and you are not asked again once a valid Org ID is on file. The Org ID only identifies your org and does not give anyone access to it.
+- Individual plans now require a full billing address, as team plans already did. They used to ask only for what the payment method needed, usually the country and postal code.
+
+### Sub-processor update
+
+Anthropic is now listed on the [sub-processors page](https://getjetstream.app/subprocessors). Jetstream staff use it for AI assistance with internal operations, such as investigating bugs from logs, error reports, and support requests. It is not a product feature, and customer data is not used for model training.
+
+### Other fixes
+
+- Disposable email addresses can no longer be used to sign up with an email and password or as a new account email.
+- The website footer links to the Jetstream Trust Center.
+- **Reset Sync** in Settings no longer reports success when the reset fails.
+- **Clear for Current Org** under Recent objects is disabled when no org is selected.
+- The desktop Settings title bar follows dark mode instead of staying white.
+- Screen readers announce the correct labels for the desktop download location buttons.
+- On the team invitation page, the note about linked login methods lists the methods you would lose after joining, and it no longer replaces the sign-in instructions.
