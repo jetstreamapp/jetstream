@@ -9,6 +9,17 @@ const NoIcon = <XMarkIcon className="h-6 w-6 text-gray-600" role="img" aria-labe
 
 const webSubProcessors = [
   {
+    name: 'Anthropic',
+    function:
+      'AI assistance for internal operations: investigating bugs and incidents (logs, error reports and support requests) and analyzing Jetstream account and usage records. Internal use only, not a product feature. Customer data is not used for model training.',
+    location: 'US',
+    optional: NoIcon,
+    web: true,
+    extension: true,
+    desktop: true,
+    salesforceCanvas: true,
+  },
+  {
     name: 'BackBlaze',
     function: 'Object storage to store database backups',
     location: 'US',
@@ -19,13 +30,13 @@ const webSubProcessors = [
     salesforceCanvas: false,
   },
   {
-    name: 'BetterStack',
-    function: 'Server logging; alerts; incident management and status page',
+    name: 'Better Stack',
+    function: 'Server logging; bug reporting and error tracking; alerts; incident management and status page',
     location: 'US',
     optional: NoIcon,
     web: true,
-    extension: false,
-    desktop: false,
+    extension: true,
+    desktop: true,
     salesforceCanvas: false,
   },
   {
@@ -89,16 +100,6 @@ const webSubProcessors = [
     salesforceCanvas: true,
   },
   {
-    name: 'Better Stack',
-    function: 'Bug reporting and tracking',
-    location: 'US',
-    optional: NoIcon,
-    web: true,
-    extension: false,
-    desktop: false,
-    salesforceCanvas: false,
-  },
-  {
     name: 'Stripe',
     function: 'Billing',
     location: 'US',
@@ -120,11 +121,20 @@ const webSubProcessors = [
   },
 ].sort((a, b) => a.name.localeCompare(b.name));
 
+// Newest first. Adding a sub-processor starts the 30-day objection window in DPA Section 7.
+const changeHistory = [
+  {
+    date: 'September 24, 2026',
+    description:
+      'Added Anthropic for AI assistance with troubleshooting and internal operations. Merged the two Better Stack entries into one, which now also lists the browser extension and desktop app because their account activity appears in server logs.',
+  },
+];
+
 export default function Page() {
   return (
     <div className="m-8">
       <div className="flex items-center justify-between gap-4">
-        <LastUpdated className="text-gray-500" day={4} month="January" year={2026} />
+        <LastUpdated className="text-gray-500" day={24} month="September" year={2026} />
         <PrintButton />
       </div>
       <h1>Jetstream Sub-Processors</h1>
@@ -162,6 +172,15 @@ export default function Page() {
           ))}
         </tbody>
       </table>
+
+      <h2 className="mt-8">Change History</h2>
+      <ul className="list-disc pl-6">
+        {changeHistory.map(({ date, description }) => (
+          <li key={date} className="mb-1">
+            <span className="font-semibold">{date}:</span> {description}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

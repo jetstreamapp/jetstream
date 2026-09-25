@@ -22,7 +22,8 @@ flowchart TB
     google["Google / Salesforce<br/>OAuth login"]
     stripe["Stripe<br/>billing"]
     mailgun["Mailgun<br/>email"]
-    errors["Better Stack<br/>error / crash reports"]
+    errors["Better Stack<br/>logs + crash reports"]
+    anthropic["Anthropic (Claude)<br/>staff AI assistance"]
   end
 
   user --> web
@@ -50,9 +51,12 @@ flowchart TB
   ext -->|"crash reports"| errors
   desk -->|"crash reports"| errors
   canvas -->|"crash reports"| errors
-  api -->|"crash reports"| errors
+  api -->|"logs + crash reports"| errors
 
-  legend["Legend:  ══ Salesforce data via Jetstream server    ┄┄ Salesforce data direct to Salesforce (never touches Jetstream)<br/>Crash reports go from each app straight to Better Stack (never via the Jetstream server) and carry no Salesforce record data or credentials."]
+  errors -->|"excerpts, staff-initiated"| anthropic
+  db -->|"account records, staff-initiated"| anthropic
+
+  legend["Legend:  ══ Salesforce data via Jetstream server    ┄┄ Salesforce data direct to Salesforce (never touches Jetstream)<br/>Crash reports go from each app straight to Better Stack (never via the Jetstream server) and carry no Salesforce record data or credentials.<br/>Anthropic only sees log / crash-report excerpts and account records that staff choose to analyze; terms prohibit model training."]
 
   classDef trusted fill:#e8f0fe,stroke:#1a73e8,color:#0b1b3a
   classDef external fill:#fef7e0,stroke:#f9ab00,color:#3a2c05
@@ -63,5 +67,5 @@ flowchart TB
   class api,geo trusted
   class db store
   class web,ext,desk client
-  class sfapi,canvas,google,stripe,mailgun,errors external
+  class sfapi,canvas,google,stripe,mailgun,errors,anthropic external
   class legend note

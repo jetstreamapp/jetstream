@@ -8,6 +8,10 @@ each product surface.
   flowcharts of internal & external information sources and flows), customers (PII and
   data-residency questions), and internal engineering/security reference.
 - **Accurate as of:** 2026-08-02, verified against the source code (see "Source of truth").
+  Updated 2026-09-24 to add staff use of Anthropic.
+- **Known drift:** crash reporting on the Desktop App, Browser Extension and Managed Package has
+  been temporarily disabled since 2026-08-19 (`sentryDsn: null`, opt-out toggles hidden) pending
+  crash-report redaction work. The diagrams still show those flows as designed.
 - **Formats:** each diagram is provided as a PNG (with the editable draw.io diagram
   embedded), a `.drawio` source, and — where authored in Mermaid — a `.mmd` source.
   `jetstream-data-flow-diagrams.pdf` contains all 11 diagrams as one file.
@@ -40,15 +44,23 @@ through Jetstream servers. There is no session replay or performance tracing on 
 Desktop app and Browser Extension expose a "Send crash reports to Jetstream" opt-out (on by
 default); the Web App and Canvas do not. See diagrams 01 and 02 for the full breakdown.
 
+**Staff use of Anthropic.** Jetstream staff use Anthropic's Claude to investigate bugs and
+incidents (analyzing excerpts of server logs and crash reports held in Better Stack, and of
+support requests) and for internal operations analysis of Jetstream account records. Anthropic is a listed sub-processor used under its Commercial
+Terms (DPA with SCCs incorporated; no model training on customer content). This is
+staff-initiated, not an app data flow: no Jetstream surface sends data to Anthropic. Salesforce
+record data is never sent deliberately, but Salesforce error text and object/field names can
+appear inside log excerpts. See diagrams 00 and 02.
+
 ## Diagram index
 
 ### Overviews (best for customers & as auditor orientation)
 
-| #   | File                         | Shows                                                                                                                                                                                                                                                                                                                  |
-| --- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 00  | `00-system-context`          | All systems, trust boundaries, and which links carry Salesforce data through Jetstream vs. direct to Salesforce                                                                                                                                                                                                        |
-| 01  | `01-data-residency`          | Comparison matrix: does Salesforce data pass through Jetstream? where do credentials live? how are they protected? what crash reporting runs and how a user turns it off? (per surface)                                                                                                                                |
-| 02  | `02-pii-data-classification` | Every category of personal data Jetstream stores, where, and its protection. All data is encrypted at rest at the database layer; the diagram shows the additional application-level protection (field-level encryption / one-way hash / delegation) per category, plus the personal data that leaves in crash reports |
+| #   | File                         | Shows                                                                                                                                                                                                                                                                                                                                             |
+| --- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 00  | `00-system-context`          | All systems, trust boundaries, and which links carry Salesforce data through Jetstream vs. direct to Salesforce, plus staff-initiated use of Anthropic                                                                                                                                                                                            |
+| 01  | `01-data-residency`          | Comparison matrix: does Salesforce data pass through Jetstream? where do credentials live? how are they protected? what crash reporting runs and how a user turns it off? (per surface)                                                                                                                                                           |
+| 02  | `02-pii-data-classification` | Every category of personal data Jetstream stores, where, and its protection. All data is encrypted at rest at the database layer; the diagram shows the additional application-level protection (field-level encryption / one-way hash / delegation) per category, plus the personal data that leaves in crash reports and staff use of Anthropic |
 
 ### Authentication flows
 
@@ -124,8 +136,8 @@ Caveats (also documented in the script):
   legend below the diagram (arrows were overlapping it). `regenerate.sh`
   intentionally **skips** 00's `.mmd` → `.drawio` conversion so that edit is
   preserved. If you re-convert it, re-apply the legend move: set the `Legend:`
-  cell's `<mxGeometry>` to `x="717" y="645"` (below the content, which spans
-  x 90–2410 / y 25–621), then restore the committed `<diagram id>` so the PNG
+  cell's `<mxGeometry>` to `x="717" y="790"` (below the content, which spans
+  x 90–2410 / y 25–762), then restore the committed `<diagram id>` so the PNG
   doesn't churn. Re-check those numbers if you add or remove nodes — Mermaid
   re-lays the whole graph out.
 - Diagrams 01 and 02 have no `.mmd` — edit the `.drawio` directly.
