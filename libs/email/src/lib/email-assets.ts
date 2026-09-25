@@ -8,6 +8,13 @@
  */
 const EMAIL_IMAGE_BASE_URL = 'https://getjetstream.app/assets/images';
 
+/**
+ * Part of every email image URL, so bumping it gives newly sent emails a cache key that no CDN or mail-client image
+ * proxy has seen. Gmail's proxy keeps a copy for a day and cannot be purged, and neither can the Cloudflare cache on
+ * Render's edge - bump this whenever an email image changes or was served corrupted.
+ */
+const EMAIL_IMAGE_VERSION = '2';
+
 export function getEmailImageUrl(relativePath: string): string {
-  return `${EMAIL_IMAGE_BASE_URL}/${relativePath}`;
+  return `${EMAIL_IMAGE_BASE_URL}/${relativePath}?v=${EMAIL_IMAGE_VERSION}`;
 }
