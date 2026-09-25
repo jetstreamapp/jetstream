@@ -12,6 +12,7 @@ import { OauthClientProvider, OauthClients } from './OauthClients';
 import {
   CURRENT_TOS_VERSION,
   EMAIL_VERIFICATION_TOKEN_DURATION_HOURS,
+  EXISTING_ACCOUNT_NOTICE_INTERVAL_HOURS,
   TOKEN_DURATION_MINUTES,
   TOTP_ENROLLMENT_TTL_MINUTES,
 } from './auth.constants';
@@ -241,6 +242,20 @@ let totpReplayCache: DbCacheProvider | undefined;
 function getTotpReplayCache() {
   totpReplayCache = totpReplayCache ?? new DbCacheProvider('2fa:otp-code', 1000 * 90);
   return totpReplayCache;
+}
+
+// Lazily constructed for the same reason as totpReplayCache
+let existingAccountNoticeCache: DbCacheProvider | undefined;
+
+/**
+ * Claims the one "you already have an account" email an address may be sent per
+ * EXISTING_ACCOUNT_NOTICE_INTERVAL_HOURS, shared across every instance. Returns false if it was already claimed.
+ */
+export async function claimExistingAccountNotice(email: string) {
+  existingAccountNoticeCache =
+    existingAccountNoticeCache ??
+    new DbCacheProvider('auth:existing-account-notice', EXISTING_ACCOUNT_NOTICE_INTERVAL_HOURS * 60 * 60 * 1000);
+  return existingAccountNoticeCache.consumeOnceAsync(email.toLowerCase());
 }
 
 /**

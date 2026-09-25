@@ -1928,7 +1928,8 @@ export async function handleSignInOrRegistration(
         }
 
         const usersWithEmail = await findUsersByEmail(email);
-        // Email already in use - go to verification flow with placeholder user, user will never be able to complete the process
+        // Email already in use - go to verification flow with placeholder user, user will never be able to complete the process.
+        // The callback emails the address owner that they already have an account in place of a code.
         if (usersWithEmail.length > 0) {
           logger.warn(
             { email },
