@@ -3,17 +3,19 @@ import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, HTTP_SOURCE_DESKTOP } from '@jetstream/shared/constants';
 import { disconnectSocket, initSocket, registerMiddleware } from '@jetstream/shared/data';
 import { setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/ui-utils';
-import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
+import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi, SoqlQueryFormatOptions } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude, useInitDataHistory } from '@jetstream/ui-core';
 import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
 import { ensureLocalStorageReady, initDexieDb, pruneAnalysisJobHistory } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
 import { useAtom, useAtomValue } from 'jotai';
+import { useAtomCallback } from 'jotai/utils';
 import localforage from 'localforage';
-import React, { Fragment, FunctionComponent, use, useEffect } from 'react';
+import React, { Fragment, FunctionComponent, use, useCallback, useEffect } from 'react';
 import { Observable, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { desktopUserPreferences, desktopUserPreferencesSyncState } from './AppDesktopState';
 import { useDesktopErrorTracker } from './useDesktopErrorTracker';
 import { useElectronActionLoader } from './useElectronActionLoader';
 
@@ -53,6 +55,13 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ authInf
 
   const onSaveSoqlQueryFormatOptions = useObservable(
     fromJetstreamEvents.getObservable('saveSoqlQueryFormatOptions') as Observable<JetstreamEventSaveSoqlQueryFormatOptionsPayload>,
+  );
+
+  // Settings reads the desktop preferences atom, so a format saved from the query editor has to land there too
+  const mergeSavedSoqlQueryFormatOptions = useAtomCallback(
+    useCallback((get, set, soqlQueryFormatOptions: SoqlQueryFormatOptions) => {
+      set(desktopUserPreferences, { ...get(desktopUserPreferencesSyncState), soqlQueryFormatOptions });
+    }, []),
   );
 
   useElectronActionLoader();
@@ -142,19 +151,18 @@ APP VERSION ${version}
           if (!window.electronAPI) {
             return;
           }
-          const soqlQueryFormatOptions = onSaveSoqlQueryFormatOptions.value;
-          const preferences = await window.electronAPI.getPreferences();
+          // Only the changed setting is sent - the main process merges it into what it has stored
           const updatedPreferences = await window.electronAPI.setPreferences({
-            ...preferences,
-            soqlQueryFormatOptions,
+            soqlQueryFormatOptions: onSaveSoqlQueryFormatOptions.value,
           });
           setUserProfile((prev) => ({ ...prev, preferences: updatedPreferences }));
+          mergeSavedSoqlQueryFormatOptions(updatedPreferences.soqlQueryFormatOptions);
         } catch (ex) {
           tracker.error('Error saving query format options', ex);
         }
       })();
     }
-  }, [onSaveSoqlQueryFormatOptions, setUserProfile]);
+  }, [onSaveSoqlQueryFormatOptions, setUserProfile, mergeSavedSoqlQueryFormatOptions]);
 
   useEffect(() => {
     if (invalidOrg) {

@@ -1,137 +1,115 @@
-import type { UserProfileUiWithIdentities } from '@jetstream/auth/types';
-import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
-import { deleteUserProfile, getFullUserProfile, getUserProfile as getUserProfileUi, updateUserProfile } from '@jetstream/shared/data';
+import { deleteUserProfile, updateUserProfile } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { eraseCookies, tracker, useTitle } from '@jetstream/shared/ui-utils';
-import { SoqlQueryFormatOptions, SoqlQueryFormatOptionsSchema } from '@jetstream/types';
+import { SoqlQueryFormatOptionsSchema, UserProfileUi } from '@jetstream/types';
+import { AutoFullHeightContainer, fireToast, Page, PageHeader, PageHeaderRow, PageHeaderTitle, Spinner } from '@jetstream/ui';
 import {
-  AutoFullHeightContainer,
-  CheckboxToggle,
-  Page,
-  PageHeader,
-  PageHeaderRow,
-  PageHeaderTitle,
-  ScopedNotification,
-  Spinner,
-  fireToast,
-} from '@jetstream/ui';
-import { DataHistorySettingsSection, SalesforceCanvasOrgs, SoqlQueryFormatConfig, useAmplitude } from '@jetstream/ui-core';
-import { fromAppState, useFeatureFlag, userProfileState } from '@jetstream/ui/app-state';
+  AccountSummary,
+  AppearanceSetting,
+  DataHistorySettingsSection,
+  DiagnosticLoggingSetting,
+  getPreferencesToRestore,
+  HistorySyncSettings,
+  RecentObjectsSetting,
+  SalesforceAutoLoginSetting,
+  SalesforceCanvasOrgs,
+  SettingsGroup,
+  SettingsLayout,
+  SettingsNavItem,
+  SettingsSection,
+  SoqlQueryFormatSettings,
+  useAmplitude,
+} from '@jetstream/ui-core';
+import { fromAppState, useFeatureFlag, userProfileState, userProfileSyncState } from '@jetstream/ui/app-state';
 import { deleteAllDataHistoryFiles } from '@jetstream/ui/data-history';
-import { deleteAllLocalData, dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
-import { useAtom, useAtomValue } from 'jotai';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { deleteAllLocalData } from '@jetstream/ui/db';
+import { useAtomValue } from 'jotai';
+import { useAtomCallback } from 'jotai/utils';
+import { useCallback, useRef, useState } from 'react';
+import { Link } from 'react-router';
 import { AnalyticsTrackingSetting } from './AnalyticsTrackingSetting';
-import LoggerConfig from './LoggerConfig';
 import { SettingsDeleteAccount } from './SettingsDeleteAccount';
+
 const HEIGHT_BUFFER = 170;
+
+type UserPreferences = UserProfileUi['preferences'];
 
 export const Settings = () => {
   useTitle(TITLES.SETTINGS);
-  const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
-  const [loading, setLoading] = useState(false);
-  const [loadingError, setLoadingError] = useState(false);
-  const [userProfile, setUserProfile] = useAtom(userProfileState);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const userProfile = useAtomValue(userProfileState);
   const ability = useAtomValue(fromAppState.abilityState);
-  const [fullUserProfile, setFullUserProfile] = useState<UserProfileUiWithIdentities>();
-  const [modifiedUser, setModifiedUser] = useState<UserProfileUiWithIdentities>();
-  const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
+  const { preferences } = userProfile;
 
-  const [resetSyncLoading, setResetSyncLoading] = useState(false);
-  const [recentRecentItemLoading, setRecentRecentItemLoading] = useState<false | 'all' | 'current'>(false);
-
-  // TODO: Give option to disable
-  const recordSyncEnabled = ability.can('access', 'RecordSync');
+  const recordSyncEntitled = ability.can('access', 'RecordSync');
   // Canvas org management: gated by the feature flag + entitlement, and only for individual (non-team)
   // users — team members manage authorized orgs from the Team Dashboard.
   const canvasEnabled = useFeatureFlag('salesforce-canvas');
   const showCanvasOrgs = canvasEnabled && userProfile.entitlements.salesforceCanvas && !userProfile.teamMembership;
+  const showDeleteAccount = !userProfile.teamMembership;
 
-  const soqlQueryFormatOptions = modifiedUser?.preferences?.soqlQueryFormatOptions ?? SoqlQueryFormatOptionsSchema.parse({});
+  const sections: SettingsNavItem[] = [
+    { id: 'account', label: 'Account' },
+    { id: 'general', label: 'General' },
+    { id: 'query', label: 'Query' },
+    { id: 'data-storage', label: 'Data & Storage' },
+    { id: 'privacy-diagnostics', label: 'Privacy & Diagnostics' },
+    ...(showCanvasOrgs ? [{ id: 'integrations', label: 'Integrations' }] : []),
+    ...(showDeleteAccount ? [{ id: 'danger-zone', label: 'Danger Zone' }] : []),
+  ];
 
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
+  // Reads the resolved profile at call time - a functional update on `userProfileState` would receive the
+  // atom's initial Promise rather than the profile
+  const mergePreferences = useAtomCallback(
+    useCallback((get, set, changes: Partial<UserPreferences>) => {
+      const currentProfile = get(userProfileSyncState);
+      set(userProfileState, { ...currentProfile, preferences: { ...currentProfile.preferences, ...changes } });
+    }, []),
+  );
 
-  const getUserProfile = useCallback(async () => {
-    setLoading(true);
-    try {
-      setLoadingError(false);
-      setFullUserProfile(await getFullUserProfile());
-    } catch (ex) {
-      logger.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
-      setLoadingError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // What the server has confirmed - a failed save rolls back to this, except for settings changed again since
+  const savedPreferencesRef = useRef(preferences);
+  const rollbackPreferences = useAtomCallback(
+    useCallback((get, _set, changes: Partial<UserPreferences>) => {
+      return getPreferencesToRestore(get(userProfileSyncState).preferences, changes, savedPreferencesRef.current);
+    }, []),
+  );
 
-  useEffect(() => {
-    getUserProfile();
-  }, [getUserProfile]);
+  // Saves are sent one at a time so they reach the server in the order they were made - two quick changes to the
+  // same setting could otherwise arrive in reverse and leave the older value saved
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
 
-  useEffect(() => {
-    if (fullUserProfile) {
-      setModifiedUser({ ...fullUserProfile });
-    }
-  }, [fullUserProfile]);
-
-  async function handleSave(_modifiedUser?: UserProfileUiWithIdentities) {
-    try {
-      _modifiedUser = _modifiedUser || modifiedUser;
-      if (!_modifiedUser) {
-        return;
+  /**
+   * Applies the change right away and saves it in the background. The server writes only the preferences it
+   * is sent, so only the changed keys are sent - and only those keys are rolled back if the save fails.
+   */
+  function savePreferences(changes: Partial<UserPreferences>) {
+    mergePreferences(changes);
+    saveQueueRef.current = saveQueueRef.current.then(async () => {
+      try {
+        await updateUserProfile({ preferences: changes });
+        savedPreferencesRef.current = { ...savedPreferencesRef.current, ...changes };
+        trackEvent(ANALYTICS_KEYS.settings_update_user);
+      } catch (ex) {
+        mergePreferences(rollbackPreferences(changes));
+        fireToast({
+          message: 'There was a problem saving your settings. Try again or file a support ticket for assistance.',
+          type: 'error',
+        });
+        tracker.error('Settings: Error updating user', ex);
       }
-      setLoading(true);
-      const userProfile = await updateUserProfile({
-        name: _modifiedUser.name,
-        preferences: { ..._modifiedUser.preferences },
-      });
-      setUserProfile(await getUserProfileUi());
-      setFullUserProfile(userProfile);
-      trackEvent(ANALYTICS_KEYS.settings_update_user);
-    } catch (ex) {
-      logger.warn('Error updating user', ex);
-      fireToast({
-        message: 'There was a problem updating your user. Try again or file a support ticket for assistance.',
-        type: 'error',
-      });
-      tracker.error('Settings: Error updating user', ex);
-    } finally {
-      setLoading(false);
-    }
+    });
   }
 
-  function handleFrontdoorLoginChange(skipFrontdoorLogin: boolean) {
-    const _modifiedUser = { ...modifiedUser, preferences: { skipFrontdoorLogin } } as UserProfileUiWithIdentities;
-    setModifiedUser(_modifiedUser);
-    handleSave(_modifiedUser);
-  }
-
-  function handleQueryFormatOptionChange(soqlQueryFormatOptions: SoqlQueryFormatOptions) {
-    const _modifiedUser = { ...modifiedUser, preferences: { soqlQueryFormatOptions } } as UserProfileUiWithIdentities;
-    setModifiedUser(_modifiedUser);
-    handleSave(_modifiedUser);
-  }
-
-  function handleRecordSyncChange(recordSyncEnabled: boolean) {
-    const _modifiedUser = { ...modifiedUser, preferences: { recordSyncEnabled } } as UserProfileUiWithIdentities;
-    setModifiedUser(_modifiedUser);
-    handleSave(_modifiedUser);
-  }
-
-  async function handleDelete(reason: string) {
+  async function handleDeleteAccount(reason?: string) {
     /**
      * FUTURE:
      * Send email from server letting user know we are sorry to see them go!
      */
     trackEvent(ANALYTICS_KEYS.settings_delete_account, { reason });
-    setLoading(true);
+    setDeletingAccount(true);
     try {
       await deleteUserProfile(reason);
     } catch {
@@ -140,7 +118,7 @@ export const Settings = () => {
         message: 'There was a problem deleting your account. Try again or file a support ticket for assistance.',
         type: 'error',
       });
-      setLoading(false);
+      setDeletingAccount(false);
       return;
     }
 
@@ -159,44 +137,6 @@ export const Settings = () => {
     window.location.href = '/goodbye/';
   }
 
-  async function resetSync() {
-    try {
-      setResetSyncLoading(true);
-      await dexieDataSync.reset(recordSyncEnabled);
-    } catch (ex) {
-      logger.error('[DB] Error resetting sync', ex);
-    } finally {
-      setResetSyncLoading(false);
-      fireToast({
-        message: 'Sync reset successfully',
-        type: 'success',
-      });
-    }
-  }
-
-  async function resetRecentHistoryItems(type: 'all' | 'current') {
-    try {
-      setRecentRecentItemLoading(type);
-      if (type === 'current' && selectedOrg) {
-        await recentHistoryItemsDb.clearRecentHistoryItemsForCurrentOrg(selectedOrg.uniqueId);
-      } else if (type === 'all') {
-        await recentHistoryItemsDb.clearRecentHistoryItemsForAllOrgs();
-      }
-      fireToast({
-        message: 'History reset successfully',
-        type: 'success',
-      });
-    } catch (ex) {
-      logger.error('[DB] Error resetting sync', ex);
-      fireToast({
-        message: 'There was a problem resetting your history. Try again or file a support ticket for assistance.',
-        type: 'warning',
-      });
-    } finally {
-      setRecentRecentItemLoading(false);
-    }
-  }
-
   return (
     <Page testId="settings-page">
       <PageHeader>
@@ -204,92 +144,80 @@ export const Settings = () => {
           <PageHeaderTitle icon={{ type: 'standard', icon: 'settings' }} label="Settings" docsPath={APP_ROUTES.SETTINGS.DOCS} />
         </PageHeaderRow>
       </PageHeader>
-      <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
-        {/* Settings */}
-        {loading && <Spinner />}
-        {loadingError && (
-          <ScopedNotification theme="error" className="slds-m-vertical_medium">
-            There was a problem getting your profile information. Make sure you have an internet connection and file a support ticket if you
-            need additional assistance.
-          </ScopedNotification>
-        )}
-        {fullUserProfile && (
-          <div className="slds-m-top_medium">
-            <h2 className="slds-text-heading_medium slds-m-vertical_small">General Settings</h2>
-            <CheckboxToggle
-              id="frontdoor-toggle"
-              checked={modifiedUser?.preferences?.skipFrontdoorLogin ?? false}
-              label="Don't Auto-Login on Link Clicks"
-              labelHelp="When enabled, Jetstream will not attempt to auto-login to Salesforce when you click a link in Jetstream. If you have issues with multi-factor authentication when clicking links, enable this."
-              onChange={handleFrontdoorLoginChange}
+      <AutoFullHeightContainer className="slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
+        {deletingAccount && <Spinner />}
+        <SettingsLayout sections={sections}>
+          <SettingsSection id="account" title="Account">
+            <AccountSummary
+              userProfile={userProfile}
+              actions={
+                <>
+                  {ability.can('read', 'Profile') && (
+                    <Link className="slds-button slds-button_neutral" to={APP_ROUTES.PROFILE.ROUTE}>
+                      Edit Profile
+                    </Link>
+                  )}
+                  {ability.can('read', 'Team') && (
+                    <Link className="slds-button slds-button_neutral" to={APP_ROUTES.TEAM_DASHBOARD.ROUTE}>
+                      Team Dashboard
+                    </Link>
+                  )}
+                </>
+              }
             />
+          </SettingsSection>
 
-            <SoqlQueryFormatConfig location="Settings" value={soqlQueryFormatOptions} onChange={handleQueryFormatOptionChange} />
+          <SettingsSection id="general" title="General">
+            <SettingsGroup>
+              <AppearanceSetting />
+              <SalesforceAutoLoginSetting
+                skipFrontdoorLogin={preferences?.skipFrontdoorLogin ?? false}
+                onChange={(skipFrontdoorLogin) => savePreferences({ skipFrontdoorLogin })}
+              />
+            </SettingsGroup>
+          </SettingsSection>
 
-            {recordSyncEnabled && (
-              <div className="slds-m-top_large">
-                <h2 className="slds-text-heading_medium slds-m-vertical_small">History Data Sync</h2>
-                <CheckboxToggle
-                  id="enable-record-sync-button"
-                  checked={modifiedUser?.preferences?.recordSyncEnabled ?? true}
-                  label="Data Sync"
-                  labelHelp="Enable to sync Query History with the Jetstream server."
-                  onChange={handleRecordSyncChange}
-                />
-                <button className="slds-button slds-button_text-destructive slds-m-top_small slds-is-relative" onClick={resetSync}>
-                  {resetSyncLoading && <Spinner className="slds-spinner slds-spinner_small" />}
-                  Reset Sync
-                </button>
-                <p className=" slds-m-top_small">
-                  You can reset your sync history, this will push and pull Query History data from the Jetstream server to make sure both
-                  are in sync.
-                </p>
-              </div>
-            )}
+          <SettingsSection id="query" title="Query">
+            <SoqlQueryFormatSettings
+              value={preferences?.soqlQueryFormatOptions ?? SoqlQueryFormatOptionsSchema.parse({})}
+              onChange={(soqlQueryFormatOptions) => savePreferences({ soqlQueryFormatOptions })}
+            />
+          </SettingsSection>
 
-            <div className="slds-m-top_large">
-              <h2 className="slds-text-heading_medium slds-m-top_x-small">Recent Objects</h2>
-              <button
-                className="slds-button slds-button_text-destructive slds-m-top_small slds-is-relative"
-                disabled={!selectedOrg}
-                onClick={() => resetRecentHistoryItems('current')}
-              >
-                {recentRecentItemLoading === 'current' && <Spinner className="slds-spinner slds-spinner_small" />}
-                Reset for Current Org
-              </button>
-              <button
-                className="slds-button slds-button_text-destructive slds-m-top_small slds-is-relative"
-                onClick={() => resetRecentHistoryItems('all')}
-              >
-                {recentRecentItemLoading === 'all' && <Spinner className="slds-spinner slds-spinner_small" />}
-                Reset for All Orgs
-              </button>
-              <p className=" slds-m-top_small">
-                Reset your list of recent objects. This will clear the list of objects you have recently viewed in Jetstream.
-              </p>
-            </div>
-
+          <SettingsSection id="data-storage" title="Data & Storage">
             <DataHistorySettingsSection />
-
-            <div className="slds-m-top_large">
-              <h2 className="slds-text-heading_medium slds-m-vertical_small">Logging</h2>
-              <LoggerConfig />
-            </div>
-
-            <div className="slds-m-top_large">
-              <h2 className="slds-text-heading_medium slds-m-vertical_small">Analytics</h2>
-              <AnalyticsTrackingSetting />
-            </div>
-
-            {showCanvasOrgs && (
-              <div className="slds-m-top_large">
-                <SalesforceCanvasOrgs scope={{ type: 'user' }} />
-              </div>
+            {recordSyncEntitled && (
+              <SettingsGroup title="Sync">
+                <HistorySyncSettings
+                  enabled={preferences?.recordSyncEnabled ?? true}
+                  onChange={(recordSyncEnabled) => savePreferences({ recordSyncEnabled })}
+                />
+              </SettingsGroup>
             )}
+            <SettingsGroup>
+              <RecentObjectsSetting />
+            </SettingsGroup>
+          </SettingsSection>
 
-            {!userProfile.teamMembership && <SettingsDeleteAccount onDeleteAccount={handleDelete} />}
-          </div>
-        )}
+          <SettingsSection id="privacy-diagnostics" title="Privacy & Diagnostics">
+            <SettingsGroup>
+              <AnalyticsTrackingSetting />
+              <DiagnosticLoggingSetting />
+            </SettingsGroup>
+          </SettingsSection>
+
+          {showCanvasOrgs && (
+            <SettingsSection id="integrations" title="Integrations">
+              <SalesforceCanvasOrgs scope={{ type: 'user' }} />
+            </SettingsSection>
+          )}
+
+          {showDeleteAccount && (
+            <SettingsSection id="danger-zone" title="Danger Zone">
+              <SettingsDeleteAccount onDeleteAccount={handleDeleteAccount} />
+            </SettingsSection>
+          )}
+        </SettingsLayout>
       </AutoFullHeightContainer>
     </Page>
   );

@@ -87,7 +87,7 @@ export const SoqlQueryFormatConfig = ({
         </Input>
         <Input
           label="Indent Size"
-          labelHelp="Set the number of spaces to use for each indentation level in formatted SOQL queries."
+          labelHelp="Set the number of tabs to use for each indentation level in formatted SOQL queries."
           hasError={!isNumIndentValid}
           errorMessage={!isNumIndentValid ? 'Must be a number greater than or equal to 1' : undefined}
         >

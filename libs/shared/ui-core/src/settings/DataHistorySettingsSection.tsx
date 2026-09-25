@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DataHistorySettings, Maybe } from '@jetstream/types';
-import { CheckboxToggle, ConfirmationModalPromise, fireToast, Spinner, UpgradeToProButton } from '@jetstream/ui';
+import { ConfirmationModalPromise, fireToast, Spinner, UpgradeToProButton } from '@jetstream/ui';
 import { dataHistoryLimitsState } from '@jetstream/ui/app-state';
 import {
   DataHistoryStorageHealth,
@@ -18,15 +18,18 @@ import { useAmplitude } from '../analytics';
 import { ViewDataHistoryLink } from '../app/DataHistoryLinks';
 import { useRequestPersistentStorage, useSetDataHistoryCaptureEnabled } from './data-history-hooks';
 import { DataHistoryStorageLocation } from './DataHistoryStorageLocation';
+import { getSettingsRowIds, SettingsGroup, SettingsRow, SettingsToggleRow } from './layout/SettingsSection';
+
+const RETENTION_ROW_ID = 'setting-data-history-retention';
 
 function formatBytes(sizeBytes: number): string {
   return sizeBytes > 0 ? String(filesize(sizeBytes, { round: 1 })) : '—';
 }
 
 /**
- * "Data History" settings section, shared by the web app Settings page, the desktop Settings page,
+ * "Data History" settings group, shared by the web app Settings page, the desktop Settings page,
  * and the browser extension Additional Settings page (they are separate components — this keeps
- * one implementation).
+ * one implementation). Renders a `SettingsGroup`, so place it inside a `SettingsSection`.
  */
 export interface DataHistorySettingsSectionProps {
   /**
@@ -144,92 +147,109 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
   const entryCapped = limits?.maxEntries != null;
   const usagePercent = health && health.maxTotalBytes > 0 ? Math.min(100, Math.round((health.usedBytes / health.maxTotalBytes) * 100)) : 0;
 
+  let usageText: string | null = null;
+  if (health && entryCapped) {
+    usageText = `${health.entryCount.toLocaleString()} of ${health.maxEntries?.toLocaleString()} entries used`;
+  } else if (health?.entryCount === 0) {
+    usageText = 'No entries saved yet';
+  } else if (health) {
+    usageText = `${health.entryCount.toLocaleString()} ${health.entryCount === 1 ? 'entry' : 'entries'} using ${formatBytes(health.usedBytes)}`;
+  }
+  const showStorageWarning = !entryCapped && usagePercent >= 80;
+  const showPersistedNote = persistPromptEligible && persisted === true;
+
   return (
-    <div className="slds-m-top_large">
-      <h2 className="slds-text-heading_medium slds-m-vertical_small">Data History</h2>
-      <CheckboxToggle
+    <SettingsGroup
+      testId="data-history-settings"
+      title="Data History"
+      description="Everything is stored on this device and never sent to the Jetstream server."
+      actions={!hideViewHistoryLink && <ViewDataHistoryLink />}
+    >
+      <SettingsToggleRow
         id="data-history-enabled-toggle"
+        title="Save data history"
+        description="Keep a history of the data changes you make with Jetstream, including request and result files."
+        details={
+          (usageText || showStorageWarning || showPersistedNote) && (
+            <>
+              {usageText && <p className="slds-text-body_small">{usageText}</p>}
+              {showStorageWarning && (
+                <p className="slds-text-body_small slds-text-color_error slds-m-top_xxx-small">
+                  Storage is {usagePercent}% full — the oldest unpinned entries will be removed automatically as new history is saved.
+                </p>
+              )}
+              {showPersistedNote && (
+                <p className="slds-text-body_small slds-text-color_weak slds-m-top_xxx-small">
+                  Your browser has been asked to keep this history and won’t remove it automatically.
+                </p>
+              )}
+            </>
+          )
+        }
         checked={settings.enabled}
-        label="Data History"
-        labelHelp="Keep a history of the data modifications you make with Jetstream, including request and result files. Everything is stored locally on this device and never sent to the Jetstream server."
         onChange={handleEnabledChange}
       />
-      {!hideViewHistoryLink && <ViewDataHistoryLink className="slds-m-top_x-small" />}
-
-      {health && entryCapped && (
-        <p className="slds-m-top_small">{`${health.entryCount.toLocaleString()} of ${health.maxEntries?.toLocaleString()} entries used`}</p>
-      )}
-      {health && !entryCapped && (
-        <p className="slds-m-top_small">
-          {`${health.entryCount.toLocaleString()} ${health.entryCount === 1 ? 'entry' : 'entries'} using ${formatBytes(health.usedBytes)}`}
-        </p>
-      )}
-      {!entryCapped && usagePercent >= 80 && (
-        <p className="slds-text-color_error slds-m-top_xx-small">
-          Storage is {usagePercent}% full — the oldest unpinned entries will be removed automatically as new history is saved.
-        </p>
-      )}
-
-      {persistPromptEligible && persisted === false && (
-        <div className="slds-m-top_small">
-          <span className="slds-m-right_x-small">Your browser may remove this saved history to free up space.</span>
-          <button className="slds-button slds-button_neutral" disabled={requestingPersist} onClick={requestPersist}>
-            Keep History on This Device
-          </button>
-        </div>
-      )}
-      {persistPromptEligible && persisted === true && (
-        <p className="slds-text-color_weak slds-m-top_small">
-          Your browser has been asked to keep this history and won’t remove it automatically.
-        </p>
-      )}
 
       {/* The tier itself is the free/paid signal — desktop/extension/canvas always resolve to the top tier */}
       {entryCapped && (
-        <div className="slds-m-top_x-small">
-          <span className="slds-m-right_small">
-            {`Free accounts keep your ${limits?.maxEntries} most recent entries — upgrade for unlimited entries and up to a year of history.`}
-          </span>
+        <SettingsRow
+          id="setting-data-history-limit"
+          title="History limit"
+          description={`Free accounts keep your ${limits?.maxEntries} most recent entries. Upgrade for unlimited entries and up to a year of history.`}
+        >
           <UpgradeToProButton trackEvent={trackEvent} source="data-history-settings" />
-        </div>
+        </SettingsRow>
       )}
 
       {!entryCapped && (
-        <div className="slds-form-element slds-m-top_small">
-          <label className="slds-form-element__label" htmlFor="data-history-retention-days">
-            Keep history for (days)
-          </label>
-          <div className="slds-form-element__control">
-            <input
-              id="data-history-retention-days"
-              className="slds-input"
-              css={css`
-                max-width: 8rem;
-              `}
-              type="number"
-              min={1}
-              max={limits?.retentionDaysMax}
-              value={retentionDaysInput}
-              onChange={(event) => setRetentionDaysInput(event.target.value)}
-              onBlur={handleRetentionDaysCommit}
-            />
-          </div>
-        </div>
+        <SettingsRow
+          id={RETENTION_ROW_ID}
+          title="Keep history for"
+          labelFor="data-history-retention-days"
+          description={`Older entries are deleted automatically. Up to ${limits?.retentionDaysMax?.toLocaleString()} days.`}
+        >
+          <input
+            id="data-history-retention-days"
+            className="slds-input"
+            css={css`
+              width: 6rem;
+            `}
+            type="number"
+            min={1}
+            max={limits?.retentionDaysMax}
+            aria-describedby={getSettingsRowIds(RETENTION_ROW_ID).descriptionId}
+            value={retentionDaysInput}
+            onChange={(event) => setRetentionDaysInput(event.target.value)}
+            onBlur={handleRetentionDaysCommit}
+          />
+          <span>days</span>
+        </SettingsRow>
+      )}
+
+      {persistPromptEligible && persisted === false && (
+        <SettingsRow
+          id="setting-data-history-persist"
+          title="Protect saved history"
+          description="Your browser may remove this saved history to free up space unless you ask it to keep it."
+        >
+          <button className="slds-button slds-button_neutral" disabled={requestingPersist} onClick={requestPersist}>
+            Keep History on This Device
+          </button>
+        </SettingsRow>
       )}
 
       <DataHistoryStorageLocation onChanged={loadSettingsAndHealth} />
 
-      <button
-        className="slds-button slds-button_text-destructive slds-m-top_small slds-is-relative"
-        disabled={clearing}
-        onClick={handleClearAll}
+      <SettingsRow
+        id="setting-data-history-delete"
+        title="Delete all data history"
+        description="Deletes every saved entry and file from this device, including pinned entries. History on other devices is not affected."
       >
-        {clearing && <Spinner className="slds-spinner slds-spinner_small" />}
-        Delete All Data History
-      </button>
-      <p className="slds-m-top_small">
-        Deletes every saved history entry and file from this device, including pinned entries. History on other devices is not affected.
-      </p>
-    </div>
+        <button className="slds-button slds-button_text-destructive slds-is-relative" disabled={clearing} onClick={handleClearAll}>
+          {clearing && <Spinner size="x-small" />}
+          Delete All Data History
+        </button>
+      </SettingsRow>
+    </SettingsGroup>
   );
 };

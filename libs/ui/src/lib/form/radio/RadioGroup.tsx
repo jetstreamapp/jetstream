@@ -9,6 +9,10 @@ export interface RadioGroupProps {
   formControlClassName?: string;
   helpTextClassName?: string;
   label?: string;
+  /** Keeps the label for screen readers only */
+  hideLabel?: boolean;
+  /** Id of an element outside the group that describes it */
+  ariaDescribedBy?: string;
   labelHelp?: string | React.ReactNode | null;
   helpText?: string | React.ReactNode;
   required?: boolean;
@@ -24,6 +28,8 @@ export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
   formControlClassName,
   helpTextClassName,
   label,
+  hideLabel = false,
+  ariaDescribedBy,
   labelHelp,
   helpText,
   required,
@@ -37,11 +43,11 @@ export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
   return (
     <fieldset
       className={classNames('slds-form-element', { 'slds-has-error': hasError, 'slds-is-required': required }, className)}
-      aria-describedby={ariaDescribedbyText}
+      aria-describedby={ariaDescribedBy ? `${ariaDescribedbyText} ${ariaDescribedBy}` : ariaDescribedbyText}
     >
       {label && (
         <Fragment>
-          <legend className="slds-form-element__legend slds-form-element__label">
+          <legend className={classNames('slds-form-element__legend slds-form-element__label', { 'slds-assistive-text': hideLabel })}>
             {required && (
               <abbr className="slds-required" title="required">
                 *
@@ -49,7 +55,7 @@ export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
             )}
             {label}
           </legend>
-          {labelHelp && <HelpText id={labelHelpId} content={labelHelp} />}
+          {labelHelp && !hideLabel && <HelpText id={labelHelpId} content={labelHelp} />}
         </Fragment>
       )}
       <div className={classNames('slds-form-element__control', formControlClassName)}>

@@ -79,6 +79,7 @@ function getMenuItems({
   userProfile,
   deniedNotifications,
   isBillingEnabled,
+  isDesktop,
   colorScheme,
   showThemePicker,
 }: {
@@ -86,6 +87,7 @@ function getMenuItems({
   userProfile: UserProfileUi;
   deniedNotifications?: boolean;
   isBillingEnabled: boolean;
+  isDesktop: boolean;
   colorScheme: ColorScheme;
   showThemePicker: boolean;
 }) {
@@ -93,6 +95,9 @@ function getMenuItems({
 
   if (ability.can('read', 'Profile')) {
     menu.push({ id: 'profile', value: 'Profile', subheader: userProfile.email, icon: { type: 'utility', icon: 'profile_alt' } });
+  } else if (isDesktop) {
+    // Desktop has no profile page - the signed in account is shown at the top of Settings instead
+    menu.push({ id: 'account', value: 'Account', subheader: userProfile.email, icon: { type: 'utility', icon: 'profile_alt' } });
   }
 
   if (ability.can('read', 'Settings')) {
@@ -196,6 +201,9 @@ export const HeaderNavbar = ({
       case 'profile':
         navigate(APP_ROUTES.PROFILE.ROUTE);
         break;
+      case 'account':
+        navigate({ pathname: APP_ROUTES.SETTINGS.ROUTE, hash: 'account' });
+        break;
       case 'team-dashboard': {
         if (isDesktop) {
           window.open(`${applicationState.serverUrl}/app/teams`, '_blank');
@@ -233,13 +241,15 @@ export const HeaderNavbar = ({
   function handleNotificationMenuClosed(isEnabled: boolean) {
     setEnableNotifications(false);
     setUserMenuItems(
-      getMenuItems({ ability, userProfile, deniedNotifications: !isEnabled, isBillingEnabled, colorScheme, showThemePicker }),
+      getMenuItems({ ability, userProfile, deniedNotifications: !isEnabled, isBillingEnabled, isDesktop, colorScheme, showThemePicker }),
     );
   }
 
   useEffect(() => {
-    setUserMenuItems(getMenuItems({ ability, userProfile, deniedNotifications, isBillingEnabled, colorScheme, showThemePicker }));
-  }, [ability, userProfile, deniedNotifications, isBillingEnabled, colorScheme, showThemePicker]);
+    setUserMenuItems(
+      getMenuItems({ ability, userProfile, deniedNotifications, isBillingEnabled, isDesktop, colorScheme, showThemePicker }),
+    );
+  }, [ability, userProfile, deniedNotifications, isBillingEnabled, isDesktop, colorScheme, showThemePicker]);
 
   const handleCheckForUpdates = () => {
     if (window.electronAPI) {

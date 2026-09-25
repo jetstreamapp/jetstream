@@ -328,6 +328,8 @@ export const dexieDataSync = {
       }
     } catch (ex) {
       logger.error('[DB][SYNC] Error resetting sync', ex);
+      // Rethrown so a user-initiated reset does not report success when it failed
+      throw ex;
     }
   },
 };

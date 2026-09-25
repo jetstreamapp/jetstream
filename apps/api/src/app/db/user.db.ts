@@ -304,30 +304,26 @@ export async function updateUser(
   },
 ) {
   try {
-    const existingUser = await prisma.user.findUniqueOrThrow({
-      where: { id: user.id },
-      select: {
-        id: true,
-        name: true,
-        preferences: { select: { skipFrontdoorLogin: true, recordSyncEnabled: true, soqlQueryFormatOptions: true } },
-      },
-    });
-    // PATCH update
-    const skipFrontdoorLogin = data.preferences?.skipFrontdoorLogin ?? existingUser?.preferences?.skipFrontdoorLogin ?? false;
-    const recordSyncEnabled = data.preferences?.recordSyncEnabled ?? existingUser?.preferences?.recordSyncEnabled ?? true;
-    const soqlQueryFormatOptions =
-      data.preferences?.soqlQueryFormatOptions ??
-      existingUser?.preferences?.soqlQueryFormatOptions ??
-      SoqlQueryFormatOptionsSchema.parse({});
+    // PATCH update - only the fields that were sent are written, in one statement, so partial updates made at the
+    // same time (e.g. from two devices) cannot undo each other. Prisma skips `undefined` fields.
+    const preferenceChanges = {
+      skipFrontdoorLogin: data.preferences?.skipFrontdoorLogin,
+      recordSyncEnabled: data.preferences?.recordSyncEnabled,
+      soqlQueryFormatOptions: data.preferences?.soqlQueryFormatOptions,
+    };
 
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
-        name: data.name ?? existingUser.name,
+        name: data.name,
         preferences: {
           upsert: {
-            create: { skipFrontdoorLogin, recordSyncEnabled, soqlQueryFormatOptions },
-            update: { skipFrontdoorLogin, recordSyncEnabled, soqlQueryFormatOptions },
+            create: {
+              skipFrontdoorLogin: preferenceChanges.skipFrontdoorLogin ?? false,
+              recordSyncEnabled: preferenceChanges.recordSyncEnabled ?? true,
+              soqlQueryFormatOptions: preferenceChanges.soqlQueryFormatOptions ?? SoqlQueryFormatOptionsSchema.parse({}),
+            },
+            update: preferenceChanges,
           },
         },
       },
