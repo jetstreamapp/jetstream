@@ -37,20 +37,24 @@ MFA/SSO secrets) receive an additional layer of application-level encryption and
 one-way hashed.
 
 **Crash reporting is the one other place personal data leaves the app.** All four surfaces (plus
-the backend) report unhandled errors to **Better Stack**, a sub-processor. A report carries the
-error message, stack trace, app version and the signed-in user's ID and email — never Salesforce
+the backend) are built to report unhandled errors to **Better Stack**, a sub-processor, but
+reporting on the Desktop app, Browser Extension and Canvas is temporarily disabled (see "Known
+drift" above), so today only the Web App and backend send reports. A report carries the error
+message, stack trace, app version and the signed-in user's ID and email — never Salesforce
 record data, credentials or tokens — and goes from the app straight to Better Stack rather than
-through Jetstream servers. There is no session replay or performance tracing on any surface. The
-Desktop app and Browser Extension expose a "Send crash reports to Jetstream" opt-out (on by
-default); the Web App and Canvas do not. See diagrams 01 and 02 for the full breakdown.
+through Jetstream servers. There is no session replay or performance tracing on any surface.
+When reporting is enabled, the Desktop app and Browser Extension expose a "Send crash reports to
+Jetstream" opt-out (on by default); the Web App and Canvas do not. See diagrams 01 and 02 for the
+full breakdown.
 
 **Staff use of Anthropic.** Jetstream staff use Anthropic's Claude to investigate bugs and
 incidents (analyzing excerpts of server logs and crash reports held in Better Stack, and of
-support requests) and for internal operations analysis of Jetstream account records. Anthropic is a listed sub-processor used under its Commercial
-Terms (DPA with SCCs incorporated; no model training on customer content). This is
-staff-initiated, not an app data flow: no Jetstream surface sends data to Anthropic. Salesforce
-record data is never sent deliberately, but Salesforce error text and object/field names can
-appear inside log excerpts. See diagrams 00 and 02.
+support requests) and for internal operations analysis of Jetstream account records. Anthropic
+is a listed sub-processor used under its Commercial Terms (DPA with SCCs incorporated; no model
+training on customer content). This is staff-initiated, not an app data flow: no Jetstream
+surface sends data to Anthropic. Salesforce record data is never sent deliberately, but
+Salesforce error text and object/field names can appear inside log excerpts. See diagrams 00
+and 02.
 
 ## Diagram index
 
