@@ -1,5 +1,19 @@
 [
   {
+    "slug": "v10.21.1",
+    "title": "10.21.1 - Email logo fix for Gmail",
+    "date": "2026-09-25",
+    "tags": ["web"],
+    "versions": { "web": "10.21.1" },
+    "summary": "Fixes the Jetstream logo showing up as a black box in emails opened in Gmail.",
+    "highlights": [
+      {
+        "title": "Email logo fix for Gmail",
+        "description": "The Jetstream logo in emails from Jetstream shows correctly in Gmail instead of as a black box."
+      }
+    ]
+  },
+  {
     "slug": "v10.21.0",
     "title": "10.21.0 - Hide empty types in Deploy Metadata and clearer org status",
     "date": "2026-09-23",
