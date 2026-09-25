@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { getOrgType, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DeployOptions, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal, ScopedNotification } from '@jetstream/ui';
-import { OrgLabelBadge, OrgsCombobox } from '@jetstream/ui-core';
+import { GroupScopedOrgsCombobox, OrgLabelBadge } from '@jetstream/ui-core';
 import { salesforceOrgsOmitSelectedState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -113,7 +113,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
           <GridCol className="slds-border_right slds-p-right_x-small">
             <div className="slds-is-relative">
               {/* ORG LIST */}
-              <OrgsCombobox
+              <GroupScopedOrgsCombobox
                 isRequired
                 label="Deploy components to"
                 hideLabel={false}

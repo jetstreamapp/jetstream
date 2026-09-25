@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { ChangeSet, InputReadFileContent, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { FileSelector, Grid, GridCol, Modal, Picklist, Spinner, Textarea } from '@jetstream/ui';
-import { OrgLabelBadge, OrgsCombobox } from '@jetstream/ui-core';
+import { GroupScopedOrgsCombobox, OrgLabelBadge } from '@jetstream/ui-core';
 import { salesforceOrgsState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useEffect, useState } from 'react';
@@ -81,7 +81,7 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
         <div className="slds-p-around_medium">
           <Grid align="center">
             <GridCol size={12} sizeMedium={6}>
-              <OrgsCombobox
+              <GroupScopedOrgsCombobox
                 isRequired
                 label="Download package from"
                 hideLabel={false}
