@@ -834,7 +834,7 @@ export async function createCheckoutSession({
     currency: 'usd',
     customer: customerId,
     customer_email: customerId ? undefined : user.email,
-    billing_address_collection: type === 'TEAM' ? 'required' : 'auto',
+    billing_address_collection: 'required',
     tax_id_collection: { enabled: type === 'TEAM' },
     consent_collection: {
       terms_of_service: 'required',
