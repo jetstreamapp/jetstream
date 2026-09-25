@@ -1927,6 +1927,18 @@ export async function handleSignInOrRegistration(
           throw new EmailDomainNotAllowed(AUTH_ERROR_MESSAGES.EmailDomainNotAllowed);
         }
 
+        // A team that verified this domain and turned on SSO expects its people to come in through
+        // their identity provider, so a password account created outside the team is refused. Also
+        // checked before the already-in-use branch: every address on the domain gets the same answer,
+        // so it reveals nothing about which of them have an account.
+        //
+        // Skipped for a pending invite, which carries its own team's login configuration and is
+        // checked below against the role the invite grants.
+        if (!teamInviteResponse) {
+          const domainSso = await discoverSsoByDomain(email.split('@')[1]);
+          throwIfInvalidSsoConfig({ provider, providerType, loginConfiguration: domainSso?.loginConfig, role: null });
+        }
+
         const usersWithEmail = await findUsersByEmail(email);
         // Email already in use - go to verification flow with placeholder user, user will never be able to complete the process.
         // The callback emails the address owner that they already have an account in place of a code.
