@@ -1,5 +1,25 @@
 # Changelog
 
+## [10.22.0](https://github.com/jetstreamapp/jetstream/compare/v10.21.1...v10.22.0) (2026-09-25)
+
+### Features
+
+- **api:** require a billing address on every Stripe checkout ([ad22773](https://github.com/jetstreamapp/jetstream/commit/ad227734429e61c000bec7b170d49fa198596dd2))
+- **billing:** collect the production org id at checkout ([c1238af](https://github.com/jetstreamapp/jetstream/commit/c1238af95034129c0a52373cb7388a3d391f1b35))
+- block disposable email domains on signup and email change ([266b749](https://github.com/jetstreamapp/jetstream/commit/266b74972a1cc6392f35d05cd3263a0bc975dfd4))
+- **desktop:** show the signed in account in the user menu ([8432c0f](https://github.com/jetstreamapp/jetstream/commit/8432c0fbbdbd81517b40cd5190ddb5d030428716))
+- **landing:** link to the UpGuard trust center from the footer ([b99f8a2](https://github.com/jetstreamapp/jetstream/commit/b99f8a2baaef9312f1606580b6e77f97fe065795))
+- **landing:** list Anthropic as a sub-processor ([7bdb6d0](https://github.com/jetstreamapp/jetstream/commit/7bdb6d04db078ed46a50b875d90c6c5a782c40f4))
+- **settings:** redesign the settings page with sections and instant saves ([f6b0024](https://github.com/jetstreamapp/jetstream/commit/f6b0024cf5bb739adcf26938e736d8435d6c5df2))
+- **teams:** warn when inviting someone who cannot sign in with the team's SSO ([15fbac6](https://github.com/jetstreamapp/jetstream/commit/15fbac6fa20bcc69a4d40d95d1f02c65352dd175))
+
+### Bug Fixes
+
+- **auth:** require SSO when an invitee registers or links a provider ([957cea0](https://github.com/jetstreamapp/jetstream/commit/957cea0d32f11209969c545ef718c5d3ffcb97c0)), closes [#2079](https://github.com/jetstreamapp/jetstream/issues/2079)
+- **billing:** set the customer type when repairing Stripe customer metadata ([975426d](https://github.com/jetstreamapp/jetstream/commit/975426d0b7d5a9f1870157683d72495c264058af))
+- **teams:** require SSO when accepting a team invite from the invitation page ([f93530e](https://github.com/jetstreamapp/jetstream/commit/f93530ebbe87ac1883cd73d053d27c28f804330c)), references [#2079](https://github.com/jetstreamapp/jetstream/issues/2079)
+- **teams:** stop the linked identities note hiding how to join a team ([90d7250](https://github.com/jetstreamapp/jetstream/commit/90d72501422473a39fc57625e97ffecaa995d4d2))
+
 ## [10.21.1](https://github.com/jetstreamapp/jetstream/compare/v10.21.0...v10.21.1) (2026-09-25)
 
 ### Bug Fixes
