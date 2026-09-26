@@ -92,13 +92,59 @@ if (ENV.IS_CODESIGNING_ENABLED && process.platform === 'win32') {
 }
 
 /**
- * `@electron/asar` is not a direct dependency of the build dir — resolve it through
- * electron-builder -> app-builder-lib, which always ships a compatible version.
+ * `@electron/asar` and `electron-publish` are not direct dependencies of the build dir — resolve
+ * them through electron-builder -> app-builder-lib, which always ships compatible versions (and,
+ * for electron-publish, the exact module instance the publish manager uses).
  */
-function resolveElectronAsar() {
+function requireFromAppBuilderLib(moduleName) {
   const requireFromElectronBuilder = createRequire(require.resolve('electron-builder/package.json'));
-  const requireFromAppBuilderLib = createRequire(requireFromElectronBuilder.resolve('app-builder-lib/package.json'));
-  return requireFromAppBuilderLib('@electron/asar');
+  return createRequire(requireFromElectronBuilder.resolve('app-builder-lib/package.json'))(moduleName);
+}
+
+const S3_UPLOAD_MAX_ATTEMPTS = 4;
+const S3_UPLOAD_BASE_RETRY_DELAY_MS = 5_000;
+/** Socket-level failures worth retrying. Any other error without an HTTP status is local (missing file, bad config). */
+const S3_UPLOAD_RETRYABLE_NETWORK_ERROR_CODES = new Set(['ECONNRESET', 'ETIMEDOUT', 'EPIPE', 'ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN']);
+
+/**
+ * Retry transient S3 upload failures instead of failing the whole release. electron-publish 26.x
+ * uploads each file with a single hand-rolled PutObject and no retry (older versions shelled out to
+ * app-builder's Go S3 client, which retried 5xx responses), so one transient R2 `500 InternalError`
+ * fails the publish after signing and notarization are already done — desktop 4.18.0 on macOS
+ * (#2101). Retries 5xx/408/429 and socket-level network errors with exponential backoff; any
+ * other 4xx (bad credentials, missing bucket) or local error (missing file) fails immediately.
+ *
+ * Remove once electron-publish retries uploads itself.
+ */
+function installS3UploadRetry() {
+  const { S3Publisher } = requireFromAppBuilderLib('electron-publish');
+  const originalUpload = S3Publisher?.prototype?.upload;
+  if (typeof originalUpload !== 'function') {
+    throw new Error('installS3UploadRetry: electron-publish no longer exposes S3Publisher.prototype.upload - update or remove this patch');
+  }
+
+  S3Publisher.prototype.upload = async function uploadWithRetry(task) {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await originalUpload.call(this, task);
+      } catch (error) {
+        // electron-publish only surfaces the HTTP status in the message text
+        const statusCode = Number(/\(HTTP (\d{3})\)/.exec(error?.message ?? '')?.[1]) || null;
+        const isRetryable =
+          statusCode == null
+            ? S3_UPLOAD_RETRYABLE_NETWORK_ERROR_CODES.has(error?.code)
+            : statusCode >= 500 || statusCode === 408 || statusCode === 429;
+        if (!isRetryable || attempt >= S3_UPLOAD_MAX_ATTEMPTS || this.context.cancellationToken.cancelled) {
+          throw error;
+        }
+        const delayMs = S3_UPLOAD_BASE_RETRY_DELAY_MS * 2 ** (attempt - 1);
+        console.warn(
+          `S3 upload of ${path.basename(task.file)} failed (attempt ${attempt}/${S3_UPLOAD_MAX_ATTEMPTS}), retrying in ${delayMs / 1000}s: ${error?.message}`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+  };
 }
 
 /**
@@ -113,7 +159,7 @@ function resolveElectronAsar() {
  * @param {import('electron-builder').AfterPackContext} context
  */
 async function verifyAsarDependencyClosure(context) {
-  const asar = resolveElectronAsar();
+  const asar = requireFromAppBuilderLib('@electron/asar');
 
   const resourcesDir =
     context.electronPlatformName === 'darwin' || context.electronPlatformName === 'mas'
@@ -494,5 +540,9 @@ const config = {
   generateUpdatesFilesForAllChannels: false,
   detectUpdateChannel: false,
 };
+
+if (config.publish) {
+  installS3UploadRetry();
+}
 
 module.exports = config;
