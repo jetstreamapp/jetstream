@@ -1,3 +1,4 @@
+import { ERROR_TRACKER_DATA_COLLECTION } from '@jetstream/shared/constants';
 import type { Maybe } from '@jetstream/types';
 import * as Sentry from '@sentry/node';
 import { app } from 'electron';
@@ -37,8 +38,11 @@ export function initMainErrorTracker(dsn: Maybe<string>): void {
       dsn,
       release: app.getVersion(),
       environment: ENV.ENVIRONMENT,
-      sendDefaultPii: false,
+      dataCollection: ERROR_TRACKER_DATA_COLLECTION,
+      attachStacktrace: false,
       tracesSampleRate: 0,
+      // The main process has no Express to instrument, so skip the module-load hooks Sentry 11 installs by default.
+      enableRuntimeChannelInjection: false,
       initialScope: { tags: { process: 'main' } },
       beforeSend: (event) => (isCrashReportingEnabled() ? event : null),
     });

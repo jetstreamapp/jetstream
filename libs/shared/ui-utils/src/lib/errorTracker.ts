@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { ERROR_TRACKER_DATA_COLLECTION } from '@jetstream/shared/constants';
 import { INVALID_QUERY_LOCATOR_REGEX } from '@jetstream/shared/utils';
 import { Environment, UserProfileUi } from '@jetstream/types';
 import * as Sentry from '@sentry/react';
@@ -109,7 +110,8 @@ export function initErrorTracker(options: InitOptions): void {
     dsn: options.dsn,
     release: options.version,
     environment: options.environment,
-    sendDefaultPii: false,
+    dataCollection: ERROR_TRACKER_DATA_COLLECTION,
+    attachStacktrace: false,
     tracesSampleRate: 0,
     beforeSend: (event) => {
       if (optedOut) {
