@@ -1932,11 +1932,12 @@ export async function handleSignInOrRegistration(
         // checked before the already-in-use branch: every address on the domain gets the same answer,
         // so it reveals nothing about which of them have an account.
         //
-        // Skipped for a pending invite, which carries its own team's login configuration and is
-        // checked below against the role the invite grants.
-        if (!teamInviteResponse) {
-          const domainSso = await discoverSsoByDomain(email.slice(email.lastIndexOf('@') + 1));
-          throwIfInvalidSsoConfig({ provider, providerType, loginConfiguration: domainSso?.loginConfig, role: null });
+        // Skipped for a pending invite from that same team, which is checked below against the role
+        // the invite grants. An invite from any other team is no exemption, or that team could hand
+        // out password accounts on this team's domain.
+        const domainSso = await discoverSsoByEmail(email);
+        if (domainSso && domainSso.teamId !== teamInviteResponse?.team.id) {
+          throwIfInvalidSsoConfig({ provider, providerType, loginConfiguration: domainSso.loginConfig, role: null });
         }
 
         const usersWithEmail = await findUsersByEmail(email);
@@ -2194,6 +2195,14 @@ export async function discoverSsoByDomain(domain: string): Promise<{
     teamName: loginConfig.team.name,
     loginConfig: LoginConfigurationSchema.parse(loginConfig),
   };
+}
+
+/**
+ * The SSO-enabled team whose verified domains include this address' domain, if any. A password account
+ * on that domain can only come from that team, so registration and email change both refuse it otherwise.
+ */
+export function discoverSsoByEmail(email: string) {
+  return discoverSsoByDomain(email.slice(email.lastIndexOf('@') + 1).toLowerCase());
 }
 
 /**

@@ -270,7 +270,7 @@ describe('new user registering with a password from an invite', () => {
     expect(prismaMock.teamMember.create).toHaveBeenCalled();
   });
 
-  it('is not refused by the SSO requirement on their email domain, which only applies to sign ups without an invite', async () => {
+  it("is not refused by the SSO requirement on their email domain when the invite comes from the domain's own team", async () => {
     mockPendingInvite({ ssoBypassEnabled: true, ssoBypassEnabledRoles: ['MEMBER'] });
     mockNewUser();
     prismaMock.loginConfiguration.findFirst.mockResolvedValue({
@@ -280,7 +280,6 @@ describe('new user registering with a password from an invite', () => {
     });
 
     await expect(register()).resolves.toEqual(expect.objectContaining({ isNewUser: true }));
-    expect(prismaMock.loginConfiguration.findFirst).not.toHaveBeenCalled();
     expect(prismaMock.user.create).toHaveBeenCalled();
   });
 });

@@ -34,6 +34,7 @@ const BLOCKED_EMAIL = 'someone@burner.example.com';
 const ALLOWED_EMAIL = 'someone@company.example.com';
 const SSO_DOMAIN_EMAIL = 'someone@sso.example.com';
 const TEAM_ID = 'bbbbbbbb-0000-4000-8000-bbbbbbbbbbbb';
+const OTHER_TEAM_ID = 'dddddddd-0000-4000-8000-dddddddddddd';
 
 const EXISTING_USER = {
   id: 'aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
@@ -137,8 +138,27 @@ describe('handleSignInOrRegistration - credentials register', () => {
         teamInvite: { token: 'invite-token', teamId: TEAM_ID },
       });
 
-      expect(prismaMock.loginConfiguration.findFirst).not.toHaveBeenCalled();
       expect(result.user.userId).toBe(`invalid|${SSO_DOMAIN_EMAIL}`);
+    });
+
+    it('rejects a pending invite from a different team, which cannot hand out password accounts on this domain', async () => {
+      prismaMock.teamMemberInvitation.findFirst.mockResolvedValue({
+        id: 'invite-id',
+        email: SSO_DOMAIN_EMAIL,
+        role: 'MEMBER',
+        features: [],
+        createdById: 'inviter-id',
+        team: {
+          id: OTHER_TEAM_ID,
+          name: 'Consultants',
+          loginConfig: { ...SSO_DOMAIN_LOGIN_CONFIGURATION, domains: [], ssoProvider: 'NONE', ssoEnabled: false },
+        },
+      });
+
+      await expect(
+        handleSignInOrRegistration({ ...registerPayload(SSO_DOMAIN_EMAIL), teamInvite: { token: 'invite-token', teamId: OTHER_TEAM_ID } }),
+      ).rejects.toBeInstanceOf(SsoRequired);
+      expect(prismaMock.user.findMany).not.toHaveBeenCalled();
     });
   });
 });
