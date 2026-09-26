@@ -1,11 +1,15 @@
-import { describe, expect, test } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { fireToast } from '../../toast/AppToast';
 import {
   getWhichRecordsDefaultValue,
   hasSelectableSubset,
+  notifyExcelCellsTruncated,
   RADIO_ALL_BROWSER,
   RADIO_ALL_SERVER,
   RADIO_SELECTED,
 } from '../download-modal-utils';
+
+vi.mock('../../toast/AppToast', () => ({ fireToast: vi.fn() }));
 
 const records = [{ Id: '1' }, { Id: '2' }, { Id: '3' }];
 
@@ -48,5 +52,28 @@ describe('getWhichRecordsDefaultValue', () => {
   test('ignores the selection when every loaded record is selected, since the "Selected records" option is hidden', () => {
     expect(getWhichRecordsDefaultValue({ hasMoreRecords: false, records, selectedRecords: [...records] })).toBe(RADIO_ALL_BROWSER);
     expect(getWhichRecordsDefaultValue({ hasMoreRecords: true, records, selectedRecords: [...records] })).toBe(RADIO_ALL_SERVER);
+  });
+});
+
+describe('notifyExcelCellsTruncated', () => {
+  const getToastMessage = () => vi.mocked(fireToast).mock.calls[0][0].message;
+
+  beforeEach(() => {
+    vi.mocked(fireToast).mockClear();
+  });
+
+  test('points at both full-value formats when the download offers them', () => {
+    notifyExcelCellsTruncated(2, ['xlsx', 'csv', 'json', 'gdrive']);
+    expect(getToastMessage()).toMatch(/2 values exceeded .* and were truncated\. Download as CSV or JSON to get the full values\.$/);
+  });
+
+  test('only names the formats the download offers', () => {
+    notifyExcelCellsTruncated(1, ['csv', 'xlsx', 'gdrive']);
+    expect(getToastMessage()).toMatch(/1 value exceeded .* and was truncated\. Download as CSV to get the full values\.$/);
+  });
+
+  test('omits the hint when no full-value format is offered', () => {
+    notifyExcelCellsTruncated(3, new Set(['xlsx']));
+    expect(getToastMessage()).toMatch(/and were truncated\.$/);
   });
 });

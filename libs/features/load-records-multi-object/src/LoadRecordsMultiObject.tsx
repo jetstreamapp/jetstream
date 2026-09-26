@@ -1,7 +1,6 @@
 import { ANALYTICS_KEYS, INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
-  ensureXlsxCodepageTable,
   formatNumber,
   isBrowserExtension,
   isCanvasApp,
@@ -11,7 +10,6 @@ import {
   usePrimaryActionShortcut,
   useTitle,
 } from '@jetstream/shared/ui-utils';
-import { getErrorMessage } from '@jetstream/shared/utils';
 import { InputReadFileContent, InputReadGoogleSheet } from '@jetstream/types';
 import {
   Accordion,
@@ -31,7 +29,6 @@ import { SkipDataHistoryCheckbox, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useEffect, useMemo, useRef } from 'react';
-import * as XLSX from 'xlsx';
 import LoadRecordsMultiObjectEmptyState from './LoadRecordsMultiObjectEmptyState';
 import {
   allBlockingErrorsState,
@@ -146,33 +143,30 @@ export const LoadRecordsMultiObject = () => {
     }
   }, [loadIsRunning, runs, trackEvent]);
 
-  // Registered on mount so the table is ready by the time a file is chosen.
-  useEffect(() => {
-    ensureXlsxCodepageTable();
-  }, []);
-
   function handleFile({ content, filename }: InputReadFileContent) {
-    try {
-      const workbook = XLSX.read(content, { cellText: false, cellDates: true, type: 'array' });
-      resetAll({ keepSkipDataHistory: true });
-      setInputFilename(filename);
-      setInputFileType('local');
-      setInputGoogleFileId(null);
-      processFile(workbook);
-    } catch (ex) {
-      fireToast({
-        message: `There was an error reading your file. ${getErrorMessage(ex)}`,
-        type: 'error',
-      });
+    // The input only accepts .xlsx, which is always read as bytes - a pasted string cannot be a workbook
+    if (typeof content === 'string') {
+      fireToast({ message: `Choose an Excel file based on the template.`, type: 'error' });
+      return;
     }
+    resetAll({ keepSkipDataHistory: true });
+    setInputFilename(filename);
+    setInputFileType('local');
+    setInputGoogleFileId(null);
+    processFile(content);
   }
 
-  function handleGoogleFile({ workbook, selectedFile }: InputReadGoogleSheet) {
+  /**
+   * Awaited by the Google selector, which keeps its own spinner running until this settles. `processFile` reports
+   * an unreadable workbook through the review step rather than by rejecting, so the file stays selected either way -
+   * the error is rendered against it.
+   */
+  async function handleGoogleFile({ name, bytes, selectedFile }: InputReadGoogleSheet) {
     resetAll({ keepSkipDataHistory: true });
-    setInputFilename(selectedFile.name);
+    setInputFilename(name);
     setInputFileType('google');
     setInputGoogleFileId(selectedFile.id);
-    processFile(workbook);
+    await processFile(bytes);
   }
 
   function handleStartOver() {
@@ -191,6 +185,8 @@ export const LoadRecordsMultiObject = () => {
   useGoBackShortcut(() => changeStep(-1), { disabled: prevStepDisabled });
 
   const hasData = !!datasets?.length;
+  /** A file that could not be opened leaves no worksheets, so the review step is the only thing that can explain why */
+  const hasUnpreviewableErrors = !hasData && allBlockingErrors.length > 0;
 
   const uploadSection = (
     <div>
@@ -315,13 +311,13 @@ export const LoadRecordsMultiObject = () => {
               showViewLink
               onChange={setSkipDataHistory}
             />
-            {!hasData && !fileParsing && (
+            {!hasData && !hasUnpreviewableErrors && !fileParsing && (
               <LoadRecordsMultiObjectEmptyState
                 templateUrl={templateUrl}
                 onTemplateDownload={() => trackEvent(ANALYTICS_KEYS.load_multi_obj_TemplateDownloaded)}
               />
             )}
-            {hasData && <LoadRecordsMultiObjectReview />}
+            {(hasData || hasUnpreviewableErrors) && <LoadRecordsMultiObjectReview />}
           </div>
         )}
         {currentStepIdx === 1 && (

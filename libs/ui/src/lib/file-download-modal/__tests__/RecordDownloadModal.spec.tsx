@@ -1,5 +1,5 @@
 import { SalesforceOrgUi } from '@jetstream/types';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -10,10 +10,13 @@ vi.mock('@jetstream/shared/data', () => ({
 }));
 
 const saveFile = vi.hoisted(() => vi.fn());
-vi.mock('@jetstream/shared/ui-utils', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@jetstream/shared/ui-utils')>()),
-  saveFile,
-}));
+// The real writer by default; a test can swap in a slow build with mockImplementationOnce
+const prepareExcelFile = vi.hoisted(() => vi.fn());
+vi.mock('@jetstream/shared/ui-utils', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@jetstream/shared/ui-utils')>();
+  prepareExcelFile.mockImplementation(original.prepareExcelFile);
+  return { ...original, saveFile, prepareExcelFile };
+});
 
 const LS_KEY = 'RECENT_FILE_FORMAT_RecordDownloadModal';
 
@@ -69,7 +72,7 @@ describe('RecordDownloadModal file format persistence', () => {
     await userEvent.click(screen.getByLabelText('CSV'));
     await userEvent.click(screen.getByRole('button', { name: 'Download' }));
 
-    expect(saveFile).toHaveBeenCalled();
+    await waitFor(() => expect(saveFile).toHaveBeenCalled());
     expect(localStorage.getItem(LS_KEY)).toBe('csv');
   });
 
@@ -102,8 +105,44 @@ describe('RecordDownloadModal file format persistence', () => {
     await userEvent.click(screen.getByLabelText('Load template (Excel)'));
     await userEvent.click(screen.getByRole('button', { name: 'Download' }));
 
-    expect(saveFile).toHaveBeenCalled();
+    await waitFor(() => expect(saveFile).toHaveBeenCalled());
     expect(localStorage.getItem(LS_KEY)).toBe('csv');
+  });
+
+  /** The spreadsheet writer streams the file out as a Blob, which is handed to `saveFile` without being re-wrapped */
+  test('saves an Excel download as a Blob', async () => {
+    setup();
+
+    await userEvent.click(screen.getByLabelText('Excel'));
+    await userEvent.click(screen.getByRole('button', { name: 'Download' }));
+
+    await waitFor(() => expect(saveFile).toHaveBeenCalled());
+    const [fileData, fileNameWithExt] = saveFile.mock.calls[0];
+    expect(fileData).toBeInstanceOf(Blob);
+    expect(fileData.size).toBeGreaterThan(0);
+    expect(fileNameWithExt).toMatch(/\.xlsx$/);
+  });
+
+  test('cancelling the modal while an Excel download is being built aborts it and saves nothing', async () => {
+    // A build that only ends when its signal is aborted, the way a large workbook would look mid-write
+    prepareExcelFile.mockImplementationOnce(
+      (_data: unknown, _header: unknown, _sheetName: unknown, options?: { signal?: AbortSignal }) =>
+        new Promise<Blob>((_resolve, reject) => {
+          options?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+        }),
+    );
+    setup();
+
+    await userEvent.click(screen.getByLabelText('Excel'));
+    await userEvent.click(screen.getByRole('button', { name: 'Download' }));
+    await waitFor(() => expect(prepareExcelFile).toHaveBeenCalled());
+    expect((screen.getByRole('button', { name: 'Download' }) as HTMLButtonElement).disabled).toBe(true);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Download' }) as HTMLButtonElement).disabled).toBe(false));
+    expect(saveFile).not.toHaveBeenCalled();
+    expect(screen.queryByText(/problem preparing your file download/)).toBeNull();
   });
 });
 
