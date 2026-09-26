@@ -54,7 +54,8 @@ overrides:
   "connect-pg-simple>@types/express-session": "^1.18.2"
   dompurify: "^3.3.2"
   handlebars: "4.7.9"
-  shell-quote: "1.8.4"
+  # <1.9.0 has a quadratic-complexity DoS in parse() (dev tooling only: npm-run-all, web-ext, docusaurus)
+  shell-quote: "^1.9.0"
   # Force a patched tar on the electron-builder/node-gyp build-tool chain (app-builder-lib and
   # node-gyp resolve tar 7.5.16). <=7.5.18 allows a decompression/parse DoS via unlimited input
   # (GHSA-23hp-3jrh-7fpw). 7.5.20 matches our direct dependency and stays within both consumers'
