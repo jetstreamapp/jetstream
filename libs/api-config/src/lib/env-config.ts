@@ -8,7 +8,7 @@ import { join } from 'path';
 import { z } from 'zod';
 import { resolveLogLevel } from './logging-policy';
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 let VERSION = 'unknown';
 try {
