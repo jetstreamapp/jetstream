@@ -1935,7 +1935,7 @@ export async function handleSignInOrRegistration(
         // Skipped for a pending invite, which carries its own team's login configuration and is
         // checked below against the role the invite grants.
         if (!teamInviteResponse) {
-          const domainSso = await discoverSsoByDomain(email.split('@')[1]);
+          const domainSso = await discoverSsoByDomain(email.slice(email.lastIndexOf('@') + 1));
           throwIfInvalidSsoConfig({ provider, providerType, loginConfiguration: domainSso?.loginConfig, role: null });
         }
 
