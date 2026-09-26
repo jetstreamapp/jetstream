@@ -175,6 +175,30 @@ export const fileExtToGoogleDriveMimeType = {
   zip: MIME_TYPES.ZIP,
 };
 
+const ERROR_TRACKER_IP_HEADER_DENYLIST = ['forwarded', '-ip', 'remote-', 'via', '-user'];
+
+/**
+ * Sentry SDK `dataCollection` option for every error tracker (web, extension, desktop, api).
+ * Sentry 11 removed `sendDefaultPii`, and with `dataCollection` omitted it collects user info, cookies,
+ * unscrubbed headers, request/response bodies and stack-frame local variables. This keeps what we send
+ * to Better Stack identical to Sentry 10's `sendDefaultPii: false`.
+ */
+export const ERROR_TRACKER_DATA_COLLECTION = {
+  userInfo: false,
+  cookies: false,
+  httpHeaders: {
+    request: { deny: ERROR_TRACKER_IP_HEADER_DENYLIST },
+    response: { deny: ERROR_TRACKER_IP_HEADER_DENYLIST },
+  },
+  httpBodies: [],
+  urlQueryParams: { deny: ERROR_TRACKER_IP_HEADER_DENYLIST },
+  genAI: { inputs: false, outputs: false },
+  databaseQueryData: false,
+  queues: false,
+  graphQL: { document: false, variables: false },
+  stackFrameVariables: false,
+};
+
 export const INDEXED_DB = {
   KEYS: {
     queryHistory: 'HISTORY:QUERY',

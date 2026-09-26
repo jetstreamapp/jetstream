@@ -1,3 +1,4 @@
+import { ERROR_TRACKER_DATA_COLLECTION } from '@jetstream/shared/constants';
 import * as Sentry from '@sentry/node';
 import type { NextFunction, Request, Response } from 'express';
 import { LRUCache } from 'lru-cache';
@@ -15,8 +16,12 @@ if (isEnabled) {
     dsn: ENV.SENTRY_DSN,
     release: ENV.VERSION || undefined,
     environment: ENV.ENVIRONMENT,
-    sendDefaultPii: false,
+    dataCollection: ERROR_TRACKER_DATA_COLLECTION,
+    attachStacktrace: false,
     tracesSampleRate: 0,
+    // Route handlers already report their own errors through errorTracker (route.utils), so Sentry's
+    // automatic Express capture would report every 5xx twice.
+    integrations: [Sentry.expressIntegration({ shouldHandleError: false })],
     beforeSend(event) {
       const rateLimitKey = getRateLimitKey(event);
       if (isUserRateLimited(rateLimitKey)) {
