@@ -200,3 +200,31 @@ describe('production org id collected at checkout', () => {
     expect(metadata.productionOrgId).toBeUndefined();
   });
 });
+
+describe('legal business name collected at checkout', () => {
+  let stripeService: typeof StripeService;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    mocks.customersRetrieve.mockResolvedValue({
+      id: 'cus_1',
+      metadata: { userId: 'user_1', type: 'USER', productionOrgId: PRODUCTION_ORG_ID },
+      subscriptions: { object: 'list', data: [] },
+    });
+    stripeService = await import('../stripe.service');
+  });
+
+  it.each(['USER', 'TEAM'] as const)('requires the business name for %s checkouts', async (type) => {
+    await stripeService.createCheckoutSession({
+      customerId: 'cus_1',
+      mode: 'subscription',
+      priceId: 'price_1',
+      user: { id: 'user_1', name: 'Test User', email: 'test@example.com' },
+      type,
+    });
+
+    const [{ name_collection: nameCollection }] = mocks.sessionsCreate.mock.calls[0];
+    expect(nameCollection).toEqual({ business: { enabled: true, optional: false } });
+  });
+});
