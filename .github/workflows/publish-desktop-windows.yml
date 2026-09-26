@@ -110,7 +110,9 @@ jobs:
           {
             echo "The ${PLATFORM} desktop publish run for \`${REF_NAME}\` failed: ${RUN_URL}"
             echo ""
-            echo "No installers or update metadata were uploaded to the release feed for this run, so the auto-update feed still points at the previous successful release."
+            echo "The update metadata (\`latest*.yml\`) is only uploaded after every installer uploads successfully, so the auto-update feed still points at the previous successful release. If the failure happened mid-upload, some installers for this version may already be in the bucket; nothing references them and the next successful run overwrites them."
+            echo ""
+            echo "For a transient failure (e.g. an S3 5xx), re-run this workflow run. Do not re-push the tag: that also re-runs the other platform's publish."
             echo ""
             echo "cc @${ASSIGNEE}"
           } > "$RUNNER_TEMP/issue-body.md"
