@@ -56,7 +56,7 @@ flowchart TB
   errors -->|"excerpts, staff-initiated"| anthropic
   db -->|"account records, staff-initiated"| anthropic
 
-  legend["Legend:  ══ Salesforce data via Jetstream server    ┄┄ Salesforce data direct to Salesforce (never touches Jetstream)<br/>Crash reports go from each app straight to Better Stack (never via the Jetstream server) and carry no Salesforce record data or credentials.<br/>Anthropic only sees log / crash-report excerpts and account records that staff choose to analyze; terms prohibit model training."]
+  legend["Legend:  ══ Salesforce data via Jetstream server    ┄┄ Salesforce data direct to Salesforce (never touches Jetstream)<br/>Crash reports go from each app straight to Better Stack (never via the Jetstream server) and carry no Salesforce record data or credentials.<br/>Anthropic only sees what staff choose to analyze: log, crash-report and support-request excerpts, and account records. No model training."]
 
   classDef trusted fill:#e8f0fe,stroke:#1a73e8,color:#0b1b3a
   classDef external fill:#fef7e0,stroke:#f9ab00,color:#3a2c05
