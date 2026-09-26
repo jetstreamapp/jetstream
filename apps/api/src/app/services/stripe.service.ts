@@ -835,6 +835,8 @@ export async function createCheckoutSession({
     customer: customerId,
     customer_email: customerId ? undefined : user.email,
     billing_address_collection: 'required',
+    // Salesforce requires the legal business name on every order we report, Stripe saves it to `customer.business_name`
+    name_collection: { business: { enabled: true, optional: false } },
     tax_id_collection: { enabled: type === 'TEAM' },
     consent_collection: {
       terms_of_service: 'required',
