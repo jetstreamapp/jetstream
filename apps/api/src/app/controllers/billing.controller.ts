@@ -1,13 +1,22 @@
 import { ENV, getLogger } from '@jetstream/api-config';
 import { refreshSessionUser } from '@jetstream/auth/server';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
-import { STRIPE_PRICE_KEYS, TeamMemberRole, TeamMemberRoleSchema, UserProfileUi } from '@jetstream/types';
+import {
+  CheckoutSessionRequestSchema,
+  STRIPE_PRICE_KEYS,
+  TEAM_MEMBER_STATUS_ACTIVE,
+  TEAM_STATUS_ACTIVE,
+  TeamMemberRole,
+  TeamMemberRoleSchema,
+  UserProfileUi,
+} from '@jetstream/types';
 import Stripe from 'stripe';
 import { z } from 'zod';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import * as teamDbService from '../db/team.db';
 import * as userDbService from '../db/user.db';
 import * as stripeService from '../services/stripe.service';
+import * as teamSeatsService from '../services/team-seats.service';
 import type { Request, Response } from '../types/route.types';
 import { NotFoundError, UserFacingError } from '../utils/error-handler';
 import { redirect, sendJson } from '../utils/response.handlers';
@@ -35,9 +44,7 @@ export const routeDefinition = {
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-      body: z.object({
-        priceLookupKey: z.enum(STRIPE_PRICE_KEYS),
-      }),
+      body: CheckoutSessionRequestSchema,
     } satisfies RouteValidator,
   },
   processCheckoutSuccess: {
@@ -100,11 +107,29 @@ const fetchPrices = createRoute(routeDefinition.fetchPrices.validators, async ({
   sendJson(res, pricesByLookupKey);
 });
 
+/**
+ * A team whose Stripe customer was deleted cannot open Checkout against it, and would otherwise be stuck
+ * past due with no self-serve way back. Omitting the customer makes Checkout create a fresh one, which the
+ * completed session then binds to the team. Any other Stripe failure is rethrown rather than treated as
+ * "no customer", since that would quietly split a healthy team across two customers.
+ */
+async function resolveUsableTeamCustomer(customerId: string | undefined): Promise<Stripe.Customer | undefined> {
+  if (!customerId) {
+    return undefined;
+  }
+  const customer = await stripeService.fetchCustomerWithSubscriptionsById({ customerId });
+  if (customer.deleted) {
+    getLogger().warn({ customerId }, 'Team billing account points at a deleted Stripe customer; checkout will create a new one');
+    return undefined;
+  }
+  return customer;
+}
+
 const createCheckoutSessionHandler = createRoute(
   routeDefinition.createCheckoutSession.validators,
   async ({ user: sessionUser, body }, req, res) => {
     stripeService.ensureStripeIsInitialized();
-    const { priceLookupKey } = body;
+    const { priceLookupKey, seats, teamName } = body;
 
     const priceId = await stripeService.fetchPrices({ lookupKeys: STRIPE_PRICE_KEYS }).then((prices) => prices[priceLookupKey]?.id);
     if (!priceId) {
@@ -128,18 +153,50 @@ const createCheckoutSessionHandler = createRoute(
     let session: Stripe.Response<Stripe.Checkout.Session> | null = null;
 
     if (type === 'TEAM') {
-      if (team && teamMember?.role !== 'ADMIN' && teamMember?.role !== 'BILLING') {
+      // Membership is returned regardless of status, so a deactivated admin would otherwise keep the
+      // ability to open checkout against the team's Stripe customer
+      const isActiveTeamMember = team?.status === TEAM_STATUS_ACTIVE && teamMember?.status === TEAM_MEMBER_STATUS_ACTIVE;
+      const hasBillingRole = teamMember?.role === 'ADMIN' || teamMember?.role === 'BILLING';
+      if (team && (!isActiveTeamMember || !hasBillingRole)) {
         throw new UserFacingError(`You do not have permission to create a billing session for this team`);
+      }
+      if (!seats) {
+        throw new UserFacingError('Choose how many seats to purchase for your team', { code: 'SEATS_BELOW_MINIMUM', minimum: 1 });
+      }
+      // Self-serve checkout would charge the card while sync leaves the agreed cap untouched, so the
+      // team would pay for seats it never receives
+      if (team?.billingAccount?.manualBilling) {
+        throw new UserFacingError('Seats for this team are set by your billing agreement. Contact support to change them.', {
+          code: 'SEATS_MANUAL_BILLING',
+        });
+      }
+      const teamCustomer = team ? await resolveUsableTeamCustomer(team.billingAccount?.customerId) : undefined;
+      // Read from Stripe rather than the database so a checkout that just completed counts before its
+      // webhook lands. The billing page never offers checkout in this state, so this catches direct
+      // calls and a stale second tab.
+      if (teamCustomer && stripeService.hasCurrentTeamPlanSubscription(teamCustomer)) {
+        throw new UserFacingError(
+          'Your team already has a subscription. Change seats from the team dashboard, or manage your plan from the billing portal.',
+          { code: 'SEATS_ALREADY_SUBSCRIBED' },
+        );
+      }
+      if (team) {
+        await teamSeatsService.assertCheckoutSeatsCoverUsage({ teamId: team.id, seats });
       }
       session = await stripeService.createCheckoutSession({
         mode: 'subscription',
         priceId,
+        // An existing team always bills against its own customer, never the buyer's personal one, so a
+        // team whose billing account is not set up yet gets a dedicated TEAM customer. A brand-new team
+        // starts from the buyer's own customer when they have one.
         // Customer will be created if it doesn't exist
-        customerId: user.billingAccount?.customerId,
+        customerId: team ? teamCustomer?.id : user.billingAccount?.customerId,
         user,
         type: 'TEAM',
         teamId: team?.id,
         productionOrgId,
+        quantity: seats,
+        teamName,
       });
     } else {
       session = await stripeService.createCheckoutSession({
@@ -200,8 +257,11 @@ const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.val
   const teamId = membership?.teamId;
   const teamRole = membership?.role;
 
+  // Prices are needed even without a customer: the checkout seat picker prices seats from Stripe's tiers
+  const pricesByLookupKey = await stripeService.fetchPrices({ lookupKeys: STRIPE_PRICE_KEYS });
+
   if (teamId && teamRole !== 'ADMIN' && teamRole !== 'BILLING') {
-    sendJson(res, { customer: null, pricesByLookupKey: null, didUpdate: false });
+    sendJson(res, { customer: null, pricesByLookupKey, hasManualBilling: false, didUpdate: false });
     return;
   }
 
@@ -213,15 +273,17 @@ const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.val
   } = await stripeService.synchronizeStripeWithJetstreamIfRequiredForTeamOrUser({ userId: user.id, teamId });
   if (!success) {
     getLogger().error({ userId: user.id }, `Did not synchronize Stripe with Jetstream: ${reason}`);
-    sendJson(res, { customer: null, pricesByLookupKey: null, hasManualBilling: false, didUpdate });
+    sendJson(res, { customer: null, pricesByLookupKey, hasManualBilling: false, didUpdate });
     return;
   }
   if (!internalCustomer) {
-    sendJson(res, { customer: null, pricesByLookupKey: null, hasManualBilling: false, didUpdate });
+    sendJson(res, { customer: null, pricesByLookupKey, hasManualBilling: false, didUpdate });
     return;
   }
   const customer = stripeService.convertCustomerWithSubscriptionsToUserFacing(internalCustomer);
-  const pricesByLookupKey = await stripeService.fetchPrices({ lookupKeys: STRIPE_PRICE_KEYS });
+  // Stripe omits the tier table from the expanded subscription item, so a tiered Team plan renders
+  // unknown pricing until the tables are filled in
+  await stripeService.attachTiersToTieredItems(customer);
   const hasManualBilling = await userDbService.hasManualBilling({ userId: user.id });
 
   let userProfile: UserProfileUi | undefined;

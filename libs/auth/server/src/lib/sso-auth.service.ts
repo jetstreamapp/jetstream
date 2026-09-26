@@ -1,7 +1,14 @@
 import { ENV, logger, prisma } from '@jetstream/api-config';
 import { AuthenticatedUser, AuthenticatedUserSchema, LoginConfiguration, SsoProviderType, TwoFactorType } from '@jetstream/auth/types';
-import { isPrismaError, PrismaUniqueConstraintError, toTypedPrismaError } from '@jetstream/prisma';
-import { BILLABLE_ROLES, TEAM_BILLING_STATUS_PAST_DUE, TEAM_MEMBER_STATUS_ACTIVE, TeamMemberRole } from '@jetstream/types';
+import { isPrismaError, Prisma, PrismaUniqueConstraintError, toTypedPrismaError } from '@jetstream/prisma';
+import {
+  addMemberFromInvitation,
+  assertSeatAvailable,
+  auditSeatLimitRejection,
+  SeatLimitError,
+  withTeamSeatLock,
+} from '@jetstream/team-seats';
+import { TEAM_MEMBER_ROLE_MEMBER, TEAM_MEMBER_STATUS_ACTIVE, TeamMemberRole } from '@jetstream/types';
 import type { Request } from 'express';
 import { createUserActivity } from './auth-logging.db.service';
 import { AuthenticatedUserSelect, discoverSsoByDomain, getLoginConfiguration } from './auth.db.service';
@@ -97,45 +104,64 @@ function getSsoMfaRequirements(
 }
 
 /**
- * Check that the team has not exceeded its license limit before JIT provisioning a new member.
- *
- * PAST_DUE always blocks provisioning.
- * License count is only checked when the user has no invitation, because an invitation
- * already occupies a slot in the count and converting it to a membership is a no-op for billing.
+ * Converts a seat rejection into the SSO-facing error and records it so team admins can see who was
+ * turned away. Rethrows every other error unchanged.
  */
-async function checkJitLicenseAvailability(teamId: string, hasInvitation: boolean): Promise<void> {
-  const team = await prisma.team.findUnique({
-    where: { id: teamId },
-    select: {
-      billingStatus: true,
-      billingAccount: { select: { licenseCountLimit: true } },
-    },
-  });
+function rethrowSsoSeatLimit(error: unknown, { teamId, email, userId }: { teamId: string; email: string; userId?: string }): never {
+  if (error instanceof SeatLimitError) {
+    logger.warn({ teamId, email, userId, code: error.code }, 'SSO login blocked: no seat available for this user');
+    // The error carries what the seat check actually ran against, so the audit entry describes the
+    // attempt rather than whatever the caller last believed it was doing
+    auditSeatLimitRejection(error, {
+      attemptedAction: error.kind === 'ACCEPT_INVITATION' ? 'ACCEPT_INVITATION' : 'SSO_JIT',
+      userId,
+      resourceId: userId,
+      targetEmail: email,
+      targetUserId: userId,
+    });
+    throw new SsoLicenseLimitExceeded(error.message);
+  }
+  throw error;
+}
 
-  if (!team) {
+/**
+ * Adds an SSO user to the team. Callers must hold the team seat lock so the invitation lookup, the seat
+ * check and the membership write are atomic.
+ *
+ * The invitation is read here rather than reused from before the lock: one revoked, re-roled or expired
+ * in the meantime must not still hand out its role, and one created while we waited must be applied
+ * rather than left reserving a seat. An invitation converts its reservation through the shared
+ * `addMemberFromInvitation`; without one, JIT provisioning takes a brand-new seat when the team allows it.
+ */
+async function joinTeamUnderLock(
+  tx: Prisma.TransactionClient,
+  { teamId, userId, email, allowJit }: { teamId: string; userId: string; email: string; allowJit: boolean },
+): Promise<void> {
+  const invitation = await tx.teamMemberInvitation.findFirst({
+    where: { teamId, email, expiresAt: { gte: new Date() } },
+    select: { id: true, role: true, features: true },
+  });
+  if (invitation) {
+    await addMemberFromInvitation(tx, { teamId, userId, invitation });
     return;
   }
-
-  if (team.billingStatus === TEAM_BILLING_STATUS_PAST_DUE) {
-    throw new SsoLicenseLimitExceeded(
-      'Your account cannot be provisioned because the team account is past-due. Please contact your administrator.',
-    );
+  if (!allowJit) {
+    throw new SsoAutoProvisioningDisabled('User not invited. JIT provisioning is disabled for this team.');
   }
 
-  if (!hasInvitation && team.billingAccount?.licenseCountLimit != null) {
-    const existingBillableMemberCount = await prisma.teamMember.count({
-      where: { teamId, status: TEAM_MEMBER_STATUS_ACTIVE, role: { in: Array.from(BILLABLE_ROLES) } },
-    });
-    const existingBillableInvitationCount = await prisma.teamMemberInvitation.count({
-      where: { teamId, role: { in: Array.from(BILLABLE_ROLES) } },
-    });
-
-    if (existingBillableMemberCount + existingBillableInvitationCount >= team.billingAccount.licenseCountLimit) {
-      throw new SsoLicenseLimitExceeded(
-        'Your account cannot be provisioned because the team has reached its maximum user count. Please contact your administrator.',
-      );
-    }
-  }
+  // IdP-sourced role is intentionally not trusted — JIT users always default to MEMBER
+  await assertSeatAvailable(tx, { teamId, kind: 'ADD', role: TEAM_MEMBER_ROLE_MEMBER });
+  await tx.teamMember.create({
+    data: {
+      teamId,
+      userId,
+      role: TEAM_MEMBER_ROLE_MEMBER,
+      features: ['ALL'],
+      status: TEAM_MEMBER_STATUS_ACTIVE,
+      createdById: userId,
+      updatedById: userId,
+    },
+  });
 }
 
 /**
@@ -356,16 +382,12 @@ export async function handleSsoLogin(
       throw new SsoAutoProvisioningDisabled('User not invited. JIT provisioning is disabled for this team.');
     }
 
-    await checkJitLicenseAvailability(teamId, !!invitation);
-
-    // Determine role and features for new user
-    const role = invitation?.role || 'MEMBER';
-    const features = invitation?.features || ['ALL'];
-
     try {
-      // Create new user with team membership in single transaction
-      const newUser = await prisma.user
-        .create({
+      // Create the user and their membership in one transaction under the team row lock. The user row
+      // comes first because the membership references it; a rejected seat check or a JIT refusal rolls
+      // the user back with it.
+      const newUser = await withTeamSeatLock(teamId, async (tx) => {
+        const { id: userId } = await tx.user.create({
           data: {
             email,
             userId: `${provider}|${email}`,
@@ -397,29 +419,14 @@ export async function handleSsoLogin(
                 enabled: ENV.JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE,
               },
             },
-            teamMembership: {
-              create: {
-                teamId,
-                role,
-                features,
-                status: TEAM_MEMBER_STATUS_ACTIVE,
-              },
-            },
           },
-          select: AuthenticatedUserSelect,
-        })
-        .then((user) => AuthenticatedUserSchema.parse(user));
-
-      // Delete invitation if it exists
-      if (invitation) {
-        await prisma.teamMemberInvitation
-          .delete({
-            where: { id: invitation.id },
-          })
-          .catch(() => {
-            // Ignore if already deleted
-          });
-      }
+          select: { id: true },
+        });
+        await joinTeamUnderLock(tx, { teamId, userId, email, allowJit: !!loginConfig.ssoJitProvisioningEnabled });
+        return tx.user
+          .findFirstOrThrow({ select: AuthenticatedUserSelect, where: { id: userId } })
+          .then((user) => AuthenticatedUserSchema.parse(user));
+      });
 
       logger.info({ userId: newUser.id, teamId, provider, email }, 'New user created via SSO JIT provisioning');
       createUserActivity({
@@ -451,7 +458,7 @@ export async function handleSsoLogin(
       return newUser;
     } catch (error) {
       if (!isUniqueConstraintError(error)) {
-        throw error;
+        rethrowSsoSeatLimit(error, { teamId, email });
       }
       // A concurrent request created the user first — re-fetch and continue to existing-user flow
       logger.info({ teamId, provider, email }, 'SSO user creation race condition detected, retrying as existing user');
@@ -476,39 +483,17 @@ export async function handleSsoLogin(
 
   // User exists - check team membership
   if (!user.teamMembership) {
-    // IdP-sourced role is intentionally not trusted — JIT users always default to MEMBER
-    const role = invitation?.role || 'MEMBER';
-    const features = invitation?.features || ['ALL'];
     const allowJit = loginConfig?.ssoJitProvisioningEnabled;
 
     if (!invitation && !allowJit) {
       throw new SsoAutoProvisioningDisabled('User is not a member of this team and no invitation was found.');
     }
 
-    await checkJitLicenseAvailability(teamId, !!invitation);
-
     try {
-      await prisma.teamMember.create({
-        data: {
-          teamId,
-          userId: user.id,
-          role,
-          features,
-          status: TEAM_MEMBER_STATUS_ACTIVE,
-          createdById: user.id,
-          updatedById: user.id,
-        },
-      });
-
-      // Delete invitation if it exists
-      if (invitation) {
-        await prisma.teamMemberInvitation.delete({ where: { id: invitation.id } }).catch(() => {
-          // Ignore if already deleted
-        });
-      }
+      await withTeamSeatLock(teamId, (tx) => joinTeamUnderLock(tx, { teamId, userId: user.id, email, allowJit: !!allowJit }));
     } catch (error) {
       if (!isUniqueConstraintError(error)) {
-        throw error;
+        rethrowSsoSeatLimit(error, { teamId, email, userId: user.id });
       }
       // A concurrent request already added this user to the team — continue
       logger.info({ userId: user.id, teamId, provider, email }, 'SSO team member creation race condition detected, continuing');

@@ -1,6 +1,9 @@
 import { prisma } from '@jetstream/api-config';
+import { AuditLogAction, AuditLogResource, createTeamAuditLog } from '@jetstream/audit-logs';
 import { Prisma } from '@jetstream/prisma';
-import { EntitlementsAccess, EntitlementsAccessSchema, TeamBillingStatus } from '@jetstream/types';
+import { getPurchasedSeatCount } from '@jetstream/shared/utils';
+import { withTeamSeatLock } from '@jetstream/team-seats';
+import { EntitlementsAccess, EntitlementsAccessSchema, TEAM_BILLING_STATUS_PAST_DUE, TeamBillingStatus } from '@jetstream/types';
 import Stripe from 'stripe';
 import { resolveActiveTeamIdForUser } from './feature-flags.db';
 
@@ -14,6 +17,37 @@ const SELECT = {
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.SubscriptionSelect;
+
+const TEAM_SEAT_BILLING_ACCOUNT_SELECT = {
+  customerId: true,
+  manualBilling: true,
+  licenseCountLimit: true,
+  seatQuantity: true,
+  includedSeats: true,
+  seatSubscriptionItemId: true,
+  seatPeriodEnd: true,
+  pendingSeatQuantity: true,
+  pendingSeatEffectiveAt: true,
+  seatScheduleId: true,
+} satisfies Prisma.TeamBillingAccountSelect;
+
+export type TeamSeatBillingAccount = Prisma.TeamBillingAccountGetPayload<{ select: typeof TEAM_SEAT_BILLING_ACCOUNT_SELECT }>;
+
+/**
+ * Seat state resolved from the Stripe TEAM_ subscription item and the schedule attached to its
+ * subscription; null when the customer has no active team item.
+ */
+export interface TeamSeatState {
+  subscriptionItemId: string;
+  quantity: number;
+  /** Seats the price covers with its flat first tier (legacy plans include 5); 0 for per-seat pricing */
+  includedSeats: number;
+  periodEnd: Date;
+  /** Decrease scheduled with Stripe for the end of the current period */
+  pending: { quantity: number; effectiveAt: Date; scheduleId: string } | null;
+  /** A schedule Jetstream did not create; seat changes are blocked until it is gone */
+  foreignScheduleId: string | null;
+}
 
 export const findByUserId = async (userId: string) => {
   return await prisma.subscription.findMany({ where: { userId, status: 'ACTIVE' }, select: SELECT });
@@ -133,17 +167,138 @@ export const updateSubscriptionStateForCustomer = async ({
 };
 
 /**
+ * ************************************
+ * Team seats
+ * ************************************
+ */
+
+/** Billing status plus the billing account columns that mirror Stripe's seat state. */
+export const getTeamBillingAccountForSeats = async ({ teamId }: { teamId: string }) => {
+  return await prisma.team.findUniqueOrThrow({
+    where: { id: teamId },
+    select: { id: true, billingStatus: true, billingAccount: { select: TEAM_SEAT_BILLING_ACCOUNT_SELECT } },
+  });
+};
+
+function areDatesEqual(left: Date | null, right: Date | null): boolean {
+  return (left?.getTime() ?? null) === (right?.getTime() ?? null);
+}
+
+/**
+ * Whether the mirrored seat columns already reflect Stripe. Manual-billing teams keep a hand-set cap
+ * that sync never touches, so they are always in sync. Without an active team item the mirrors are
+ * expected to be empty while `licenseCountLimit` keeps its last value.
+ */
+export function isTeamSeatStateInSync(billingAccount: TeamSeatBillingAccount | null, seatState: TeamSeatState | null): boolean {
+  if (!billingAccount || billingAccount.manualBilling) {
+    return true;
+  }
+  const isMirrorInSync =
+    billingAccount.seatQuantity === (seatState?.quantity ?? null) &&
+    billingAccount.includedSeats === (seatState?.includedSeats ?? 0) &&
+    billingAccount.seatSubscriptionItemId === (seatState?.subscriptionItemId ?? null) &&
+    areDatesEqual(billingAccount.seatPeriodEnd, seatState?.periodEnd ?? null) &&
+    billingAccount.pendingSeatQuantity === (seatState?.pending?.quantity ?? null) &&
+    areDatesEqual(billingAccount.pendingSeatEffectiveAt, seatState?.pending?.effectiveAt ?? null) &&
+    billingAccount.seatScheduleId === (seatState?.pending?.scheduleId ?? null);
+  if (!isMirrorInSync) {
+    return false;
+  }
+  return seatState ? billingAccount.licenseCountLimit === getPurchasedSeatCount(seatState) : true;
+}
+
+function buildSeatFieldWrites(seatState: TeamSeatState | null): Prisma.TeamBillingAccountUpdateInput {
+  if (!seatState) {
+    return {
+      seatQuantity: null,
+      includedSeats: 0,
+      seatSubscriptionItemId: null,
+      seatPeriodEnd: null,
+      pendingSeatQuantity: null,
+      pendingSeatEffectiveAt: null,
+      seatScheduleId: null,
+    };
+  }
+  return {
+    seatQuantity: seatState.quantity,
+    includedSeats: seatState.includedSeats,
+    seatSubscriptionItemId: seatState.subscriptionItemId,
+    seatPeriodEnd: seatState.periodEnd,
+    pendingSeatQuantity: seatState.pending?.quantity ?? null,
+    pendingSeatEffectiveAt: seatState.pending?.effectiveAt ?? null,
+    seatScheduleId: seatState.pending?.scheduleId ?? null,
+    licenseCountLimit: getPurchasedSeatCount(seatState),
+  };
+}
+
+export const setPendingSeatDecrease = async ({
+  teamId,
+  quantity,
+  effectiveAt,
+  scheduleId,
+}: {
+  teamId: string;
+  quantity: number;
+  effectiveAt: Date;
+  scheduleId: string;
+}) => {
+  return await prisma.teamBillingAccount.update({
+    where: { teamId },
+    data: { pendingSeatQuantity: quantity, pendingSeatEffectiveAt: effectiveAt, seatScheduleId: scheduleId },
+  });
+};
+
+/**
+ * Records the target of a decrease before Stripe has scheduled it. Written under the team seat lock so
+ * membership checks that run while Stripe is being called already count against the lower cap; the
+ * schedule id follows once Stripe returns, and a failed call is undone by re-synchronizing from Stripe.
+ */
+export const reservePendingSeatDecrease = async (
+  tx: Prisma.TransactionClient,
+  { teamId, quantity, effectiveAt }: { teamId: string; quantity: number; effectiveAt: Date },
+) => {
+  return await tx.teamBillingAccount.update({
+    where: { teamId },
+    data: { pendingSeatQuantity: quantity, pendingSeatEffectiveAt: effectiveAt },
+  });
+};
+
+export const clearPendingSeatDecrease = async ({ teamId }: { teamId: string }) => {
+  return await prisma.teamBillingAccount.update({
+    where: { teamId },
+    data: { pendingSeatQuantity: null, pendingSeatEffectiveAt: null, seatScheduleId: null },
+  });
+};
+
+/**
+ * Drops the schedule pointer while leaving the reserved seat count in place, for a caller that is
+ * replacing one pending decrease with another: the released schedule must never be referenced again,
+ * but the lower cap has to stay enforced across the Stripe calls that write the replacement.
+ */
+export const clearSeatScheduleId = async ({ teamId }: { teamId: string }) => {
+  return await prisma.teamBillingAccount.update({
+    where: { teamId },
+    data: { seatScheduleId: null },
+  });
+};
+
+/**
  * Given a customer's current subscriptions, cancel all other subscriptions, create any needed subscriptions, and update the subscription state
  * In addition, entitlements are also updated to reflect the user's current subscription state
+ *
+ * Runs under the team seat lock so a period-end decrease lands atomically with respect to invites:
+ * an invite cannot count seats against a cap that is being lowered in the same instant.
  */
 export const updateTeamSubscriptionStateForCustomer = async ({
   teamId,
   customerId,
   subscriptions,
+  seatState,
 }: {
   teamId: string;
   customerId: string;
   subscriptions: Stripe.Subscription[];
+  seatState: TeamSeatState | null;
 }) => {
   const priceIds = subscriptions.flatMap((subscription) => subscription.items.data.map((item) => item.price.id));
 
@@ -155,29 +310,30 @@ export const updateTeamSubscriptionStateForCustomer = async ({
    */
   const hasSubscriptions = subscriptions.length > 0;
   const isPastDue = subscriptions.some(({ status }) => status === 'past_due');
-  const team = await prisma.team.findFirstOrThrow({
-    where: { id: teamId },
-    select: {
-      id: true,
-      billingAccount: { select: { manualBilling: true } },
-    },
-  });
-  let teamBillingStatus: TeamBillingStatus = 'ACTIVE';
-  if (team.billingAccount?.manualBilling) {
-    teamBillingStatus = 'MANUAL';
-  } else if (!hasSubscriptions || isPastDue) {
-    teamBillingStatus = 'PAST_DUE';
-  }
 
-  await prisma.$transaction([
+  const appliedDecrease = await withTeamSeatLock(teamId, async (tx) => {
+    const team = await tx.team.findFirstOrThrow({
+      where: { id: teamId },
+      select: {
+        id: true,
+        billingAccount: { select: { manualBilling: true, licenseCountLimit: true, seatScheduleId: true } },
+      },
+    });
+    let teamBillingStatus: TeamBillingStatus = 'ACTIVE';
+    if (team.billingAccount?.manualBilling) {
+      teamBillingStatus = 'MANUAL';
+    } else if (!hasSubscriptions || isPastDue) {
+      teamBillingStatus = 'PAST_DUE';
+    }
+
     // Delete all subscriptions that are no longer active in Stripe
-    prisma.teamSubscription.deleteMany({
+    await tx.teamSubscription.deleteMany({
       where: { teamId, customerId, priceId: { notIn: priceIds } },
-    }),
+    });
     // Create/Update all current subscriptions from Stripe
-    ...subscriptions.flatMap((subscription) =>
-      subscription.items.data.map((item) =>
-        prisma.teamSubscription.upsert({
+    for (const subscription of subscriptions) {
+      for (const item of subscription.items.data) {
+        await tx.teamSubscription.upsert({
           create: {
             teamId,
             subscriptionId: subscription.id,
@@ -187,14 +343,39 @@ export const updateTeamSubscriptionStateForCustomer = async ({
           },
           update: { status: subscription.status.toUpperCase() },
           where: { uniqueSubscription: { teamId, subscriptionId: subscription.id, priceId: item.price.id } },
-        }),
-      ),
-    ),
-    prisma.team.update({
+        });
+      }
+    }
+    await tx.team.update({
       data: { billingStatus: teamBillingStatus },
       where: { id: teamId },
-    }),
-  ]);
+    });
+
+    // Manual-billing teams keep their hand-set cap; Stripe never dictates their seats
+    if (!team.billingAccount || team.billingAccount.manualBilling) {
+      return null;
+    }
+    await tx.teamBillingAccount.update({ where: { teamId }, data: buildSeatFieldWrites(seatState) });
+
+    const previousLimit = team.billingAccount.licenseCountLimit;
+    const newLimit = seatState ? getPurchasedSeatCount(seatState) : null;
+    if (previousLimit !== null && newLimit !== null && newLimit < previousLimit) {
+      return { previousSeats: previousLimit, newSeats: newLimit, scheduleId: team.billingAccount.seatScheduleId };
+    }
+    return null;
+  });
+
+  // Logged after the transaction commits: the audit helper writes with the global client, so logging inside
+  // the callback would record a decrease that was then rolled back
+  if (appliedDecrease) {
+    createTeamAuditLog({
+      teamId,
+      action: AuditLogAction.TEAM_SEATS_DECREASE_APPLIED,
+      resource: AuditLogResource.TEAM_SEATS,
+      resourceId: teamId,
+      metadata: appliedDecrease,
+    });
+  }
 };
 
 export const cancelAllSubscriptionsForUser = async ({ customerId }: { customerId: string }) => {
@@ -206,6 +387,17 @@ export const cancelAllSubscriptionsForUser = async ({ customerId }: { customerId
     prisma.teamSubscription.updateMany({
       where: { customerId },
       data: { status: 'CANCELED' },
+    }),
+    // A deleted customer has no subscription left for a scheduled decrease to apply to
+    prisma.teamBillingAccount.updateMany({
+      where: { customerId },
+      data: { pendingSeatQuantity: null, pendingSeatEffectiveAt: null, seatScheduleId: null },
+    }),
+    // Same standing a team gets when its subscriptions go away: without it the team keeps its old
+    // seat cap and every membership path would go on granting billable seats with no Stripe customer
+    prisma.team.updateMany({
+      where: { billingAccount: { customerId, manualBilling: false } },
+      data: { billingStatus: TEAM_BILLING_STATUS_PAST_DUE },
     }),
   ]);
 };

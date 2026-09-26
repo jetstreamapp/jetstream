@@ -1,5 +1,8 @@
+import { SeatLimitError } from '@jetstream/team-seats';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { linkSsoIdentity, resolveSsoUser } from '../sso-auth.service';
+import { getLoginConfiguration } from '../auth.db.service';
+import { SsoAutoProvisioningDisabled, SsoLicenseLimitExceeded } from '../auth.errors';
+import { handleSsoLogin, linkSsoIdentity, resolveSsoUser } from '../sso-auth.service';
 
 const loggerMock = vi.hoisted(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }));
 
@@ -12,12 +15,29 @@ const prismaMock = vi.hoisted(() => ({
   },
   user: {
     findMany: vi.fn(),
+    create: vi.fn(),
+    findFirstOrThrow: vi.fn(),
+    update: vi.fn(),
+  },
+  teamMember: {
+    create: vi.fn(),
+  },
+  teamMemberInvitation: {
+    findFirst: vi.fn(),
   },
   webExtensionToken: {
     updateMany: vi.fn(),
   },
   $transaction: vi.fn(),
 }));
+
+const teamSeatsMock = vi.hoisted(() => ({
+  withTeamSeatLock: vi.fn(),
+  assertSeatAvailable: vi.fn(),
+  addMemberFromInvitation: vi.fn(),
+}));
+
+const auditLogMock = vi.hoisted(() => ({ createTeamAuditLog: vi.fn() }));
 
 const prismaErrorMock = vi.hoisted(() => {
   class PrismaUniqueConstraintError extends Error {}
@@ -40,11 +60,16 @@ vi.mock('@jetstream/prisma', () => ({
   toTypedPrismaError: prismaErrorMock.toTypedPrismaError,
 }));
 
-vi.mock('@jetstream/types', () => ({
-  BILLABLE_ROLES: new Set(['ADMIN', 'BILLING', 'MEMBER']),
-  TEAM_BILLING_STATUS_PAST_DUE: 'PAST_DUE',
-  TEAM_MEMBER_STATUS_ACTIVE: 'ACTIVE',
-}));
+// The lock runs its callback against the prisma mock; seat math (isBillableRole) and SeatLimitError stay real.
+vi.mock('@jetstream/team-seats', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@jetstream/team-seats')>();
+  return { ...actual, ...teamSeatsMock };
+});
+
+vi.mock('@jetstream/audit-logs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@jetstream/audit-logs')>();
+  return { ...actual, ...auditLogMock };
+});
 
 vi.mock('@jetstream/auth/types', () => ({
   AuthenticatedUserSchema: {
@@ -435,5 +460,243 @@ describe('linkSsoIdentity', () => {
       expect.stringContaining('row exists for a different user'),
     );
     expect(prismaMock.authIdentity.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('handleSsoLogin seat enforcement', () => {
+  const TEAM_ID = 'team-1';
+  const userInfo = { email: 'user@example.com', userName: 'user', subject: 'nameid-1' };
+  const seats = {
+    purchased: 5,
+    pending: null,
+    pendingEffectiveAt: null,
+    effective: 5,
+    used: 2,
+    reserved: 1,
+    available: 2,
+    isUnlimited: false,
+    isOverAllocated: false,
+    includedSeats: 0,
+  };
+  const membership = { teamId: TEAM_ID, role: 'MEMBER', status: 'ACTIVE' };
+
+  function makeSeatLimitError(kind: 'ADD' | 'ACCEPT_INVITATION') {
+    return new SeatLimitError({ code: 'NO_SEATS', teamId: TEAM_ID, kind, seats: { ...seats, available: 0 } });
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prismaErrorMock.isPrismaError.mockReturnValue(false);
+    prismaErrorMock.toTypedPrismaError.mockReturnValue(null);
+    vi.mocked(getLoginConfiguration).mockResolvedValue({
+      id: 'login-config-1',
+      ssoEnabled: true,
+      ssoProvider: 'SAML',
+      domains: ['example.com'],
+      samlConfiguration: { id: 'saml-1' },
+      oidcConfiguration: null,
+      ssoJitProvisioningEnabled: true,
+      ssoRequireMfa: false,
+      allowedMfaMethods: new Set(),
+    } as any);
+    teamSeatsMock.withTeamSeatLock.mockImplementation(async (_teamId: string, fn: (tx: unknown) => Promise<unknown>) => fn(prismaMock));
+    teamSeatsMock.assertSeatAvailable.mockResolvedValue(seats);
+    teamSeatsMock.addMemberFromInvitation.mockResolvedValue({ role: 'MEMBER', status: 'ACTIVE' });
+    // No invitation and no existing user unless a test says otherwise
+    prismaMock.teamMemberInvitation.findFirst.mockResolvedValue(null);
+    prismaMock.authIdentity.findFirst.mockResolvedValue(null);
+    prismaMock.authIdentity.findUnique.mockResolvedValue({ userId: 'user-1' });
+    prismaMock.user.findMany.mockResolvedValue([]);
+    prismaMock.user.create.mockResolvedValue(fakeUser({ authFactors: [], teamMembership: membership }));
+    prismaMock.user.findFirstOrThrow.mockResolvedValue(fakeUser({ authFactors: [], teamMembership: membership }));
+    prismaMock.user.update.mockResolvedValue({});
+    prismaMock.teamMember.create.mockResolvedValue(membership);
+  });
+
+  describe('new user (JIT provisioning)', () => {
+    it('without an invitation creates the user, then takes a brand-new seat (ADD) inside the same team lock', async () => {
+      await handleSsoLogin('saml', TEAM_ID, userInfo, {} as any);
+
+      expect(teamSeatsMock.withTeamSeatLock).toHaveBeenCalledTimes(1);
+      expect(teamSeatsMock.withTeamSeatLock).toHaveBeenCalledWith(TEAM_ID, expect.any(Function));
+      expect(prismaMock.user.create).toHaveBeenCalledTimes(1);
+      expect(prismaMock.user.create.mock.calls[0][0].data.teamMembership).toBeUndefined();
+      expect(teamSeatsMock.assertSeatAvailable).toHaveBeenCalledWith(prismaMock, { teamId: TEAM_ID, kind: 'ADD', role: 'MEMBER' });
+      expect(prismaMock.teamMember.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ teamId: TEAM_ID, userId: 'user-1', role: 'MEMBER', features: ['ALL'], status: 'ACTIVE' }),
+        }),
+      );
+      expect(teamSeatsMock.addMemberFromInvitation).not.toHaveBeenCalled();
+    });
+
+    it('with an invitation re-reads it under the lock and delegates to addMemberFromInvitation (no separate ADD check)', async () => {
+      prismaMock.teamMemberInvitation.findFirst.mockResolvedValue({ id: 'invite-1', role: 'MEMBER', features: ['ALL'] });
+
+      await handleSsoLogin('saml', TEAM_ID, userInfo, {} as any);
+
+      expect(prismaMock.teamMemberInvitation.findFirst).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: { teamId: TEAM_ID, email: 'user@example.com', expiresAt: { gte: expect.any(Date) } },
+        }),
+      );
+      expect(teamSeatsMock.addMemberFromInvitation).toHaveBeenCalledWith(prismaMock, {
+        teamId: TEAM_ID,
+        userId: 'user-1',
+        invitation: expect.objectContaining({ id: 'invite-1', role: 'MEMBER' }),
+      });
+      expect(teamSeatsMock.assertSeatAvailable).not.toHaveBeenCalled();
+      expect(prismaMock.teamMember.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects the login and rolls back the user when the invitation disappears before the lock and JIT provisioning is disabled', async () => {
+      vi.mocked(getLoginConfiguration).mockResolvedValue({
+        id: 'login-config-1',
+        ssoEnabled: true,
+        ssoProvider: 'SAML',
+        domains: ['example.com'],
+        samlConfiguration: { id: 'saml-1' },
+        oidcConfiguration: null,
+        ssoJitProvisioningEnabled: false,
+        ssoRequireMfa: false,
+        allowedMfaMethods: new Set(),
+      } as any);
+      prismaMock.teamMemberInvitation.findFirst
+        .mockResolvedValueOnce({ id: 'invite-1', role: 'MEMBER', features: ['ALL'] })
+        .mockResolvedValueOnce(null);
+
+      await expect(handleSsoLogin('saml', TEAM_ID, userInfo, {} as any)).rejects.toBeInstanceOf(SsoAutoProvisioningDisabled);
+
+      // The refusal escapes the lock callback, so the transaction holding the user create rolls back
+      await expect(teamSeatsMock.withTeamSeatLock.mock.results[0].value).rejects.toBeInstanceOf(SsoAutoProvisioningDisabled);
+      expect(teamSeatsMock.addMemberFromInvitation).not.toHaveBeenCalled();
+      expect(prismaMock.teamMember.create).not.toHaveBeenCalled();
+    });
+
+    it('maps a seat rejection to SsoLicenseLimitExceeded, audits it, and rolls back the user', async () => {
+      const seatLimitError = makeSeatLimitError('ADD');
+      teamSeatsMock.assertSeatAvailable.mockRejectedValueOnce(seatLimitError);
+
+      await expect(handleSsoLogin('saml', TEAM_ID, userInfo, {} as any)).rejects.toBeInstanceOf(SsoLicenseLimitExceeded);
+
+      // The rejection escapes the lock callback, so the transaction holding the user create rolls back
+      await expect(teamSeatsMock.withTeamSeatLock.mock.results[0].value).rejects.toBe(seatLimitError);
+      expect(prismaMock.teamMember.create).not.toHaveBeenCalled();
+      expect(auditLogMock.createTeamAuditLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          teamId: TEAM_ID,
+          action: 'TEAM_MEMBER_ADD_BLOCKED_NO_SEATS',
+          metadata: expect.objectContaining({ attemptedAction: 'SSO_JIT', code: 'NO_SEATS', kind: 'ADD', targetEmail: 'user@example.com' }),
+        }),
+      );
+      // The rolled-back user id must not be recorded against the audit entry
+      expect(auditLogMock.createTeamAuditLog.mock.calls[0][0].metadata.targetUserId).toBeUndefined();
+    });
+  });
+
+  describe('existing user without a membership', () => {
+    beforeEach(() => {
+      prismaMock.authIdentity.findFirst.mockResolvedValue({ user: fakeUser({ authFactors: [], teamMembership: null }) });
+    });
+
+    it('with an invitation re-reads it under the lock and delegates to addMemberFromInvitation (no separate ADD check)', async () => {
+      prismaMock.teamMemberInvitation.findFirst.mockResolvedValue({ id: 'invite-1', role: 'MEMBER', features: ['ALL'] });
+
+      await handleSsoLogin('saml', TEAM_ID, userInfo, {} as any);
+
+      expect(teamSeatsMock.withTeamSeatLock).toHaveBeenCalledWith(TEAM_ID, expect.any(Function));
+      expect(prismaMock.teamMemberInvitation.findFirst).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: { teamId: TEAM_ID, email: 'user@example.com', expiresAt: { gte: expect.any(Date) } },
+        }),
+      );
+      expect(teamSeatsMock.addMemberFromInvitation).toHaveBeenCalledWith(prismaMock, {
+        teamId: TEAM_ID,
+        userId: 'user-1',
+        invitation: expect.objectContaining({ id: 'invite-1', role: 'MEMBER' }),
+      });
+      expect(teamSeatsMock.assertSeatAvailable).not.toHaveBeenCalled();
+      expect(prismaMock.teamMember.create).not.toHaveBeenCalled();
+    });
+
+    it('applies an invitation created while waiting for the lock instead of a plain MEMBER JIT join', async () => {
+      prismaMock.teamMemberInvitation.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'invite-late', role: 'ADMIN', features: ['ALL'] });
+
+      await handleSsoLogin('saml', TEAM_ID, userInfo, {} as any);
+
+      expect(teamSeatsMock.addMemberFromInvitation).toHaveBeenCalledWith(prismaMock, {
+        teamId: TEAM_ID,
+        userId: 'user-1',
+        invitation: expect.objectContaining({ id: 'invite-late', role: 'ADMIN' }),
+      });
+      expect(prismaMock.teamMember.create).not.toHaveBeenCalled();
+    });
+
+    it('falls back to JIT provisioning as a MEMBER when the invitation disappears before the lock', async () => {
+      prismaMock.teamMemberInvitation.findFirst
+        .mockResolvedValueOnce({ id: 'invite-1', role: 'ADMIN', features: ['ALL'] })
+        .mockResolvedValueOnce(null);
+
+      await handleSsoLogin('saml', TEAM_ID, userInfo, {} as any);
+
+      expect(teamSeatsMock.addMemberFromInvitation).not.toHaveBeenCalled();
+      expect(teamSeatsMock.assertSeatAvailable).toHaveBeenCalledWith(prismaMock, { teamId: TEAM_ID, kind: 'ADD', role: 'MEMBER' });
+      expect(prismaMock.teamMember.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ teamId: TEAM_ID, userId: 'user-1', role: 'MEMBER', features: ['ALL'] }),
+        }),
+      );
+    });
+
+    it('rejects the login when the invitation disappears before the lock and JIT provisioning is disabled', async () => {
+      vi.mocked(getLoginConfiguration).mockResolvedValue({
+        id: 'login-config-1',
+        ssoEnabled: true,
+        ssoProvider: 'SAML',
+        domains: ['example.com'],
+        samlConfiguration: { id: 'saml-1' },
+        oidcConfiguration: null,
+        ssoJitProvisioningEnabled: false,
+        ssoRequireMfa: false,
+        allowedMfaMethods: new Set(),
+      } as any);
+      prismaMock.teamMemberInvitation.findFirst
+        .mockResolvedValueOnce({ id: 'invite-1', role: 'MEMBER', features: ['ALL'] })
+        .mockResolvedValueOnce(null);
+
+      await expect(handleSsoLogin('saml', TEAM_ID, userInfo, {} as any)).rejects.toBeInstanceOf(SsoAutoProvisioningDisabled);
+
+      expect(teamSeatsMock.addMemberFromInvitation).not.toHaveBeenCalled();
+      expect(teamSeatsMock.assertSeatAvailable).not.toHaveBeenCalled();
+      expect(prismaMock.teamMember.create).not.toHaveBeenCalled();
+    });
+
+    it('without an invitation checks for a new seat (ADD) before creating the membership', async () => {
+      await handleSsoLogin('saml', TEAM_ID, userInfo, {} as any);
+
+      expect(teamSeatsMock.assertSeatAvailable).toHaveBeenCalledWith(prismaMock, { teamId: TEAM_ID, kind: 'ADD', role: 'MEMBER' });
+      expect(prismaMock.teamMember.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ teamId: TEAM_ID, userId: 'user-1', role: 'MEMBER' }) }),
+      );
+      expect(teamSeatsMock.addMemberFromInvitation).not.toHaveBeenCalled();
+    });
+
+    it('maps a seat rejection to SsoLicenseLimitExceeded with the user id in the audit entry', async () => {
+      teamSeatsMock.assertSeatAvailable.mockRejectedValueOnce(makeSeatLimitError('ADD'));
+
+      await expect(handleSsoLogin('saml', TEAM_ID, userInfo, {} as any)).rejects.toBeInstanceOf(SsoLicenseLimitExceeded);
+
+      expect(prismaMock.teamMember.create).not.toHaveBeenCalled();
+      expect(auditLogMock.createTeamAuditLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user-1',
+          teamId: TEAM_ID,
+          action: 'TEAM_MEMBER_ADD_BLOCKED_NO_SEATS',
+          metadata: expect.objectContaining({ attemptedAction: 'SSO_JIT', targetUserId: 'user-1' }),
+        }),
+      );
+    });
   });
 });

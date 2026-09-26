@@ -20,9 +20,10 @@ import { SsoRequired } from '../auth.errors';
  */
 
 const prismaMock = vi.hoisted(() => ({
-  team: { findFirst: vi.fn() },
-  teamMemberInvitation: { findFirst: vi.fn(), delete: vi.fn() },
-  teamMember: { create: vi.fn() },
+  // The team row and seat counts are read by the seat check that accepting an invite runs under the team lock
+  team: { findFirst: vi.fn(), findUniqueOrThrow: vi.fn() },
+  teamMemberInvitation: { findFirst: vi.fn(), findFirstOrThrow: vi.fn(), delete: vi.fn(), count: vi.fn() },
+  teamMember: { create: vi.fn(), count: vi.fn() },
   authIdentity: { create: vi.fn() },
   passwordHistory: { create: vi.fn() },
   user: {
@@ -33,7 +34,9 @@ const prismaMock = vi.hoisted(() => ({
     findFirstOrThrow: vi.fn(),
     update: vi.fn(),
   },
-  // Accepting the invite passes an array of operations, the failed-login accounting and registration pass a callback
+  // The team seat lock (`SELECT ... FOR UPDATE`)
+  $queryRaw: vi.fn(),
+  // Accepting the invite (under the team seat lock), the failed-login accounting and registration pass a callback
   $transaction: vi.fn(async (operationsOrCallback: unknown[] | ((tx: unknown) => unknown)) =>
     Array.isArray(operationsOrCallback) ? Promise.all(operationsOrCallback) : operationsOrCallback(prismaMock),
   ),
@@ -186,6 +189,11 @@ beforeEach(() => {
   prismaMock.user.update.mockResolvedValue({ failedLoginAttempts: 0 });
   prismaMock.teamMemberInvitation.delete.mockResolvedValue({ id: 'invite-id' });
   prismaMock.teamMember.create.mockResolvedValue({ role: 'MEMBER', status: 'ACTIVE', teamId: TEAM_ID, userId: USER_ID });
+  // The invitation re-read under the lock, and a team with no seat limit so the seat check always passes
+  prismaMock.teamMemberInvitation.findFirstOrThrow.mockResolvedValue({ role: 'MEMBER', features: [] });
+  prismaMock.team.findUniqueOrThrow.mockResolvedValue({ billingStatus: 'ACTIVE', billingAccount: null });
+  prismaMock.teamMember.count.mockResolvedValue(0);
+  prismaMock.teamMemberInvitation.count.mockResolvedValue(0);
 });
 
 describe('pending team invite login configuration', () => {

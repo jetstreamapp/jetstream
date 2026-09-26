@@ -5,25 +5,21 @@ import { Feature, Maybe, TeamInviteUserFacing, TeamMemberRole } from '@jetstream
 import { Input, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { useState } from 'react';
 import { getSsoInviteWarning } from './team-member-invite.utils';
+import { evaluateSeatGate, SeatGate } from './team-seats/seat-gate';
+import { SeatChangeNotice } from './team-seats/SeatChangeNotice';
+import { needsSeat } from './team-seats/team-seats.utils';
 import { TeamMemberRoleDropdown } from './TeamMemberRoleDropdown';
 
 interface TeamMemberInviteModalProps {
   teamId: string;
-  hasManualBilling: boolean;
   userRole: TeamMemberRole;
+  seatGate: SeatGate;
   ssoConfig: Maybe<SsoRequirementConfig>;
   verifiedDomains: string[];
   onClose: (invitations?: TeamInviteUserFacing[]) => void;
 }
 
-export function TeamMemberInviteModal({
-  teamId,
-  hasManualBilling,
-  userRole,
-  ssoConfig,
-  verifiedDomains,
-  onClose,
-}: TeamMemberInviteModalProps) {
+export function TeamMemberInviteModal({ teamId, userRole, seatGate, ssoConfig, verifiedDomains, onClose }: TeamMemberInviteModalProps) {
   const [email, setEmail] = useState('');
   const [invalidEmail, setInvalidEmail] = useState(false);
   const [role, setRole] = useState<TeamMemberRole>('MEMBER');
@@ -32,6 +28,9 @@ export function TeamMemberInviteModal({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const requiresSeat = needsSeat(role);
+  const seatEvaluation = evaluateSeatGate(seatGate.seats, { requiresSeat });
+  const { seatBlocked } = seatEvaluation;
   const ssoWarning = getSsoInviteWarning({ email, role, ssoConfig, verifiedDomains });
 
   const handleInvite = async () => {
@@ -61,8 +60,7 @@ export function TeamMemberInviteModal({
             type="submit"
             form="team-member-invite-form"
             className="slds-button slds-button_brand slds-is-relative"
-            onClick={handleInvite}
-            disabled={!email || loading}
+            disabled={!email || loading || seatBlocked}
           >
             Send Invitation
             {loading && <Spinner className="slds-spinner slds-spinner_small" />}
@@ -70,23 +68,13 @@ export function TeamMemberInviteModal({
         </>
       }
     >
-      {!hasManualBilling && role !== 'BILLING' && (
-        <ScopedNotification theme="info">
-          Billing for this user will start after the invitation is accepted. If required, an invoice will be generated and collected upon
-          acceptance.
-        </ScopedNotification>
-      )}
-      {!hasManualBilling && role === 'BILLING' && (
-        <ScopedNotification theme="info">
-          Billing-only users do not apply to your overall user count and will not impact billing.
-        </ScopedNotification>
-      )}
+      <SeatChangeNotice seatGate={seatGate} evaluation={seatEvaluation} requiresSeat={requiresSeat} consumption="reserves" />
       <form
         id="team-member-invite-form"
         onSubmit={(event) => {
           event.preventDefault();
-          if (invalidEmail || !email) {
-            setInvalidEmail(true);
+          if (invalidEmail || !email || seatBlocked) {
+            setInvalidEmail(!email || invalidEmail);
             return;
           }
           handleInvite();
