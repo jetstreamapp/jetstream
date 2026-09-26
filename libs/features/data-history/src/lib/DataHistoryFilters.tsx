@@ -1,6 +1,6 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { DatePicker, Grid } from '@jetstream/ui';
-import { OrgsCombobox } from '@jetstream/ui-core';
+import { GroupScopedOrgsCombobox } from '@jetstream/ui-core';
 import { DataHistoryListFilter } from '@jetstream/ui/db';
 import { endOfDay, startOfDay } from 'date-fns';
 import { FunctionComponent, useMemo } from 'react';
@@ -20,7 +20,7 @@ export const DataHistoryFilters: FunctionComponent<DataHistoryFiltersProps> = ({
   return (
     <Grid verticalAlign="end" wrap className="slds-m-bottom_x-small slds-gutters_xx-small">
       <div className="slds-col slds-m-right_x-small">
-        <OrgsCombobox
+        <GroupScopedOrgsCombobox
           label="Org"
           hideLabel={false}
           orgs={orgs}

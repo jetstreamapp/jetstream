@@ -1,7 +1,7 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, RadioButton, RadioGroup, ScopedNotification, Spinner, Tree, TreeItems } from '@jetstream/ui';
-import { OrgsCombobox } from '@jetstream/ui-core';
+import { GroupScopedOrgsCombobox } from '@jetstream/ui-core';
 import { salesforceOrgsOmitSelectedState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useMemo, useState } from 'react';
@@ -64,7 +64,7 @@ export const ViewOrCompareMetadataSidebar: FunctionComponent<ViewOrCompareMetada
         <div className="slds-m-horizontal_x-small">
           <div className="slds-is-relative slds-m-bottom_x-small">
             {targetLoading && <Spinner />}
-            <OrgsCombobox
+            <GroupScopedOrgsCombobox
               label="Compare metadata with different org"
               hideLabel={false}
               placeholder="Select an org"

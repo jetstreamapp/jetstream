@@ -5,7 +5,7 @@ import ViewOrCompareMetadataSidebar, { ViewOrCompareMetadataSidebarProps } from 
 import { FilePropertiesWithContent } from '../viewOrCompareMetadataTypes';
 import { buildTree } from '../viewOrCompareMetadataUtils';
 
-vi.mock('@jetstream/ui-core', () => ({ OrgsCombobox: () => null }));
+vi.mock('@jetstream/ui-core', () => ({ GroupScopedOrgsCombobox: () => null }));
 vi.mock('@jetstream/ui/app-state', () => ({ salesforceOrgsOmitSelectedState: atom([]) }));
 
 function getFile(fileName: string, content: string): FilePropertiesWithContent {

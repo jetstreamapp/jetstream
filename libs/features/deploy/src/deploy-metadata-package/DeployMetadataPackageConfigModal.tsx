@@ -5,7 +5,7 @@ import { getOrgType, tracker, useNonInitialEffect } from '@jetstream/shared/ui-u
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { DeployOptions, InputReadFileContent, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { FileSelector, Grid, GridCol, Modal } from '@jetstream/ui';
-import { OrgLabelBadge, OrgsCombobox } from '@jetstream/ui-core';
+import { GroupScopedOrgsCombobox, OrgLabelBadge } from '@jetstream/ui-core';
 import { salesforceOrgsState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import JSZip from 'jszip';
@@ -144,7 +144,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
               <p>If you have previously downloaded a package, you can deploy it to the same or a different org.</p>
               <Grid>
                 <GridCol size={12} sizeLarge={6}>
-                  <OrgsCombobox
+                  <GroupScopedOrgsCombobox
                     isRequired
                     label="Deploy package to"
                     hideLabel={false}
