@@ -8,6 +8,9 @@ export const PLACEHOLDER_USER_ID = '00000000-0000-0000-0000-000000000000';
 export const PASSWORD_RESET_DURATION_MINUTES = 30;
 export const TOKEN_DURATION_MINUTES = 15;
 export const EMAIL_VERIFICATION_TOKEN_DURATION_HOURS = 1;
+// Minimum time between "you already have an account" emails to one address. Anyone can trigger one by
+// signing up with someone else's email address, so this caps how often the sign up form reaches that inbox.
+export const EXISTING_ACCOUNT_NOTICE_INTERVAL_HOURS = 1;
 
 // Maximum failed OTP / reset-token submissions before we invalidate the attempt
 // (destroy the session for /auth/verify, delete the reset row for /password/reset/verify).

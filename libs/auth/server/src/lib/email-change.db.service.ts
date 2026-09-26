@@ -9,7 +9,7 @@ import {
   EMAIL_CHANGE_TOKEN_DURATION_MINUTES,
   PASSWORD_RESET_EMAIL_CHANGE_COOLDOWN_HOURS,
 } from './auth.constants';
-import { getLoginConfiguration, revokeAllUserSessions, withEmailAddressLock } from './auth.db.service';
+import { discoverSsoByEmail, getLoginConfiguration, revokeAllUserSessions, withEmailAddressLock } from './auth.db.service';
 import { EmailChangeNotAllowed, InvalidOrExpiredEmailChangeToken } from './auth.errors';
 import { generateRandomString } from './auth.service';
 import { hashOpaqueToken, timingSafeStringCompare } from './auth.utils';
@@ -84,6 +84,16 @@ export async function assertEmailChangeAllowedOrThrow({
         "Your email address is managed by your organization's single sign-on provider. Contact your administrator to change it.",
       );
     }
+  }
+
+  // Same rule as credentials registration: a team that verified the new address' domain and turned on
+  // SSO refuses password accounts outside the team, and this would otherwise be a trivial way to land
+  // on one anyway (register with another address, then change to one on the domain).
+  if (await discoverSsoByEmail(normalizedEmail)) {
+    logger.warn({ userId }, '[EMAIL_CHANGE] Rejected email change to a domain that requires SSO');
+    throw new EmailChangeNotAllowed(
+      "That email address is managed by an organization's single sign-on provider. Sign in with single sign-on to use it.",
+    );
   }
 
   if (user.passwordResetAt && user.passwordResetAt > addHours(new Date(), -PASSWORD_RESET_EMAIL_CHANGE_COOLDOWN_HOURS)) {
@@ -354,6 +364,13 @@ export async function completeEmailChange({
         logger.warn({ requestId: request.id }, '[EMAIL_CHANGE][CONFIRM] Blocked by SSO policy');
         throw new InvalidOrExpiredEmailChangeToken(GENERIC_INVALID_TOKEN_MESSAGE);
       }
+    }
+
+    // Likewise for the new address' domain, which a team may verify or turn SSO on for mid-flight
+    if (await discoverSsoByEmail(request.newEmail)) {
+      await failRequest(tx, request.id, 'FAILED', 'SSO_POLICY', context);
+      logger.warn({ requestId: request.id }, '[EMAIL_CHANGE][CONFIRM] Blocked by SSO policy on the new address domain');
+      throw new InvalidOrExpiredEmailChangeToken(GENERIC_INVALID_TOKEN_MESSAGE);
     }
 
     const oldEmail = user.email;
