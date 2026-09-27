@@ -106,7 +106,7 @@ function getRowSecondaryControls(rowElement: HTMLElement) {
   );
 }
 
-/** Controls where ArrowLeft/Right move the caret rather than focus */
+/** Controls that own the keys a list navigates with: arrows and Home/End move the caret, Space types */
 function isTextEntryElement(target: EventTarget | null): boolean {
   if (target instanceof HTMLTextAreaElement) {
     return true;
@@ -198,6 +198,12 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
       if (focusedRow && focusedRow.parentElement !== event.currentTarget) {
         return;
       }
+      // A text-entry control inside a row (a related object's field filter, the related-object combobox)
+      // keeps its keys: Home/End and the arrows move its caret or its own list, Space types. Stepping between
+      // a row's controls only starts from a non-text stop.
+      if (isTextEntryElement(event.target)) {
+        return;
+      }
       // The current row is whichever one actually has focus: the focusedItem state is reset whenever
       // `items` changes identity (every toggle/expand/filter re-creates the array), so navigating from
       // state jumped back to "first selected + 1" instead of continuing from the focused row
@@ -241,11 +247,6 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
         event.preventDefault();
         newFocusedItem = items.length - 1;
       } else if (isArrowRightKey(event) || isArrowLeftKey(event)) {
-        // A text-entry control inside a row (the related-object combobox in the field list) owns
-        // ArrowLeft/Right for caret movement — stepping between controls only starts from a non-text stop
-        if (isTextEntryElement(event.target)) {
-          return;
-        }
         // Row-local navigation (both list modes): ArrowRight steps through a row's secondary controls
         // (e.g. a details popover trigger), ArrowLeft steps back toward the row itself. This lets
         // those controls stay out of the page tab order without becoming keyboard-unreachable — in
