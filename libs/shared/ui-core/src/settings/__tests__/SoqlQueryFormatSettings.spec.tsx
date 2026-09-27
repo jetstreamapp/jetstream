@@ -74,6 +74,8 @@ describe('SoqlQueryFormatSettings', () => {
     const { onChange } = renderSettings({ ...DEFAULT_OPTIONS, numIndent: 3 });
     fireEvent.click(screen.getByRole('button', { name: 'Reset to Defaults' }));
     expect(onChange).toHaveBeenCalledWith(DEFAULT_OPTIONS);
+    // The button unmounts once the defaults are back, so focus moves to the first option instead of <body>
+    expect(document.activeElement).toBe(screen.getByLabelText('Max characters per line'));
   });
 
   it('drops an uncommitted number when resetting to the defaults', () => {
