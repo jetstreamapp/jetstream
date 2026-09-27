@@ -455,6 +455,8 @@ test.describe('Team Dashboard', () => {
       await page.reload();
       await expect(page.getByRole('button', { name: 'Accept Invitation' })).toBeEnabled();
       await page.getByRole('button', { name: 'Accept Invitation' }).click();
+      // Accepting refreshes the profile and then navigates away; opening Profile before that lands gets overridden
+      await page.waitForURL(/\/app\/(home|teams)$/);
 
       await page.getByRole('button', { name: 'Avatar' }).click();
       await page.getByRole('menuitem', { name: 'Profile' }).click();
@@ -475,6 +477,8 @@ test.describe('Team Dashboard', () => {
       await page.goto(link);
       await expect(page.getByRole('button', { name: 'Accept Invitation' })).toBeEnabled();
       await page.getByRole('button', { name: 'Accept Invitation' }).click();
+      // Accepting refreshes the profile and then navigates away; opening Profile before that lands gets overridden
+      await page.waitForURL(/\/app\/(home|teams)$/);
 
       await page.getByRole('button', { name: 'Avatar' }).click();
       await page.getByRole('menuitem', { name: 'Profile' }).click();
