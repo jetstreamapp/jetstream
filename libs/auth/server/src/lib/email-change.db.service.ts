@@ -277,6 +277,9 @@ async function failRequest(
  * lockEmailChangeForUpdate. Third-party calls (Stripe, email) are deliberately left to the caller:
  * holding a database transaction open across them would pin a connection for seconds and let a
  * provider outage cascade into connection exhaustion.
+ *
+ * A refusal whose reason is recorded on the row returns null from the transaction and is thrown only
+ * once it commits - throwing inside would roll back the very update that records the reason.
  */
 export async function completeEmailChange({
   confirmToken,
@@ -305,7 +308,7 @@ export async function completeEmailChange({
     throw new InvalidOrExpiredEmailChangeToken(GENERIC_INVALID_TOKEN_MESSAGE);
   }
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     await lockEmailChangeForUpdate(tx, preRead.userId, preRead.newEmail);
 
     const request = await tx.emailChangeRequest.findUnique({ where: { confirmTokenHash } });
@@ -323,7 +326,7 @@ export async function completeEmailChange({
     if (request.expiresAt < new Date()) {
       await failRequest(tx, request.id, 'EXPIRED', 'EXPIRED', context);
       logger.warn({ requestId: request.id }, '[EMAIL_CHANGE][CONFIRM] Request is expired');
-      throw new InvalidOrExpiredEmailChangeToken(GENERIC_INVALID_TOKEN_MESSAGE);
+      return null;
     }
 
     // No per-request attempt counter exists, and none is possible: the token hash is the primary key
@@ -345,14 +348,14 @@ export async function completeEmailChange({
     if (user.email.toLowerCase() !== request.currentEmail.toLowerCase()) {
       await failRequest(tx, request.id, 'SUPERSEDED', 'STALE_CURRENT_EMAIL', context);
       logger.warn({ requestId: request.id }, '[EMAIL_CHANGE][CONFIRM] Current email no longer matches the request');
-      throw new InvalidOrExpiredEmailChangeToken(GENERIC_INVALID_TOKEN_MESSAGE);
+      return null;
     }
 
     // Closes the request-to-confirm race: the address may have been claimed in the interim.
     if (!(await isEmailAvailable(request.newEmail, user.id, tx))) {
       await failRequest(tx, request.id, 'FAILED', 'EMAIL_IN_USE', context);
       logger.warn({ requestId: request.id }, '[EMAIL_CHANGE][CONFIRM] Target address is already in use');
-      throw new InvalidOrExpiredEmailChangeToken(GENERIC_INVALID_TOKEN_MESSAGE);
+      return null;
     }
 
     // Re-checked here and not only at request time, so a team enabling SSO mid-flight cannot be
@@ -362,7 +365,7 @@ export async function completeEmailChange({
       if (loginConfiguration?.ssoEnabled && loginConfiguration.ssoProvider !== 'NONE') {
         await failRequest(tx, request.id, 'FAILED', 'SSO_POLICY', context);
         logger.warn({ requestId: request.id }, '[EMAIL_CHANGE][CONFIRM] Blocked by SSO policy');
-        throw new InvalidOrExpiredEmailChangeToken(GENERIC_INVALID_TOKEN_MESSAGE);
+        return null;
       }
     }
 
@@ -370,7 +373,7 @@ export async function completeEmailChange({
     if (await discoverSsoByEmail(request.newEmail)) {
       await failRequest(tx, request.id, 'FAILED', 'SSO_POLICY', context);
       logger.warn({ requestId: request.id }, '[EMAIL_CHANGE][CONFIRM] Blocked by SSO policy on the new address domain');
-      throw new InvalidOrExpiredEmailChangeToken(GENERIC_INVALID_TOKEN_MESSAGE);
+      return null;
     }
 
     const oldEmail = user.email;
@@ -422,6 +425,11 @@ export async function completeEmailChange({
 
     return { requestId: request.id, userId: user.id, oldEmail, newEmail };
   });
+
+  if (!result) {
+    throw new InvalidOrExpiredEmailChangeToken(GENERIC_INVALID_TOKEN_MESSAGE);
+  }
+  return result;
 }
 
 async function cancelPendingRequest(

@@ -71,9 +71,25 @@ function pendingRequest(overrides: Record<string, unknown> = {}) {
   };
 }
 
+/**
+ * How each transaction ended. A callback that throws rolls back every write it made, so a write the
+ * code relies on keeping (such as the recorded reason for a refusal) only counts if it committed.
+ */
+let transactionOutcomes: Array<'committed' | 'rolled back'> = [];
+
 beforeEach(() => {
   vi.clearAllMocks();
-  prismaMock.$transaction.mockImplementation(async (callback: (tx: unknown) => unknown) => callback(prismaMock));
+  transactionOutcomes = [];
+  prismaMock.$transaction.mockImplementation(async (callback: (tx: unknown) => unknown) => {
+    try {
+      const result = await callback(prismaMock);
+      transactionOutcomes.push('committed');
+      return result;
+    } catch (ex) {
+      transactionOutcomes.push('rolled back');
+      throw ex;
+    }
+  });
   prismaMock.emailChangeRequest.updateMany.mockResolvedValue({ count: 1 });
   prismaMock.emailChangeRequest.findFirst.mockResolvedValue(null);
   prismaMock.user.findFirst.mockResolvedValue(null);
@@ -244,6 +260,15 @@ describe('completeEmailChange', () => {
     return expect(promise).rejects.toThrow(new InvalidOrExpiredEmailChangeToken('This link is invalid or has expired').message);
   }
 
+  /** The reason must be written AND committed - thrown from inside the transaction, it would be rolled back */
+  function expectRecordedRefusal(status: string, failureReason: string) {
+    expect(prismaMock.emailChangeRequest.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status, failureReason }) }),
+    );
+    expect(transactionOutcomes).toEqual(['committed']);
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  }
+
   it('should apply the change and revoke sessions inside the transaction', async () => {
     prismaMock.emailChangeRequest.findUnique.mockResolvedValue(pendingRequest());
 
@@ -314,9 +339,7 @@ describe('completeEmailChange', () => {
 
     await expectGenericRejection(completeEmailChange({ confirmToken: CONFIRM_TOKEN, resolvedVia: 'EMAIL_LINK' }));
 
-    expect(prismaMock.emailChangeRequest.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'EXPIRED', failureReason: 'EXPIRED' }) }),
-    );
+    expectRecordedRefusal('EXPIRED', 'EXPIRED');
   });
 
   it('should reject a token that was already used', async () => {
@@ -331,10 +354,7 @@ describe('completeEmailChange', () => {
 
     await expectGenericRejection(completeEmailChange({ confirmToken: CONFIRM_TOKEN, resolvedVia: 'EMAIL_LINK' }));
 
-    expect(prismaMock.emailChangeRequest.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'SUPERSEDED', failureReason: 'STALE_CURRENT_EMAIL' }) }),
-    );
-    expect(prismaMock.user.update).not.toHaveBeenCalled();
+    expectRecordedRefusal('SUPERSEDED', 'STALE_CURRENT_EMAIL');
   });
 
   it('should close the request-to-confirm race when the address was claimed in between', async () => {
@@ -343,10 +363,7 @@ describe('completeEmailChange', () => {
 
     await expectGenericRejection(completeEmailChange({ confirmToken: CONFIRM_TOKEN, resolvedVia: 'EMAIL_LINK' }));
 
-    expect(prismaMock.emailChangeRequest.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'FAILED', failureReason: 'EMAIL_IN_USE' }) }),
-    );
-    expect(prismaMock.user.update).not.toHaveBeenCalled();
+    expectRecordedRefusal('FAILED', 'EMAIL_IN_USE');
   });
 
   it('should re-check SSO policy at confirm time', async () => {
@@ -357,10 +374,7 @@ describe('completeEmailChange', () => {
 
     await expectGenericRejection(completeEmailChange({ confirmToken: CONFIRM_TOKEN, resolvedVia: 'EMAIL_LINK' }));
 
-    expect(prismaMock.emailChangeRequest.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'FAILED', failureReason: 'SSO_POLICY' }) }),
-    );
-    expect(prismaMock.user.update).not.toHaveBeenCalled();
+    expectRecordedRefusal('FAILED', 'SSO_POLICY');
   });
 
   it('should re-check the SSO domain rule for the new address at confirm time', async () => {
@@ -371,10 +385,7 @@ describe('completeEmailChange', () => {
     await expectGenericRejection(completeEmailChange({ confirmToken: CONFIRM_TOKEN, resolvedVia: 'EMAIL_LINK' }));
 
     expect(authDbMock.discoverSsoByEmail).toHaveBeenCalledWith(NEW_EMAIL);
-    expect(prismaMock.emailChangeRequest.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'FAILED', failureReason: 'SSO_POLICY' }) }),
-    );
-    expect(prismaMock.user.update).not.toHaveBeenCalled();
+    expectRecordedRefusal('FAILED', 'SSO_POLICY');
   });
 
   it('should lose to a concurrent cancel', async () => {
@@ -383,6 +394,8 @@ describe('completeEmailChange', () => {
     prismaMock.emailChangeRequest.updateMany.mockResolvedValue({ count: 0 });
 
     await expectGenericRejection(completeEmailChange({ confirmToken: CONFIRM_TOKEN, resolvedVia: 'EMAIL_LINK' }));
+    // The email update already made in this transaction must not survive
+    expect(transactionOutcomes).toEqual(['rolled back']);
   });
 
   it('should only touch credentials identities, never oauth or sso ones', async () => {
