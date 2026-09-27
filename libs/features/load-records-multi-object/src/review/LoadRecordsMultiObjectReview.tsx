@@ -196,9 +196,9 @@ export const LoadRecordsMultiObjectReview: FunctionComponent = () => {
                   labelHelp="Specify the format of any date fields in your file. Jetstream just needs to know the order of the month and the day and will auto-detect the exact format."
                 >
                   <select
-                    aria-describedby="date-format"
+                    aria-describedby="date-format-label-help-text"
                     className="slds-select"
-                    id="date-format-select"
+                    id="date-format"
                     required
                     value={dateFormat}
                     disabled={loadIsRunning}

@@ -5,6 +5,7 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { tracker, useTitle } from '@jetstream/shared/ui-utils';
 import { JetstreamPricesByLookupKey, Maybe, StripePriceKey, StripeUserFacingCustomer } from '@jetstream/types';
 import {
+  ariaDisabledButtonProps,
   AutoFullHeightContainer,
   FeedbackLink,
   Icon,
@@ -244,7 +245,7 @@ export const Billing = () => {
                   {csrfToken && <input type="hidden" name={HTTP.BODY.CSRF_TOKEN} value={csrfToken} />}
                   <BillingPeriodToggle isAnnual={isAnnual} onChange={setIsAnnual} />
 
-                  <fieldset className="slds-form-element" role="radiogroup">
+                  <fieldset className="slds-form-element" role="radiogroup" aria-label="Choose a plan">
                     <div
                       className="slds-grid slds-wrap slds-gutters slds-grid_align-center"
                       style={{
@@ -297,11 +298,12 @@ export const Billing = () => {
                     </div>
                   </fieldset>
                   <div className="slds-text-align_center slds-m-top_large slds-p-horizontal_medium">
+                    {/* aria-disabled keeps focus on the button while the submit disables it; the guarded click blocks re-submits */}
                     <button
                       type="submit"
-                      disabled={checkoutSessionLoading}
                       className="slds-button slds-button_brand"
                       style={{ width: '100%', maxWidth: '400px' }}
+                      {...ariaDisabledButtonProps(checkoutSessionLoading, () => {})}
                     >
                       Subscribe Now
                     </button>

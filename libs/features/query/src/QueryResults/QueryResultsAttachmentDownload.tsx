@@ -18,7 +18,7 @@ import {
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getRecordIdFromAttributes, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJobNew, BinaryDownloadCompatibleObjectsSchema, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
-import { Icon, Modal, Radio, RadioGroup, ScopedNotification, Tooltip } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Icon, Modal, Radio, RadioGroup, ScopedNotification, Tooltip } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import z from 'zod';
@@ -264,7 +264,8 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
               <button className="slds-button slds-button_neutral" onClick={() => handleModalClose(true)} disabled={isDownloading}>
                 Cancel
               </button>
-              <button className="slds-button slds-button_brand" onClick={handleDownload} disabled={isDownloading}>
+              {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
+              <button className="slds-button slds-button_brand" {...ariaDisabledButtonProps(isDownloading, () => handleDownload())}>
                 {isDownloading ? 'Preparing Download...' : 'Download'}
               </button>
             </Fragment>

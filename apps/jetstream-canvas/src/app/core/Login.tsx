@@ -116,7 +116,7 @@ export function Login({ children }: LoginProps) {
               app-region: no-drag;
             `}
           >
-            Learn more
+            Read the canvas app setup guide
           </a>
         </p>
         {/* TODO: window.sr.loginParams - should show error if this is not defined */}

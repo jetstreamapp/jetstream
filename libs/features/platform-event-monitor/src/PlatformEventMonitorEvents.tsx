@@ -1,10 +1,10 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { setItemInLocalStorage } from '@jetstream/shared/ui-utils';
-import { orderValues } from '@jetstream/shared/utils';
+import { formatNumber, setItemInLocalStorage } from '@jetstream/shared/ui-utils';
+import { orderValues, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { ContextMenuItem } from '@jetstream/types';
 import type { RenderCellProps, RowHeightArgs, SortColumn } from '@jetstream/ui';
-import { AutoFullHeightContainer, ColumnWithFilter, ContextMenuActionData, DataTree } from '@jetstream/ui';
+import { AssistiveStatus, AutoFullHeightContainer, ColumnWithFilter, ContextMenuActionData, DataTree } from '@jetstream/ui';
 import { STORAGE_KEYS } from '@jetstream/ui/app-state';
 import copyToClipboard from 'copy-to-clipboard';
 import groupBy from 'lodash/groupBy';
@@ -69,6 +69,9 @@ const columns: ColumnWithFilter<PlatformEventRow>[] = [
 ];
 
 const groupedRows = ['event'] as const;
+
+/** Long enough that a burst of events announces once instead of per message */
+const EVENT_COUNT_ANNOUNCE_DEBOUNCE_MS = 1000;
 
 function getRowId(data: PlatformEventRow): string {
   return data.uuid || `${data.replayId}` || JSON.stringify(data);
@@ -151,6 +154,12 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
 
   return (
     <AutoFullHeightContainer fillHeight setHeightAttr delayForSecondTopCalc bottomBuffer={25}>
+      {/* Events stream in continuously; announcing each one would be unusable, so announce the
+          running total once a burst settles. The grid itself carries the row count via aria-rowcount. */}
+      <AssistiveStatus
+        debounceMs={EVENT_COUNT_ANNOUNCE_DEBOUNCE_MS}
+        message={rows.length ? `${formatNumber(rows.length)} ${pluralizeIfMultiple('event', rows)} received` : ''}
+      />
       <DataTree
         columns={columns}
         data={rows}

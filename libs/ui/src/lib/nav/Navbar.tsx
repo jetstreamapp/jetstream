@@ -120,6 +120,7 @@ export const Navbar: FunctionComponent<NavbarProps> = ({ items }) => {
       <nav
         className="slds-context-bar__secondary"
         role="navigation"
+        aria-label="Primary"
         css={css`
           position: relative;
         `}

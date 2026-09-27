@@ -6,6 +6,8 @@ import { appActionObservable, hasModifierKey, isUKey, useDebounce, useGlobalEven
 import { QueryResults, SalesforceOrgUi } from '@jetstream/types';
 import {
   CopyToClipboard,
+  focusListEntryRow,
+  getAriaKeyshortcuts,
   getModifierKey,
   Grid,
   Icon,
@@ -54,6 +56,7 @@ interface User {
 export const UserSearchPopover: FunctionComponent = () => {
   const currentSearchRef = useRef<number>(0);
   const popoverRef = useRef<PopoverRef>(null);
+  const usersListRef = useRef<HTMLUListElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
@@ -101,6 +104,14 @@ export const UserSearchPopover: FunctionComponent = () => {
 
   function handleViewRecord(user: User) {
     if (user) {
+      // Close before asking the record modal to open. Left open, the popover sat behind the modal
+      // still holding the focused row (moving focus into the modal does not dismiss a portaled
+      // non-modal popover), so the modal was never announced and returned focus into the popover.
+      // Closing first hands focus back to the trigger as the popover unmounts (a microtask); the
+      // modal mounts later, after its own async describe, and takes focus from that settled state.
+      // The ref close does not raise onChange, so the open mirror is updated by hand.
+      popoverRef.current?.close();
+      setIsOpen(false);
       appActionObservable.next({ action: 'VIEW_RECORD', payload: { recordId: user.Id } });
       trackEvent(ANALYTICS_KEYS.query_RecordAction, { action: 'view', source: 'USER_SEARCH' });
     }
@@ -144,6 +155,7 @@ export const UserSearchPopover: FunctionComponent = () => {
               loading={loading}
               value={searchTerm}
               onChange={(value) => setSearchTerm(value.trim())}
+              onArrowKeyUpDown={() => focusListEntryRow(usersListRef.current)}
             />
           </Grid>
           {!!usersResults && !usersResults?.queryResults.records?.length && (
@@ -155,10 +167,12 @@ export const UserSearchPopover: FunctionComponent = () => {
                 Users
               </h2>
               <List
+                ref={usersListRef}
                 css={css`
                   max-height: 75vh;
                   overflow-y: auto;
                 `}
+                ariaLabel="Users"
                 items={usersResults.queryResults.records}
                 isActive={(item: User) => item.Id === searchTerm}
                 onSelected={(key: string) => {
@@ -202,7 +216,8 @@ export const UserSearchPopover: FunctionComponent = () => {
       buttonProps={{
         className:
           'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
-        title: 'View Record Details - ctrl/command + k',
+        title: 'View User Details',
+        'aria-keyshortcuts': getAriaKeyshortcuts([getModifierKey(), 'u']),
         disabled: !selectedOrg || !!selectedOrg.connectionError,
       }}
     >

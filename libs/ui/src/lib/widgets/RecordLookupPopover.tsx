@@ -9,6 +9,7 @@ import Grid from '../grid/Grid';
 import GridCol from '../grid/GridCol';
 import { Popover } from '../popover/Popover';
 import ScopedNotification from '../scoped-notification/ScopedNotification';
+import AssistiveStatus from './AssistiveStatus';
 import Icon from './Icon';
 import { KeyboardShortcut } from './KeyboardShortcut';
 import SalesforceLogin, { salesforceLoginAndRedirect } from './SalesforceLogin';
@@ -127,10 +128,13 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
       size="large"
       onChange={(isOpen) => isOpen && fetchRecord()}
       panelProps={{
+        'aria-label': 'Record details',
         onDoubleClick: (event) => event.stopPropagation(),
       }}
       content={
         <div>
+          {/* Focus starts on Close (M58), so the async result must be announced rather than discovered */}
+          <AssistiveStatus message={loading ? 'Loading record' : errorMessage || (record ? 'Record loaded' : '')} />
           <SalesforceLogin serverUrl={serverUrl} org={org} returnUrl={returnUrl} skipFrontDoorAuth={skipFrontDoorAuth}>
             View in Salesforce
           </SalesforceLogin>
@@ -217,7 +221,6 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
             <Grid align="spread">
               <div>
                 <button
-                  autoFocus
                   className="slds-button slds-button_neutral"
                   onClick={() => appActionObservable.next({ action: 'VIEW_RECORD', payload: { recordId } })}
                 >

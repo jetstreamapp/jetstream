@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { updateTeamMember } from '@jetstream/shared/data';
 import { TeamMemberRole, TeamUserFacing } from '@jetstream/types';
-import { Input, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Input, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { useState } from 'react';
 import { TeamMemberRoleDropdown } from './TeamMemberRoleDropdown';
 
@@ -46,12 +46,13 @@ export function TeamMemberUpdateModal({ teamId, teamMember, hasManualBilling, cu
           <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>
             Cancel
           </button>
+          {/* The form's onSubmit owns the save (a click here submits the form) — the old onClick made a
+              mouse click fire it twice; aria-disabled keeps focus while the submit disables the button */}
           <button
             type="submit"
             form="team-member-update-form"
             className="slds-button slds-button_brand slds-is-relative"
-            onClick={handleUpdateRole}
-            disabled={!isDirty || loading}
+            {...ariaDisabledButtonProps(!isDirty || loading, () => {})}
           >
             Save
             {loading && <Spinner className="slds-spinner slds-spinner_small" />}
@@ -98,7 +99,7 @@ export function TeamMemberUpdateModal({ teamId, teamMember, hasManualBilling, cu
             disabled
             type="email"
             name="email"
-            autoComplete="none"
+            autoComplete="off"
           />
         </Input>
 

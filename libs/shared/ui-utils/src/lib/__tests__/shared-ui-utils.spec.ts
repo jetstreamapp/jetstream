@@ -1,5 +1,11 @@
 import * as XLSX from 'xlsx';
-import { EXCEL_MAX_CELL_CHARS, formatNumber, prepareExcelFile } from '../shared-ui-utils';
+import {
+  EXCEL_MAX_CELL_CHARS,
+  focusNextTabbableAfter,
+  focusPreviousTabbableBefore,
+  formatNumber,
+  prepareExcelFile,
+} from '../shared-ui-utils';
 
 /** Read a generated workbook back into array-of-array rows for the first sheet */
 function readBackRows(fileData: ArrayBuffer): unknown[][] {
@@ -109,5 +115,98 @@ describe('formatNumber', () => {
     // Previous numeral('0,0') behavior rounded; Intl.NumberFormat default also rounds for integer-only formatting.
     expect(formatNumber(1234.4)).toBe('1,234');
     expect(formatNumber(1234.6)).toBe('1,235');
+  });
+});
+
+describe('focusNextTabbableAfter', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  function setup(html: string) {
+    document.body.innerHTML = html;
+    return document.getElementById('editor') as HTMLElement;
+  }
+
+  it('moves focus to the first tabbable element after the widget', () => {
+    const editor = setup(`
+      <div id="editor"><button id="inside">inside</button></div>
+      <button id="after">after</button>
+    `);
+
+    expect(focusNextTabbableAfter(editor)).toBe(true);
+    expect(document.activeElement?.id).toBe('after');
+  });
+
+  it('skips tabbables inside the widget so a code editor cannot trap focus in itself', () => {
+    const editor = setup(`
+      <button id="before">before</button>
+      <div id="editor"><textarea id="inside"></textarea></div>
+      <a id="after" href="#x">after</a>
+    `);
+
+    focusNextTabbableAfter(editor);
+    expect(document.activeElement?.id).toBe('after');
+  });
+
+  it('ignores disabled and tabindex=-1 candidates', () => {
+    const editor = setup(`
+      <div id="editor"></div>
+      <button id="disabled" disabled>nope</button>
+      <div id="programmatic" tabindex="-1">nope</div>
+      <button id="after">after</button>
+    `);
+
+    focusNextTabbableAfter(editor);
+    expect(document.activeElement?.id).toBe('after');
+  });
+
+  it('reports when there is nothing after it rather than dropping focus to the body', () => {
+    const editor = setup(`
+      <button id="before">before</button>
+      <div id="editor"></div>
+    `);
+    const before = document.getElementById('before') as HTMLElement;
+    before.focus();
+
+    expect(focusNextTabbableAfter(editor)).toBe(false);
+    expect(document.activeElement).toBe(before);
+  });
+
+  it('is a no-op without an element', () => {
+    expect(focusNextTabbableAfter(null)).toBe(false);
+  });
+});
+
+describe('focusPreviousTabbableBefore', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('moves focus to the NEAREST tabbable before the widget, not the first on the page', () => {
+    document.body.innerHTML = `
+      <button id="far">far</button>
+      <button id="near">near</button>
+      <div id="editor"><textarea id="inside"></textarea></div>
+      <button id="after">after</button>
+    `;
+
+    expect(focusPreviousTabbableBefore(document.getElementById('editor'))).toBe(true);
+    expect(document.activeElement?.id).toBe('near');
+  });
+
+  it('skips tabbables inside the widget', () => {
+    document.body.innerHTML = `
+      <button id="before">before</button>
+      <div id="editor"><button id="inside">inside</button></div>
+    `;
+
+    focusPreviousTabbableBefore(document.getElementById('editor'));
+    expect(document.activeElement?.id).toBe('before');
+  });
+
+  it('reports when there is nothing before it', () => {
+    document.body.innerHTML = `<div id="editor"></div><button id="after">after</button>`;
+    expect(focusPreviousTabbableBefore(document.getElementById('editor'))).toBe(false);
   });
 });

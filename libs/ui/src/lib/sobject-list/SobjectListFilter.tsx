@@ -218,6 +218,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
         className: classNames('slds-m-left_xx-small slds-button slds-button_icon', {
           'slds-text-color_brand': hasFiltersApplied,
         }),
+        'aria-label': 'Filter objects',
       }}
       // Rendered as a sibling of the trigger button since a button cannot be nested within another button
       triggerAfterContent={
@@ -229,8 +230,12 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
             css={css`
               position: absolute;
               background-color: var(--slds-g-color-error-base-30, #ba0517);
-              top: -0.4rem;
-              right: -0.4rem;
+              /* No negative top offset: hanging above the wrapper got it clipped by overflow
+                 ancestors on tighter layouts like the mass-update page. It sits beside the funnel
+                 rather than on it, because a click on the part covering the icon reset every
+                 filter instead of opening the menu (the heading is centered, so there is room). */
+              top: 0;
+              right: -0.75rem;
               border: none;
               border-radius: 50%;
               padding: 0;

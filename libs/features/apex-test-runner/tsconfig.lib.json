@@ -57,6 +57,9 @@
     },
     {
       "path": "../../connected/connected-ui/tsconfig.lib.json"
+    },
+    {
+      "path": "../../test-utils/tsconfig.lib.json"
     }
   ]
 }

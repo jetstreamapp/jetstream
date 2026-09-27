@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { createInvitation } from '@jetstream/shared/data';
 import { getErrorMessage, SsoRequirementConfig } from '@jetstream/shared/utils';
 import { Feature, Maybe, TeamInviteUserFacing, TeamMemberRole } from '@jetstream/types';
-import { Input, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Input, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { useState } from 'react';
 import { getSsoInviteWarning } from './team-member-invite.utils';
 import { TeamMemberRoleDropdown } from './TeamMemberRoleDropdown';
@@ -32,7 +32,10 @@ export function TeamMemberInviteModal({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const ssoWarning = getSsoInviteWarning({ email, role, ssoConfig, verifiedDomains });
+  // Checked on blur like the address itself: while typing, every partial domain ("a", "ac", ...) is unverified, so a
+  // live check flashes the warning on and off and makes screen readers re-read it for every keystroke
+  const [checkedEmail, setCheckedEmail] = useState('');
+  const ssoWarning = getSsoInviteWarning({ email: checkedEmail, role, ssoConfig, verifiedDomains });
 
   const handleInvite = async () => {
     setErrorMessage(null);
@@ -57,12 +60,13 @@ export function TeamMemberInviteModal({
           <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>
             Cancel
           </button>
+          {/* The form's onSubmit owns the invite (a click here submits the form) — the old onClick made a
+              mouse click fire it twice; aria-disabled keeps focus while the submit disables the button */}
           <button
             type="submit"
             form="team-member-invite-form"
             className="slds-button slds-button_brand slds-is-relative"
-            onClick={handleInvite}
-            disabled={!email || loading}
+            {...ariaDisabledButtonProps(!email || loading, () => {})}
           >
             Send Invitation
             {loading && <Spinner className="slds-spinner slds-spinner_small" />}
@@ -117,12 +121,15 @@ export function TeamMemberInviteModal({
             maxLength={255}
             type="email"
             placeholder="Enter email address"
-            onBlur={() => setInvalidEmail(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))}
+            onBlur={() => {
+              setInvalidEmail(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+              setCheckedEmail(email);
+            }}
             onFocus={() => setInvalidEmail(false)}
             aria-invalid={invalidEmail}
             aria-describedby={invalidEmail ? 'email-error' : undefined}
             name="email"
-            autoComplete="none"
+            autoComplete="off"
             required
           />
         </Input>

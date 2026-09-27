@@ -51,9 +51,11 @@ export const SoqlQueryFormatConfigPopover = ({ location, value, onChange }: Soql
           onCancel={() => popoverRef.current?.close()}
         />
       }
-      buttonProps={{ className: 'slds-button slds-button_icon' }}
+      // Named after the popover's own heading: "Settings" alone did not say what the gear configures,
+      // and the app also has a Settings page
+      buttonProps={{ className: 'slds-button slds-button_icon', 'aria-label': 'SOQL format options', title: 'SOQL format options' }}
     >
-      <Icon className="slds-button__icon slds-button__icon_small" type="utility" icon="settings" description="Settings" omitContainer />
+      <Icon className="slds-button__icon slds-button__icon_small" type="utility" icon="settings" omitContainer />
     </Popover>
   );
 };

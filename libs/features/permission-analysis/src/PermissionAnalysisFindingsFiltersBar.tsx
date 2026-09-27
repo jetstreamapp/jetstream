@@ -109,7 +109,13 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
   return (
     <div css={findingsFiltersBarRootCss}>
       <div className="slds-builder-toolbar__item-group" css={findingsFiltersToolbarClusterCss}>
-        <div onClick={(ev) => ev.stopPropagation()} onPointerDown={(ev) => ev.stopPropagation()} onKeyDown={(ev) => ev.stopPropagation()}>
+        {/* Event fence only (keeps the toolbar's handlers from seeing the popover's events) — not a control */}
+        <div
+          role="presentation"
+          onClick={(ev) => ev.stopPropagation()}
+          onPointerDown={(ev) => ev.stopPropagation()}
+          onKeyDown={(ev) => ev.stopPropagation()}
+        >
           <Popover
             ref={popoverRef}
             header={
@@ -262,7 +268,7 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
             buttonProps={{
               className: 'slds-button slds-button_neutral',
               onClick: (ev) => ev.stopPropagation(),
-              'aria-label': 'Filters',
+              // No aria-label: the visible "Filters (N)" text names the trigger, count included
               title: 'Filters',
             }}
           >

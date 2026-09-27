@@ -159,7 +159,9 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
   const showPersistedNote = persistPromptEligible && persisted === true;
 
   return (
+    // The id is the Settings#data-history deep link target (see FocusMainContentOnRouteChange)
     <SettingsGroup
+      id="data-history"
       testId="data-history-settings"
       title="Data History"
       description="Everything is stored on this device and never sent to the Jetstream server."

@@ -3,11 +3,18 @@ import { useEffect, useRef, useState } from 'react';
 
 export interface ProgressIndicatorProps {
   className?: string;
+  /** Accessible name of the bar — say what is progressing when the bar is one of several on the surface */
+  label?: string;
   currentValue: number;
   isIndeterminate?: boolean;
 }
 
-export const ProgressIndicator = ({ className, currentValue: _currentValue, isIndeterminate }: ProgressIndicatorProps) => {
+export const ProgressIndicator = ({
+  className,
+  label = 'Progress',
+  currentValue: _currentValue,
+  isIndeterminate,
+}: ProgressIndicatorProps) => {
   const currValueRef = useRef(_currentValue);
   currValueRef.current = _currentValue;
   const [currentValue, setCurrentValue] = useState(() => (isIndeterminate ? 0 : _currentValue));
@@ -53,6 +60,7 @@ export const ProgressIndicator = ({ className, currentValue: _currentValue, isIn
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={currentValue}
+      aria-label={label}
       role="progressbar"
     >
       <span className="slds-progress-bar__value" style={{ width: `${width}%`, marginLeft: `${marginLeft}%` }}>
