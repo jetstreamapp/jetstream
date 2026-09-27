@@ -168,4 +168,24 @@ describe('ReadonlyList', () => {
     expect(document.activeElement).toBe(input);
     expect(notPrevented).toBe(true);
   });
+
+  test.each(['ArrowUp', 'ArrowDown', 'Home', 'End', ' '])(
+    '%j inside a text input in a row stays with the input (a nested field filter)',
+    (key) => {
+      const onSelected = vi.fn();
+      const getContentWithInput = (item: TestItem) => ({
+        ...getContent(item),
+        children: item.id === 'item-1' ? <input type="text" aria-label="Filter related fields" defaultValue="Name" /> : undefined,
+      });
+      render(<List items={items} isActive={() => false} getContent={getContentWithInput} onSelected={onSelected} />);
+      const input = screen.getByLabelText('Filter related fields');
+      input.focus();
+
+      const notPrevented = fireEvent.keyDown(input, { key });
+
+      expect(notPrevented).toBe(true);
+      expect(document.activeElement).toBe(input);
+      expect(onSelected).not.toHaveBeenCalled();
+    },
+  );
 });
