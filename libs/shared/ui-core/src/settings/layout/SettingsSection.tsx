@@ -118,8 +118,9 @@ export interface SettingsSectionProps {
 export const SettingsSection = ({ id, title, description, children }: SettingsSectionProps) => {
   const headingId = `${id}-heading`;
   return (
-    // Focusable so navigating to a section moves focus into it (see SettingsLayout)
-    <section id={id} aria-labelledby={headingId} tabIndex={-1} css={sectionCss}>
+    // Not focusable on its own: SettingsLayout and deep links focus it through `focusContainer`, which keeps the
+    // tabindex only while the section holds that focus (a permanent one would take focus on every click inside)
+    <section id={id} aria-labelledby={headingId} css={sectionCss}>
       <h2 id={headingId} className="slds-text-heading_medium">
         {title}
       </h2>
