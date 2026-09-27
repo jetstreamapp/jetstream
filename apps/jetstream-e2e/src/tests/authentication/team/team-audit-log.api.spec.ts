@@ -1,6 +1,6 @@
 import { prisma } from '@jetstream/api-config';
 import { HTTP } from '@jetstream/shared/constants';
-import type { APIRequestContext, Page } from '@playwright/test';
+import type { APIRequestContext, APIResponse, Page } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import { expect, test } from '../../../fixtures/fixtures';
 
@@ -26,7 +26,7 @@ async function waitForAuditLog(query: () => ReturnType<typeof prisma.auditLog.fi
  * exercise the real middleware rather than tripping it.
  */
 type MutatingMethod = 'post' | 'put' | 'delete';
-type MutatingFn = (url: string, options?: Parameters<APIRequestContext['post']>[1]) => ReturnType<APIRequestContext['post']>;
+type MutatingFn = (url: string, options?: Parameters<APIRequestContext['post']>[1]) => Promise<APIResponse>;
 async function csrfRequest(page: Page): Promise<Record<MutatingMethod, MutatingFn>> {
   const cookies = await page.context().cookies();
   const csrfToken = cookies.find(({ name }) => name.endsWith(HTTP.COOKIE.CSRF_SUFFIX))?.value ?? '';
