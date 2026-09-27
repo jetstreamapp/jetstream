@@ -91,7 +91,15 @@ export const AppToast: FunctionComponent = () => {
     // Errors stay until dismissed: they are the toasts a user must be able to read and act on
     const duration = newMessage.duration ?? (newMessage.type === 'error' ? 0 : DEFAULT_DURATION);
 
-    setActiveMessages((messages) => [...messages, { ...newMessage, id, duration }]);
+    setActiveMessages((messages) => {
+      // A toast that stays until dismissed is shown once however often its source repeats (a platform event
+      // reconnect loop firing the same error), instead of stacking copies the user has to close one by one
+      const isRepeat =
+        duration <= 0 &&
+        typeof newMessage.message === 'string' &&
+        messages.some((message) => message.duration <= 0 && message.type === newMessage.type && message.message === newMessage.message);
+      return isRepeat ? messages : [...messages, { ...newMessage, id, duration }];
+    });
     if (!isPausedRef.current) {
       startDismissTimer(id, duration);
     }
