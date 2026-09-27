@@ -104,6 +104,20 @@ describe('AppToast', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
+  it('shows a repeating error once while it is still on screen, and again after it was closed', () => {
+    vi.useFakeTimers();
+    setup();
+
+    fire('Could not connect to Salesforce', 'error');
+    fire('Could not connect to Salesforce', 'error');
+    fire('Could not connect to Salesforce', 'error');
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+
+    fireEvent.click(screen.getByTitle('Close'));
+    fire('Could not connect to Salesforce', 'error');
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+  });
+
   // Errors stay until dismissed, so showing the OLDEST three let a few unread errors hide everything after them
   it('shows the newest three toasts, so persistent errors never hide a later toast', () => {
     vi.useFakeTimers();
