@@ -420,6 +420,39 @@ describe('useEscapeToCloseLayer', () => {
     editor.remove();
   });
 
+  it('with codeEditorEscapeLeavesEditor, Escape inside a code editor only leaves the editor and the next one closes the layer', () => {
+    const onEscape = vi.fn();
+    // A query history edit: the SOQL editor is the layer's main content, and the editor moves focus out on Escape
+    function EditLayer() {
+      const [isOpen, setIsOpen] = useState(true);
+      useEscapeToCloseLayer(
+        isOpen,
+        () => {
+          setIsOpen(false);
+          onEscape();
+        },
+        { codeEditorEscapeLeavesEditor: true },
+      );
+      return (
+        <div>
+          <div className="monaco-editor">
+            <textarea aria-label="SOQL" />
+          </div>
+          <button type="button">Save</button>
+          <span data-testid="layer-state">{isOpen ? 'open' : 'closed'}</span>
+        </div>
+      );
+    }
+    render(<EditLayer />);
+
+    pressEscape(screen.getByRole('textbox', { name: 'SOQL' }));
+    expect(onEscape).not.toHaveBeenCalled();
+
+    pressEscape(screen.getByRole('button', { name: 'Save' }));
+    expect(onEscape).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('layer-state').textContent).toBe('closed');
+  });
+
   it('leaves Escape to a code editor with selected text, which the press deselects (Quick Query opens fully selected)', () => {
     const onEscape = vi.fn();
     render(<SingleLayerHarness onEscape={onEscape} />);
