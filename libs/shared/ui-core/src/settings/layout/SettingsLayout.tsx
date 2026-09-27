@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { focusContainer } from '@jetstream/ui';
 import classNames from 'classnames';
 import { MouseEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router';
@@ -75,7 +76,7 @@ function scrollToSection(id: string, behavior: ScrollBehavior) {
   }
   section.scrollIntoView({ behavior, block: 'start' });
   // Move focus along with the scroll so keyboard and screen reader users land in the section they picked
-  section.focus({ preventScroll: true });
+  focusContainer(section, { preventScroll: true });
 }
 
 /**

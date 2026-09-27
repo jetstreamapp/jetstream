@@ -68,6 +68,19 @@ describe('SettingsLayout', () => {
     expect(document.activeElement?.id).toBe('three');
   });
 
+  it('makes a section focusable only while the navigation hands it focus', () => {
+    renderLayout();
+    const section = document.getElementById('three') as HTMLElement;
+    // A permanent tabindex would let every click on the section's text take focus away from where Tab continues
+    expect(section.hasAttribute('tabindex')).toBe(false);
+
+    fireEvent.click(screen.getByRole('link', { name: 'Three' }));
+    expect(section.getAttribute('tabindex')).toBe('-1');
+
+    fireEvent.blur(section);
+    expect(section.hasAttribute('tabindex')).toBe(false);
+  });
+
   it('keeps a picked section current while the page scrolls to it', async () => {
     const scrollContainer = renderLayout();
     fireEvent.click(screen.getByRole('link', { name: 'Three' }));
