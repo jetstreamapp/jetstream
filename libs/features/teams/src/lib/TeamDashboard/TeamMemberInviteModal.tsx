@@ -44,7 +44,10 @@ export function TeamMemberInviteModal({
   const requiresSeat = needsSeat(role);
   const seatEvaluation = evaluateSeatGate(seatGate, { requiresSeat });
   const { seatBlocked } = seatEvaluation;
-  const ssoWarning = getSsoInviteWarning({ email, role, ssoConfig, verifiedDomains });
+  // Checked on blur like the address itself: while typing, every partial domain ("a", "ac", ...) is unverified, so a
+  // live check flashes the warning on and off and makes screen readers re-read it for every keystroke
+  const [checkedEmail, setCheckedEmail] = useState('');
+  const ssoWarning = getSsoInviteWarning({ email: checkedEmail, role, ssoConfig, verifiedDomains });
 
   const handleInvite = async () => {
     setErrorMessage(null);
@@ -126,7 +129,10 @@ export function TeamMemberInviteModal({
             maxLength={255}
             type="email"
             placeholder="Enter email address"
-            onBlur={() => setInvalidEmail(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))}
+            onBlur={() => {
+              setInvalidEmail(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+              setCheckedEmail(email);
+            }}
             onFocus={() => setInvalidEmail(false)}
             aria-invalid={invalidEmail}
             aria-describedby={invalidEmail ? 'email-error' : undefined}
