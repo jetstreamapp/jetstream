@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { fireToast, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, fireToast, Spinner } from '@jetstream/ui';
 import { selectedOrgStateWithoutPlaceholder } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtomValue } from 'jotai';
@@ -38,19 +38,18 @@ export const RecentObjectsSetting = () => {
       title="Recent objects"
       description="Clear the recently used objects that Jetstream lists first when you choose an object. Nothing in Salesforce is changed."
     >
+      {/* aria-disabled rather than disabled: a button that disables itself while it runs would drop focus to <body> */}
       <button
         className="slds-button slds-button_neutral slds-is-relative"
-        disabled={!selectedOrg || !!clearingScope}
         title={selectedOrg ? undefined : 'Select an org to clear its recent objects'}
-        onClick={() => clearRecentObjects('current')}
+        {...ariaDisabledButtonProps(!selectedOrg || !!clearingScope, () => clearRecentObjects('current'))}
       >
         {clearingScope === 'current' && <Spinner size="x-small" />}
         Clear for Current Org
       </button>
       <button
         className="slds-button slds-button_neutral slds-is-relative"
-        disabled={!!clearingScope}
-        onClick={() => clearRecentObjects('all')}
+        {...ariaDisabledButtonProps(!!clearingScope, () => clearRecentObjects('all'))}
       >
         {clearingScope === 'all' && <Spinner size="x-small" />}
         Clear for All Orgs
