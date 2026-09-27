@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv';
 import { readFileSync } from 'fs-extra';
 import { join } from 'path';
-dotenv.config();
+dotenv.config({ quiet: true });
 
 let VERSION;
 try {
