@@ -136,8 +136,9 @@ export const SettingsSection = ({ id, title, description, keywords, children }: 
   const headingId = `${id}-heading`;
   const { isVisible, scope, highlight } = useSettingsSearch({ reportKey: id, text: [title, description], keywords });
   return (
-    // Focusable so navigating to a section moves focus into it (see SettingsLayout)
-    <section id={id} aria-labelledby={headingId} tabIndex={-1} css={sectionCss} hidden={!isVisible}>
+    // Not focusable on its own: SettingsLayout and deep links focus it through `focusContainer`, which keeps the
+    // tabindex only while the section holds that focus (a permanent one would take focus on every click inside)
+    <section id={id} aria-labelledby={headingId} css={sectionCss} hidden={!isVisible}>
       <h2 id={headingId} className="slds-text-heading_medium">
         {highlight(title)}
       </h2>
