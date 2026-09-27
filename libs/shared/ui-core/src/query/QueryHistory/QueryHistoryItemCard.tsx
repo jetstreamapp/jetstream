@@ -57,8 +57,9 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
   const [isEditing, setIsEditing] = useState(false);
   const soqlEditorId = useId();
   // Escape while editing cancels the edit (and is consumed here) instead of closing the whole
-  // Query History modal and discarding the unsaved changes with it
-  useEscapeToCloseLayer(isEditing, () => handleCancelEdit());
+  // Query History modal and discarding the unsaved changes with it. Inside the SOQL editor the first
+  // Escape only leaves the editor, as its name announces, so a stray press doesn't discard the edit.
+  useEscapeToCloseLayer(isEditing, () => handleCancelEdit(), { codeEditorEscapeLeavesEditor: true });
   const editButtonRef = useRef<HTMLButtonElement>(null);
   const [editedSoql, setEditedSoql] = useState(soql);
   const [editedCustomLabel, setEditedCustomLabel] = useState(customLabel || label);
