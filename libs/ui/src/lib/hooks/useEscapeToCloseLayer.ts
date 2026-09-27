@@ -18,6 +18,12 @@ export interface EscapeLayerOptions {
    * action opens the record modal stays open underneath it).
    */
   getLayerElement?: () => Element | null | undefined;
+  /**
+   * For a layer whose content is mainly a code editor being edited (a query history edit): Escape inside the
+   * editor first leaves the editor, as the editor announces, and the next Escape closes the layer. Without it
+   * the same press would close the layer and throw away what was just typed.
+   */
+  codeEditorEscapeLeavesEditor?: boolean;
 }
 
 /**
@@ -58,7 +64,11 @@ const openLayerStack: symbol[] = [];
  * - Layers may nest: each open instance joins `openLayerStack`, and only the topmost (innermost,
  *   most recently opened) instance handles Escape. One press closes one layer, from the inside out.
  */
-export function useEscapeToCloseLayer(isOpen: boolean, onEscape: () => void, { getLayerElement }: EscapeLayerOptions = {}) {
+export function useEscapeToCloseLayer(
+  isOpen: boolean,
+  onEscape: () => void,
+  { getLayerElement, codeEditorEscapeLeavesEditor = false }: EscapeLayerOptions = {},
+) {
   const onEscapeRef = useRef(onEscape);
   onEscapeRef.current = onEscape;
   const getLayerElementRef = useRef(getLayerElement);
@@ -106,6 +116,9 @@ export function useEscapeToCloseLayer(isOpen: boolean, onEscape: () => void, { g
       if (monacoEditorOwnsEscape(event.target)) {
         return;
       }
+      if (codeEditorEscapeLeavesEditor && event.target instanceof Element && event.target.closest('.monaco-editor')) {
+        return;
+      }
       // An inner layer is open above this one — its own listener (registered later, so it runs
       // after this no-op) consumes the press and closes just that layer
       if (openLayerStack[openLayerStack.length - 1] !== layerId) {
@@ -140,7 +153,7 @@ export function useEscapeToCloseLayer(isOpen: boolean, onEscape: () => void, { g
       }
       document.removeEventListener('keydown', handleKeyDown, { capture: true });
     };
-  }, [isOpen, propagation]);
+  }, [isOpen, propagation, codeEditorEscapeLeavesEditor]);
 }
 
 export default useEscapeToCloseLayer;
