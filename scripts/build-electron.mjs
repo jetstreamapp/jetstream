@@ -56,7 +56,7 @@ const packageManagerRemoveDeps = () => {
   const { devDependencies, dependencies } = JSON.parse(readFileSync(TARGET_PACKAGE_JSON_PATH, 'utf-8'));
   const allDependencies = { ...devDependencies, ...dependencies };
 
-  return ['react', 'tslib', 'xlsx', 'stripe'].filter((dep) => {
+  return ['react', 'tslib', 'stripe'].filter((dep) => {
     const matchingDependency = Object.entries(allDependencies).find(([packageName]) => packageName === dep);
     if (!matchingDependency) {
       console.warn(`${dep} not found in package.json, skipping removal`);

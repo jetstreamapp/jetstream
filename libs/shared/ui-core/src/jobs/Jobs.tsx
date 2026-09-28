@@ -16,7 +16,7 @@ import {
   useBrowserNotifications,
   useObservable,
 } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { getErrorMessage, pluralizeFromNumber, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import {
   AsyncJob,
   AsyncJobNew,
@@ -176,16 +176,19 @@ export const Jobs: FunctionComponent = () => {
       googleFolder,
       fileData,
       fileType,
+      warning,
     }: {
       newJob: AsyncJob<any>;
       fileName: string;
       googleFolder: Maybe<string>;
       fileData: any;
       fileType: FileExtCsvXLSX | 'zip';
+      /** A sentence to keep on the job's status whatever the upload outcome, e.g. that cells were truncated */
+      warning?: string;
     }) => {
       const accessToken = getGoogleAccessToken();
       if (!accessToken) {
-        handleGoogleUploadFailure({ fileData, fileName, fileType }, newJob);
+        handleGoogleUploadFailure({ fileData, fileName, fileType, warning }, newJob);
         setJobs((prevJobs) => ({
           ...prevJobs,
           [newJob.id]: {
@@ -210,7 +213,7 @@ export const Jobs: FunctionComponent = () => {
           newJob.results = webViewLink;
         })
         .catch((err) => {
-          handleGoogleUploadFailure({ fileData, fileName, fileType }, newJob);
+          handleGoogleUploadFailure({ fileData, fileName, fileType, warning }, newJob);
           tracker.error('Error saving to Google Drive', err);
         })
         .finally(() => {
@@ -330,22 +333,31 @@ export const Jobs: FunctionComponent = () => {
             };
             setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
           } else {
-            const { fileData, useBulkApi, fileFormat, results, googleFolder } = data.results as {
+            const { fileData, useBulkApi, fileFormat, results, googleFolder, truncatedCells } = data.results as {
               fileData: any;
               useBulkApi?: boolean;
               mimeType: MimeType;
               fileFormat: string;
               results?: string;
               googleFolder?: string;
+              /** Cells the spreadsheet writer had to shorten to stay inside Excel's per-cell limit */
+              truncatedCells?: number;
             };
             let { fileName, mimeType } = data.results as { fileName: string; mimeType: MimeType };
+
+            // The download still succeeded, but the file is not a faithful copy - a background job has no other way to say so
+            const truncationWarning = truncatedCells
+              ? ` ${formatNumber(truncatedCells)} ${pluralizeFromNumber('value', truncatedCells)} exceeded Excel's cell limit and ${
+                  truncatedCells === 1 ? 'was' : 'were'
+                } truncated.`
+              : '';
 
             newJob = {
               ...newJob,
               finished: new Date(),
               lastActivity: new Date(),
-              status: 'success',
-              statusMessage: 'Records downloaded successfully',
+              status: truncationWarning ? 'finished-warning' : 'success',
+              statusMessage: `Records downloaded successfully.${truncationWarning}`,
               progress: undefined,
             };
             if (useBulkApi) {
@@ -425,17 +437,17 @@ export const Jobs: FunctionComponent = () => {
 
               newJob = {
                 ...newJob,
-                status: 'success',
-                statusMessage: 'Saved to Google successfully',
+                status: truncationWarning ? 'finished-warning' : 'success',
+                statusMessage: `Saved to Google successfully.${truncationWarning}`,
               };
 
-              uploadToGoogleDrive({ fileData, fileName, googleFolder, newJob, fileType: 'xlsx' });
+              uploadToGoogleDrive({ fileData, fileName, googleFolder, newJob, fileType: 'xlsx', warning: truncationWarning });
             } else {
               if (fileFormat === 'gdrive') {
                 // Failed to upload to google, save locally
                 mimeType = MIME_TYPES.XLSX;
                 fileName = `${fileName}.xlsx`;
-                newJob.statusMessage = 'Saved to computer, saving to Google failed.';
+                newJob.statusMessage = `Saved to computer, saving to Google failed.${truncationWarning}`;
                 newJob.status = 'finished-warning';
               }
               saveFile(fileData, fileName, mimeType);
@@ -694,10 +706,13 @@ export const Jobs: FunctionComponent = () => {
       fileData,
       fileName,
       fileType,
+      warning = '',
     }: {
       fileData: any;
       fileName: string;
       fileType: FileExtAllTypes;
+      /** Appended to the failure message so a warning about the file itself is not lost behind the upload failure */
+      warning?: string;
     },
     newJob: AsyncJob<unknown, unknown>,
     statusMessage = 'Records downloaded and saved to computer, saving to Google failed.',
@@ -705,7 +720,7 @@ export const Jobs: FunctionComponent = () => {
   ) {
     fileName = `${fileName}.${fileType}`;
     // Failed to upload to google, save locally
-    newJob.statusMessage = statusMessage;
+    newJob.statusMessage = `${statusMessage}${warning}`;
     newJob.status = 'finished-warning';
     saveFile(fileData, fileName, (fileExtToMimeType as any)[fileType]);
     notifyUser(newJob.statusMessage, { tag });

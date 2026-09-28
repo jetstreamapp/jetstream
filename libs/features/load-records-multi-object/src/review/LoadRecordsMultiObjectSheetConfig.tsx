@@ -52,8 +52,9 @@ export const LoadRecordsMultiObjectSheetConfig: FunctionComponent<LoadRecordsMul
 
   return (
     <Grid verticalAlign="center">
+      {/* A worksheet with a blank B1/B2, or one that could not be read at all, has neither value - the error banner above says why */}
       <span className="slds-text-color_weak">
-        {dataset.sobject} • {dataset.operation}
+        {dataset.sobject || 'No object'} • {dataset.operation || 'No operation'}
         {dataset.operation === 'UPSERT' && dataset.externalId ? ` (${dataset.externalId})` : ''}
       </span>
       <Popover
