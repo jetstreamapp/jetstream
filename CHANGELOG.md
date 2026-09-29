@@ -1,5 +1,20 @@
 # Changelog
 
+## [10.23.0](https://github.com/jetstreamapp/jetstream/compare/v10.22.0...v10.23.0) (2026-09-29)
+
+### Features
+
+- add purchased seats to the Team plan ([9061b1d](https://github.com/jetstreamapp/jetstream/commit/9061b1d9a1df03d340da067978b7f166c19dda15))
+- **billing:** require the legal business name at checkout ([95313db](https://github.com/jetstreamapp/jetstream/commit/95313dbf42d3d6dbacf3663bb48e0299022bfaae))
+- **landing:** remove the pricing preview from the home page ([f04cfe1](https://github.com/jetstreamapp/jetstream/commit/f04cfe1bbb70c57d4d264958adff1eeb3cb0cb31))
+- limit deploy and Data History org pickers to the active org group ([779ae17](https://github.com/jetstreamapp/jetstream/commit/779ae17739558b7036f4822504bd21e9b547dbb5))
+- list Data History limits in the plan comparison ([e739b54](https://github.com/jetstreamapp/jetstream/commit/e739b54f1014c4b45d4756a03f9b7fc202b77e2d))
+- move the Team plan to per-user pricing with volume tiers ([a7051e3](https://github.com/jetstreamapp/jetstream/commit/a7051e3a0b70b63fdced695d86473030a67a7694))
+
+### Bug Fixes
+
+- **deps:** resolve socket.io, express router and Next.js security advisories ([f832c79](https://github.com/jetstreamapp/jetstream/commit/f832c79f4b012003e6558f3afb599ceca9c1d976))
+
 ## [10.22.0](https://github.com/jetstreamapp/jetstream/compare/v10.21.1...v10.22.0) (2026-09-25)
 
 ### Features
