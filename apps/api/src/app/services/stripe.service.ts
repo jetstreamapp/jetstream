@@ -1,12 +1,11 @@
 import { ENV, logger } from '@jetstream/api-config';
 import { UserProfile } from '@jetstream/auth/types';
 import { sendWelcomeToProEmail } from '@jetstream/email';
-import { getErrorMessage, getErrorMessageAndStackObj, groupByFlat } from '@jetstream/shared/utils';
+import { convertStripePriceTiers, getErrorMessage, getErrorMessageAndStackObj, groupByFlat } from '@jetstream/shared/utils';
 import {
   EntitlementsAccess,
   JetstreamPrice,
   JetstreamPricesByLookupKey,
-  JetstreamPriceTier,
   Maybe,
   SALESFORCE_ORG_ID_REGEX,
   STRIPE_PRICE_KEYS,
@@ -19,10 +18,8 @@ import Stripe from 'stripe';
 import * as subscriptionDbService from '../db/subscription.db';
 import * as teamDbService from '../db/team.db';
 import * as userDbService from '../db/user.db';
-
-const STRIPE_API_VERSION = '2026-08-26.dahlia';
-
-const stripe = ENV.STRIPE_API_KEY ? new Stripe(ENV.STRIPE_API_KEY, { apiVersion: STRIPE_API_VERSION }) : ({} as Stripe);
+import { fetchPriceTiers, resolveTeamSeatState } from './stripe-seats.service';
+import { stripe } from './stripe.client';
 
 const priceCache = new WeakMap<
   typeof STRIPE_PRICE_KEYS,
@@ -96,7 +93,13 @@ export async function handleStripeWebhook({ signature, payload }: { signature?: 
       case 'customer.subscription.deleted':
       case 'customer.subscription.paused':
       case 'customer.subscription.resumed':
-      case 'customer.subscription.updated': {
+      case 'customer.subscription.updated':
+      // Seat decreases are Stripe schedules, so schedule lifecycle events change the team's seat state
+      case 'subscription_schedule.updated':
+      case 'subscription_schedule.released':
+      case 'subscription_schedule.completed':
+      case 'subscription_schedule.canceled':
+      case 'subscription_schedule.aborted': {
         const { customer: customerOrId } = event.data.object;
         const customer = await fetchCustomerWithSubscriptionsById({ customerId: isString(customerOrId) ? customerOrId : customerOrId.id });
         await saveOrUpdateSubscription({ customer, sendWelcomeEmail: false });
@@ -112,7 +115,7 @@ export async function handleStripeWebhook({ signature, payload }: { signature?: 
   }
 }
 
-function filterInactiveSubscriptions(subscriptions: Stripe.Subscription[]) {
+export function filterInactiveSubscriptions(subscriptions: Stripe.Subscription[]): Stripe.Subscription[] {
   return subscriptions.filter((subscription) => activeSubscriptionStatuses.has(subscription.status));
 }
 
@@ -120,20 +123,55 @@ function findTeamPlanSubscription(subscriptions: Stripe.Subscription[]) {
   return subscriptions.find(({ items }) => items.data.some((item) => item.price.lookup_key?.startsWith('TEAM_')));
 }
 
+/** Any other status still holds the customer's plan, including past due, unpaid and set to cancel */
+const endedSubscriptionStatuses = new Set<Stripe.Subscription.Status>(['canceled', 'incomplete_expired']);
+
+/**
+ * A second TEAM subscription on the same customer leaves the seat item ambiguous (see `findTeamSeatItem`),
+ * so checkout must not start another one until the current one has ended.
+ */
+export function hasCurrentTeamPlanSubscription(customer: Stripe.Customer): boolean {
+  const currentSubscriptions = (customer.subscriptions?.data ?? []).filter(({ status }) => !endedSubscriptionStatuses.has(status));
+  return !!findTeamPlanSubscription(currentSubscriptions);
+}
+
 /**
  * A team plan can be started either through checkout or by switching plans in the Stripe billing
  * portal, and the portal never routes through checkout. Every path that observes a TEAM price on a
  * customer funnels through here so that a delayed or failed webhook self-heals instead of leaving the
  * user without a team.
+ *
+ * The team name on the subscription only applies when the team is created here; an existing team keeps its name.
+ *
+ * Returns null when the user already belongs to a team billed on a different customer (e.g. a Team checkout
+ * opened before accepting an invitation). That customer is not labelled as the team's, so it keeps syncing
+ * as the user's personal customer; the purchase is logged for a refund review.
  */
-async function createTeamForTeamPlanCustomer({ userId, customerId }: { userId: string; customerId: string }) {
-  const team = await teamDbService.upsertTeamWithBillingAccount({ userId, billingAccountCustomerId: customerId });
+async function createTeamForTeamPlanCustomer({
+  userId,
+  customerId,
+  teamPlanSubscription,
+}: {
+  userId: string;
+  customerId: string;
+  teamPlanSubscription: Stripe.Subscription;
+}): Promise<{ id: string } | null> {
+  const team = await teamDbService.upsertTeamWithBillingAccount({
+    userId,
+    billingAccountCustomerId: customerId,
+    name: teamPlanSubscription.metadata?.teamName || undefined,
+    // Set only by a checkout opened for an existing team, so the webhook can bind the replacement customer
+    rebindCustomerForTeamId: teamPlanSubscription.metadata?.teamId || undefined,
+  });
+  if (team.customerId !== customerId) {
+    return null;
+  }
   // ensure stripe has proper metadata
   await updateCustomerMetadata(customerId, { userId, teamId: team.id, type: 'TEAM' });
   return team;
 }
 
-async function fetchCustomerWithSubscriptionsById({
+export async function fetchCustomerWithSubscriptionsById({
   customerId,
 }: {
   customerId: string;
@@ -141,6 +179,23 @@ async function fetchCustomerWithSubscriptionsById({
   return await stripe.customers.retrieve(customerId, {
     expand: ['subscriptions'],
   });
+}
+
+/**
+ * Fill in the tier table for tiered subscription items so the client can show what the customer
+ * actually pays. A failed lookup leaves `tiers` null rather than failing the whole billing page.
+ */
+export async function attachTiersToTieredItems(customer: StripeUserFacingCustomer): Promise<void> {
+  const tieredItems = customer.subscriptions.flatMap(({ items }) => items).filter((item) => item.billingScheme === 'tiered' && !item.tiers);
+  await Promise.all(
+    tieredItems.map(async (item) => {
+      try {
+        item.tiers = await fetchPriceTiers(item.priceId);
+      } catch (ex) {
+        logger.warn({ priceId: item.priceId, ...getErrorMessageAndStackObj(ex) }, 'Unable to fetch price tiers for subscription item');
+      }
+    }),
+  );
 }
 
 export async function fetchPrices({ lookupKeys }: { lookupKeys: typeof STRIPE_PRICE_KEYS }): Promise<JetstreamPricesByLookupKey> {
@@ -152,7 +207,7 @@ export async function fetchPrices({ lookupKeys }: { lookupKeys: typeof STRIPE_PR
   const prices = await stripe.prices
     .list({
       lookup_keys: lookupKeys as unknown as string[],
-      expand: ['data.product'],
+      expand: ['data.product', 'data.tiers'],
       type: 'recurring',
       currency: 'usd',
       active: true,
@@ -174,15 +229,7 @@ export async function fetchPrices({ lookupKeys }: { lookupKeys: typeof STRIPE_PR
       interval: price.recurring?.interval === 'year' ? 'ANNUAL' : 'MONTHLY',
       amount: (price.unit_amount || 0) / 100,
       tiersMode: price.tiers_mode || null,
-      tiers:
-        price.tiers?.map(
-          (tier) =>
-            ({
-              flatAmount: tier.flat_amount ? tier.flat_amount / 100 : null,
-              unitAmount: tier.unit_amount ? tier.unit_amount / 100 : null,
-              upTo: tier.up_to,
-            }) as JetstreamPriceTier,
-        ) || null,
+      tiers: convertStripePriceTiers(price.tiers),
       product: {
         id: product.id,
         name: product.name,
@@ -228,7 +275,9 @@ export async function getUserFacingStripeCustomer({ customerId }: { customerId: 
     if (stripeCustomer.deleted) {
       return null;
     }
-    return convertCustomerWithSubscriptionsToUserFacing(stripeCustomer);
+    const customer = convertCustomerWithSubscriptionsToUserFacing(stripeCustomer);
+    await attachTiersToTieredItems(customer);
+    return customer;
   } catch (ex) {
     logger.warn({ customerId, ...getErrorMessageAndStackObj(ex) }, 'Unable to fetch or convert customer to user facing');
     return null;
@@ -242,7 +291,7 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
     delinquent: !!stripeCustomer.delinquent,
     subscriptions:
       stripeCustomer.subscriptions?.data.map(
-        ({ id, billing_cycle_anchor, cancel_at, cancel_at_period_end, canceled_at, ended_at, items, start_date, status }) => ({
+        ({ id, billing_cycle_anchor, cancel_at, cancel_at_period_end, canceled_at, discounts, ended_at, items, start_date, status }) => ({
           id,
           // TODO: validate that the dates are correct (should be if server is on UTC I think?)
           billingCycleAnchor: formatISO(fromUnixTime(billing_cycle_anchor)),
@@ -252,6 +301,9 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
           endedAt: ended_at ? formatISO(fromUnixTime(ended_at)) : null,
           startDate: formatISO(fromUnixTime(start_date)),
           status: status.toUpperCase() as Uppercase<Stripe.Subscription.Status>,
+          // Existence check only — `discounts` entries are unexpanded ids, and a customer-level
+          // coupon discounts this subscription's invoices the same as a subscription-level one
+          hasDiscount: Boolean(stripeCustomer.discount || discounts.length > 0),
           items: items.data.map(({ id, price, quantity, current_period_start, current_period_end }) => ({
             id,
             priceId: price.id,
@@ -261,6 +313,9 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
             product: price.product as string,
             lookupKey: price.lookup_key,
             unitAmount: (price.unit_amount || 0) / 100,
+            billingScheme: price.billing_scheme,
+            tiersMode: price.tiers_mode || null,
+            tiers: convertStripePriceTiers(price.tiers),
             recurringInterval: (price.recurring?.interval?.toUpperCase() || null) as StripeUserFacingSubscriptionItem['recurringInterval'],
             recurringIntervalCount: price.recurring?.interval_count || null,
             quantity: quantity ?? 1,
@@ -405,7 +460,7 @@ export async function saveSubscriptionFromCompletedSession({ sessionId }: { sess
   const customerOrId = session.customer;
   const customerId = isString(customerOrId) ? customerOrId : customerOrId.id;
 
-  const metadata = (session.metadata || {}) as { userId?: string; teamId?: string; type?: 'USER' | 'TEAM' };
+  const metadata = (session.metadata || {}) as { userId?: string; teamId?: string; type?: 'USER' | 'TEAM'; teamName?: string };
   const userId = session.client_reference_id as string;
   let teamId = metadata.teamId || null;
   let type = metadata.type || 'USER';
@@ -418,9 +473,22 @@ export async function saveSubscriptionFromCompletedSession({ sessionId }: { sess
 
   if (type === 'TEAM') {
     // upsert team (in case webhook is being processed at about the same time - this function needs to be idempotent)
-    const team = await teamDbService.upsertTeamWithBillingAccount({ userId, billingAccountCustomerId: customerId });
-    teamId = team.id;
-  } else {
+    // The name chosen at checkout only applies when the team is created here; an existing team keeps its name
+    const team = await teamDbService.upsertTeamWithBillingAccount({
+      userId,
+      billingAccountCustomerId: customerId,
+      name: metadata.teamName || undefined,
+      rebindCustomerForTeamId: metadata.teamId || undefined,
+    });
+    if (team.customerId === customerId) {
+      teamId = team.id;
+    } else {
+      // The buyer's team is billed on another customer (logged for a refund review), so this customer stays personal
+      type = 'USER';
+      teamId = null;
+    }
+  }
+  if (type === 'USER') {
     // Ensure billing account exists
     await userDbService.upsertBillingAccount({ userId, customerId });
   }
@@ -496,9 +564,12 @@ export async function synchronizeStripeWithJetstreamUserIfRequired({
     // the billing portal, which never routes through checkout. Create the team and sync as a team,
     // otherwise the team subscription would be recorded against the personal account and the checks
     // below would then report the account as correctly synchronized forever.
-    if (findTeamPlanSubscription(subscriptions)) {
-      const team = await createTeamForTeamPlanCustomer({ userId, customerId });
-      return await synchronizeStripeWithJetstreamTeamIfRequired({ teamId: team.id, customerId });
+    const teamPlanSubscription = findTeamPlanSubscription(subscriptions);
+    if (teamPlanSubscription) {
+      const team = await createTeamForTeamPlanCustomer({ userId, customerId, teamPlanSubscription });
+      if (team) {
+        return await synchronizeStripeWithJetstreamTeamIfRequired({ teamId: team.id, customerId });
+      }
     }
 
     const priceRecordCount = subscriptions.flatMap((subscription) => subscription.items.data).length;
@@ -541,12 +612,12 @@ export async function synchronizeStripeWithJetstreamTeamIfRequired({
 }: { teamId: string; customerId?: null; force?: boolean } | { teamId: string; customerId: string }): Promise<StripeJetstreamSyncResult> {
   try {
     let didUpdate = false;
-    const team = await teamDbService.findById({ teamId });
+    const team = await subscriptionDbService.getTeamBillingAccountForSeats({ teamId });
     const entitlements = await teamDbService.findEntitlements({ teamId });
     const teamSubscriptions = await teamDbService.findSubscriptions({ teamId });
 
     // TODO: would we ever need to go in the opposite direction and delete things in Jetstream?
-    const billingAccountCustomerId = team?.billingAccount?.customerId;
+    const billingAccountCustomerId = team.billingAccount?.customerId;
     if (!billingAccountCustomerId) {
       return { success: true, didUpdate } as const;
     }
@@ -568,6 +639,7 @@ export async function synchronizeStripeWithJetstreamTeamIfRequired({
 
     const subscriptions = filterInactiveSubscriptions(stripeCustomer.subscriptions.data);
     const priceRecordCount = subscriptions.flatMap((subscription) => subscription.items.data).length;
+    const seatState = await resolveTeamSeatState(subscriptions);
 
     /**
      * Check if we need to synchronize
@@ -577,7 +649,8 @@ export async function synchronizeStripeWithJetstreamTeamIfRequired({
     const areEntitlementsEnabled =
       !!entitlements?.chromeExtension && !!entitlements?.googleDrive && !!entitlements?.desktop && !!entitlements?.recordSync;
     const hasCorrectEntitlements = priceRecordCount > 0 ? areEntitlementsEnabled : !areEntitlementsEnabled;
-    if (hasCorrectSubscriptionItemCount && hasCorrectEntitlements) {
+    const hasCorrectSeatState = subscriptionDbService.isTeamSeatStateInSync(team.billingAccount, seatState);
+    if (hasCorrectSubscriptionItemCount && hasCorrectEntitlements && hasCorrectSeatState) {
       return { success: true, didUpdate, stripeCustomer } as const;
     }
 
@@ -589,6 +662,7 @@ export async function synchronizeStripeWithJetstreamTeamIfRequired({
       teamId,
       customerId,
       subscriptions,
+      seatState,
     });
     await fetchAndUpdateEntitlements(customerId);
     return { success: true, didUpdate, stripeCustomer } as const;
@@ -618,13 +692,20 @@ export async function saveOrUpdateSubscription({
 
   let { userId, teamId, type = 'USER' } = customer.metadata;
   const subscriptions = customer.subscriptions?.data ?? [];
-  const hasTeamPlan = !!findTeamPlanSubscription(subscriptions);
+  const teamPlanSubscription = findTeamPlanSubscription(subscriptions);
 
   // Ensure team is auto-created if required and Stripe is updated to reflect this
-  if (hasTeamPlan && userId && (!teamId || type !== 'TEAM')) {
-    type = 'TEAM';
-    const team = await createTeamForTeamPlanCustomer({ userId, customerId: customer.id });
-    teamId = team.id;
+  if (teamPlanSubscription && userId && (!teamId || type !== 'TEAM')) {
+    // Stripe does not order webhooks, so this can run before checkout.session.completed; the name chosen at
+    // checkout is read from the subscription so the team does not fall back to the user's email
+    const team = await createTeamForTeamPlanCustomer({ userId, customerId: customer.id, teamPlanSubscription });
+    // No team means the user's team is billed on another customer, so this one stays their personal customer
+    if (team) {
+      type = 'TEAM';
+      teamId = team.id;
+    } else {
+      type = 'USER';
+    }
   }
 
   // customer does not have Jetstream id attached - update Stripe to ensure data integrity (if possible)
@@ -647,7 +728,16 @@ export async function saveOrUpdateSubscription({
     await userDbService.upsertBillingAccount({ userId, customerId: customer.id });
   } else if (teamId && type === 'TEAM') {
     // For new subscriptions, create a billing account if it does not exist
-    await teamDbService.createBillingAccountIfNotExists({ teamId, customerId: customer.id });
+    const billingAccount = await teamDbService.createBillingAccountIfNotExists({ teamId, customerId: customer.id });
+    // Another customer can carry this team's id in its metadata, e.g. a Team checkout the buyer opened before
+    // accepting an invitation to this team. Its subscriptions must never set the team's billing status or seats.
+    if (billingAccount.customerId !== customer.id) {
+      logger.error(
+        { customerId: customer.id, teamId, teamCustomerId: billingAccount.customerId },
+        'Unable to save subscriptions - the customer is not the billing customer of its team, review for a refund',
+      );
+      return;
+    }
   } else {
     // This could happen depending on the order of webhook events for subscription creation vs checkout session completion
     // it should self heal since we call this code path in both cases
@@ -670,10 +760,12 @@ export async function saveOrUpdateSubscription({
       });
     }
   } else if (type === 'TEAM') {
+    const activeSubscriptions = filterInactiveSubscriptions(subscriptions);
     await subscriptionDbService.updateTeamSubscriptionStateForCustomer({
       teamId,
       customerId: customer.id,
-      subscriptions: filterInactiveSubscriptions(subscriptions),
+      subscriptions: activeSubscriptions,
+      seatState: await resolveTeamSeatState(activeSubscriptions),
     });
   } else {
     throw new Error(`Invalid type for subscription update: ${type}`);
@@ -787,6 +879,8 @@ export async function createCheckoutSession({
   type,
   teamId,
   productionOrgId,
+  quantity = 1,
+  teamName,
 }: {
   user: Pick<UserProfile, 'id' | 'name' | 'email'>;
   priceId: string;
@@ -796,6 +890,10 @@ export async function createCheckoutSession({
   teamId?: string;
   /** Pre-fills the production org id field, the customer can still change it. Unused when the customer already has one on file. */
   productionOrgId?: Maybe<string>;
+  /** Seats purchased up front for team plans; the customer cannot change it inside Checkout */
+  quantity?: number;
+  /** Name for the team created when checkout completes; ignored when the user already has a team */
+  teamName?: string;
 }): Promise<Stripe.Response<Stripe.Checkout.Session>> {
   const urlParams = new URLSearchParams({ sessionId: 'CHECKOUT_SESSION_ID', type, priceId, userId: user.id, mode });
 
@@ -818,11 +916,22 @@ export async function createCheckoutSession({
   const successUrl = `${ENV.JETSTREAM_SERVER_URL}/api/billing/checkout-session/complete?${serializedUrlParams}`;
   const cancelUrl = `${ENV.JETSTREAM_SERVER_URL}/api/billing/checkout-session/cancel?${serializedUrlParams}`;
 
+  // The subscription webhook can arrive before the session completes, so the team name (for a new team) and the
+  // team id (for an existing team whose deleted customer is being replaced) also travel on the subscription itself
+  // (see saveOrUpdateSubscription)
+  const subscriptionMetadata = { ...(teamName ? { teamName } : {}), ...(teamId ? { teamId } : {}) };
+  const subscriptionDataParams: Pick<Stripe.Checkout.SessionCreateParams, 'subscription_data'> =
+    mode === 'subscription' && Object.keys(subscriptionMetadata).length > 0
+      ? { subscription_data: { metadata: subscriptionMetadata } }
+      : {};
+
   const session = await stripe.checkout.sessions.create({
     line_items: [
       {
         price: priceId,
-        quantity: 1,
+        quantity,
+        // Seats are chosen in-app so the count Jetstream validated is the count Stripe charges for
+        adjustable_quantity: { enabled: false },
       },
     ],
     allow_promotion_codes: true,
@@ -850,13 +959,17 @@ export async function createCheckoutSession({
       allow_redisplay: 'always',
     },
     ...(shouldCollectProductionOrgId ? getProductionOrgIdCheckoutParams(productionOrgId) : {}),
-    metadata: { userId: user.id, teamId: teamId || null, type },
+    metadata: { userId: user.id, teamId: teamId || null, type, teamName: teamName || null },
+    ...subscriptionDataParams,
   });
 
   return session;
 }
 
-const cachedPortalSessions = new Map<'USER' | 'TEAM' | 'MANUAL', Stripe.BillingPortal.Configuration>();
+/** Matches `metadata.type` on the portal configurations written by scripts/stripe-update-billing-portal-config.mjs */
+export type BillingPortalType = 'USER' | 'TEAM' | 'TEAM_LEGACY' | 'MANUAL';
+
+const cachedPortalSessions = new Map<BillingPortalType, Stripe.BillingPortal.Configuration>();
 
 /**
  * CREATE BILLING PORTAL SESSION
@@ -867,15 +980,16 @@ export async function createBillingPortalSession({
   returnUrl = `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`,
 }: {
   customerId: string;
-  portalType: 'USER' | 'TEAM' | 'MANUAL';
+  portalType: BillingPortalType;
   returnUrl?: string;
 }): Promise<Stripe.Response<Stripe.BillingPortal.Session>> {
-  if (cachedPortalSessions.size === 0) {
+  // Reloaded whenever a type is missing so a configuration added by the portal script is found without a restart
+  if (!cachedPortalSessions.has(portalType)) {
     logger.info('Loading billing portal configurations from Stripe');
     await stripe.billingPortal.configurations.list({ active: true }).then((res) => {
       res.data.forEach((configuration) => {
         if (configuration.metadata?.type) {
-          cachedPortalSessions.set(configuration.metadata.type as 'USER' | 'TEAM' | 'MANUAL', configuration);
+          cachedPortalSessions.set(configuration.metadata.type as BillingPortalType, configuration);
         }
       });
     });
@@ -894,111 +1008,4 @@ export async function createBillingPortalSession({
   });
 
   return session;
-}
-
-/**
- * Update Stripe subscription item quantity to match the number of active users in Jetstream
- * This will invoice the customer immediately if required based on their plan and the number of users
- */
-export async function updateSubscriptionItemQuantity(
-  customerId: string,
-  newQuantity: number,
-): Promise<{
-  success: boolean;
-  didUpdate: boolean;
-  subscriptionId?: Maybe<string>;
-  subscriptionItemId?: Maybe<string>;
-  quantity?: Maybe<number>;
-  error?: Maybe<string>;
-}> {
-  let subscription: Stripe.Subscription | undefined = undefined;
-  let subscriptionItem: Stripe.SubscriptionItem | undefined = undefined;
-  try {
-    const customer = await stripe.customers.retrieve(customerId, {
-      expand: ['subscriptions'],
-    });
-
-    if (customer.deleted) {
-      throw new Error('Customer is deleted');
-    }
-
-    const subscriptions = (customer.subscriptions?.data || []).filter((subscription) =>
-      ['active', 'past_due', 'unpaid'].includes(subscription.status),
-    );
-    subscription = subscriptions[0];
-    const subscriptionItems = subscriptions[0]?.items?.data || [];
-    subscriptionItem = subscriptionItems[0];
-
-    if (subscriptions.length !== 1 || !subscription) {
-      throw new Error('Customer does not have an eligible subscription');
-    }
-
-    if (subscriptionItems.length !== 1 || !subscriptionItem) {
-      throw new Error('Customer does not have an eligible subscription item');
-    }
-
-    if (subscriptionItem.quantity === newQuantity) {
-      logger.info(
-        {
-          customerId,
-          quantity: newQuantity,
-          subscriptionId: subscription?.id,
-          subscriptionItemId: subscriptionItem?.id,
-        },
-        `Skipping Stripe quantity update, quantity already matches desired number`,
-      );
-      return {
-        success: true,
-        didUpdate: false,
-        subscriptionId: subscription.id,
-        subscriptionItemId: subscriptionItem.id,
-        quantity: newQuantity,
-        error: null,
-      };
-    }
-
-    await stripe.subscriptionItems.update(subscriptionItem.id, {
-      payment_behavior: 'allow_incomplete',
-      proration_behavior: 'always_invoice',
-      quantity: newQuantity,
-    });
-
-    logger.info(
-      {
-        customerId,
-        quantity: newQuantity,
-        subscriptionId: subscription?.id,
-        subscriptionItemId: subscriptionItem?.id,
-      },
-      `Updated Stripe subscription item quantity`,
-    );
-
-    return {
-      success: true,
-      didUpdate: true,
-      subscriptionId: subscription.id,
-      subscriptionItemId: subscriptionItem.id,
-      quantity: newQuantity,
-      error: null,
-    };
-  } catch (ex) {
-    logger.warn(
-      {
-        customerId,
-        quantity: newQuantity,
-        subscriptionId: subscription?.id,
-        subscriptionItemId: subscriptionItem?.id,
-        ...getErrorMessageAndStackObj(ex),
-      },
-      `Error updating subscription quantity: ${getErrorMessage(ex)}`,
-    );
-    return {
-      success: false,
-      didUpdate: false,
-      subscriptionId: subscription?.id,
-      subscriptionItemId: subscriptionItem?.id,
-      quantity: newQuantity,
-      error: getErrorMessage(ex),
-    };
-  }
 }

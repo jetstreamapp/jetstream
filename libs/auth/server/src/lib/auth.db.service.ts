@@ -35,7 +35,14 @@ import {
   MAX_FAILED_LOGIN_ATTEMPTS,
   PASSWORD_HISTORY_COUNT,
 } from '@jetstream/shared/utils';
-import { Maybe, TEAM_MEMBER_STATUS_ACTIVE } from '@jetstream/types';
+import {
+  addMemberFromInvitation,
+  auditSeatLimitRejection,
+  checkSeatAvailability,
+  SeatLimitError,
+  withTeamSeatLock,
+} from '@jetstream/team-seats';
+import { Maybe, TEAM_MEMBER_ROLE_MEMBER, TEAM_MEMBER_STATUS_ACTIVE } from '@jetstream/types';
 import { addDays, startOfDay } from 'date-fns';
 import { addMinutes } from 'date-fns/addMinutes';
 import clamp from 'lodash/clamp';
@@ -1342,63 +1349,107 @@ export async function removeIdentityFromUser(
   });
 }
 
+/**
+ * Creates a new user, auto-joining them to the team from the login configuration when one is set
+ * and a seat is free. A user who holds a pending invitation is not auto-joined: the accept step that
+ * follows converts their reservation with the invitation's role and features, and a seat check here
+ * would count that reservation against them. The invitation lookup, the seat check and the user write
+ * all share the team row lock so a concurrent invite cannot take the same seat or be overtaken by a
+ * plain auto-join. When no seat is available the user is still created (they can log in) but without
+ * a membership, and the denial is audited so an admin can see why.
+ */
+async function createUserWithDomainAutoJoin(
+  { email, loginConfiguration }: { email: string; loginConfiguration: Maybe<LoginConfiguration> },
+  createUser: (tx: Prisma.TransactionClient, autoJoinTeamId: string | null) => Promise<AuthenticatedUser>,
+): Promise<AuthenticatedUser> {
+  const autoJoinTeamId = loginConfiguration?.autoAddToTeam && loginConfiguration.team?.id ? loginConfiguration.team.id : null;
+  if (!autoJoinTeamId) {
+    return prisma.$transaction((tx) => createUser(tx, null));
+  }
+
+  return withTeamSeatLock(autoJoinTeamId, async (tx) => {
+    // Read the invitation under the lock rather than before it: one created while we waited must still
+    // win, otherwise the user is auto-joined as a plain member and the invitation's role and features
+    // are dropped along with it by the cleanup that follows.
+    const pendingInvitation = await tx.teamMemberInvitation.findFirst({
+      select: { id: true },
+      where: { teamId: autoJoinTeamId, email, expiresAt: { gte: new Date() } },
+    });
+    if (pendingInvitation) {
+      return createUser(tx, null);
+    }
+
+    const availability = await checkSeatAvailability(tx, { teamId: autoJoinTeamId, kind: 'ADD', role: TEAM_MEMBER_ROLE_MEMBER });
+    if (availability.ok) {
+      return createUser(tx, autoJoinTeamId);
+    }
+
+    logger.warn(
+      { teamId: autoJoinTeamId, email, code: availability.error.code },
+      'New user was not auto-joined to their team because no seat is available',
+    );
+    auditSeatLimitRejection(availability.error, { attemptedAction: 'AUTO_JOIN', targetEmail: email });
+    return createUser(tx, null);
+  });
+}
+
+function buildAutoJoinMembership(autoJoinTeamId: string | null) {
+  if (!autoJoinTeamId) {
+    return undefined;
+  }
+  return { create: { teamId: autoJoinTeamId, role: TEAM_MEMBER_ROLE_MEMBER, status: TEAM_MEMBER_STATUS_ACTIVE } };
+}
+
 async function createUserFromProvider(
   providerUser: ProviderUser,
   provider: OauthProviderType,
   loginConfiguration: Maybe<LoginConfiguration>,
 ) {
   const email = providerUser.email?.toLowerCase();
-  const user = await prisma.user
-    .create({
-      select: AuthenticatedUserSelect,
-      data: {
-        email,
-        // TODO: do we really get any benefit from storing this userId like this?
-        // TODO: only reason I can think of is user migration since the id is a UUID so we need to different identifier
-        // TODO: this is nice as we can identify which identity is primary without joining the identity table - could solve in other ways
-        userId: `${provider}|${providerUser.id}`,
-        name: providerUser.name,
-        emailVerified: providerUser.emailVerified,
-        // picture: providerUser.picture,
-        lastLoggedIn: new Date(),
-        preferences: { create: { skipFrontdoorLogin: false } },
-        entitlements: {
-          create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false, salesforceCanvas: false },
-        },
-        identities: {
-          create: {
-            type: 'oauth',
-            provider,
-            providerAccountId: providerUser.id,
-            email,
-            name: providerUser.name,
-            emailVerified: providerUser.emailVerified,
-            username: providerUser.username,
-            isPrimary: true,
-            familyName: providerUser.familyName,
-            givenName: providerUser.givenName,
-            picture: providerUser.picture,
+  const user = await createUserWithDomainAutoJoin({ email, loginConfiguration }, (tx, autoJoinTeamId) =>
+    tx.user
+      .create({
+        select: AuthenticatedUserSelect,
+        data: {
+          email,
+          // TODO: do we really get any benefit from storing this userId like this?
+          // TODO: only reason I can think of is user migration since the id is a UUID so we need to different identifier
+          // TODO: this is nice as we can identify which identity is primary without joining the identity table - could solve in other ways
+          userId: `${provider}|${providerUser.id}`,
+          name: providerUser.name,
+          emailVerified: providerUser.emailVerified,
+          // picture: providerUser.picture,
+          lastLoggedIn: new Date(),
+          preferences: { create: { skipFrontdoorLogin: false } },
+          entitlements: {
+            create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false, salesforceCanvas: false },
           },
-        },
-        authFactors: {
-          create: {
-            type: '2fa-email',
-            enabled: ENV.JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE,
+          identities: {
+            create: {
+              type: 'oauth',
+              provider,
+              providerAccountId: providerUser.id,
+              email,
+              name: providerUser.name,
+              emailVerified: providerUser.emailVerified,
+              username: providerUser.username,
+              isPrimary: true,
+              familyName: providerUser.familyName,
+              givenName: providerUser.givenName,
+              picture: providerUser.picture,
+            },
           },
+          authFactors: {
+            create: {
+              type: '2fa-email',
+              enabled: ENV.JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE,
+            },
+          },
+          teamMembership: buildAutoJoinMembership(autoJoinTeamId),
         },
-        teamMembership:
-          !!loginConfiguration?.autoAddToTeam && loginConfiguration.team?.id
-            ? {
-                create: {
-                  teamId: loginConfiguration.team.id,
-                  role: 'MEMBER',
-                  status: 'ACTIVE',
-                },
-              }
-            : undefined,
-      },
-    })
-    .then((user) => AuthenticatedUserSchema.parse(user));
+      })
+      .then((user) => AuthenticatedUserSchema.parse(user)),
+  );
 
   // delete any pending invitations if they exist (user was auto-added to team based on config and no invite was needed)
   if (user.teamMembership?.teamId) {
@@ -1510,7 +1561,7 @@ async function createUserFromUserInfo(
   email = email.toLowerCase();
 
   const passwordHash = await hashPassword(password);
-  const user = await prisma.$transaction(async (tx) => {
+  const user = await createUserWithDomainAutoJoin({ email, loginConfiguration }, async (tx, autoJoinTeamId) => {
     // Create initial user
     const user = await tx.user
       .create({
@@ -1535,16 +1586,7 @@ async function createUserFromUserInfo(
               enabled: ENV.JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE,
             },
           },
-          teamMembership:
-            !!loginConfiguration?.autoAddToTeam && loginConfiguration.team?.id
-              ? {
-                  create: {
-                    teamId: loginConfiguration.team.id,
-                    role: 'MEMBER',
-                    status: 'ACTIVE',
-                  },
-                }
-              : undefined,
+          teamMembership: buildAutoJoinMembership(autoJoinTeamId),
         },
       })
       .then((user) => AuthenticatedUserSchema.parse(user));
@@ -2038,42 +2080,45 @@ export async function handleSignInOrRegistration(
   }
 }
 
+/**
+ * Accepts a pending invitation as part of login/registration. Returns null when the user could not
+ * be added — including when the team has no free seat, in which case login proceeds without the
+ * team, the invitation is left untouched, and the user can retry from the invitation page once a
+ * seat is available.
+ */
 async function acceptInviteAndAddUserToTeam(
   userId: string,
   teamInviteResponse: NonNullable<Awaited<ReturnType<typeof getTeamInviteConfiguration>>>,
 ) {
+  const teamId = teamInviteResponse.team.id;
   try {
-    return await prisma
-      .$transaction([
-        prisma.teamMemberInvitation.delete({
-          where: { id: teamInviteResponse.id },
-        }),
-        prisma.teamMember.create({
-          select: { role: true, status: true, teamId: true, userId: true },
-          data: {
-            teamId: teamInviteResponse.team.id,
-            userId,
-            role: teamInviteResponse.role,
-            status: TEAM_MEMBER_STATUS_ACTIVE,
-            features: teamInviteResponse.features,
-            createdById: teamInviteResponse.createdById,
-            updatedById: teamInviteResponse.createdById,
-          },
-        }),
-      ])
-      .then(() =>
-        prisma.user
-          .findFirstOrThrow({
-            select: AuthenticatedUserSelect,
-            where: { id: userId },
-          })
-          .then((user) => AuthenticatedUserSchema.parse(user)),
-      );
+    await withTeamSeatLock(teamId, (tx) => addMemberFromInvitation(tx, { teamId, userId, invitation: teamInviteResponse }));
+    return await prisma.user
+      .findFirstOrThrow({
+        select: AuthenticatedUserSelect,
+        where: { id: userId },
+      })
+      .then((user) => AuthenticatedUserSchema.parse(user));
   } catch (ex) {
+    if (ex instanceof SeatLimitError) {
+      logger.warn(
+        { userId, teamId, inviteId: teamInviteResponse.id, code: ex.code },
+        'User could not accept team invitation during login because no seat is available',
+      );
+      auditSeatLimitRejection(ex, {
+        attemptedAction: 'ACCEPT_INVITATION_ON_LOGIN',
+        userId,
+        resourceId: userId,
+        targetEmail: teamInviteResponse.email,
+        targetUserId: userId,
+        role: teamInviteResponse.role,
+      });
+      return null;
+    }
     logger.error(
       {
         userId,
-        teamId: teamInviteResponse.team.id,
+        teamId,
         inviteId: teamInviteResponse.id,
         ...getErrorMessageAndStackObj(ex),
       },

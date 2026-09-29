@@ -99,6 +99,18 @@ routes.put(
   teamController.updateTeamMemberStatusAndRole.controllerFn(),
 );
 
+// Purchased seats (BILLING is included so finance can act on money without an admin)
+routes.post(
+  '/:teamId/seats/preview',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
+  teamController.previewSeatChange.controllerFn(),
+);
+routes.put(
+  '/:teamId/seats',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
+  teamController.updateSeats.controllerFn(),
+);
+
 routes.get(
   '/:teamId/invitations',
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),

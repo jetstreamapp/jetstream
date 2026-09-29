@@ -23,6 +23,7 @@
       "@jetstream/api-config": ["./libs/api-config/src/index.ts"],
       "@jetstream/api-types": ["./libs/api-types/src/index.ts"],
       "@jetstream/audit-logs": ["./libs/audit-logs/src/index.ts"],
+      "@jetstream/team-seats": ["./libs/team-seats/src/index.ts"],
       "@jetstream/auth/server": ["./libs/auth/server/src/index.ts"],
       "@jetstream/auth/types": ["./libs/auth/types/src/index.ts"],
       "@jetstream/connected-ui": ["./libs/connected/connected-ui/src/index.ts"],
