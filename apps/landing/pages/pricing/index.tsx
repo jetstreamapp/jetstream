@@ -29,6 +29,7 @@ const tiers = [
       'Unlimited Salesforce Org Connections',
       'Query Builder',
       'Data Loader',
+      'Data History of your 15 most recent changes',
       'Metadata Tools',
       'Salesforce API Tools',
       'Developer Tools',
@@ -63,6 +64,15 @@ const tiers = [
         className="text-cyan-500 hover:underline"
       >
         Field Usage Analysis
+      </a>,
+      <a
+        key="data-history"
+        href={ROUTES.EXTERNAL.DOCS_DATA_HISTORY}
+        target="_blank"
+        rel="noreferrer"
+        className="text-cyan-500 hover:underline"
+      >
+        Unlimited Data History
       </a>,
       <Link key="desktop-application" href={ROUTES.DESKTOP} className="text-cyan-500 hover:underline">
         Desktop Application

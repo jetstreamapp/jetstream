@@ -21,6 +21,7 @@ export const ROUTES = {
     DOCS: 'https://docs.getjetstream.app',
     DOCS_PERMISSION_ANALYSIS: 'https://docs.getjetstream.app/permission-analysis',
     DOCS_DATA_ANALYSIS: 'https://docs.getjetstream.app/data-analysis',
+    DOCS_DATA_HISTORY: 'https://docs.getjetstream.app/load/data-history',
     APP_EXCHANGE: 'https://appexchange.salesforce.com/appxListingDetail?listingId=1a2b1a6e-013e-40b9-9113-3481282cb415',
     STATUS: 'https://status.getjetstream.app',
     TRUST_CENTER: 'https://trust.upguard.com/3be075a6-bfdf-4133-8b38-35057abfebae',
