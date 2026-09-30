@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.23.1](https://github.com/jetstreamapp/jetstream/compare/v10.23.0...v10.23.1) (2026-09-30)
+
+### Bug Fixes
+
+- **api:** restore /openapi/spec.json and spec.yaml generation ([f2c8cb3](https://github.com/jetstreamapp/jetstream/commit/f2c8cb386f22ee65b466a44f7802faf5a636328e))
+- **deploy:** generate Record Type Picklist Manager packages without XSLT ([77ab357](https://github.com/jetstreamapp/jetstream/commit/77ab357669002ed18d58dd3ceaa4f92ca16744cb)), references [#2109](https://github.com/jetstreamapp/jetstream/issues/2109)
+
 ## [10.23.0](https://github.com/jetstreamapp/jetstream/compare/v10.22.0...v10.23.0) (2026-09-29)
 
 ### Features
