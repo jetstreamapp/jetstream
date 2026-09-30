@@ -1,0 +1,60 @@
+---
+slug: v10.23.0
+title: 10.23.0 - Purchased seats for the Team plan
+date: '2026-09-29'
+tags: [web]
+versions:
+  web: 10.23.0
+summary: The Team plan now uses seats you purchase up front, managed from the Team Dashboard. Org pickers for deploying and Data History now default to the orgs in your active group.
+highlights:
+  - title: Team plan uses purchased seats
+    description: Teams buy a set number of seats, priced per seat with a lower rate from 6 seats, and that number limits how many Admins and Members the team can have.
+    docLink: /team-management
+  - title: Manage Seats on the Team Dashboard
+    description: Admins and Billing users can add or remove seats after previewing the charge.
+    docLink: /team-management
+  - title: Org pickers default to the active org group
+    description: Deploy, metadata compare, and Data History org pickers list only the orgs in your active group, with a link to show all orgs.
+    docLink: /org-groups
+  - title: Legal business name at checkout
+    description: Checkout requires your legal business name on Personal and Team plans.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Team plan uses purchased seats
+
+Teams now buy a fixed number of seats when they subscribe, instead of being billed as members are added. Team pricing is per seat, with a lower rate once a team has 6 or more seats. Existing customers keep their current prices.
+
+Each active Admin or Member uses one seat, and a pending invitation for either role holds a seat until it is accepted, cancelled, or expires. Billing role users never use a seat. When every seat is in use, you need to buy more seats, deactivate a member, or cancel a pending invitation before adding another person. The limit is checked when you send, resend, or accept an invitation, reactivate a member, change a member's role, and when someone joins the team through SSO.
+
+### Manage Seats on the Team Dashboard
+
+The new Seats card on the Team Dashboard shows how many seats you have purchased, how many are in use, how many are held by pending invitations, and how many are available. Admin and Billing role users can click **Manage Seats** to change the count after previewing the charge.
+
+- Adding seats takes effect immediately. The new seats are prorated for the rest of the billing period and charged right away.
+- Removing seats takes effect at the end of the billing period, and no refund is issued for the current period. The Seats card shows the pending decrease, and setting the count back to the number you purchased cancels it.
+- You cannot go below the number of seats in use plus the seats held by pending invitations.
+
+Teams on current pricing can also switch between monthly and annual billing in the Billing Portal, and the seat count carries over. If your team is billed through a purchase order, your agreement sets the seat count, so contact support to change it.
+
+### Org pickers default to the active org group
+
+Pickers for choosing a second org used to list every connected org, even when you were working in an org group. They now default to the orgs in your active group, the same rule the org dropdown in the header uses. **-No Group-** shows only orgs that are not in a group. This applies to:
+
+- Deploy to Different Org, and Deploy from compare
+- Compare metadata with a different org (sidebar)
+- Upload metadata from package and Download metadata from package
+- The Data History org filter
+
+A link under the picker switches to all orgs and shows how many are hidden. It is not remembered, so the picker returns to the active group the next time a modal opens. An org you have already selected stays in the list even when it is outside the group, and **All Orgs** in Data History still includes all history. Nothing changes if you have no groups.
+
+### Legal business name at checkout
+
+Checkout now requires your legal business name on both Personal and Team plans. Jetstream must report it to Salesforce with each order, and it appears on your invoices.
+
+### Other fixes
+
+- The pricing page shows the Team plan's per-seat rates and lists the Data History limits for each plan.
