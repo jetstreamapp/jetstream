@@ -6,7 +6,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { isBrowserExtension, isCanvasApp } from '@jetstream/shared/ui-utils';
 import { AddOrgHandlerFn, ColorScheme, DropDownItem, UserProfileUi } from '@jetstream/types';
-import { Header, Icon, Navbar, UpgradeToProButton } from '@jetstream/ui';
+import { Header, Icon, Navbar, UpgradeToProButton, UserFeedbackPopover } from '@jetstream/ui';
 import {
   abilityState,
   applicationCookieState,
@@ -18,6 +18,7 @@ import {
 } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 import { useNavigate } from 'react-router';
 import { useAmplitude } from '../analytics';
 import Jobs from '../jobs/Jobs';
@@ -27,6 +28,7 @@ import { QuickQueryPopover } from '../query/QuickQueryPopover';
 import { RecordSearchPopover } from '../record/RecordSearchPopover';
 import { UserSearchPopover } from '../record/UserSearchPopover';
 import { HeaderDataHistoryButton } from './DataHistoryLinks';
+import { ErrorBoundaryEmptyFallback } from './ErrorBoundaryEmptyFallback';
 import HeaderDonatePopover from './HeaderDonatePopover';
 import HeaderHelpPopover from './HeaderHelpPopover';
 import { useHeaderNavbarItems } from './HeaderNavbarItems';
@@ -403,7 +405,17 @@ export const HeaderNavbar = ({
         isEmbeddedApp={isEmbeddedApp}
         onUserMenuItemSelected={handleUserMenuSelection}
       >
-        <Navbar items={isReadOnlyUser ? headerNavbarBillingUserItems : navbarItems} />
+        <Navbar
+          items={isReadOnlyUser ? headerNavbarBillingUserItems : navbarItems}
+          // Canvas has no feedback endpoint
+          trailingContent={
+            isCanvasApp() ? undefined : (
+              <ErrorBoundary FallbackComponent={ErrorBoundaryEmptyFallback}>
+                <UserFeedbackPopover />
+              </ErrorBoundary>
+            )
+          }
+        />
       </Header>
     </Fragment>
   );
