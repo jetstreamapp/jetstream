@@ -1,0 +1,25 @@
+---
+slug: v10.23.1
+title: 10.23.1 - Record Type Picklist Manager deploy fix
+date: '2026-09-30'
+tags: [web, desktop, extension]
+versions:
+  web: 10.23.1
+  desktop: 4.18.1
+  extension: 3.21.1
+summary: Fixes Record Type Picklist Manager failing to deploy picklist changes in Edge and Chrome 154.
+highlights:
+  - title: Record Type Picklist Manager deploy fix
+    description: Deploying picklist changes no longer fails in Edge and Chrome 154, where Salesforce rejected the generated package.
+    docLink: /deploy/record-type-picklist-manager
+---
+
+{/* truncate */}
+
+## What's new
+
+### Record Type Picklist Manager deploy fix
+
+In Edge and Chrome 154, deploying picklist changes from Record Type Picklist Manager failed because the browser added an XSLT deprecation notice to the generated package files. Salesforce rejected the package with an error about an invalid `div` element. Jetstream now builds those files without the step that triggered the notice, so the deployment no longer depends on the browser.
+
+In Firefox 155, the same deployment failed earlier, with "There was an error preparing your deployment package." That is fixed as well.

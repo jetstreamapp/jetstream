@@ -1,5 +1,20 @@
 [
   {
+    "slug": "v10.23.1",
+    "title": "10.23.1 - Record Type Picklist Manager deploy fix",
+    "date": "2026-09-30",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.23.1", "desktop": "4.18.1", "extension": "3.21.1" },
+    "summary": "Fixes Record Type Picklist Manager failing to deploy picklist changes in Edge and Chrome 154.",
+    "highlights": [
+      {
+        "title": "Record Type Picklist Manager deploy fix",
+        "description": "Deploying picklist changes no longer fails in Edge and Chrome 154, where Salesforce rejected the generated package.",
+        "docLink": "/deploy/record-type-picklist-manager"
+      }
+    ]
+  },
+  {
     "slug": "v10.23.0",
     "title": "10.23.0 - Purchased seats for the Team plan",
     "date": "2026-09-29",
