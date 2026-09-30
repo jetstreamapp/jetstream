@@ -1,5 +1,34 @@
 [
   {
+    "slug": "v10.23.0",
+    "title": "10.23.0 - Purchased seats for the Team plan",
+    "date": "2026-09-29",
+    "tags": ["web"],
+    "versions": { "web": "10.23.0" },
+    "summary": "The Team plan now uses seats you purchase up front, managed from the Team Dashboard. Org pickers for deploying and Data History now default to the orgs in your active group.",
+    "highlights": [
+      {
+        "title": "Team plan uses purchased seats",
+        "description": "Teams buy a set number of seats, priced per seat with a lower rate from 6 seats, and that number limits how many Admins and Members the team can have.",
+        "docLink": "/team-management"
+      },
+      {
+        "title": "Manage Seats on the Team Dashboard",
+        "description": "Admins and Billing users can add or remove seats after previewing the charge.",
+        "docLink": "/team-management"
+      },
+      {
+        "title": "Org pickers default to the active org group",
+        "description": "Deploy, metadata compare, and Data History org pickers list only the orgs in your active group, with a link to show all orgs.",
+        "docLink": "/org-groups"
+      },
+      {
+        "title": "Legal business name at checkout",
+        "description": "Checkout requires your legal business name on Personal and Team plans."
+      }
+    ]
+  },
+  {
     "slug": "v10.22.0",
     "title": "10.22.0 - Redesigned Settings page and SSO rules for team invitations",
     "date": "2026-09-25",
