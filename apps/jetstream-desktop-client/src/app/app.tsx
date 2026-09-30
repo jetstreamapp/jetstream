@@ -1,9 +1,8 @@
 import { css } from '@emotion/react';
 import { Announcement } from '@jetstream/types';
-import { AppToast, ConfirmationServiceProvider, UserFeedbackWidget } from '@jetstream/ui';
+import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
 import {
   AppLoading,
-  ErrorBoundaryEmptyFallback,
   ErrorBoundaryFallback,
   HeaderNavbar,
   NotificationsRequestModal,
@@ -40,9 +39,6 @@ export const App = () => {
               <NotificationsRequestModal loadDelay={10000} />
               <DownloadFileStreamDesktop />
               <ViewEditCloneRecordWrapper />
-              <ErrorBoundary FallbackComponent={ErrorBoundaryEmptyFallback}>
-                <UserFeedbackWidget />
-              </ErrorBoundary>
               <div>
                 <div
                   css={css`
