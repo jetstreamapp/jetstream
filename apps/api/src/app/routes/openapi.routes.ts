@@ -541,7 +541,20 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
         get: { ...getRequest({ ...oauthController.salesforceOauthInitAuth.validators, tags: ['oauth'] }) },
       },
       '/oauth/sfdc/callback': {
-        get: { ...getRequest({ ...oauthController.salesforceOauthCallback.validators, tags: ['oauth'] }) },
+        get: {
+          ...getRequest({
+            ...oauthController.salesforceOauthCallback.validators,
+            // The route accepts any query params (z.record) so they can be passed through to the token exchange,
+            // but OpenAPI query params must be named fields, so document the ones Salesforce sends
+            query: z.object({
+              code: z.string().optional(),
+              state: z.string().optional(),
+              error: z.string().optional(),
+              error_description: z.string().optional(),
+            }),
+            tags: ['oauth'],
+          }),
+        },
       },
 
       // Static Authenticated Routes (prefix: /static)
