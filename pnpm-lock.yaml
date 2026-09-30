@@ -224,8 +224,8 @@ importers:
         specifier: ^2.2.0
         version: 2.2.0
       '@jetstreamapp/simple-xml':
-        specifier: ^1.1.1
-        version: 1.1.1
+        specifier: ^1.2.0
+        version: 1.2.0
       '@jetstreamapp/soql-parser-js':
         specifier: ^8.1.0
         version: 8.1.0
@@ -3779,8 +3779,8 @@ packages:
   '@jetstreamapp/sf-formula-parser@2.2.0':
     resolution: {integrity: sha512-33VG7CbDHrFVvWMHhnKBCNdtNqGMzXD/P6eMRMtZ79Gbssw8USOgTBHViRvL2ahSRZI1AfaOFwQDqhGNiL0Hjw==}
 
-  '@jetstreamapp/simple-xml@1.1.1':
-    resolution: {integrity: sha512-H3LeZEvOb/JD8S2vs5vzK0HOlFoKu+IQCueTNbOJ1+smUEEMNWGFni38EEQK7cMYkQKPFGfrGFb5S4hynnDJaA==}
+  '@jetstreamapp/simple-xml@1.2.0':
+    resolution: {integrity: sha512-uRyy1oiDyV2q3SleZoGmVUCyrvRl7hqvAcnVwmv7bHSr5GmzfJmTZfiBCeSgHHyiVmpsDizxk0KrZ6+NmJAtVw==}
 
   '@jetstreamapp/soql-parser-js@8.1.0':
     resolution: {integrity: sha512-Lb1nVhEZTC3jEP2eFIHuEIWLYB9VnlcXxho1d1RbPO2MwxJX8vI9PRmqtvvlTPPvRU9+U/mRSLm889fs8kn8+g==}
@@ -21535,7 +21535,7 @@ snapshots:
 
   '@jetstreamapp/sf-formula-parser@2.2.0': {}
 
-  '@jetstreamapp/simple-xml@1.1.1': {}
+  '@jetstreamapp/simple-xml@1.2.0': {}
 
   '@jetstreamapp/soql-parser-js@8.1.0': {}
 
