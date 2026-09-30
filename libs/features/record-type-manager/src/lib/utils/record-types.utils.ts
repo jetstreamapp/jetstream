@@ -11,8 +11,6 @@ import JSZip from 'jszip';
 import groupBy from 'lodash/groupBy';
 import { RecordTypePicklistSummary } from '../types/record-types.types';
 
-const XML_NS = xmlUtils.SOAP_XML_NAMESPACE;
-
 /**
  * Some fullName have invalid objects vs reality
  * Some picklist field names are different from metadadata API vs reality
@@ -163,56 +161,21 @@ export async function prepareRecordTypeMetadataPackage({
 
 // This is all record types for an object
 export function getObjectWithRecordTypesXml(recordTypes: ReadMetadataRecordTypeExtended[]) {
-  const doc = xmlUtils.generateXmlDocument('CustomObject');
-  const customObjectElement = doc.documentElement;
-
-  recordTypes.forEach((recordType) => {
-    appendRecordTypeToCustomObject(customObjectElement, recordType);
-  });
-
-  return xmlUtils.serializeXml(doc);
+  return xmlUtils.buildMetadataXml('CustomObject', { recordTypes: recordTypes.map(getRecordTypeXmlContent) });
 }
 
 // this is one record type within an object
-export function appendRecordTypeToCustomObject(parentElement: HTMLElement, recordType: ReadMetadataRecordTypeExtended) {
-  const recordTypeElement = xmlUtils.appendElementToXml({ namespace: XML_NS, tagName: 'recordTypes', parent: parentElement });
-
-  xmlUtils.appendTextElementToXml({ namespace: XML_NS, tagName: 'fullName', value: recordType.recordType, parent: recordTypeElement });
-  xmlUtils.appendTextElementToXml({ namespace: XML_NS, tagName: 'active', value: recordType.active, parent: recordTypeElement });
-
-  if (recordType.businessProcess) {
-    xmlUtils.appendTextElementToXml({
-      namespace: XML_NS,
-      tagName: 'businessProcess',
-      value: recordType.businessProcess,
-      parent: recordTypeElement,
-    });
-  }
-
-  if (recordType.description) {
-    xmlUtils.appendTextElementToXml({
-      namespace: XML_NS,
-      tagName: 'description',
-      value: recordType.description,
-      parent: recordTypeElement,
-    });
-  }
-
-  xmlUtils.appendTextElementToXml({ namespace: XML_NS, tagName: 'label', value: recordType.label, parent: recordTypeElement });
-
-  recordType.picklistValues.forEach((picklistValues) => {
-    const picklistValuesElement = xmlUtils.appendElementToXml({ namespace: XML_NS, tagName: 'picklistValues', parent: recordTypeElement });
-    xmlUtils.appendTextElementToXml({
-      namespace: XML_NS,
-      tagName: 'picklist',
-      value: picklistValues.picklist,
-      parent: picklistValuesElement,
-    });
-
-    picklistValues.values.forEach((value) => {
-      const valuesElement = xmlUtils.appendElementToXml({ namespace: XML_NS, tagName: 'values', parent: picklistValuesElement });
-      xmlUtils.appendTextElementToXml({ namespace: XML_NS, tagName: 'fullName', value: value.fullName, parent: valuesElement });
-      xmlUtils.appendTextElementToXml({ namespace: XML_NS, tagName: 'default', value: value.default, parent: valuesElement });
-    });
-  });
+function getRecordTypeXmlContent(recordType: ReadMetadataRecordTypeExtended) {
+  return {
+    fullName: recordType.recordType,
+    active: recordType.active,
+    businessProcess: recordType.businessProcess || undefined,
+    description: recordType.description || undefined,
+    label: recordType.label,
+    picklistValues: recordType.picklistValues.map(({ picklist, values }) => ({
+      picklist,
+      // only include what the metadata api expects, values may have additional properties
+      values: values.map(({ fullName, default: isDefault }) => ({ fullName, default: isDefault })),
+    })),
+  };
 }

@@ -260,7 +260,7 @@
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^5.9.1",
     "@jetstreamapp/sf-formula-parser": "^2.2.0",
-    "@jetstreamapp/simple-xml": "^1.1.1",
+    "@jetstreamapp/simple-xml": "^1.2.0",
     "@jetstreamapp/soql-parser-js": "^8.1.0",
     "@marsidev/react-turnstile": "^1.6.1",
     "@monaco-editor/react": "^4.7.0",
