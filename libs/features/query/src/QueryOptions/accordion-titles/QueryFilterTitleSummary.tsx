@@ -1,4 +1,4 @@
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { formatNumber, getFilterResourceText, queryFilterHasValue } from '@jetstream/shared/ui-utils';
 import { truncate } from '@jetstream/shared/utils';
 import { ExpressionConditionType } from '@jetstream/types';
 import { Badge, isExpressionConditionType } from '@jetstream/ui';
@@ -9,15 +9,6 @@ import { ErrorBoundary } from 'react-error-boundary';
 
 export interface QueryFilterTitleSummaryProps {
   isHavingClause?: boolean;
-}
-
-function hasValue(row: ExpressionConditionType) {
-  const hasValue = Array.isArray(row.selected.value) ? row.selected.value.length : !!row.selected.value;
-  return (
-    row.selected.operator &&
-    row.selected.resource &&
-    (hasValue || row.selected.operator === 'isNull' || row.selected.operator === 'isNotNull')
-  );
 }
 
 function getFilterLabel(row: ExpressionConditionType) {
@@ -93,10 +84,11 @@ function getFilterLabel(row: ExpressionConditionType) {
       value = row.selected.value;
       break;
   }
+  const resourceText = getFilterResourceText(row.selected);
   return (
-    <span title={`${row.selected.resource} ${operatorString} ${value}`}>
-      {row.selected.resource} <code className="slds-m-horizontal--xx-small">{operatorString}</code>{' '}
-      {hasValue(row) ? truncate(value as string, 10) : ''}
+    <span title={`${resourceText} ${operatorString} ${value}`}>
+      {resourceText} <code className="slds-m-horizontal--xx-small">{operatorString}</code>{' '}
+      {queryFilterHasValue(row) ? truncate(value as string, 10) : ''}
     </span>
   );
 }
@@ -108,7 +100,7 @@ export const QueryFilterTitleSummary = ({ isHavingClause = false }: QueryFilterT
 
   const configuredFilters = filters.rows
     .flatMap((filterRow) => (isExpressionConditionType(filterRow) ? filterRow : filterRow.rows))
-    .filter(hasValue);
+    .filter((row) => queryFilterHasValue(row));
   const beyondDisplayLimit = configuredFilters.length > 3;
 
   return (

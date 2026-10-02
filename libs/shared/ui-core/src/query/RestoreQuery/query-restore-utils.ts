@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { MAX_SUBQUERY_DEPTH } from '@jetstream/shared/constants';
+import { FORMULA_FILTER_FUNCTION, MAX_SUBQUERY_DEPTH } from '@jetstream/shared/constants';
 import {
   convertDescribeToDescribeSObjectWithExtendedTypes,
   fetchFieldsProcessResults,
@@ -44,7 +44,9 @@ import {
 import {
   Condition,
   DateLiteral,
+  FormulaFunctionExp,
   HavingClause,
+  isFormulaFunction,
   isGroupByField,
   isGroupByFn,
   isNegationCondition,
@@ -55,6 +57,7 @@ import {
   Operator,
   Query,
   FieldType as QueryFieldType,
+  ValueFunctionCondition,
   WhereClause,
 } from '@jetstreamapp/soql-parser-js';
 import isString from 'lodash/isString';
@@ -368,6 +371,43 @@ function processHavingClause(
   }
 }
 
+/**
+ * Restores FORMULA('FieldA + FieldB') > 100. Returns undefined if either field is not available, so the caller reports the filter as unsupported.
+ */
+function restoreFormulaCondition(
+  condition: ValueFunctionCondition,
+  { formula }: FormulaFunctionExp,
+  key: number,
+  fieldWrapperWithParentKey: Record<string, FieldWrapperWithParentKey>,
+  priorConditionIsNegation: boolean,
+): ExpressionConditionType | undefined {
+  const { left, right, operator: formulaOperator } = formula;
+  const leftField = fieldWrapperWithParentKey[left.parts.join('.').toLowerCase()];
+  const rightField = fieldWrapperWithParentKey[right.parts.join('.').toLowerCase()];
+  if (!leftField || !rightField) {
+    return undefined;
+  }
+  const operator = getOperatorFromWhereClause(condition.operator, condition.value as string, priorConditionIsNegation);
+  return {
+    key,
+    resourceType: 'TEXT',
+    selected: {
+      resource: leftField.fieldKey,
+      resourceMeta: leftField.fieldMetadata.metadata,
+      resourceGroup: leftField.parentKey,
+      function: FORMULA_FILTER_FUNCTION,
+      operator,
+      value: removeQuotesAndPercentage(condition.operator, condition.value),
+      formula: {
+        operator: formulaOperator,
+        resource: rightField.fieldKey,
+        resourceMeta: rightField.fieldMetadata.metadata,
+        resourceGroup: rightField.parentKey,
+      },
+    },
+  };
+}
+
 function flattenWhereClause(
   missingMisc: string[],
   fieldWrapperWithParentKey: Record<string, FieldWrapperWithParentKey>,
@@ -426,7 +466,14 @@ function flattenWhereClause(
       const foundField = fieldWrapperWithParentKey[queryField.toLowerCase()];
       clauseFunction = clauseFunction ? getLowercaseFieldFunctionMap()[clauseFunction.toLowerCase()] : null;
 
-      if (foundField && (!isValueFunctionCondition(condition) || !!clauseFunction)) {
+      const formulaCondition =
+        isValueFunctionCondition(condition) && isFormulaFunction(condition.fn)
+          ? restoreFormulaCondition(condition, condition.fn, currKey, fieldWrapperWithParentKey, priorConditionIsNegation)
+          : undefined;
+
+      if (formulaCondition) {
+        expressionCondition = formulaCondition;
+      } else if (foundField && (!isValueFunctionCondition(condition) || !!clauseFunction)) {
         const { fieldMetadata, fieldKey, parentKey } = foundField;
         const field = fieldMetadata.metadata;
         const operator = getOperatorFromWhereClause(condition.operator, condition.value as string, priorConditionIsNegation);

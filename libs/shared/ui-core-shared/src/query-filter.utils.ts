@@ -1,3 +1,4 @@
+import { FORMULA_FILTER_FUNCTION } from '@jetstream/shared/constants';
 import {
   DATE_LITERALS_SET,
   getBooleanListItems,
@@ -46,6 +47,11 @@ export const QUERY_FIELD_FUNCTIONS: ListItem<string, QueryFilterOperator>[] = [
   ...QUERY_FIELD_DATE_FUNCTIONS,
 ];
 
+/** Offered for WHERE filters, the row then compares two fields combined with + or - */
+export const QUERY_FILTER_FORMULA_FUNCTIONS: ListItem<string, QueryFilterOperator>[] = [
+  { id: FORMULA_FILTER_FUNCTION, label: 'Add / Subtract Fields', value: FORMULA_FILTER_FUNCTION },
+];
+
 export const QUERY_OPERATORS: ListItem<string, QueryFilterOperator>[] = [
   { id: 'eq', label: 'Equals', value: 'eq' },
   { id: 'ne', label: 'Does Not Equal', value: 'ne' },
@@ -69,6 +75,58 @@ export const QUERY_OPERATORS: ListItem<string, QueryFilterOperator>[] = [
 
 function findResourceMeta(fields: ListItem[], selected: ExpressionConditionRowSelectedItems) {
   return selected.resource && getFlattenedListItemsById(fields)[selected.resource]?.meta;
+}
+
+function findFormulaOperandMeta(fields: ListItem[], selected: ExpressionConditionRowSelectedItems) {
+  return selected.formula?.resource && getFlattenedListItemsById(fields)[selected.formula.resource]?.meta;
+}
+
+const FORMULA_NUMBER_TYPES = new Set<FieldType>(['double', 'currency', 'percent', 'int']);
+const FORMULA_DATE_TYPES = new Set<FieldType>(['date', 'datetime']);
+
+/** FORMULA() can only add or subtract number, currency, date and datetime fields */
+export function isFormulaFieldSupported(type: Maybe<FieldType>): type is FieldType {
+  return !!type && (FORMULA_NUMBER_TYPES.has(type) || FORMULA_DATE_TYPES.has(type));
+}
+
+/**
+ * Whether a field can be the second operand of a FORMULA() filter given the first operand.
+ * Mirrors the rules getFormulaHelpText() explains so the second field list only offers fields that will not warn.
+ */
+export function isFormulaOperandCompatible(leftType: Maybe<FieldType>, rightType: Maybe<FieldType>): boolean {
+  if (!isFormulaFieldSupported(rightType)) {
+    return false;
+  }
+  if (!leftType) {
+    return true;
+  }
+  if (FORMULA_DATE_TYPES.has(leftType) && FORMULA_DATE_TYPES.has(rightType)) {
+    return leftType === rightType;
+  }
+  // date arithmetic only works with the date on the left, e.x. CloseDate - 30 but not 30 - CloseDate
+  return !FORMULA_DATE_TYPES.has(rightType);
+}
+
+/**
+ * Explains the FORMULA() restrictions that Salesforce would otherwise only report after the query runs.
+ */
+function getFormulaHelpText(fields: ListItem[], selected: ExpressionConditionRowSelectedItems): ExpressionConditionHelpText | undefined {
+  const leftType: Maybe<FieldType> = findResourceMeta(fields, selected)?.type;
+  const rightType: Maybe<FieldType> = findFormulaOperandMeta(fields, selected)?.type;
+
+  if (leftType && rightType) {
+    const hasUnsupportedType = [leftType, rightType].some((type) => !FORMULA_NUMBER_TYPES.has(type) && !FORMULA_DATE_TYPES.has(type));
+    if (hasUnsupportedType) {
+      return { type: 'warning', value: 'FORMULA() only supports number, currency, date and datetime fields.' };
+    }
+    if (FORMULA_DATE_TYPES.has(leftType) && FORMULA_DATE_TYPES.has(rightType) && leftType !== rightType) {
+      return { type: 'warning', value: 'FORMULA() cannot mix date and datetime fields.' };
+    }
+    if (!FORMULA_DATE_TYPES.has(leftType) && FORMULA_DATE_TYPES.has(rightType)) {
+      return { type: 'warning', value: 'FORMULA() does not allow a date field on the right when the left field is not a date.' };
+    }
+  }
+  return undefined;
 }
 
 function isListOperator(operator: Maybe<QueryFilterOperator>): boolean {
@@ -299,6 +357,9 @@ export function getResourceTypeFnsFromFields(fields: ListItem[]): ExpressionGetR
   const getResourceTypeFns: ExpressionGetResourceTypeFns & { fields: ListItem[] } = {
     fields,
     getTypes: (selected: ExpressionConditionRowSelectedItems): ListItem<ExpressionRowValueType>[] | undefined => {
+      if (selected.function === FORMULA_FILTER_FUNCTION) {
+        return undefined;
+      }
       const fieldMeta: Field = findResourceMeta(fields, selected);
       if (!fieldMeta) {
         return;
@@ -306,6 +367,10 @@ export function getResourceTypeFnsFromFields(fields: ListItem[]): ExpressionGetR
       return getFieldResourceTypes(fieldMeta, selected.operator);
     },
     getType: (selected: ExpressionConditionRowSelectedItems): ExpressionRowValueType | undefined => {
+      // the value is compared to the result of the arithmetic, so it is not tied to the type of either field
+      if (selected.function === FORMULA_FILTER_FUNCTION) {
+        return 'TEXT';
+      }
       const fieldMeta: Field = findResourceMeta(fields, selected);
       if (!fieldMeta) {
         return;
@@ -317,6 +382,9 @@ export function getResourceTypeFnsFromFields(fields: ListItem[]): ExpressionGetR
       return getTypeFromMetadata(fieldMeta.type, selected.operator);
     },
     getHelpText: (selected: ExpressionConditionRowSelectedItems): ExpressionConditionHelpText | undefined => {
+      if (selected.function === FORMULA_FILTER_FUNCTION) {
+        return getFormulaHelpText(fields, selected);
+      }
       const fieldMeta: Field = findResourceMeta(fields, selected);
       if (!fieldMeta) {
         return undefined;
@@ -334,8 +402,26 @@ export function getResourceTypeFnsFromFields(fields: ListItem[]): ExpressionGetR
         return { type: 'warning', value: 'Includes and Excludes operators are only compatible with multi-select picklists.' };
       }
     },
+    filterFunctions: (
+      selected: ExpressionConditionRowSelectedItems,
+      functions: ListItem<string, QueryFilterOperator>[],
+    ): ListItem<string, QueryFilterOperator>[] => {
+      const leftType: Maybe<FieldType> = findResourceMeta(fields, selected)?.type;
+      return functions.filter(({ value }) => value !== FORMULA_FILTER_FUNCTION || isFormulaFieldSupported(leftType));
+    },
+    isFormulaOperandAllowed: (selected: ExpressionConditionRowSelectedItems, item: ListItem): boolean => {
+      const leftType: Maybe<FieldType> = findResourceMeta(fields, selected)?.type;
+      return isFormulaOperandCompatible(leftType, (item.meta as Maybe<Field>)?.type);
+    },
     checkSelected: (selected: ExpressionConditionRowSelectedItems): ExpressionConditionRowSelectedItems => {
       const fieldMeta: Field = findResourceMeta(fields, selected);
+      if (selected.function === FORMULA_FILTER_FUNCTION) {
+        // the field was changed to one that cannot be used in a formula, so the row goes back to a regular comparison
+        if (!isFormulaFieldSupported(fieldMeta?.type)) {
+          return { ...selected, function: null, formula: undefined };
+        }
+        return selected;
+      }
       if (!fieldMeta) {
         return selected;
       }

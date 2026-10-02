@@ -3,7 +3,12 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ExpressionType, ListItem, QueryFilterOperator, SalesforceOrgUi } from '@jetstream/types';
 import { ExpressionContainer, ListOperatorSuggestion } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
-import { QUERY_FIELD_FUNCTIONS, QUERY_OPERATORS, getResourceTypeFnsFromFields } from '@jetstream/ui-core/shared';
+import {
+  QUERY_FIELD_FUNCTIONS,
+  QUERY_FILTER_FORMULA_FUNCTIONS,
+  QUERY_OPERATORS,
+  getResourceTypeFnsFromFields,
+} from '@jetstream/ui-core/shared';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 
 export interface QueryFilterProps {
@@ -75,7 +80,14 @@ export const QueryFilter: FunctionComponent<QueryFilterProps> = ({
       resources={fields}
       resourceListHeader={sobject}
       resourceDrillInOnLoad={onLoadRelatedFields}
-      functions={isHavingClause ? QUERY_FIELD_FUNCTIONS : undefined}
+      functionsLabel={isHavingClause ? undefined : 'Field Math'}
+      functionsHelpText={
+        isHavingClause
+          ? undefined
+          : 'Compare two fields added or subtracted together, e.x. Amount - ExpectedRevenue. ' +
+            'Beta: only available in sandbox, Developer Edition and scratch orgs on API v68.0+.'
+      }
+      functions={isHavingClause ? QUERY_FIELD_FUNCTIONS : QUERY_FILTER_FORMULA_FUNCTIONS}
       operators={QUERY_OPERATORS}
       getResourceTypeFns={getResourceTypeFns}
       disableValueForOperators={disableValueForOperators}
