@@ -160,10 +160,7 @@ function reducer(state: State, action: Action): State {
             const currRow = expression.rows[groupIdx] as ExpressionGroupType;
             currRow.rows = [...currRow.rows];
 
-            const resourceChanged =
-              currRow.rows[rowIdx].selected.resource !== selected.resource ||
-              currRow.rows[rowIdx].selected.operator !== selected.operator ||
-              currRow.rows[rowIdx].selected.resourceType !== selected.resourceType;
+            const resourceChanged = hasRowResourceChanged(currRow.rows[rowIdx].selected, selected);
 
             currRow.rows[rowIdx] = { ...currRow.rows[rowIdx], selected };
 
@@ -176,10 +173,7 @@ function reducer(state: State, action: Action): State {
         const rowIdx = expression.rows.findIndex((item) => item.key === row.key);
         if (rowIdx >= 0) {
           const currRow = expression.rows[rowIdx] as ExpressionConditionType;
-          const resourceChanged =
-            currRow.selected.resource !== selected.resource ||
-            currRow.selected.operator !== selected.operator ||
-            currRow.selected.resourceType !== selected.resourceType;
+          const resourceChanged = hasRowResourceChanged(currRow.selected, selected);
 
           expression.rows = [...expression.rows];
           expression.rows[rowIdx] = { ...expression.rows[rowIdx], selected };
@@ -389,6 +383,17 @@ function initGroup(key: number, rowKey: number): ExpressionGroupType {
     action: 'AND',
     rows: [initRow(rowKey)],
   };
+}
+
+/** Selections that decide the value input, options and help text of a row */
+function hasRowResourceChanged(previous: ExpressionConditionRowSelectedItems, current: ExpressionConditionRowSelectedItems): boolean {
+  return (
+    previous.resource !== current.resource ||
+    previous.operator !== current.operator ||
+    previous.resourceType !== current.resourceType ||
+    previous.function !== current.function ||
+    previous.formula?.resource !== current.formula?.resource
+  );
 }
 
 function updateResourcesOnRow(

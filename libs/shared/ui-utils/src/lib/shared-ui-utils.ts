@@ -2,7 +2,13 @@
 /* eslint-disable no-redeclare */
 import type { Placement } from '@floating-ui/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { DATE_FORMATS, HTTP, INPUT_ACCEPT_FILETYPES, JOB_CANCELED_ERROR_MESSAGE } from '@jetstream/shared/constants';
+import {
+  DATE_FORMATS,
+  FORMULA_FILTER_FUNCTION,
+  HTTP,
+  INPUT_ACCEPT_FILETYPES,
+  JOB_CANCELED_ERROR_MESSAGE,
+} from '@jetstream/shared/constants';
 import {
   anonymousApex,
   bulkApiGetJob,
@@ -43,6 +49,8 @@ import type {
   UseReducerFetchState,
 } from '@jetstream/types';
 import {
+  FormulaFunctionExp,
+  FunctionExp,
   HavingClause,
   HavingClauseWithRightCondition,
   LiteralType,
@@ -503,13 +511,26 @@ export function convertFloatingUiPlacementToSlds(placement: Placement): Position
   }
 }
 
+export function isFormulaFilter(selected: ExpressionConditionRowSelectedItems): boolean {
+  return selected.function === FORMULA_FILTER_FUNCTION;
+}
+
 export function queryFilterHasValue(row: ExpressionConditionType) {
   const hasValue = Array.isArray(row.selected.value) ? row.selected.value.length : !!row.selected.value;
   return (
     row.selected.operator &&
     row.selected.resource &&
+    (!isFormulaFilter(row.selected) || row.selected.formula?.resource) &&
     (hasValue || row.selected.operator === 'isNull' || row.selected.operator === 'isNotNull')
   );
+}
+
+/** Text shown for the left side of a filter, e.x. `Amount` or `FORMULA(Amount - ExpectedRevenue)` */
+export function getFilterResourceText({ resource, function: functionName, formula }: ExpressionConditionRowSelectedItems): string {
+  if (functionName === FORMULA_FILTER_FUNCTION && formula) {
+    return `${FORMULA_FILTER_FUNCTION}(${resource} ${formula.operator} ${formula.resource})`;
+  }
+  return resource || '';
 }
 // did not want to have circular imports
 function isExpressionConditionType(value: any): value is ExpressionConditionType {
@@ -604,6 +625,40 @@ export function getOperatorFromWhereClause(operator: Operator, value: string, ha
 }
 
 /**
+ * Build the condition for a single filter row, shared by standalone rows and rows inside a group
+ */
+function buildFilterCondition({
+  selected,
+}: ExpressionConditionType): ValueCondition | ValueWithDateLiteralCondition | ValueFunctionCondition {
+  return {
+    fn: getFilterFunction(selected),
+    operator: convertQueryFilterOperator(selected.operator),
+    logicalPrefix: isNegationOperator(selected.operator) ? 'NOT' : undefined,
+    field: selected.resource,
+    value: getValue(selected.operator, selected.value),
+    literalType: getLiteralType(selected, selected.function),
+  } as ValueCondition | ValueWithDateLiteralCondition | ValueFunctionCondition;
+}
+
+function getFilterFunction(selected: ExpressionConditionRowSelectedItems): FunctionExp | FormulaFunctionExp | undefined {
+  if (!selected.function) {
+    return undefined;
+  }
+  if (isFormulaFilter(selected) && selected.resource && selected.formula?.resource) {
+    return {
+      functionName: FORMULA_FILTER_FUNCTION,
+      formula: {
+        type: 'BinaryExpression',
+        operator: selected.formula.operator,
+        left: { type: 'FieldReference', parts: selected.resource.split('.') },
+        right: { type: 'FieldReference', parts: selected.formula.resource.split('.') },
+      },
+    };
+  }
+  return { functionName: selected.function, parameters: [selected.resource] } as FunctionExp;
+}
+
+/**
  * Build where clauses from filter rows
  */
 function buildExpressionConditionWhereClause<T extends WhereClause | HavingClause>(
@@ -611,6 +666,7 @@ function buildExpressionConditionWhereClause<T extends WhereClause | HavingClaus
   row: ExpressionConditionType,
   action: AndOr,
 ): T[] {
+  const condition = buildFilterCondition(row);
   // REGULAR WHERE CLAUSE
   if (isNegationOperator(row.selected.operator)) {
     (whereOrHavingClauses as (WhereClause | HavingClause)[]).push({
@@ -618,38 +674,12 @@ function buildExpressionConditionWhereClause<T extends WhereClause | HavingClaus
       operator: 'NOT',
     });
     (whereOrHavingClauses as (WhereClause | HavingClause)[]).push({
-      left: {
-        fn: row.selected.function
-          ? {
-              functionName: row.selected.function,
-              parameters: [row.selected.resource],
-            }
-          : undefined,
-        operator: convertQueryFilterOperator(row.selected.operator),
-        logicalPrefix: isNegationOperator(row.selected.operator) ? 'NOT' : undefined,
-        field: row.selected.resource,
-        value: getValue(row.selected.operator, row.selected.value),
-        literalType: getLiteralType(row.selected, row.selected.function),
-        closeParen: 1,
-      } as ValueCondition | ValueWithDateLiteralCondition | ValueFunctionCondition,
+      left: { ...condition, closeParen: 1 },
       operator: action,
     });
   } else {
-    // REGULAR WHERE CLAUSE
     (whereOrHavingClauses as (WhereClause | HavingClause)[]).push({
-      left: {
-        fn: row.selected.function
-          ? {
-              functionName: row.selected.function,
-              parameters: [row.selected.resource],
-            }
-          : undefined,
-        operator: convertQueryFilterOperator(row.selected.operator),
-        logicalPrefix: isNegationOperator(row.selected.operator) ? 'NOT' : undefined,
-        field: row.selected.resource,
-        value: getValue(row.selected.operator, row.selected.value),
-        literalType: getLiteralType(row.selected, row.selected.function),
-      } as ValueCondition | ValueWithDateLiteralCondition | ValueFunctionCondition,
+      left: condition,
       operator: action,
     });
   }
@@ -664,13 +694,7 @@ function buildExpressionGroupConditionWhereClause<T extends WhereClause | Having
   const tempWhereOrHavingClauses: (WhereClauseWithRightCondition | HavingClauseWithRightCondition)[] = [];
   group.rows.forEach((row, i) => {
     const whereOrHavingClause: Partial<WhereClauseWithRightCondition | HavingClauseWithRightCondition> = {
-      left: {
-        operator: convertQueryFilterOperator(row.selected.operator),
-        logicalPrefix: isNegationOperator(row.selected.operator) ? 'NOT' : undefined,
-        field: row.selected.resource,
-        value: getValue(row.selected.operator, row.selected.value),
-        literalType: getLiteralType(row.selected),
-      } as ValueCondition | ValueWithDateLiteralCondition,
+      left: buildFilterCondition(row),
       // for final row, use the parent action as the operator so that the next filter does not get the group's operator
       operator: i === group.rows.length - 1 ? parentAction : group.action,
     };
@@ -798,11 +822,33 @@ export function getLowercaseFieldFunctionMap(): Record<string, string> {
   }, {});
 }
 
+/** The value of a FORMULA() filter is a number, or a date when comparing date arithmetic, and is never quoted */
+function getFormulaLiteralType(value: string | string[]): LiteralType {
+  const trimmedValue = (Array.isArray(value) ? value[0] : value)?.trim() || '';
+  if (/^[-+]?\d+$/.test(trimmedValue)) {
+    return 'INTEGER';
+  }
+  if (/^[-+]?(\d+\.\d*|\.\d+)$/.test(trimmedValue)) {
+    return 'DECIMAL';
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmedValue)) {
+    return 'DATE';
+  }
+  if (/^\d{4}-\d{2}-\d{2}T/.test(trimmedValue)) {
+    return 'DATETIME';
+  }
+  return 'STRING';
+}
+
 function getLiteralType(selected: ExpressionConditionRowSelectedItems, functionName?: Maybe<string>): LiteralType {
   const field: Field = safeGet(selected, 'resourceMeta.metadata', safeGet(selected, 'resourceMeta'));
 
   if (selected.operator === 'isNull' || selected.operator === 'isNotNull') {
     return 'NULL';
+  }
+
+  if (functionName === FORMULA_FILTER_FUNCTION) {
+    return getFormulaLiteralType(selected.value);
   }
 
   if (field && functionName) {

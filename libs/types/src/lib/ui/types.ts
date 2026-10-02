@@ -326,6 +326,15 @@ export interface ExpressionConditionRowSelectedItems<T = any> {
   operator: QueryFilterOperator | null;
   resourceType?: ExpressionRowValueType;
   value: string | string[];
+  /** Set when `function` is FORMULA, the row then compares `resource <formula.operator> formula.resource` to the value */
+  formula?: ExpressionConditionFormulaOperand;
+}
+
+export interface ExpressionConditionFormulaOperand<T = any> {
+  operator: '+' | '-';
+  resource: string | null;
+  resourceMeta?: T;
+  resourceGroup: string | null;
 }
 
 export interface ExpressionConditionHelpText {

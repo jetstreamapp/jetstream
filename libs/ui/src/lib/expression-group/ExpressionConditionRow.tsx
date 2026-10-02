@@ -1,5 +1,6 @@
 import { useDraggable } from '@dnd-kit/react';
 import { css } from '@emotion/react';
+import { FORMULA_FILTER_FUNCTION, FORMULA_FILTER_OPERATORS } from '@jetstream/shared/constants';
 import { useDebounce } from '@jetstream/shared/ui-utils';
 import {
   AndOr,
@@ -62,6 +63,11 @@ export interface ExpressionConditionRowProps {
   onDelete: () => void;
 }
 
+const FORMULA_MATH_OPERATORS: ListItem<string, '+' | '-'>[] = [
+  { id: '+', label: '+ (Add)', value: '+' },
+  { id: '-', label: '- (Subtract)', value: '-' },
+];
+
 function getSelectionLabel(item: ListItem<string, unknown>) {
   return `${item.value} (${item.label})`;
 }
@@ -105,6 +111,11 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
   const [picklistKey, setPicklistKey] = useState<string>(`${new Date().getTime()}`);
   const debouncedSelectedValue = useDebounce(selectedValue, 150);
   const referenceSobjects: string[] = selected.resourceMeta?.referenceTo || [];
+  const isFormula = selected.function === FORMULA_FILTER_FUNCTION;
+  // FORMULA() only supports plain comparisons
+  const availableOperators = isFormula
+    ? operators.filter(({ value }) => FORMULA_FILTER_OPERATORS.includes(value as QueryFilterOperator))
+    : operators;
 
   // Drag is initiated from the handle (handleRef); the whole row is the drag element (ref).
   // The element ref is only attached when drag handles are shown (see the <li> below) so the row is neither
@@ -165,6 +176,22 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     if (type && type[0] && selected.resourceType !== type[0].value) {
       onChange({ ...selected, resourceType: type[0].value });
     }
+  }
+
+  function handleFunctionSelected(functionName: string) {
+    if (functionName !== FORMULA_FILTER_FUNCTION) {
+      onChange({ ...selected, function: functionName, formula: undefined });
+      return;
+    }
+    // operators that FORMULA() does not support are replaced rather than left selected and silently invalid
+    const operator = selected.operator && FORMULA_FILTER_OPERATORS.includes(selected.operator) ? selected.operator : 'eq';
+    onChange({
+      ...selected,
+      function: functionName,
+      operator,
+      value: Array.isArray(selected.value) ? '' : selected.value,
+      formula: selected.formula || { operator: '+', resource: null, resourceGroup: null },
+    });
   }
 
   function parseDate(value: string | string[]) {
@@ -237,13 +264,56 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   labelHelp: functionsHelpText,
                   itemLength: 10,
                   showSelectionAsButton: true,
-                  onClear: () => onChange({ ...selected, function: null }),
+                  onClear: () => onChange({ ...selected, function: null, formula: undefined }),
                 }}
                 items={functions}
                 selectedItemId={selected.function}
-                onSelected={(item) => onChange({ ...selected, function: item.value })}
+                onSelected={(item) => handleFunctionSelected(item.value)}
               />
             </GridCol>
+          )}
+          {/* Second field of a FORMULA() comparison */}
+          {isFormula && (
+            <>
+              <GridCol growNone>
+                <ComboboxWithItems
+                  comboboxProps={{ label: 'Math', itemLength: 10, usePortal: true }}
+                  items={FORMULA_MATH_OPERATORS}
+                  selectedItemId={selected.formula?.operator}
+                  onSelected={(item) =>
+                    onChange({
+                      ...selected,
+                      formula: { resource: null, resourceGroup: null, ...selected.formula, operator: item.value as '+' | '-' },
+                    })
+                  }
+                />
+              </GridCol>
+              <GridCol grow>
+                <ComboboxWithDrillInItems
+                  comboboxProps={{
+                    label: `Second ${resourceLabel}`,
+                    itemLength: 10,
+                  }}
+                  selectedItemLabelFn={getSelectionLabel}
+                  selectedItemId={selected.formula?.resource}
+                  rootHeadingLabel={resourceListHeader}
+                  items={resources}
+                  onLoadItems={resourceDrillInOnLoad}
+                  onSelected={(item) => {
+                    item &&
+                      onChange({
+                        ...selected,
+                        formula: {
+                          operator: selected.formula?.operator || '+',
+                          resource: item.id,
+                          resourceGroup: item.parentId || '',
+                          resourceMeta: item.meta,
+                        },
+                      });
+                  }}
+                />
+              </GridCol>
+            </>
           )}
           {/* Operator */}
           <GridCol growNone>
@@ -258,7 +328,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                  */
                 usePortal: true,
               }}
-              items={operators}
+              items={availableOperators}
               selectedItemId={selected.operator}
               onSelected={(item) => onChange({ ...selected, operator: item.value as QueryFilterOperator })}
             />
