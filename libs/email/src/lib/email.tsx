@@ -11,6 +11,7 @@ import {
 } from './email-templates/auth/AuthenticationChangeConfirmationEmail';
 import { EmailChangeRequestedEmail } from './email-templates/auth/EmailChangeRequestedEmail';
 import { EmailChangeVerifyEmail } from './email-templates/auth/EmailChangeVerifyEmail';
+import { ExistingAccountSignupEmail } from './email-templates/auth/ExistingAccountSignupEmail';
 import { GenericEmail } from './email-templates/auth/GenericEmail';
 import { PasswordResetConfirmationEmail } from './email-templates/auth/PasswordResetConfirmationEmail';
 import { PasswordResetEmail } from './email-templates/auth/PasswordResetEmail';
@@ -133,6 +134,18 @@ export async function sendEmailVerification(emailAddress: string, code: string, 
   await sendEmail({
     to: emailAddress,
     subject: `Verify your email on Jetstream - ${code}`,
+    text,
+    html,
+  });
+}
+
+export async function sendExistingAccountSignupNotice(emailAddress: string) {
+  const component = <ExistingAccountSignupEmail baseUrl={ENV.JETSTREAM_SERVER_URL} emailAddress={emailAddress} />;
+  const [html, text] = await renderComponent(component);
+
+  await sendEmail({
+    to: emailAddress,
+    subject: 'You already have a Jetstream account',
     text,
     html,
   });

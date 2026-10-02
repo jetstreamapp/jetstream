@@ -22,6 +22,7 @@ import { SsoRequired } from '../auth.errors';
 const prismaMock = vi.hoisted(() => ({
   // The team row and seat counts are read by the seat check that accepting an invite runs under the team lock
   team: { findFirst: vi.fn(), findUniqueOrThrow: vi.fn() },
+  loginConfiguration: { findFirst: vi.fn() },
   teamMemberInvitation: { findFirst: vi.fn(), findFirstOrThrow: vi.fn(), delete: vi.fn(), count: vi.fn() },
   teamMember: { create: vi.fn(), count: vi.fn() },
   authIdentity: { create: vi.fn() },
@@ -275,6 +276,19 @@ describe('new user registering with a password from an invite', () => {
     await expect(register()).resolves.toEqual(expect.objectContaining({ isNewUser: true }));
     expect(prismaMock.user.create).toHaveBeenCalled();
     expect(prismaMock.teamMember.create).toHaveBeenCalled();
+  });
+
+  it("is not refused by the SSO requirement on their email domain when the invite comes from the domain's own team", async () => {
+    mockPendingInvite({ ssoBypassEnabled: true, ssoBypassEnabledRoles: ['MEMBER'] });
+    mockNewUser();
+    prismaMock.loginConfiguration.findFirst.mockResolvedValue({
+      ...buildSsoRequiredLoginConfig({ ssoBypassEnabled: true, ssoBypassEnabledRoles: ['MEMBER'] }),
+      domains: ['example.com'],
+      team: { id: TEAM_ID, name: 'Acme' },
+    });
+
+    await expect(register()).resolves.toEqual(expect.objectContaining({ isNewUser: true }));
+    expect(prismaMock.user.create).toHaveBeenCalled();
   });
 });
 

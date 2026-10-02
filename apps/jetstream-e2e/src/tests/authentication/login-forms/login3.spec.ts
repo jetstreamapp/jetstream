@@ -1,4 +1,7 @@
+import { countEmailLogEntries, verifyEmailLogEntryExists } from '@jetstream/test/e2e-utils';
 import { expect, test } from '../../../fixtures/fixtures';
+
+const EXISTING_ACCOUNT_NOTICE_SUBJECT = 'You already have a Jetstream account';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -66,6 +69,9 @@ test.describe('Login 3', () => {
       // User should be prompted to verify email
       await expect(page.getByText('Verify your email address')).toBeVisible();
 
+      // The owner of the inbox is told they already have an account instead of being sent a code
+      await verifyEmailLogEntryExists(email, EXISTING_ACCOUNT_NOTICE_SUBJECT);
+
       // Verify email
       await authenticationPage.verifyEmail(email, false, authenticationPage.routes.login(true));
 
@@ -81,6 +87,9 @@ test.describe('Login 3', () => {
 
       // User should be prompted to verify email
       await expect(page.getByText('Verify your email address')).toBeVisible();
+
+      // Only one notice per address per interval, so the sign up form cannot be used to flood the inbox
+      expect(await countEmailLogEntries(email, EXISTING_ACCOUNT_NOTICE_SUBJECT)).toBe(1);
 
       // Verify email (using original lowercase email for database lookup)
       await authenticationPage.verifyEmail(email, false, authenticationPage.routes.login(true));
