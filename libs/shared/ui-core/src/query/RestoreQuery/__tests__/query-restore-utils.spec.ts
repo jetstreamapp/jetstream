@@ -203,27 +203,53 @@ describe('processSubqueryOptions', () => {
     expect(stateItems.querySubqueryFiltersState.Contacts.rows).toHaveLength(2);
   });
 
-  it('reports a FORMULA() filter as unsupported instead of restoring it as a field filter', () => {
+  describe('FORMULA() filters', () => {
     const childBaseKey = getSubqueryFieldBaseKey('Opportunity', 'Opportunities');
-    const queryFields = {
-      [childBaseKey]: makeQueryFields(childBaseKey, [
-        makeField({ name: 'Amount', type: 'double' }),
-        makeField({ name: 'ExpectedRevenue', type: 'double' }),
-      ]),
-    };
     const metadata = makeMetadataOutput('Opportunities', 'Opportunity');
 
-    const { stateItems } = runProcess(
-      `SELECT Id, (SELECT Id FROM Opportunities WHERE FORMULA('Amount - ExpectedRevenue') > 100) FROM Account`,
-      childBaseKey,
-      queryFields,
-      metadata,
-    );
+    it('restores both fields, the math operator, the comparison and the value', () => {
+      const queryFields = {
+        [childBaseKey]: makeQueryFields(childBaseKey, [
+          makeField({ name: 'Amount', type: 'double' }),
+          makeField({ name: 'ExpectedRevenue', type: 'double' }),
+        ]),
+      };
 
-    expect(stateItems.missingMisc.some((msg: string) => msg.includes("Subquery 'Opportunities'") && msg.includes('not supported'))).toBe(
-      true,
-    );
-    expect(stateItems.querySubqueryFiltersState.Opportunities).toBeUndefined();
+      const { stateItems } = runProcess(
+        `SELECT Id, (SELECT Id FROM Opportunities WHERE FORMULA('Amount - ExpectedRevenue') >= 100) FROM Account`,
+        childBaseKey,
+        queryFields,
+        metadata,
+      );
+
+      expect(stateItems.missingMisc).toEqual([]);
+      const [{ selected }] = stateItems.querySubqueryFiltersState.Opportunities.rows;
+      expect(selected).toMatchObject({
+        function: 'FORMULA',
+        operator: 'gte',
+        value: '100',
+        resource: expect.stringContaining('Amount'),
+        formula: { operator: '-', resource: expect.stringContaining('ExpectedRevenue') },
+      });
+    });
+
+    it('reports the filter as unsupported when one of the fields is not available', () => {
+      const queryFields = {
+        [childBaseKey]: makeQueryFields(childBaseKey, [makeField({ name: 'Amount', type: 'double' })]),
+      };
+
+      const { stateItems } = runProcess(
+        `SELECT Id, (SELECT Id FROM Opportunities WHERE FORMULA('Amount - ExpectedRevenue') > 100) FROM Account`,
+        childBaseKey,
+        queryFields,
+        metadata,
+      );
+
+      expect(stateItems.missingMisc.some((msg: string) => msg.includes("Subquery 'Opportunities'") && msg.includes('not supported'))).toBe(
+        true,
+      );
+      expect(stateItems.querySubqueryFiltersState.Opportunities).toBeUndefined();
+    });
   });
 
   it('records missing filter fields under missingMisc with the Subquery prefix', () => {
