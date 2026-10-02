@@ -15,6 +15,7 @@ import {
   Query,
   FieldType as QueryFieldType,
   WhereClause,
+  isFormulaFunction,
   isOrderByField,
   isValueCondition,
   isValueFunctionCondition,
@@ -249,8 +250,15 @@ function getParsableFieldsFromFilter(where: Maybe<WhereClause>, fields: string[]
   if (isValueCondition(where.left)) {
     fields.push(where.left.field?.toLowerCase());
   }
-  if (isValueFunctionCondition(where.left) && Array.isArray(where.left.fn.parameters) && isString(where.left.fn.parameters[0])) {
-    fields.push(where.left.fn.parameters[0].toLowerCase());
+  if (isValueFunctionCondition(where.left)) {
+    const { fn } = where.left;
+    if (isFormulaFunction(fn)) {
+      // FORMULA('A - B') parameters hold the quoted expression, so the referenced fields come from the parsed formula
+      const { left, right } = fn.formula;
+      fields.push(left.parts.join('.').toLowerCase(), right.parts.join('.').toLowerCase());
+    } else if (Array.isArray(fn.parameters) && isString(fn.parameters[0])) {
+      fields.push(fn.parameters[0].toLowerCase());
+    }
   }
   if (isWhereOrHavingClauseWithRightCondition(where)) {
     getParsableFieldsFromFilter(where.right, fields);
