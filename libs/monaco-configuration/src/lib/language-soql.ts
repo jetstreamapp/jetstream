@@ -76,6 +76,7 @@ export const language = <monaco.languages.IMonarchLanguage>{
     'FISCAL_QUARTER',
     'FISCAL_YEAR',
     'FOR',
+    'FORMULA',
     'FROM',
     'GEOLOCATION',
     'GROUP',

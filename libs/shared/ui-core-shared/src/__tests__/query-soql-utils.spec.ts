@@ -89,6 +89,12 @@ describe('getParsableFieldsFromFilter', () => {
     expect(result).toEqual(['account.industry']);
   });
 
+  it('should return the fields referenced by a FORMULA() filter instead of the quoted expression', () => {
+    const filter = parseQuery(`SELECT Id FROM Opportunity WHERE FORMULA('Amount - Account.AnnualRevenue') > 100 AND Name = 'foo'`).where;
+    const result = getParsableFieldsFromFilter(filter);
+    expect(result).toEqual(['amount', 'account.annualrevenue', 'name']);
+  });
+
   it('Should ignore subqueries in WHERE clause', () => {
     const filter = parseQuery(
       `SELECT Id, Name FROM Account WHERE Id IN (SELECT AccountId FROM Contact WHERE LastName LIKE 'apple%') AND Id IN (SELECT AccountId FROM Opportunity WHERE isClosed = FALSE)`,
