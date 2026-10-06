@@ -417,6 +417,12 @@ export const Billing = () => {
                       type="submit"
                       className="slds-button slds-button_brand"
                       style={{ width: '100%', maxWidth: '400px' }}
+                      // Name the blocking errors so "dimmed" is not all a screen reader hears; the ids are the error
+                      // messages TeamCheckoutOptions renders under each field
+                      aria-describedby={
+                        [seatsError ? 'team-seat-count-error' : null, teamNameError ? 'team-name-error' : null].filter(Boolean).join(' ') ||
+                        undefined
+                      }
                       {...ariaDisabledButtonProps(checkoutSessionLoading || hasValidationError, () => {})}
                     >
                       Subscribe Now
