@@ -6,7 +6,7 @@ import { ariaDisabledButtonProps, Input, Modal, ScopedNotification, Spinner } fr
 import { useState } from 'react';
 import { TeamAccessProfileDropdown } from './access-profiles/TeamAccessProfileDropdown';
 import { evaluateSeatGate, SeatGate } from './team-seats/seat-gate';
-import { SeatChangeNotice } from './team-seats/SeatChangeNotice';
+import { SEAT_CHANGE_NOTICE_ID, SeatChangeNotice } from './team-seats/SeatChangeNotice';
 import { needsSeat } from './team-seats/team-seats.utils';
 import { TeamMemberRoleDropdown } from './TeamMemberRoleDropdown';
 
@@ -85,6 +85,7 @@ export function TeamMemberUpdateModal({
             type="submit"
             form="team-member-update-form"
             className="slds-button slds-button_brand slds-is-relative"
+            aria-describedby={seatBlocked ? SEAT_CHANGE_NOTICE_ID : undefined}
             {...ariaDisabledButtonProps(!isDirty || loading || seatBlocked, () => {})}
           >
             Save
