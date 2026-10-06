@@ -1,5 +1,19 @@
 # Changelog
 
+## [10.24.0](https://github.com/jetstreamapp/jetstream/compare/v10.23.1...v10.24.0) (2026-10-06)
+
+### Features
+
+- **auth:** require SSO to sign up with an address on a team's SSO domain ([60fa668](https://github.com/jetstreamapp/jetstream/commit/60fa668edca03439014001e9d0f0b92dca8af438))
+- replace the floating feedback bubble with a Feedback nav button ([b1ea814](https://github.com/jetstreamapp/jetstream/commit/b1ea814d8ed956cfa58c61025c4ba147080eaf54))
+
+### Bug Fixes
+
+- **auth:** email the owner when someone signs up with their existing address ([40aa335](https://github.com/jetstreamapp/jetstream/commit/40aa335d2f3b9a18073d8e6540a1bd7569e60414))
+- **auth:** keep the recorded reason when an email change confirmation is refused ([e280e56](https://github.com/jetstreamapp/jetstream/commit/e280e5676a59d9294cf7a41c704a03ba833a5548))
+- **query:** handle FORMULA() filters when reading fields from a query ([3ad2f96](https://github.com/jetstreamapp/jetstream/commit/3ad2f96403d6cf1ba99d4b933c7a26f025ec700f)), references [#2115](https://github.com/jetstreamapp/jetstream/issues/2115)
+- **web-extension:** show the Salesforce page button again in Firefox ([6aac141](https://github.com/jetstreamapp/jetstream/commit/6aac1416a9229c79e0bcd9b2a033179930541472)), closes [#2122](https://github.com/jetstreamapp/jetstream/issues/2122)
+
 ## [10.23.1](https://github.com/jetstreamapp/jetstream/compare/v10.23.0...v10.23.1) (2026-09-30)
 
 ### Bug Fixes
