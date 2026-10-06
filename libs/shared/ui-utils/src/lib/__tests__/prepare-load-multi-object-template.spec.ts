@@ -1,5 +1,5 @@
 import { ChildRelationship } from '@jetstream/types';
-import * as XLSX from 'xlsx';
+import { openWorkbook } from '@jetstreamapp/simple-excel';
 import { planLoadMultiObjectTemplate, prepareLoadMultiObjectTemplate } from '../load-multi-object-template.utils';
 import { prepareExcelFile } from '../shared-ui-utils';
 
@@ -89,9 +89,9 @@ describe('prepareLoadMultiObjectTemplate', () => {
     expect(output['Opportunity'][5]).toEqual(['006000000000001', 'Big Deal', 0, false, '2026-01-31', '']);
   });
 
-  it('sanitizes the sheet name by stripping forbidden characters and truncating to 31 characters', () => {
+  it('sanitizes the sheet name by replacing forbidden characters and truncating to 31 characters', () => {
     const forbiddenChars = prepareLoadMultiObjectTemplate({ sobject: 'Bad:Name/With[Chars]?*\\', fields: ['Id'], records: [] });
-    expect(Object.keys(forbiddenChars)).toEqual(['BadNameWithChars']);
+    expect(Object.keys(forbiddenChars)).toEqual(['Bad_Name_With_Chars____']);
 
     const longName = prepareLoadMultiObjectTemplate({
       sobject: 'A_Very_Long_Custom_Object_Api_Name__c',
@@ -213,22 +213,26 @@ describe('prepareLoadMultiObjectTemplate', () => {
         childRelationships: [getChildRelationship('Widget__c', 'Widget__c', 'Parent__c')],
       });
 
-      expect(Object.keys(output)).toEqual(['Widget__c', 'Widget__c1']);
+      expect(Object.keys(output)).toEqual(['Widget__c', 'Widget__c (2)']);
     });
   });
 
-  it('round-trips through prepareExcelFile as an array-of-array sheet', () => {
+  it('round-trips through prepareExcelFile as an array-of-array sheet', async () => {
     const output = prepareLoadMultiObjectTemplate({
       sobject: 'Account',
       fields: ['Id', 'Name'],
       records: [{ Id: '001000000000001', Name: 'Acme' }],
     });
 
-    const fileData = prepareExcelFile(output, undefined, undefined);
-    const workbook = XLSX.read(fileData, { type: 'array' });
-    expect(workbook.SheetNames).toEqual(['Account']);
+    const file = await prepareExcelFile(output, undefined, undefined);
+    const workbook = await openWorkbook(file);
+    expect(workbook.sheets.map(({ name }) => name)).toEqual(['Account']);
 
-    const rows = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets['Account'], { header: 1 });
+    const rows: unknown[][] = [];
+    for await (const row of workbook.sheet('Account').rows({ blankRows: true })) {
+      rows.push(row);
+    }
+    await workbook.close();
     expect(rows[0]).toEqual(['Object Api Name', 'Account']);
     expect(rows[1]).toEqual(['Operation', 'Insert']);
     expect(rows[2]).toEqual(['External Id (for upsert)', '']);
