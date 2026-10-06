@@ -42,6 +42,8 @@ export function TeamInvitation() {
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
+  // Shown above the invitation instead of replacing it, so Accept stays in place to retry once seats free up
+  const [acceptError, setAcceptError] = useState<string | null>(null);
   const [teamVerification, setTeamVerification] = useState<TeamInviteVerificationResponse>();
   const [, setUserProfile] = useAtom(fromAppState.userProfileState);
 
@@ -80,6 +82,7 @@ export function TeamInvitation() {
     }
 
     try {
+      setAcceptError(null);
       setAccepting(true);
       const result = await acceptInvitation({ teamId, token });
       if ('success' in result && result.success) {
@@ -100,11 +103,11 @@ export function TeamInvitation() {
           message: 'You have successfully joined the team!',
         });
       } else {
-        setLoadingError('An error occurred while accepting the invitation.');
+        setAcceptError('An error occurred while accepting the invitation.');
       }
     } catch (ex) {
       const seatLimitMessage = SEAT_LIMIT_ACCEPT_MESSAGES[getApiErrorCode(ex) ?? ''];
-      setLoadingError(seatLimitMessage || 'An error occurred while accepting the invitation. Please try again later.');
+      setAcceptError(seatLimitMessage || 'An error occurred while accepting the invitation. Please try again later.');
     } finally {
       setAccepting(false);
     }
@@ -122,6 +125,11 @@ export function TeamInvitation() {
         {loadingError && (
           <ScopedNotification theme="error" className="slds-m-vertical_medium">
             {loadingError}
+          </ScopedNotification>
+        )}
+        {acceptError && (
+          <ScopedNotification theme="error" className="slds-m-vertical_medium">
+            {acceptError}
           </ScopedNotification>
         )}
         {teamVerification && !loading && !loadingError && (
