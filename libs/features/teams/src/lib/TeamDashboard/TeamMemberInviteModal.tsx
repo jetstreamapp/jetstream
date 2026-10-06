@@ -8,7 +8,7 @@ import { getDefaultAccessProfileId } from './access-profiles/access-profile.util
 import { TeamAccessProfileDropdown } from './access-profiles/TeamAccessProfileDropdown';
 import { getSsoInviteWarning } from './team-member-invite.utils';
 import { evaluateSeatGate, SeatGate } from './team-seats/seat-gate';
-import { SeatChangeNotice } from './team-seats/SeatChangeNotice';
+import { SEAT_CHANGE_NOTICE_ID, SeatChangeNotice } from './team-seats/SeatChangeNotice';
 import { needsSeat } from './team-seats/team-seats.utils';
 import { TeamMemberRoleDropdown } from './TeamMemberRoleDropdown';
 
@@ -84,6 +84,7 @@ export function TeamMemberInviteModal({
             type="submit"
             form="team-member-invite-form"
             className="slds-button slds-button_brand slds-is-relative"
+            aria-describedby={seatBlocked ? SEAT_CHANGE_NOTICE_ID : undefined}
             {...ariaDisabledButtonProps(!email || loading || seatBlocked, () => {})}
           >
             Send Invitation
