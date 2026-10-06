@@ -19,6 +19,7 @@ vi.mock('../../form/file-selector/file-selector-utils', async (importOriginal) =
 });
 
 import { submitUserFeedback } from '@jetstream/shared/data';
+import { axeScan } from '@jetstream/test-utils';
 import { InputReadFileContent } from '@jetstream/types';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -59,6 +60,15 @@ describe('UserFeedbackPopover', () => {
     vi.mocked(fireToast).mockReset();
     // Restores the pass-through to the real implementation after tests that override it
     mockReadFileForUpload.mockReset();
+  });
+
+  test('has no axe violations when open', async () => {
+    const user = userEvent.setup();
+    const { baseElement } = render(<UserFeedbackPopover />);
+
+    await openPopover(user);
+
+    await axeScan(baseElement);
   });
 
   test('sends a quick message and clears the draft', async () => {
