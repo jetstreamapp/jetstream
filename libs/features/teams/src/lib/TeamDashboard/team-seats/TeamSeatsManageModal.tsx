@@ -3,12 +3,14 @@ import { getApiErrorCode, previewTeamSeats, updateTeamSeats } from '@jetstream/s
 import { formatSeatDate, formatUsd, getIntervalLabel, hasPendingSeatDecrease } from '@jetstream/shared/ui-utils';
 import { classifySeatChange, getErrorMessage, getMinimumSeats, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MAX_TEAM_SEATS, TeamSeatChangePreview, TeamSeatChangeResult, TeamSeatSummary, TeamUserFacing } from '@jetstream/types';
-import { fireToast, Modal, NumberStepperInput, ScopedNotification, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, fireToast, Modal, NumberStepperInput, ScopedNotification, Spinner, useAnnouncer } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /** Rejections that a fresh preview actually resolves; every other failure carries its own remedy. */
 const STALE_PREVIEW_CODES = new Set<string>(['PREVIEW_EXPIRED', 'STALE_PREVIEW']);
+
+const SEAT_COUNT_INPUT_ID = 'team-seats-count';
 
 export interface TeamSeatsManageModalProps {
   teamId: string;
@@ -25,6 +27,20 @@ function getConfirmLabel(preview: TeamSeatChangePreview): string {
     return 'Schedule decrease';
   }
   return 'Confirm';
+}
+
+/** One-line summary of the preview step, announced when it replaces the seat picker. */
+function getPreviewAnnouncement(preview: TeamSeatChangePreview): string {
+  if (preview.changeType === 'NONE') {
+    return "Your team's seat count already matches this number, so there is nothing to confirm.";
+  }
+  const isImmediate = preview.changeType === 'INCREASE' || preview.changeType === 'CANCEL_PENDING_DECREASE';
+  return [
+    `Preview: ${preview.requestedSeats} ${pluralizeFromNumber('seat', preview.requestedSeats)}, currently ${preview.currentSeats}.`,
+    `Due today: ${preview.amountDueNow > 0 ? formatUsd(preview.amountDueNow) : 'no charge'}.`,
+    `New recurring total: ${formatUsd(preview.nextInvoice.amount)} per ${getIntervalLabel(preview.interval)}.`,
+    isImmediate ? 'Effective immediately.' : `Takes effect ${formatSeatDate(preview.effectiveAt)}.`,
+  ].join(' ');
 }
 
 function getSuccessMessage({ changeType, seats, effectiveAt }: TeamSeatChangeResult): string {
@@ -56,6 +72,21 @@ export function TeamSeatsManageModal({ teamId, seats, onClose }: TeamSeatsManage
   const [preview, setPreview] = useState<TeamSeatChangePreview | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { announce, announcer } = useAnnouncer();
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
+  // Switching steps swaps the footer, unmounting the button that was pressed — focus is handed to the
+  // other step's main control once it has rendered
+  const pendingFocusRef = useRef<'confirm' | 'seats' | null>(null);
+
+  useEffect(() => {
+    const target = pendingFocusRef.current;
+    pendingFocusRef.current = null;
+    if (target === 'confirm') {
+      confirmButtonRef.current?.focus();
+    } else if (target === 'seats') {
+      document.getElementById(SEAT_COUNT_INPUT_ID)?.focus();
+    }
+  }, [preview]);
 
   const isInRange = Number.isInteger(requestedSeats) && requestedSeats >= minSeats && requestedSeats <= MAX_TEAM_SEATS;
   // The same classification the server applies, so the copy below explains what preview will return
@@ -78,7 +109,10 @@ export function TeamSeatsManageModal({ teamId, seats, onClose }: TeamSeatsManage
     setErrorMessage(null);
     setLoading(true);
     try {
-      setPreview(await previewTeamSeats(teamId, { seats: requestedSeats }));
+      const seatPreview = await previewTeamSeats(teamId, { seats: requestedSeats });
+      pendingFocusRef.current = 'confirm';
+      setPreview(seatPreview);
+      announce(getPreviewAnnouncement(seatPreview));
     } catch (ex) {
       setErrorMessage(getErrorMessage(ex));
     } finally {
@@ -115,6 +149,7 @@ export function TeamSeatsManageModal({ teamId, seats, onClose }: TeamSeatsManage
   }
 
   function handleBack() {
+    pendingFocusRef.current = 'seats';
     setPreview(null);
     setErrorMessage(null);
   }
@@ -125,7 +160,7 @@ export function TeamSeatsManageModal({ teamId, seats, onClose }: TeamSeatsManage
         <strong>{purchasedSeats}</strong> purchased · <strong>{seats.used}</strong> in use · <strong>{seats.reserved}</strong> reserved
       </p>
       <NumberStepperInput
-        id="team-seats-count"
+        id={SEAT_COUNT_INPUT_ID}
         testId="team-seats-count"
         label="Seats"
         value={requestedSeats}
@@ -217,11 +252,11 @@ export function TeamSeatsManageModal({ teamId, seats, onClose }: TeamSeatsManage
               Back
             </button>
             <button
+              ref={confirmButtonRef}
               type="button"
               data-testid="team-seats-confirm-button"
               className="slds-button slds-button_brand slds-is-relative"
-              onClick={handleConfirm}
-              disabled={loading || preview.changeType === 'NONE'}
+              {...ariaDisabledButtonProps(loading || preview.changeType === 'NONE', handleConfirm)}
             >
               {getConfirmLabel(preview)}
               {loading && <Spinner className="slds-spinner slds-spinner_small" />}
@@ -236,8 +271,7 @@ export function TeamSeatsManageModal({ teamId, seats, onClose }: TeamSeatsManage
               type="button"
               data-testid="team-seats-preview-button"
               className="slds-button slds-button_brand slds-is-relative"
-              onClick={handlePreview}
-              disabled={!canPreview}
+              {...ariaDisabledButtonProps(!canPreview, handlePreview)}
             >
               Preview
               {loading && <Spinner className="slds-spinner slds-spinner_small" />}
@@ -246,6 +280,7 @@ export function TeamSeatsManageModal({ teamId, seats, onClose }: TeamSeatsManage
         )
       }
     >
+      {announcer}
       {errorMessage && (
         <ScopedNotification theme="error" className="slds-m-bottom_small">
           {errorMessage}
