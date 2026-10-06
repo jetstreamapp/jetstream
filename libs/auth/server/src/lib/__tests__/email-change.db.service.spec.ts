@@ -31,6 +31,7 @@ const prismaMock = vi.hoisted(() => ({
 }));
 
 const authDbMock = vi.hoisted(() => ({
+  discoverSsoByEmail: vi.fn(),
   getLoginConfiguration: vi.fn(),
   revokeAllUserSessions: vi.fn(),
   withEmailAddressLock: vi.fn(),
@@ -70,15 +71,32 @@ function pendingRequest(overrides: Record<string, unknown> = {}) {
   };
 }
 
+/**
+ * How each transaction ended. A callback that throws rolls back every write it made, so a write the
+ * code relies on keeping (such as the recorded reason for a refusal) only counts if it committed.
+ */
+let transactionOutcomes: Array<'committed' | 'rolled back'> = [];
+
 beforeEach(() => {
   vi.clearAllMocks();
-  prismaMock.$transaction.mockImplementation(async (callback: (tx: unknown) => unknown) => callback(prismaMock));
+  transactionOutcomes = [];
+  prismaMock.$transaction.mockImplementation(async (callback: (tx: unknown) => unknown) => {
+    try {
+      const result = await callback(prismaMock);
+      transactionOutcomes.push('committed');
+      return result;
+    } catch (ex) {
+      transactionOutcomes.push('rolled back');
+      throw ex;
+    }
+  });
   prismaMock.emailChangeRequest.updateMany.mockResolvedValue({ count: 1 });
   prismaMock.emailChangeRequest.findFirst.mockResolvedValue(null);
   prismaMock.user.findFirst.mockResolvedValue(null);
   prismaMock.authIdentity.findFirst.mockResolvedValue(null);
   prismaMock.blockedEmailDomain.findMany.mockResolvedValue([]);
   authDbMock.getLoginConfiguration.mockResolvedValue(null);
+  authDbMock.discoverSsoByEmail.mockResolvedValue(null);
 });
 
 describe('assertEmailChangeAllowedOrThrow', () => {
@@ -124,6 +142,16 @@ describe('assertEmailChangeAllowedOrThrow', () => {
     authDbMock.getLoginConfiguration.mockResolvedValue({ ssoEnabled: true, ssoProvider: 'SAML' });
 
     await expect(assertEmailChangeAllowedOrThrow({ userId: USER_ID, newEmail: NEW_EMAIL })).rejects.toThrow(EmailChangeNotAllowed);
+  });
+
+  it('should reject changing to an address on a domain another team requires SSO for', async () => {
+    // Otherwise the registration-time SSO domain rule is trivially sidestepped: register with another
+    // address, then change to one on the domain.
+    mockUser();
+    authDbMock.discoverSsoByEmail.mockResolvedValue({ teamId: 'team-1', teamName: 'Acme', loginConfig: {} });
+
+    await expect(assertEmailChangeAllowedOrThrow({ userId: USER_ID, newEmail: NEW_EMAIL })).rejects.toThrow(EmailChangeNotAllowed);
+    expect(authDbMock.discoverSsoByEmail).toHaveBeenCalledWith(NEW_EMAIL);
   });
 
   it('should allow a team member whose team has SSO configured but disabled', async () => {
@@ -232,6 +260,15 @@ describe('completeEmailChange', () => {
     return expect(promise).rejects.toThrow(new InvalidOrExpiredEmailChangeToken('This link is invalid or has expired').message);
   }
 
+  /** The reason must be written AND committed - thrown from inside the transaction, it would be rolled back */
+  function expectRecordedRefusal(status: string, failureReason: string) {
+    expect(prismaMock.emailChangeRequest.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status, failureReason }) }),
+    );
+    expect(transactionOutcomes).toEqual(['committed']);
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  }
+
   it('should apply the change and revoke sessions inside the transaction', async () => {
     prismaMock.emailChangeRequest.findUnique.mockResolvedValue(pendingRequest());
 
@@ -302,9 +339,7 @@ describe('completeEmailChange', () => {
 
     await expectGenericRejection(completeEmailChange({ confirmToken: CONFIRM_TOKEN, resolvedVia: 'EMAIL_LINK' }));
 
-    expect(prismaMock.emailChangeRequest.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'EXPIRED', failureReason: 'EXPIRED' }) }),
-    );
+    expectRecordedRefusal('EXPIRED', 'EXPIRED');
   });
 
   it('should reject a token that was already used', async () => {
@@ -319,10 +354,7 @@ describe('completeEmailChange', () => {
 
     await expectGenericRejection(completeEmailChange({ confirmToken: CONFIRM_TOKEN, resolvedVia: 'EMAIL_LINK' }));
 
-    expect(prismaMock.emailChangeRequest.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'SUPERSEDED', failureReason: 'STALE_CURRENT_EMAIL' }) }),
-    );
-    expect(prismaMock.user.update).not.toHaveBeenCalled();
+    expectRecordedRefusal('SUPERSEDED', 'STALE_CURRENT_EMAIL');
   });
 
   it('should close the request-to-confirm race when the address was claimed in between', async () => {
@@ -331,10 +363,7 @@ describe('completeEmailChange', () => {
 
     await expectGenericRejection(completeEmailChange({ confirmToken: CONFIRM_TOKEN, resolvedVia: 'EMAIL_LINK' }));
 
-    expect(prismaMock.emailChangeRequest.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'FAILED', failureReason: 'EMAIL_IN_USE' }) }),
-    );
-    expect(prismaMock.user.update).not.toHaveBeenCalled();
+    expectRecordedRefusal('FAILED', 'EMAIL_IN_USE');
   });
 
   it('should re-check SSO policy at confirm time', async () => {
@@ -345,10 +374,18 @@ describe('completeEmailChange', () => {
 
     await expectGenericRejection(completeEmailChange({ confirmToken: CONFIRM_TOKEN, resolvedVia: 'EMAIL_LINK' }));
 
-    expect(prismaMock.emailChangeRequest.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'FAILED', failureReason: 'SSO_POLICY' }) }),
-    );
-    expect(prismaMock.user.update).not.toHaveBeenCalled();
+    expectRecordedRefusal('FAILED', 'SSO_POLICY');
+  });
+
+  it('should re-check the SSO domain rule for the new address at confirm time', async () => {
+    // A team verifying the domain or turning SSO on mid-flight must not be bypassable by sitting on a token.
+    prismaMock.emailChangeRequest.findUnique.mockResolvedValue(pendingRequest());
+    authDbMock.discoverSsoByEmail.mockResolvedValue({ teamId: 'team-1', teamName: 'Acme', loginConfig: {} });
+
+    await expectGenericRejection(completeEmailChange({ confirmToken: CONFIRM_TOKEN, resolvedVia: 'EMAIL_LINK' }));
+
+    expect(authDbMock.discoverSsoByEmail).toHaveBeenCalledWith(NEW_EMAIL);
+    expectRecordedRefusal('FAILED', 'SSO_POLICY');
   });
 
   it('should lose to a concurrent cancel', async () => {
@@ -357,6 +394,8 @@ describe('completeEmailChange', () => {
     prismaMock.emailChangeRequest.updateMany.mockResolvedValue({ count: 0 });
 
     await expectGenericRejection(completeEmailChange({ confirmToken: CONFIRM_TOKEN, resolvedVia: 'EMAIL_LINK' }));
+    // The email update already made in this transaction must not survive
+    expect(transactionOutcomes).toEqual(['rolled back']);
   });
 
   it('should only touch credentials identities, never oauth or sso ones', async () => {

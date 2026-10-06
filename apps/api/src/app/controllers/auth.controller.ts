@@ -3,6 +3,7 @@ import {
   acceptTos,
   AuthError,
   beginTotpEnrollment,
+  claimExistingAccountNotice,
   clearOauthCookies,
   consumeTotpEnrollmentOrThrow,
   createOrUpdateOtpAuthFactor,
@@ -66,6 +67,7 @@ import {
 import {
   sendAuthenticationChangeConfirmation,
   sendEmailVerification,
+  sendExistingAccountSignupNotice,
   sendPasswordReset,
   sendVerificationCode,
   sendWelcomeEmail,
@@ -89,6 +91,22 @@ function normalizeRedirectCandidate(value: string | undefined): string | undefin
   }
   const absolute = value.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${value}` : value;
   return absolute.replace('/app/app', '/app');
+}
+
+/**
+ * A placeholder session comes from signing up with an address that already has an account, so the owner of
+ * the inbox is told they already have one instead of being sent a code the session could never use.
+ *
+ * Never throws - whether this email went out must not change the response to the sign up.
+ */
+async function notifyExistingAccountOwner(email: string) {
+  try {
+    if (await claimExistingAccountNotice(email)) {
+      await sendExistingAccountSignupNotice(email);
+    }
+  } catch (ex) {
+    getLogger().error(getErrorMessageAndStackObj(ex), '[AUTH][PLACEHOLDER_USER][ERROR] Error sending existing account notice');
+  }
 }
 
 export const routeDefinition = {
@@ -641,19 +659,18 @@ const callback = createRoute(
       if (Array.isArray(req.session.pendingVerification) && req.session.pendingVerification.length > 0) {
         const initialVerification = req.session.pendingVerification[0];
 
-        // Suppress verification emails for placeholder sessions (e.g. registration with an already-registered email).
-        // The verify flow for a placeholder user is a dead-end that destroys the session, so the email would be
-        // pointless and would spam the real owner of the inbox. For non-placeholder users, await delivery so
-        // failures continue to surface through the existing route error handling instead of redirecting to
-        // /auth/verify when no verification message was sent.
+        // Placeholder sessions (registration with an already-registered email) never get a code - the verify flow
+        // for them is a dead-end that destroys the session - so the owner of the inbox is told they already have an
+        // account instead. For non-placeholder users, await delivery so failures continue to surface through the
+        // existing route error handling instead of redirecting to /auth/verify when no verification message was sent.
         const isPlaceholderUser = !!req.session.sessionDetails?.isTemporary || req.session.user.id === PLACEHOLDER_USER_ID;
 
-        if (!isPlaceholderUser) {
-          if (initialVerification.type === 'email') {
-            await sendEmailVerification(req.session.user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
-          } else if (initialVerification.type === '2fa-email') {
-            await sendVerificationCode(req.session.user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
-          }
+        if (isPlaceholderUser) {
+          await notifyExistingAccountOwner(req.session.user.email);
+        } else if (initialVerification.type === 'email') {
+          await sendEmailVerification(req.session.user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
+        } else if (initialVerification.type === '2fa-email') {
+          await sendVerificationCode(req.session.user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
         }
 
         setCsrfCookie(res);
@@ -928,13 +945,12 @@ const resendVerification = createRoute(routeDefinition.resendVerification.valida
       }
     });
 
-    // Suppress verification emails for placeholder sessions (e.g. registration with an already-registered email).
-    // See the matching guard in the callback handler for credentials login/register for details — the verify
-    // flow is a dead-end for these sessions and the email would only spam the real owner of the inbox.
+    // Placeholder sessions (registration with an already-registered email) get the existing account notice
+    // instead of a code, see the matching branch in the callback handler for credentials login/register.
     // Fire-and-forget so both placeholder and non-placeholder branches return with comparable latency.
     const isPlaceholderUser = !!req.session.sessionDetails?.isTemporary || req.session.user.id === PLACEHOLDER_USER_ID;
     const resendVerificationEmailPromise = isPlaceholderUser
-      ? Promise.resolve()
+      ? notifyExistingAccountOwner(req.session.user.email)
       : (() => {
           switch (type) {
             case 'email': {

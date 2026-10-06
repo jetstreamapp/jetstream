@@ -1,18 +1,19 @@
 /**
- * Regression coverage for the placeholder-session email-suppression guard in the
- * `callback` (register) and `resendVerification` handlers. When a user attempts to
- * register with an already-used email, the server creates a placeholder/temporary
- * session and routes the request to /auth/verify to preserve the enumeration
- * defense. Historically this also fired a real verification email at the actual
- * owner of the inbox — useless (the verify flow just destroys the session) and
- * effectively spam. These tests lock in that no email is sent for placeholder
- * sessions while still being sent for legitimate new registrations.
+ * Regression coverage for placeholder-session emails in the `callback` (register) and
+ * `resendVerification` handlers. When a user attempts to register with an already-used email, the
+ * server creates a placeholder/temporary session and routes the request to /auth/verify to preserve
+ * the enumeration defense. A verification code would be useless there (the verify flow just destroys
+ * the session), so the owner of the inbox is instead told they already have an account - at most once
+ * per interval, so the sign up form cannot be used to flood that inbox. These tests lock in that
+ * placeholder sessions never get a code, that the notice is capped, and that a failed notice does not
+ * change the response, while legitimate new registrations still get their code.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { routeDefinition } from '../auth.controller';
 
 const emailMocks = vi.hoisted(() => ({
   sendEmailVerification: vi.fn(),
+  sendExistingAccountSignupNotice: vi.fn(),
   sendVerificationCode: vi.fn(),
   sendWelcomeEmail: vi.fn(),
   sendPasswordReset: vi.fn(),
@@ -68,6 +69,7 @@ const authServerMocks = vi.hoisted(() => {
     ProviderNotAllowed,
     EmailDomainNotAllowed,
     acceptTos: vi.fn(),
+    claimExistingAccountNotice: vi.fn(),
     clearOauthCookies: vi.fn(),
     createOrUpdateOtpAuthFactor: vi.fn(),
     createRememberDevice: vi.fn(),
@@ -251,10 +253,12 @@ describe('auth.controller - placeholder session email suppression', () => {
     authServerMocks.validateRedirectUrl.mockImplementation((url: string) => url || 'https://client.test');
     emailMocks.sendEmailVerification.mockResolvedValue(undefined);
     emailMocks.sendVerificationCode.mockResolvedValue(undefined);
+    emailMocks.sendExistingAccountSignupNotice.mockResolvedValue(undefined);
+    authServerMocks.claimExistingAccountNotice.mockResolvedValue(true);
   });
 
   describe('register callback', () => {
-    it('does not send a verification email for a placeholder (already-registered email) session', async () => {
+    function mockPlaceholderRegistration(verificationType: 'email' | '2fa-email' = 'email') {
       authServerMocks.handleSignInOrRegistration.mockResolvedValue({
         user: {
           id: authServerMocks.PLACEHOLDER_USER_ID,
@@ -277,10 +281,12 @@ describe('auth.controller - placeholder session email suppression', () => {
       authServerMocks.initSession.mockImplementation(async (req: any, sessionData: any) => {
         req.session.user = sessionData.user;
         req.session.sessionDetails = sessionData.sessionDetails;
-        req.session.pendingVerification = [{ type: 'email', exp: Date.now() + 60_000, token: '123456' }];
+        req.session.pendingVerification = [{ type: verificationType, exp: Date.now() + 60_000, token: '123456' }];
       });
+    }
 
-      const req = makeReq({
+    function makeExistingEmailRegisterReq() {
+      return makeReq({
         body: {
           action: 'register',
           csrfToken: 'csrf-token',
@@ -290,6 +296,11 @@ describe('auth.controller - placeholder session email suppression', () => {
           tosVersion: 'v1',
         },
       });
+    }
+
+    it('sends the existing account notice instead of a verification email for a placeholder (already-registered email) session', async () => {
+      mockPlaceholderRegistration('email');
+      const req = makeExistingEmailRegisterReq();
       const res = makeRes();
       const next = vi.fn();
 
@@ -301,44 +312,41 @@ describe('auth.controller - placeholder session email suppression', () => {
       expect(authServerMocks.initSession).toHaveBeenCalledTimes(1);
       expect(emailMocks.sendEmailVerification).not.toHaveBeenCalled();
       expect(emailMocks.sendVerificationCode).not.toHaveBeenCalled();
+      expect(authServerMocks.claimExistingAccountNotice).toHaveBeenCalledWith('existing@example.com');
+      expect(emailMocks.sendExistingAccountSignupNotice).toHaveBeenCalledTimes(1);
+      expect(emailMocks.sendExistingAccountSignupNotice).toHaveBeenCalledWith('existing@example.com');
     });
 
-    it('does not send a 2fa-email verification code for a placeholder session', async () => {
-      authServerMocks.handleSignInOrRegistration.mockResolvedValue({
-        user: {
-          id: authServerMocks.PLACEHOLDER_USER_ID,
-          email: 'existing@example.com',
-          userId: 'invalid|existing@example.com',
-          name: 'Invalid User',
-          emailVerified: false,
-          authFactors: [],
-          teamMembership: null,
-          tosAcceptedVersion: 'invalid',
-        },
-        sessionDetails: { isTemporary: true },
-        isNewUser: false,
-        providerType: 'credentials',
-        provider: 'credentials',
-        mfaEnrollmentRequired: false,
-        teamInviteResponse: null,
-        verificationRequired: { email: true, twoFactor: [] },
-      });
-      authServerMocks.initSession.mockImplementation(async (req: any, sessionData: any) => {
-        req.session.user = sessionData.user;
-        req.session.sessionDetails = sessionData.sessionDetails;
-        req.session.pendingVerification = [{ type: '2fa-email', exp: Date.now() + 60_000, token: '123456' }];
-      });
+    it('does not send the existing account notice again while the address is within its interval', async () => {
+      mockPlaceholderRegistration();
+      authServerMocks.claimExistingAccountNotice.mockResolvedValue(false);
+      const res = makeRes();
+      const next = vi.fn();
 
-      const req = makeReq({
-        body: {
-          action: 'register',
-          csrfToken: 'csrf-token',
-          email: 'existing@example.com',
-          name: 'Test User',
-          password: VALID_PASSWORD,
-          tosVersion: 'v1',
-        },
-      });
+      const handler = routeDefinition.callback.controllerFn();
+      await handler(makeExistingEmailRegisterReq() as never, res as never, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(emailMocks.sendExistingAccountSignupNotice).not.toHaveBeenCalled();
+      expect(responseHandlerMocks.sendJson).toHaveBeenCalledWith(res, { error: false, redirect: '/auth/verify' });
+    });
+
+    it('still sends a placeholder session to verification when the existing account notice fails', async () => {
+      mockPlaceholderRegistration();
+      emailMocks.sendExistingAccountSignupNotice.mockRejectedValue(new Error('Mailgun unavailable'));
+      const res = makeRes();
+      const next = vi.fn();
+
+      const handler = routeDefinition.callback.controllerFn();
+      await handler(makeExistingEmailRegisterReq() as never, res as never, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(responseHandlerMocks.sendJson).toHaveBeenCalledWith(res, { error: false, redirect: '/auth/verify' });
+    });
+
+    it('sends the existing account notice instead of a 2fa-email verification code for a placeholder session', async () => {
+      mockPlaceholderRegistration('2fa-email');
+      const req = makeExistingEmailRegisterReq();
       const res = makeRes();
       const next = vi.fn();
 
@@ -348,6 +356,7 @@ describe('auth.controller - placeholder session email suppression', () => {
       expect(next).not.toHaveBeenCalled();
       expect(emailMocks.sendEmailVerification).not.toHaveBeenCalled();
       expect(emailMocks.sendVerificationCode).not.toHaveBeenCalled();
+      expect(emailMocks.sendExistingAccountSignupNotice).toHaveBeenCalledWith('existing@example.com');
     });
 
     it('sends a verification email for a legitimate new-user registration', async () => {
@@ -395,6 +404,7 @@ describe('auth.controller - placeholder session email suppression', () => {
       expect(next).not.toHaveBeenCalled();
       expect(emailMocks.sendEmailVerification).toHaveBeenCalledTimes(1);
       expect(emailMocks.sendEmailVerification).toHaveBeenCalledWith('new@example.com', '123456', expect.any(Number));
+      expect(emailMocks.sendExistingAccountSignupNotice).not.toHaveBeenCalled();
     });
 
     it('sends a 2fa-email verification code for a legitimate new-user registration', async () => {
@@ -446,7 +456,7 @@ describe('auth.controller - placeholder session email suppression', () => {
   });
 
   describe('resendVerification', () => {
-    it('does not re-send a verification email for a placeholder session', async () => {
+    it('sends the existing account notice instead of a verification email for a placeholder session', async () => {
       const req = makeReq({
         body: { csrfToken: 'csrf-token', type: 'email' },
         session: {
@@ -466,13 +476,14 @@ describe('auth.controller - placeholder session email suppression', () => {
 
       const handler = routeDefinition.resendVerification.controllerFn();
       await handler(req as never, res as never, next);
+      await vi.waitFor(() => expect(emailMocks.sendExistingAccountSignupNotice).toHaveBeenCalledWith('existing@example.com'));
 
       expect(next).not.toHaveBeenCalled();
       expect(emailMocks.sendEmailVerification).not.toHaveBeenCalled();
       expect(emailMocks.sendVerificationCode).not.toHaveBeenCalled();
     });
 
-    it('does not re-send a 2fa-email verification code for a placeholder session', async () => {
+    it('sends the existing account notice instead of a 2fa-email verification code for a placeholder session', async () => {
       const req = makeReq({
         body: { csrfToken: 'csrf-token', type: '2fa-email' },
         session: {
@@ -492,6 +503,7 @@ describe('auth.controller - placeholder session email suppression', () => {
 
       const handler = routeDefinition.resendVerification.controllerFn();
       await handler(req as never, res as never, next);
+      await vi.waitFor(() => expect(emailMocks.sendExistingAccountSignupNotice).toHaveBeenCalledWith('existing@example.com'));
 
       expect(next).not.toHaveBeenCalled();
       expect(emailMocks.sendEmailVerification).not.toHaveBeenCalled();
