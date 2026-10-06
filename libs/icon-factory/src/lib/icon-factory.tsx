@@ -72,6 +72,7 @@ import UtilityIcon_Billing from './icons/utility/Billing';
 import UtilityIcon_Bold from './icons/utility/Bold';
 import UtilityIcon_ChangeRecordType from './icons/utility/ChangeRecordType';
 import UtilityIcon_Chart from './icons/utility/Chart';
+import UtilityIcon_Chat from './icons/utility/Chat';
 import UtilityIcon_Check from './icons/utility/Check';
 import UtilityIcon_Chevrondown from './icons/utility/Chevrondown';
 import UtilityIcon_Chevronright from './icons/utility/Chevronright';
@@ -282,6 +283,7 @@ const utilityIcons = {
   bold: UtilityIcon_Bold,
   change_record_type: UtilityIcon_ChangeRecordType,
   chart: UtilityIcon_Chart,
+  chat: UtilityIcon_Chat,
   check: UtilityIcon_Check,
   chevrondown: UtilityIcon_Chevrondown,
   chevronright: UtilityIcon_Chevronright,

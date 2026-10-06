@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { FunctionComponent, useLayoutEffect, useRef, useState } from 'react';
+import { FunctionComponent, ReactNode, useLayoutEffect, useRef, useState } from 'react';
 import { NavbarItem, NavbarItemProps } from './NavbarItem';
 import { NavbarItemWaffle, NavbarItemWaffleProps } from './NavbarItemWaffle';
 import { NavbarMenuItem, NavbarMenuItems, NavbarMenuItemsProps } from './NavbarMenuItems';
@@ -11,6 +11,8 @@ export type NavbarItemConfig =
 
 export interface NavbarProps {
   items: NavbarItemConfig[];
+  /** Pinned to the right end of the bar; the nav items collapse into "More" around it instead of covering it */
+  trailingContent?: ReactNode;
 }
 
 function renderNavbarItem(config: NavbarItemConfig) {
@@ -82,7 +84,7 @@ function computeVisibleCount(itemWidths: number[], moreWidth: number, availableW
  * always known - even while it is collapsed into the overflow menu - which keeps the calculation stable
  * and avoids the layout feedback loop of measuring the same elements we are adding/removing.
  */
-export const Navbar: FunctionComponent<NavbarProps> = ({ items }) => {
+export const Navbar: FunctionComponent<NavbarProps> = ({ items, trailingContent }) => {
   const containerRef = useRef<HTMLUListElement>(null);
   const measureRef = useRef<HTMLUListElement>(null);
   const [visibleCount, setVisibleCount] = useState(items.length);
@@ -135,6 +137,19 @@ export const Navbar: FunctionComponent<NavbarProps> = ({ items }) => {
           {visibleItems.map(renderNavbarItem)}
           {hasOverflow && <NavbarMenuItems label="More" items={overflowMenuItems} />}
         </ul>
+
+        {trailingContent && (
+          <div
+            css={css`
+              flex: none;
+              display: flex;
+              align-items: center;
+              padding: 0 0.5rem;
+            `}
+          >
+            {trailingContent}
+          </div>
+        )}
 
         {/* Hidden, inert copy of the full list used only to measure each item's natural width */}
         <div
