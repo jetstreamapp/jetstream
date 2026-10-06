@@ -435,7 +435,9 @@ test.describe('Team seats', () => {
       await acceptButton.click();
 
       await expect(invitationPage.getByText(NO_SEATS_INVITEE_MESSAGE)).toBeVisible();
-      await expect(acceptButton).toBeHidden();
+      // The invitation stays on screen with focus on Accept, so the invitee can retry once a seat frees up
+      await expect(acceptButton).toBeVisible();
+      await expect(acceptButton).toBeFocused();
       expect(
         await prisma.teamMember.findFirst({ where: { teamId: team.id, userId: { not: teamCreationUtils.adminUser.userId } } }),
       ).toBeNull();
