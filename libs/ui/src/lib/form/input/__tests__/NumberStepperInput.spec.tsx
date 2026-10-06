@@ -1,3 +1,4 @@
+import { axeScan } from '@jetstream/test-utils';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, test, vi } from 'vitest';
@@ -32,6 +33,12 @@ function Harness({
 }
 
 describe('NumberStepperInput', () => {
+  test('has no axe violations', async () => {
+    const { container } = render(<Harness />);
+
+    await axeScan(container);
+  });
+
   test('steps the value with the minus and plus buttons', () => {
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);
