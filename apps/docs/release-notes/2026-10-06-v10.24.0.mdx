@@ -1,0 +1,53 @@
+---
+slug: v10.24.0
+title: 10.24.0 - Feedback button and Firefox extension fix
+date: '2026-10-06'
+tags: [web, desktop, extension]
+versions:
+  web: 10.24.0
+  desktop: 4.19.0
+  extension: 3.22.0
+summary: The floating feedback bubble is replaced by a Feedback button in the navigation bar, and the extension's Salesforce page button shows again in Firefox.
+highlights:
+  - title: Feedback button in the navigation bar
+    description: Feedback now opens from a button at the right end of the navigation bar instead of a floating bubble that could cover buttons on the page.
+  - title: Salesforce page button restored in Firefox
+    description: The button the extension adds to Salesforce pages shows again in Firefox, where it had been missing since version 2.22.1.
+    platforms: [extension]
+  - title: SSO required to sign up on your team's domains
+    description: With SSO turned on, people with an address on one of your team's verified domains must sign in with SSO instead of signing up with a password.
+    docLink: /team-management/sso/overview
+    platforms: [web]
+  - title: Email notice when signing up with an existing address
+    description: Signing up with an address that already has an account now emails the owner links to log in or reset their password.
+    platforms: [web]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Feedback button in the navigation bar
+
+The floating feedback bubble in the bottom-right corner, which could sit on top of buttons such as Execute, is gone. Feedback now opens from a button at the right end of the navigation bar. On narrower windows the button shows as an icon.
+
+- The form is a single text box. Click **Send** or press ⌘/Ctrl+Enter.
+- Screenshots are optional. Paste them into the text box or click **Attach screenshot** (up to 5).
+- Your draft is kept when you close the popover or change pages, and a failed send keeps your text.
+- ⌘/Ctrl+Shift+. opens it. The shortcut did not respond before on keyboard layouts where Shift+period types `>`.
+
+### Salesforce page button restored in Firefox
+
+The Jetstream button that the browser extension adds to Salesforce pages had been missing in Firefox since extension version 2.22.1. It shows again. Chrome was not affected.
+
+### SSO required to sign up on your team's domains
+
+When your team has SSO turned on, people with an email address on one of your verified domains can no longer sign up with a password and are asked to use **Continue with SSO** instead. An existing account's email also can't be changed to an address on those domains. People your team invites follow your SSO bypass settings for the role they were invited with. Signing up with Google or Salesforce is not affected.
+
+### Email notice when signing up with an existing address
+
+Signing up with an address that already has a Jetstream account used to stop at the verification screen with no email sent. The owner of that address now receives a "You already have a Jetstream account" email with links to log in or reset the password. The sign-up screen does not change, so it still does not reveal whether an account exists. The notice is sent at most once per hour for each address.
+
+### Other fixes
+
+- The SOQL editor highlights `FORMULA()`, Salesforce's Winter '27 beta filter function, as a keyword.
