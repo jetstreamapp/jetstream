@@ -96,6 +96,10 @@ export function extensionScriptsBuildPlugin(mode: string): PluginOption {
       };
 
       const sharedDefine = {
+        // Bundled CommonJS such as lodash finds the global object through `global`, which webpack used to
+        // shim. Without it lodash falls back to `Function('return this')()`, which the extension CSP blocks
+        // in Firefox MV3 content scripts, so the content script crashed before rendering anything.
+        global: 'globalThis',
         'globalThis.__IS_BROWSER_EXTENSION__': 'true',
         'import.meta.env.NX_PUBLIC_AMPLITUDE_KEY': JSON.stringify(process.env.NX_PUBLIC_AMPLITUDE_KEY || ''),
         'import.meta.env.NX_PUBLIC_SERVER_URL': JSON.stringify(getServerUrlForMode(mode)),
