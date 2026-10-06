@@ -1,5 +1,6 @@
 import { axeScan } from '@jetstream/test-utils';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { NumberStepperInput } from '../NumberStepperInput';
@@ -52,8 +53,33 @@ describe('NumberStepperInput', () => {
     expect(onChange).toHaveBeenLastCalledWith(2);
   });
 
-  test('disables the buttons at the bounds', () => {
-    render(<Harness initialValue={1} min={1} max={1} />);
+  test('marks the buttons unavailable at the bounds without taking them out of the tab order', () => {
+    const onChange = vi.fn();
+    render(<Harness initialValue={1} min={1} max={1} onChange={onChange} />);
+
+    for (const title of ['Decrease', 'Increase']) {
+      const button = screen.getByTitle(title) as HTMLButtonElement;
+      expect(button.getAttribute('aria-disabled')).toBe('true');
+      expect(button.disabled).toBe(false);
+      fireEvent.click(button);
+    }
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  test('keeps focus on the button that steps to a bound and announces the new value', async () => {
+    const user = userEvent.setup();
+    render(<Harness initialValue={2} min={1} max={5} />);
+    const decrement = screen.getByRole('button', { name: 'Decrease' });
+
+    await user.click(decrement);
+
+    expect(decrement.getAttribute('aria-disabled')).toBe('true');
+    expect(document.activeElement).toBe(decrement);
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Seats: 1'));
+  });
+
+  test('disables both buttons natively when the whole control is disabled', () => {
+    render(<NumberStepperInput id="seats" label="Seats" value={3} min={1} max={5} disabled onChange={vi.fn()} />);
 
     expect((screen.getByTitle('Decrease') as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByTitle('Increase') as HTMLButtonElement).disabled).toBe(true);
