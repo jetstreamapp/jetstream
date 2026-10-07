@@ -1,3 +1,4 @@
+import { ERROR_TRACKER_DATA_COLLECTION } from '@jetstream/shared/constants';
 import * as Sentry from '@sentry/node';
 import type { NextFunction, Request, Response } from 'express';
 import { LRUCache } from 'lru-cache';
@@ -15,8 +16,13 @@ if (isEnabled) {
     dsn: ENV.SENTRY_DSN,
     release: ENV.VERSION || undefined,
     environment: ENV.ENVIRONMENT,
-    sendDefaultPii: false,
+    dataCollection: ERROR_TRACKER_DATA_COLLECTION,
     tracesSampleRate: 0,
+    // Sentry 10 never captured Express errors on its own (we never called setupExpressErrorHandler), so keep it
+    // that way: errors are reported only through explicit errorTracker calls, e.g. createRoute's
+    // `logErrorToBugTracker`. Automatic capture would double-report those and start reporting every 5xx
+    // (many are Salesforce pass-through errors) from the routes that leave it off.
+    integrations: [Sentry.expressIntegration({ shouldHandleError: false })],
     beforeSend(event) {
       const rateLimitKey = getRateLimitKey(event);
       if (isUserRateLimited(rateLimitKey)) {
@@ -99,6 +105,14 @@ const SENSITIVE_KEY_SUBSTRINGS = [
 const SENSITIVE_KEY_EXACT = new Set(['code', 'otp', 'mfa', 'sid', 'pin', 'auth']);
 const REDACTED = '[REDACTED]';
 const MAX_REDACT_DEPTH = 6;
+// URL strings keep their path but lose the query string and fragment, which can carry OAuth `code`/`state` or
+// tokens. Callers attach `req.query` separately as an object, where sensitive keys are redacted individually.
+const URL_KEYS = new Set(['url', 'full_url', 'fullurl', 'originalurl']);
+
+function stripQueryString(url: string): string {
+  const queryOrFragmentIndex = url.search(/[?#]/);
+  return queryOrFragmentIndex === -1 ? url : url.slice(0, queryOrFragmentIndex);
+}
 
 function isSensitiveKey(key: string): boolean {
   const lower = key.toLowerCase();
@@ -141,7 +155,13 @@ function redactSensitiveDeep(value: unknown, depth = 0, seen = new WeakSet<objec
   seen.add(value);
   const result: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-    result[key] = isSensitiveKey(key) ? REDACTED : redactSensitiveDeep(val, depth + 1, seen);
+    if (isSensitiveKey(key)) {
+      result[key] = REDACTED;
+    } else if (typeof val === 'string' && URL_KEYS.has(key.toLowerCase())) {
+      result[key] = stripQueryString(val);
+    } else {
+      result[key] = redactSensitiveDeep(val, depth + 1, seen);
+    }
   }
   return result;
 }
