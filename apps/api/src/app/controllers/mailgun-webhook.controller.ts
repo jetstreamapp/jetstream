@@ -89,6 +89,26 @@ const MailgunWebhookPayloadSchema = z.object({
   'event-data': MailgunEventDataSchema,
 });
 
+/**
+ * Mailgun relays free text from remote mail servers (bounce messages in particular) with no length limit, so every
+ * value is clamped to its `@db.VarChar` size - one oversized field fails the whole insert, and Mailgun drops the
+ * event for good once its retries are exhausted.
+ */
+function clampToColumn(value: string, maxLength: number): string;
+function clampToColumn(value: string | undefined, maxLength: number): string | undefined;
+function clampToColumn(value: string | undefined, maxLength: number): string | undefined {
+  // `.length` counts UTF-16 code units, which is never fewer than the code points Postgres counts
+  if (!value || value.length <= maxLength) {
+    return value;
+  }
+  // VARCHAR(n) limits code points, so count and cut by code point - emoji are neither over-counted nor split mid-pair
+  const codePoints = Array.from(value);
+  if (codePoints.length <= maxLength) {
+    return value;
+  }
+  return `${codePoints.slice(0, maxLength - 1).join('')}…`;
+}
+
 export const routeDefinition = {
   webhook: {
     controllerFn: () => mailgunWebhookHandler,
@@ -149,42 +169,42 @@ const mailgunWebhookHandler = async (req: Request, res: Response) => {
     // Extract recipient domain from recipient email
     const recipientDomain = eventData['recipient-domain'] || eventData.recipient.split('@')[1] || 'unknown';
 
-    // Store the webhook event in the database
+    // Store the webhook event in the database - clamp lengths must match the column sizes in prisma/schema.prisma
     await prisma.mailgunWebhookEvent.create({
       data: {
         // Event metadata
-        eventId: eventData.id,
-        event: eventData.event,
+        eventId: clampToColumn(eventData.id, 255),
+        event: clampToColumn(eventData.event, 50),
         timestamp: new Date(eventData.timestamp * 1000),
-        logLevel: eventData['log-level'],
+        logLevel: clampToColumn(eventData['log-level'], 20),
 
         // Recipient information
-        recipient: eventData.recipient,
-        recipientDomain,
-        recipientProvider: eventData['recipient-provider'],
+        recipient: clampToColumn(eventData.recipient, 255),
+        recipientDomain: clampToColumn(recipientDomain, 255),
+        recipientProvider: clampToColumn(eventData['recipient-provider'], 100),
 
         // Message information
-        subject: eventData.message?.headers?.subject,
-        messageId: eventData.message?.headers?.['message-id'],
-        fromAddress: eventData.message?.headers?.from,
-        toAddress: eventData.message?.headers?.to,
+        subject: clampToColumn(eventData.message?.headers?.subject, 2048),
+        messageId: clampToColumn(eventData.message?.headers?.['message-id'], 255),
+        fromAddress: clampToColumn(eventData.message?.headers?.from, 255),
+        toAddress: clampToColumn(eventData.message?.headers?.to, 255),
         messageSize: eventData.message?.size,
 
         // Delivery status
         deliveryCode: eventData['delivery-status']?.code,
-        deliveryMessage: eventData['delivery-status']?.message,
-        deliveryDescription: eventData['delivery-status']?.description,
-        deliveryEnhancedCode: eventData['delivery-status']?.['enhanced-code'],
+        deliveryMessage: clampToColumn(eventData['delivery-status']?.message, 2048),
+        deliveryDescription: clampToColumn(eventData['delivery-status']?.description, 2048),
+        deliveryEnhancedCode: clampToColumn(eventData['delivery-status']?.['enhanced-code'], 50),
         deliveryAttemptNo: eventData['delivery-status']?.['attempt-no'],
-        deliveryMxHost: eventData['delivery-status']?.['mx-host'],
+        deliveryMxHost: clampToColumn(eventData['delivery-status']?.['mx-host'], 255),
         deliverySessionSeconds: eventData['delivery-status']?.['session-seconds'],
         deliveryTls: eventData['delivery-status']?.tls,
         deliveryCertVerified: eventData['delivery-status']?.['certificate-verified'],
 
         // Envelope information
-        envelopeSender: eventData.envelope?.sender,
-        envelopeSendingIp: eventData.envelope?.['sending-ip'],
-        envelopeTransport: eventData.envelope?.transport,
+        envelopeSender: clampToColumn(eventData.envelope?.sender, 255),
+        envelopeSendingIp: clampToColumn(eventData.envelope?.['sending-ip'], 50),
+        envelopeTransport: clampToColumn(eventData.envelope?.transport, 20),
 
         // Metadata
         tags: eventData.tags || [],
