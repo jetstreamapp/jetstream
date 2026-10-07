@@ -9,6 +9,7 @@ import {
   isEnterKey,
   prepareCsvFile,
   prepareExcelFile,
+  prepareJsonFile,
   saveFile,
 } from '@jetstream/shared/ui-utils';
 import { ensureError } from '@jetstream/shared/utils';
@@ -219,7 +220,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
           }
           case 'json': {
             const _data = transformData && Array.isArray(data) ? transformData({ fileFormat, data }) : data;
-            fileData = JSON.stringify(_data, null, 2);
+            fileData = prepareJsonFile(_data);
             mimeType = MIME_TYPES.JSON;
             break;
           }

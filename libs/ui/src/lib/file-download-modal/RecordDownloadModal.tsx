@@ -15,6 +15,7 @@ import {
   planLoadMultiObjectTemplate,
   prepareCsvFile,
   prepareExcelFile,
+  prepareJsonFile,
   prepareLoadMultiObjectTemplate,
   saveFile,
   tracker,
@@ -513,7 +514,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
             break;
           }
           case 'json': {
-            fileData = JSON.stringify(activeRecords, null, 2);
+            fileData = prepareJsonFile(activeRecords);
             mimeType = MIME_TYPES.JSON;
             break;
           }

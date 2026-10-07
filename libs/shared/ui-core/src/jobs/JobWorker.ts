@@ -28,6 +28,7 @@ import {
   pollRetrieveMetadataResultsUntilDone,
   prepareCsvFile,
   prepareExcelFile,
+  prepareJsonFile,
   prepareLoadMultiObjectTemplate,
 } from '@jetstream/shared/ui-utils';
 import {
@@ -318,7 +319,7 @@ export class JobWorker {
               break;
             }
             case 'json': {
-              fileData = JSON.stringify(downloadedRecords, null, 2);
+              fileData = prepareJsonFile(downloadedRecords);
               mimeType = MIME_TYPES.JSON;
               break;
             }

@@ -2,7 +2,7 @@
 /* eslint-disable no-redeclare */
 import type { Placement } from '@floating-ui/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { DATE_FORMATS, HTTP, INPUT_ACCEPT_FILETYPES, JOB_CANCELED_ERROR_MESSAGE } from '@jetstream/shared/constants';
+import { DATE_FORMATS, HTTP, INPUT_ACCEPT_FILETYPES, JOB_CANCELED_ERROR_MESSAGE, MIME_TYPES } from '@jetstream/shared/constants';
 import {
   anonymousApex,
   bulkApiGetJob,
@@ -430,14 +430,65 @@ export function excelWorkbookToArrayBuffer(workbook: XLSX.WorkBook, options?: XL
   return workbookArrayBuffer;
 }
 
-export function prepareCsvFile(data: Record<string, string>[], header: string[]): string {
-  return unparse(
-    {
-      data,
-      fields: header,
-    },
-    { header: true, quotes: true, delimiter: detectDelimiter() },
-  );
+const DOWNLOAD_FILE_FLUSH_CHARACTERS = 8 * 1024 * 1024;
+const CSV_NEWLINE = '\r\n';
+
+/**
+ * Browsers cap a single string at roughly 537 million characters, which a CSV or JSON download of a few hundred thousand
+ * wide records passes ("RangeError: Invalid string length"). Download files are written one record at a time instead,
+ * so no string is ever larger than a single record, and the pieces are gathered into a Blob.
+ */
+function buildDownloadFile(type: string, writeFile: (write: (text: string) => void) => void): Blob {
+  const blobs: Blob[] = [];
+  let pending: string[] = [];
+  let pendingLength = 0;
+  writeFile((text) => {
+    pending.push(text);
+    pendingLength += text.length;
+    // Moving the written text into a Blob every few million characters lets it be garbage collected along the way
+    if (pendingLength >= DOWNLOAD_FILE_FLUSH_CHARACTERS) {
+      blobs.push(new Blob(pending));
+      pending = [];
+      pendingLength = 0;
+    }
+  });
+  return new Blob([...blobs, ...pending], { type });
+}
+
+export function prepareCsvFile(data: Record<string, string>[], header: string[]): Blob {
+  const config: UnparseConfig = { quotes: true, delimiter: detectDelimiter(), newline: CSV_NEWLINE, header: false };
+  return buildDownloadFile(MIME_TYPES.CSV, (write) => {
+    // Matches a single unparse call, which ends the header row with a newline even when there are no records
+    write(unparse([header], config));
+    write(CSV_NEWLINE);
+    for (const [i, record] of data.entries()) {
+      if (i > 0) {
+        write(CSV_NEWLINE);
+      }
+      write(unparse({ fields: header, data: [record] }, config));
+    }
+  });
+}
+
+/**
+ * Produces exactly what `JSON.stringify(data, null, 2)` would, but an array is serialized one record at a time so a large
+ * download never needs the whole file as one string.
+ */
+export function prepareJsonFile(data: unknown): Blob {
+  if (!Array.isArray(data) || data.length === 0) {
+    return new Blob([JSON.stringify(data, null, 2)], { type: MIME_TYPES.JSON });
+  }
+  return buildDownloadFile(MIME_TYPES.JSON, (write) => {
+    write('[\n');
+    for (const [i, record] of data.entries()) {
+      if (i > 0) {
+        write(',\n');
+      }
+      // Inside a one-item array the record gets the same indentation it has in the full file, so only the brackets are dropped
+      write(JSON.stringify([record], null, 2).slice(2, -2));
+    }
+    write('\n]');
+  });
 }
 
 /**
