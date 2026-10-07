@@ -8,10 +8,14 @@
  *  - findByIdsIncludingOtherModifiedRecords is invoked with the union of touched
  *    record IDs plus any RETURNING ids from the upsert path, so concurrent
  *    pushes that lost the create race still see the winning row.
+ *
+ * Coverage for findByUpdatedAt:
+ *  - Keyset pagination over (updatedAt, key) returns every record exactly once,
+ *    even when keys do not sort in updatedAt order or a page ends mid-timestamp.
  */
-import { addMinutes, subMinutes } from 'date-fns';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { MAX_SYNC, syncRecordChanges } from '../data-sync.db';
+import { addMinutes, addSeconds, subMinutes } from 'date-fns';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { findByUpdatedAt, MAX_PULL, MAX_SYNC, syncRecordChanges } from '../data-sync.db';
 
 const prismaMock = vi.hoisted(() => {
   const txClient = {
@@ -346,5 +350,158 @@ describe('syncRecordChanges — idempotent concurrent-push simulation', () => {
     );
     // syncRecordChanges resolves to the PullResponse from the second findMany call.
     expect(result).toEqual(expect.objectContaining({ records: expect.any(Array), hasMore: false }));
+  });
+});
+
+type SyncRow = { id: string; userId: string; key: string; updatedAt: Date };
+type WhereInput = Record<string, unknown>;
+type OrderByInput = Array<Partial<Record<keyof SyncRow, 'asc' | 'desc'>>>;
+
+function compareValues(left: unknown, right: unknown): number {
+  const leftValue = left instanceof Date ? left.getTime() : (left as string | number);
+  const rightValue = right instanceof Date ? right.getTime() : (right as string | number);
+  if (leftValue === rightValue) {
+    return 0;
+  }
+  return leftValue > rightValue ? 1 : -1;
+}
+
+/**
+ * Minimal in-memory evaluator for the subset of Prisma's where clause used by findByUpdatedAt,
+ * so pagination can be exercised across multiple pages without a database.
+ */
+function matchesWhere(row: SyncRow, where: WhereInput): boolean {
+  return Object.entries(where).every(([field, condition]) => {
+    if (field === 'OR') {
+      return (condition as WhereInput[]).some((subCondition) => matchesWhere(row, subCondition));
+    }
+    const value = row[field as keyof SyncRow];
+    if (condition instanceof Date || typeof condition !== 'object' || condition === null) {
+      return compareValues(value, condition) === 0;
+    }
+    const { gt, ...unsupported } = condition as { gt?: unknown };
+    if (gt === undefined || Object.keys(unsupported).length > 0) {
+      throw new Error(`Unsupported filter on ${field}: ${JSON.stringify(condition)}`);
+    }
+    return compareValues(value, gt) > 0;
+  });
+}
+
+function compareByOrderBy(left: SyncRow, right: SyncRow, orderBy: OrderByInput): number {
+  for (const orderByField of orderBy) {
+    const [[field, direction]] = Object.entries(orderByField) as Array<[keyof SyncRow, 'asc' | 'desc']>;
+    const result = compareValues(left[field], right[field]);
+    if (result !== 0) {
+      return direction === 'asc' ? result : -result;
+    }
+  }
+  return 0;
+}
+
+describe('findByUpdatedAt — keyset pagination', () => {
+  const OTHER_USER_ID = '22222222-2222-2222-2222-222222222222';
+  const BASE_DATE = new Date('2026-08-01T00:00:00Z');
+
+  let rows: SyncRow[] = [];
+
+  function makeRow(index: number, key: string, updatedAt: Date, userId = USER_ID): SyncRow {
+    return { id: `id-${userId}-${index}`, userId, key, updatedAt };
+  }
+
+  /** Mirrors the client's dataSyncPullAll loop: each response's cursor is sent with the next request */
+  async function pullAll() {
+    const pulledKeys: string[] = [];
+    let updatedAt: Date | null = null;
+    let lastKey: string | null = null;
+    let hasMore = true;
+    let requestCount = 0;
+    while (hasMore) {
+      if (requestCount > 20) {
+        throw new Error('Pagination did not terminate');
+      }
+      const response = await findByUpdatedAt({ userId: USER_ID, updatedAt, lastKey, limit: MAX_PULL });
+      pulledKeys.push(...response.records.map(({ key }) => key));
+      hasMore = response.hasMore;
+      updatedAt = response.updatedAt;
+      lastKey = response.lastKey ?? null;
+      requestCount++;
+    }
+    return { pulledKeys, requestCount };
+  }
+
+  beforeEach(() => {
+    rows = [];
+    prismaMock.userSyncData.findMany.mockImplementation(
+      async ({ where, orderBy, take }: { where: WhereInput; orderBy: OrderByInput; take: number }) =>
+        rows
+          .filter((row) => matchesWhere(row, where))
+          .sort((left, right) => compareByOrderBy(left, right, orderBy))
+          .slice(0, take),
+    );
+  });
+
+  afterEach(() => {
+    prismaMock.userSyncData.findMany.mockReset();
+  });
+
+  it('keeps newer records whose key sorts before the last key of the previous page', async () => {
+    // Query history keys are prefixed with the org id, so key order is unrelated to updatedAt.
+    // The first page ends on an org B record, and every later record belongs to org A, whose keys sort lower.
+    const olderRows = Array.from({ length: MAX_PULL }, (_, i) =>
+      makeRow(i, `qh_org_b_${String(i).padStart(3, '0')}`, addSeconds(BASE_DATE, i)),
+    );
+    const newerRows = Array.from({ length: 50 }, (_, i) =>
+      makeRow(MAX_PULL + i, `qh_org_a_${String(i).padStart(3, '0')}`, addSeconds(BASE_DATE, MAX_PULL + i)),
+    );
+    const otherUserRows = Array.from({ length: 5 }, (_, i) => makeRow(i, `qh_other_user_${i}`, addSeconds(BASE_DATE, i), OTHER_USER_ID));
+    rows = [...olderRows, ...newerRows, ...otherUserRows];
+
+    const { pulledKeys, requestCount } = await pullAll();
+
+    expect(requestCount).toBe(2);
+    expect(pulledKeys).toEqual([...olderRows, ...newerRows].map(({ key }) => key));
+  });
+
+  it('returns each record once when a page ends partway through records sharing one updatedAt', async () => {
+    const sharedUpdatedAt = addSeconds(BASE_DATE, 80);
+    rows = Array.from({ length: 130 }, (_, i) => {
+      // Records 80-119 share one timestamp, so the first page ends inside that group
+      const updatedAt = i >= 80 && i < 120 ? sharedUpdatedAt : addSeconds(BASE_DATE, i);
+      // Reverse the key order so ties are not already in insertion order
+      return makeRow(i, `qh_${String(999 - i).padStart(3, '0')}`, updatedAt);
+    });
+
+    const { pulledKeys, requestCount } = await pullAll();
+
+    expect(requestCount).toBe(2);
+    expect(pulledKeys).toHaveLength(rows.length);
+    expect(new Set(pulledKeys)).toEqual(new Set(rows.map(({ key }) => key)));
+  });
+
+  it('treats an empty lastKey as a cursor when a page ends on it', async () => {
+    // Records 99-129 share one timestamp; the empty key sorts first, so it is the last record of page 1
+    const sharedUpdatedAt = addSeconds(BASE_DATE, 99);
+    rows = Array.from({ length: 130 }, (_, i) => {
+      if (i < 99) {
+        return makeRow(i, `qh_${String(i).padStart(3, '0')}`, addSeconds(BASE_DATE, i));
+      }
+      return makeRow(i, i === 99 ? '' : `qh_${String(i).padStart(3, '0')}`, sharedUpdatedAt);
+    });
+
+    const { pulledKeys, requestCount } = await pullAll();
+
+    expect(requestCount).toBe(2);
+    expect(pulledKeys).toHaveLength(rows.length);
+    expect(new Set(pulledKeys)).toEqual(new Set(rows.map(({ key }) => key)));
+  });
+
+  it('filters only by updatedAt when no lastKey is provided', async () => {
+    const updatedAt = addSeconds(BASE_DATE, 10);
+
+    await findByUpdatedAt({ userId: USER_ID, updatedAt, lastKey: null, limit: MAX_PULL });
+
+    expect(prismaMock.userSyncData.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: USER_ID, updatedAt: { gt: updatedAt } } }),
+    );
   });
 });
