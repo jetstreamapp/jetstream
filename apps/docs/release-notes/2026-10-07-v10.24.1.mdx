@@ -1,0 +1,47 @@
+---
+slug: v10.24.1
+title: 10.24.1 - Large file downloads and history sync fixes
+date: '2026-10-07'
+tags: [web, desktop, extension]
+versions:
+  web: 10.24.1
+  desktop: 4.19.1
+  extension: 3.22.1
+summary: Large CSV and JSON downloads no longer fail with an "Invalid string length" error, and history sync now restores all of your history on a new browser or device.
+highlights:
+  - title: Large CSV and JSON downloads
+    description: Downloads with hundreds of thousands of records, or with very large text fields, no longer fail with an "Invalid string length" error.
+  - title: Full history restored by sync
+    description: Signing in on a new browser or device, or choosing Reset Sync, now restores all of your synced history instead of only part of it.
+    docLink: /history-data-sync
+  - title: Download filename kept while typing
+    description: The filename you type in the download dialog is no longer replaced with the default when the results behind it re-render.
+  - title: Page button after a My Domain rename
+    description: The button the extension adds to Salesforce pages now shows in orgs whose My Domain was renamed.
+    platforms: [extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Large CSV and JSON downloads
+
+Downloading a very large result set as CSV or JSON could fail with "Invalid string length", for example 291,000 records with 111 fields, or records with several long text fields filled to their limit. Jetstream now builds the file in pieces, so it is no longer limited by the browser's maximum string length.
+
+### Full history restored by sync
+
+With history sync turned on, accounts with more than 100 synced records received only part of their history when it was pulled from the server, so query history could look stuck at an older date. This affected signing in on a new browser or device, choosing **Reset Sync**, and clearing site data. All of your synced history is now pulled. If your history still looks incomplete, choose **Reset Sync** in Settings to pull it again.
+
+### Download filename kept while typing
+
+In the download dialog for query results, the filename you were typing could be replaced with the default name and selected again when the results grid re-rendered. A re-render no longer resets the filename or your **Which Records** choice.
+
+### Page button after a My Domain rename
+
+After an org's My Domain was renamed, the extension could pick up the session for the old domain, and the Jetstream button did not show on Salesforce pages. The extension now uses the session for the page's current My Domain. The extension's keyboard shortcuts for opening Jetstream or viewing the current record from a Salesforce page use the same fix.
+
+### Other fixes
+
+- When Salesforce returns an HTML error page instead of data, Jetstream shows a readable message instead of a parsing error.
+- On web and desktop, a request to an org whose Salesforce domain no longer exists (usually a deleted sandbox) now says the domain could not be found and suggests reconnecting or removing the org.
