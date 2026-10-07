@@ -1,6 +1,7 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Profiler, ProfilerOnRenderCallback } from 'react';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { RecordDownloadModal, RecordDownloadModalProps } from '../RecordDownloadModal';
@@ -132,5 +133,60 @@ describe('RecordDownloadModal bulk API requirement', () => {
 
     expect(screen.getByLabelText<HTMLInputElement>('Standard').checked).toBe(true);
     expect(screen.getByLabelText<HTMLInputElement>('Standard').disabled).toBe(false);
+  });
+});
+
+/**
+ * Callers commonly pass a new `records`/`selectedRecords` array on every render (the query results grid reports its
+ * selection as a fresh array), and the modal used to reset its state on each one - overwriting the filename mid-typing,
+ * re-selecting the input, and turning every parent render into several extra commits.
+ */
+describe('RecordDownloadModal parent re-renders', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  function renderModal(onRender: ProfilerOnRenderCallback, selectedRecords: typeof records) {
+    return (
+      <MemoryRouter>
+        <Profiler id="download-modal" onRender={onRender}>
+          <RecordDownloadModal
+            org={org}
+            googleIntegrationEnabled={false}
+            googleShowUpgradeToPro={false}
+            google_apiKey=""
+            google_appId=""
+            google_clientId=""
+            downloadModalOpen
+            fields={['Id', 'Name']}
+            records={[...records]}
+            selectedRecords={selectedRecords}
+            source="test"
+            trackEvent={vi.fn()}
+            onModalClose={vi.fn()}
+            onDownload={vi.fn()}
+            onDownloadFromServer={vi.fn()}
+          />
+        </Profiler>
+      </MemoryRouter>
+    );
+  }
+
+  test('keeps the typed filename and the chosen records option when the caller passes new arrays', async () => {
+    const onRender = vi.fn();
+    const { rerender } = render(renderModal(onRender, [records[0]]));
+
+    const fileNameInput = screen.getByLabelText<HTMLInputElement>(/Filename/);
+    await userEvent.clear(fileNameInput);
+    await userEvent.type(fileNameInput, 'my-file');
+    await userEvent.click(screen.getByLabelText(/^All records/));
+
+    onRender.mockClear();
+    rerender(renderModal(onRender, [records[0]]));
+
+    expect(fileNameInput.value).toBe('my-file');
+    expect(screen.getByLabelText<HTMLInputElement>(/^All records/).checked).toBe(true);
+    expect(onRender).toHaveBeenCalledTimes(1);
   });
 });

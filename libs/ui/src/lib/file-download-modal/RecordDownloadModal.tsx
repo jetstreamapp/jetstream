@@ -177,9 +177,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       isCanvasApp() ||
       (googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId)) &&
     !!onDownloadFromServer;
-  const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
+  const hasMoreRecords = !!totalRecordCount && (totalRecordCount < 0 || totalRecordCount > records.length);
   const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(() =>
-    getWhichRecordsDefaultValue({ hasMoreRecords: false, records, selectedRecords }),
+    getWhichRecordsDefaultValue({ hasMoreRecords, records, selectedRecords }),
   );
   const [fileFormat, setFileFormat] = useState<RecordDownloadFileFormat>(() => getInitialDownloadFileFormat(allowedTypes, LS_KEY));
   const [downloadMethod, setDownloadMethod] = useState<typeof RADIO_DOWNLOAD_METHOD_STANDARD | typeof RADIO_DOWNLOAD_METHOD_BULK_API>(
@@ -381,6 +381,10 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     return getFilename(org, ['records']);
   }
 
+  /**
+   * Keyed on the open state alone: callers commonly pass new record arrays on every render (the query results grid
+   * reports its selection as a fresh array), and resetting on each one overwrote the filename while the user was typing.
+   */
   useEffect(() => {
     if (downloadModalOpen) {
       setDoFocusInput(true);
@@ -390,7 +394,8 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       setFileFormat(getInitialDownloadFileFormat(allowedTypes, LS_KEY));
       setIncludeSubquery(true);
     }
-  }, [downloadModalOpen, hasMoreRecords, org, records, selectedRecords]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [downloadModalOpen]);
 
   useEffect(() => {
     if (doFocusInput && fileName && downloadModalOpen && inputEl.current) {
@@ -401,11 +406,13 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileName]);
 
+  // The default only depends on the counts, so new arrays with the same counts must not discard the user's choice
+  const recordCount = records.length;
+  const selectedRecordCount = selectedRecords?.length ?? 0;
   useEffect(() => {
-    const hasMoreRecordsTemp = !!totalRecordCount && !!records && (totalRecordCount < 0 || totalRecordCount > records.length);
-    setHasMoreRecords(hasMoreRecordsTemp);
-    setDownloadRecordsValue(getWhichRecordsDefaultValue({ hasMoreRecords: hasMoreRecordsTemp, records, selectedRecords }));
-  }, [totalRecordCount, records, selectedRecords]);
+    setDownloadRecordsValue(getWhichRecordsDefaultValue({ hasMoreRecords, records, selectedRecords }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMoreRecords, recordCount, selectedRecordCount]);
 
   function handleFileFormatChange(value: string) {
     const newFileFormat = value as RecordDownloadFileFormat;
