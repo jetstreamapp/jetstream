@@ -218,7 +218,7 @@ const retrievePackageFromLisMetadataResults = createRoute(
 
       sendJson(res, results);
     } catch (ex) {
-      next(ex);
+      next(new UserFacingError(ex));
     }
   },
 );
@@ -239,7 +239,7 @@ const retrievePackageFromExistingServerPackages = createRoute(
 
       sendJson(res, results);
     } catch (ex) {
-      next(ex);
+      next(new UserFacingError(ex));
     }
   },
 );
@@ -253,7 +253,7 @@ const retrievePackageFromManifest = createRoute(
 
       sendJson(res, results);
     } catch (ex) {
-      next(ex);
+      next(new UserFacingError(ex));
     }
   },
 );
@@ -266,7 +266,7 @@ const checkRetrieveStatus = createRoute(routeDefinition.checkRetrieveStatus.vali
 
     sendJson(res, results);
   } catch (ex) {
-    next(ex);
+    next(new UserFacingError(ex));
   }
 });
 
@@ -318,7 +318,7 @@ const checkRetrieveStatusAndRedeploy = createRoute(
         sendJson(res, { type: 'retrieve', results });
       }
     } catch (ex) {
-      next(ex);
+      next(new UserFacingError(ex));
     }
   },
 );
@@ -330,7 +330,7 @@ const getPackageXml = createRoute(routeDefinition.getPackageXml.validators, asyn
 
     sendJson(res, buildPackageXml(types, jetstreamConn.sessionInfo.apiVersion, otherFields));
   } catch (ex) {
-    next(ex);
+    next(new UserFacingError(ex));
   }
 });
 
@@ -345,7 +345,7 @@ const anonymousApex = createRoute(routeDefinition.anonymousApex.validators, asyn
 
     sendJson(res, results);
   } catch (ex) {
-    next(ex);
+    next(new UserFacingError(ex));
   }
 });
 
@@ -357,6 +357,6 @@ const apexCompletions = createRoute(routeDefinition.apexCompletions.validators, 
 
     sendJson(res, results);
   } catch (ex) {
-    next(ex);
+    next(new UserFacingError(ex));
   }
 });

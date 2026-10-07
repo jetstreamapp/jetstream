@@ -209,6 +209,7 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
           [HTTP.HEADERS.X_SFDC_Session]: accessToken,
         },
       })
+        .catch((ex) => handleFetchFailure(ex, url))
         .then(async (response) => {
           if (enableLogging) {
             logger.trace(`[API RESPONSE]: ${response.status}`);
@@ -244,7 +245,7 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
             } else if (outputType === 'void') {
               return;
             } else {
-              return response.json();
+              return response.text().then(parseJsonResponse);
             }
           }
 
@@ -359,6 +360,43 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
     };
     return apiRequest;
   };
+}
+
+/**
+ * For failures where Salesforce gave us no HTTP error to pass through, so they are reported as a 502 and attributed
+ * upstream instead of surfacing as an unexplained Jetstream 500.
+ */
+function createBadGatewayError(message: string | undefined) {
+  return new ApiRequestError(message, new Response(null, { status: 502, statusText: 'Bad Gateway' }));
+}
+
+/**
+ * A domain that does not resolve means the org itself is gone (most often a deleted sandbox), so it gets a message the
+ * user can act on rather than a bare `fetch failed`. Every other network failure is rethrown unchanged.
+ */
+function handleFetchFailure(ex: unknown, url: string): never {
+  const cause = ex instanceof Error ? (ex.cause as { code?: string } | undefined) : undefined;
+  if (cause?.code === 'ENOTFOUND') {
+    throw createBadGatewayError(
+      `The Salesforce domain ${new URL(url).hostname} could not be found, so the org may have been deleted. Reconnect the org if it still exists, otherwise remove it from Jetstream.`,
+    );
+  }
+  throw ex;
+}
+
+/**
+ * Salesforce occasionally answers a JSON API call with a 2xx HTML page (maintenance, login interstitials), which would
+ * otherwise escape as a raw `SyntaxError` from JSON parsing.
+ */
+function parseJsonResponse(responseText: string) {
+  try {
+    return JSON.parse(responseText);
+  } catch (ex) {
+    if (HTML_ERROR_PAGE_REGEX.test(responseText)) {
+      throw createBadGatewayError(handleSalesforceApiError('json', responseText));
+    }
+    throw ex;
+  }
 }
 
 function handleSalesforceApiError(outputType: ApiRequestOutputType, responseText?: string, status?: number) {

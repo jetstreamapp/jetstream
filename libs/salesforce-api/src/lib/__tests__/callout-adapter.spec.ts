@@ -918,6 +918,62 @@ describe('callout-adapter XML parsing', () => {
         expect((error as ApiRequestError).message).toBe('Invalid request data');
       }
     });
+
+    it('reports an HTML page served with a 2xx status as a 502 instead of a JSON parse error', async () => {
+      const mockFetch = createMockFetch({
+        '/services/oauth2/userinfo': { status: 200, body: `\n\n\n<!DOCTYPE html><html><body>Sign in</body></html>` },
+      });
+
+      const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+      const request = apiRequest({ url: '/services/oauth2/userinfo', method: 'GET', sessionInfo: mockSessionInfo });
+      await expect(request).rejects.toBeInstanceOf(ApiRequestError);
+      await expect(request).rejects.toMatchObject({
+        status: 502,
+        message:
+          'Salesforce returned an error page instead of a response. The org may be temporarily unavailable or undergoing maintenance - please try again shortly.',
+      });
+    });
+
+    it('still parses a 2xx JSON response', async () => {
+      const mockFetch = createMockFetch({
+        '/services/oauth2/userinfo': { status: 200, body: JSON.stringify({ user_id: '005' }) },
+      });
+
+      const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+      await expect(apiRequest({ url: '/services/oauth2/userinfo', method: 'GET', sessionInfo: mockSessionInfo })).resolves.toEqual({
+        user_id: '005',
+      });
+    });
+  });
+
+  describe('network failures', () => {
+    it('reports a domain that does not resolve as a 502 naming the org domain', async () => {
+      const mockFetch = vi.fn(() =>
+        Promise.reject(new TypeError('fetch failed', { cause: Object.assign(new Error('getaddrinfo ENOTFOUND'), { code: 'ENOTFOUND' }) })),
+      ) as unknown as FetchFn;
+
+      const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+      const request = apiRequest({ url: '/services/oauth2/userinfo', method: 'GET', sessionInfo: mockSessionInfo });
+      await expect(request).rejects.toBeInstanceOf(ApiRequestError);
+      await expect(request).rejects.toMatchObject({
+        status: 502,
+        message: expect.stringContaining('The Salesforce domain test.salesforce.com could not be found'),
+      });
+    });
+
+    it('rethrows any other network failure unchanged', async () => {
+      const networkError = new TypeError('fetch failed', { cause: Object.assign(new Error('connect ECONNRESET'), { code: 'ECONNRESET' }) });
+      const mockFetch = vi.fn(() => Promise.reject(networkError)) as unknown as FetchFn;
+
+      const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+      await expect(apiRequest({ url: '/services/oauth2/userinfo', method: 'GET', sessionInfo: mockSessionInfo })).rejects.toBe(
+        networkError,
+      );
+    });
   });
 
   describe('SSRF origin pinning', () => {
