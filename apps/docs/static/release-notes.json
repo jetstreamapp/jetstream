@@ -1,5 +1,33 @@
 [
   {
+    "slug": "v10.24.1",
+    "title": "10.24.1 - Large file downloads and history sync fixes",
+    "date": "2026-10-07",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.24.1", "desktop": "4.19.1", "extension": "3.22.1" },
+    "summary": "Large CSV and JSON downloads no longer fail with an \"Invalid string length\" error, and history sync now restores all of your history on a new browser or device.",
+    "highlights": [
+      {
+        "title": "Large CSV and JSON downloads",
+        "description": "Downloads with hundreds of thousands of records, or with very large text fields, no longer fail with an \"Invalid string length\" error."
+      },
+      {
+        "title": "Full history restored by sync",
+        "description": "Signing in on a new browser or device, or choosing Reset Sync, now restores all of your synced history instead of only part of it.",
+        "docLink": "/history-data-sync"
+      },
+      {
+        "title": "Download filename kept while typing",
+        "description": "The filename you type in the download dialog is no longer replaced with the default when the results behind it re-render."
+      },
+      {
+        "title": "Page button after a My Domain rename",
+        "description": "The button the extension adds to Salesforce pages now shows in orgs whose My Domain was renamed.",
+        "platforms": ["extension"]
+      }
+    ]
+  },
+  {
     "slug": "v10.24.0",
     "title": "10.24.0 - Feedback button and Firefox extension fix",
     "date": "2026-10-06",
