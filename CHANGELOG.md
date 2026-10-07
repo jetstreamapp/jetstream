@@ -1,5 +1,16 @@
 # Changelog
 
+## [10.24.1](https://github.com/jetstreamapp/jetstream/compare/v10.24.0...v10.24.1) (2026-10-07)
+
+### Bug Fixes
+
+- **api:** report Salesforce-side failures as upstream errors instead of 500s ([f7edca2](https://github.com/jetstreamapp/jetstream/commit/f7edca2473b9f693887e273dd188b660de51bcf0))
+- **api:** stop dropping Mailgun events with long bounce messages ([18487d2](https://github.com/jetstreamapp/jetstream/commit/18487d250f878deded3a2e210009519ececd3b88))
+- download large CSV and JSON files without an "Invalid string length" error ([8c67878](https://github.com/jetstreamapp/jetstream/commit/8c67878ef349afe7f6f96e8a4ab57a618e5c05d4))
+- **sync:** stop dropping synced history when a pull spans more than one page ([14b99a8](https://github.com/jetstreamapp/jetstream/commit/14b99a838fb60e5e208e9355c087f5b072afae1b)), closes [#2127](https://github.com/jetstreamapp/jetstream/issues/2127)
+- **ui:** keep the typed download filename when the record list re-renders ([f3becc6](https://github.com/jetstreamapp/jetstream/commit/f3becc665a20ebe794cb64a6d60105890374899a)), references [#2126](https://github.com/jetstreamapp/jetstream/issues/2126)
+- **web-extension:** show the page button after a My Domain rename ([afcc91a](https://github.com/jetstreamapp/jetstream/commit/afcc91a501a1ba25f930ea6c35850d1699819632)), references [#2122](https://github.com/jetstreamapp/jetstream/issues/2122)
+
 ## [10.24.0](https://github.com/jetstreamapp/jetstream/compare/v10.23.1...v10.24.0) (2026-10-06)
 
 ### Features
