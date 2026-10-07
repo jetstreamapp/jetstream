@@ -107,3 +107,38 @@ export function getRecordPageObject(pathName: string) {
   }
   return RECORD_PAGE_REGEX.exec(pathName)?.groups?.objectName;
 }
+
+/**
+ * The My Domain host holding the API-capable session for a Lightning or Setup page, e.g.
+ * `acme--uat.sandbox.lightning.force.com` -> `acme--uat.sandbox.my.salesforce.com`.
+ */
+export function getMyDomainHostForPage(hostname: string): string | undefined {
+  if (hostname.endsWith('.lightning.force.com')) {
+    return hostname.replace(/\.lightning\.force\.com$/, '.my.salesforce.com');
+  }
+  if (hostname.endsWith('.my.salesforce-setup.com')) {
+    return hostname.replace(/\.my\.salesforce-setup\.com$/, '.my.salesforce.com');
+  }
+  if (hostname.endsWith('.my.salesforce.com')) {
+    return hostname;
+  }
+  return undefined;
+}
+
+/**
+ * Picks the org's API session cookie out of every `sid` cookie the browser holds. Chrome returns cookies
+ * oldest first, so after a My Domain rename the old hostname's cookie (a dead session) would win. The
+ * page's own My Domain is preferred, and the first cookie for the org is only a fallback.
+ */
+export function selectApiSessionCookie<T extends { domain: string; value: string }>(
+  cookies: T[],
+  orgId: string | undefined,
+  pageHostname: string,
+): T | undefined {
+  if (!orgId) {
+    return undefined;
+  }
+  const orgCookies = cookies.filter(({ value }) => value.startsWith(`${orgId}!`));
+  const myDomainHost = getMyDomainHostForPage(pageHostname);
+  return orgCookies.find(({ domain }) => domain === myDomainHost) ?? orgCookies[0];
+}

@@ -33,7 +33,7 @@ import {
   TokenExchange,
   VerifyAuth,
 } from '../utils/extension.types';
-import { getRecordPageRecordId } from '../utils/web-extension.utils';
+import { getRecordPageRecordId, selectApiSessionCookie } from '../utils/web-extension.utils';
 
 if (!environment.production) {
   enableLogger(true);
@@ -125,10 +125,7 @@ browser.commands.onCommand.addListener(async (command, tab) => {
   if (!orgId) {
     return;
   }
-  const sfHost = await Promise.all([
-    browser.cookies.getAll({ name: 'sid', domain: 'salesforce.com', secure: true, storeId: getCookieStoreId({ tab }) }),
-    browser.cookies.getAll({ name: 'sid', domain: 'cloudforce.com', secure: true, storeId: getCookieStoreId({ tab }) }),
-  ]).then((results) => results.flat().find(({ value }) => value.startsWith(orgId + '!'))?.domain);
+  const sfHost = await getApiSessionHost(url, orgId, getCookieStoreId({ tab }));
 
   // make sure we have this connection saved
   const connectionId = Object.keys(connections).find((key) => key.startsWith(orgId));
@@ -602,11 +599,19 @@ async function handleGetSalesforceHostWithApiAccess(
     .get({ url, name: 'sid', storeId: getCookieStoreId(sender) })
     .then((cookie) => cookie?.value?.split('!')?.[0]);
 
+  return getApiSessionHost(url, orgId, getCookieStoreId(sender));
+}
+
+/**
+ * Finds the host whose `sid` cookie can call the API for the org open at `url`, normally the My Domain
+ * behind a Lightning page. The Lightning domain's own session is not API-enabled.
+ */
+async function getApiSessionHost(url: string, orgId: string | undefined, storeId: string | undefined) {
   const results = await Promise.all([
-    browser.cookies.getAll({ name: 'sid', domain: 'salesforce.com', secure: true, storeId: getCookieStoreId(sender) }),
-    browser.cookies.getAll({ name: 'sid', domain: 'cloudforce.com', secure: true, storeId: getCookieStoreId(sender) }),
+    browser.cookies.getAll({ name: 'sid', domain: 'salesforce.com', secure: true, storeId }),
+    browser.cookies.getAll({ name: 'sid', domain: 'cloudforce.com', secure: true, storeId }),
   ]);
-  return results.flat().find(({ value }) => value.startsWith(orgId + '!'))?.domain;
+  return selectApiSessionCookie(results.flat(), orgId, new URL(url).hostname)?.domain;
 }
 
 async function handleGetSession(
