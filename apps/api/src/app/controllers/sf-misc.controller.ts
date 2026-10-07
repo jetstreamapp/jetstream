@@ -84,7 +84,7 @@ const getFrontdoorLoginUrl = createRoute(
       await jetstreamConn.org.identity();
       res.redirect(jetstreamConn.org.getFrontdoorLoginUrl(returnUrl as string));
     } catch (ex) {
-      next(ex);
+      next(new UserFacingError(ex));
     }
   },
 );
@@ -103,7 +103,7 @@ const streamFileDownload = createRoute(routeDefinition.streamFileDownload.valida
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Readable.fromWeb(results as any).pipe(res);
   } catch (ex) {
-    next(ex);
+    next(new UserFacingError(ex));
   }
 });
 
