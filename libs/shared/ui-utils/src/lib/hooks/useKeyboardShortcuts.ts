@@ -1,10 +1,37 @@
-import { KeyboardEvent as ReactKeyboardEvent, useCallback } from 'react';
+import { KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useRef } from 'react';
 import { hasCtrlOrMeta, hasShiftModifierKey, isEnterKey } from '../shared-ui-keyboard';
 import { useGlobalEventHandler } from './useGlobalEventHandler';
 
 interface KeyboardActionOptions {
   /** When true the shortcut is ignored — wire this to the same condition that disables the button */
   disabled?: boolean;
+  /**
+   * Where the action lives. A `page` action (the default) stays quiet while a modal dialog is open: the
+   * page is inert behind it and its primary button is out of reach, so firing it from inside the modal
+   * (Cmd+Enter while reading a test result) would act on the page unseen. A `dialog` action belongs to
+   * the modal itself and keeps firing.
+   */
+  scope?: 'page' | 'dialog';
+  /**
+   * Set when the action reads values that fields only commit on blur (the record form). The focused field
+   * is committed first and the action runs once React has applied that update — otherwise the shortcut
+   * acts on a record that is silently missing the value the user is still typing.
+   */
+  commitFocusedField?: boolean;
+}
+
+export function isModalDialogOpen() {
+  return !!document.querySelector('[role="dialog"][aria-modal="true"]');
+}
+
+/** Blur commits the field; focus goes straight back so the user keeps their place. Comboboxes commit on selection. */
+function commitFocusedTextField() {
+  const { activeElement } = document;
+  const isTextField = activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement;
+  if (isTextField && activeElement.getAttribute('role') !== 'combobox') {
+    activeElement.blur();
+    activeElement.focus({ preventScroll: true });
+  }
 }
 
 /**
@@ -12,7 +39,16 @@ interface KeyboardActionOptions {
  * Ignores Shift so it never collides with the go-back shortcut, and skips events already handled by
  * a focused Monaco editor (which binds Cmd+Enter itself and stops propagation).
  */
-export function usePrimaryActionShortcut(handler: () => void, { disabled }: KeyboardActionOptions = {}) {
+export function usePrimaryActionShortcut(
+  handler: () => void,
+  { disabled, scope = 'page', commitFocusedField = false }: KeyboardActionOptions = {},
+) {
+  // The deferred path below must call the handler from the render that follows the field commit
+  const latestHandlerRef = useRef(handler);
+  useEffect(() => {
+    latestHandlerRef.current = handler;
+  }, [handler]);
+
   const onKeydown = useCallback(
     (event: KeyboardEvent) => {
       if (disabled || event.defaultPrevented) {
@@ -20,12 +56,20 @@ export function usePrimaryActionShortcut(handler: () => void, { disabled }: Keyb
       }
       const keyboardEvent = event as unknown as ReactKeyboardEvent;
       if (hasCtrlOrMeta(keyboardEvent) && !hasShiftModifierKey(keyboardEvent) && isEnterKey(keyboardEvent)) {
+        if (scope === 'page' && isModalDialogOpen()) {
+          return;
+        }
         event.stopPropagation();
         event.preventDefault();
+        if (commitFocusedField) {
+          commitFocusedTextField();
+          setTimeout(() => latestHandlerRef.current());
+          return;
+        }
         handler();
       }
     },
-    [disabled, handler],
+    [commitFocusedField, disabled, handler, scope],
   );
   useGlobalEventHandler('keydown', onKeydown);
 }
@@ -33,7 +77,7 @@ export function usePrimaryActionShortcut(handler: () => void, { disabled }: Keyb
 /**
  * Cmd+Shift+Enter (mac) / Ctrl+Shift+Enter — navigates back one step in a multi-step (wizard) flow.
  */
-export function useGoBackShortcut(handler: () => void, { disabled }: KeyboardActionOptions = {}) {
+export function useGoBackShortcut(handler: () => void, { disabled, scope = 'page' }: KeyboardActionOptions = {}) {
   const onKeydown = useCallback(
     (event: KeyboardEvent) => {
       if (disabled || event.defaultPrevented) {
@@ -41,12 +85,15 @@ export function useGoBackShortcut(handler: () => void, { disabled }: KeyboardAct
       }
       const keyboardEvent = event as unknown as ReactKeyboardEvent;
       if (hasCtrlOrMeta(keyboardEvent) && hasShiftModifierKey(keyboardEvent) && isEnterKey(keyboardEvent)) {
+        if (scope === 'page' && isModalDialogOpen()) {
+          return;
+        }
         event.stopPropagation();
         event.preventDefault();
         handler();
       }
     },
-    [disabled, handler],
+    [disabled, handler, scope],
   );
   useGlobalEventHandler('keydown', onKeydown);
 }

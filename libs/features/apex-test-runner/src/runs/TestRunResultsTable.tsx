@@ -15,7 +15,7 @@ import {
   setColumnFromType,
 } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useMemo, useState } from 'react';
-import { formatTestTime, getOutcomeBadgeType } from './test-run-utils';
+import { BADGE_ROW_HEIGHT, formatTestTime, getOutcomeBadgeType } from './test-run-utils';
 
 type TestResultRow = ApexTestResultRecord & { 'ApexClass.Name': string };
 
@@ -141,11 +141,13 @@ function getRowId({ Id }: TestResultRow): string {
   return Id;
 }
 
-// Grow rows to fit their wrapped failure message, tracking the live width of the Message column on resize
+// Grow rows to fit their wrapped failure message, tracking the live width of the Message column on
+// resize. Every row (group Pass/Fail rollups included) carries an outcome Badge, so the floor is the
+// badge-friendly height rather than the grid default.
 const getRowHeight = ({ type, row, columnWidths }: { type: 'ROW' | 'GROUP'; row: TestResultRow; columnWidths: Record<string, number> }) =>
   type === 'GROUP'
-    ? getWrappedTextRowHeight(null)
-    : getWrappedTextRowHeight(row.Message, columnWidths?.['Message'] ?? MESSAGE_COLUMN_WIDTH);
+    ? BADGE_ROW_HEIGHT
+    : getWrappedTextRowHeight(row.Message, columnWidths?.['Message'] ?? MESSAGE_COLUMN_WIDTH, BADGE_ROW_HEIGHT);
 
 export interface TestRunResultsTableProps {
   testResults: ApexTestResultRecord[];
@@ -187,6 +189,10 @@ export const TestRunResultsTable: FunctionComponent<TestRunResultsTableProps> = 
               css={css`
                 width: 100%;
                 height: 100%;
+                /* The full-height click target defeats the cell's own flex centering — restore it
+                   so the Outcome badge (and text) sit centered in the row */
+                display: flex;
+                align-items: center;
               `}
               onClick={() => onRowSelection(props.row)}
             >

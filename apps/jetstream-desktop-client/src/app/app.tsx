@@ -1,8 +1,9 @@
 import { css } from '@emotion/react';
 import { Announcement } from '@jetstream/types';
-import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
+import { AppToast, ConfirmationServiceProvider, SkipToContent } from '@jetstream/ui';
 import {
   AppLoading,
+  AppMainContent,
   ErrorBoundaryFallback,
   HeaderNavbar,
   NotificationsRequestModal,
@@ -32,6 +33,8 @@ export const App = () => {
           {({ onLogout, authInfo }) => (
             <AppInitializer authInfo={authInfo} onAnnouncements={setAnnouncements}>
               <ThemeApplier />
+              {/* First in DOM order so it is the first tab stop even while a toast or modal is mounted */}
+              <SkipToContent className="desktop-skip-to-content" />
               <ModalContainer />
               <AppStateResetOnOrgChange />
               <AppToast />
@@ -56,14 +59,14 @@ export const App = () => {
                     onLogoutHandlerFn={onLogout}
                   />
                 </div>
-                <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
+                <AppMainContent>
                   <AnnouncementAlerts announcements={announcements} />
                   <Suspense fallback={<AppLoading />}>
                     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
                       <AppRoutes />
                     </ErrorBoundary>
                   </Suspense>
-                </div>
+                </AppMainContent>
               </div>
             </AppInitializer>
           )}

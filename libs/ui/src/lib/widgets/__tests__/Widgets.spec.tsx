@@ -49,9 +49,25 @@ describe('Pill', () => {
     expect(screen.getByText('Pill Label')).toBeTruthy();
   });
 
-  test('has role=option', () => {
+  test('is not an option unless it is really inside a listbox', () => {
     render(<Pill>Label</Pill>);
-    expect(screen.getByRole('option')).toBeTruthy();
+    expect(screen.queryByRole('option')).toBeNull();
+  });
+
+  test('opts into listbox semantics with listboxOption', () => {
+    render(<Pill listboxOption>Label</Pill>);
+    expect(screen.getByRole('option').getAttribute('aria-selected')).toBe('true');
+  });
+
+  // role="option" makes children presentational, so a plain pill has to name the button itself
+  test('the remove button is a named tab stop on a plain pill', () => {
+    render(
+      <Pill title="My Pill" onRemove={() => {}}>
+        Label
+      </Pill>,
+    );
+    const removeButton = screen.getByRole('button', { name: 'Remove: My Pill' });
+    expect(removeButton.tabIndex).toBe(0);
   });
 
   test('renders title on the label span', () => {

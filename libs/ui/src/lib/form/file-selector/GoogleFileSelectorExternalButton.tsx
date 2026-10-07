@@ -14,6 +14,7 @@ import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
 import Spinner from '../../widgets/Spinner';
 import Tooltip from '../../widgets/Tooltip';
+import { ariaDisabledButtonProps } from '../button/aria-disabled-button.utils';
 import { useFilename } from './useFilename';
 
 const GOOGLE_APPS_MIME_PREFIX = 'application/vnd.google-apps.';
@@ -190,6 +191,7 @@ export const GoogleFileSelectorExternalButton: FunctionComponent<GoogleFileSelec
       <div className="slds-form-element__control">
         <label className="slds-file-selector__body" htmlFor={id}>
           <button
+            type="button"
             className="slds-is-relative slds-button slds-button_neutral"
             onClick={handleOpenPicker}
             disabled={loading || disabled}
@@ -203,7 +205,12 @@ export const GoogleFileSelectorExternalButton: FunctionComponent<GoogleFileSelec
         </label>
         {selectedFile && (
           <Tooltip content={'Refresh file from Google'}>
-            <button className="slds-button slds-button_icon slds-button_icon-container" disabled={loading} onClick={handleRefresh}>
+            <button
+              type="button"
+              className="slds-button slds-button_icon slds-button_icon-container"
+              aria-label="Refresh file from Google"
+              {...ariaDisabledButtonProps(loading, handleRefresh)}
+            >
               <Icon type="utility" icon="refresh" className="slds-button__icon" omitContainer />
             </button>
           </Tooltip>

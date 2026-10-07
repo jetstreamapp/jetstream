@@ -118,8 +118,9 @@ export interface SettingsSectionProps {
 export const SettingsSection = ({ id, title, description, children }: SettingsSectionProps) => {
   const headingId = `${id}-heading`;
   return (
-    // Focusable so navigating to a section moves focus into it (see SettingsLayout)
-    <section id={id} aria-labelledby={headingId} tabIndex={-1} css={sectionCss}>
+    // Not focusable on its own: SettingsLayout and deep links focus it through `focusContainer`, which keeps the
+    // tabindex only while the section holds that focus (a permanent one would take focus on every click inside)
+    <section id={id} aria-labelledby={headingId} css={sectionCss}>
       <h2 id={headingId} className="slds-text-heading_medium">
         {title}
       </h2>
@@ -130,6 +131,8 @@ export const SettingsSection = ({ id, title, description, children }: SettingsSe
 };
 
 export interface SettingsGroupProps {
+  /** Deep link target, for a group that is linked to directly rather than through its section */
+  id?: string;
   title?: ReactNode;
   description?: ReactNode;
   /** Rendered on the right side of the group header */
@@ -140,9 +143,9 @@ export interface SettingsGroupProps {
 }
 
 /** Bordered card of `SettingsRow`s, with an optional header */
-export const SettingsGroup = ({ title, description, actions, variant = 'default', testId, children }: SettingsGroupProps) => {
+export const SettingsGroup = ({ id, title, description, actions, variant = 'default', testId, children }: SettingsGroupProps) => {
   return (
-    <div css={[groupCss, variant === 'danger' && dangerGroupCss]} data-testid={testId}>
+    <div id={id} css={[groupCss, variant === 'danger' && dangerGroupCss]} data-testid={testId}>
       {(title || actions) && (
         <div css={groupHeaderCss}>
           <div>

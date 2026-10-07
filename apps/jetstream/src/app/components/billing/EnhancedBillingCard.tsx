@@ -47,6 +47,12 @@ const cardStyles = css`
       box-shadow: 0 4px 12px rgba(1, 118, 211, 0.2);
     }
 
+    /* The radio itself is visually hidden — show its keyboard focus on the card */
+    &:has(.radio-input:focus-visible) {
+      outline: 2px solid var(--slds-g-color-brand-base-50, #0176d3);
+      outline-offset: 2px;
+    }
+
     &.enterprise {
       cursor: default;
 
@@ -57,8 +63,14 @@ const cardStyles = css`
     }
 
     &.disabled {
-      opacity: 0.6;
       cursor: default;
+
+      /* Fade the plan details only: a faded card would take the disabled reason and the Contact Sales button
+         below text contrast, and a child cannot undo its parent's opacity */
+      .card-header,
+      .features-section {
+        opacity: 0.6;
+      }
 
       &:hover {
         border-color: var(--slds-g-color-border-1, #d8dde6);
@@ -153,7 +165,6 @@ const cardStyles = css`
 
   .disabled-reason {
     font-size: 12px;
-    opacity: 1;
   }
 
   .radio-input {
@@ -227,6 +238,8 @@ export const EnhancedBillingCard = ({
   onEnterpriseContact,
 }: EnhancedBillingCardProps) => {
   const id = useId();
+  const disabledReasonId = `${id}-disabled-reason`;
+  const showDisabledReason = disabled && !!disabledReason;
 
   const handleCardClick = () => {
     if (disabled || isEnterprise) {
@@ -255,6 +268,8 @@ export const EnhancedBillingCard = ({
             value={value}
             checked={checked}
             name="priceId"
+            aria-label={`${planName} - ${price}`}
+            aria-describedby={showDisabledReason ? disabledReasonId : undefined}
             disabled={disabled}
             onChange={(ev) => onChange?.(ev.target.value as StripePriceKey)}
             className="radio-input"
@@ -294,7 +309,11 @@ export const EnhancedBillingCard = ({
           </ul>
         </div>
 
-        {disabled && disabledReason && <div className="bottom-section disabled-reason slds-text-color_error">{disabledReason}</div>}
+        {showDisabledReason && (
+          <div id={disabledReasonId} className="bottom-section disabled-reason slds-text-color_error">
+            {disabledReason}
+          </div>
+        )}
 
         {isEnterprise && (
           <div className="bottom-section">

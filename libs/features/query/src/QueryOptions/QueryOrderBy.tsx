@@ -1,7 +1,7 @@
 import { AscDesc, FirstLast, ListItem, QueryOrderByClause } from '@jetstream/types';
-import { Icon } from '@jetstream/ui';
+import { Icon, ariaDisabledButtonProps } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
-import React, { Fragment, FunctionComponent } from 'react';
+import React, { FunctionComponent, useRef } from 'react';
 import QueryOrderByRow from './QueryOrderByRow';
 
 export interface QueryOrderByContainerProps {
@@ -25,6 +25,9 @@ const nulls: ListItem<FirstLast | null>[] = [
 
 export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps> = React.memo(
   ({ sobject, fields, orderByClauses, setOrderByClauses, onLoadRelatedFields }) => {
+    // The same component is mounted in the query builder AND the subquery panel, so the focus target
+    // must be looked up inside this instance, not the document
+    const containerRef = useRef<HTMLDivElement>(null);
     function getNextKey(clauses: QueryOrderByClause[]) {
       return clauses.reduce((max, clause) => Math.max(max, clause.key), -1) + 1;
     }
@@ -38,6 +41,15 @@ export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps
     }
 
     function handleDelete(deletedOrderby: QueryOrderByClause) {
+      // The delete button unmounts with its row, which would drop keyboard focus to <body> — land on
+      // the previous row's delete button (row 0 always exists: an emptied list is refilled with one row)
+      const deletedIndex = orderByClauses.findIndex((orderBy) => orderBy.key === deletedOrderby.key);
+      window.setTimeout(() => {
+        const deleteButtons = containerRef.current?.querySelectorAll<HTMLElement>(
+          '[role="group"][aria-label^="Order by row "] button[title="Delete Condition"]',
+        );
+        deleteButtons?.[Math.max(deletedIndex - 1, 0)]?.focus();
+      });
       const tempOrderByClauses = orderByClauses.filter((orderBy) => orderBy.key !== deletedOrderby.key);
       // ensure there is always at least one order by
       if (tempOrderByClauses.length === 0) {
@@ -47,7 +59,7 @@ export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps
     }
 
     return (
-      <Fragment>
+      <div ref={containerRef}>
         {orderByClauses.map((orderBy, i) => (
           <QueryOrderByRow
             key={orderBy.key}
@@ -63,12 +75,13 @@ export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps
           />
         ))}
         <div className="slds-m-top_small">
-          <button className="slds-button slds-button_neutral" onClick={handleAdd} disabled={orderByClauses.length >= 5}>
+          {/* The click that adds the fifth row disables this button — aria-disabled keeps focus on it */}
+          <button className="slds-button slds-button_neutral" {...ariaDisabledButtonProps(orderByClauses.length >= 5, handleAdd)}>
             <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
             Add Order By
           </button>
         </div>
-      </Fragment>
+      </div>
     );
   },
 );

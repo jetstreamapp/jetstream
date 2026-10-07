@@ -2,10 +2,10 @@ import { css } from '@emotion/react';
 import { updateTeamMemberStatus } from '@jetstream/shared/data';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { TeamMemberRole, TeamUserAction, TeamUserFacing } from '@jetstream/types';
-import { fireToast, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, fireToast, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { useState } from 'react';
 import { evaluateSeatGate, SeatGate } from './team-seats/seat-gate';
-import { SeatChangeNotice } from './team-seats/SeatChangeNotice';
+import { SEAT_CHANGE_NOTICE_ID, SeatChangeNotice } from './team-seats/SeatChangeNotice';
 import { needsSeat } from './team-seats/team-seats.utils';
 import { TeamMemberRoleDropdown } from './TeamMemberRoleDropdown';
 
@@ -60,11 +60,13 @@ export function TeamMemberStatusUpdateModal({ teamId, teamMember, action, seatGa
           <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>
             Cancel
           </button>
+          {/* aria-disabled keeps focus on the button while the submit disables it; the guarded click blocks re-submits */}
           <button
             type="submit"
             form="team-member-status-update-form"
             className="slds-button slds-button_brand slds-is-relative"
-            disabled={loading || seatBlocked}
+            aria-describedby={seatBlocked ? SEAT_CHANGE_NOTICE_ID : undefined}
+            {...ariaDisabledButtonProps(loading || seatBlocked, () => {})}
           >
             Save
             {loading && <Spinner className="slds-spinner slds-spinner_small" />}

@@ -2,10 +2,10 @@ import { css } from '@emotion/react';
 import { updateTeamMember } from '@jetstream/shared/data';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { TEAM_MEMBER_STATUS_ACTIVE, TeamMemberRole, TeamUserFacing } from '@jetstream/types';
-import { Input, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Input, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { useState } from 'react';
 import { evaluateSeatGate, SeatGate } from './team-seats/seat-gate';
-import { SeatChangeNotice } from './team-seats/SeatChangeNotice';
+import { SEAT_CHANGE_NOTICE_ID, SeatChangeNotice } from './team-seats/SeatChangeNotice';
 import { needsSeat } from './team-seats/team-seats.utils';
 import { TeamMemberRoleDropdown } from './TeamMemberRoleDropdown';
 
@@ -59,11 +59,14 @@ export function TeamMemberUpdateModal({ teamId, teamMember, currentUserRole, sea
           <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>
             Cancel
           </button>
+          {/* The form's onSubmit owns the save (a click here submits the form) — the old onClick made a
+              mouse click fire it twice; aria-disabled keeps focus while the submit disables the button */}
           <button
             type="submit"
             form="team-member-update-form"
             className="slds-button slds-button_brand slds-is-relative"
-            disabled={!isDirty || loading || seatBlocked}
+            aria-describedby={seatBlocked ? SEAT_CHANGE_NOTICE_ID : undefined}
+            {...ariaDisabledButtonProps(!isDirty || loading || seatBlocked, () => {})}
           >
             Save
             {loading && <Spinner className="slds-spinner slds-spinner_small" />}
@@ -112,7 +115,7 @@ export function TeamMemberUpdateModal({ teamId, teamMember, currentUserRole, sea
             disabled
             type="email"
             name="email"
-            autoComplete="none"
+            autoComplete="off"
           />
         </Input>
 

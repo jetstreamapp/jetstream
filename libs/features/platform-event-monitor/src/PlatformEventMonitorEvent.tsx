@@ -12,7 +12,11 @@ export const PlatformEventMonitorEvent: FunctionComponent<PlatformEventMonitorEv
   return (
     <Fragment>
       <div className="slds-text-title slds-truncate" title={`UUID: ${event.EventUuid} - Replay Id: ${event.replayId}`}>
-        <CopyToClipboard size="small" content={JSON.stringify(props)} />
+        <CopyToClipboard
+          size="small"
+          content={JSON.stringify(props)}
+          icon={{ type: 'utility', icon: 'copy', description: `Copy event ${event.replayId}` }}
+        />
         UUID: {event.EventUuid} - Replay Id: {event.replayId}
       </div>
       <pre title={payloadJson}>

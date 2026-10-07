@@ -119,26 +119,32 @@ const Identities = ({
         >
           {getIdentity(identity)} ({identity.username || identity.email})
           {!allowedProviders.has(identity.provider as any) && identity.provider !== ssoProvider && (
-            <Tooltip content="This login method is not allowed and will not be available for use even though is it set up.">
+            <Tooltip
+              content="This login method is not allowed and will not be available for use even though is it set up."
+              triggerTabIndex={0}
+            >
               <Icon
                 type="utility"
                 icon="warning"
                 className="slds-icon slds-icon-text-warning slds-m-left_x-small slds-m-bottom_xx-small slds-icon_x-small"
                 containerClassname="slds-icon_container slds-icon-utility-warning"
               />
+              {/* Assistive text rather than the icon's description, which would add a native title on top of the tooltip */}
+              <span className="slds-assistive-text">Login method not allowed</span>
             </Tooltip>
           )}
         </p>
       ))}
       {hasPasswordSet && 'Username/Password'}
       {hasPasswordSet && !allowedProviders.has('credentials') && (
-        <Tooltip content="This login method is not allowed and will not be available for use even though is it set up.">
+        <Tooltip content="This login method is not allowed and will not be available for use even though is it set up." triggerTabIndex={0}>
           <Icon
             type="utility"
             icon="warning"
             className="slds-icon slds-icon-text-warning slds-m-left_x-small slds-m-bottom_xx-small slds-icon_x-small"
             containerClassname="slds-icon_container slds-icon-utility-warning"
           />
+          <span className="slds-assistive-text">Login method not allowed</span>
         </Tooltip>
       )}
       {doesNotHaveValidProvider && (
@@ -150,6 +156,7 @@ const Identities = ({
                 ? 'This user does not have a valid login provider and they will not be able to login. Temporarily allow identity linking, remove the user and re-invite them, or contact support for assistance.'
                 : 'This user does not have a valid login provider and they will not be able to login. Temporarily allow identity linking or contact support for assistance.'
           }
+          triggerTabIndex={0}
         >
           <Icon
             type="utility"
@@ -157,6 +164,7 @@ const Identities = ({
             className="slds-icon slds-icon-text-error slds-m-left_x-small slds-m-bottom_xx-small slds-icon_x-small"
             containerClassname="slds-icon_container slds-icon-utility-error"
           />
+          <span className="slds-assistive-text">User cannot log in</span>
         </Tooltip>
       )}
     </div>
@@ -177,26 +185,31 @@ const MfaTypes = ({
   return (
     <Grid vertical>
       {requireMfa && enabled2faTypes.length === 0 && (
-        <Tooltip content="This user will be forced to enroll in a valid MFA method.">
+        <Tooltip content="This user will be forced to enroll in a valid MFA method." triggerTabIndex={0}>
           <Icon
             type="utility"
             icon="warning"
             className="slds-icon slds-icon-text-warning slds-m-left_x-small slds-m-bottom_xx-small slds-icon_x-small"
             containerClassname="slds-icon_container slds-icon-utility-warning"
           />
+          <span className="slds-assistive-text">Must enroll in MFA</span>
         </Tooltip>
       )}
       {enabled2faTypes.map((type) => (
         <GridCol data-testid={`mfa-type-${type}`} className="slds-p-bottom_xx-small" key={type}>
           <Badge type="light">{type === '2fa-otp' ? 'Authenticator App' : type === '2fa-email' ? 'Email' : type}</Badge>
           {requireMfa && !allowedMfaMethods.has(type.split('-')[1] as TeamLoginConfig['allowedMfaMethods'][number]) && (
-            <Tooltip content="This MFA method is not allowed, the user will be asked to enroll if they don't have another allowed MFA type.">
+            <Tooltip
+              content="This MFA method is not allowed, the user will be asked to enroll if they don't have another allowed MFA type."
+              triggerTabIndex={0}
+            >
               <Icon
                 type="utility"
                 icon="warning"
                 className="slds-icon slds-icon-text-warning slds-m-left_x-small slds-m-bottom_xx-small slds-icon_x-small"
                 containerClassname="slds-icon_container slds-icon-utility-warning"
               />
+              <span className="slds-assistive-text">MFA method not allowed</span>
             </Tooltip>
           )}
         </GridCol>
@@ -254,20 +267,20 @@ const ActionCell = ({
         {
           id: 'edit',
           value: 'Edit',
-          icon: { type: 'utility', icon: 'settings', description: 'Edit' },
+          icon: { type: 'utility', icon: 'settings' },
           trailingDivider: true,
         },
         {
           id: 'deactivate',
           value: 'Deactivate',
-          icon: { type: 'utility', icon: 'toggle_off', description: 'Deactivate' },
+          icon: { type: 'utility', icon: 'toggle_off' },
         },
       );
     } else {
       items.push({
         id: 'reactivate',
         value: 'Reactivate User',
-        icon: { type: 'utility', icon: 'toggle_on', description: 'Reactivate User' },
+        icon: { type: 'utility', icon: 'toggle_on' },
       });
     }
     return items;
@@ -283,6 +296,7 @@ const ActionCell = ({
       dropDownClassName="slds-dropdown_actions"
       buttonClassName="slds-button slds-button_icon slds-button_icon-border-filled slds-button_icon-x-small"
       position="left"
+      description={`Actions for ${member.user.name}`}
       items={menuItems}
       usePortal
       onSelected={(id) =>

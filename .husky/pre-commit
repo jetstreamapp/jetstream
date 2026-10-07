@@ -28,3 +28,11 @@ pnpm exec oxlint --quiet . || {
   echo "Lint errors found. Run 'pnpm lint:fix' to auto-fix what can be fixed."
   exit 1
 }
+
+# Accessibility ratchet: new warn-tier jsx-a11y hits, new libs/ui specs without axeScan(), and new
+# routes without an axe baseline entry (scripts/a11y-lint-ratchet.mjs).
+pnpm a11y:lint-ratchet || {
+  echo ""
+  echo "Accessibility ratchet failed. See the messages above, or use 'git commit --no-verify' to bypass."
+  exit 1
+}

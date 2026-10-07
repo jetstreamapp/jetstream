@@ -1,5 +1,16 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable @typescript-eslint/no-useless-constructor */
+import { vi } from 'vitest';
+
+/**
+ * Component specs render real widgets (floating-ui popovers, 96-option comboboxes, virtualized grids)
+ * and many finish with an axe scan, which alone costs seconds. CI runs every project's suite
+ * concurrently via `nx run-many -t test`, so those renders contend for CPU and routinely blow
+ * Vitest's 5s default — as intermittent, unrelated-looking timeouts. Raise the floor once here rather
+ * than per test; it is still short enough to catch a genuine hang.
+ */
+vi.setConfig({ testTimeout: 20_000, hookTimeout: 20_000 });
+
 /**
  * Vitest setup for jsdom test environments that load `@dnd-kit/dom` (via `@dnd-kit/react`).
  *

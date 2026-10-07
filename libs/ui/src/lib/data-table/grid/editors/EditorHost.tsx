@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { FloatingPortal, autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { EscapeLayerPropagationContext } from '../../../hooks/useEscapeToCloseLayer';
 import { OutsideClickHandler } from '../../../utils/OutsideClickHandler';
 import { ActiveCell } from '../components/GridRow';
 import { ColumnWithFilter, TanstackTable } from '../grid-types';
@@ -36,6 +37,9 @@ export function EditorHost<TRow extends object>({ editingCell, table, getRootEle
   const authorColumn = column?.columnDef.meta?.jetstream?.column as ColumnWithFilter<TRow> | undefined;
 
   const [draftRow, setDraftRow] = useState<TRow | null>(null);
+  // One edit closes once: an editor can report its own close and still let the same key reach the handler
+  // below (a picklist closing its list on Tab), which would commit the draft twice and add a second undo step
+  const isClosedRef = useRef(false);
 
   const cellEl =
     getRootElement()?.querySelector<HTMLElement>(
@@ -70,6 +74,10 @@ export function EditorHost<TRow extends object>({ editingCell, table, getRootEle
 
   const handleRowChange = (updatedRow: TRow, commit?: boolean) => {
     if (commit) {
+      if (isClosedRef.current) {
+        return;
+      }
+      isClosedRef.current = true;
       onCommitRow(updatedRow, editingCell.rowId, authorColumn);
       onClose(true, true);
     } else {
@@ -78,6 +86,10 @@ export function EditorHost<TRow extends object>({ editingCell, table, getRootEle
   };
 
   const handleClose = (commit?: boolean, focusCell?: boolean) => {
+    if (isClosedRef.current) {
+      return;
+    }
+    isClosedRef.current = true;
     if (commit && draftRow !== null) {
       onCommitRow(draftRow, editingCell.rowId, authorColumn);
     }
@@ -121,14 +133,18 @@ export function EditorHost<TRow extends object>({ editingCell, table, getRootEle
           className="slds-p-around_x-small"
           onOutsideClick={() => handleClose(draftRow !== null ? true : (authorColumn.editorOptions?.commitOnOutsideClick ?? false), false)}
         >
-          <EditCell
-            row={draftRow ?? row.original}
-            column={authorColumn}
-            rowIndex={rowIndex}
-            colIndex={colIndex}
-            onRowChange={handleRowChange}
-            onClose={handleClose}
-          />
+          {/* The editor's popup (date picker, picklist, combobox list) IS the editing surface: one Escape
+              must discard the draft, not merely close the popup and demand a second press */}
+          <EscapeLayerPropagationContext.Provider value="propagate">
+            <EditCell
+              row={draftRow ?? row.original}
+              column={authorColumn}
+              rowIndex={rowIndex}
+              colIndex={colIndex}
+              onRowChange={handleRowChange}
+              onClose={handleClose}
+            />
+          </EscapeLayerPropagationContext.Provider>
         </OutsideClickHandler>
       </div>
     </FloatingPortal>

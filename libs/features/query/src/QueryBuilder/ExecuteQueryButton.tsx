@@ -1,5 +1,5 @@
 import { DescribeGlobalSObjectResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Icon, KeyboardShortcut, Tooltip, getModifierKey } from '@jetstream/ui';
+import { getAriaKeyshortcuts, getModifierKey, Icon, KeyboardShortcut, Tooltip } from '@jetstream/ui';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router';
@@ -41,6 +41,7 @@ export const ExecuteQueryButton: FunctionComponent<ExecuteQueryButtonProps> = ({
                 name: selectedSObject.name,
               },
             }}
+            aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
             data-testid="execute-query-button"
             onClick={handleClick}
           >
