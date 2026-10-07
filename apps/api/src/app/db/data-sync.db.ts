@@ -5,6 +5,7 @@ import { Maybe, PullResponse, SyncRecordOperation, SyncRecordOperationCreateUpda
 import { InputJsonValue } from '@prisma/client/runtime/client';
 import { isAfter } from 'date-fns';
 import clamp from 'lodash/clamp';
+import isNil from 'lodash/isNil';
 import crypto from 'node:crypto';
 
 export const MIN_PULL = 25;
@@ -124,19 +125,20 @@ export const findByUpdatedAt = async ({
    */
   updatedAt: Maybe<Date>;
   /**
-   * For pagination, if there are potentially more records, this is the last id of the previous page
+   * For pagination, if there are potentially more records, this is the key of the last record of the previous page
    */
   lastKey: Maybe<string>;
   limit: Maybe<number>;
 }): Promise<PullResponse> => {
   const where: Prisma.UserSyncDataWhereInput = { userId };
 
-  if (updatedAt) {
+  // (updatedAt, key) is a keyset cursor: resume strictly after the last record of the previous page.
+  // The key tie-breaker only applies within the cursor's timestamp - applying it to every row would
+  // drop newer records whose key happens to sort before the previous page's last key.
+  if (updatedAt && !isNil(lastKey)) {
+    where.OR = [{ updatedAt: { gt: updatedAt } }, { updatedAt, key: { gt: lastKey } }];
+  } else if (updatedAt) {
     where.updatedAt = { gt: updatedAt };
-  }
-
-  if (lastKey) {
-    where.key = { gt: lastKey };
   }
 
   limit = clamp(limit || MAX_PULL, MIN_PULL, MAX_PULL);
@@ -145,7 +147,9 @@ export const findByUpdatedAt = async ({
     .findMany({
       select: SELECT,
       where,
-      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      // updatedAt and key must match the cursor so no record can fall between pages. id only gives a stable
+      // order to rows that share a key, which clients collapse into a single record by key anyway.
+      orderBy: [{ updatedAt: 'asc' }, { key: 'asc' }, { id: 'asc' }],
       take: limit,
     })
     .then((records): PullResponse => {
@@ -154,7 +158,7 @@ export const findByUpdatedAt = async ({
         records: records as any,
         hasMore: records.length === limit,
         updatedAt: records.length > 0 ? records[records.length - 1].updatedAt : updatedAt || new Date(),
-        lastKey: records[records.length - 1]?.key || null,
+        lastKey: records[records.length - 1]?.key ?? null,
       };
     });
 };
