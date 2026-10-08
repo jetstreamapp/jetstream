@@ -123,6 +123,12 @@ If none of the above fit your tooling, write a JSON file containing
 | Windows  | `C:\ProgramData\Jetstream\policy.json`               |
 | macOS    | `/Library/Application Support/Jetstream/policy.json` |
 
+On Windows the file must be put in place with administrator rights - from an elevated prompt or by
+your deployment tooling, which makes the Administrators group or SYSTEM the owner. Jetstream only
+honors it when both the file and the `C:\ProgramData\Jetstream` folder are owned that way and neither
+grants every user write access, so a standard user cannot place or edit one to change the policy for
+everyone else on a shared computer.
+
 ### Avoiding the update prompt on managed Windows machines
 
 If you deploy Jetstream for all users and do **not** disable updates, users without administrator
