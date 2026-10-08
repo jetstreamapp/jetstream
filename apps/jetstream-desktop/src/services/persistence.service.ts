@@ -422,6 +422,42 @@ export function updateUserPreferences(preferences: Partial<DesktopUserPreference
 }
 
 /**
+ * Drops the preferences the main process owns from a renderer-supplied update.
+ *
+ * `dataHistoryFolder` and `fileDownload.downloadPath` both aim file I/O at a directory: history reads,
+ * writes and recursive deletes go under the first, every download is silently saved under the second.
+ * Only an OS folder dialog driven by the user in the main process may set either (`pickDataHistoryFolder`
+ * and `pickDownloadFolder`), so renderer code - including a compromised renderer - can never point them
+ * at a path it chose. The renderer round-trips whole preference snapshots, so the stored values are
+ * kept rather than cleared; the one renderer-settable value is an empty download path, which only
+ * turns the save-as prompt back on.
+ *
+ * Every entry point that accepts renderer preferences must pass through here, not just the IPC handler:
+ * the `/api/me/profile` desktop route is reachable from the renderer too.
+ */
+export function withoutMainProcessOwnedPreferences(preferences: Partial<DesktopUserPreferences>): Partial<DesktopUserPreferences> {
+  const { dataHistoryFolder: _mainProcessOwnedFolder, fileDownload, ...rendererPreferences } = preferences;
+  if (!fileDownload) {
+    return rendererPreferences;
+  }
+  const { downloadPath: rendererDownloadPath, ...rendererFileDownload } = fileDownload;
+  const storedFileDownload = getUserPreferences().fileDownload;
+  return {
+    ...rendererPreferences,
+    fileDownload: {
+      ...storedFileDownload,
+      ...rendererFileDownload,
+      downloadPath: rendererDownloadPath === '' ? '' : (storedFileDownload?.downloadPath ?? ''),
+    },
+  };
+}
+
+/** Main-process-only setter for the auto-save download folder - see `withoutMainProcessOwnedPreferences`. */
+export function setDownloadFolderPath(downloadPath: string) {
+  return updateUserPreferences({ fileDownload: { ...getUserPreferences().fileDownload, omitPrompt: true, downloadPath } });
+}
+
+/**
  * ******************************
  * JETSTREAM AND SALESFORCE ORGS
  * ******************************
