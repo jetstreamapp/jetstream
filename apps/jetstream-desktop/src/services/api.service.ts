@@ -85,7 +85,14 @@ async function parseAuthResponse<T extends z.ZodTypeAny>(
   }
 
   if (!response.ok) {
-    logger.warn(`${label}: non-2xx response`, { requestId, status, url: response.url, payload });
+    // Keys only, for the same reason as the schema-mismatch log below: nothing from an auth endpoint's
+    // body is written to the log file, whatever the status
+    logger.warn(`${label}: non-2xx response`, {
+      requestId,
+      status,
+      url: response.url,
+      payloadKeys: payload && typeof payload === 'object' ? Object.keys(payload) : typeof payload,
+    });
     // Only a 401 means the server rejected the session. Any other failure (a 5xx during an outage, a 429 from the
     // rate limiter) is temporary, so callers keep the cached session instead of signing the user out.
     if (status !== 401) {
@@ -100,7 +107,17 @@ async function parseAuthResponse<T extends z.ZodTypeAny>(
 
   const results = schema.safeParse(payload);
   if (!results.success) {
-    logger.warn(`${label}: schema mismatch`, { requestId, status, payload, zodError: results.error });
+    // Never log the payload itself: a successful verify response carries the rotated session token
+    // and the org-file encryption key, and the log file is far less protected than the files those
+    // secure. The shape (which keys arrived, where validation failed) is enough to diagnose skew
+    // between the server and an older desktop build.
+    logger.warn(`${label}: schema mismatch`, {
+      requestId,
+      status,
+      url: response.url,
+      payloadKeys: payload && typeof payload === 'object' ? Object.keys(payload) : typeof payload,
+      zodIssues: results.error.issues.map(({ path, code, message }) => ({ path: path.join('.'), code, message })),
+    });
     return {
       success: false,
       error:
