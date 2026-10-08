@@ -1,3 +1,4 @@
+import { ERROR_MESSAGES } from '@jetstream/shared/constants';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiRequestError, getApiRequestFactoryFn, resolveSameOriginRequestUrl, sanitizeCallerHeaders } from '../callout-adapter';
 import type { FetchFn } from '../types';
@@ -1092,6 +1093,56 @@ describe('callout-adapter 204 No Content handling', () => {
     });
 
     expect(result).toBeUndefined();
+  });
+});
+
+describe('callout-adapter transport failures', () => {
+  const mockSessionInfo = {
+    accessToken: 'test-token',
+    instanceUrl: 'https://test.salesforce.com',
+    apiVersion: '65.0',
+    userId: 'test-user-id',
+    organizationId: 'test-org-id',
+  };
+
+  const requestOptions = {
+    url: '/services/data/v65.0/sobjects/Account',
+    method: 'POST' as const,
+    sessionInfo: mockSessionInfo,
+    outputType: 'json' as const,
+  };
+
+  it('replaces an opaque undici failure with user-facing copy and keeps the original as the cause', async () => {
+    const fetchFailure = new TypeError('fetch failed', { cause: Object.assign(new Error('read ECONNRESET'), { code: 'ECONNRESET' }) });
+    const mockFetch = vi.fn(() => Promise.reject(fetchFailure)) as unknown as FetchFn;
+    const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+    await expect(apiRequest(requestOptions)).rejects.toMatchObject({
+      message: ERROR_MESSAGES.SFDC_UPSTREAM_INTERRUPTED,
+      cause: fetchFailure,
+    });
+  });
+
+  it('translates a body cut off mid-read', async () => {
+    const terminated = new TypeError('terminated', { cause: Object.assign(new Error('other side closed'), { code: 'UND_ERR_SOCKET' }) });
+    const mockFetch = vi.fn(() =>
+      Promise.resolve({ ok: true, status: 200, json: () => Promise.reject(terminated) } as unknown as Response),
+    ) as unknown as FetchFn;
+    const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+    await expect(apiRequest(requestOptions)).rejects.toThrow(ERROR_MESSAGES.SFDC_UPSTREAM_INTERRUPTED);
+  });
+
+  it('passes Salesforce API errors through untouched', async () => {
+    const mockFetch = vi.fn(() =>
+      Promise.resolve(new Response(JSON.stringify([{ message: 'Required fields are missing: [Name]' }]), { status: 400 })),
+    ) as unknown as FetchFn;
+    const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+    const request = apiRequest(requestOptions);
+
+    await expect(request).rejects.toBeInstanceOf(ApiRequestError);
+    await expect(request).rejects.toThrow('Required fields are missing: [Name]');
   });
 });
 

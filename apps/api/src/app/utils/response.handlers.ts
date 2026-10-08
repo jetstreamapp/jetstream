@@ -104,6 +104,15 @@ export function sendJson<ResponseType = unknown>(res: Response, content?: Respon
   }
 
   if (res.headersSent) {
+    // The max duration backstop already ended this response and logged why. The late body is the
+    // expected tail of that, so it is not reported as an unhandled response.
+    if (deferred?.abandoned) {
+      getLogger().info(
+        { elapsedMs: Date.now() - deferred.startTime },
+        '[DEFERRED][LATE_BODY] Controller finished after the deferred response was abandoned, discarding body',
+      );
+      return;
+    }
     getLogger().warn('Response headers already sent');
     try {
       errorTracker.warn('Response not handled by sendJson, headers already sent', new Error('headers already sent'), {
@@ -179,6 +188,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       sfdcErrorMessage === ERROR_MESSAGES.SFDC_EXPIRED_SESSION ||
       sfdcErrorMessage === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN_VALIDITY ||
       sfdcErrorMessage === ERROR_MESSAGES.SFDC_INVALID_SESSION_ID ||
+      sfdcErrorMessage === ERROR_MESSAGES.SFDC_ORG_NOT_FOUND ||
       ERROR_MESSAGES.SFDC_ORG_DOES_NOT_EXIST.test(sfdcErrorMessage);
     const isSfdcRestApiNotEnabled = ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(sfdcErrorMessage);
     // Salesforce reports the same auth failure with different HTTP statuses depending on the API (REST is
@@ -274,6 +284,15 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     }
 
     if (res.headersSent) {
+      // The max duration backstop already ended this response and logged why. The late error is the
+      // expected tail of that, so it is not reported as an unhandled response.
+      if (deferred?.abandoned) {
+        responseLogger.info(
+          { elapsedMs: Date.now() - deferred.startTime, err },
+          '[DEFERRED][LATE_ERROR] Controller failed after the deferred response was abandoned, discarding error',
+        );
+        return;
+      }
       responseLogger.warn('Response headers already sent');
       try {
         errorTracker.warn('Error not handled by error handler, headers already sent', req, err, {

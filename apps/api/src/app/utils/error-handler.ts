@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/api-config';
 import { StepUpAuthRequiredError } from '@jetstream/auth/server';
 import { isPrismaError } from '@jetstream/prisma';
-import { ApiRequestError } from '@jetstream/salesforce-api';
+import { ApiRequestError, getSalesforceFetchFailureMessage } from '@jetstream/salesforce-api';
 import z, { ZodError } from 'zod';
 
 function initStatus(data: unknown, fallback: number) {
@@ -61,6 +61,15 @@ export class UserFacingError extends Error {
       if (message.message.startsWith('<?xml')) {
         logger.warn({ message: message.message }, '[XML ERROR]');
         message.message = 'An unexpected error has occurred';
+      }
+      // Salesforce callouts made through the callout adapter are already translated there. This catches the
+      // rest — every raw `fetch failed` that reaches here comes from a Salesforce call: the other server-side
+      // fetch callers (SAML metadata, OIDC discovery, domain verification, geo-IP) handle their own transport
+      // errors or throw a message string. Revisit the wording if a non-Salesforce callout starts bubbling raw.
+      const upstreamFailureMessage = getSalesforceFetchFailureMessage(message);
+      if (upstreamFailureMessage) {
+        logger.warn({ cause: message.cause }, '[UPSTREAM FETCH FAILURE]');
+        message.message = upstreamFailureMessage;
       }
       super(message.message);
       this.additionalData = additionalData ?? getAdditionalDataFromError(message);
