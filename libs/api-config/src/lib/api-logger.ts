@@ -55,7 +55,19 @@ export const logger = pino({
     : undefined,
 });
 
-const ignoreLogsFileExtensions = /.*\.(js|map|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|otf|json|xml|txt)$/;
+// Anchored to the end with no leading wildcard: the previous `.*\.(…)$` form made V8 retry the
+// greedy prefix from every offset of an attacker-sized URL (quadratic, ~120ms for a 16KB request
+// line), and this test runs on every request before any auth or rate limiting.
+const STATIC_FILE_EXTENSION_REGEX = /\.(js|map|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|otf|json|xml|txt)$/;
+
+/** Static-asset requests are not worth a log line. Matched on the path only, so a query string never hides the extension. */
+export function isStaticFileRequest(url?: string): boolean {
+  if (!url) {
+    return false;
+  }
+  const queryIndex = url.indexOf('?');
+  return STATIC_FILE_EXTENSION_REGEX.test(queryIndex === -1 ? url : url.slice(0, queryIndex));
+}
 
 /**
  * Strip the query string from a referer before logging. The path (e.g. `/oauth-link/`) keeps its
@@ -154,8 +166,7 @@ export const httpLogger: HttpLogger<express.Request, express.Response> = pinoHtt
   customLogLevel: getHttpLogLevel,
   autoLogging: {
     // ignore static files based on file extension
-    ignore: (req) =>
-      ignoreLogsFileExtensions.test(req.url) || req.url === '/healthz' || req.url === '/api/heartbeat' || req.url === '/api/analytics',
+    ignore: (req) => isStaticFileRequest(req.url) || req.url === '/healthz' || req.url === '/api/heartbeat' || req.url === '/api/analytics',
   },
   customSuccessMessage(req, res) {
     if (res.statusCode === 404) {
