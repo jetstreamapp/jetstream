@@ -13,7 +13,7 @@ import { formatDate } from 'date-fns/format';
 import { isValid as isDateValid } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
 import JSZip from 'jszip';
-import { unparse } from 'papaparse';
+import { unparse, UnparseConfig } from 'papaparse';
 import * as XLSX from 'xlsx';
 import { FIELD_AUDIT_COLUMNS, getFieldAuditExportHeaders } from './permission-manager-field-audit-columns';
 
@@ -31,6 +31,13 @@ const AUDIT_DATE_EXCEL_FORMAT = 'yyyy-mm-dd hh:mm:ss';
  * byte identical output.
  */
 const WORKSHEET_OPTIONS = { dense: true } as const;
+/**
+ * Field labels, profile and permission set names and user names come straight from the org, so anyone who
+ * can edit those in Salesforce can plant a cell that a spreadsheet would evaluate as a formula when the admin
+ * opens the export. Formula triggers are neutralized with a leading quote (the XLSX export is unaffected
+ * because it writes string cells).
+ */
+const CSV_UNPARSE_OPTIONS: UnparseConfig = { escapeFormulae: true };
 
 type PermissionExportColumn =
   | ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>
@@ -331,7 +338,7 @@ function generateObjectCsv(columns: PermissionExportColumn[], rows: PermissionTa
     csvRows.push(currRow);
   });
 
-  return unparse(csvRows);
+  return unparse(csvRows, CSV_UNPARSE_OPTIONS);
 }
 
 export function generateFieldCsv(columns: PermissionExportColumn[], rows: PermissionTableFieldCell[]) {
@@ -366,7 +373,7 @@ export function generateFieldCsv(columns: PermissionExportColumn[], rows: Permis
     csvRows.push(currRow);
   });
 
-  return unparse(csvRows);
+  return unparse(csvRows, CSV_UNPARSE_OPTIONS);
 }
 
 function generateTabVisibilityCsv(columns: PermissionExportColumn[], rows: PermissionTableTabVisibilityCell[]) {
@@ -398,7 +405,7 @@ function generateTabVisibilityCsv(columns: PermissionExportColumn[], rows: Permi
     csvRows.push(currRow);
   });
 
-  return unparse(csvRows);
+  return unparse(csvRows, CSV_UNPARSE_OPTIONS);
 }
 
 // System permissions have a single value per profile/permission set, so each column maps to one
@@ -454,5 +461,5 @@ function generateSystemPermissionCsv(columns: PermissionExportColumn[], rows: Pe
     csvRows.push(currRow);
   });
 
-  return unparse(csvRows);
+  return unparse(csvRows, CSV_UNPARSE_OPTIONS);
 }
