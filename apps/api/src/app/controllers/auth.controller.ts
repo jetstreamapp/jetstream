@@ -1183,6 +1183,19 @@ const verifyEmailViaLink = createRoute(
   },
 );
 
+/**
+ * Enrollment of a required authenticator happens after the login's second factor, never instead of it.
+ * A session that still has a pending verification holds only the password, and letting it register an
+ * authenticator would hand whoever has that password a second factor of their own for the next login.
+ */
+function throwIfVerificationStillPending(req: Pick<Request<unknown, unknown, unknown>, 'session'>, res: express.Response) {
+  // Any non-nullish pendingVerification counts as open, the same rule checkAuth applies to every route
+  if (req.session.pendingVerification) {
+    res.status(403);
+    throw new InvalidAction('Verification must be completed before enrolling an authenticator');
+  }
+}
+
 const getOtpEnrollmentData = createRoute(routeDefinition.getOtpEnrollmentData.validators, async ({ user }, req, res, next) => {
   try {
     if (!req.session.user) {
@@ -1193,6 +1206,7 @@ const getOtpEnrollmentData = createRoute(routeDefinition.getOtpEnrollmentData.va
       res.status(403);
       throw new InvalidAction('There is no pending MFA enrollment');
     }
+    throwIfVerificationStillPending(req, res);
 
     sendJson(res, await beginTotpEnrollment(req.session, user.id));
   } catch (ex) {
@@ -1210,6 +1224,7 @@ const enrollOtpFactor = createRoute(routeDefinition.enrollOtpFactor.validators, 
       res.status(403);
       throw new InvalidAction('There is no pending MFA enrollment');
     }
+    throwIfVerificationStillPending(req, res);
 
     const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
 
