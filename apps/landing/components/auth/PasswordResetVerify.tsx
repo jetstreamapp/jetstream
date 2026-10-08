@@ -7,7 +7,7 @@ import { Fragment, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { ROUTES } from '../../utils/environment';
-import { ErrorQueryParamErrorBanner } from '../ErrorQueryParamErrorBanner';
+import { ErrorQueryParamErrorBanner, SuccessMessageKey } from '../ErrorQueryParamErrorBanner';
 import { Input } from '../form/Input';
 import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
 import { ShowPasswordButton } from './ShowPasswordButton';
@@ -102,7 +102,7 @@ export function PasswordResetVerify({ csrfToken, email, token }: PasswordResetVe
       return;
     }
 
-    router.push(`${ROUTES.AUTH.login}?${new URLSearchParams({ email, success: 'Login with your new password to continue' })}`);
+    router.push(`${ROUTES.AUTH.login}?${new URLSearchParams({ email, success: 'password-reset' satisfies SuccessMessageKey })}`);
   };
 
   // TODO: should user be required to confirm 2fa at this point, or just on the next login?
