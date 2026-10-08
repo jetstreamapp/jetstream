@@ -1,5 +1,5 @@
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
-import { deleteUserProfile, updateUserProfile } from '@jetstream/shared/data';
+import { deleteUserProfile, StepUpCancelledError, updateUserProfile } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { eraseCookies, tracker, useTitle } from '@jetstream/shared/ui-utils';
 import { SoqlQueryFormatOptionsSchema, UserProfileUi } from '@jetstream/types';
@@ -20,6 +20,7 @@ import {
   SettingsSection,
   SoqlQueryFormatSettings,
   useAmplitude,
+  useStepUpAuth,
 } from '@jetstream/ui-core';
 import { fromAppState, useFeatureFlag, userProfileState, userProfileSyncState } from '@jetstream/ui/app-state';
 import { deleteAllDataHistoryFiles } from '@jetstream/ui/data-history';
@@ -28,6 +29,7 @@ import { useAtomValue } from 'jotai';
 import { useAtomCallback } from 'jotai/utils';
 import { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router';
+import { DELETE_ACCOUNT_STEP_UP } from '../profile/step-up-prompts';
 import { AnalyticsTrackingSetting } from './AnalyticsTrackingSetting';
 import { SettingsDeleteAccount } from './SettingsDeleteAccount';
 
@@ -38,6 +40,7 @@ type UserPreferences = UserProfileUi['preferences'];
 export const Settings = () => {
   useTitle(TITLES.SETTINGS);
   const { trackEvent } = useAmplitude();
+  const { runWithStepUp } = useStepUpAuth();
   const [deletingAccount, setDeletingAccount] = useState(false);
   const userProfile = useAtomValue(userProfileState);
   const ability = useAtomValue(fromAppState.abilityState);
@@ -111,14 +114,18 @@ export const Settings = () => {
     trackEvent(ANALYTICS_KEYS.settings_delete_account, { reason });
     setDeletingAccount(true);
     try {
-      await deleteUserProfile(reason);
-    } catch {
+      await runWithStepUp(({ stepUpNonce }) => deleteUserProfile(reason, stepUpNonce), DELETE_ACCOUNT_STEP_UP);
+    } catch (ex) {
+      setDeletingAccount(false);
+      // Dismissing the identity prompt is a deliberate choice, not an error to report
+      if (ex instanceof StepUpCancelledError) {
+        return;
+      }
       // error deleting everything from server
       fireToast({
         message: 'There was a problem deleting your account. Try again or file a support ticket for assistance.',
         type: 'error',
       });
-      setDeletingAccount(false);
       return;
     }
 

@@ -322,8 +322,10 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
       '/api/me/profile/login-configuration': {
         get: { ...getRequest({ ...userController.getUserLoginConfiguration.validators, tags: ['user'] }) },
       },
+      '/api/me/profile/2fa-otp/begin': {
+        post: { ...getRequest({ ...userController.beginOtpEnrollment.validators, tags: ['user'] }) },
+      },
       '/api/me/profile/2fa-otp': {
-        get: { ...getRequest({ ...userController.getOtpQrCode.validators, tags: ['user'] }) },
         post: { ...getRequest({ ...userController.saveOtpAuthFactor.validators, tags: ['user'] }) },
       },
       '/api/me/profile/2fa/{type}/{action}': {

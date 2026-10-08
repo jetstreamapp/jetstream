@@ -37,6 +37,14 @@ import { AuthenticationError, UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
 
+/**
+ * Step-up is enforced by the requireStepUpAuth middleware on the route, not here. The nonce is optional so
+ * the FIRST attempt - which has no grant yet - passes validation and reaches the step-up check, which
+ * answers with the 403 that opens the re-authentication prompt; consumeStepUpAuthOrThrow still requires
+ * an exact match once a grant exists.
+ */
+const StepUpNonceSchema = z.string().min(1).max(128).optional();
+
 export const routeDefinition = {
   getUserProfile: {
     controllerFn: () => getUserProfile,
@@ -52,6 +60,7 @@ export const routeDefinition = {
     validators: {
       body: z.object({
         password: PasswordSchema,
+        stepUpNonce: StepUpNonceSchema,
       }),
       hasSourceOrg: false,
       logErrorToBugTracker: true,
@@ -68,6 +77,7 @@ export const routeDefinition = {
     controllerFn: () => deletePassword,
     responseType: z.any(), // FIXME: need zod type for FullUserFacingProfileSelect
     validators: {
+      body: z.object({ stepUpNonce: StepUpNonceSchema }).optional(),
       hasSourceOrg: false,
       logErrorToBugTracker: true,
     } satisfies RouteValidator,
@@ -141,10 +151,11 @@ export const routeDefinition = {
       logErrorToBugTracker: true,
     } satisfies RouteValidator,
   },
-  getOtpQrCode: {
-    controllerFn: () => getOtpQrCode,
+  beginOtpEnrollment: {
+    controllerFn: () => beginOtpEnrollment,
     responseType: z.any(), // FIXME: need zod type
     validators: {
+      body: z.object({ stepUpNonce: StepUpNonceSchema }).optional(),
       hasSourceOrg: false,
       logErrorToBugTracker: true,
     } satisfies RouteValidator,
@@ -167,6 +178,7 @@ export const routeDefinition = {
         type: z.enum(['2fa-otp', '2fa-email']),
         action: z.enum(['enable', 'disable']),
       }),
+      body: z.object({ stepUpNonce: StepUpNonceSchema }).optional(),
       hasSourceOrg: false,
       logErrorToBugTracker: true,
     } satisfies RouteValidator,
@@ -178,6 +190,7 @@ export const routeDefinition = {
       params: z.object({
         type: z.enum(['2fa-otp', '2fa-email']),
       }),
+      body: z.object({ stepUpNonce: StepUpNonceSchema }).optional(),
       hasSourceOrg: false,
       logErrorToBugTracker: true,
     } satisfies RouteValidator,
@@ -201,6 +214,7 @@ export const routeDefinition = {
       logErrorToBugTracker: true,
       body: z.object({
         reason: z.string().nullish(),
+        stepUpNonce: StepUpNonceSchema,
       }),
     } satisfies RouteValidator,
   },
@@ -349,7 +363,7 @@ const getUserLoginConfiguration = createRoute(routeDefinition.getUserLoginConfig
   sendJson(res, loginConfiguration);
 });
 
-const getOtpQrCode = createRoute(routeDefinition.getOtpQrCode.validators, async ({ user }, req, res) => {
+const beginOtpEnrollment = createRoute(routeDefinition.beginOtpEnrollment.validators, async ({ user }, req, res) => {
   sendJson(res, await beginTotpEnrollment(req.session, user.id));
 });
 
