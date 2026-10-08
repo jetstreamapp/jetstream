@@ -46,6 +46,7 @@ vi.mock('../../db/user.db', () => ({
 
 const completedSession = (customFields: { key: string; text: { value: string | null } }[]) => ({
   id: 'cs_1',
+  status: 'complete',
   customer: 'cus_1',
   client_reference_id: 'user_1',
   metadata: { userId: 'user_1', type: 'USER' },
@@ -198,6 +199,32 @@ describe('production org id collected at checkout', () => {
     expect(metadata).toEqual({ userId: 'user_1', teamId: null, type: 'USER' });
     // `toEqual` ignores undefined keys, while a null would be sent to Stripe and clear the stored value
     expect(metadata.productionOrgId).toBeUndefined();
+  });
+
+  // The success redirect carries whatever session id the browser sends, so a checkout that was opened but
+  // never paid, or opened by someone else, must not be able to create anything
+  it('refuses a checkout session that was never completed', async () => {
+    mocks.sessionsRetrieve.mockResolvedValue({ ...completedSession([]), status: 'open' });
+
+    await expect(stripeService.saveSubscriptionFromCompletedSession({ sessionId: 'cs_1' })).rejects.toThrow('not complete');
+    expect(mocks.customersUpdate).not.toHaveBeenCalled();
+  });
+
+  it('refuses a completed checkout session that belongs to a different user', async () => {
+    mocks.sessionsRetrieve.mockResolvedValue(completedSession([]));
+
+    await expect(stripeService.saveSubscriptionFromCompletedSession({ sessionId: 'cs_1', expectedUserId: 'user_2' })).rejects.toThrow(
+      'does not belong',
+    );
+    expect(mocks.customersUpdate).not.toHaveBeenCalled();
+  });
+
+  it('accepts a completed checkout session for the user who opened it', async () => {
+    mocks.sessionsRetrieve.mockResolvedValue(completedSession([]));
+
+    await expect(stripeService.saveSubscriptionFromCompletedSession({ sessionId: 'cs_1', expectedUserId: 'user_1' })).resolves.toEqual(
+      expect.objectContaining({ userId: 'user_1', type: 'USER' }),
+    );
   });
 });
 

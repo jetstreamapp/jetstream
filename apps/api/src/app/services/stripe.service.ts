@@ -451,8 +451,29 @@ function getProductionOrgIdFromSession({ id: sessionId, custom_fields: customFie
  * Upsert billing account
  * Synchronize subscription state
  */
-export async function saveSubscriptionFromCompletedSession({ sessionId }: { sessionId: string }) {
+export async function saveSubscriptionFromCompletedSession({
+  sessionId,
+  expectedUserId,
+}: {
+  sessionId: string;
+  /** The signed-in user when the call comes from the success redirect; the webhook has no caller to bind to */
+  expectedUserId?: string;
+}) {
   const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ['customer', 'subscription'] });
+
+  // The success redirect carries a client-supplied session id, and a checkout that was opened but
+  // never paid still has a customer and TEAM metadata. Only a completed session may create a team,
+  // billing account or entitlements, and only for the user who opened it.
+  if (session.status !== 'complete') {
+    throw new Error(`Invalid checkout session - session is not complete (status: ${session.status})`);
+  }
+  if (expectedUserId && session.client_reference_id !== expectedUserId) {
+    logger.warn(
+      { sessionId, expectedUserId, clientReferenceId: session.client_reference_id },
+      '[STRIPE]: Checkout session does not belong to the current user',
+    );
+    throw new Error('Invalid checkout session - session does not belong to the current user');
+  }
 
   if (!session.customer) {
     throw new Error('Invalid checkout session - a customer is required to be associated with the session');

@@ -321,6 +321,7 @@ describe('personal -> team plan upgrade', () => {
     it('labels the customer personal when checkout completes', async () => {
       mocks.checkoutSessionsRetrieve.mockResolvedValue({
         id: 'cs_1',
+        status: 'complete',
         customer: 'cus_1',
         client_reference_id: 'user_1',
         metadata: { userId: 'user_1', teamId: '', type: 'TEAM', teamName: 'Acme' },
