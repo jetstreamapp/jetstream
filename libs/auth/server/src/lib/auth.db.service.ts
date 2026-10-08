@@ -336,7 +336,11 @@ export async function hasRememberDeviceRecord({
     if (rememberMe.userAgent && userAgent) {
       const isSimilar = checkUserAgentSimilarity(rememberMe.userAgent, userAgent);
       if (!isSimilar) {
-        logger.warn({ deviceId, userId }, `User agent mismatch for remembered device: ${rememberMe.userAgent} !== ${userAgent}`);
+        // The deviceId is the remember-device cookie value, a bearer secret that skips 2FA, so it never goes to the logs
+        logger.warn(
+          { userId, rememberedDeviceId: rememberMe.id },
+          `User agent mismatch for remembered device: ${rememberMe.userAgent} !== ${userAgent}`,
+        );
         return false;
       }
     }
@@ -353,7 +357,7 @@ export async function hasRememberDeviceRecord({
 
     return true;
   } catch (ex) {
-    logger.error({ ...getErrorMessageAndStackObj(ex), deviceId, userId }, 'Error checking for remember device record');
+    logger.error({ ...getErrorMessageAndStackObj(ex), userId }, 'Error checking for remember device record');
     return false;
   }
 }
