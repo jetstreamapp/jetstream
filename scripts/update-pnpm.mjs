@@ -10,8 +10,8 @@
  *     automatically, so new ones stay in sync without editing this script)
  *   - Dockerfile / Dockerfile.e2e -> ARG PNPM_VERSION
  *
- * The pnpm-lock.yaml `packageManagerDependencies` block is auto-managed by pnpm, so it is refreshed by
- * running `pnpm install` at the end rather than edited by hand.
+ * pnpm-lock.yaml is refreshed by running `pnpm install` at the end. It stays a single YAML document
+ * (no `packageManagerDependencies` env document) because pnpm-workspace.yaml sets `pmOnFail: ignore`.
  *
  * Usage:
  *   node scripts/update-pnpm.mjs              # bump to the latest pnpm release

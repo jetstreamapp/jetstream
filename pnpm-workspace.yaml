@@ -4,6 +4,15 @@ packages:
 
 engineStrict: true
 
+# Keep pnpm-lock.yaml a single YAML document. With any other value pnpm writes a leading "env"
+# document (its own binaries) before the real lockfile, and GitHub's dependency graph only reads
+# the first document - so Dependabot sees ~57 packages instead of ~3,400 and stops alerting
+# (https://github.com/dependabot/dependabot-core/issues/15904).
+# This also stops pnpm switching itself to the pinned version. Corepack (local), pnpm/action-setup
+# (CI) and the Dockerfiles already run the pinned version, and scripts/check-package-manager.mjs
+# fails installs run by any other version.
+pmOnFail: ignore
+
 # Allow installing root-level dependencies
 ignoreWorkspaceRootCheck: true
 
