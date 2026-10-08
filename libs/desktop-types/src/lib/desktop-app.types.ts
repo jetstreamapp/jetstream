@@ -84,12 +84,21 @@ export interface ElectronApiRequestResponse {
   logout: () => void;
   addOrg: (payload: { loginUrl: string; addLoginTrue?: boolean; orgGroupId?: Maybe<string>; loginHint?: Maybe<string> }) => void;
   checkAuth: () => Promise<{ userProfile: UserProfileUi; authInfo: DesktopAuthInfo } | undefined>;
-  selectFolder: () => Promise<Maybe<string>>;
   getPreferences: () => Promise<DesktopUserPreferences>;
-  /** Merges the given preferences into the stored ones and resolves to the full result */
+  /**
+   * Merges the given preferences into the stored ones and resolves to the full result.
+   * `dataHistoryFolder` and a non-empty `fileDownload.downloadPath` are ignored - those are set only
+   * through the folder pickers below, which run in the main process.
+   */
   setPreferences: (preferences: Partial<DesktopUserPreferences>) => Promise<DesktopUserPreferences>;
   /** Opens the Settings window, or focuses it when it is already open, scrolled to `section` when given */
   openSettings: (payload?: { section?: Maybe<string> }) => Promise<void>;
+  /**
+   * Shows the OS folder picker in the MAIN process and stores the selection as the auto-save
+   * download folder (`fileDownload.downloadPath`, with `omitPrompt` turned on) without the renderer
+   * ever choosing the path. Resolves to the full saved preferences, or null when the user cancels.
+   */
+  pickDownloadFolder: () => Promise<DesktopUserPreferences | null>;
   /**
    * Hand the (public, build-time-baked) error-tracking DSN from the renderer to the main process so
    * it can initialize crash reporting for the Node/Electron main process.

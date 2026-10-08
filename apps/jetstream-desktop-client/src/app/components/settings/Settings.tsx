@@ -5,7 +5,7 @@ import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { isEscapeKey, useGlobalEventHandler, useTitle } from '@jetstream/shared/ui-utils';
 import { SoqlQueryFormatOptionsSchema } from '@jetstream/types';
-import { AutoFullHeightContainer, fireToast, Icon, Page } from '@jetstream/ui';
+import { AutoFullHeightContainer, BreakablePath, fireToast, Icon, Page } from '@jetstream/ui';
 import {
   AccountSummary,
   AppearanceSetting,
@@ -41,7 +41,8 @@ const SECTIONS: SettingsNavItem[] = [
 ];
 
 const downloadPathCss = css`
-  word-break: break-all;
+  display: block;
+  overflow-wrap: anywhere;
 `;
 
 export const Settings = () => {
@@ -54,6 +55,7 @@ export const Settings = () => {
   const ability = useAtomValue(fromAppState.abilityState);
   const preferences = useAtomValue(desktopUserPreferences);
   const [updatePolicy, setUpdatePolicy] = useState<UpdatePolicy | null>(null);
+  const [isChoosingDownloadFolder, setIsChoosingDownloadFolder] = useState(false);
 
   const recordSyncEntitled = ability.can('access', 'RecordSync');
   const downloadPath = preferences?.fileDownload?.downloadPath;
@@ -145,12 +147,44 @@ export const Settings = () => {
     });
   }
 
-  async function handleChooseDownloadFolder() {
-    const selectedPath = await window.electronAPI?.selectFolder();
-    // Nothing is returned when the folder selection is canceled
-    if (selectedPath) {
-      savePreferences({ fileDownload: { omitPrompt: true, downloadPath: selectedPath } });
-    }
+  // The folder dialog runs in the main process, which stores the choice itself. The renderer only ever
+  // receives the chosen path back for display - it can never supply one (a renderer-chosen path would let
+  // any download be written anywhere without a prompt), and the main process drops the field from anything
+  // the renderer sends. Queued behind pending saves so the stored preferences it returns are never older
+  // than a save in flight. Both download buttons stay disabled until it settles: a change queued behind the
+  // dialog would be shown, then replaced on screen by the folder the dialog returns, even though the queued
+  // change is what ends up stored.
+  function handleChooseDownloadFolder() {
+    setIsChoosingDownloadFolder(true);
+    saveQueueRef.current = saveQueueRef.current.then(async () => {
+      try {
+        if (!window.electronAPI) {
+          return;
+        }
+        const savedPreferences = await window.electronAPI.pickDownloadFolder();
+        // Nothing is returned when the folder selection is canceled
+        if (!savedPreferences) {
+          return;
+        }
+        savedPreferencesRef.current = savedPreferences;
+        mergePreferences({ fileDownload: savedPreferences.fileDownload });
+        setUserProfile((prev) => ({
+          ...prev,
+          preferences: savedPreferences,
+        }));
+        trackEvent(ANALYTICS_KEYS.settings_update_user);
+      } catch (ex) {
+        logger.warn('Error choosing the download folder', ex);
+        fireToast({
+          message: 'There was a problem updating your settings. Try again or file a support ticket for assistance.',
+          type: 'error',
+        });
+      } finally {
+        if (isMounted.current) {
+          setIsChoosingDownloadFolder(false);
+        }
+      }
+    });
   }
 
   /** The desktop app has no profile or team pages of its own, so these open the web app in the default browser */
@@ -225,19 +259,27 @@ export const Settings = () => {
                 description={
                   downloadPath ? (
                     <>
-                      Files are saved to <span css={downloadPathCss}>{downloadPath}</span> without asking.
+                      Files are saved to this folder without asking:
+                      <span css={downloadPathCss}>
+                        <BreakablePath path={downloadPath} />
+                      </span>
                     </>
                   ) : (
                     'You are asked where to save each download.'
                   )
                 }
               >
-                <button className="slds-button slds-button_neutral" onClick={handleChooseDownloadFolder}>
+                <button
+                  className="slds-button slds-button_neutral"
+                  disabled={isChoosingDownloadFolder}
+                  onClick={handleChooseDownloadFolder}
+                >
                   {downloadPath ? 'Change Folder…' : 'Choose Folder…'}
                 </button>
                 {downloadPath && (
                   <button
                     className="slds-button slds-button_neutral"
+                    disabled={isChoosingDownloadFolder}
                     onClick={() => savePreferences({ fileDownload: { omitPrompt: false, downloadPath: '' } })}
                   >
                     Ask Every Time
