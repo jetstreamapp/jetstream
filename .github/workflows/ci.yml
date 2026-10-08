@@ -72,6 +72,15 @@ jobs:
       - name: install dependencies
         run: pnpm install --frozen-lockfile
 
+      # GitHub's dependency graph only reads the first YAML document of pnpm-lock.yaml, so a leading
+      # pnpm "env" document silently blinds Dependabot. `pmOnFail: ignore` prevents it; this catches regressions.
+      - name: Check pnpm-lock.yaml is a single YAML document
+        run: |
+          if grep -q '^---$' pnpm-lock.yaml; then
+            echo "::error file=pnpm-lock.yaml::pnpm-lock.yaml has multiple YAML documents. Delete everything before the real lockfile (up to and including the last '---' line) and check pmOnFail in pnpm-workspace.yaml."
+            exit 1
+          fi
+
       # enforce-module-boundaries reads Nx's *cached* project graph. On a cold checkout that cache
       # does not exist, and the rule downgrades itself to a warning and skips, so boundary
       # violations would pass CI silently. Materialise the graph first.
