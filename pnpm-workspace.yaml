@@ -47,15 +47,36 @@ overrides:
   "@xmldom/xmldom": "^0.8.15"
   # Force a patched @xhmikosr/decompress on the dev-only @swc/cli binary-download path
   # (@swc/cli -> @xhmikosr/bin-wrapper -> downloader -> decompress). <10.2.1 allows archive
-  # extraction to write files/links outside the target dir (GHSA-mp2f-45pm-3cg9). 10.2.1 stays
-  # within downloader's declared ^10.0.1 range.
-  "@xhmikosr/decompress": "^10.2.1"
+  # extraction to write files/links outside the target dir (GHSA-mp2f-45pm-3cg9), and <10.2.2
+  # still allows it through a symlink chain (GHSA-hrh2-vp3x-79xf). 10.2.2 stays within
+  # downloader's declared ^10.0.1 range.
+  "@xhmikosr/decompress": "^10.2.2"
+  # Docusaurus 3.10 still declares tinypool ^1, and <2.1.2 has prototype-pollution gadgets in the
+  # worker options that lead to RCE (GHSA-5gmw-xhrv-c9v3, GHSA-85c8-ppgw-ccpr). Docs build only.
+  # tinypool 2.0's only breaking change is dropping Node 18.
+  "@docusaurus/core>tinypool": "^2.1.2"
+  # @react-email/ui (the `email:dev` preview server) pins next to exactly 16.3.3, which has an RCE
+  # in next/og ImageResponse (GHSA-vcvr-r3jv-pc5j) and an image-optimizer SSRF (GHSA-cjq9-62q9-8jv4).
+  "@react-email/ui>next": "^16.3.8"
+  # nx 23.2.1 pins brace-expansion 5.0.9 (recursion DoS: GHSA-6j4f-fj2g-mc7p, GHSA-qhr7-859c-m2p7) and
+  # smol-toml 1.6.1 (malformed-TOML DoS: GHSA-7w5x-hrqm-74c2) exactly. nx 23.3.0 ships patched pins:
+  # remove these two after upgrading nx.
+  "nx>brace-expansion": "^5.0.12"
+  "nx>smol-toml": "^1.9.0"
+  # release-it 21.1.0 pins undici 7.29.0, which can skip TLS certificate validation on a dropped
+  # connection (GHSA-w293-vg96-wgc3). release-it calls the GitHub API with a token in CI.
+  # release-it 21.1.1 ships the patched pin: remove this after upgrading release-it.
+  "release-it>undici": "^7.29.1"
+  # <7.0.3 allows RCE via RegExp.flags / Date.prototype (GHSA-5c6j-r48x-rmvq). Docs build only
+  # (copy-webpack-plugin, css-minimizer-webpack-plugin). 7.0's only breaking change is requiring Node 20+.
+  serialize-javascript: "^7.0.5"
   axios: "^1.16.1"
   "connect-pg-simple>@types/express-session": "^1.18.2"
   dompurify: "^3.3.2"
   handlebars: "4.7.9"
-  # <1.9.0 has a quadratic-complexity DoS in parse() (dev tooling only: npm-run-all, web-ext, docusaurus)
-  shell-quote: "^1.9.0"
+  # <1.9.0 has a quadratic-complexity DoS in parse(), and <1.11.0 has a quote() command injection
+  # via a line terminator (GHSA-pqg4-j6r4-53mv). Dev tooling only: npm-run-all, web-ext, docusaurus
+  shell-quote: "^1.11.0"
   # Force a patched tar on the electron-builder/node-gyp build-tool chain (app-builder-lib and
   # node-gyp resolve tar 7.5.16). <=7.5.18 allows a decompression/parse DoS via unlimited input
   # (GHSA-23hp-3jrh-7fpw). 7.5.20 matches our direct dependency and stays within both consumers'
