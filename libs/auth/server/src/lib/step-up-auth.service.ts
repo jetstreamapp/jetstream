@@ -102,7 +102,8 @@ function recordFailedStepUpAttempt(req: StepUpRequest) {
 }
 
 /**
- * Verifies one step-up factor and, on success, records a short-lived single-use grant on the session.
+ * Verifies one step-up factor and, on success, records a short-lived grant on the session. A new
+ * verification replaces any earlier grant, so only the most recently verified tab holds a valid nonce.
  */
 export async function verifyStepUpOrThrow(
   req: StepUpRequest,
@@ -179,14 +180,13 @@ export async function verifyStepUpOrThrow(
 }
 
 /**
- * Consumes the step-up grant required by a protected route, or throws.
+ * Checks the step-up grant required by a protected route, or throws.
  *
- * Consumption is destructive: a grant authorizes exactly one action. The purpose check stops a grant
- * obtained for one sensitive route being silently reused by another, and the nonce - which only ever
- * lives in the requesting tab's memory - stops script in a different tab riding a grant it never
- * earned.
+ * A grant covers every protected action until it expires, so a user making several account changes
+ * in a row verifies once. The nonce - which only ever lives in the requesting tab's memory - stops
+ * script in a different tab riding a grant it never earned.
  */
-export function consumeStepUpAuthOrThrow(req: StepUpRequest, purpose: StepUpPurpose, nonce?: string): StepUpMethod {
+export function checkStepUpAuthOrThrow(req: StepUpRequest, nonce?: string): StepUpMethod {
   // Desktop and browser-extension callers authenticate with a bearer token and have no express
   // session, so there is nowhere for a grant to live. Deny rather than silently skip the check.
   if (req.externalAuth) {
@@ -195,15 +195,19 @@ export function consumeStepUpAuthOrThrow(req: StepUpRequest, purpose: StepUpPurp
 
   const stepUpAuth = req.session.stepUpAuth;
 
-  // The nonce must match exactly - an absent one is a mismatch, not a waiver. Treating "no nonce
-  // supplied" as acceptable would let script in another tab consume a grant it never earned simply
-  // by omitting the field.
-  if (!stepUpAuth || stepUpAuth.purpose !== purpose || stepUpAuth.expiresAt < Date.now() || stepUpAuth.nonce !== nonce) {
+  if (stepUpAuth && stepUpAuth.expiresAt < Date.now()) {
     req.session.stepUpAuth = null;
     throw new StepUpAuthRequiredError('Please verify your identity to continue');
   }
 
-  req.session.stepUpAuth = null;
+  // The nonce must match exactly - an absent one is a mismatch, not a waiver. Treating "no nonce
+  // supplied" as acceptable would let script in another tab use a grant it never earned simply by
+  // omitting the field. A mismatch leaves the grant in place: it is usually another tab's first
+  // attempt, and that must not sign the verified tab out of its grant.
+  if (!stepUpAuth || stepUpAuth.nonce !== nonce) {
+    throw new StepUpAuthRequiredError('Please verify your identity to continue');
+  }
+
   return stepUpAuth.method;
 }
 

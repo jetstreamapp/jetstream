@@ -28,8 +28,10 @@ function getEmailLink({ baseUrl, email, teamId, token }: { baseUrl: string; emai
   return url.toString();
 }
 
-async function enrollInTotp(page: Page) {
+async function enrollInTotp(page: Page, password: string) {
+  // Identity is verified when enrollment starts, before the secret is shown
   await page.getByRole('button', { name: 'Set Up' }).click();
+  await new AuthenticationPage(page).completeStepUpWithPassword(password);
   const secret = await page.getByTestId('totp-secret').innerText();
   await page.getByTestId('settings-page').getByRole('textbox').click();
   const code = generateTOTP(decodeBase32IgnorePadding(secret), 30, 6);
@@ -208,7 +210,7 @@ test.describe('Team Dashboard', () => {
       await teamDashboardPage.loginConfigRequireMfaCheckbox.check();
       await teamDashboardPage.loginConfigEmailCheckbox.uncheck();
       await teamDashboardPage.loginConfigAllowIdentityLinkingCheckbox.uncheck();
-      await teamDashboardPage.loginConfigSaveButton.click();
+      await teamDashboardPage.saveLoginConfiguration(teamCreationUtils.adminUser.user.password);
 
       await page.reload();
       // ensure save persists
@@ -307,7 +309,7 @@ test.describe('Team Dashboard', () => {
               await page.getByRole('button', { name: 'Avatar' }).click();
               await page.getByRole('menuitem', { name: 'Profile' }).click();
 
-              const secret = await enrollInTotp(page);
+              const secret = await enrollInTotp(page, user.password);
               await page.close();
 
               return { user, context, secret };
@@ -392,7 +394,7 @@ test.describe('Team Dashboard', () => {
       await teamDashboardPage.loginConfigRequireMfaCheckbox.check();
       await teamDashboardPage.loginConfigEmailCheckbox.uncheck();
       await teamDashboardPage.loginConfigAllowIdentityLinkingCheckbox.uncheck();
-      await teamDashboardPage.loginConfigSaveButton.click();
+      await teamDashboardPage.saveLoginConfiguration(teamCreationUtils.adminUser.user.password);
 
       await page.reload();
     });
@@ -449,7 +451,7 @@ test.describe('Team Dashboard', () => {
       const page2Promise = page.waitForEvent('popup');
       await page.getByRole('link', { name: 'Update your profile settings' }).click();
       const page2 = await page2Promise;
-      await enrollInTotp(page2);
+      await enrollInTotp(page2, existingUser1.password);
       await page2.close();
 
       await page.reload();
@@ -558,7 +560,7 @@ test.describe('Team Dashboard', () => {
       await teamDashboardPage.loginConfigRequireMfaCheckbox.check();
       await teamDashboardPage.loginConfigEmailCheckbox.uncheck();
       await teamDashboardPage.loginConfigAllowIdentityLinkingCheckbox.uncheck();
-      await teamDashboardPage.loginConfigSaveButton.click();
+      await teamDashboardPage.saveLoginConfiguration(teamCreationUtils.adminUser.user.password);
       await page.reload();
     });
 
@@ -641,7 +643,7 @@ test.describe('Team Dashboard', () => {
 
     await test.step('Disable username/password as an allowed login provider', async () => {
       await teamDashboardPage.loginConfigUsernamePasswordCheckbox.uncheck();
-      await teamDashboardPage.loginConfigSaveButton.click();
+      await teamDashboardPage.saveLoginConfiguration(teamCreationUtils.adminUser.user.password);
       await page.reload();
       await expect(teamDashboardPage.loginConfigUsernamePasswordCheckbox).toBeChecked({ checked: false });
     });

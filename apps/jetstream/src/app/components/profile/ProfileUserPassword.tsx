@@ -5,6 +5,7 @@ import type { UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { containsUserInfo, PASSWORD_REQUIREMENTS } from '@jetstream/shared/utils';
 import { DropDownItem, PasswordSchema } from '@jetstream/types';
 import { ConfirmationModalPromise, DropDown, FormRowItem, Icon, Input, ReadOnlyFormItem, Spinner } from '@jetstream/ui';
+import { useStepUpAuth } from '@jetstream/ui-core';
 import { FunctionComponent, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -115,6 +116,8 @@ export const ProfileUserPassword: FunctionComponent<ProfileUserPasswordProps> = 
 function SetPassword({ email, name, onSetPassword }: { email: string; name: string; onSetPassword: (password: string) => Promise<void> }) {
   const [changePasswordActive, setChangePasswordActive] = useState(false);
   const [loading, setLoading] = useState(false);
+  // onSetPassword may open the identity prompt, which this form's spinner would otherwise sit behind
+  const { isPrompting } = useStepUpAuth();
 
   const formSchema = useMemo(() => getFormSchema(email, name), [email, name]);
 
@@ -154,7 +157,7 @@ function SetPassword({ email, name, onSetPassword }: { email: string; name: stri
   if (changePasswordActive) {
     return (
       <form className="slds-is-relative slds-m-top_small" onSubmit={handleSubmit(handleSetPassword)}>
-        {loading && <Spinner />}
+        {loading && !isPrompting && <Spinner />}
 
         <input hidden readOnly name="username" value={email} autoComplete="username" />
 

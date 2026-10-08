@@ -16,8 +16,9 @@ import { createRoute, RouteValidator } from '../utils/route.utils';
  * Step-up (re)authentication - proving identity again from an already-authenticated session before a
  * sensitive action.
  *
- * Deliberately independent of any one feature: routes opt in via the `requireStepUpAuth(purpose)`
- * middleware and a new purpose is added to StepUpPurposeSchema, so nothing here needs to change.
+ * Deliberately independent of any one feature: routes opt in via the `requireStepUpAuth()` middleware
+ * and the prompt that guards a new route adds its purpose to StepUpPurposeSchema, so nothing here needs
+ * to change.
  */
 export const routeDefinition = {
   getStepUpMethods: {

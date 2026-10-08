@@ -5,7 +5,7 @@ import { Input, Modal, Radio, RadioGroup, ScopedNotification, Spinner } from '@j
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { create, InstanceProps } from 'react-modal-promise';
 
-export type StepUpResult = { cancelled: true } | { cancelled: false; stepUpNonce: string };
+export type StepUpResult = { cancelled: true } | { cancelled: false; stepUpNonce: string; expiresAt: string };
 
 const METHOD_LABEL: Record<StepUpMethod, string> = {
   password: 'Enter your password',
@@ -116,12 +116,12 @@ export const StepUpAuthModal: FunctionComponent<StepUpAuthModalProps> = ({
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const { stepUpNonce } = await verifyStepUp({
+      const { stepUpNonce, expiresAt } = await verifyStepUp({
         purpose,
         method: selectedMethod,
         ...(selectedMethod === 'password' ? { password: value } : { code: value }),
       });
-      onResolve({ cancelled: false, stepUpNonce });
+      onResolve({ cancelled: false, stepUpNonce, expiresAt });
     } catch (ex) {
       const message = getErrorMessage(ex);
       // The lockout is session-wide and lasts several minutes, so every factor is spent - stop

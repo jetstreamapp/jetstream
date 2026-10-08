@@ -1,5 +1,6 @@
 import { EMAIL_MAX_LENGTH, EmailSchema } from '@jetstream/types';
 import { Input, Modal, ReadOnlyFormItem, ScopedNotification, Spinner } from '@jetstream/ui';
+import { useStepUpAuth } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useState } from 'react';
 
 export interface ProfileUserEmailChangeModalProps {
@@ -21,6 +22,8 @@ export const ProfileUserEmailChangeModal: FunctionComponent<ProfileUserEmailChan
 }) => {
   const [newEmail, setNewEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  // onRequestEmailChange may open the identity prompt, which this modal's spinner would otherwise sit behind
+  const { isPrompting } = useStepUpAuth();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const emailValidation = EmailSchema.safeParse(newEmail);
@@ -72,7 +75,7 @@ export const ProfileUserEmailChangeModal: FunctionComponent<ProfileUserEmailChan
       onClose={onClose}
     >
       <div className="slds-is-relative">
-        {isLoading && <Spinner />}
+        {isLoading && !isPrompting && <Spinner />}
         {errorMessage && (
           <ScopedNotification theme="error" className="slds-m-bottom_small">
             {errorMessage}

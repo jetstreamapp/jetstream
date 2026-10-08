@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MAX_VERIFICATION_ATTEMPTS } from '../auth.constants';
 import { InvalidCredentials, InvalidVerificationToken, TooManyVerificationAttempts } from '../auth.errors';
 import {
-  consumeStepUpAuthOrThrow,
+  checkStepUpAuthOrThrow,
   createEmailStepUpChallenge,
   getAvailableStepUpMethods,
   StepUpAuthRequiredError,
@@ -177,7 +177,7 @@ describe('verifyStepUpOrThrow', () => {
   });
 });
 
-describe('consumeStepUpAuthOrThrow', () => {
+describe('checkStepUpAuthOrThrow', () => {
   function grantedRequest(overrides: Record<string, unknown> = {}) {
     return createRequest({
       session: {
@@ -193,38 +193,46 @@ describe('consumeStepUpAuthOrThrow', () => {
     });
   }
 
-  it('should consume a valid grant exactly once', async () => {
+  it('should accept a valid grant for repeated actions until it expires', () => {
     const req = grantedRequest();
 
-    expect(consumeStepUpAuthOrThrow(req, 'CHANGE_EMAIL', 'nonce-value')).toBe('password');
-    expect(req.session.stepUpAuth).toBeNull();
-    // A grant authorizes one action - replaying it must fail.
-    expect(() => consumeStepUpAuthOrThrow(req, 'CHANGE_EMAIL', 'nonce-value')).toThrow(StepUpAuthRequiredError);
+    expect(checkStepUpAuthOrThrow(req, 'nonce-value')).toBe('password');
+    // One verification covers several changes in a row, so the grant stays on the session
+    expect(checkStepUpAuthOrThrow(req, 'nonce-value')).toBe('password');
+    expect(req.session.stepUpAuth).toMatchObject({ nonce: 'nonce-value' });
   });
 
-  it('should reject an expired grant', () => {
+  it('should accept a grant whatever purpose obtained it', () => {
+    const req = grantedRequest({ purpose: 'MANAGE_2FA' });
+    expect(checkStepUpAuthOrThrow(req, 'nonce-value')).toBe('password');
+  });
+
+  it('should reject and clear an expired grant', () => {
     const req = grantedRequest({ expiresAt: Date.now() - 1 });
-    expect(() => consumeStepUpAuthOrThrow(req, 'CHANGE_EMAIL', 'nonce-value')).toThrow(StepUpAuthRequiredError);
-  });
-
-  it('should reject a grant obtained for a different purpose', () => {
-    const req = grantedRequest({ purpose: 'SOMETHING_ELSE' });
-    expect(() => consumeStepUpAuthOrThrow(req, 'CHANGE_EMAIL', 'nonce-value')).toThrow(StepUpAuthRequiredError);
+    expect(() => checkStepUpAuthOrThrow(req, 'nonce-value')).toThrow(StepUpAuthRequiredError);
+    expect(req.session.stepUpAuth).toBeNull();
   });
 
   it('should reject a mismatched nonce so another browser tab cannot ride the grant', () => {
     const req = grantedRequest();
-    expect(() => consumeStepUpAuthOrThrow(req, 'CHANGE_EMAIL', 'a-different-nonce')).toThrow(StepUpAuthRequiredError);
+    expect(() => checkStepUpAuthOrThrow(req, 'a-different-nonce')).toThrow(StepUpAuthRequiredError);
   });
 
   it('should reject an omitted nonce rather than treating it as a waiver', () => {
     // Otherwise the binding could be sidestepped simply by leaving the field out.
     const req = grantedRequest();
-    expect(() => consumeStepUpAuthOrThrow(req, 'CHANGE_EMAIL')).toThrow(StepUpAuthRequiredError);
+    expect(() => checkStepUpAuthOrThrow(req)).toThrow(StepUpAuthRequiredError);
+  });
+
+  it('should keep the grant after a mismatched nonce so the verified tab can still use it', () => {
+    // A nonce-less first attempt from another tab must not cost the verified tab its grant.
+    const req = grantedRequest();
+    expect(() => checkStepUpAuthOrThrow(req)).toThrow(StepUpAuthRequiredError);
+    expect(checkStepUpAuthOrThrow(req, 'nonce-value')).toBe('password');
   });
 
   it('should reject when there is no grant at all', () => {
-    expect(() => consumeStepUpAuthOrThrow(createRequest(), 'CHANGE_EMAIL')).toThrow(StepUpAuthRequiredError);
+    expect(() => checkStepUpAuthOrThrow(createRequest())).toThrow(StepUpAuthRequiredError);
   });
 
   it('should deny external (desktop/extension) callers even with a valid grant on the session', () => {
@@ -233,7 +241,7 @@ describe('consumeStepUpAuthOrThrow', () => {
     const req = grantedRequest();
     req.externalAuth = { user: { id: USER_ID } as UserProfileSession };
 
-    expect(() => consumeStepUpAuthOrThrow(req, 'CHANGE_EMAIL', 'nonce-value')).toThrow(StepUpAuthRequiredError);
+    expect(() => checkStepUpAuthOrThrow(req, 'nonce-value')).toThrow(StepUpAuthRequiredError);
   });
 
   it('should NOT be an AuthError, which would log the user out instead of prompting', () => {

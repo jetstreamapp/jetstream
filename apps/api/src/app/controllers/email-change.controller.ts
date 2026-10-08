@@ -45,7 +45,7 @@ export const routeDefinition = {
         // Optional so the FIRST attempt - which has no grant yet - passes validation and reaches the
         // step-up check, which answers with the 403 that opens the re-authentication prompt.
         // Rejecting it here instead would return a 400 and the prompt would never appear.
-        // consumeStepUpAuthOrThrow still requires an exact match once a grant exists.
+        // checkStepUpAuthOrThrow still requires an exact match once a grant exists.
         stepUpNonce: z.string().min(1).max(128).optional(),
       }),
     } satisfies RouteValidator,
@@ -104,7 +104,7 @@ const requestEmailChange = createRoute(routeDefinition.requestEmailChange.valida
     const request = await createEmailChangeRequest({
       userId: user.id,
       newEmail,
-      // Set by the requireStepUpAuth middleware; consuming the grant clears it from the session.
+      // Set by the requireStepUpAuth middleware from the grant that satisfied it.
       stepUpMethod: res.locals.stepUpMethod,
       ipAddress: res.locals.ipAddress,
       userAgent: req.get('user-agent'),
