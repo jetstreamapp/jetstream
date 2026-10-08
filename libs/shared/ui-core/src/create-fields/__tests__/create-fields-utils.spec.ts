@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { convertFormulaSecondaryTypeToEvaluatorType, ensureValidSecondaryType } from '../create-fields-utils';
+import type { FieldValues } from '../create-fields-types';
+import { convertFormulaSecondaryTypeToEvaluatorType, ensureValidSecondaryType, fieldDefinitions } from '../create-fields-utils';
 
 describe('create-fields-utils#convertFormulaSecondaryTypeToEvaluatorType', () => {
   test.each([
@@ -50,5 +51,29 @@ describe('create-fields-utils#ensureValidSecondaryType', () => {
   // XLSX parsing can yield non-string cell values - they must fall back to Text instead of throwing
   test.each([123, true, false, new Date(0), {}, [], undefined, null])('falls back to Text for a non-string value (%s)', (input) => {
     expect(ensureValidSecondaryType(input)).toBe('Text');
+  });
+});
+
+describe.each(['fullName', 'relationshipName'] as const)('create-fields-utils#fieldDefinitions.%s.validate', (fieldName) => {
+  const validate = fieldDefinitions[fieldName].validate!;
+  // These validators only look at their own value
+  const fieldValues = {} as FieldValues;
+
+  test.each(['A', 'Account', 'My_Field', 'Field1', 'a1_b2_c3', 'A'.repeat(40)])('accepts a valid API name (%s)', (input) => {
+    expect(validate(input, fieldValues)).toBe(true);
+  });
+
+  test.each(['', '1Field', '_Field', 'Field_', 'My__Field', 'My-Field', 'My Field', 'A'.repeat(41)])(
+    'rejects an invalid API name (%s)',
+    (input) => {
+      expect(validate(input, fieldValues)).toBe(false);
+    },
+  );
+
+  // Previously took quadratic time (CodeQL js/polynomial-redos) - a long near-miss must still return immediately
+  test('rejects a long near-miss value without catastrophic backtracking', () => {
+    const start = performance.now();
+    expect(validate(`${'A'.repeat(50_000)}!`, fieldValues)).toBe(false);
+    expect(performance.now() - start).toBeLessThan(100);
   });
 });

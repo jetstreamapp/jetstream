@@ -36,6 +36,9 @@ import { CreateFieldsResults } from './useCreateFields';
 const READ_ONLY_TYPES = new Set<SalesforceFieldType>(['AutoNumber', 'Formula']);
 const NUMBER_TYPES = new Set<SalesforceFieldType>(['Number', 'Currency', 'Percent']);
 const MAX_OBJ_IN_QUERY = 100;
+// Starts with a letter, ends with a letter or number, only letters/numbers/underscores in between.
+// Written without adjacent overlapping quantifiers so matching stays linear (no ReDoS on long input).
+const API_NAME_REGEX = /^[a-zA-Z](?:[0-9a-zA-Z_]*[0-9a-zA-Z])?$/;
 
 function isValidNumericString(value: unknown): boolean {
   if (typeof value === 'number') {
@@ -143,11 +146,7 @@ export const fieldDefinitions: FieldDefinitions = {
     labelHelp: 'Field API name, cannot include consecutive underscores. Do not add __c at the end.',
     validate: (value: FieldValue) => {
       const stringValue = String(value ?? '');
-      if (
-        !/(^[a-zA-Z]+$)|(^[a-zA-Z]+[0-9a-zA-Z_]*[0-9a-zA-Z]$)/.test(stringValue) ||
-        stringValue.includes('__') ||
-        stringValue.length > 40
-      ) {
+      if (!API_NAME_REGEX.test(stringValue) || stringValue.includes('__') || stringValue.length > 40) {
         return false;
       }
       return true;
@@ -430,11 +429,7 @@ export const fieldDefinitions: FieldDefinitions = {
     required: true,
     validate: (value: FieldValue) => {
       const stringValue = String(value ?? '');
-      if (
-        !/(^[a-zA-Z]+$)|(^[a-zA-Z]+[0-9a-zA-Z_]*[0-9a-zA-Z]$)/.test(stringValue) ||
-        stringValue.includes('__') ||
-        stringValue.length > 40
-      ) {
+      if (!API_NAME_REGEX.test(stringValue) || stringValue.includes('__') || stringValue.length > 40) {
         return false;
       }
       return true;
