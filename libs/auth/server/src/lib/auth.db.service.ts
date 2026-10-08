@@ -1785,6 +1785,29 @@ async function getTeamInviteConfiguration({ email, teamInvite }: { email: string
   };
 }
 
+/**
+ * Which login configuration governs a user who has been found or created during sign in.
+ *
+ * A pending invitation's configuration only stands in for someone who has no team of their own (or whose
+ * team is the inviting one). A user who already belongs to another team keeps being judged by that team's
+ * policy: otherwise an unexpired invitation from a team with laxer rules could be used to sign in past their
+ * own team's SSO, MFA or login-provider requirements.
+ */
+async function resolveLoginConfigurationForUser(
+  user: AuthenticatedUser,
+  teamInviteResponse: Awaited<ReturnType<typeof getTeamInviteConfiguration>>,
+): Promise<LoginConfiguration | null> {
+  const ownTeamId = user.teamMembership?.teamId;
+  const inviteConfiguration = teamInviteResponse?.loginConfiguration ?? null;
+  if (ownTeamId && ownTeamId !== teamInviteResponse?.team.id) {
+    return getLoginConfiguration({ teamId: ownTeamId });
+  }
+  if (inviteConfiguration) {
+    return inviteConfiguration;
+  }
+  return ownTeamId ? getLoginConfiguration({ teamId: ownTeamId }) : null;
+}
+
 export async function handleSignInOrRegistration(
   payload:
     | {
@@ -1858,9 +1881,11 @@ export async function handleSignInOrRegistration(
 
     // Don't allow login/register if login configuration disallows it
     // this will be checked again in case there is a team without domains configured
+    // Only a provisional answer until the user is known: for someone who already belongs to another
+    // team it is replaced by that team's configuration (resolveLoginConfigurationForUser), so the
+    // provider check runs where the user is created, linked, or - for an existing user - once the
+    // configuration has been resolved, never against the inviting team's policy alone.
     let loginConfiguration = teamInviteResponse?.loginConfiguration || null;
-
-    throwIfProviderNotAllowed(provider, loginConfiguration);
 
     if (providerType === 'oauth') {
       const { providerUser } = payload;
@@ -1920,13 +1945,13 @@ export async function handleSignInOrRegistration(
             role: getRoleForSsoCheck(existingUser, teamInviteResponse),
           });
 
+          throwIfProviderNotAllowed(provider, loginConfiguration);
+
           // TODO: should we allow auto-linking accounts, or reject and make user login and link?
           user = await addIdentityToUser(existingUser.id, providerUser, provider);
         }
       } else {
-        if (!loginConfiguration && user.teamMembership?.teamId) {
-          loginConfiguration = await getLoginConfiguration({ teamId: user.teamMembership.teamId });
-        }
+        loginConfiguration = await resolveLoginConfigurationForUser(user, teamInviteResponse);
         throwIfInvalidSsoConfig({
           provider,
           providerType,
@@ -1945,6 +1970,7 @@ export async function handleSignInOrRegistration(
         if (!providerUser.emailVerified) {
           throw new ProviderEmailNotVerified();
         }
+        throwIfProviderNotAllowed(provider, loginConfiguration);
         throwIfInvalidSsoConfig({ provider, providerType, loginConfiguration, role: getRoleForSsoCheck(null, teamInviteResponse) });
         user = await createUserFromProvider(providerUser, provider, loginConfiguration);
         isNewUser = true;
@@ -1966,9 +1992,7 @@ export async function handleSignInOrRegistration(
         }
         user = userOrError.user;
         throwIfInactiveUser(user);
-        if (!loginConfiguration && user.teamMembership?.teamId) {
-          loginConfiguration = await getLoginConfiguration({ teamId: user.teamMembership.teamId });
-        }
+        loginConfiguration = await resolveLoginConfigurationForUser(user, teamInviteResponse);
         throwIfInvalidSsoConfig({
           provider,
           providerType,
@@ -1977,6 +2001,7 @@ export async function handleSignInOrRegistration(
           role: getRoleForSsoCheck(user, teamInviteResponse),
         });
       } else if (action === 'register') {
+        throwIfProviderNotAllowed(provider, loginConfiguration);
         // Checked before the already-in-use branch below, which deliberately hides whether an
         // account exists. Rejecting only unregistered blocked-domain addresses would turn that
         // branch into an enumeration oracle; rejecting every blocked domain reveals nothing the
@@ -2050,9 +2075,7 @@ export async function handleSignInOrRegistration(
       throw new InvalidCredentials('User not initialized');
     }
 
-    loginConfiguration =
-      teamInviteResponse?.loginConfiguration ||
-      (user.teamMembership?.teamId ? await getLoginConfiguration({ teamId: user.teamMembership.teamId }) : null);
+    loginConfiguration = await resolveLoginConfigurationForUser(user, teamInviteResponse);
 
     /**
      * Check if login is allowed for the provider
@@ -2095,8 +2118,14 @@ export async function handleSignInOrRegistration(
      * TODO: ideally this code would live in team.db.ts but the code needs to move around
      * since that is in API application and this is in another library
      */
-    if (teamInviteResponse?.team) {
+    if (teamInviteResponse?.team && !user.teamMembership) {
       user = (await acceptInviteAndAddUserToTeam(user.id, teamInviteResponse)) || user;
+    } else if (teamInviteResponse?.team) {
+      // Membership is unique per user, so the invitation cannot be taken; it is left for the invitation page to explain
+      logger.info(
+        { userId: user.id, teamId: user.teamMembership?.teamId, invitedTeamId: teamInviteResponse.team.id },
+        'Ignoring pending team invitation during sign in because the user already belongs to a team',
+      );
     }
 
     return {

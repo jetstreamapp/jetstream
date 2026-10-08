@@ -4,9 +4,10 @@ import { handleSignInOrRegistration } from '../auth.db.service';
 import { SsoRequired } from '../auth.errors';
 
 /**
- * A pending team invite supplies the login configuration for the rest of sign in - the user's own
- * team configuration is never loaded once it is set, so the inviting team's settings are what decide
- * whether a password login is allowed past an SSO requirement.
+ * A pending team invite supplies the login configuration for the rest of sign in for a user who has no
+ * team of their own (or whose team is the inviting one), so the inviting team's settings are what decide
+ * whether a password login is allowed past an SSO requirement. A user who already belongs to a
+ * different team keeps being judged by that team's configuration - see the last describe block.
  *
  * Anything the invite query leaves out of its Prisma select is silently replaced by a
  * LoginConfigurationSchema default, and for the SSO bypass fields those defaults (bypass enabled,
@@ -354,5 +355,62 @@ describe('OAuth provider auto-linked to an existing user', () => {
 
     await expect(signInWithGoogle(null)).rejects.toBeInstanceOf(SsoRequired);
     expectNothingCreated();
+  });
+});
+
+describe('existing member of another team with a pending invite', () => {
+  const OWN_TEAM_ID = 'dddddddd-0000-4000-8000-dddddddddddd';
+  const OWN_TEAM_MEMBERSHIP: TeamMembership = { teamId: OWN_TEAM_ID, role: 'MEMBER', status: 'ACTIVE' };
+
+  function mockOwnTeamLoginConfig(ssoBypassConfig: SsoBypassConfig) {
+    prismaMock.team.findFirst.mockResolvedValue({
+      loginConfig: { ...buildSsoRequiredLoginConfig(ssoBypassConfig), team: { id: OWN_TEAM_ID } },
+    });
+  }
+
+  it("is judged by their own team's policy, not the inviting team's", async () => {
+    // The inviting team would let a MEMBER past SSO; the user's own team lets nobody past it
+    mockPendingInvite({ ssoBypassEnabled: true, ssoBypassEnabledRoles: ['ADMIN', 'MEMBER'] });
+    mockOwnTeamLoginConfig({ ssoBypassEnabled: false, ssoBypassEnabledRoles: [] });
+    mockSuccessfulPasswordLogin(OWN_TEAM_MEMBERSHIP);
+
+    await expect(signIn()).rejects.toBeInstanceOf(SsoRequired);
+    expect(prismaMock.team.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ id: OWN_TEAM_ID }) }),
+    );
+    expect(prismaMock.teamMember.create).not.toHaveBeenCalled();
+  });
+
+  it('may use a login provider their own team allows even when the inviting team does not', async () => {
+    prismaMock.teamMemberInvitation.findFirst.mockResolvedValue({
+      id: 'invite-id',
+      email: EMAIL,
+      role: 'MEMBER',
+      features: [],
+      createdById: 'inviter-id',
+      team: {
+        id: TEAM_ID,
+        name: 'Acme',
+        loginConfig: {
+          ...buildSsoRequiredLoginConfig({ ssoBypassEnabled: true, ssoBypassEnabledRoles: ['MEMBER'] }),
+          allowedProviders: ['google'],
+        },
+      },
+    });
+    mockOwnTeamLoginConfig({ ssoBypassEnabled: true, ssoBypassEnabledRoles: ['MEMBER'] });
+    mockSuccessfulPasswordLogin(OWN_TEAM_MEMBERSHIP);
+
+    await expect(signIn()).resolves.toEqual(expect.objectContaining({ provider: 'credentials' }));
+  });
+
+  it("signs in under their own team's policy and leaves the invitation untouched", async () => {
+    mockPendingInvite({ ssoBypassEnabled: false, ssoBypassEnabledRoles: [] });
+    mockOwnTeamLoginConfig({ ssoBypassEnabled: true, ssoBypassEnabledRoles: ['MEMBER'] });
+    mockSuccessfulPasswordLogin(OWN_TEAM_MEMBERSHIP);
+
+    await expect(signIn()).resolves.toEqual(expect.objectContaining({ provider: 'credentials' }));
+    // Membership is unique per user, so the invite is neither accepted nor consumed during sign in
+    expect(prismaMock.teamMember.create).not.toHaveBeenCalled();
+    expect(prismaMock.teamMemberInvitation.delete).not.toHaveBeenCalled();
   });
 });
