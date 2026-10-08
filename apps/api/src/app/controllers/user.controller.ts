@@ -36,6 +36,7 @@ import * as stripeService from '../services/stripe.service';
 import { AuthenticationError, UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
+import { disconnectSocketsForUser } from './socket.controller';
 
 export const routeDefinition = {
   getUserProfile: {
@@ -499,6 +500,9 @@ const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, asyn
     }
 
     await userDbService.deleteUserAndAllRelatedData(user.id);
+    // The sessions are deleted with the rest of the user's data rather than revoked, so no revocation
+    // event fires for them - drop the sockets here
+    disconnectSocketsForUser(user.id);
     // Destroy session - don't wait for response
     req.session.destroy((error) => {
       if (error) {

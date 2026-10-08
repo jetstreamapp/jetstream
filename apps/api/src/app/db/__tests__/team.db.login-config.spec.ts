@@ -57,6 +57,7 @@ vi.mock('@jetstream/prisma', () => ({
 
 vi.mock('@jetstream/auth/server', () => ({
   clearLoginConfigurationCacheItem: vi.fn(),
+  notifySessionsRevoked: vi.fn(),
   resolveSamlIdentifiers: vi.fn().mockReturnValue({ callbackUrls: {} }),
 }));
 

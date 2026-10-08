@@ -80,6 +80,7 @@ import { ensureAuthError, lookupGeoLocationFromIpAddresses } from './auth.servic
 import { checkUserAgentSimilarity, hashPassword, REMEMBER_DEVICE_DAYS, timingSafeStringCompare, verifyPassword } from './auth.utils';
 import { isEmailDomainBlocked } from './blocked-email-domain.db.service';
 import { expirePendingEmailChangeRequests } from './email-change.db.service';
+import { notifySessionsRevoked } from './session-revocation';
 
 // This is potentially accessed multiple times in a transaction for a user, cache data to avoid DB access
 const LOGIN_CONFIGURATION_CACHE = new LRUCache<string, { value: LoginConfiguration | null }>({
@@ -335,7 +336,11 @@ export async function hasRememberDeviceRecord({
     if (rememberMe.userAgent && userAgent) {
       const isSimilar = checkUserAgentSimilarity(rememberMe.userAgent, userAgent);
       if (!isSimilar) {
-        logger.warn({ deviceId, userId }, `User agent mismatch for remembered device: ${rememberMe.userAgent} !== ${userAgent}`);
+        // The deviceId is the remember-device cookie value, a bearer secret that skips 2FA, so it never goes to the logs
+        logger.warn(
+          { userId, rememberedDeviceId: rememberMe.id },
+          `User agent mismatch for remembered device: ${rememberMe.userAgent} !== ${userAgent}`,
+        );
         return false;
       }
     }
@@ -352,7 +357,7 @@ export async function hasRememberDeviceRecord({
 
     return true;
   } catch (ex) {
-    logger.error({ ...getErrorMessageAndStackObj(ex), deviceId, userId }, 'Error checking for remember device record');
+    logger.error({ ...getErrorMessageAndStackObj(ex), userId }, 'Error checking for remember device record');
     return false;
   }
 }
@@ -678,6 +683,7 @@ export async function revokeTeamUserSession({ sessionId, teamId }: { teamId: str
   await prisma.sessions.delete({
     where: { sid: sessionId },
   });
+  notifySessionsRevoked({ type: 'session', sessionId });
 }
 
 export async function getUserWebExtensionSessions(userId: string, omitLocationData?: boolean): Promise<ExternalTokenSessionWithLocation[]> {
@@ -842,20 +848,28 @@ export async function revokeUserSession(userId: string, sessionId: string) {
       sid: sessionId,
     },
   });
+  notifySessionsRevoked({ type: 'session', sessionId });
 }
 
 export async function revokeExternalSession(userId: string, sessionId: string) {
   if (!userId || !sessionId) {
     throw new Error('Invalid parameters');
   }
+  const token = await prisma.webExtensionToken.findFirst({ select: { deviceId: true }, where: { id: sessionId, userId } });
   await prisma.webExtensionToken.deleteMany({
     where: { id: sessionId, userId },
   });
+  if (token) {
+    notifySessionsRevoked({ type: 'device', deviceId: token.deviceId });
+  }
 }
 
 /**
  * @param client pass a transaction client when revocation must be atomic with the credential change
- * that triggered it, so a partially-applied change can never leave a live session behind.
+ * that triggered it, so a partially-applied change can never leave a live session behind. The
+ * revocation is then NOT announced here - the rows are still visible until the transaction commits,
+ * so a disconnected client could reconnect and outlive the revocation - and the caller must call
+ * notifySessionsRevoked once the transaction has committed.
  */
 export async function revokeAllUserSessions(
   userId: string,
@@ -877,6 +891,9 @@ export async function revokeAllUserSessions(
   await client.webExtensionToken.deleteMany({
     where: { userId },
   });
+  if (client === prisma) {
+    notifySessionsRevoked({ type: 'user', userId, exceptSessionId: exceptId });
+  }
 }
 
 /**
@@ -1310,7 +1327,7 @@ export async function removeIdentityFromUser(
   providerAccountId: string,
   currentSessionId?: Maybe<string>,
 ): Promise<void> {
-  await prisma.$transaction(async (tx) => {
+  const revoked = await prisma.$transaction(async (tx) => {
     const { hasPasswordSet, identities } = await tx.user.findFirstOrThrow({
       where: { id: userId },
       select: {
@@ -1335,18 +1352,26 @@ export async function removeIdentityFromUser(
       },
     });
 
-    await tx.sessions.deleteMany({
-      where: {
-        userId: { equals: userId },
-        AND: [{ sess: { path: ['provider'], equals: provider } }, { sess: { path: ['providerAccountId'], equals: providerAccountId } }],
-        ...(currentSessionId ? { NOT: { sid: currentSessionId } } : {}),
-      },
-    });
+    const sessionsWhere = {
+      userId: { equals: userId },
+      AND: [{ sess: { path: ['provider'], equals: provider } }, { sess: { path: ['providerAccountId'], equals: providerAccountId } }],
+      ...(currentSessionId ? { NOT: { sid: currentSessionId } } : {}),
+    };
+    const tokensWhere = { userId, provider, providerAccountId };
+    // Read what is about to go so the sockets can be dropped once the transaction has committed
+    const [sessions, tokens] = await Promise.all([
+      tx.sessions.findMany({ select: { sid: true }, where: sessionsWhere }),
+      tx.webExtensionToken.findMany({ select: { deviceId: true }, where: tokensWhere }),
+    ]);
 
-    await tx.webExtensionToken.deleteMany({
-      where: { userId, provider, providerAccountId },
-    });
+    await tx.sessions.deleteMany({ where: sessionsWhere });
+    await tx.webExtensionToken.deleteMany({ where: tokensWhere });
+
+    return { sessionIds: sessions.map(({ sid }) => sid), deviceIds: tokens.map(({ deviceId }) => deviceId) };
   });
+
+  revoked.sessionIds.forEach((sessionId) => notifySessionsRevoked({ type: 'session', sessionId }));
+  revoked.deviceIds.forEach((deviceId) => notifySessionsRevoked({ type: 'device', deviceId }));
 }
 
 /**
@@ -1764,6 +1789,29 @@ async function getTeamInviteConfiguration({ email, teamInvite }: { email: string
   };
 }
 
+/**
+ * Which login configuration governs a user who has been found or created during sign in.
+ *
+ * A pending invitation's configuration only stands in for someone who has no team of their own (or whose
+ * team is the inviting one). A user who already belongs to another team keeps being judged by that team's
+ * policy: otherwise an unexpired invitation from a team with laxer rules could be used to sign in past their
+ * own team's SSO, MFA or login-provider requirements.
+ */
+async function resolveLoginConfigurationForUser(
+  user: AuthenticatedUser,
+  teamInviteResponse: Awaited<ReturnType<typeof getTeamInviteConfiguration>>,
+): Promise<LoginConfiguration | null> {
+  const ownTeamId = user.teamMembership?.teamId;
+  const inviteConfiguration = teamInviteResponse?.loginConfiguration ?? null;
+  if (ownTeamId && ownTeamId !== teamInviteResponse?.team.id) {
+    return getLoginConfiguration({ teamId: ownTeamId });
+  }
+  if (inviteConfiguration) {
+    return inviteConfiguration;
+  }
+  return ownTeamId ? getLoginConfiguration({ teamId: ownTeamId }) : null;
+}
+
 export async function handleSignInOrRegistration(
   payload:
     | {
@@ -1837,9 +1885,11 @@ export async function handleSignInOrRegistration(
 
     // Don't allow login/register if login configuration disallows it
     // this will be checked again in case there is a team without domains configured
+    // Only a provisional answer until the user is known: for someone who already belongs to another
+    // team it is replaced by that team's configuration (resolveLoginConfigurationForUser), so the
+    // provider check runs where the user is created, linked, or - for an existing user - once the
+    // configuration has been resolved, never against the inviting team's policy alone.
     let loginConfiguration = teamInviteResponse?.loginConfiguration || null;
-
-    throwIfProviderNotAllowed(provider, loginConfiguration);
 
     if (providerType === 'oauth') {
       const { providerUser } = payload;
@@ -1899,13 +1949,13 @@ export async function handleSignInOrRegistration(
             role: getRoleForSsoCheck(existingUser, teamInviteResponse),
           });
 
+          throwIfProviderNotAllowed(provider, loginConfiguration);
+
           // TODO: should we allow auto-linking accounts, or reject and make user login and link?
           user = await addIdentityToUser(existingUser.id, providerUser, provider);
         }
       } else {
-        if (!loginConfiguration && user.teamMembership?.teamId) {
-          loginConfiguration = await getLoginConfiguration({ teamId: user.teamMembership.teamId });
-        }
+        loginConfiguration = await resolveLoginConfigurationForUser(user, teamInviteResponse);
         throwIfInvalidSsoConfig({
           provider,
           providerType,
@@ -1924,6 +1974,7 @@ export async function handleSignInOrRegistration(
         if (!providerUser.emailVerified) {
           throw new ProviderEmailNotVerified();
         }
+        throwIfProviderNotAllowed(provider, loginConfiguration);
         throwIfInvalidSsoConfig({ provider, providerType, loginConfiguration, role: getRoleForSsoCheck(null, teamInviteResponse) });
         user = await createUserFromProvider(providerUser, provider, loginConfiguration);
         isNewUser = true;
@@ -1945,9 +1996,7 @@ export async function handleSignInOrRegistration(
         }
         user = userOrError.user;
         throwIfInactiveUser(user);
-        if (!loginConfiguration && user.teamMembership?.teamId) {
-          loginConfiguration = await getLoginConfiguration({ teamId: user.teamMembership.teamId });
-        }
+        loginConfiguration = await resolveLoginConfigurationForUser(user, teamInviteResponse);
         throwIfInvalidSsoConfig({
           provider,
           providerType,
@@ -1956,6 +2005,7 @@ export async function handleSignInOrRegistration(
           role: getRoleForSsoCheck(user, teamInviteResponse),
         });
       } else if (action === 'register') {
+        throwIfProviderNotAllowed(provider, loginConfiguration);
         // Checked before the already-in-use branch below, which deliberately hides whether an
         // account exists. Rejecting only unregistered blocked-domain addresses would turn that
         // branch into an enumeration oracle; rejecting every blocked domain reveals nothing the
@@ -2029,9 +2079,7 @@ export async function handleSignInOrRegistration(
       throw new InvalidCredentials('User not initialized');
     }
 
-    loginConfiguration =
-      teamInviteResponse?.loginConfiguration ||
-      (user.teamMembership?.teamId ? await getLoginConfiguration({ teamId: user.teamMembership.teamId }) : null);
+    loginConfiguration = await resolveLoginConfigurationForUser(user, teamInviteResponse);
 
     /**
      * Check if login is allowed for the provider
@@ -2074,8 +2122,14 @@ export async function handleSignInOrRegistration(
      * TODO: ideally this code would live in team.db.ts but the code needs to move around
      * since that is in API application and this is in another library
      */
-    if (teamInviteResponse?.team) {
+    if (teamInviteResponse?.team && !user.teamMembership) {
       user = (await acceptInviteAndAddUserToTeam(user.id, teamInviteResponse)) || user;
+    } else if (teamInviteResponse?.team) {
+      // Membership is unique per user, so the invitation cannot be taken; it is left for the invitation page to explain
+      logger.info(
+        { userId: user.id, teamId: user.teamMembership?.teamId, invitedTeamId: teamInviteResponse.team.id },
+        'Ignoring pending team invitation during sign in because the user already belongs to a team',
+      );
     }
 
     return {
@@ -2177,6 +2231,11 @@ export async function linkIdentityToUser({
     const existingUser = await prisma.user
       .findFirstOrThrow({ select: AuthenticatedUserSelect, where: { id: userId } })
       .then((user) => AuthenticatedUserSchema.parse(user));
+    // An account whose address was never verified may belong to someone else (registration takes any
+    // email); an identity linked now would survive the real owner's later verification and password reset
+    if (!existingUser.emailVerified) {
+      throw new InvalidAction('Cannot link an identity until the email address is verified');
+    }
     const existingProviderUser = await findUserByProviderId(provider, providerUser.id);
     if (existingProviderUser && existingProviderUser.id !== userId) {
       // FIXME: This error is never presented to the user, it silently fails

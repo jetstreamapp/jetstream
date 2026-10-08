@@ -1,5 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { extractOrgUniqueId, hashSessionId, sanitizeReferer, sanitizeUrl } from '../api-logger';
+import { extractOrgUniqueId, hashSessionId, isStaticFileRequest, sanitizeReferer, sanitizeUrl } from '../api-logger';
+
+describe('isStaticFileRequest', () => {
+  it('matches static asset extensions on the path, with or without a query string', () => {
+    expect(isStaticFileRequest('/assets/app.js')).toBe(true);
+    expect(isStaticFileRequest('/assets/app.js?v=123')).toBe(true);
+    expect(isStaticFileRequest('/favicon.ico')).toBe(true);
+    expect(isStaticFileRequest('/fonts/inter.woff2')).toBe(true);
+  });
+
+  it('does not match api routes or paths that merely contain an extension', () => {
+    expect(isStaticFileRequest('/api/query')).toBe(false);
+    expect(isStaticFileRequest('/api/file.json/download')).toBe(false);
+    expect(isStaticFileRequest('/healthz')).toBe(false);
+  });
+
+  it('passes through nullish/empty values without throwing', () => {
+    expect(isStaticFileRequest(undefined)).toBe(false);
+    expect(isStaticFileRequest('')).toBe(false);
+  });
+
+  it('stays linear on an attacker-sized URL (regression for the quadratic `.*\\.(…)$` form)', () => {
+    const url = `/x?a=${'A'.repeat(16_000)}`;
+    const started = performance.now();
+    expect(isStaticFileRequest(url)).toBe(false);
+    // The old pattern took ~120ms here; a linear match is well under a millisecond
+    expect(performance.now() - started).toBeLessThan(50);
+  });
+});
 
 describe('sanitizeReferer', () => {
   it('strips the query string while preserving origin + path', () => {

@@ -1,5 +1,5 @@
 import { ENV, getLogger, logger } from '@jetstream/api-config';
-import { convertUserProfileToSession_External } from '@jetstream/auth/server';
+import { convertUserProfileToSession_External, PLACEHOLDER_USER_ID } from '@jetstream/auth/server';
 import { HTTP, HTTP_SOURCE_DESKTOP } from '@jetstream/shared/constants';
 import { SocketEvent } from '@jetstream/types';
 import { createAdapter } from '@socket.io/cluster-adapter';
@@ -54,6 +54,73 @@ function isAllowedWebSocketOrigin(origin: string): boolean {
     return true;
   }
   return false;
+}
+
+/**
+ * The shape of the session a socket carries: an express session for browser clients, or the
+ * `{ user, deviceId }` object the external-device middleware builds for the desktop app and
+ * browser extension.
+ */
+interface SocketSession {
+  id?: string;
+  deviceId?: string;
+  user?: { id: string };
+  pendingVerification?: unknown;
+  pendingMfaEnrollment?: unknown;
+  pendingTosAcceptance?: unknown;
+}
+
+/**
+ * Mirrors the gates `checkAuth` applies to every HTTP route. A session that has a user but still owes
+ * a second factor, an authenticator enrollment or terms acceptance holds only the first factor, so it
+ * must not be able to listen in on the user's room (synced query history, load mappings, etc.).
+ * Like checkAuth, any non-nullish pendingVerification counts as open - an empty array is not a pass.
+ */
+function isFullyAuthenticatedSession(session: SocketSession | undefined): session is SocketSession & { user: { id: string } } {
+  if (!session?.user?.id || session.user.id === PLACEHOLDER_USER_ID) {
+    return false;
+  }
+  return !session.pendingVerification && !session.pendingMfaEnrollment && !session.pendingTosAcceptance;
+}
+
+/** Drops the sockets of one revoked or ended session, since they would otherwise outlive it */
+export function disconnectSocketsForSession(sessionId: string) {
+  if (!io || !sessionId) {
+    return;
+  }
+  try {
+    io.in(socketRoomForSession(sessionId)).disconnectSockets(true);
+  } catch (ex) {
+    getLogger().error({ err: ex, sessionId }, 'Error disconnecting sockets for session');
+  }
+}
+
+/** Drops the sockets of a desktop or browser-extension device whose token was revoked */
+export function disconnectSocketsForDevice(deviceId: string) {
+  if (!io || !deviceId) {
+    return;
+  }
+  try {
+    io.in(socketRoomForDevice(deviceId)).disconnectSockets(true);
+  } catch (ex) {
+    getLogger().error({ err: ex, deviceId }, 'Error disconnecting sockets for device');
+  }
+}
+
+/** Drops every socket of a user, optionally sparing the session that performed the revocation */
+export function disconnectSocketsForUser(userId: string, exceptSessionId?: string | null) {
+  if (!io || !userId) {
+    return;
+  }
+  try {
+    let broadcastOperator = io.in(socketRoomForUser(userId));
+    if (exceptSessionId) {
+      broadcastOperator = broadcastOperator.except(socketRoomForSession(exceptSessionId));
+    }
+    broadcastOperator.disconnectSockets(true);
+  } catch (ex) {
+    getLogger().error({ err: ex, userId }, 'Error disconnecting sockets for user');
+  }
 }
 
 export function emitSocketEvent({
@@ -153,6 +220,15 @@ export function getSocketConnectionAuthMiddleware() {
         next(new Error('Forbidden origin'));
         return;
       }
+      // A session that has started but not finished signing in has nothing to subscribe to; refusing
+      // it here keeps a password-only session from ever reaching the user's room below.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const session = (socket.request as any)?.session as SocketSession | undefined;
+      if (session?.user && !isFullyAuthenticatedSession(session)) {
+        logger.warn({ userId: session.user.id }, '[SOCKET] Rejected WebSocket connection from a session with pending verification');
+        next(new Error('Unauthorized'));
+        return;
+      }
       next();
     }
   };
@@ -211,10 +287,12 @@ export function initSocketServer(
 
   io.on('connection', (socket) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const session = (socket.request as any)?.session;
-    const sessionId = session?.id as string | undefined;
-    const userId = session?.user?.id as string | undefined;
-    const deviceId = session?.deviceId as string | undefined;
+    const session = (socket.request as any)?.session as SocketSession | undefined;
+    const sessionId = session?.id;
+    // Only a fully signed-in session may join the user room (the auth middleware already rejects
+    // gated browser sessions; this keeps the room membership rule next to the join itself).
+    const userId = isFullyAuthenticatedSession(session) ? session.user.id : undefined;
+    const deviceId = session?.deviceId;
 
     const appVersion =
       getSingleHandshakeValue(socket.handshake.auth?.[HTTP.HEADERS.X_APP_VERSION]) ??

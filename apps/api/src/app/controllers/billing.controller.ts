@@ -228,13 +228,13 @@ const createCheckoutSessionHandler = createRoute(
 
 const processCheckoutSuccessHandler = createRoute(
   routeDefinition.processCheckoutSuccess.validators,
-  async ({ params, query }, req, res) => {
+  async ({ params, query, user }, req, res) => {
     stripeService.ensureStripeIsInitialized();
     const { action } = params;
     const { sessionId } = query;
 
     if (action === 'complete') {
-      const { teamId } = await stripeService.saveSubscriptionFromCompletedSession({ sessionId });
+      const { teamId } = await stripeService.saveSubscriptionFromCompletedSession({ sessionId, expectedUserId: user.id });
       await refreshSessionUser(req);
       if (teamId) {
         redirect(res, `${ENV.JETSTREAM_CLIENT_URL}/teams`);

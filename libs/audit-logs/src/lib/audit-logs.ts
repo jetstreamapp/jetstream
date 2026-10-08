@@ -1,6 +1,6 @@
-import { prisma } from '@jetstream/api-config';
+import { logger, prisma } from '@jetstream/api-config';
 import { Prisma } from '@jetstream/prisma';
-import { NOOP } from '@jetstream/shared/utils';
+import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 
 export enum AuditLogAction {
   // Org actions
@@ -80,6 +80,24 @@ export interface CreateAuditLogParams {
   userAgent?: string;
 }
 
+/**
+ * Column widths from the AuditLog model. The request-derived values are written as received, and a
+ * client can send a User-Agent (or an id) longer than its column: without this cap the insert fails
+ * and the action it should have recorded leaves no trail at all.
+ */
+const AUDIT_LOG_COLUMN_LIMITS = {
+  resourceId: 255,
+  ipAddress: 45,
+  userAgent: 500,
+} as const;
+
+function fitToColumn(value: string | undefined, maxLength: number): string | undefined {
+  if (!value || value.length <= maxLength) {
+    return value;
+  }
+  return value.slice(0, maxLength);
+}
+
 export async function createAuditLog(params: CreateAuditLogParams) {
   return await prisma.auditLog.create({
     data: {
@@ -87,20 +105,26 @@ export async function createAuditLog(params: CreateAuditLogParams) {
       teamId: params.teamId,
       action: params.action,
       resource: params.resource,
-      resourceId: params.resourceId,
+      resourceId: fitToColumn(params.resourceId, AUDIT_LOG_COLUMN_LIMITS.resourceId),
       metadata: params.metadata as Prisma.InputJsonValue,
-      ipAddress: params.ipAddress,
-      userAgent: params.userAgent,
+      ipAddress: fitToColumn(params.ipAddress, AUDIT_LOG_COLUMN_LIMITS.ipAddress),
+      userAgent: fitToColumn(params.userAgent, AUDIT_LOG_COLUMN_LIMITS.userAgent),
     },
   });
 }
 
 /**
  * Fire-and-forget audit log helper for team-scoped actions.
- * Never throws — errors are silently swallowed so a logging failure cannot affect the request.
+ * Never throws so a logging failure cannot affect the request, but a failed write is logged at error
+ * level: an audit entry that silently never lands is exactly what an attacker covering their tracks wants.
  */
 export function createTeamAuditLog(params: Omit<CreateAuditLogParams, 'teamId'> & { teamId: string }) {
-  createAuditLog(params).catch(NOOP);
+  createAuditLog(params).catch((ex) => {
+    logger.error(
+      { ...getErrorMessageAndStackObj(ex), teamId: params.teamId, userId: params.userId, action: params.action, resource: params.resource },
+      '[AUDIT_LOG] Failed to write team audit log entry',
+    );
+  });
 }
 
 export async function getAuditLogsByUser(userId: string, limit = 100) {

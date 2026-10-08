@@ -910,3 +910,86 @@ describe('auth.controller - password reset blocked domain handling', () => {
     );
   });
 });
+
+/**
+ * Enrolling a required authenticator happens after the login's second factor, never instead of it: a
+ * session that still has a pending verification holds only the password, and letting it register an
+ * authenticator would hand whoever has that password a second factor of their own. Any non-nullish
+ * pendingVerification counts as open, an empty array included, matching checkAuth.
+ */
+describe('auth.controller - authenticator enrollment waits for the pending second factor', () => {
+  const REAL_USER_ID = 'real-user-id';
+
+  function makeEnrollmentReq(sessionOverrides: Record<string, unknown>) {
+    return makeReq({
+      body: { csrfToken: 'csrf-token', code: '123456' },
+      session: {
+        id: 'session-id',
+        destroy: vi.fn((cb?: (err?: unknown) => void) => cb?.()),
+        save: vi.fn((cb?: (err?: unknown) => void) => cb?.()),
+        user: { id: REAL_USER_ID, email: 'user@example.com' },
+        pendingMfaEnrollment: { factor: '2fa-otp' },
+        ...sessionOverrides,
+      },
+    });
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    authServerMocks.ensureAuthError.mockImplementation((error: unknown) => error);
+    authServerMocks.validateRedirectUrl.mockImplementation((url: string) => url || 'https://client.test');
+    authServerMocks.beginTotpEnrollment.mockResolvedValue({ secretToken: 'secret', imageUri: 'data:image/png;base64,' } as never);
+    authServerMocks.consumeTotpEnrollmentOrThrow.mockReturnValue('secret' as never);
+    authServerMocks.createOrUpdateOtpAuthFactor.mockResolvedValue([] as never);
+  });
+
+  const handlers = [
+    ['getOtpEnrollmentData', () => routeDefinition.getOtpEnrollmentData.controllerFn()],
+    ['enrollOtpFactor', () => routeDefinition.enrollOtpFactor.controllerFn()],
+  ] as const;
+
+  const pendingStates = [
+    ['a pending email code', [{ type: '2fa-email', exp: Date.now() + 60_000, token: '123456' }]],
+    ['an empty pendingVerification array', []],
+  ] as const;
+
+  describe.each(handlers)('%s', (_name, getHandler) => {
+    it.each(pendingStates)('returns 403 while the session still has %s', async (_state, pendingVerification) => {
+      const req = makeEnrollmentReq({ pendingVerification });
+      const res = makeRes();
+      const next = vi.fn();
+
+      await getHandler()(req as never, res as never, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(next).toHaveBeenCalledWith(expect.any(authServerMocks.InvalidAction));
+      expect(authServerMocks.beginTotpEnrollment).not.toHaveBeenCalled();
+      expect(authServerMocks.createOrUpdateOtpAuthFactor).not.toHaveBeenCalled();
+    });
+  });
+
+  it('mints the enrollment secret once the verification has been cleared', async () => {
+    const req = makeEnrollmentReq({ pendingVerification: null });
+    const res = makeRes();
+    const next = vi.fn();
+
+    await routeDefinition.getOtpEnrollmentData.controllerFn()(req as never, res as never, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(authServerMocks.beginTotpEnrollment).toHaveBeenCalledWith(req.session, REAL_USER_ID);
+    expect(responseHandlerMocks.sendJson).toHaveBeenCalledWith(res, expect.objectContaining({ secretToken: 'secret' }));
+  });
+
+  it('saves the authenticator once the verification has been cleared', async () => {
+    const req = makeEnrollmentReq({ pendingVerification: null });
+    const res = makeRes();
+    const next = vi.fn();
+
+    await routeDefinition.enrollOtpFactor.controllerFn()(req as never, res as never, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(authServerMocks.createOrUpdateOtpAuthFactor).toHaveBeenCalledWith(REAL_USER_ID, 'secret');
+    expect(req.session.pendingMfaEnrollment).toBeNull();
+    expect(responseHandlerMocks.sendJson).toHaveBeenCalledWith(res, expect.objectContaining({ error: false }));
+  });
+});

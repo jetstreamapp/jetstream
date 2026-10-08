@@ -76,9 +76,12 @@ import { ensureBoolean, getErrorMessage, getErrorMessageAndStackObj } from '@jet
 import { Maybe, PasswordSchema } from '@jetstream/types';
 import { parseCookie } from 'cookie';
 import { addMinutes } from 'date-fns/addMinutes';
+import type express from 'express';
 import { z } from 'zod';
+import type { Request } from '../types/route.types';
 import { redirect, sendJson, setCsrfCookie } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
+import { disconnectSocketsForSession } from './socket.controller';
 
 /**
  * Normalize a post-login redirect candidate (from a cookie, query string, or SAML RelayState):
@@ -91,6 +94,23 @@ function normalizeRedirectCandidate(value: string | undefined): string | undefin
   }
   const absolute = value.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${value}` : value;
   return absolute.replace('/app/app', '/app');
+}
+
+/**
+ * Linking an identity is an account-management action, so it needs a fully established session: a verified
+ * email address and no login gate still open. Registering with someone else's address leaves the account
+ * unverified with the session still pending, and letting that session attach an identity would plant a
+ * login the attacker controls on an account the real owner later verifies and uses.
+ */
+function throwIfSessionCannotLinkIdentity(req: Pick<Request<unknown, unknown, unknown>, 'session'>) {
+  const { user, pendingVerification, pendingMfaEnrollment, pendingTosAcceptance } = req.session;
+  if (!user || user.id === PLACEHOLDER_USER_ID || !user.emailVerified) {
+    throw new InvalidSession('Cannot link an identity until the email address is verified');
+  }
+  // Any non-nullish pendingVerification counts as open, the same rule checkAuth applies to every route
+  if (pendingVerification || pendingMfaEnrollment || pendingTosAcceptance) {
+    throw new InvalidSession('Cannot link an identity until sign in is complete');
+  }
 }
 
 /**
@@ -319,10 +339,12 @@ export const routeDefinition = {
 };
 
 const logout = createRoute(routeDefinition.logout.validators, async ({}, req, res) => {
+  const sessionId = req.session.id;
   req.session.destroy((err) => {
     if (err) {
       getLogger().error({ err }, '[AUTH][LOGOUT][ERROR] Error destroying session');
     }
+    disconnectSocketsForSession(sessionId);
     redirect(res, ENV.JETSTREAM_SERVER_URL);
   });
 });
@@ -401,6 +423,7 @@ const signin = createRoute(routeDefinition.signin.validators, async ({ body, par
         if (!req.session.user) {
           throw new InvalidSession('Cannot link account without an active session');
         }
+        throwIfSessionCannotLinkIdentity(req);
 
         const loginConfiguration = req.session.user?.teamMembership
           ? await getLoginConfiguration({ teamId: req.session.user.teamMembership.teamId })
@@ -543,6 +566,7 @@ const callback = createRoute(
          * link and redirect to profile page
          */
         if (req.session.user && cookies[linkIdentityCookie.name] === 'true') {
+          throwIfSessionCannotLinkIdentity(req);
           const loginConfiguration = req.session.user?.teamMembership
             ? await getLoginConfiguration({ teamId: req.session.user.teamMembership.teamId })
             : null;
@@ -572,7 +596,7 @@ const callback = createRoute(
             success: true,
           });
           const validatedReturnUrl = validateRedirectUrl(
-            returnUrl,
+            normalizeRedirectCandidate(returnUrl ?? undefined),
             [ENV.JETSTREAM_CLIENT_URL, ENV.JETSTREAM_SERVER_URL],
             `${ENV.JETSTREAM_CLIENT_URL}/profile`,
           );
@@ -699,7 +723,9 @@ const callback = createRoute(
           await sendWelcomeEmail(req.session.user.email);
         }
 
-        let redirectUrl = returnUrl || ENV.JETSTREAM_CLIENT_URL;
+        // Normalized like every other post-login candidate so a relative returnUrl becomes a same-origin
+        // absolute URL before validation, instead of being re-emitted as a path the browser resolves itself
+        let redirectUrl = normalizeRedirectCandidate(returnUrl ?? undefined) ?? ENV.JETSTREAM_CLIENT_URL;
 
         const redirectValue = cookies[redirectUrlCookie.name];
         if (!returnUrl && redirectValue) {
@@ -1162,6 +1188,19 @@ const verifyEmailViaLink = createRoute(
   },
 );
 
+/**
+ * Enrollment of a required authenticator happens after the login's second factor, never instead of it.
+ * A session that still has a pending verification holds only the password, and letting it register an
+ * authenticator would hand whoever has that password a second factor of their own for the next login.
+ */
+function throwIfVerificationStillPending(req: Pick<Request<unknown, unknown, unknown>, 'session'>, res: express.Response) {
+  // Any non-nullish pendingVerification counts as open, the same rule checkAuth applies to every route
+  if (req.session.pendingVerification) {
+    res.status(403);
+    throw new InvalidAction('Verification must be completed before enrolling an authenticator');
+  }
+}
+
 const getOtpEnrollmentData = createRoute(routeDefinition.getOtpEnrollmentData.validators, async ({ user }, req, res, next) => {
   try {
     if (!req.session.user) {
@@ -1172,6 +1211,7 @@ const getOtpEnrollmentData = createRoute(routeDefinition.getOtpEnrollmentData.va
       res.status(403);
       throw new InvalidAction('There is no pending MFA enrollment');
     }
+    throwIfVerificationStillPending(req, res);
 
     sendJson(res, await beginTotpEnrollment(req.session, user.id));
   } catch (ex) {
@@ -1189,6 +1229,7 @@ const enrollOtpFactor = createRoute(routeDefinition.enrollOtpFactor.validators, 
       res.status(403);
       throw new InvalidAction('There is no pending MFA enrollment');
     }
+    throwIfVerificationStillPending(req, res);
 
     const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
 

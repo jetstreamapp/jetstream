@@ -9,6 +9,7 @@ export * from './lib/email-change.db.service';
 export { OauthClients } from './lib/OauthClients';
 export * from './lib/oidc.service';
 export * from './lib/saml.service';
+export * from './lib/session-revocation';
 export * from './lib/sso-auth.service';
 export * from './lib/sso-crypto.util';
 export * from './lib/sso.types';
