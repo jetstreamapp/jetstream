@@ -76,7 +76,9 @@ import { ensureBoolean, getErrorMessage, getErrorMessageAndStackObj } from '@jet
 import { Maybe, PasswordSchema } from '@jetstream/types';
 import { parseCookie } from 'cookie';
 import { addMinutes } from 'date-fns/addMinutes';
+import type express from 'express';
 import { z } from 'zod';
+import type { Request } from '../types/route.types';
 import { redirect, sendJson, setCsrfCookie } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
 
@@ -91,6 +93,23 @@ function normalizeRedirectCandidate(value: string | undefined): string | undefin
   }
   const absolute = value.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${value}` : value;
   return absolute.replace('/app/app', '/app');
+}
+
+/**
+ * Linking an identity is an account-management action, so it needs a fully established session: a verified
+ * email address and no login gate still open. Registering with someone else's address leaves the account
+ * unverified with the session still pending, and letting that session attach an identity would plant a
+ * login the attacker controls on an account the real owner later verifies and uses.
+ */
+function throwIfSessionCannotLinkIdentity(req: Pick<Request<unknown, unknown, unknown>, 'session'>) {
+  const { user, pendingVerification, pendingMfaEnrollment, pendingTosAcceptance } = req.session;
+  if (!user || user.id === PLACEHOLDER_USER_ID || !user.emailVerified) {
+    throw new InvalidSession('Cannot link an identity until the email address is verified');
+  }
+  // Any non-nullish pendingVerification counts as open, the same rule checkAuth applies to every route
+  if (pendingVerification || pendingMfaEnrollment || pendingTosAcceptance) {
+    throw new InvalidSession('Cannot link an identity until sign in is complete');
+  }
 }
 
 /**
@@ -401,6 +420,7 @@ const signin = createRoute(routeDefinition.signin.validators, async ({ body, par
         if (!req.session.user) {
           throw new InvalidSession('Cannot link account without an active session');
         }
+        throwIfSessionCannotLinkIdentity(req);
 
         const loginConfiguration = req.session.user?.teamMembership
           ? await getLoginConfiguration({ teamId: req.session.user.teamMembership.teamId })
@@ -543,6 +563,7 @@ const callback = createRoute(
          * link and redirect to profile page
          */
         if (req.session.user && cookies[linkIdentityCookie.name] === 'true') {
+          throwIfSessionCannotLinkIdentity(req);
           const loginConfiguration = req.session.user?.teamMembership
             ? await getLoginConfiguration({ teamId: req.session.user.teamMembership.teamId })
             : null;

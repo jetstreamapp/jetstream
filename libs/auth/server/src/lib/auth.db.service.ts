@@ -2177,6 +2177,11 @@ export async function linkIdentityToUser({
     const existingUser = await prisma.user
       .findFirstOrThrow({ select: AuthenticatedUserSelect, where: { id: userId } })
       .then((user) => AuthenticatedUserSchema.parse(user));
+    // An account whose address was never verified may belong to someone else (registration takes any
+    // email); an identity linked now would survive the real owner's later verification and password reset
+    if (!existingUser.emailVerified) {
+      throw new InvalidAction('Cannot link an identity until the email address is verified');
+    }
     const existingProviderUser = await findUserByProviderId(provider, providerUser.id);
     if (existingProviderUser && existingProviderUser.id !== userId) {
       // FIXME: This error is never presented to the user, it silently fails
