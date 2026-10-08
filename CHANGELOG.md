@@ -1,5 +1,27 @@
 # Changelog
 
+## [10.24.2](https://github.com/jetstreamapp/jetstream/compare/v10.24.1...v10.24.2) (2026-10-08)
+
+### Bug Fixes
+
+- **api:** keep the request logger's static-file check linear on long URLs ([60f3c43](https://github.com/jetstreamapp/jetstream/commit/60f3c43f9d514f9ac194dc5a95a2dcb893827893))
+- **api:** reject sockets from sessions that have not finished signing in ([6120d53](https://github.com/jetstreamapp/jetstream/commit/6120d538e7b2cc003429c04c8e986322d48d6acd))
+- **audit-logs:** fit request fields to their columns and log failed writes ([9b42969](https://github.com/jetstreamapp/jetstream/commit/9b429693872c3b158a446683a3b1a8a6b35ca9f9))
+- **auth:** block dot-segment paths that turn into a protocol-relative redirect ([764b803](https://github.com/jetstreamapp/jetstream/commit/764b803ab2ff6183ba9b467071cc0820631d5913))
+- **auth:** judge sign-in by the user's own team policy, not a pending invite's ([cc18318](https://github.com/jetstreamapp/jetstream/commit/cc18318221117324c22c1ed045a04bbb4f0c3f8f))
+- **auth:** keep the remember-device secret out of the logs ([017ef40](https://github.com/jetstreamapp/jetstream/commit/017ef40e8f9e9403665edcaf80cbaf7717b855bf))
+- **auth:** refuse identity linking from unverified or still-pending sessions ([80675e5](https://github.com/jetstreamapp/jetstream/commit/80675e554809b0b46a5e6440ccb0a87a20c5b866))
+- **auth:** require the pending second factor before enrolling an authenticator ([d6dbcc7](https://github.com/jetstreamapp/jetstream/commit/d6dbcc76a4e310f5c7648331ac8e9a7ab5fe2443))
+- **billing:** only a completed checkout session can create a team ([3ae6925](https://github.com/jetstreamapp/jetstream/commit/3ae6925e6488ae6fe67bac24a819983a86d69792))
+- **canvas:** open the server-validated Salesforce login URL in the auth popup ([da45877](https://github.com/jetstreamapp/jetstream/commit/da458778d7a4140d2b943e7c0718b63065e56c2a))
+- **create-fields:** stop API name validation from hanging on long input ([622b1e0](https://github.com/jetstreamapp/jetstream/commit/622b1e05f4182db4abfb33b189ab219355710458))
+- **deps:** resolve Electron, Next.js and build-tooling security advisories ([6bc4b79](https://github.com/jetstreamapp/jetstream/commit/6bc4b7911b8cf9da25a0248928f8c6e7e4427e2a))
+- **landing:** only hand the Google Drive token to known opener origins ([0c6581c](https://github.com/jetstreamapp/jetstream/commit/0c6581c7c0e82f5e92bc80ce091d7ae142d3e8ab))
+- **landing:** stop rendering free-text query params as notices on auth pages ([755699b](https://github.com/jetstreamapp/jetstream/commit/755699b6e7d663a36c2ffef8f2803fea34d1dabc))
+- **manage-permissions:** escape spreadsheet formulas in the CSV exports ([8baa4f2](https://github.com/jetstreamapp/jetstream/commit/8baa4f2c2b16d7173e2df395e7ee19e67627f345))
+- **query:** escape backslashes when turning records into Apex ([fb38947](https://github.com/jetstreamapp/jetstream/commit/fb389479a5f59929ec96325c7e68224a988a88b5))
+- **team:** escape spreadsheet formulas in the audit log CSV export ([ecbfab0](https://github.com/jetstreamapp/jetstream/commit/ecbfab0bf29ec363cd59ba0dcba0541045336a3e))
+
 ## [10.24.1](https://github.com/jetstreamapp/jetstream/compare/v10.24.0...v10.24.1) (2026-10-07)
 
 ### Bug Fixes
