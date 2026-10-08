@@ -3,6 +3,12 @@ export const ENVIRONMENT = {
   CLIENT_URL: process.env.NX_PUBLIC_CLIENT_URL || 'https://getjetstream.app/app',
   SERVER_URL: process.env.NX_PUBLIC_SERVER_URL || 'https://getjetstream.app',
   CAPTCHA_KEY: process.env.NX_PUBLIC_CAPTCHA_KEY || null,
+  /**
+   * Chrome Web Store id of the Jetstream extension. The Google Drive picker page only hands the Google
+   * access token to this extension origin (plus the client and server origins above). Unset for local
+   * builds, where an unpacked extension gets a different id.
+   */
+  WEB_EXTENSION_ID_CHROME: process.env.NX_PUBLIC_WEB_EXTENSION_ID_CHROME || null,
 };
 
 export const ROUTES = {

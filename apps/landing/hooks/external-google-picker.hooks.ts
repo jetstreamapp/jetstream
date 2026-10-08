@@ -1,5 +1,6 @@
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
+import { ENVIRONMENT } from '../utils/environment';
 import {
   ERROR_MESSAGES,
   getGoogleConfigFromEnv,
@@ -26,6 +27,45 @@ import {
 
 const BROADCAST_CHANNEL_NAME = 'jetstream-google-picker';
 
+function toOrigin(url: string): string | null {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The exact origins that may receive the picker result, which carries the Google access token.
+ * The opener names itself in the query string and also chooses the nonce, so neither proves anything
+ * about who opened the popup - this list is the only thing that stops a page on another site from
+ * opening the picker and collecting the token once the user authorizes.
+ */
+const TRUSTED_OPENER_ORIGINS = new Set(
+  [toOrigin(ENVIRONMENT.SERVER_URL), toOrigin(ENVIRONMENT.CLIENT_URL)].filter((origin): origin is string => !!origin),
+);
+
+const CHROME_EXTENSION_ORIGIN = ENVIRONMENT.WEB_EXTENSION_ID_CHROME ? `chrome-extension://${ENVIRONMENT.WEB_EXTENSION_ID_CHROME}` : null;
+
+function isTrustedOpenerOrigin(origin: string | null | undefined): boolean {
+  if (!origin) {
+    return false;
+  }
+  if (TRUSTED_OPENER_ORIGINS.has(origin)) {
+    return true;
+  }
+  if (origin.startsWith('chrome-extension://')) {
+    // Production builds set NX_PUBLIC_WEB_EXTENSION_ID_CHROME so only the published extension qualifies.
+    // Without it (local builds, where an unpacked extension has its own id) any extension is accepted.
+    return CHROME_EXTENSION_ORIGIN ? origin === CHROME_EXTENSION_ORIGIN : true;
+  }
+  // Firefox gives every install its own moz-extension:// UUID, so there is no stable id to allow-list
+  if (origin.startsWith('moz-extension://')) {
+    return true;
+  }
+  return false;
+}
+
 export function useExternalGooglePickerState() {
   const searchParams = useSearchParams();
   const mode = searchParams?.get('mode') as 'file' | 'folder' | 'auth' | null;
@@ -44,34 +84,17 @@ export function useExternalGooglePickerState() {
   const hasStarted = useRef(false);
   const configRef = useRef<GoogleConfig | null>(null);
 
-  const isTrustedOrigin = (origin: string | undefined) => {
-    if (!origin) {
-      return false;
-    }
-    // Allow browser extension origins
-    if (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://')) {
-      return true;
-    }
-    // Allow HTTPS origins (canvas app may be on a different subdomain/origin than the landing page).
-    // Security is enforced by the nonce — only the opener that generated the nonce can match the callback.
-    // The openerOrigin is used as the targetOrigin for postMessage, scoping delivery to that window.
-    if (origin.startsWith('https://')) {
-      return true;
-    }
-    return false;
-  };
-
   const sendResultToOpener = useCallback(
     (params: Record<string, string>) => {
       console.log('[GOOGLE_PICKER] sendResultToOpener called', {
         nonce,
         openerOrigin,
-        isTrusted: isTrustedOrigin(openerOrigin || undefined),
+        isTrusted: isTrustedOpenerOrigin(openerOrigin),
         hasOpener: !!window.opener,
         params,
       });
 
-      if (!nonce || !openerOrigin || !isTrustedOrigin(openerOrigin)) {
+      if (!nonce || !openerOrigin || !isTrustedOpenerOrigin(openerOrigin)) {
         console.warn('[GOOGLE_PICKER] Bailing: missing nonce/origin or untrusted', { nonce, openerOrigin });
         return;
       }
