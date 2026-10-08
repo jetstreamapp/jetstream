@@ -70,7 +70,10 @@ routes.get('/heartbeat', async (req: express.Request, res: express.Response) => 
  * ************************************
  */
 routes.get('/me', userController.getUserProfile.controllerFn());
-routes.delete('/me', userController.deleteAccount.controllerFn());
+// Step-up (requireStepUpAuth) guards every route below that would let someone holding only a stolen or
+// unattended session turn it into lasting control of the account: deleting it, setting or removing the
+// password, and changing two-factor methods. Each purpose is consumed by exactly one action.
+routes.delete('/me', accountManagementRateLimit, requireStepUpAuth('DELETE_ACCOUNT'), userController.deleteAccount.controllerFn());
 routes.get('/me/profile', userController.getFullUserProfile.controllerFn());
 routes.post('/me/profile', userController.updateProfile.controllerFn());
 routes.delete('/me/profile/identity', userController.unlinkIdentity.controllerFn());
@@ -80,10 +83,21 @@ routes.delete('/me/profile/sessions', userController.revokeAllSessions.controlle
 /**
  * Password Management Routes
  */
-routes.post('/me/profile/password/init', userController.initPassword.controllerFn());
+routes.post(
+  '/me/profile/password/init',
+  accountManagementRateLimit,
+  requireStepUpAuth('MANAGE_PASSWORD'),
+  userController.initPassword.controllerFn(),
+);
+// The reset email only ever goes to the account's own address, so it needs no step-up
 routes.post('/me/profile/password/reset', passwordResetEmailRateLimit, userController.initResetPassword.controllerFn());
 // TODO: should we allow users to remove their password if they have social login?
-routes.delete('/me/profile/password', userController.deletePassword.controllerFn());
+routes.delete(
+  '/me/profile/password',
+  accountManagementRateLimit,
+  requireStepUpAuth('MANAGE_PASSWORD'),
+  userController.deletePassword.controllerFn(),
+);
 /**
  * Step-up (re)authentication Routes - proving identity again before a sensitive account change
  */
@@ -116,10 +130,29 @@ routes.delete('/me/profile/email-change', accountManagementRateLimit, emailChang
  * 2FA Routes
  */
 routes.get('/me/profile/login-configuration', userController.getUserLoginConfiguration.controllerFn());
-routes.get('/me/profile/2fa-otp', userController.getOtpQrCode.controllerFn());
-routes.post('/me/profile/2fa-otp', userController.saveOtpAuthFactor.controllerFn());
-routes.post('/me/profile/2fa/:type/:action', userController.toggleEnableDisableAuthFactor.controllerFn());
-routes.delete('/me/profile/2fa/:type', userController.deleteAuthFactor.controllerFn());
+// Identity is verified when the enrollment STARTS, not when the code is saved. The save is bound to the
+// secret minted here and held on the session (TOTP_ENROLLMENT_TTL_MINUTES), so nobody can save an
+// authenticator without having passed step-up moments before - and the code the user types is checked
+// right away, instead of after a re-authentication during which a 30-second code would expire.
+routes.post(
+  '/me/profile/2fa-otp/begin',
+  accountManagementRateLimit,
+  requireStepUpAuth('MANAGE_2FA'),
+  userController.beginOtpEnrollment.controllerFn(),
+);
+routes.post('/me/profile/2fa-otp', accountManagementRateLimit, userController.saveOtpAuthFactor.controllerFn());
+routes.post(
+  '/me/profile/2fa/:type/:action',
+  accountManagementRateLimit,
+  requireStepUpAuth('MANAGE_2FA'),
+  userController.toggleEnableDisableAuthFactor.controllerFn(),
+);
+routes.delete(
+  '/me/profile/2fa/:type',
+  accountManagementRateLimit,
+  requireStepUpAuth('MANAGE_2FA'),
+  userController.deleteAuthFactor.controllerFn(),
+);
 
 /**
  * ************************************

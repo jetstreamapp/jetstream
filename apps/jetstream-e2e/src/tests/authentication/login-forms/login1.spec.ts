@@ -57,6 +57,7 @@ test.describe('Login 1', () => {
       await authenticationPage.mfaEmailMenuButton.click();
       await page.getByRole('menuitem', { name: 'Disable' }).click();
       await page.getByRole('button', { name: 'Continue' }).click();
+      await authenticationPage.completeStepUpWithPassword(password);
       await expect(page.getByText("You don't have two-factor")).toBeVisible();
 
       await playwrightPage.logout();
