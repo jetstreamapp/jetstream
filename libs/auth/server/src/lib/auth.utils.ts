@@ -435,6 +435,14 @@ export function validateRedirectUrl(url: string | null | undefined, allowedOrigi
         return url;
       }
       const resolved = new URL(url, baseOrigin);
+      // Dot-segment removal can leave an empty first segment: "/.//evil.com", "/..//evil.com" and
+      // "/%2e%2e//evil.com" all resolve to the pathname "//evil.com", which a browser then treats as
+      // protocol-relative when it is re-emitted on its own. Only a path that still starts with a
+      // single "/" may be returned.
+      if (resolved.pathname.startsWith('//')) {
+        logger.warn({ url, pathname: resolved.pathname, allowedOrigins }, '[SECURITY] Protocol-relative redirect blocked');
+        return defaultUrl;
+      }
       if (allowedOrigins.some((allowedOrigin) => new URL(allowedOrigin).origin === resolved.origin)) {
         return `${resolved.pathname}${resolved.search}${resolved.hash}`;
       }

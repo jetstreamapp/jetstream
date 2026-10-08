@@ -370,6 +370,21 @@ describe('validateRedirectUrl', () => {
       expect(validateRedirectUrl('\\\\evil.com', allowedOrigins, defaultUrl)).toBe(defaultUrl);
     });
 
+    it('should block dot segments that normalize to a protocol-relative path', () => {
+      // WHATWG dot-segment removal leaves an empty first segment, so each of these parses to the pathname "//evil.com"
+      expect(validateRedirectUrl('/.//evil.com', allowedOrigins, defaultUrl)).toBe(defaultUrl);
+      expect(validateRedirectUrl('/..//evil.com', allowedOrigins, defaultUrl)).toBe(defaultUrl);
+      expect(validateRedirectUrl('/%2e%2e//evil.com', allowedOrigins, defaultUrl)).toBe(defaultUrl);
+      expect(validateRedirectUrl('/%2e//evil.com', allowedOrigins, defaultUrl)).toBe(defaultUrl);
+      expect(validateRedirectUrl('/foo/..//evil.com', allowedOrigins, defaultUrl)).toBe(defaultUrl);
+      expect(validateRedirectUrl('/.//evil.com/login?next=1', allowedOrigins, defaultUrl)).toBe(defaultUrl);
+    });
+
+    it('should keep dot segments that resolve to a path on the same origin', () => {
+      expect(validateRedirectUrl('/foo/../bar', allowedOrigins, defaultUrl)).toBe('/bar');
+      expect(validateRedirectUrl('/./dashboard', allowedOrigins, defaultUrl)).toBe('/dashboard');
+    });
+
     it('should block redirect candidates containing control characters or whitespace', () => {
       expect(validateRedirectUrl('/foo\tbar', allowedOrigins, defaultUrl)).toBe(defaultUrl);
       expect(validateRedirectUrl('/foo\nbar', allowedOrigins, defaultUrl)).toBe(defaultUrl);

@@ -593,7 +593,7 @@ const callback = createRoute(
             success: true,
           });
           const validatedReturnUrl = validateRedirectUrl(
-            returnUrl,
+            normalizeRedirectCandidate(returnUrl ?? undefined),
             [ENV.JETSTREAM_CLIENT_URL, ENV.JETSTREAM_SERVER_URL],
             `${ENV.JETSTREAM_CLIENT_URL}/profile`,
           );
@@ -720,7 +720,9 @@ const callback = createRoute(
           await sendWelcomeEmail(req.session.user.email);
         }
 
-        let redirectUrl = returnUrl || ENV.JETSTREAM_CLIENT_URL;
+        // Normalized like every other post-login candidate so a relative returnUrl becomes a same-origin
+        // absolute URL before validation, instead of being re-emitted as a path the browser resolves itself
+        let redirectUrl = normalizeRedirectCandidate(returnUrl ?? undefined) ?? ENV.JETSTREAM_CLIENT_URL;
 
         const redirectValue = cookies[redirectUrlCookie.name];
         if (!returnUrl && redirectValue) {
