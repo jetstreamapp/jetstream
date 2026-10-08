@@ -249,11 +249,22 @@ function getFieldValues(record: any, options: RecordToApexOptions): [string, Fie
         if (fieldMetadata[field] === 'time') {
           return [field, getTimeValue(record[field])];
         }
-        return [field, `'${record[field].replaceAll(`'`, `\\'`)}'`];
+        return [field, `'${escapeApexStringLiteral(record[field])}'`];
       } else {
         return [field, record[field] as FieldValue];
       }
     });
+}
+
+/**
+ * Escape a record value for use inside a single-quoted Apex string literal. Record values can come from
+ * outside the org (web-to-lead, email-to-case, community forms), so anything that could end the literal
+ * early has to be neutralized or the rest of the value would be emitted as Apex code.
+ *
+ * Backslashes are escaped first so the backslashes added for the other characters are not doubled again.
+ */
+function escapeApexStringLiteral(value: string): string {
+  return value.replaceAll('\\', '\\\\').replaceAll(`'`, `\\'`).replaceAll('\r', '\\r').replaceAll('\n', '\\n');
 }
 
 /**
@@ -267,11 +278,11 @@ function getDateOrDatetimeValue(value: string, isDatetime: boolean, replaceDateW
   if (isDatetime && replaceDateWithToday) {
     return `Datetime.now()`;
   } else if (isDatetime) {
-    return `(Datetime) JSON.deserialize('"${value}"', Datetime.class)`;
+    return `(Datetime) JSON.deserialize('"${escapeApexStringLiteral(value)}"', Datetime.class)`;
   } else if (replaceDateWithToday) {
     return `Date.today()`;
   }
-  return `(Date) JSON.deserialize('"${value}"', Date.class)`;
+  return `(Date) JSON.deserialize('"${escapeApexStringLiteral(value)}"', Date.class)`;
 }
 
 /**
@@ -285,9 +296,6 @@ function getTimeValue(value: string): string {
 
 function getFieldAsApex([field, value]: [string, FieldValue], variableName: string, options: RecordToApexOptions, isList = false): string {
   const { inline } = options;
-  if (isString(value)) {
-    value = value.replaceAll('\n', '\\n');
-  }
   if (inline) {
     return `${isList ? '' : getIndentation(options)}${field}${EQ_SPACE}${value}`;
   } else {

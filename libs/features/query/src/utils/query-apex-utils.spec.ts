@@ -203,6 +203,37 @@ describe('recordToApex', () => {
     expect(apex).toEqual(expected);
   });
 
+  it('should escape quotes so a value cannot end the Apex string literal', () => {
+    const apex = recordToApex({ Description: `\\'; delete [SELECT Id FROM Account]; //` }, { sobjectName: 'Lead', inline: false });
+    // Apex reads `\\` as one backslash and `\'` as one quote, so the literal only ends at the final quote
+    expect(apex).toEqual(`Lead lead = new Lead();\nlead.Description = '\\\\\\'; delete [SELECT Id FROM Account]; //';`);
+  });
+
+  it('should escape a plain quote', () => {
+    const apex = recordToApex({ Name: `O'Brien` }, { sobjectName: 'Contact' });
+    expect(apex).toEqual(`Contact contact = new Contact(\n  Name = 'O\\'Brien'\n);`);
+  });
+
+  it('should escape a backslash', () => {
+    const apex = recordToApex({ Path__c: `C:\\temp` }, { sobjectName: 'Account' });
+    expect(apex).toEqual(`Account account = new Account(\n  Path__c = 'C:\\\\temp'\n);`);
+  });
+
+  it('should keep a literal backslash followed by n distinct from a newline', () => {
+    const apex = recordToApex({ Notes__c: 'line1\\nstill line1\nline2\r\nline3' }, { sobjectName: 'Account' });
+    expect(apex).toEqual(`Account account = new Account(\n  Notes__c = 'line1\\\\nstill line1\\nline2\\r\\nline3'\n);`);
+  });
+
+  it('should escape quotes in date and datetime values', () => {
+    const apex = recordToApex(
+      { Date__c: `2021-05-28'); delete [SELECT Id FROM Account]; //` },
+      { sobjectName: 'Account', fieldMetadata: { Date__c: 'date' } },
+    );
+    expect(apex).toEqual(
+      `Account account = new Account(\n  Date__c = (Date) JSON.deserialize('"2021-05-28\\'); delete [SELECT Id FROM Account]; //"', Date.class)\n);`,
+    );
+  });
+
   it('should handle date and datetime when replaceDateWithToday is true', () => {
     const apex = recordToApex(record, {
       sobjectName: 'Account',
