@@ -116,11 +116,15 @@ const appHandler = createRoute(routeDefinition.appHandler.validators, async ({ b
      */
     if (_sfdc_canvas_auth === 'user_approval_required') {
       throwIfEnvNotConfigured();
-      loginUrl = `${decodeURIComponent(loginUrl || 'https://login.salesforce.com')}`;
+      // Express has already decoded the query string once, and the Canvas SDK in the browser decodes the
+      // page's `?loginUrl=` exactly once too. Decoding a second time here would validate a different string
+      // than the one the SDK ends up using, so an encoded `%2F` could pass the host check and still point
+      // the SDK somewhere else.
+      loginUrl = loginUrl || 'https://login.salesforce.com';
 
       // ensure valid host
       const url = new URL(loginUrl);
-      if (!url.hostname.endsWith('.salesforce.com')) {
+      if (url.protocol !== 'https:' || !url.hostname.endsWith('.salesforce.com')) {
         throw new Error('Invalid Salesforce login URL');
       }
 
@@ -132,6 +136,8 @@ const appHandler = createRoute(routeDefinition.appHandler.validators, async ({ b
       });
 
       envelope.loginParams = urlSearchParamsToJson(authorizationUrl.searchParams);
+      // The client opens this URL as-is rather than rebuilding it from the SDK's view of `?loginUrl=`
+      envelope.authorizationUrl = authorizationUrl.toString();
     } else if (signed_request) {
       // Verify and decode the signed request
       envelope = verifyAndDecodeAsJson(signed_request, clientSecret);

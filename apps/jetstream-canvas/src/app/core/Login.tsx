@@ -12,6 +12,35 @@ interface LoginProps {
   children: (props: {}) => React.ReactNode;
 }
 
+function isSalesforceLoginUrl(url: URL): boolean {
+  return url.protocol === 'https:' && url.hostname.endsWith('.salesforce.com');
+}
+
+/**
+ * The server validated the login host and built the complete authorization URL (`sr.authorizationUrl`),
+ * so the popup opens that. The SDK's `loginUrl()` is derived from this page's own `?loginUrl=` query
+ * parameter, which anyone linking to the page controls, so it is only a fallback for a server response
+ * that predates `authorizationUrl` - and either way nothing opens unless it points at Salesforce over https.
+ */
+function getAuthorizationUrl(loginParams: Record<string, string>): URL | null {
+  try {
+    if (window.sr.authorizationUrl) {
+      const url = new URL(window.sr.authorizationUrl);
+      return isSalesforceLoginUrl(url) ? url : null;
+    }
+    const url = new URL(Sfdc.canvas.oauth.loginUrl());
+    if (!isSalesforceLoginUrl(url)) {
+      return null;
+    }
+    Object.entries(loginParams).forEach(([key, value]) => {
+      url.searchParams.set(key, String(value));
+    });
+    return url;
+  } catch {
+    return null;
+  }
+}
+
 export function Login({ children }: LoginProps) {
   if (sr.client) {
     try {
@@ -48,11 +77,11 @@ export function Login({ children }: LoginProps) {
       return;
     }
     const strWindowFeatures = 'toolbar=no, menubar=no, width=1025, height=700';
-    const url = new URL(Sfdc.canvas.oauth.loginUrl());
-
-    Object.entries(loginParams).forEach(([key, value]) => {
-      url.searchParams.set(key, String(value));
-    });
+    const url = getAuthorizationUrl(loginParams);
+    if (!url) {
+      console.error('Refusing to open the Salesforce login popup: the login URL does not point at Salesforce');
+      return;
+    }
 
     window.removeEventListener('message', handleWindowEvent);
     windowRef = window.open(url, 'Salesforce Authentication', strWindowFeatures);

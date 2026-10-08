@@ -15,6 +15,11 @@ export interface SfdcCanvasSignedRequest {
    * Present only when OAuth login is required
    */
   loginParams?: Record<string, string>;
+  /**
+   * Present only when OAuth login is required. The complete Salesforce authorization URL, built and
+   * host-validated by the server, so the client never has to derive the login host from its own URL.
+   */
+  authorizationUrl?: string;
 }
 
 export interface SfdcCanvasSignedRequestClient {
