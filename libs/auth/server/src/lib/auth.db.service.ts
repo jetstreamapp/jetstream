@@ -80,6 +80,7 @@ import { ensureAuthError, lookupGeoLocationFromIpAddresses } from './auth.servic
 import { checkUserAgentSimilarity, hashPassword, REMEMBER_DEVICE_DAYS, timingSafeStringCompare, verifyPassword } from './auth.utils';
 import { isEmailDomainBlocked } from './blocked-email-domain.db.service';
 import { expirePendingEmailChangeRequests } from './email-change.db.service';
+import { notifySessionsRevoked } from './session-revocation';
 
 // This is potentially accessed multiple times in a transaction for a user, cache data to avoid DB access
 const LOGIN_CONFIGURATION_CACHE = new LRUCache<string, { value: LoginConfiguration | null }>({
@@ -678,6 +679,7 @@ export async function revokeTeamUserSession({ sessionId, teamId }: { teamId: str
   await prisma.sessions.delete({
     where: { sid: sessionId },
   });
+  notifySessionsRevoked({ type: 'session', sessionId });
 }
 
 export async function getUserWebExtensionSessions(userId: string, omitLocationData?: boolean): Promise<ExternalTokenSessionWithLocation[]> {
@@ -842,20 +844,28 @@ export async function revokeUserSession(userId: string, sessionId: string) {
       sid: sessionId,
     },
   });
+  notifySessionsRevoked({ type: 'session', sessionId });
 }
 
 export async function revokeExternalSession(userId: string, sessionId: string) {
   if (!userId || !sessionId) {
     throw new Error('Invalid parameters');
   }
+  const token = await prisma.webExtensionToken.findFirst({ select: { deviceId: true }, where: { id: sessionId, userId } });
   await prisma.webExtensionToken.deleteMany({
     where: { id: sessionId, userId },
   });
+  if (token) {
+    notifySessionsRevoked({ type: 'device', deviceId: token.deviceId });
+  }
 }
 
 /**
  * @param client pass a transaction client when revocation must be atomic with the credential change
- * that triggered it, so a partially-applied change can never leave a live session behind.
+ * that triggered it, so a partially-applied change can never leave a live session behind. The
+ * revocation is then NOT announced here - the rows are still visible until the transaction commits,
+ * so a disconnected client could reconnect and outlive the revocation - and the caller must call
+ * notifySessionsRevoked once the transaction has committed.
  */
 export async function revokeAllUserSessions(
   userId: string,
@@ -877,6 +887,9 @@ export async function revokeAllUserSessions(
   await client.webExtensionToken.deleteMany({
     where: { userId },
   });
+  if (client === prisma) {
+    notifySessionsRevoked({ type: 'user', userId, exceptSessionId: exceptId });
+  }
 }
 
 /**
@@ -1310,7 +1323,7 @@ export async function removeIdentityFromUser(
   providerAccountId: string,
   currentSessionId?: Maybe<string>,
 ): Promise<void> {
-  await prisma.$transaction(async (tx) => {
+  const revoked = await prisma.$transaction(async (tx) => {
     const { hasPasswordSet, identities } = await tx.user.findFirstOrThrow({
       where: { id: userId },
       select: {
@@ -1335,18 +1348,26 @@ export async function removeIdentityFromUser(
       },
     });
 
-    await tx.sessions.deleteMany({
-      where: {
-        userId: { equals: userId },
-        AND: [{ sess: { path: ['provider'], equals: provider } }, { sess: { path: ['providerAccountId'], equals: providerAccountId } }],
-        ...(currentSessionId ? { NOT: { sid: currentSessionId } } : {}),
-      },
-    });
+    const sessionsWhere = {
+      userId: { equals: userId },
+      AND: [{ sess: { path: ['provider'], equals: provider } }, { sess: { path: ['providerAccountId'], equals: providerAccountId } }],
+      ...(currentSessionId ? { NOT: { sid: currentSessionId } } : {}),
+    };
+    const tokensWhere = { userId, provider, providerAccountId };
+    // Read what is about to go so the sockets can be dropped once the transaction has committed
+    const [sessions, tokens] = await Promise.all([
+      tx.sessions.findMany({ select: { sid: true }, where: sessionsWhere }),
+      tx.webExtensionToken.findMany({ select: { deviceId: true }, where: tokensWhere }),
+    ]);
 
-    await tx.webExtensionToken.deleteMany({
-      where: { userId, provider, providerAccountId },
-    });
+    await tx.sessions.deleteMany({ where: sessionsWhere });
+    await tx.webExtensionToken.deleteMany({ where: tokensWhere });
+
+    return { sessionIds: sessions.map(({ sid }) => sid), deviceIds: tokens.map(({ deviceId }) => deviceId) };
   });
+
+  revoked.sessionIds.forEach((sessionId) => notifySessionsRevoked({ type: 'session', sessionId }));
+  revoked.deviceIds.forEach((deviceId) => notifySessionsRevoked({ type: 'device', deviceId }));
 }
 
 /**

@@ -81,6 +81,7 @@ import { z } from 'zod';
 import type { Request } from '../types/route.types';
 import { redirect, sendJson, setCsrfCookie } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
+import { disconnectSocketsForSession } from './socket.controller';
 
 /**
  * Normalize a post-login redirect candidate (from a cookie, query string, or SAML RelayState):
@@ -338,10 +339,12 @@ export const routeDefinition = {
 };
 
 const logout = createRoute(routeDefinition.logout.validators, async ({}, req, res) => {
+  const sessionId = req.session.id;
   req.session.destroy((err) => {
     if (err) {
       getLogger().error({ err }, '[AUTH][LOGOUT][ERROR] Error destroying session');
     }
+    disconnectSocketsForSession(sessionId);
     redirect(res, ENV.JETSTREAM_SERVER_URL);
   });
 });

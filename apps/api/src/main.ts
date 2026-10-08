@@ -11,7 +11,7 @@ import {
   requestContextMiddleware,
   sentryRequestContextMiddleware,
 } from '@jetstream/api-config';
-import { getSessionCookieName } from '@jetstream/auth/server';
+import { getSessionCookieName, onSessionsRevoked } from '@jetstream/auth/server';
 import '@jetstream/auth/types';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
 import { setupPrimary } from '@socket.io/cluster-adapter';
@@ -28,7 +28,12 @@ import { readFileSync } from 'node:fs';
 import http from 'node:http';
 import { cpus } from 'node:os';
 import { join, posix as pathPosix } from 'node:path';
-import { initSocketServer } from './app/controllers/socket.controller';
+import {
+  disconnectSocketsForDevice,
+  disconnectSocketsForSession,
+  disconnectSocketsForUser,
+  initSocketServer,
+} from './app/controllers/socket.controller';
 import {
   apiRoutes,
   authRoutes,
@@ -137,6 +142,22 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
 
   const app = express();
   const httpServer = initSocketServer(app, { sessionMiddleware });
+  // A socket belongs to a session, so wherever that session is revoked (profile page, team admin,
+  // password reset, email change, login-policy enforcement, member deactivation) its sockets go too;
+  // otherwise they keep receiving the user's events until the client happens to reconnect.
+  onSessionsRevoked((event) => {
+    switch (event.type) {
+      case 'session':
+        disconnectSocketsForSession(event.sessionId);
+        break;
+      case 'device':
+        disconnectSocketsForDevice(event.deviceId);
+        break;
+      case 'user':
+        disconnectSocketsForUser(event.userId, event.exceptSessionId);
+        break;
+    }
+  });
 
   if (environment.production) {
     app.set('trust proxy', 1); // required to resolve correct client ip and secure cookies when behind a proxy (like Render's load balancer)

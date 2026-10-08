@@ -14,6 +14,7 @@ import { EmailChangeNotAllowed, InvalidOrExpiredEmailChangeToken } from './auth.
 import { generateRandomString } from './auth.service';
 import { hashOpaqueToken, timingSafeStringCompare } from './auth.utils';
 import { isEmailDomainBlocked } from './blocked-email-domain.db.service';
+import { notifySessionsRevoked } from './session-revocation';
 
 export type EmailChangeStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED' | 'EXPIRED' | 'SUPERSEDED' | 'FAILED';
 export type EmailChangeResolvedVia = 'USER_PROFILE' | 'EMAIL_LINK' | 'SUPERSEDED' | 'EXPIRED_SWEEP';
@@ -423,12 +424,15 @@ export async function completeEmailChange({
       throw new InvalidOrExpiredEmailChangeToken(GENERIC_INVALID_TOKEN_MESSAGE);
     }
 
-    return { requestId: request.id, userId: user.id, oldEmail, newEmail };
+    return { requestId: request.id, userId: user.id, oldEmail, newEmail, exceptSessionId };
   });
 
   if (!result) {
     throw new InvalidOrExpiredEmailChangeToken(GENERIC_INVALID_TOKEN_MESSAGE);
   }
+  // The sessions were revoked inside the transaction, which deliberately does not announce it (see
+  // revokeAllUserSessions); now that it has committed the revoked sessions' sockets can be dropped
+  notifySessionsRevoked({ type: 'user', userId: result.userId, exceptSessionId: result.exceptSessionId });
   return result;
 }
 

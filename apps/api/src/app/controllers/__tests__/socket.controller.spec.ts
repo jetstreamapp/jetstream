@@ -34,7 +34,10 @@ vi.mock('@jetstream/api-config', () => ({
   getLogger: () => ({ trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
+const PLACEHOLDER_USER_ID = '00000000-0000-0000-0000-000000000000';
+
 vi.mock('@jetstream/auth/server', () => ({
+  PLACEHOLDER_USER_ID: '00000000-0000-0000-0000-000000000000',
   convertUserProfileToSession_External: vi.fn((userProfile) => ({ id: userProfile.id })),
 }));
 
@@ -177,6 +180,51 @@ describe('socket connection auth middleware', () => {
       const next = await runMiddleware(createSocket({ origin: 'http://localhost:4200' }));
 
       expect(next).toHaveBeenCalledWith(expect.objectContaining({ message: 'Forbidden origin' }));
+    });
+
+    /**
+     * A session that has a user but has not cleared every login gate holds only the first factor. It
+     * must be refused here for the same reasons checkAuth refuses it on HTTP routes, and with the same
+     * rule: any non-nullish pendingVerification counts as open, an empty array included.
+     */
+    describe('sessions that have not finished signing in', () => {
+      function createBrowserSocket(session: Record<string, unknown>) {
+        const socket = createSocket({ origin: 'https://app.test' });
+        socket.request.session = session;
+        return socket;
+      }
+
+      it.each([
+        ['an empty pendingVerification array', { user: { id: 'user-1' }, pendingVerification: [] }],
+        ['a pending second factor', { user: { id: 'user-1' }, pendingVerification: [{ type: '2fa-otp', exp: Date.now() + 60_000 }] }],
+        ['a pending authenticator enrollment', { user: { id: 'user-1' }, pendingMfaEnrollment: { factor: '2fa-otp' } }],
+        ['pending terms acceptance', { user: { id: 'user-1' }, pendingTosAcceptance: true }],
+        ['the placeholder user', { user: { id: PLACEHOLDER_USER_ID } }],
+      ])('rejects a session with %s', async (_name, session) => {
+        const next = await runMiddleware(createBrowserSocket(session));
+
+        expect(next).toHaveBeenCalledWith(expect.objectContaining({ message: 'Unauthorized' }));
+        expect(mocks.warn).toHaveBeenCalled();
+      });
+
+      it('allows a session that has completed sign in', async () => {
+        const next = await runMiddleware(
+          createBrowserSocket({
+            user: { id: 'user-1' },
+            pendingVerification: null,
+            pendingMfaEnrollment: undefined,
+            pendingTosAcceptance: undefined,
+          }),
+        );
+
+        expect(next).toHaveBeenCalledWith();
+      });
+
+      it('allows a session with no user, which joins no rooms', async () => {
+        const next = await runMiddleware(createBrowserSocket({}));
+
+        expect(next).toHaveBeenCalledWith();
+      });
     });
   });
 });

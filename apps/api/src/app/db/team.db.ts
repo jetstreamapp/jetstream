@@ -1,5 +1,5 @@
 import { logger, prisma } from '@jetstream/api-config';
-import { clearLoginConfigurationCacheItem, resolveSamlIdentifiers } from '@jetstream/auth/server';
+import { clearLoginConfigurationCacheItem, notifySessionsRevoked, resolveSamlIdentifiers } from '@jetstream/auth/server';
 import {
   LoginConfigurationWithCallbacks,
   LoginConfigurationWithCallbacksSchema,
@@ -684,6 +684,7 @@ export async function revokeSessionThatViolateLoginConfiguration({
   if (sessionsToRevoke.size > 0) {
     logger.info(`Revoking ${sessionsToRevoke.size} sessions for team ${teamId} that violate login configuration`);
     await prisma.sessions.deleteMany({ where: { sid: { in: Array.from(sessionsToRevoke) } } });
+    sessionsToRevoke.forEach((sessionId) => notifySessionsRevoked({ type: 'session', sessionId }));
   }
 
   return sessionsToRevoke.size;
