@@ -1613,7 +1613,9 @@ const getTeamAuditLogs = createRoute(routeDefinition.getTeamAuditLogs.validators
         ipAddress: record.ipAddress ?? '',
         metadata: record.metadata ? JSON.stringify(record.metadata) : '',
       })),
-      { header: true },
+      // Member display names (and anything in metadata) are user-chosen, so a cell starting with
+      // `=`, `+`, `-` or `@` would otherwise run as a formula when the admin opens the export
+      { header: true, escapeFormulae: true },
     );
 
     res.setHeader('Content-Type', 'text/csv');
