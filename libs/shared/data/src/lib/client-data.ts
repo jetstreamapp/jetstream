@@ -289,24 +289,32 @@ export async function getUserProfile(): Promise<UserProfileUi> {
   return handleRequest({ method: 'GET', url: '/api/me' }).then(unwrapResponseIgnoreCache);
 }
 
-export async function deleteUserProfile(reason?: string): Promise<void> {
-  return handleRequest({ method: 'DELETE', url: '/api/me', data: { reason } }).then(unwrapResponseIgnoreCache);
+/**
+ * Account-management calls that take a `stepUpNonce` (delete account, set/remove password, change 2FA
+ * methods) follow the same two-step shape as requestEmailChange: the nonce is omitted on the first
+ * attempt, the server responds 403 to ask for re-authentication, and the call is retried with the
+ * nonce that grant returns (see useStepUpAuth).
+ */
+export async function deleteUserProfile(reason?: string, stepUpNonce?: string): Promise<void> {
+  return handleRequest({ method: 'DELETE', url: '/api/me', data: { reason, stepUpNonce } }).then(unwrapResponseIgnoreCache);
 }
 
 export async function getFullUserProfile<T = UserProfileUiWithIdentities>(): Promise<T> {
   return handleRequest({ method: 'GET', url: '/api/me/profile' }).then(unwrapResponseIgnoreCache);
 }
 
-export async function initPassword(password: string): Promise<UserProfileUiWithIdentities> {
-  return handleRequest({ method: 'POST', url: '/api/me/profile/password/init', data: { password } }).then(unwrapResponseIgnoreCache);
+export async function initPassword(password: string, stepUpNonce?: string): Promise<UserProfileUiWithIdentities> {
+  return handleRequest({ method: 'POST', url: '/api/me/profile/password/init', data: { password, stepUpNonce } }).then(
+    unwrapResponseIgnoreCache,
+  );
 }
 
 export async function initResetPassword(): Promise<UserProfileUiWithIdentities> {
   return handleRequest({ method: 'POST', url: '/api/me/profile/password/reset' }).then(unwrapResponseIgnoreCache);
 }
 
-export async function removePassword(): Promise<UserProfileUiWithIdentities> {
-  return handleRequest({ method: 'DELETE', url: '/api/me/profile/password' }).then(unwrapResponseIgnoreCache);
+export async function removePassword(stepUpNonce?: string): Promise<UserProfileUiWithIdentities> {
+  return handleRequest({ method: 'DELETE', url: '/api/me/profile/password', data: { stepUpNonce } }).then(unwrapResponseIgnoreCache);
 }
 
 export async function updateUserProfile<T = UserProfileUiWithIdentities>(userProfile: {
@@ -371,8 +379,9 @@ export async function getLoginConfiguration(): Promise<LoginConfigurationUI | nu
   return handleRequest({ method: 'GET', url: '/api/me/profile/login-configuration' }).then(unwrapResponseIgnoreCache);
 }
 
-export async function getOtpQrCode(): Promise<OtpEnrollmentData> {
-  return handleRequest({ method: 'GET', url: '/api/me/profile/2fa-otp' }).then(unwrapResponseIgnoreCache);
+/** Starts an authenticator enrollment; this is the step that asks the user to verify their identity */
+export async function getOtpQrCode(stepUpNonce?: string): Promise<OtpEnrollmentData> {
+  return handleRequest({ method: 'POST', url: '/api/me/profile/2fa-otp/begin', data: { stepUpNonce } }).then(unwrapResponseIgnoreCache);
 }
 
 /** The secret is held on the server between these two calls, so only the code is submitted. */
@@ -383,12 +392,15 @@ export async function saveOtpAuthFactor(code: string): Promise<UserProfileAuthFa
 export async function toggleEnableDisableAuthFactor(
   type: TwoFactorTypeWithoutEmail,
   action: 'enable' | 'disable',
+  stepUpNonce?: string,
 ): Promise<UserProfileAuthFactor[]> {
-  return handleRequest({ method: 'POST', url: `/api/me/profile/2fa/${type}/${action}` }).then(unwrapResponseIgnoreCache);
+  return handleRequest({ method: 'POST', url: `/api/me/profile/2fa/${type}/${action}`, data: { stepUpNonce } }).then(
+    unwrapResponseIgnoreCache,
+  );
 }
 
-export async function deleteAuthFactor(type: TwoFactorTypeWithoutEmail): Promise<UserProfileAuthFactor[]> {
-  return handleRequest({ method: 'DELETE', url: `/api/me/profile/2fa/${type}` }).then(unwrapResponseIgnoreCache);
+export async function deleteAuthFactor(type: TwoFactorTypeWithoutEmail, stepUpNonce?: string): Promise<UserProfileAuthFactor[]> {
+  return handleRequest({ method: 'DELETE', url: `/api/me/profile/2fa/${type}`, data: { stepUpNonce } }).then(unwrapResponseIgnoreCache);
 }
 
 export async function unlinkIdentityFromProfile(identity: {

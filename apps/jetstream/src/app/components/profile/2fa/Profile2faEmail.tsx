@@ -1,9 +1,11 @@
 import { UserProfileAuthFactor } from '@jetstream/auth/types';
-import { toggleEnableDisableAuthFactor } from '@jetstream/shared/data';
+import { StepUpCancelledError, toggleEnableDisableAuthFactor } from '@jetstream/shared/data';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { DropDownItem } from '@jetstream/types';
 import { Badge, Card, ConfirmationModalPromise, DropDown, fireToast, Spinner } from '@jetstream/ui';
+import { useStepUpAuth } from '@jetstream/ui-core';
 import { FunctionComponent, useMemo, useState } from 'react';
+import { MANAGE_2FA_STEP_UP } from '../step-up-prompts';
 
 export interface Profile2faEmailProps {
   isEnabled: boolean;
@@ -14,6 +16,7 @@ export interface Profile2faEmailProps {
 
 export const Profile2faEmail: FunctionComponent<Profile2faEmailProps> = ({ isEnabled, canEnable, canDisabled, onUpdate }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const { runWithStepUp } = useStepUpAuth();
 
   async function handleMenuAction(action: string) {
     try {
@@ -24,13 +27,24 @@ export const Profile2faEmail: FunctionComponent<Profile2faEmailProps> = ({ isEna
           })
         ) {
           setIsLoading(true);
-          onUpdate(await toggleEnableDisableAuthFactor('2fa-email', 'disable'));
+          onUpdate(
+            await runWithStepUp(
+              ({ stepUpNonce }) => toggleEnableDisableAuthFactor('2fa-email', 'disable', stepUpNonce),
+              MANAGE_2FA_STEP_UP,
+            ),
+          );
         }
       } else if (action === 'enable') {
         setIsLoading(true);
-        onUpdate(await toggleEnableDisableAuthFactor('2fa-email', 'enable'));
+        onUpdate(
+          await runWithStepUp(({ stepUpNonce }) => toggleEnableDisableAuthFactor('2fa-email', 'enable', stepUpNonce), MANAGE_2FA_STEP_UP),
+        );
       }
     } catch (ex) {
+      // Dismissing the identity prompt is a deliberate choice, not an error to report
+      if (ex instanceof StepUpCancelledError) {
+        return;
+      }
       fireToast({ message: getErrorMessage(ex), type: 'error' });
     } finally {
       setIsLoading(false);

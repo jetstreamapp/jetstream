@@ -51,8 +51,9 @@ test.describe('Login 2', () => {
 
     await playwrightPage.goToProfile();
 
-    // Setup TOTP MFA
+    // Setup TOTP MFA - identity is verified when enrollment starts, before the secret is shown
     await page.getByRole('button', { name: 'Set Up' }).click();
+    await authenticationPage.completeStepUpWithPassword(password);
     const secret = await page.getByTestId('totp-secret').innerText();
 
     // attempt to save invalid token
@@ -78,14 +79,16 @@ test.describe('Login 2', () => {
 
     await playwrightPage.goToProfile();
 
-    // Disable all MFA
+    // Disable all MFA - each change is confirmed, then guarded by the identity prompt
     await authenticationPage.mfaTotpMenuButton.click();
     await page.getByRole('menuitem', { name: 'Disable' }).click();
     await page.getByRole('button', { name: 'Continue' }).click();
+    await authenticationPage.completeStepUpWithPassword(password);
 
     await authenticationPage.mfaEmailMenuButton.click();
     await page.getByRole('menuitem', { name: 'Disable' }).click();
     await page.getByRole('button', { name: 'Continue' }).click();
+    await authenticationPage.completeStepUpWithPassword(password);
 
     await expect(page.getByText("You don't have two-factor")).toBeVisible();
 
@@ -101,6 +104,7 @@ test.describe('Login 2', () => {
     await playwrightPage.goToProfile();
     await authenticationPage.mfaTotpMenuButton.click();
     await page.getByRole('menuitem', { name: 'Enable' }).click();
+    await authenticationPage.completeStepUpWithPassword(password);
     await expect(page.getByRole('heading', { name: 'Authenticator App Active' }).locator('span')).toBeVisible();
 
     await playwrightPage.logout();
@@ -114,6 +118,7 @@ test.describe('Login 2', () => {
     await authenticationPage.mfaTotpMenuButton.click();
     await page.getByRole('menuitem', { name: 'Delete' }).click();
     await page.getByRole('button', { name: 'Continue' }).click();
+    await authenticationPage.completeStepUpWithPassword(password);
 
     await expect(page.getByText("You don't have two-factor")).toBeVisible();
 

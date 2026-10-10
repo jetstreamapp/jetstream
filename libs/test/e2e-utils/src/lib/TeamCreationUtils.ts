@@ -59,7 +59,7 @@ export class TeamCreationUtils {
     const adminUser = await (async () => {
       const authPage = new AuthenticationPage(page);
       const user = await authPage.signUpAndVerifyEmail();
-      const otpSecret = await authPage.enrollInOtpForLoggedInUser();
+      const otpSecret = await authPage.enrollInOtpForLoggedInUser(user.password);
       return { user, otpSecret };
     })();
 
@@ -93,7 +93,7 @@ export class TeamCreationUtils {
       (async () => {
         const authPage = new AuthenticationPage(page);
         const user = await authPage.signUpAndVerifyEmail();
-        const otpSecret = await authPage.enrollInOtpForLoggedInUser();
+        const otpSecret = await authPage.enrollInOtpForLoggedInUser(user.password);
         return { user, otpSecret };
       })(),
       browser.newContext({ storageState: { cookies: [], origins: [] } }).then((context) => {
@@ -112,7 +112,7 @@ export class TeamCreationUtils {
           await page.goto('/');
           await authPage.acceptCookieBanner();
           const user = await authPage.signUpAndVerifyEmail();
-          const otpSecret = await authPage.enrollInOtpForLoggedInUser();
+          const otpSecret = await authPage.enrollInOtpForLoggedInUser(user.password);
           await page.close();
           return { user, context, otpSecret };
         });
@@ -123,7 +123,7 @@ export class TeamCreationUtils {
           await page.goto('/');
           await authPage.acceptCookieBanner();
           const user = await authPage.signUpAndVerifyEmail();
-          const otpSecret = await authPage.enrollInOtpForLoggedInUser();
+          const otpSecret = await authPage.enrollInOtpForLoggedInUser(user.password);
           await page.close();
           return { user, context, otpSecret };
         });
