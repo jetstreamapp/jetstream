@@ -15,7 +15,7 @@
   "name": "jetstream-for-salesforce",
   "namespace": "jetstream",
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "67.0",
+  "sourceApiVersion": "68.0",
   "replacements": [
     {
       "filename": "main/default/extlClntAppCanvasSettings/Jetstream_Canvas_canvasSettings.ecaCanvas-meta.xml",
