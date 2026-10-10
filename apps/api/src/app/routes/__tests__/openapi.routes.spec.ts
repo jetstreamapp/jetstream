@@ -58,7 +58,6 @@ describe('getOpenApiSpec', () => {
       '/web-extension/feedback': ['post'],
       '/canvas/app': ['get', 'post'],
       '/canvas/callback': ['get', 'post'],
-      '/platform-event': ['get', 'post'],
       '/webhook/stripe': ['post'],
       '/webhook/mailgun': ['post'],
       '/socket.io/': ['get', 'post'],
@@ -77,11 +76,60 @@ describe('getOpenApiSpec', () => {
     expect(paths['/webhook/mailgun']?.post?.parameters ?? []).toEqual([]);
   });
 
-  it('documents the SAML ACS as a form post with a SAMLResponse body', () => {
+  it('documents the SAML ACS as a form post that requires a SAMLResponse', () => {
     const operation = getOpenApiSpec().paths?.['/api/auth/sso/saml/{teamId}/acs']?.post;
+    const content = operation?.requestBody && 'content' in operation.requestBody ? operation.requestBody.content : {};
+    const mediaType = content['application/x-www-form-urlencoded'];
+    const schema = (mediaType && 'schema' in mediaType ? mediaType.schema : undefined) as
+      | { properties?: object; required?: string[] }
+      | undefined;
 
-    expect(Object.keys(operation?.requestBody && 'content' in operation.requestBody ? operation.requestBody.content : {})).toEqual([
-      'application/x-www-form-urlencoded',
-    ]);
+    expect(Object.keys(content)).toEqual(['application/x-www-form-urlencoded']);
+    expect(Object.keys(schema?.properties ?? {})).toContain('SAMLResponse');
+    expect(schema?.required).toContain('SAMLResponse');
+  });
+
+  it('documents every method and a path suffix for the platform event proxy', () => {
+    const { paths = {} } = getOpenApiSpec();
+
+    for (const path of ['/platform-event', '/platform-event/{path}']) {
+      expect(Object.keys(paths[path] ?? {}), path).toEqual(expect.arrayContaining(['get', 'post', 'put', 'patch', 'delete']));
+    }
+  });
+
+  it('documents the source org on the platform event proxy as a header or query param, without a CSRF header', () => {
+    const operation = getOpenApiSpec().paths?.['/platform-event']?.post;
+    const parameters = (operation?.parameters ?? []).filter((param) => 'in' in param);
+    const names = (location: string) => parameters.filter((param) => param.in === location).map((param) => 'name' in param && param.name);
+
+    expect(names('header')).toEqual(['X-SFDC-ID', 'X-SFDC-API-VERSION']);
+    expect(names('query')).toEqual(['X-SFDC-ID', 'X-SFDC-API-VERSION']);
+  });
+
+  it('does not document a CSRF header on routes that never check one', () => {
+    const { paths = {} } = getOpenApiSpec();
+    const operations = [
+      paths['/api/auth/sso/saml/{teamId}/acs']?.post,
+      paths['/canvas/app']?.get,
+      paths['/canvas/app']?.post,
+      paths['/canvas/callback']?.get,
+      paths['/canvas/callback']?.post,
+      paths['/platform-event']?.post,
+      paths['/webhook/stripe']?.post,
+    ];
+
+    for (const operation of operations) {
+      const headerNames = (operation?.parameters ?? []).map((param) => 'name' in param && param.name);
+      expect(headerNames.some((name) => typeof name === 'string' && /csrf/i.test(name))).toBe(false);
+    }
+  });
+
+  it('requires a sid and the polling transport for Engine.IO writes', () => {
+    const parameters = getOpenApiSpec().paths?.['/socket.io/']?.post?.parameters ?? [];
+    const sid = parameters.find((param) => 'name' in param && param.name === 'sid');
+    const transport = parameters.find((param) => 'name' in param && param.name === 'transport');
+
+    expect(sid && 'required' in sid && sid.required).toBe(true);
+    expect(transport && 'schema' in transport && transport.schema).toMatchObject({ const: 'polling' });
   });
 });

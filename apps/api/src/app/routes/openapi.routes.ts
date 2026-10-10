@@ -3,7 +3,13 @@ import { HTTP } from '@jetstream/shared/constants';
 import express, { Router } from 'express';
 import { dump as stringifyYaml } from 'js-yaml';
 import z, { ZodObject } from 'zod';
-import { createDocument, ZodOpenApiOperationObject, ZodOpenApiParameters, ZodOpenApiResponsesObject } from 'zod-openapi';
+import {
+  createDocument,
+  ZodOpenApiOperationObject,
+  ZodOpenApiParameters,
+  ZodOpenApiPathItemObject,
+  ZodOpenApiResponsesObject,
+} from 'zod-openapi';
 import { routeDefinition as authController } from '../controllers/auth.controller';
 import { routeDefinition as billingController } from '../controllers/billing.controller';
 import { routeDefinition as canvasOrgController } from '../controllers/canvas-org.controller';
@@ -128,13 +134,57 @@ const platformEventQuery = z.object({
 const socketIoQuery = z.object({
   EIO: z.string().meta({ description: 'Engine.IO protocol version, 4' }),
   transport: z.enum(['polling', 'websocket']),
-  sid: z.string().optional().meta({ description: 'Session id returned by the handshake, required after it' }),
+  sid: z.string().optional().meta({ description: 'Session id returned by the handshake. Omit on the first request.' }),
 });
+
+/** Writes only exist on the polling transport and always belong to an established session */
+const socketIoPollingPostQuery = socketIoQuery.extend({
+  transport: z.literal('polling'),
+  sid: z.string().meta({ description: 'Session id returned by the handshake' }),
+});
+
+const cometdMessages = z.array(z.object({ channel: z.string() }).loose());
+
+/**
+ * The CometD proxy is mounted with router.use, so every method and any path suffix reaches it. The
+ * client only posts to the root path, but both forms are documented so OpenAPI-driven tools exercise them.
+ * It has no CSRF check (an Origin allowlist stands in for it), so unlike getRequest it takes no CSRF header.
+ */
+function getPlatformEventProxyPathItem(hasPathSuffix: boolean): ZodOpenApiPathItemObject {
+  const requestParams: ZodOpenApiParameters = {
+    header: z.object({
+      [HTTP.HEADERS.X_SFDC_ID]: z
+        .string()
+        .optional()
+        .meta({ description: 'Salesforce org unique id. Required as this header or the query parameter.' }),
+      [HTTP.HEADERS.X_SFDC_API_VERSION]: z.string().optional(),
+    }),
+    query: platformEventQuery,
+  };
+  if (hasPathSuffix) {
+    requestParams.path = z.object({ path: z.string().meta({ description: 'Any suffix, which may contain slashes' }) });
+  }
+
+  const operation: ZodOpenApiOperationObject = {
+    tags: ['platformEvent'],
+    summary:
+      'Streams the request to /cometd/{apiVersion} on the org instance with its access token and streams the response back. Requires a session and a Salesforce org that belongs to the user. When an Origin header is sent it must match the app origin. Any method and path suffix is proxied; the CometD client posts message batches (handshake, connect, subscribe, ...) to the root path.',
+    requestParams,
+    responses,
+  };
+  const operationWithBody: ZodOpenApiOperationObject = {
+    ...operation,
+    requestBody: { content: { 'application/json': { schema: cometdMessages } } },
+  };
+
+  return { get: operation, delete: operation, post: operationWithBody, put: operationWithBody, patch: operationWithBody };
+}
 
 function getRequest({
   tags,
   hasSourceOrg = true,
   hasTargetOrg = false,
+  hasCsrfHeader = true,
   body,
   params,
   query,
@@ -145,6 +195,8 @@ function getRequest({
   tags: string[];
   hasSourceOrg?: boolean;
   hasTargetOrg?: boolean;
+  /** Set to false for routes that never check a CSRF token (webhooks, proxies, cross-site IdP and Salesforce callbacks) */
+  hasCsrfHeader?: boolean;
   body?: z.ZodTypeAny;
   params?: z.ZodTypeAny;
   query?: z.ZodTypeAny;
@@ -152,15 +204,16 @@ function getRequest({
   responseType?: z.ZodTypeAny;
   responseContentType?: string;
 }): ZodOpenApiOperationObject {
-  const header: Record<string, unknown> = {
-    [HTTP.HEADERS.X_CSRF_TOKEN]: z
+  const header: Record<string, unknown> = {};
+  if (hasCsrfHeader) {
+    header[HTTP.HEADERS.X_CSRF_TOKEN] = z
       .string()
       .optional()
       .meta({
         description: 'CSRF Token for non-get requests. Auth routes include this in the body instead of a header.',
         param: { required: false },
-      }),
-  };
+      });
+  }
   if (hasSourceOrg) {
     header[HTTP.HEADERS.X_SFDC_ID] = z.string().meta({ description: 'Salesforce Org ID' });
     header[HTTP.HEADERS.X_SFDC_API_VERSION] = z.string().optional().meta({ description: 'Example' });
@@ -370,6 +423,7 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
           ...getRequest({
             ...authController.handleSamlCallback.validators,
             tags: ['sso'],
+            hasCsrfHeader: false,
             contentType: 'application/x-www-form-urlencoded',
           }),
           summary:
@@ -927,6 +981,7 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
           ...getRequest({
             ...canvasController.appHandler.validators,
             tags: ['canvas'],
+            hasCsrfHeader: false,
             body: undefined,
             query: canvasAppQuery,
             responseType: z.string(),
@@ -939,6 +994,7 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
           ...getRequest({
             ...canvasController.appHandler.validators,
             tags: ['canvas'],
+            hasCsrfHeader: false,
             body: z.object({ signed_request: z.string().optional() }),
             query: canvasAppQuery,
             contentType: 'application/x-www-form-urlencoded',
@@ -951,35 +1007,31 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
       },
       '/canvas/callback': {
         get: {
-          ...getRequest({ ...canvasController.callbackHandler.validators, tags: ['canvas'], query: canvasCallbackQuery }),
+          ...getRequest({
+            ...canvasController.callbackHandler.validators,
+            tags: ['canvas'],
+            hasCsrfHeader: false,
+            query: canvasCallbackQuery,
+          }),
           summary:
             'Canvas OAuth redirect URI, used when a user is not pre-authorized. Completes the authorization-code exchange and redirects to /canvas-auth/ with success or error query params.',
           responses: redirectResponses,
         },
         post: {
-          ...getRequest({ ...canvasController.callbackHandler.validators, tags: ['canvas'], query: canvasCallbackQuery }),
+          ...getRequest({
+            ...canvasController.callbackHandler.validators,
+            tags: ['canvas'],
+            hasCsrfHeader: false,
+            query: canvasCallbackQuery,
+          }),
           summary: 'Same handler as the GET callback.',
           responses: redirectResponses,
         },
       },
 
       // Platform Event proxy (prefix: /platform-event) - cookie session, outside /api so there is no CSRF token check
-      '/platform-event': {
-        post: {
-          ...getRequest({
-            hasSourceOrg: false,
-            query: platformEventQuery,
-            body: z.array(z.object({ channel: z.string() }).loose()),
-            tags: ['platformEvent'],
-          }),
-          summary:
-            'CometD message batch (handshake, connect, subscribe, ...) streamed to the org with its access token and the response streamed back. Requires a session and a Salesforce org that belongs to the user, passed as the X-SFDC-ID query param or header. When an Origin header is sent it must match the app origin. The route proxies any path suffix and method to /cometd/{apiVersion} on the org instance.',
-        },
-        get: {
-          ...getRequest({ hasSourceOrg: false, query: platformEventQuery, tags: ['platformEvent'] }),
-          summary: 'Same proxy as the POST, for CometD transports that use GET.',
-        },
-      },
+      '/platform-event': getPlatformEventProxyPathItem(false),
+      '/platform-event/{path}': getPlatformEventProxyPathItem(true),
 
       // Webhooks (prefix: /webhook) - raw JSON body, authenticated by the sender signature, no session or CSRF token
       '/webhook/stripe': {
@@ -1029,8 +1081,8 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
         },
         post: {
           tags: ['socket'],
-          summary: 'Engine.IO long-polling write for an established sid.',
-          requestParams: { query: socketIoQuery },
+          summary: 'Engine.IO long-polling write for an established sid. WebSocket messages travel on the upgraded connection instead.',
+          requestParams: { query: socketIoPollingPostQuery },
           responses,
         },
       },
