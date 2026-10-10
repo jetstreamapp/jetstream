@@ -6,6 +6,8 @@ import z, { ZodObject } from 'zod';
 import { createDocument, ZodOpenApiOperationObject, ZodOpenApiParameters, ZodOpenApiResponsesObject } from 'zod-openapi';
 import { routeDefinition as authController } from '../controllers/auth.controller';
 import { routeDefinition as billingController } from '../controllers/billing.controller';
+import { routeDefinition as canvasOrgController } from '../controllers/canvas-org.controller';
+import { routeDefinition as canvasController } from '../controllers/canvas.controller';
 import { routeDefinition as dataSyncController } from '../controllers/data-sync.controller';
 import { routeDefinition as desktopController } from '../controllers/desktop-app.controller';
 import { routeDefinition as emailChangeController } from '../controllers/email-change.controller';
@@ -77,6 +79,57 @@ const responses: ZodOpenApiResponsesObject = {
   404: { description: 'Not Found' },
   500: { description: 'Internal Server Error' },
 };
+
+/** For routes that complete by redirecting the browser rather than returning a body */
+const redirectResponses: ZodOpenApiResponsesObject = {
+  ...responses,
+  302: { description: 'Redirect' },
+};
+
+/** Multipart form fields for feedback, which is submitted the same way from every platform */
+const feedbackRequestBody = z.object({
+  message: z.string().min(1).max(5000),
+  type: z.enum(['bug', 'feature', 'other', 'testimonial']).optional(),
+  url: z.string().optional(),
+  language: z.string().optional(),
+  clientVersion: z.string().optional(),
+  canFeatureTestimonial: z.enum(['true', 'false']).optional(),
+  filenames: z.array(z.string()).optional(),
+  screenshots: z
+    .array(z.string().meta({ format: 'binary' }))
+    .max(5)
+    .optional()
+    .meta({ description: 'Image files (png, jpeg or gif, up to 10MB each). Repeat the field for each file.' }),
+});
+
+const canvasAppQuery = z.object({
+  _sfdc_canvas_auth: z
+    .string()
+    .optional()
+    .meta({ description: 'user_approval_required starts the OAuth flow for users who are not pre-authorized' }),
+  loginUrl: z.string().optional(),
+});
+
+const canvasCallbackQuery = z.object({
+  code: z.string().optional(),
+  state: z.string().optional(),
+  error: z.string().optional(),
+  error_description: z.string().optional(),
+});
+
+const platformEventQuery = z.object({
+  [HTTP.HEADERS.X_SFDC_ID]: z
+    .string()
+    .optional()
+    .meta({ description: 'Salesforce org unique id (the header of the same name is also accepted)' }),
+  [HTTP.HEADERS.X_SFDC_API_VERSION]: z.string().optional(),
+});
+
+const socketIoQuery = z.object({
+  EIO: z.string().meta({ description: 'Engine.IO protocol version, 4' }),
+  transport: z.enum(['polling', 'websocket']),
+  sid: z.string().optional().meta({ description: 'Session id returned by the handshake, required after it' }),
+});
 
 function getRequest({
   tags,
@@ -170,11 +223,17 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
     tags: [
       { description: 'Jetstream Authentication', name: 'auth' },
       { description: 'Jetstream Billing and subscription', name: 'billing' },
+      { description: 'Salesforce Canvas app entry points and authorized orgs', name: 'canvas' },
       { description: 'Jetstream Data synchronization', name: 'dataSync' },
+      { description: 'Jetstream user feedback submissions', name: 'feedback' },
       { description: 'Jetstream Organizations', name: 'jetstreamOrganizations' },
       { description: 'Jetstream Redirect', name: 'redirect' },
+      { description: 'Salesforce Platform Event (CometD) proxy', name: 'platformEvent' },
+      { description: 'Socket.IO real-time transport', name: 'socket' },
+      { description: 'Jetstream Single Sign-On (SAML and OIDC) login, team configuration and domain verification', name: 'sso' },
       { description: 'Jetstream Teams', name: 'team' },
       { description: 'Jetstream Users', name: 'user' },
+      { description: 'Inbound webhooks from third-party services (signature verified, no session)', name: 'webhook' },
       { description: 'Salesforce API Requests', name: 'salesforceApiReq' },
       { description: 'Salesforce Bulk API 2.0', name: 'bulkQuery20Api' },
       { description: 'Salesforce Bulk API', name: 'bulkApi' },
@@ -291,6 +350,72 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
         post: { ...getRequest({ ...emailChangeController.cancelEmailChangeByTokenRoute.validators, tags: ['auth'] }) },
       },
 
+      // SSO Login Flow (prefix: /api/auth/sso) - all unauthenticated
+      '/api/auth/sso/discover': {
+        post: {
+          ...getRequest({ ...authController.discoverSso.validators, tags: ['sso'] }),
+          summary:
+            'Check whether the email domain has SSO enabled. Returns { data: { available: boolean } }. csrfToken comes from /api/auth/csrf.',
+        },
+      },
+      '/api/auth/sso/start': {
+        post: {
+          ...getRequest({ ...authController.startSso.validators, tags: ['sso'] }),
+          summary:
+            'Begin an SSO login for the email domain. Returns { data: { redirectUrl } } for the identity provider. For OIDC the state, PKCE and nonce cookies are set. returnUrl is carried through the login (cookie for OIDC, RelayState for SAML) and validated against the app origin when the login completes.',
+        },
+      },
+      '/api/auth/sso/saml/{teamId}/acs': {
+        post: {
+          ...getRequest({
+            ...authController.handleSamlCallback.validators,
+            tags: ['sso'],
+            contentType: 'application/x-www-form-urlencoded',
+          }),
+          summary:
+            'SAML Assertion Consumer Service. The identity provider form-POSTs the SAMLResponse here; it is validated against the team SAML configuration, then the session is created and the browser is redirected. No CSRF token, the IdP posts cross-site.',
+          responses: redirectResponses,
+        },
+      },
+      '/api/auth/sso/saml/{teamId}/metadata': {
+        get: {
+          ...getRequest({
+            ...authController.getSamlMetadata.validators,
+            tags: ['sso'],
+            responseType: z.string(),
+            responseContentType: 'application/xml',
+          }),
+          summary: 'Service provider SAML metadata XML for the team. Returns a placeholder document if SAML is not configured yet.',
+        },
+      },
+      '/api/auth/sso/oidc/{teamId}/initiate': {
+        get: {
+          ...getRequest({ ...authController.initiateOidcLogin.validators, tags: ['sso'] }),
+          summary:
+            'IdP-initiated entry point (e.g. an Okta tile). Starts a service-provider-initiated OIDC flow for the team: sets the state, PKCE and nonce cookies and redirects to the identity provider.',
+          responses: redirectResponses,
+        },
+      },
+      '/api/auth/sso/oidc/{teamId}/callback': {
+        get: {
+          ...getRequest({
+            ...authController.handleOidcCallback.validators,
+            // The route accepts any query params (z.looseObject) so they pass through to the code exchange,
+            // but OpenAPI query params must be named fields, so document the ones the identity provider sends
+            query: z.object({
+              code: z.string().optional(),
+              state: z.string().optional(),
+              error: z.string().optional(),
+              error_description: z.string().optional(),
+            }),
+            tags: ['sso'],
+          }),
+          summary:
+            'OIDC redirect URI. Exchanges the authorization code (state, PKCE verifier and nonce are read from the cookies set at the start of the flow), then the session is created and the browser is redirected.',
+          responses: redirectResponses,
+        },
+      },
+
       // User Controller Routes (prefix: /api)
       '/api/me': {
         get: { ...getRequest({ ...userController.getUserProfile.validators, tags: ['user'] }) },
@@ -390,6 +515,28 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
         },
         delete: {
           ...getRequest({ ...jetstreamOrganizationsController.deleteOrganization.validators, tags: ['jetstreamOrganizations'] }),
+        },
+      },
+
+      // Canvas Org Routes (prefix: /api) - personal authorized orgs, requires the salesforceCanvas entitlement
+      '/api/canvas-orgs': {
+        get: {
+          ...getRequest({ ...canvasOrgController.getCanvasOrgs.validators, tags: ['canvas'] }),
+          summary: 'List the Salesforce orgs the user has authorized to open the Canvas app. Refused when the user is on an active team.',
+        },
+        post: {
+          ...getRequest({ ...canvasOrgController.createCanvasOrg.validators, tags: ['canvas'] }),
+          summary: 'Authorize a Salesforce org for the Canvas app. Refused when the user is on an active team.',
+        },
+      },
+      '/api/canvas-orgs/{id}': {
+        patch: {
+          ...getRequest({ ...canvasOrgController.updateCanvasOrg.validators, tags: ['canvas'] }),
+          summary: 'Update an authorized Canvas org. Refused when the user is on an active team.',
+        },
+        delete: {
+          ...getRequest({ ...canvasOrgController.deleteCanvasOrg.validators, tags: ['canvas'] }),
+          summary: 'Remove an authorized Canvas org. Refused when the user is on an active team.',
         },
       },
 
@@ -536,6 +683,15 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
         get: { ...getRequest({ ...salesforceApiReqController.getSalesforceApiRequests.validators, tags: ['salesforceApiReq'] }) },
       },
 
+      // Feedback (prefix: /api)
+      '/api/feedback': {
+        post: {
+          ...getRequest({ body: feedbackRequestBody, hasSourceOrg: false, contentType: 'multipart/form-data', tags: ['feedback'] }),
+          summary:
+            'Submit feedback with up to 5 screenshots, which is emailed to the Jetstream team. Rate limited per user (5 per 15 minutes). The desktop app and web extension use /desktop-app/feedback and /web-extension/feedback.',
+        },
+      },
+
       // OAuth Controller Routes (prefix: /oauth)
       '/oauth/sfdc/auth': {
         get: { ...getRequest({ ...oauthController.salesforceOauthInitAuth.validators, tags: ['oauth'] }) },
@@ -609,6 +765,99 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
         delete: { ...getRequest({ ...teamController.cancelInvitation.validators, tags: ['team'] }) },
       },
 
+      // Team SSO Configuration Routes (prefix: /api/teams)
+      '/api/teams/{teamId}/sso/config': {
+        get: {
+          ...getRequest({ ...teamController.getSsoConfig.validators, tags: ['sso'] }),
+          summary: 'Get the team SSO configuration (SAML and OIDC) with secrets masked. Team roles: ADMIN, BILLING.',
+        },
+      },
+      '/api/teams/{teamId}/sso/saml/parse-metadata': {
+        post: {
+          ...getRequest({ ...teamController.parseSamlMetadata.validators, tags: ['sso'] }),
+          summary:
+            'Parse identity provider SAML metadata supplied as XML or fetched server-side from a URL. Returns the extracted IdP settings without saving. Team roles: ADMIN.',
+        },
+      },
+      '/api/teams/{teamId}/sso/saml/config': {
+        post: {
+          ...getRequest({ ...teamController.createOrUpdateSamlConfig.validators, tags: ['sso'] }),
+          summary: 'Create or update the SAML configuration. Requires at least one verified domain. Team roles: ADMIN.',
+        },
+        delete: {
+          ...getRequest({ ...teamController.deleteSamlConfig.validators, tags: ['sso'] }),
+          summary: 'Delete the SAML configuration. Team roles: ADMIN.',
+        },
+      },
+      '/api/teams/{teamId}/sso/oidc/config': {
+        post: {
+          ...getRequest({ ...teamController.createOrUpdateOidcConfig.validators, tags: ['sso'] }),
+          summary:
+            'Create or update the OIDC configuration. Only the issuer is needed, the endpoints are discovered server-side from the issuer. Requires at least one verified domain. Team roles: ADMIN.',
+        },
+        delete: {
+          ...getRequest({ ...teamController.deleteOidcConfig.validators, tags: ['sso'] }),
+          summary: 'Delete the OIDC configuration. Team roles: ADMIN.',
+        },
+      },
+      '/api/teams/{teamId}/sso/settings': {
+        put: {
+          ...getRequest({ ...teamController.updateSsoSettings.validators, tags: ['sso'] }),
+          summary: 'Enable or disable SSO, JIT provisioning and the SSO bypass (and which roles may bypass). Team roles: ADMIN.',
+        },
+      },
+      '/api/teams/{teamId}/domain-verification': {
+        get: {
+          ...getRequest({ ...teamController.getDomainVerifications.validators, tags: ['sso'] }),
+          summary: 'List the domains claimed by the team and their verification status. Team roles: ADMIN, BILLING.',
+        },
+        post: {
+          ...getRequest({ ...teamController.saveDomainVerification.validators, tags: ['sso'] }),
+          summary:
+            'Claim a domain and get the verification code. Ownership is proven with a DNS TXT record (apex or _jetstream. subdomain) or a file at https://{domain}/.well-known/jetstream-verification.txt. Public email provider domains are rejected. Team roles: ADMIN.',
+        },
+      },
+      '/api/teams/{teamId}/domain-verification/{domainId}/verify': {
+        post: {
+          ...getRequest({ ...teamController.verifyDomain.validators, tags: ['sso'] }),
+          summary: 'Check the DNS record or hosted file for the claimed domain and mark it verified. Team roles: ADMIN.',
+        },
+      },
+      '/api/teams/{teamId}/domain-verification/{domainId}': {
+        delete: {
+          ...getRequest({ ...teamController.deleteDomainVerification.validators, tags: ['sso'] }),
+          summary: 'Remove a claimed domain. Team roles: ADMIN.',
+        },
+      },
+
+      // Team Audit Logs and Canvas Orgs (prefix: /api/teams)
+      '/api/teams/{teamId}/audit-logs': {
+        get: {
+          ...getRequest({ ...teamController.getTeamAuditLogs.validators, tags: ['team'] }),
+          summary: 'Page through the team audit log, newest first (cursorId pages, limit is 1-100). Team roles: ADMIN.',
+        },
+      },
+      '/api/teams/{teamId}/canvas-orgs': {
+        get: {
+          ...getRequest({ ...teamController.getCanvasOrgs.validators, tags: ['canvas'] }),
+          summary: 'List the Salesforce orgs the team has authorized to open the Canvas app. Team roles: ADMIN, BILLING.',
+        },
+        post: {
+          ...getRequest({ ...teamController.createCanvasOrg.validators, tags: ['canvas'] }),
+          summary: 'Authorize a Salesforce org for the Canvas app on behalf of the team. Team roles: ADMIN.',
+        },
+      },
+      '/api/teams/{teamId}/canvas-orgs/{id}': {
+        patch: {
+          ...getRequest({ ...teamController.updateCanvasOrg.validators, tags: ['canvas'] }),
+          summary: 'Update a team authorized Canvas org. Team roles: ADMIN.',
+        },
+        delete: {
+          ...getRequest({ ...teamController.deleteCanvasOrg.validators, tags: ['canvas'] }),
+          summary: 'Remove a team authorized Canvas org. Team roles: ADMIN.',
+        },
+      },
+
       // Billing Controller Routes (prefix: /api/billing)
       '/api/billing/checkout-session': {
         post: { ...getRequest({ ...billingController.createCheckoutSession.validators, tags: ['billing'] }) },
@@ -642,6 +891,12 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
       '/desktop-app/v1/notifications': {
         get: { ...getRequest({ ...desktopController.notifications.validators, tags: ['desktop'] }) },
       },
+      '/desktop-app/feedback': {
+        post: {
+          ...getRequest({ body: feedbackRequestBody, hasSourceOrg: false, contentType: 'multipart/form-data', tags: ['desktop'] }),
+          summary: 'Submit feedback from the desktop app. Authenticated with the desktop bearer token. Rate limited per user.',
+        },
+      },
 
       // Web Extension Controller Routes (prefix: /web-extension)
       '/web-extension/auth/session': {
@@ -658,6 +913,126 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
       },
       '/web-extension/data-sync/push': {
         post: { ...getRequest({ ...webExtensionController.dataSyncPush.validators, tags: ['webExtension'] }) },
+      },
+      '/web-extension/feedback': {
+        post: {
+          ...getRequest({ body: feedbackRequestBody, hasSourceOrg: false, contentType: 'multipart/form-data', tags: ['webExtension'] }),
+          summary: 'Submit feedback from the web extension. Authenticated with the extension bearer token. Rate limited per user.',
+        },
+      },
+
+      // Canvas App (prefix: /canvas) - framed by Salesforce, authenticated by the Canvas signed request rather than a session
+      '/canvas/app': {
+        get: {
+          ...getRequest({
+            ...canvasController.appHandler.validators,
+            tags: ['canvas'],
+            body: undefined,
+            query: canvasAppQuery,
+            responseType: z.string(),
+            responseContentType: 'text/html',
+          }),
+          summary:
+            'Canvas app entry for the user_approval_required flow. Validates loginUrl (https, *.salesforce.com) and returns the Canvas app HTML with the Salesforce OAuth authorization URL.',
+        },
+        post: {
+          ...getRequest({
+            ...canvasController.appHandler.validators,
+            tags: ['canvas'],
+            body: z.object({ signed_request: z.string().optional() }),
+            query: canvasAppQuery,
+            contentType: 'application/x-www-form-urlencoded',
+            responseType: z.string(),
+            responseContentType: 'text/html',
+          }),
+          summary:
+            'Canvas app entry. Salesforce posts a signed_request (HMAC-signed with the Canvas consumer secret). Once verified, the org must be authorized for Canvas (403 otherwise) and the Canvas app HTML is returned. Static assets under /canvas are served only to Salesforce or same-host Origin/Referer values.',
+        },
+      },
+      '/canvas/callback': {
+        get: {
+          ...getRequest({ ...canvasController.callbackHandler.validators, tags: ['canvas'], query: canvasCallbackQuery }),
+          summary:
+            'Canvas OAuth redirect URI, used when a user is not pre-authorized. Completes the authorization-code exchange and redirects to /canvas-auth/ with success or error query params.',
+          responses: redirectResponses,
+        },
+        post: {
+          ...getRequest({ ...canvasController.callbackHandler.validators, tags: ['canvas'], query: canvasCallbackQuery }),
+          summary: 'Same handler as the GET callback.',
+          responses: redirectResponses,
+        },
+      },
+
+      // Platform Event proxy (prefix: /platform-event) - cookie session, outside /api so there is no CSRF token check
+      '/platform-event': {
+        post: {
+          ...getRequest({
+            hasSourceOrg: false,
+            query: platformEventQuery,
+            body: z.array(z.object({ channel: z.string() }).loose()),
+            tags: ['platformEvent'],
+          }),
+          summary:
+            'CometD message batch (handshake, connect, subscribe, ...) streamed to the org with its access token and the response streamed back. Requires a session and a Salesforce org that belongs to the user, passed as the X-SFDC-ID query param or header. When an Origin header is sent it must match the app origin. The route proxies any path suffix and method to /cometd/{apiVersion} on the org instance.',
+        },
+        get: {
+          ...getRequest({ hasSourceOrg: false, query: platformEventQuery, tags: ['platformEvent'] }),
+          summary: 'Same proxy as the POST, for CometD transports that use GET.',
+        },
+      },
+
+      // Webhooks (prefix: /webhook) - raw JSON body, authenticated by the sender signature, no session or CSRF token
+      '/webhook/stripe': {
+        post: {
+          tags: ['webhook'],
+          summary: 'Stripe webhook receiver. The raw body is verified against the Stripe-Signature header. Rate limited by IP.',
+          requestParams: { header: z.object({ 'Stripe-Signature': z.string() }) },
+          requestBody: { content: { 'application/json': { schema: z.looseObject({ id: z.string(), type: z.string() }) } } },
+          responses: {
+            200: { description: 'Event accepted' },
+            400: { description: 'Missing or invalid signature, or the event could not be processed' },
+          },
+        },
+      },
+      '/webhook/mailgun': {
+        post: {
+          tags: ['webhook'],
+          summary:
+            'Mailgun event webhook. The signature block is checked against the signing key (HMAC of timestamp and token), the timestamp must be within 15 minutes, and each token can be used once. Rate limited by IP.',
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: z.object({
+                  signature: z.object({ timestamp: z.string(), token: z.string(), signature: z.string() }),
+                  'event-data': z.looseObject({ event: z.string(), timestamp: z.number(), recipient: z.string() }),
+                }),
+              },
+            },
+          },
+          responses: {
+            200: { description: 'Event stored' },
+            400: { description: 'Invalid payload' },
+            403: { description: 'Timestamp outside the allowed window, invalid signature or token already used' },
+            500: { description: 'Webhook signing key not configured' },
+          },
+        },
+      },
+
+      // Socket.IO (path: /socket.io/) - the Engine.IO HTTP transport; events travel over the socket after the handshake
+      '/socket.io/': {
+        get: {
+          tags: ['socket'],
+          summary:
+            'Engine.IO handshake, polling and WebSocket upgrade. Browsers authenticate with the session cookie and an Origin that matches the app. The desktop app (X-Source: desktop) and the web extension (extension Origin) send an Authorization bearer token and device identifier in the Socket.IO handshake auth payload instead. Sessions with an unfinished sign in are refused.',
+          requestParams: { query: socketIoQuery },
+          responses,
+        },
+        post: {
+          tags: ['socket'],
+          summary: 'Engine.IO long-polling write for an established sid.',
+          requestParams: { query: socketIoQuery },
+          responses,
+        },
       },
     },
   });
