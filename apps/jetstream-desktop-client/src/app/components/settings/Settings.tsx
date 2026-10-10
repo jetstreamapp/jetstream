@@ -160,12 +160,37 @@ export const Settings = () => {
     });
   }
 
-  async function handleChooseDownloadFolder() {
-    const selectedPath = await window.electronAPI?.selectFolder();
-    // Nothing is returned when the folder selection is canceled
-    if (selectedPath) {
-      savePreferences({ fileDownload: { omitPrompt: true, downloadPath: selectedPath } });
-    }
+  // The folder dialog runs in the main process, which stores the choice itself. The renderer only ever
+  // receives the chosen path back for display - it can never supply one (a renderer-chosen path would let
+  // any download be written anywhere without a prompt), and the main process drops the field from anything
+  // the renderer sends. Queued behind pending saves so the stored preferences it returns are never older
+  // than a save in flight.
+  function handleChooseDownloadFolder() {
+    saveQueueRef.current = saveQueueRef.current.then(async () => {
+      if (!window.electronAPI) {
+        return;
+      }
+      try {
+        const savedPreferences = await window.electronAPI.pickDownloadFolder();
+        // Nothing is returned when the folder selection is canceled
+        if (!savedPreferences) {
+          return;
+        }
+        savedPreferencesRef.current = savedPreferences;
+        mergePreferences({ fileDownload: savedPreferences.fileDownload });
+        setUserProfile((prev) => ({
+          ...prev,
+          preferences: savedPreferences,
+        }));
+        trackEvent(ANALYTICS_KEYS.settings_update_user);
+      } catch (ex) {
+        logger.warn('Error choosing the download folder', ex);
+        fireToast({
+          message: 'There was a problem updating your settings. Try again or file a support ticket for assistance.',
+          type: 'error',
+        });
+      }
+    });
   }
 
   /** The desktop app has no profile or team pages of its own, so these open the web app in the default browser */

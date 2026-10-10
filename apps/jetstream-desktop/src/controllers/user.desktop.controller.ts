@@ -49,7 +49,9 @@ const getUserProfile = createRoute(routeDefinition.getUserProfile.validators, as
 
 const updateProfile = createRoute(routeDefinition.updateProfile.validators, async ({ body }) => {
   try {
-    dataService.updateUserPreferences(body.preferences);
+    // This route is called from the renderer (electronAPI.request), so it must apply the same
+    // restrictions as the `setPreferences` IPC handler - the folder paths are main-process-owned.
+    dataService.updateUserPreferences(dataService.withoutMainProcessOwnedPreferences(body.preferences));
     const userProfile = dataService.getFullUserProfile();
 
     return handleJsonResponse(userProfile);

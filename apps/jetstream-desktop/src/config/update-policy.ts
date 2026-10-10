@@ -2,7 +2,7 @@ import type { UpdatePolicy, UpdatePolicySource } from '@jetstream/desktop/types'
 import logger from 'electron-log';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -135,9 +135,194 @@ export function parseManagedPolicyFile(contents: unknown): boolean | null {
   return typeof value === 'undefined' ? null : toBoolean(value);
 }
 
-async function readManagedPolicyFile(): Promise<boolean | null> {
+/**
+ * Owners that prove a Windows policy file was placed by an administrator: SYSTEM (MDM/GPO delivery)
+ * and the built-in Administrators group (an elevated process takes it as the owner of what it creates).
+ * Compared as SIDs so the check holds on localized Windows, where the group names differ.
+ */
+const WINDOWS_ADMINISTRATIVE_OWNER_SIDS = new Set(['S-1-5-18', 'S-1-5-32-544']);
+
+export function isWindowsPolicyFileOwnerTrusted(ownerSid: unknown): boolean {
+  return typeof ownerSid === 'string' && WINDOWS_ADMINISTRATIVE_OWNER_SIDS.has(ownerSid.trim().toUpperCase());
+}
+
+/** One entry of a Windows DACL as PowerShell reports it: the principal, allow or deny, and the access mask */
+export interface WindowsAccessRule {
+  sid: string;
+  type: string;
+  /**
+   * The raw access mask (`[int]$rule.FileSystemRights`), never the enum's display names: those have
+   * aliases (`WriteData`/`CreateFiles`, `AppendData`/`CreateDirectories`) and .NET does not say which
+   * one it prints, so a name match could miss a write grant. Generic rights arrive as negative int32s.
+   */
+  rights: number;
+}
+
+/**
+ * Principals that stand for "any user of this machine": the well-known groups every account belongs
+ * to, and the logon classes (console, network, remote desktop, …) a standard user's token picks up
+ * from the way they signed in. An Allow rule for one of them carrying a right that changes or
+ * replaces the policy means a standard user can rewrite it however the file is owned. Named accounts
+ * (S-1-5-21-…) are deliberately not judged: telling an administrator's account from a standard one
+ * needs a group lookup, and an administrator who grants one named account write access has made
+ * that choice on purpose.
+ */
+const WINDOWS_BROAD_PRINCIPAL_SIDS = new Set([
+  'S-1-1-0', // Everyone
+  'S-1-5-11', // Authenticated Users
+  'S-1-5-32-545', // Users
+  'S-1-5-32-546', // Guests
+  'S-1-5-7', // Anonymous
+  'S-1-5-15', // This Organization (every account authenticated by the domain)
+  'S-1-2-0', // Local (signed in at the console)
+  'S-1-2-1', // Console Logon
+  'S-1-5-4', // Interactive
+  'S-1-5-2', // Network
+  'S-1-5-13', // Terminal Server User
+  'S-1-5-14', // Remote Interactive Logon
+]);
+
+// Win32 file access-mask bits (winnt.h). `FullControl` and `Modify` are combinations of these.
+const FILE_WRITE_DATA = 0x2; // also FILE_ADD_FILE on a folder
+const FILE_APPEND_DATA = 0x4; // also FILE_ADD_SUBDIRECTORY on a folder
+const FILE_DELETE_CHILD = 0x40;
+const DELETE = 0x10000;
+const WRITE_DAC = 0x40000; // ChangePermissions
+const WRITE_OWNER = 0x80000; // TakeOwnership
+const GENERIC_ALL = 0x10000000;
+const GENERIC_WRITE = 0x40000000;
+
+/** Bits on the FILE that let its contents be changed or the file be replaced */
+const WINDOWS_FILE_WRITE_MASK = FILE_WRITE_DATA | FILE_APPEND_DATA | DELETE | WRITE_DAC | WRITE_OWNER | GENERIC_ALL | GENERIC_WRITE;
+/**
+ * Bits on the FOLDER that let the administrator's file be removed or swapped. Creating files and
+ * subfolders is not among them: the default %ProgramData% ACL grants that to every user, and it
+ * cannot replace a file that already exists or delete one the user does not own.
+ */
+const WINDOWS_FOLDER_REPLACE_MASK = FILE_DELETE_CHILD | DELETE | WRITE_DAC | WRITE_OWNER | GENERIC_ALL;
+
+function isWritableByBroadPrincipal(rules: WindowsAccessRule[], mask: number): boolean {
+  return rules.some(
+    ({ sid, type, rights }) =>
+      type === 'Allow' && WINDOWS_BROAD_PRINCIPAL_SIDS.has(sid.trim().toUpperCase()) && ((rights >>> 0) & mask) !== 0,
+  );
+}
+
+export interface WindowsPolicyFileLocation {
+  fileOwner: unknown;
+  dirOwner: unknown;
+  fileRules: WindowsAccessRule[];
+  dirRules: WindowsAccessRule[];
+}
+
+/**
+ * The file AND the folder holding it must both belong to an administrator, and neither may grant
+ * every user the right to change or replace it. Ownership of the file alone is not enough: a
+ * standard user who owns the folder can swap entries in it between the check and the read, and an
+ * administrator-owned file whose ACL lets Users modify it is no more protected than one they own.
+ * With both owned by an administrator and no such grants, the default ACLs give a standard user no
+ * delete, rename or write rights over the administrator's file, so the contents read alongside the
+ * check are the contents that were checked.
+ *
+ * An empty rule list is rejected rather than passed: a file or folder under %ProgramData% always
+ * carries inherited entries, so no entries means the ACL could not be read or is a NULL DACL, which
+ * grants everyone full access while reporting no rules at all.
+ */
+export function isWindowsPolicyFileLocationTrusted(location: WindowsPolicyFileLocation): boolean {
+  return (
+    isWindowsPolicyFileOwnerTrusted(location.fileOwner) &&
+    isWindowsPolicyFileOwnerTrusted(location.dirOwner) &&
+    location.fileRules.length > 0 &&
+    location.dirRules.length > 0 &&
+    !isWritableByBroadPrincipal(location.fileRules, WINDOWS_FILE_WRITE_MASK) &&
+    !isWritableByBroadPrincipal(location.dirRules, WINDOWS_FOLDER_REPLACE_MASK)
+  );
+}
+
+function toRuleList(value: unknown): WindowsAccessRule[] {
+  // ConvertTo-Json unwraps a single-element array into the element itself
+  const list = Array.isArray(value) ? value : value ? [value] : [];
+  return list.map((rule) => {
+    const rights = Number((rule as Partial<WindowsAccessRule>)?.rights);
+    return {
+      sid: String((rule as Partial<WindowsAccessRule>)?.sid ?? ''),
+      type: String((rule as Partial<WindowsAccessRule>)?.type ?? ''),
+      // A mask that did not arrive as a number is treated as every bit set, so the entry fails closed
+      rights: Number.isFinite(rights) ? rights : -1,
+    };
+  });
+}
+
+/**
+ * Reads the policy file together with the owner SIDs and access rules of the file and of its
+ * folder, in one PowerShell invocation, or null when any of it cannot be read. Node's `stat` reports
+ * no owner or ACL on Windows, so PowerShell resolves them. The path is embedded as a single-quoted
+ * PowerShell literal, in which only a quote character is special (and is doubled), and passed to
+ * `execFile` - never through a shell.
+ */
+async function readWindowsPolicyFile(filePath: string): Promise<(WindowsPolicyFileLocation & { contents: string }) | null> {
   try {
-    return parseManagedPolicyFile(JSON.parse(await readFile(managedPolicyFilePath(), 'utf-8')));
+    const pathLiteral = filePath.replace(/'/g, "''");
+    const script = [
+      `$path = '${pathLiteral}'`,
+      `$sidType = [System.Security.Principal.SecurityIdentifier]`,
+      `$rules = { param($acl) @($acl.GetAccessRules($true, $true, $sidType) | ForEach-Object { @{ sid = $_.IdentityReference.Value; type = $_.AccessControlType.ToString(); rights = [int]$_.FileSystemRights } }) }`,
+      `$fileAcl = Get-Acl -LiteralPath $path`,
+      `$dirAcl = Get-Acl -LiteralPath (Split-Path -LiteralPath $path -Parent)`,
+      `@{ fileOwner = $fileAcl.GetOwner($sidType).Value; dirOwner = $dirAcl.GetOwner($sidType).Value; fileRules = (& $rules $fileAcl); dirRules = (& $rules $dirAcl); contents = [System.IO.File]::ReadAllText($path) } | ConvertTo-Json -Compress -Depth 4`,
+    ].join('; ');
+    const { stdout } = await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { windowsHide: true });
+    const parsed = JSON.parse(stdout) as {
+      fileOwner?: unknown;
+      dirOwner?: unknown;
+      fileRules?: unknown;
+      dirRules?: unknown;
+      contents?: unknown;
+    };
+    if (typeof parsed.fileOwner !== 'string' || typeof parsed.dirOwner !== 'string' || typeof parsed.contents !== 'string') {
+      return null;
+    }
+    return {
+      fileOwner: parsed.fileOwner,
+      dirOwner: parsed.dirOwner,
+      fileRules: toRuleList(parsed.fileRules),
+      dirRules: toRuleList(parsed.dirRules),
+      contents: parsed.contents,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * On Windows the file is only honored when an administrator put it there. The default ACL on
+ * %ProgramData% lets any standard user create a `Jetstream` subfolder and a `policy.json` inside it,
+ * which would otherwise let one unprivileged user of a shared machine switch updates off (or on) for
+ * everyone else - the documentation promises that users cannot mark their own install as managed.
+ * macOS and Linux need no check: the directories the file lives in are root-owned and not writable
+ * without administrator rights.
+ */
+async function readManagedPolicyFile(): Promise<boolean | null> {
+  const filePath = managedPolicyFilePath();
+  try {
+    if (process.platform !== 'win32') {
+      return parseManagedPolicyFile(JSON.parse(await readFile(filePath, 'utf-8')));
+    }
+    // A missing file is the normal case on an unmanaged machine; only spawn PowerShell when it exists.
+    // Nothing is read here - the file is untrusted until its location has been checked.
+    await stat(filePath);
+    const policyFile = await readWindowsPolicyFile(filePath);
+    if (!policyFile) {
+      logger.warn(`Ignoring update policy file ${filePath}: its contents or ownership could not be read`);
+      return null;
+    }
+    if (!isWindowsPolicyFileLocationTrusted(policyFile)) {
+      logger.warn(
+        `Ignoring update policy file ${filePath}: the file and its folder must both be owned by an administrator or SYSTEM and not grant every user write access (file owner ${policyFile.fileOwner}, folder owner ${policyFile.dirOwner})`,
+      );
+      return null;
+    }
+    return parseManagedPolicyFile(JSON.parse(policyFile.contents));
   } catch {
     return null;
   }
