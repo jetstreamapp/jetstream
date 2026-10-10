@@ -270,7 +270,8 @@ export function ensureFieldSelectItemsIncludesSelectionsFromRestore(field: Field
     case 'picklist':
     case 'multipicklist': {
       // determine if the query included values that are not in the list, and add them if so
-      const selectedValues = new Set(Array.isArray(value) ? value : [value]);
+      // empty values are skipped - a new filter row starts with '' and that should not become a blank option
+      const selectedValues = new Set((Array.isArray(value) ? value : [value]).filter(Boolean));
       listItems.forEach((item) => selectedValues.delete(item.value));
       selectedValues.forEach((item) => listItems.push({ id: item, label: item, value: item }));
       return listItems;
