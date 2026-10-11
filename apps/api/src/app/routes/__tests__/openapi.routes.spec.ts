@@ -92,8 +92,11 @@ describe('getOpenApiSpec', () => {
   it('documents every method and a path suffix for the platform event proxy', () => {
     const { paths = {} } = getOpenApiSpec();
 
+    // Every HTTP method OpenAPI can represent, since router.use proxies all of them
+    const allMethods = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'];
+
     for (const path of ['/platform-event', '/platform-event/{path}']) {
-      expect(Object.keys(paths[path] ?? {}), path).toEqual(expect.arrayContaining(['get', 'post', 'put', 'patch', 'delete']));
+      expect(Object.keys(paths[path] ?? {}), path).toEqual(expect.arrayContaining(allMethods));
     }
   });
 
@@ -110,6 +113,10 @@ describe('getOpenApiSpec', () => {
     const { paths = {} } = getOpenApiSpec();
     const operations = [
       paths['/api/auth/sso/saml/{teamId}/acs']?.post,
+      paths['/api/auth/sso/oidc/{teamId}/initiate']?.get,
+      paths['/api/auth/sso/oidc/{teamId}/callback']?.get,
+      paths['/desktop-app/feedback']?.post,
+      paths['/web-extension/feedback']?.post,
       paths['/canvas/app']?.get,
       paths['/canvas/app']?.post,
       paths['/canvas/callback']?.get,
@@ -131,5 +138,27 @@ describe('getOpenApiSpec', () => {
 
     expect(sid && 'required' in sid && sid.required).toBe(true);
     expect(transport && 'schema' in transport && transport.schema).toMatchObject({ const: 'polling' });
+  });
+
+  it('only allows Engine.IO protocol version 4', () => {
+    const { paths = {} } = getOpenApiSpec();
+
+    for (const operation of [paths['/socket.io/']?.get, paths['/socket.io/']?.post]) {
+      const eio = (operation?.parameters ?? []).find((param) => 'name' in param && param.name === 'EIO');
+      expect(eio && 'schema' in eio && eio.schema).toMatchObject({ const: '4' });
+    }
+  });
+
+  it('documents the Engine.IO polling payload as the request body', () => {
+    const { requestBody } = getOpenApiSpec().paths?.['/socket.io/']?.post ?? {};
+    const content = requestBody && 'content' in requestBody ? requestBody.content : {};
+
+    expect(Object.keys(content)).toEqual(['text/plain', 'application/octet-stream']);
+  });
+
+  it('documents the audit log CSV export mode', () => {
+    const summary = getOpenApiSpec().paths?.['/api/teams/{teamId}/audit-logs']?.get?.summary;
+
+    expect(summary).toContain('text/csv');
   });
 });

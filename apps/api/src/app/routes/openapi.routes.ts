@@ -132,7 +132,7 @@ const platformEventQuery = z.object({
 });
 
 const socketIoQuery = z.object({
-  EIO: z.string().meta({ description: 'Engine.IO protocol version, 4' }),
+  EIO: z.literal('4').meta({ description: 'Engine.IO protocol version. Only version 4 is supported.' }),
   transport: z.enum(['polling', 'websocket']),
   sid: z.string().optional().meta({ description: 'Session id returned by the handshake. Omit on the first request.' }),
 });
@@ -177,7 +177,16 @@ function getPlatformEventProxyPathItem(hasPathSuffix: boolean): ZodOpenApiPathIt
     requestBody: { content: { 'application/json': { schema: cometdMessages } } },
   };
 
-  return { get: operation, delete: operation, post: operationWithBody, put: operationWithBody, patch: operationWithBody };
+  return {
+    get: operation,
+    head: operation,
+    options: operation,
+    delete: operation,
+    trace: operation,
+    post: operationWithBody,
+    put: operationWithBody,
+    patch: operationWithBody,
+  };
 }
 
 function getRequest({
@@ -195,7 +204,7 @@ function getRequest({
   tags: string[];
   hasSourceOrg?: boolean;
   hasTargetOrg?: boolean;
-  /** Set to false for routes that never check a CSRF token (webhooks, proxies, cross-site IdP and Salesforce callbacks) */
+  /** Set to false for routes that never check a CSRF token (webhooks, proxies, bearer token clients, cross-site IdP and Salesforce callbacks) */
   hasCsrfHeader?: boolean;
   body?: z.ZodTypeAny;
   params?: z.ZodTypeAny;
@@ -444,7 +453,7 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
       },
       '/api/auth/sso/oidc/{teamId}/initiate': {
         get: {
-          ...getRequest({ ...authController.initiateOidcLogin.validators, tags: ['sso'] }),
+          ...getRequest({ ...authController.initiateOidcLogin.validators, tags: ['sso'], hasCsrfHeader: false }),
           summary:
             'IdP-initiated entry point (e.g. an Okta tile). Starts a service-provider-initiated OIDC flow for the team: sets the state, PKCE and nonce cookies and redirects to the identity provider.',
           responses: redirectResponses,
@@ -463,6 +472,7 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
               error_description: z.string().optional(),
             }),
             tags: ['sso'],
+            hasCsrfHeader: false,
           }),
           summary:
             'OIDC redirect URI. Exchanges the authorization code (state, PKCE verifier and nonce are read from the cookies set at the start of the flow), then the session is created and the browser is redirected.',
@@ -888,7 +898,8 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
       '/api/teams/{teamId}/audit-logs': {
         get: {
           ...getRequest({ ...teamController.getTeamAuditLogs.validators, tags: ['team'] }),
-          summary: 'Page through the team audit log, newest first (cursorId pages, limit is 1-100). Team roles: ADMIN.',
+          summary:
+            'Page through the team audit log, newest first (cursorId pages, limit is 1-100). Send Accept: text/csv to download a CSV export instead, which is not paged: it covers startDate to endDate (endDate defaults to now, startDate to 30 days before it), and a startDate more than a year before endDate is replaced by that 30 day default. Team roles: ADMIN.',
         },
       },
       '/api/teams/{teamId}/canvas-orgs': {
@@ -947,8 +958,15 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
       },
       '/desktop-app/feedback': {
         post: {
-          ...getRequest({ body: feedbackRequestBody, hasSourceOrg: false, contentType: 'multipart/form-data', tags: ['desktop'] }),
-          summary: 'Submit feedback from the desktop app. Authenticated with the desktop bearer token. Rate limited per user.',
+          ...getRequest({
+            body: feedbackRequestBody,
+            hasSourceOrg: false,
+            hasCsrfHeader: false,
+            contentType: 'multipart/form-data',
+            tags: ['desktop'],
+          }),
+          summary:
+            'Submit feedback from the desktop app. Authenticated with the desktop bearer token. Rate limited to 5 per 15 minutes by IP address, because the limiter runs before the bearer token is verified.',
         },
       },
 
@@ -970,8 +988,15 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
       },
       '/web-extension/feedback': {
         post: {
-          ...getRequest({ body: feedbackRequestBody, hasSourceOrg: false, contentType: 'multipart/form-data', tags: ['webExtension'] }),
-          summary: 'Submit feedback from the web extension. Authenticated with the extension bearer token. Rate limited per user.',
+          ...getRequest({
+            body: feedbackRequestBody,
+            hasSourceOrg: false,
+            hasCsrfHeader: false,
+            contentType: 'multipart/form-data',
+            tags: ['webExtension'],
+          }),
+          summary:
+            'Submit feedback from the web extension. Authenticated with the extension bearer token. Rate limited to 5 per 15 minutes by IP address, because the limiter runs before the bearer token is verified.',
         },
       },
 
@@ -1002,7 +1027,7 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
             responseContentType: 'text/html',
           }),
           summary:
-            'Canvas app entry. Salesforce posts a signed_request (HMAC-signed with the Canvas consumer secret). Once verified, the org must be authorized for Canvas (403 otherwise) and the Canvas app HTML is returned. Static assets under /canvas are served only to Salesforce or same-host Origin/Referer values.',
+            'Canvas app entry. Salesforce posts a signed_request (HMAC-signed with the Canvas consumer secret). Once verified, the org must be authorized for Canvas (403 otherwise) and the Canvas app HTML is returned.',
         },
       },
       '/canvas/callback': {
@@ -1083,6 +1108,14 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
           tags: ['socket'],
           summary: 'Engine.IO long-polling write for an established sid. WebSocket messages travel on the upgraded connection instead.',
           requestParams: { query: socketIoPollingPostQuery },
+          requestBody: {
+            description: 'One or more Engine.IO packets encoded as a polling payload',
+            required: true,
+            content: {
+              'text/plain': { schema: z.string() },
+              'application/octet-stream': { schema: z.string().meta({ format: 'binary' }) },
+            },
+          },
           responses,
         },
       },
