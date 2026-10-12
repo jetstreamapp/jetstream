@@ -9,7 +9,6 @@ import {
   initPassword,
   initResetPassword,
   removePassword,
-  StepUpCancelledError,
   updateUserProfile,
 } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
@@ -26,7 +25,7 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { useAmplitude, useStepUpAuth } from '@jetstream/ui-core';
+import { useAmplitude } from '@jetstream/ui-core';
 import { userProfileState } from '@jetstream/ui/app-state';
 import { useAtom } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
@@ -35,7 +34,6 @@ import { ProfileLinkedAccounts } from './ProfileLinkedAccounts';
 import { ProfileUserProfile } from './ProfileUserProfile';
 import { ProfileLoginActivity } from './session/ProfileLoginActivity';
 import { ProfileSessions } from './session/ProfileSessions';
-import { MANAGE_PASSWORD_STEP_UP } from './step-up-prompts';
 import { useEmailChange } from './useEmailChange';
 import { useSessionData } from './useSessionData';
 
@@ -60,7 +58,6 @@ export const Profile = () => {
   // Deliberately does not touch userProfileState: a pending request has not changed the address yet,
   // and the effect below re-runs on that atom, which would trigger a redundant double fetch.
   const { requestChange, cancelChange } = useEmailChange({ onProfileUpdated: setFullUserProfile });
-  const { runWithStepUp } = useStepUpAuth();
 
   useEffect(() => {
     isMounted.current = true;
@@ -134,14 +131,10 @@ export const Profile = () => {
 
   async function handleSetPassword(password: string) {
     try {
-      setFullUserProfile(await runWithStepUp(({ stepUpNonce }) => initPassword(password, stepUpNonce), MANAGE_PASSWORD_STEP_UP));
+      setFullUserProfile(await initPassword(password));
       trackEvent(ANALYTICS_KEYS.settings_password_action, { action: 'set-password' });
       sessionData.getSessions();
     } catch (ex) {
-      // Dismissing the identity prompt is a deliberate choice, not an error to report
-      if (ex instanceof StepUpCancelledError) {
-        return;
-      }
       fireToast({
         message: ex.message || 'There was a problem resetting your password. Try again or file a support ticket for assistance.',
         type: 'error',
@@ -170,13 +163,10 @@ export const Profile = () => {
 
   async function handleRemovePassword() {
     try {
-      setFullUserProfile(await runWithStepUp(({ stepUpNonce }) => removePassword(stepUpNonce), MANAGE_PASSWORD_STEP_UP));
+      setFullUserProfile(await removePassword());
       sessionData.getSessions();
       trackEvent(ANALYTICS_KEYS.settings_password_action, { action: 'remove-password' });
     } catch (ex) {
-      if (ex instanceof StepUpCancelledError) {
-        return;
-      }
       fireToast({
         message: 'There was a problem removing your password. Try again or file a support ticket for assistance.',
         type: 'error',
