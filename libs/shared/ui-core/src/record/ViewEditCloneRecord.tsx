@@ -44,7 +44,7 @@ import {
   transformEditForm,
   validateEditForm,
 } from '@jetstream/ui-core/shared';
-import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { applicationCookieState, googleDriveAccessState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import { recordSingleRecordAction, SingleRecordActionContext } from '@jetstream/ui/data-history';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { useAtomValue } from 'jotai';
@@ -150,6 +150,8 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
 
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
+  const canWriteRecords = useCanPerformOperation('records.write');
+  const canExportRecords = useCanPerformOperation('records.export');
 
   // User can drill in to related records, this allows us to go back up the chain via Breadcrumbs
   const [recordId, setRecordId] = useState(initialRecordId);
@@ -631,26 +633,33 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                     </span>
                   )}
                   <div className="slds-float_left">
-                    <ButtonGroupContainer>
-                      <button
-                        className="slds-button slds-button_neutral"
-                        onClick={() => handleCopyToClipboard()}
-                        title="Copy the record to the clipboard which can then pasted into a spreadsheet."
-                      >
-                        <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
-                        <span>Copy to Clipboard</span>
-                      </button>
-                      <DropDown
-                        className="slds-button_last"
-                        dropDownClassName="slds-dropdown_actions"
-                        position="right"
-                        items={[
-                          { id: 'csv', value: 'Copy as CSV' },
-                          { id: 'json', value: 'Copy as JSON' },
-                        ]}
-                        onSelected={(item) => handleCopyToClipboard(item as CopyAsDataType)}
-                      />
-                    </ButtonGroupContainer>
+                    {canExportRecords && (
+                      <ButtonGroupContainer>
+                        <button
+                          className="slds-button slds-button_neutral"
+                          onClick={() => handleCopyToClipboard()}
+                          title="Copy the record to the clipboard which can then pasted into a spreadsheet."
+                        >
+                          <Icon
+                            type="utility"
+                            icon="copy_to_clipboard"
+                            className="slds-button__icon slds-button__icon_left"
+                            omitContainer
+                          />
+                          <span>Copy to Clipboard</span>
+                        </button>
+                        <DropDown
+                          className="slds-button_last"
+                          dropDownClassName="slds-dropdown_actions"
+                          position="right"
+                          items={[
+                            { id: 'csv', value: 'Copy as CSV' },
+                            { id: 'json', value: 'Copy as JSON' },
+                          ]}
+                          onSelected={(item) => handleCopyToClipboard(item as CopyAsDataType)}
+                        />
+                      </ButtonGroupContainer>
+                    )}
                     <div className="slds-text-align_left d-inline-block">
                       <NotSeeingRecentMetadataPopover
                         className="slds-m-left_small"
@@ -696,30 +705,36 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                       <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
                       Reload Record
                     </button>
-                    <button
-                      className="slds-button slds-button_neutral"
-                      onClick={() => onChangeAction('edit')}
-                      disabled={loading || !initialRecord}
-                    >
-                      <Icon type="utility" icon="edit" className="slds-button__icon slds-button__icon_left" omitContainer />
-                      Edit
-                    </button>
-                    <button
-                      className="slds-button slds-button_neutral"
-                      onClick={() => onChangeAction('clone')}
-                      disabled={loading || !initialRecord}
-                    >
-                      <Icon type="utility" icon="copy" className="slds-button__icon slds-button__icon_left" omitContainer />
-                      Clone
-                    </button>
-                    <button
-                      className="slds-button slds-button_neutral"
-                      onClick={() => handleDownloadModalOpen()}
-                      disabled={loading || !initialRecord}
-                    >
-                      <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                      Download
-                    </button>
+                    {canWriteRecords && (
+                      <>
+                        <button
+                          className="slds-button slds-button_neutral"
+                          onClick={() => onChangeAction('edit')}
+                          disabled={loading || !initialRecord}
+                        >
+                          <Icon type="utility" icon="edit" className="slds-button__icon slds-button__icon_left" omitContainer />
+                          Edit
+                        </button>
+                        <button
+                          className="slds-button slds-button_neutral"
+                          onClick={() => onChangeAction('clone')}
+                          disabled={loading || !initialRecord}
+                        >
+                          <Icon type="utility" icon="copy" className="slds-button__icon slds-button__icon_left" omitContainer />
+                          Clone
+                        </button>
+                      </>
+                    )}
+                    {canExportRecords && (
+                      <button
+                        className="slds-button slds-button_neutral"
+                        onClick={() => handleDownloadModalOpen()}
+                        disabled={loading || !initialRecord}
+                      >
+                        <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                        Download
+                      </button>
+                    )}
                     <button className="slds-button slds-button_brand" onClick={() => onClose()}>
                       Close
                     </button>

@@ -2,6 +2,7 @@ import { css } from '@emotion/react';
 import { describeGlobal, describeSObject, queryWithCache } from '@jetstream/shared/data';
 import { appActionObservable, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { CloneEditView, RecordWithAuditFields, SalesforceOrgUi } from '@jetstream/types';
+import { useCanPerformOperation } from '@jetstream/ui/app-state';
 import { FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { dataTableDateFormatter } from '../data-table/data-table-formatters';
 import ReadOnlyFormElement from '../form/readonly-form-element/ReadOnlyFormElement';
@@ -45,6 +46,7 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
   const [sobjectLabel, setSobjectLabel] = useState<string | null>(null);
   const [sobjectName, setSobjectName] = useState<string | null>(null);
   const [record, setRecord] = useState<RecordWithAuditFields | null>(null);
+  const canWriteRecords = useCanPerformOperation('records.write');
 
   useNonInitialEffect(() => {
     setLoading(false);
@@ -224,13 +226,15 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
                   <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
                   View Record
                 </button>
-                <button
-                  className="slds-button slds-button_neutral slds-p-left_x-small"
-                  onClick={() => appActionObservable.next({ action: 'EDIT_RECORD', payload: { recordId } })}
-                >
-                  <Icon type="utility" icon="edit" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  Edit Record
-                </button>
+                {canWriteRecords && (
+                  <button
+                    className="slds-button slds-button_neutral slds-p-left_x-small"
+                    onClick={() => appActionObservable.next({ action: 'EDIT_RECORD', payload: { recordId } })}
+                  >
+                    <Icon type="utility" icon="edit" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Edit Record
+                  </button>
+                )}
               </div>
               <button className="slds-button" disabled={loading} onClick={() => fetchRecord(true)}>
                 <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />

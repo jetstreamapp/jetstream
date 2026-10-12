@@ -27,7 +27,7 @@ import {
   PageHeaderTitle,
 } from '@jetstream/ui';
 import { AddOrg, useAnalytics, useUpdateOrgs } from '@jetstream/ui-core';
-import { fromAppState, getRecentlySelectedOrgForGroup } from '@jetstream/ui/app-state';
+import { fromAppState, getRecentlySelectedOrgForGroup, useCanPerformOperation } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useCallback, useState } from 'react';
@@ -52,6 +52,7 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
   const [modalState, setModalState] = useState<{ open: boolean; organization?: Maybe<OrgGroupWithOrgs> }>({ open: false });
 
   const { handleAddOrg } = useUpdateOrgs();
+  const canConnectOrgs = useCanPerformOperation('orgs.connect');
 
   const uniqueId = selectedOrg?.uniqueId;
 
@@ -288,17 +289,22 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
             label="Salesforce Organization Groups"
             docsPath={APP_ROUTES.SALESFORCE_ORG_GROUPS.DOCS}
           />
-          <PageHeaderActions colType="actions" buttonType="list-group">
-            <AddOrg
-              omitIcon
-              className={classNames('slds-button slds-button_neutral slds-button_first')}
-              label="Add Salesforce Org"
-              onAddOrg={handleAddOrg}
-              onAddOrgHandlerFn={onAddOrgHandlerFn}
-            />
-            {allOrgs.length > 0 && <RefreshAllOrgsButton className="slds-button_middle" orgs={allOrgs} />}
+          {/* Create New Group can end up as the only button, which loses its rounded corners inside a button group */}
+          <PageHeaderActions colType="actions" buttonType={canConnectOrgs || allOrgs.length > 0 ? 'list-group' : 'separate'}>
+            {canConnectOrgs && (
+              <AddOrg
+                omitIcon
+                className={classNames('slds-button slds-button_neutral slds-button_first')}
+                label="Add Salesforce Org"
+                onAddOrg={handleAddOrg}
+                onAddOrgHandlerFn={onAddOrgHandlerFn}
+              />
+            )}
+            {allOrgs.length > 0 && (
+              <RefreshAllOrgsButton className={canConnectOrgs ? 'slds-button_middle' : 'slds-button_first'} orgs={allOrgs} />
+            )}
             <button
-              className={classNames('slds-button slds-button_brand', { 'slds-button_last': allOrgs.length === 0 })}
+              className={classNames('slds-button slds-button_brand', { 'slds-button_last': canConnectOrgs && allOrgs.length === 0 })}
               onClick={() => handleOpenCreateOrganizationModal()}
             >
               <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" />

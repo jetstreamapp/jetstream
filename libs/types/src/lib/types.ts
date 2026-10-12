@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Query } from '@jetstreamapp/soql-parser-js';
 import { z } from 'zod';
+import { AccessProfileAssignmentSchema } from './access-profile.types';
 import { JetstreamPricesByLookupKey, StripeUserFacingCustomer } from './billing.types';
 import { SalesforceOrgEdition } from './salesforce/misc.types';
 import { QueryResult } from './salesforce/query.types';
@@ -11,6 +12,8 @@ export interface AppInfo {
   announcements: Announcement[];
   appInfo: ApplicationState;
   version: string;
+  /** Compared against the loaded profile so an open tab notices access profile changes on focus */
+  accessProfileFingerprint?: string;
 }
 
 export interface Announcement {
@@ -214,6 +217,8 @@ export const UserProfileUiSchema = z.object({
         name: z.string(),
         billingStatus: TeamBillingStatusSchema,
       }),
+      /** NULL or missing means full access */
+      accessProfile: AccessProfileAssignmentSchema.nullish(),
     })
     .nullish(),
   // Resolved feature flags for this user (code defaults + DB overrides).

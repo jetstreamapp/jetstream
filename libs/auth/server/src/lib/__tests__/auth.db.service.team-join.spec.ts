@@ -32,6 +32,7 @@ const teamSeatsMock = vi.hoisted(() => ({
   withTeamSeatLock: vi.fn(),
   checkSeatAvailability: vi.fn(),
   addMemberFromInvitation: vi.fn(),
+  findDefaultAccessProfileId: vi.fn(),
 }));
 
 const auditLogMock = vi.hoisted(() => ({ createTeamAuditLog: vi.fn() }));
@@ -108,7 +109,6 @@ function makeInvite({ autoAddToTeam }: { autoAddToTeam: boolean }) {
     id: 'invite-1',
     email: EMAIL,
     role: 'MEMBER',
-    features: ['ALL'],
     createdById: 'admin-1',
     team: {
       id: TEAM_ID,
@@ -145,6 +145,8 @@ beforeEach(() => {
   prismaMock.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => fn(prismaMock));
   teamSeatsMock.checkSeatAvailability.mockResolvedValue({ ok: true, seats });
   teamSeatsMock.addMemberFromInvitation.mockResolvedValue({ role: 'MEMBER', status: 'ACTIVE' });
+  // The team has no default access profile (full access) unless a test says otherwise
+  teamSeatsMock.findDefaultAccessProfileId.mockResolvedValue(null);
   prismaMock.user.update.mockResolvedValue({});
   prismaMock.teamMemberInvitation.deleteMany.mockResolvedValue({ count: 1 });
   // Reload after accepting the invitation returns the user with their new membership
@@ -193,12 +195,25 @@ describe('domain auto-join for a new user', () => {
 
     expect(teamSeatsMock.withTeamSeatLock).toHaveBeenCalledWith(TEAM_ID, expect.any(Function));
     expect(teamSeatsMock.checkSeatAvailability).toHaveBeenCalledWith(prismaMock, { teamId: TEAM_ID, kind: 'ADD', role: 'MEMBER' });
+    expect(teamSeatsMock.findDefaultAccessProfileId).toHaveBeenCalledWith(prismaMock, TEAM_ID);
     expect(prismaMock.user.create.mock.calls[0][0].data.teamMembership).toEqual({
-      create: { teamId: TEAM_ID, role: 'MEMBER', status: 'ACTIVE' },
+      create: { teamId: TEAM_ID, role: 'MEMBER', status: 'ACTIVE', accessProfileId: null },
     });
     expect(auditLogMock.createTeamAuditLog).not.toHaveBeenCalledWith(
       expect.objectContaining({ action: AuditLogAction.TEAM_MEMBER_ADD_BLOCKED_NO_SEATS }),
     );
+  });
+
+  it("assigns the team's default access profile to the auto-joined membership", async () => {
+    withNoPendingInvitationForEmail();
+    teamSeatsMock.findDefaultAccessProfileId.mockResolvedValue('profile-default');
+    prismaMock.user.create.mockResolvedValue(makeUser({ teamId: TEAM_ID, role: 'MEMBER', status: 'ACTIVE' }));
+
+    await signInWithGoogle();
+
+    expect(prismaMock.user.create.mock.calls[0][0].data.teamMembership).toEqual({
+      create: { teamId: TEAM_ID, role: 'MEMBER', status: 'ACTIVE', accessProfileId: 'profile-default' },
+    });
   });
 
   it('creates the user WITHOUT a membership and audits the denial when no seat is available', async () => {
@@ -210,6 +225,7 @@ describe('domain auto-join for a new user', () => {
 
     expect(prismaMock.user.create).toHaveBeenCalledTimes(1);
     expect(prismaMock.user.create.mock.calls[0][0].data.teamMembership).toBeUndefined();
+    expect(teamSeatsMock.findDefaultAccessProfileId).not.toHaveBeenCalled();
     expect(auditLogMock.createTeamAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({
         teamId: TEAM_ID,
@@ -254,7 +270,7 @@ describe('accepting a pending invitation during login', () => {
     expect(teamSeatsMock.addMemberFromInvitation).toHaveBeenCalledWith(prismaMock, {
       teamId: TEAM_ID,
       userId: USER_ID,
-      invitation: expect.objectContaining({ id: 'invite-1', role: 'MEMBER', features: ['ALL'] }),
+      invitation: expect.objectContaining({ id: 'invite-1', role: 'MEMBER' }),
     });
     expect(result.user.teamMembership).toEqual({ teamId: TEAM_ID, role: 'MEMBER', status: 'ACTIVE' });
   });

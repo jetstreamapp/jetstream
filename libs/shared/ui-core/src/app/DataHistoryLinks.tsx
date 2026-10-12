@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { Checkbox, Icon } from '@jetstream/ui';
-import { dataHistoryCaptureEnabledState } from '@jetstream/ui/app-state';
+import { dataHistoryCaptureEnabledState, useCanAccessTool } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent } from 'react';
@@ -76,9 +76,13 @@ export const SkipDataHistoryCheckbox: FunctionComponent<SkipDataHistoryCheckboxP
 /**
  * Inline "View Data History" text link for feature surfaces that capture history (load pages,
  * mass-update advanced options, settings). Opens in a new tab so it never navigates the user away
- * from an in-progress load.
+ * from an in-progress load. Hidden when the member's access profile does not include Data History.
  */
 export const ViewDataHistoryLink: FunctionComponent<{ className?: string }> = ({ className }) => {
+  const canUseDataHistory = useCanAccessTool('data-history');
+  if (!canUseDataHistory) {
+    return null;
+  }
   return (
     <Link
       to={{ pathname: APP_ROUTES.DATA_HISTORY.ROUTE, search: APP_ROUTES.DATA_HISTORY.SEARCH_PARAM }}

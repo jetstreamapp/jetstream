@@ -5,9 +5,10 @@ import '../sfdc-styles-shim.css';
 
 interface SfdcPageButtonRecordSearchProps {
   sfHost: string;
+  canEditRecords: boolean;
 }
 
-export function SfdcPageButtonRecordSearch({ sfHost }: SfdcPageButtonRecordSearchProps) {
+export function SfdcPageButtonRecordSearch({ sfHost, canEditRecords }: SfdcPageButtonRecordSearchProps) {
   const [recordId, setRecordId] = useState('');
 
   const isValidRecordId = recordId.length === 15 || recordId.length === 18;
@@ -45,14 +46,16 @@ export function SfdcPageButtonRecordSearch({ sfHost }: SfdcPageButtonRecordSearc
         <button className="slds-button slds-button_stretch slds-button_brand" type="submit" disabled={!isValidRecordId}>
           View Record
         </button>
-        <button
-          className="slds-button slds-button_stretch slds-button_neutral"
-          type="button"
-          disabled={!isValidRecordId}
-          onClick={() => handleEditRecord()}
-        >
-          Edit Record
-        </button>
+        {canEditRecords && (
+          <button
+            className="slds-button slds-button_stretch slds-button_neutral"
+            type="button"
+            disabled={!isValidRecordId}
+            onClick={() => handleEditRecord()}
+          >
+            Edit Record
+          </button>
+        )}
       </Grid>
     </form>
   );

@@ -1,6 +1,15 @@
 import { FieldWithRelatedEntities, InsertUpdateUpsertDelete, ListItem, Maybe } from '@jetstream/types';
-import { ComboboxWithItems, Grid, GridCol, RadioButton, RadioGroup, Spinner } from '@jetstream/ui';
+import { ComboboxWithItems, Grid, GridCol, RadioButton, RadioGroup, ScopedNotification, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
+import { LOAD_NOT_ALLOWED_MESSAGE, useAllowedLoadTypes } from '../useAllowedLoadTypes';
+
+const LOAD_TYPE_OPTIONS: { value: InsertUpdateUpsertDelete; label: string }[] = [
+  { value: 'INSERT', label: 'Insert' },
+  { value: 'UPDATE', label: 'Update' },
+  { value: 'UPSERT', label: 'Upsert' },
+  { value: 'DELETE', label: 'Delete' },
+  { value: 'HARD_DELETE', label: 'Hard Delete' },
+];
 
 export interface LoadRecordsLoadTypeButtonsProps {
   selectedType: InsertUpdateUpsertDelete;
@@ -29,6 +38,11 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
   );
   const [externalId, setExternalId] = useState(externalIdInit || '');
   const [externalIdNoItemsText, setExternalIdNoItemsText] = useState('');
+  const allowedLoadTypes = useAllowedLoadTypes();
+  // Custom metadata is always an upsert, gated by the metadata deploy operation instead of the record operations
+  const visibleLoadTypeOptions = isCustomMetadataObject
+    ? LOAD_TYPE_OPTIONS
+    : LOAD_TYPE_OPTIONS.filter(({ value }) => allowedLoadTypes.includes(value));
 
   useEffect(() => {
     if (externalIdFields && externalIdFields.length) {
@@ -68,48 +82,23 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
     <>
       <Grid testId="load-type" verticalAlign="end">
         <GridCol growNone>
-          <RadioGroup label="Type of Data Load" required isButtonGroup>
-            <RadioButton
-              name="INSERT"
-              label="Insert"
-              value="INSERT"
-              checked={selectedType === 'INSERT'}
-              disabled={isCustomMetadataObject}
-              onChange={(value) => handleChange(value as InsertUpdateUpsertDelete)}
-            />
-            <RadioButton
-              name="UPDATE"
-              label="Update"
-              value="UPDATE"
-              checked={selectedType === 'UPDATE'}
-              disabled={isCustomMetadataObject}
-              onChange={(value) => handleChange(value as InsertUpdateUpsertDelete)}
-            />
-            <RadioButton
-              name="UPSERT"
-              label="Upsert"
-              value="UPSERT"
-              checked={selectedType === 'UPSERT'}
-              disabled={isCustomMetadataObject}
-              onChange={(value) => handleChange(value as InsertUpdateUpsertDelete)}
-            />
-            <RadioButton
-              name="DELETE"
-              label="Delete"
-              value="DELETE"
-              checked={selectedType === 'DELETE'}
-              disabled={isCustomMetadataObject}
-              onChange={(value) => handleChange(value as InsertUpdateUpsertDelete)}
-            />
-            <RadioButton
-              name="HARD_DELETE"
-              label="Hard Delete"
-              value="HARD_DELETE"
-              checked={selectedType === 'HARD_DELETE'}
-              disabled={isCustomMetadataObject}
-              onChange={(value) => handleChange(value as InsertUpdateUpsertDelete)}
-            />
-          </RadioGroup>
+          {visibleLoadTypeOptions.length ? (
+            <RadioGroup label="Type of Data Load" required isButtonGroup>
+              {visibleLoadTypeOptions.map(({ value, label }) => (
+                <RadioButton
+                  key={value}
+                  name={value}
+                  label={label}
+                  value={value}
+                  checked={selectedType === value}
+                  disabled={isCustomMetadataObject}
+                  onChange={() => handleChange(value)}
+                />
+              ))}
+            </RadioGroup>
+          ) : (
+            <ScopedNotification theme="info">{LOAD_NOT_ALLOWED_MESSAGE}</ScopedNotification>
+          )}
         </GridCol>
         {selectedType === 'UPSERT' && !isCustomMetadataObject && (
           <GridCol>

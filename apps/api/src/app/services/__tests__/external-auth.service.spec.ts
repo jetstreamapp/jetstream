@@ -7,13 +7,16 @@ import * as webExtDb from '../../db/web-extension.db';
 import { AuthenticationError, ServiceUnavailableError } from '../../utils/error-handler';
 import {
   addDeviceIdToLocals,
+  AUDIENCE_DESKTOP,
   AUDIENCE_WEB_EXT,
   findDeviceEnvironmentChange,
   getDeviceId,
   getExternalAuthMiddleware,
+  issueAccessToken,
   isTokenWithinRefreshWindow,
   logDeviceEnvironmentChange,
   rotateToken,
+  verifyToken,
   type Audience,
 } from '../external-auth.service';
 import { decryptJwtToken, hashToken } from '../jwt-token-encryption.service';
@@ -394,6 +397,84 @@ describe('external-auth.service', () => {
       expect(error).toBeInstanceOf(ServiceUnavailableError);
       expect(error.status).toBe(503);
       expect(error.message).not.toContain('Connection terminated');
+    });
+  });
+
+  describe('verifyToken', () => {
+    const deviceId = 'device-abc';
+
+    function makePolicy(surfaces: string[]) {
+      return { v: 1, tools: ['query'], operations: [], surfaces };
+    }
+
+    /** The token row as selected by findByAccessTokenAndDeviceId, for an active team member entitled to both surfaces */
+    function makeTokenRecord(accessProfile: { policy: unknown } | null, teamStatus = 'ACTIVE') {
+      return {
+        userId: mockUserProfile.id,
+        user: {
+          entitlements: null,
+          teamMembership: {
+            status: 'ACTIVE',
+            accessProfile,
+            team: { status: teamStatus, entitlements: { chromeExtension: true, googleDrive: false, recordSync: false, desktop: true } },
+          },
+        },
+      };
+    }
+
+    it.each([
+      ['desktop', AUDIENCE_DESKTOP, ['browser-extension']],
+      ['browser extension', AUDIENCE_WEB_EXT, ['desktop']],
+    ] as const)('rejects a %s token when the access profile excludes that surface', async (_surface, audience, surfaces) => {
+      mockWebExtDb.findByAccessTokenAndDeviceId.mockResolvedValue(makeTokenRecord({ policy: makePolicy([...surfaces]) }));
+      const token = await issueAccessToken(mockUserProfile, audience);
+
+      await expect(verifyToken({ token, deviceId }, audience)).rejects.toThrow('Team access profile does not allow this application');
+    });
+
+    it('rejects when the stored access profile policy cannot be read', async () => {
+      mockWebExtDb.findByAccessTokenAndDeviceId.mockResolvedValue(makeTokenRecord({ policy: 'corrupt' }));
+      const token = await issueAccessToken(mockUserProfile, AUDIENCE_DESKTOP);
+
+      await expect(verifyToken({ token, deviceId }, AUDIENCE_DESKTOP)).rejects.toThrow(
+        'Team access profile does not allow this application',
+      );
+    });
+
+    it('accepts a token when the access profile allows the surface', async () => {
+      mockWebExtDb.findByAccessTokenAndDeviceId.mockResolvedValue(makeTokenRecord({ policy: makePolicy(['desktop']) }));
+      const token = await issueAccessToken(mockUserProfile, AUDIENCE_DESKTOP);
+
+      await expect(verifyToken({ token, deviceId }, AUDIENCE_DESKTOP)).resolves.toEqual(
+        expect.objectContaining({ aud: AUDIENCE_DESKTOP, userProfile: expect.objectContaining({ id: mockUserProfile.id }) }),
+      );
+    });
+
+    it('accepts a token for a team member without an access profile (full access)', async () => {
+      mockWebExtDb.findByAccessTokenAndDeviceId.mockResolvedValue(makeTokenRecord(null));
+      const token = await issueAccessToken(mockUserProfile, AUDIENCE_WEB_EXT);
+
+      await expect(verifyToken({ token, deviceId }, AUDIENCE_WEB_EXT)).resolves.toEqual(
+        expect.objectContaining({ aud: AUDIENCE_WEB_EXT, userProfile: expect.objectContaining({ id: mockUserProfile.id }) }),
+      );
+      expect(mockWebExtDb.findByAccessTokenAndDeviceId).toHaveBeenCalledWith({ deviceId, token, type: webExtDb.TOKEN_TYPE_AUTH });
+    });
+
+    it('ignores the access profile of an inactive team, matching /api/me', async () => {
+      mockWebExtDb.findByAccessTokenAndDeviceId.mockResolvedValue(makeTokenRecord({ policy: makePolicy([]) }, 'INACTIVE'));
+      const token = await issueAccessToken(mockUserProfile, AUDIENCE_DESKTOP);
+
+      await expect(verifyToken({ token, deviceId }, AUDIENCE_DESKTOP)).resolves.toEqual(expect.objectContaining({ aud: AUDIENCE_DESKTOP }));
+    });
+
+    it('accepts a token for a user who is not on a team', async () => {
+      mockWebExtDb.findByAccessTokenAndDeviceId.mockResolvedValue({
+        userId: mockUserProfile.id,
+        user: { entitlements: { chromeExtension: false, googleDrive: false, recordSync: false, desktop: true }, teamMembership: null },
+      });
+      const token = await issueAccessToken(mockUserProfile, AUDIENCE_DESKTOP);
+
+      await expect(verifyToken({ token, deviceId }, AUDIENCE_DESKTOP)).resolves.toEqual(expect.objectContaining({ aud: AUDIENCE_DESKTOP }));
     });
   });
 });

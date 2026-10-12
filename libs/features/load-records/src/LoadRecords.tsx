@@ -29,7 +29,14 @@ import {
   useAnalytics,
   ViewDataHistoryLink,
 } from '@jetstream/ui-core';
-import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
+import {
+  applicationCookieState,
+  googleDriveAccessState,
+  selectedOrgState,
+  selectedOrgType,
+  useCanAccessTool,
+  useCanPerformOperation,
+} from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
@@ -42,6 +49,7 @@ import LoadRecordsFieldMapping from './steps/FieldMapping';
 import PerformLoad from './steps/PerformLoad';
 import PerformLoadCustomMetadata from './steps/PerformLoadCustomMetadata';
 import LoadRecordsSelectObjectAndFile from './steps/SelectObjectAndFile';
+import { useAllowedLoadTypes } from './useAllowedLoadTypes';
 
 const HEIGHT_BUFFER = 170;
 
@@ -73,6 +81,10 @@ export const LoadRecords = () => {
   const [selectedSObject, setSelectedSObject] = useAtom(fromLoadRecordsState.selectedSObjectState);
   const isCustomMetadataObject = useAtomValue(fromLoadRecordsState.isCustomMetadataObject);
   const [loadType, setLoadType] = useAtom(fromLoadRecordsState.loadTypeState);
+  const allowedLoadTypes = useAllowedLoadTypes();
+  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
+  const canUseDataHistory = useCanAccessTool('data-history');
+  const isLoadAllowed = isCustomMetadataObject ? canDeployMetadata : allowedLoadTypes.includes(loadType);
   const [fields, setFields] = useState<FieldWithRelatedEntities[]>([]);
   const [mappableFields, setMappableFields] = useState<FieldWithRelatedEntities[]>([]);
   const [externalIdFields, setExternalIdFields] = useState<FieldWithRelatedEntities[]>([]);
@@ -136,6 +148,14 @@ export const LoadRecords = () => {
       setExternalId('DeveloperName');
     }
   }, [isCustomMetadataObject, setLoadType]);
+
+  // Limited to the first step so a profile change can never silently switch the type of a load that is ready to run
+  useEffect(() => {
+    if (currentStepIdx === 0 && !isCustomMetadataObject && allowedLoadTypes.length && !allowedLoadTypes.includes(loadType)) {
+      setLoadType(allowedLoadTypes[0]);
+      setExternalId('');
+    }
+  }, [allowedLoadTypes, currentStepIdx, isCustomMetadataObject, loadType, setLoadType]);
 
   // On file change, reset load option state
   useEffect(() => {
@@ -292,6 +312,7 @@ export const LoadRecords = () => {
           !inputFileData.length ||
           !loadType ||
           (loadType === 'UPSERT' && !externalId) ||
+          !isLoadAllowed ||
           loadingFields;
         break;
       case 'fieldMapping':
@@ -329,7 +350,7 @@ export const LoadRecords = () => {
     }
     setCurrentStepText(currStepButtonText);
     setNextStepDisabled(isNextStepDisabled);
-  }, [currentStep, selectedSObject, inputFileData, loadType, externalId, fieldMapping, loadingFields]);
+  }, [currentStep, selectedSObject, inputFileData, loadType, externalId, fieldMapping, loadingFields, isLoadAllowed]);
 
   useEffect(() => {
     const text: string[] = [];
@@ -499,7 +520,12 @@ export const LoadRecords = () => {
             `}
           >
             <Grid verticalAlign="center">
-              {loadSummaryText && <span className="slds-m-right_xx-small">{loadSummaryText} •</span>}
+              {loadSummaryText && (
+                <span className="slds-m-right_xx-small">
+                  {loadSummaryText}
+                  {canUseDataHistory && ' •'}
+                </span>
+              )}
               <ViewDataHistoryLink />
             </Grid>
           </div>

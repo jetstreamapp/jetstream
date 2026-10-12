@@ -23,6 +23,7 @@ Refer to the following guides to configure SSO with your chosen identity provide
 Once SSO is turned on, nobody with an email address on one of your verified domains can sign up with an email address and password, and nobody can change an existing account's email address to one on those domains.
 To join your team they sign in with SSO, which requires either **Auto-create users on first SSO login (JIT Provisioning)** to be enabled or an invitation to your team.
 Each user created by JIT Provisioning takes one of your team's [seats](../team-management.mdx#seats), so JIT Provisioning only works while a seat is available.
+Users created by JIT Provisioning receive your team's [default access profile](../access-profiles.mdx#default-access-profile), or Full access if no profile is the default.
 
 People you invite follow your team's SSO bypass settings for the role they were invited with.
 An invitation from a different Jetstream team does not let someone sign up with a password on your domains.

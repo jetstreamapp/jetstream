@@ -1,4 +1,5 @@
 import { Badge, DataTableGenericContext, DropDown, Grid, Icon, RenderCellProps } from '@jetstream/ui';
+import { useCanPerformOperation } from '@jetstream/ui/app-state';
 import { useContext } from 'react';
 import {
   DATA_HISTORY_STATUS_LABELS,
@@ -52,8 +53,9 @@ export function PinnedCellRenderer({ row }: RenderCellProps<DataHistoryTableRowI
 
 export function ActionsCellRenderer({ row }: RenderCellProps<DataHistoryTableRowItem>) {
   const { onView, onDownload, onDelete } = useTableContext();
+  const canExportRecords = useCanPerformOperation('records.export');
   const { item } = row;
-  const targets = getDataHistoryExportTargets(item);
+  const targets = canExportRecords ? getDataHistoryExportTargets(item) : [];
   return (
     <Grid verticalAlign="center" noWrap>
       <button className="slds-button slds-button_neutral slds-m-right_x-small" onClick={() => onView(item)}>

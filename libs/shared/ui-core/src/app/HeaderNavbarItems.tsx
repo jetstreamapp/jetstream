@@ -1,219 +1,247 @@
-import { APP_ROUTES } from '@jetstream/shared/ui-router';
+import { AppAbility, canAccessTool } from '@jetstream/acl';
+import { APP_ROUTES, getAccessProfileToolForPath } from '@jetstream/shared/ui-router';
 import type { NavbarItemConfig } from '@jetstream/ui';
-import { useFeatureFlag } from '@jetstream/ui/app-state';
+import { abilityState, useFeatureFlag } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { useMemo } from 'react';
+
+export function isPathAllowedByAccessProfile(ability: AppAbility, path: string | undefined) {
+  const tool = path ? getAccessProfileToolForPath(path) : undefined;
+  return !tool || canAccessTool(ability, tool);
+}
+
+/**
+ * Removes tools the member's team access profile does not include, and any menu left empty as a result
+ */
+function filterNavbarItemsByAccessProfile(items: NavbarItemConfig[], ability: AppAbility): NavbarItemConfig[] {
+  return items.flatMap((item): NavbarItemConfig[] => {
+    if (item.type === 'item') {
+      return isPathAllowedByAccessProfile(ability, item.path) ? [item] : [];
+    }
+    if (item.type === 'menu') {
+      const menuItems = item.items.filter((menuItem) => !('path' in menuItem) || isPathAllowedByAccessProfile(ability, menuItem.path));
+      return menuItems.length ? [{ ...item, items: menuItems }] : [];
+    }
+    return [item];
+  });
+}
 
 export function useHeaderNavbarItems(): NavbarItemConfig[] {
   const analysisToolsEnabled = useFeatureFlag('analysis-tools');
+  const ability = useAtomValue(abilityState);
   return useMemo<NavbarItemConfig[]>(
-    () => [
-      {
-        id: 'home',
-        type: 'waffle',
-        path: APP_ROUTES.HOME.ROUTE,
-        search: APP_ROUTES.HOME.SEARCH_PARAM,
-        title: 'Home',
-        assistiveText: 'Home Page',
-      },
-      {
-        id: 'query',
-        type: 'item',
-        path: APP_ROUTES.QUERY.ROUTE,
-        search: APP_ROUTES.QUERY.SEARCH_PARAM,
-        title: APP_ROUTES.QUERY.DESCRIPTION,
-        label: APP_ROUTES.QUERY.TITLE,
-      },
-      {
-        id: 'load-records',
-        type: 'menu',
-        label: 'Load Records',
-        items: [
-          {
-            id: 'load',
-            path: APP_ROUTES.LOAD.ROUTE,
-            search: APP_ROUTES.LOAD.SEARCH_PARAM,
-            title: APP_ROUTES.LOAD.DESCRIPTION,
-            label: APP_ROUTES.LOAD.TITLE,
-          },
-          {
-            id: 'load-with-relationships',
-            path: APP_ROUTES.LOAD_MULTIPLE.ROUTE,
-            search: APP_ROUTES.LOAD_MULTIPLE.SEARCH_PARAM,
-            title: APP_ROUTES.LOAD_MULTIPLE.DESCRIPTION,
-            label: APP_ROUTES.LOAD_MULTIPLE.TITLE,
-          },
-          {
-            id: 'update-records',
-            path: APP_ROUTES.LOAD_MASS_UPDATE.ROUTE,
-            search: APP_ROUTES.LOAD_MASS_UPDATE.SEARCH_PARAM,
-            title: APP_ROUTES.LOAD_MASS_UPDATE.DESCRIPTION,
-            label: APP_ROUTES.LOAD_MASS_UPDATE.TITLE,
-          },
-          {
-            id: 'create-records',
-            path: APP_ROUTES.LOAD_CREATE_RECORD.ROUTE,
-            search: APP_ROUTES.LOAD_CREATE_RECORD.SEARCH_PARAM,
-            title: APP_ROUTES.LOAD_CREATE_RECORD.DESCRIPTION,
-            label: APP_ROUTES.LOAD_CREATE_RECORD.TITLE,
-          },
-          {
-            id: 'data-history',
-            path: APP_ROUTES.DATA_HISTORY.ROUTE,
-            search: APP_ROUTES.DATA_HISTORY.SEARCH_PARAM,
-            title: APP_ROUTES.DATA_HISTORY.DESCRIPTION,
-            label: APP_ROUTES.DATA_HISTORY.TITLE,
-          },
-        ],
-      },
-      {
-        id: 'automation-control',
-        type: 'item',
-        path: APP_ROUTES.AUTOMATION_CONTROL.ROUTE,
-        search: APP_ROUTES.AUTOMATION_CONTROL.SEARCH_PARAM,
-        title: APP_ROUTES.AUTOMATION_CONTROL.DESCRIPTION,
-        label: APP_ROUTES.AUTOMATION_CONTROL.TITLE,
-      },
-      {
-        id: 'permission-manager',
-        type: 'item',
-        path: APP_ROUTES.PERMISSION_MANAGER.ROUTE,
-        search: APP_ROUTES.PERMISSION_MANAGER.SEARCH_PARAM,
-        title: APP_ROUTES.PERMISSION_MANAGER.DESCRIPTION,
-        label: APP_ROUTES.PERMISSION_MANAGER.TITLE,
-      },
-      // Gated by the `analysis-tools` rollout flag. When enabled it is shown to everyone for discovery;
-      // the route still renders an upgrade paywall for users without the paid entitlement.
-      ...(analysisToolsEnabled
-        ? [
-            {
-              id: 'analysis-tools',
-              type: 'menu' as const,
-              label: 'Analysis Tools',
-              items: [
-                {
-                  id: 'permission-analysis',
-                  path: APP_ROUTES.PERMISSION_ANALYSIS.ROUTE,
-                  search: APP_ROUTES.PERMISSION_ANALYSIS.SEARCH_PARAM,
-                  title: APP_ROUTES.PERMISSION_ANALYSIS.DESCRIPTION,
-                  label: APP_ROUTES.PERMISSION_ANALYSIS.TITLE,
-                },
-                {
-                  id: 'data-analysis',
-                  path: APP_ROUTES.DATA_ANALYSIS.ROUTE,
-                  search: APP_ROUTES.DATA_ANALYSIS.SEARCH_PARAM,
-                  title: APP_ROUTES.DATA_ANALYSIS.DESCRIPTION,
-                  label: APP_ROUTES.DATA_ANALYSIS.TITLE,
-                },
-              ],
-            },
-          ]
-        : []),
-      {
-        id: 'deploy-metadata',
-        type: 'menu',
-        label: 'Deploy Metadata',
-        items: [
-          {
-            id: 'deploy-metadata',
-            path: APP_ROUTES.DEPLOY_METADATA.ROUTE,
-            search: APP_ROUTES.DEPLOY_METADATA.SEARCH_PARAM,
-            title: APP_ROUTES.DEPLOY_METADATA.DESCRIPTION,
-            label: APP_ROUTES.DEPLOY_METADATA.TITLE,
-          },
-          {
-            id: 'deploy-sobject-metadata',
-            path: APP_ROUTES.CREATE_FIELDS.ROUTE,
-            search: APP_ROUTES.CREATE_FIELDS.SEARCH_PARAM,
-            title: APP_ROUTES.CREATE_FIELDS.DESCRIPTION,
-            label: APP_ROUTES.CREATE_FIELDS.TITLE,
-          },
-          {
-            id: 'record-type-manager',
-            path: APP_ROUTES.RECORD_TYPE_MANAGER.ROUTE,
-            search: APP_ROUTES.RECORD_TYPE_MANAGER.SEARCH_PARAM,
-            title: APP_ROUTES.RECORD_TYPE_MANAGER.DESCRIPTION,
-            label: APP_ROUTES.RECORD_TYPE_MANAGER.TITLE,
-          },
-          {
-            id: 'formula-evaluator',
-            path: APP_ROUTES.FORMULA_EVALUATOR.ROUTE,
-            search: APP_ROUTES.FORMULA_EVALUATOR.SEARCH_PARAM,
-            title: APP_ROUTES.FORMULA_EVALUATOR.DESCRIPTION,
-            label: APP_ROUTES.FORMULA_EVALUATOR.TITLE,
-          },
-        ],
-      },
-      {
-        id: 'developer-tools',
-        type: 'menu',
-        label: 'Developer Tools',
-        items: [
-          {
-            id: 'apex',
-            path: APP_ROUTES.ANON_APEX.ROUTE,
-            search: APP_ROUTES.ANON_APEX.SEARCH_PARAM,
-            title: APP_ROUTES.ANON_APEX.DESCRIPTION,
-            label: APP_ROUTES.ANON_APEX.TITLE,
-          },
-          {
-            id: 'apex-tests',
-            path: APP_ROUTES.APEX_TESTS.ROUTE,
-            search: APP_ROUTES.APEX_TESTS.SEARCH_PARAM,
-            title: APP_ROUTES.APEX_TESTS.DESCRIPTION,
-            label: APP_ROUTES.APEX_TESTS.TITLE,
-          },
-          {
-            id: 'debug-logs',
-            path: APP_ROUTES.DEBUG_LOG_VIEWER.ROUTE,
-            search: APP_ROUTES.DEBUG_LOG_VIEWER.SEARCH_PARAM,
-            title: APP_ROUTES.DEBUG_LOG_VIEWER.DESCRIPTION,
-            label: APP_ROUTES.DEBUG_LOG_VIEWER.TITLE,
-          },
-          {
-            id: 'sobject-export',
-            path: APP_ROUTES.OBJECT_EXPORT.ROUTE,
-            search: APP_ROUTES.OBJECT_EXPORT.SEARCH_PARAM,
-            title: APP_ROUTES.OBJECT_EXPORT.DESCRIPTION,
-            label: APP_ROUTES.OBJECT_EXPORT.TITLE,
-          },
-          {
-            id: 'salesforce-api',
-            path: APP_ROUTES.SALESFORCE_API.ROUTE,
-            search: APP_ROUTES.SALESFORCE_API.SEARCH_PARAM,
-            title: APP_ROUTES.SALESFORCE_API.DESCRIPTION,
-            label: APP_ROUTES.SALESFORCE_API.TITLE,
-          },
-          {
-            id: 'platform-event-monitor',
-            path: APP_ROUTES.PLATFORM_EVENT_MONITOR.ROUTE,
-            search: APP_ROUTES.PLATFORM_EVENT_MONITOR.SEARCH_PARAM,
-            title: APP_ROUTES.PLATFORM_EVENT_MONITOR.DESCRIPTION,
-            label: APP_ROUTES.PLATFORM_EVENT_MONITOR.TITLE,
-          },
-        ],
-      },
-      {
-        id: 'documentation-support',
-        type: 'menu',
-        label: 'Documentation & Support',
-        items: [
-          {
-            id: 'feedback',
-            path: APP_ROUTES.FEEDBACK_SUPPORT.ROUTE,
-            search: APP_ROUTES.FEEDBACK_SUPPORT.SEARCH_PARAM,
-            title: APP_ROUTES.FEEDBACK_SUPPORT.DESCRIPTION,
-            label: APP_ROUTES.FEEDBACK_SUPPORT.TITLE,
-          },
-          {
-            id: 'documentation',
-            path: 'https://docs.getjetstream.app',
-            isExternal: true,
-            title: 'Documentation',
-            label: 'Documentation',
-          },
-        ],
-      },
-    ],
-    [analysisToolsEnabled],
+    () => filterNavbarItemsByAccessProfile(navbarItems(analysisToolsEnabled), ability),
+    [analysisToolsEnabled, ability],
   );
+}
+
+function navbarItems(analysisToolsEnabled: boolean): NavbarItemConfig[] {
+  return [
+    {
+      id: 'home',
+      type: 'waffle',
+      path: APP_ROUTES.HOME.ROUTE,
+      search: APP_ROUTES.HOME.SEARCH_PARAM,
+      title: 'Home',
+      assistiveText: 'Home Page',
+    },
+    {
+      id: 'query',
+      type: 'item',
+      path: APP_ROUTES.QUERY.ROUTE,
+      search: APP_ROUTES.QUERY.SEARCH_PARAM,
+      title: APP_ROUTES.QUERY.DESCRIPTION,
+      label: APP_ROUTES.QUERY.TITLE,
+    },
+    {
+      id: 'load-records',
+      type: 'menu',
+      label: 'Load Records',
+      items: [
+        {
+          id: 'load',
+          path: APP_ROUTES.LOAD.ROUTE,
+          search: APP_ROUTES.LOAD.SEARCH_PARAM,
+          title: APP_ROUTES.LOAD.DESCRIPTION,
+          label: APP_ROUTES.LOAD.TITLE,
+        },
+        {
+          id: 'load-with-relationships',
+          path: APP_ROUTES.LOAD_MULTIPLE.ROUTE,
+          search: APP_ROUTES.LOAD_MULTIPLE.SEARCH_PARAM,
+          title: APP_ROUTES.LOAD_MULTIPLE.DESCRIPTION,
+          label: APP_ROUTES.LOAD_MULTIPLE.TITLE,
+        },
+        {
+          id: 'update-records',
+          path: APP_ROUTES.LOAD_MASS_UPDATE.ROUTE,
+          search: APP_ROUTES.LOAD_MASS_UPDATE.SEARCH_PARAM,
+          title: APP_ROUTES.LOAD_MASS_UPDATE.DESCRIPTION,
+          label: APP_ROUTES.LOAD_MASS_UPDATE.TITLE,
+        },
+        {
+          id: 'create-records',
+          path: APP_ROUTES.LOAD_CREATE_RECORD.ROUTE,
+          search: APP_ROUTES.LOAD_CREATE_RECORD.SEARCH_PARAM,
+          title: APP_ROUTES.LOAD_CREATE_RECORD.DESCRIPTION,
+          label: APP_ROUTES.LOAD_CREATE_RECORD.TITLE,
+        },
+        {
+          id: 'data-history',
+          path: APP_ROUTES.DATA_HISTORY.ROUTE,
+          search: APP_ROUTES.DATA_HISTORY.SEARCH_PARAM,
+          title: APP_ROUTES.DATA_HISTORY.DESCRIPTION,
+          label: APP_ROUTES.DATA_HISTORY.TITLE,
+        },
+      ],
+    },
+    {
+      id: 'automation-control',
+      type: 'item',
+      path: APP_ROUTES.AUTOMATION_CONTROL.ROUTE,
+      search: APP_ROUTES.AUTOMATION_CONTROL.SEARCH_PARAM,
+      title: APP_ROUTES.AUTOMATION_CONTROL.DESCRIPTION,
+      label: APP_ROUTES.AUTOMATION_CONTROL.TITLE,
+    },
+    {
+      id: 'permission-manager',
+      type: 'item',
+      path: APP_ROUTES.PERMISSION_MANAGER.ROUTE,
+      search: APP_ROUTES.PERMISSION_MANAGER.SEARCH_PARAM,
+      title: APP_ROUTES.PERMISSION_MANAGER.DESCRIPTION,
+      label: APP_ROUTES.PERMISSION_MANAGER.TITLE,
+    },
+    // Gated by the `analysis-tools` rollout flag. When enabled it is shown to everyone for discovery;
+    // the route still renders an upgrade paywall for users without the paid entitlement.
+    ...(analysisToolsEnabled
+      ? [
+          {
+            id: 'analysis-tools',
+            type: 'menu' as const,
+            label: 'Analysis Tools',
+            items: [
+              {
+                id: 'permission-analysis',
+                path: APP_ROUTES.PERMISSION_ANALYSIS.ROUTE,
+                search: APP_ROUTES.PERMISSION_ANALYSIS.SEARCH_PARAM,
+                title: APP_ROUTES.PERMISSION_ANALYSIS.DESCRIPTION,
+                label: APP_ROUTES.PERMISSION_ANALYSIS.TITLE,
+              },
+              {
+                id: 'data-analysis',
+                path: APP_ROUTES.DATA_ANALYSIS.ROUTE,
+                search: APP_ROUTES.DATA_ANALYSIS.SEARCH_PARAM,
+                title: APP_ROUTES.DATA_ANALYSIS.DESCRIPTION,
+                label: APP_ROUTES.DATA_ANALYSIS.TITLE,
+              },
+            ],
+          },
+        ]
+      : []),
+    {
+      id: 'deploy-metadata',
+      type: 'menu',
+      label: 'Deploy Metadata',
+      items: [
+        {
+          id: 'deploy-metadata',
+          path: APP_ROUTES.DEPLOY_METADATA.ROUTE,
+          search: APP_ROUTES.DEPLOY_METADATA.SEARCH_PARAM,
+          title: APP_ROUTES.DEPLOY_METADATA.DESCRIPTION,
+          label: APP_ROUTES.DEPLOY_METADATA.TITLE,
+        },
+        {
+          id: 'deploy-sobject-metadata',
+          path: APP_ROUTES.CREATE_FIELDS.ROUTE,
+          search: APP_ROUTES.CREATE_FIELDS.SEARCH_PARAM,
+          title: APP_ROUTES.CREATE_FIELDS.DESCRIPTION,
+          label: APP_ROUTES.CREATE_FIELDS.TITLE,
+        },
+        {
+          id: 'record-type-manager',
+          path: APP_ROUTES.RECORD_TYPE_MANAGER.ROUTE,
+          search: APP_ROUTES.RECORD_TYPE_MANAGER.SEARCH_PARAM,
+          title: APP_ROUTES.RECORD_TYPE_MANAGER.DESCRIPTION,
+          label: APP_ROUTES.RECORD_TYPE_MANAGER.TITLE,
+        },
+        {
+          id: 'formula-evaluator',
+          path: APP_ROUTES.FORMULA_EVALUATOR.ROUTE,
+          search: APP_ROUTES.FORMULA_EVALUATOR.SEARCH_PARAM,
+          title: APP_ROUTES.FORMULA_EVALUATOR.DESCRIPTION,
+          label: APP_ROUTES.FORMULA_EVALUATOR.TITLE,
+        },
+      ],
+    },
+    {
+      id: 'developer-tools',
+      type: 'menu',
+      label: 'Developer Tools',
+      items: [
+        {
+          id: 'apex',
+          path: APP_ROUTES.ANON_APEX.ROUTE,
+          search: APP_ROUTES.ANON_APEX.SEARCH_PARAM,
+          title: APP_ROUTES.ANON_APEX.DESCRIPTION,
+          label: APP_ROUTES.ANON_APEX.TITLE,
+        },
+        {
+          id: 'apex-tests',
+          path: APP_ROUTES.APEX_TESTS.ROUTE,
+          search: APP_ROUTES.APEX_TESTS.SEARCH_PARAM,
+          title: APP_ROUTES.APEX_TESTS.DESCRIPTION,
+          label: APP_ROUTES.APEX_TESTS.TITLE,
+        },
+        {
+          id: 'debug-logs',
+          path: APP_ROUTES.DEBUG_LOG_VIEWER.ROUTE,
+          search: APP_ROUTES.DEBUG_LOG_VIEWER.SEARCH_PARAM,
+          title: APP_ROUTES.DEBUG_LOG_VIEWER.DESCRIPTION,
+          label: APP_ROUTES.DEBUG_LOG_VIEWER.TITLE,
+        },
+        {
+          id: 'sobject-export',
+          path: APP_ROUTES.OBJECT_EXPORT.ROUTE,
+          search: APP_ROUTES.OBJECT_EXPORT.SEARCH_PARAM,
+          title: APP_ROUTES.OBJECT_EXPORT.DESCRIPTION,
+          label: APP_ROUTES.OBJECT_EXPORT.TITLE,
+        },
+        {
+          id: 'salesforce-api',
+          path: APP_ROUTES.SALESFORCE_API.ROUTE,
+          search: APP_ROUTES.SALESFORCE_API.SEARCH_PARAM,
+          title: APP_ROUTES.SALESFORCE_API.DESCRIPTION,
+          label: APP_ROUTES.SALESFORCE_API.TITLE,
+        },
+        {
+          id: 'platform-event-monitor',
+          path: APP_ROUTES.PLATFORM_EVENT_MONITOR.ROUTE,
+          search: APP_ROUTES.PLATFORM_EVENT_MONITOR.SEARCH_PARAM,
+          title: APP_ROUTES.PLATFORM_EVENT_MONITOR.DESCRIPTION,
+          label: APP_ROUTES.PLATFORM_EVENT_MONITOR.TITLE,
+        },
+      ],
+    },
+    {
+      id: 'documentation-support',
+      type: 'menu',
+      label: 'Documentation & Support',
+      items: [
+        {
+          id: 'feedback',
+          path: APP_ROUTES.FEEDBACK_SUPPORT.ROUTE,
+          search: APP_ROUTES.FEEDBACK_SUPPORT.SEARCH_PARAM,
+          title: APP_ROUTES.FEEDBACK_SUPPORT.DESCRIPTION,
+          label: APP_ROUTES.FEEDBACK_SUPPORT.TITLE,
+        },
+        {
+          id: 'documentation',
+          path: 'https://docs.getjetstream.app',
+          isExternal: true,
+          title: 'Documentation',
+          label: 'Documentation',
+        },
+      ],
+    },
+  ];
 }

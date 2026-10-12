@@ -1,5 +1,8 @@
 import { AbilityBuilder, createMongoAbility, type CreateAbility, type MongoAbility } from '@casl/ability';
 import {
+  AccessProfileOperationKey,
+  AccessProfileToolKey,
+  isAccessProfileSurfaceAllowed,
   TeamBillingStatusSchema,
   TeamMemberRole,
   TeamMemberRoleSchema,
@@ -9,8 +12,14 @@ import {
 } from '@jetstream/types';
 
 type Actions = 'read' | 'update';
-// TODO: granular app access
 type Subjects = 'Billing' | 'CoreFunctionality' | 'Profile' | 'Settings';
+
+// Granular app access from the member's team access profile. These are UI guards, not a security boundary.
+type ToolActions = 'access';
+type ToolSubjects = 'Tool' | { type: 'Tool'; key: AccessProfileToolKey };
+
+type OperationActions = 'perform';
+type OperationSubjects = 'Operation' | { type: 'Operation'; key: AccessProfileOperationKey };
 
 type EntitlementActions = 'access';
 type EntitlementSubjects = 'GoogleDrive' | 'ChromeExtension' | 'Desktop' | 'RecordSync' | 'AnalysisTools';
@@ -41,8 +50,13 @@ type SsoConfigurationSubjects = 'SsoConfiguration';
 type AuditLogActions = 'read';
 type AuditLogSubjects = 'AuditLog';
 
+type TeamAccessProfileActions = 'read' | 'update';
+type TeamAccessProfileSubjects = 'TeamAccessProfile';
+
 export type AppAbility = MongoAbility<
   | [Actions, Subjects]
+  | [ToolActions, ToolSubjects]
+  | [OperationActions, OperationSubjects]
   | [EntitlementActions, EntitlementSubjects]
   | [TeamActions, TeamSubjects]
   | [TeamMemberActions, TeamMemberSubjects]
@@ -52,6 +66,7 @@ export type AppAbility = MongoAbility<
   | [DomainConfigurationActions, DomainConfigurationSubjects]
   | [SsoConfigurationActions, SsoConfigurationSubjects]
   | [AuditLogActions, AuditLogSubjects]
+  | [TeamAccessProfileActions, TeamAccessProfileSubjects]
 >;
 
 const createAppAbility = createMongoAbility as CreateAbility<AppAbility>;
@@ -92,6 +107,26 @@ function getAbilityRules({ isBrowserExtension, isDesktop, isCanvasApp, user }: G
     cannot('update', 'Settings');
   }
 
+  // A profile without the web application leaves profile, settings and the Team Dashboard reachable on the
+  // web, but nothing that touches Salesforce. The server refuses those requests too.
+  const isWebAppRestricted = isWebApp && !isBillingRole && !isAccessProfileSurfaceAllowed(user.teamMembership?.accessProfile, 'web');
+  if (isWebAppRestricted) {
+    cannot('read', 'CoreFunctionality');
+  }
+
+  // No profile means full access, so members are unaffected until an admin assigns one. Team Dashboard
+  // abilities below never depend on the profile, so an admin who restricts themselves cannot get locked out.
+  // Billing has no core functionality, so it gets no tools or operations either.
+  const hasCoreFunctionality = !isBillingRole && !isWebAppRestricted;
+  const accessPolicy = user.teamMembership?.accessProfile?.policy;
+  if (hasCoreFunctionality && !accessPolicy) {
+    can('access', 'Tool');
+    can('perform', 'Operation');
+  } else if (hasCoreFunctionality && accessPolicy) {
+    can('access', 'Tool', { key: { $in: accessPolicy.tools } });
+    can('perform', 'Operation', { key: { $in: accessPolicy.operations } });
+  }
+
   if (isWebApp) {
     can('read', 'Profile');
 
@@ -101,7 +136,18 @@ function getAbilityRules({ isBrowserExtension, isDesktop, isCanvasApp, user }: G
 
     if (activeTeamMembership) {
       if (isTeamsBillingOrAdmin) {
-        can(['read'], ['Team', 'TeamMemberSession', 'TeamMemberAuthActivity', 'TeamMember', 'DomainConfiguration', 'SsoConfiguration']);
+        can(
+          ['read'],
+          [
+            'Team',
+            'TeamMemberSession',
+            'TeamMemberAuthActivity',
+            'TeamMember',
+            'DomainConfiguration',
+            'SsoConfiguration',
+            'TeamAccessProfile',
+          ],
+        );
         can('update', ['Team', 'TeamMember']);
 
         // Seat availability is enforced by the server and explained in the modals, so the invite
@@ -119,6 +165,8 @@ function getAbilityRules({ isBrowserExtension, isDesktop, isCanvasApp, user }: G
       }
       if (isAdminRole) {
         can(['read'], 'AuditLog');
+        // Creating, editing and assigning access profiles is limited to admins
+        can('update', 'TeamAccessProfile');
         can(['update', 'delete'], 'DomainConfiguration');
         can(['update', 'delete'], 'SsoConfiguration');
         can('delete', 'TeamMemberSession');
@@ -150,6 +198,14 @@ function getAbilityRules({ isBrowserExtension, isDesktop, isCanvasApp, user }: G
   }
 
   return rules;
+}
+
+export function canAccessTool(ability: AppAbility, key: AccessProfileToolKey) {
+  return ability.can('access', { type: 'Tool', key });
+}
+
+export function canPerformOperation(ability: AppAbility, key: AccessProfileOperationKey) {
+  return ability.can('perform', { type: 'Operation', key });
 }
 
 /**

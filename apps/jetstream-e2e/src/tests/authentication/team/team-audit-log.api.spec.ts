@@ -105,7 +105,7 @@ test.describe('Team Audit Log', () => {
 
       await test.step('TEAM_MEMBER_ROLE_UPDATED is logged when a member role changes', async () => {
         const res = await request.put(`/api/teams/${teamId}/members/${member1.userId}`, {
-          data: { role: 'BILLING', features: ['ALL'] },
+          data: { role: 'BILLING' },
         });
         expect(res.ok()).toBeTruthy();
 
@@ -125,7 +125,7 @@ test.describe('Team Audit Log', () => {
 
       await test.step('TEAM_INVITATION_CREATED is logged when an invitation is sent', async () => {
         const res = await request.post(`/api/teams/${teamId}/invitations`, {
-          data: { email: inviteeEmail, role: 'MEMBER', features: ['ALL'] },
+          data: { email: inviteeEmail, role: 'MEMBER' },
         });
         expect(res.ok()).toBeTruthy();
 

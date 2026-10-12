@@ -814,6 +814,13 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
       '/api/teams/{teamId}/members/{userId}/status': {
         put: { ...getRequest({ ...teamController.updateTeamMemberStatusAndRole.validators, tags: ['team'] }) },
       },
+      '/api/teams/{teamId}/access-profiles': {
+        post: { ...getRequest({ ...teamController.createAccessProfile.validators, tags: ['team'] }) },
+      },
+      '/api/teams/{teamId}/access-profiles/{id}': {
+        put: { ...getRequest({ ...teamController.updateAccessProfile.validators, tags: ['team'] }) },
+        delete: { ...getRequest({ ...teamController.deleteAccessProfile.validators, tags: ['team'] }) },
+      },
       '/api/teams/{teamId}/seats/preview': {
         post: { ...getRequest({ ...teamController.previewSeatChange.validators, tags: ['team'] }) },
       },

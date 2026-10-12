@@ -20,7 +20,7 @@ import { dataTableDateFormatter } from '../../data-table-formatters';
 import { ACTION_COLUMN_KEY, DEFAULT_ROW_HEIGHT, SELECT_COLUMN_KEY } from '../grid-constants';
 import { GridRecordActionContext } from '../grid-context';
 import { getRowId, getSfdcRetUrl } from '../grid-row-utils';
-import { ColumnWithFilter, DataTableCellProps, DataTableGroupCellProps, RowWithKey } from '../grid-types';
+import { ColumnWithFilter, DataTableCellProps, DataTableGroupCellProps, RecordOperationPermissions, RowWithKey } from '../grid-types';
 import { getRowErrorMessages } from '../validate-cell-value';
 
 /**
@@ -156,7 +156,11 @@ export function TextOrIdLinkRenderer(props: DataTableCellProps<RowWithKey>): Rea
   return GenericRenderer(props);
 }
 
-export function ActionRenderer({ row }: DataTableCellProps<any>): ReactNode {
+export function ActionRenderer({
+  row,
+  canWriteRecords = true,
+  canDeleteRecords = true,
+}: DataTableCellProps<any> & RecordOperationPermissions): ReactNode {
   if (!isFunction(row?._action)) {
     return null;
   }
@@ -169,23 +173,28 @@ export function ActionRenderer({ row }: DataTableCellProps<any>): ReactNode {
           <Icon type="utility" icon="preview" className="slds-button__icon" omitContainer title="View Record" />
         </button>
       </Tooltip>
-      <Tooltip ariaRole="label" content="Edit">
-        <button className="slds-button slds-button_icon slds-m-right_xx-small" tabIndex={-1} onClick={() => row._action(row, 'edit')}>
-          <Icon type="utility" icon="edit" className="slds-button__icon" omitContainer title="Edit Record" />
-        </button>
-      </Tooltip>
-      <Tooltip ariaRole="label" content="Clone">
-        <button className="slds-button slds-button_icon slds-m-right_xx-small" tabIndex={-1} onClick={() => row._action(row, 'clone')}>
-          <Icon type="utility" icon="copy" className="slds-button__icon" omitContainer title="Clone Record" />
-        </button>
-      </Tooltip>
-      {isDeleted ? (
+      {canWriteRecords && (
+        <>
+          <Tooltip ariaRole="label" content="Edit">
+            <button className="slds-button slds-button_icon slds-m-right_xx-small" tabIndex={-1} onClick={() => row._action(row, 'edit')}>
+              <Icon type="utility" icon="edit" className="slds-button__icon" omitContainer title="Edit Record" />
+            </button>
+          </Tooltip>
+          <Tooltip ariaRole="label" content="Clone">
+            <button className="slds-button slds-button_icon slds-m-right_xx-small" tabIndex={-1} onClick={() => row._action(row, 'clone')}>
+              <Icon type="utility" icon="copy" className="slds-button__icon" omitContainer title="Clone Record" />
+            </button>
+          </Tooltip>
+        </>
+      )}
+      {canDeleteRecords && isDeleted && (
         <Tooltip ariaRole="label" content="Restore from Recycle Bin">
           <button className="slds-button slds-button_icon slds-m-right_xx-small" tabIndex={-1} onClick={() => row._action(row, 'undelete')}>
             <Icon type="utility" icon="undelete" className="slds-button__icon" omitContainer title="Restore from Recycle Bin" />
           </button>
         </Tooltip>
-      ) : (
+      )}
+      {canDeleteRecords && !isDeleted && (
         <Tooltip ariaRole="label" content="Delete">
           <button className="slds-button slds-button_icon slds-m-right_xx-small" tabIndex={-1} onClick={() => row._action(row, 'delete')}>
             <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer title="Delete Record" />
@@ -208,7 +217,10 @@ export function ActionRenderer({ row }: DataTableCellProps<any>): ReactNode {
  * Must be rendered as a fiber — `renderCell: (props) => <ActionRendererMemo {...props} />` — for the
  * memo boundary to take effect (a bare `renderCell: ActionRenderer` is invoked as a plain function).
  */
-export const ActionRendererMemo = memo(ActionRenderer, (prev, next) => prev.row === next.row);
+export const ActionRendererMemo = memo(
+  ActionRenderer,
+  (prev, next) => prev.row === next.row && prev.canWriteRecords === next.canWriteRecords && prev.canDeleteRecords === next.canDeleteRecords,
+);
 
 export function ErrorMessageRenderer({ row }: { row: any }): ReactNode {
   const messages = getRowErrorMessages(row);

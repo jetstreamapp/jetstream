@@ -21,6 +21,7 @@ import {
   getModifierKey,
 } from '@jetstream/ui';
 import { useAnalytics } from '@jetstream/ui-core';
+import { useCanPerformOperation } from '@jetstream/ui/app-state';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { DeploymentModal } from './deployment/DeploymentModal';
@@ -35,6 +36,7 @@ export function RecordTypeManagerEditor() {
   const navigate = useNavigate();
   const isMounted = useRef(true);
   const { trackEvent } = useAnalytics();
+  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
   const [viewMode, setViewMode] = useState<ViewMode>('RECORD_TYPE');
   const [deployModalOpen, setDeployModalOpen] = useState(false);
 
@@ -58,7 +60,9 @@ export function RecordTypeManagerEditor() {
     return configurationErrorsByRecordType;
   }, [viewMode, configurationErrorsByField, configurationErrorsByRecordType]);
 
-  usePrimaryActionShortcut(() => handleDeploy(), { disabled: !!configurationErrors || modifiedValues.length === 0 });
+  const deployDisabled = !!configurationErrors || modifiedValues.length === 0 || !canDeployMetadata;
+
+  usePrimaryActionShortcut(() => handleDeploy(), { disabled: deployDisabled });
   useGoBackShortcut(() => navigate('..'), {});
 
   useEffect(() => {
@@ -116,7 +120,7 @@ export function RecordTypeManagerEditor() {
                   Go Back
                 </Link>
               </Tooltip>
-              {!configurationErrors && modifiedValues.length > 0 ? (
+              {!deployDisabled ? (
                 <Tooltip
                   openDelay={500}
                   content={

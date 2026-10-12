@@ -2,8 +2,20 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS, SFDC_LOGIN_URL_PRE_RELEASE, SFDC_LOGIN_URL_PROD, SFDC_LOGIN_URL_SANDBOX } from '@jetstream/shared/constants';
 import { addOrg } from '@jetstream/shared/ui-utils';
 import { AddOrgHandlerFn, SalesforceOrgUi } from '@jetstream/types';
-import { Checkbox, CheckboxToggle, Grid, GridCol, Icon, Input, Popover, PopoverRef, Radio, RadioGroup } from '@jetstream/ui';
-import { fromAppState } from '@jetstream/ui/app-state';
+import {
+  Checkbox,
+  CheckboxToggle,
+  Grid,
+  GridCol,
+  Icon,
+  Input,
+  Popover,
+  PopoverRef,
+  Radio,
+  RadioGroup,
+  ReadOnlyFormElement,
+} from '@jetstream/ui';
+import { fromAppState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useMemo, useRef, useState } from 'react';
@@ -34,6 +46,19 @@ function getExistingOrgDomain(existingOrg?: SalesforceOrgUi): string | null {
   return parsed.success ? parsed.loginUrl.replace(/^https:\/\//, '') : null;
 }
 
+/**
+ * Login url for a member whose access profile does not allow connecting new orgs. They can still reconnect an
+ * org they already have, so the url is fixed to that org instead of letting them pick any login url and add a
+ * different org. Orgs without a My Domain fall back to the generic production or sandbox login.
+ */
+function getReconnectOnlyLoginUrl(existingOrg: SalesforceOrgUi): string {
+  const existingOrgDomain = getExistingOrgDomain(existingOrg);
+  if (existingOrgDomain) {
+    return `https://${existingOrgDomain}`;
+  }
+  return existingOrg.orgIsSandbox ? SFDC_LOGIN_URL_SANDBOX : SFDC_LOGIN_URL_PROD;
+}
+
 export interface AddOrgProps {
   className?: string;
   label?: string;
@@ -42,6 +67,8 @@ export interface AddOrgProps {
   omitIcon?: boolean;
   /**
    * If provided, the form will be pre-populated to reconnect the existing org.
+   * Reconnecting is always available, only connecting a new org depends on the member's access profile. Members
+   * who cannot connect new orgs can only reconnect to the existing org's login url.
    */
   existingOrg?: SalesforceOrgUi;
   onAddOrg: (org: SalesforceOrgUi, switchActiveOrg: boolean) => void;
@@ -71,10 +98,14 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
   const [addToActiveOrgGroup, setAddToActiveOrgGroup] = useState(true);
   const applicationState = useAtomValue(fromAppState.applicationCookieState);
   const orgGroup = useAtomValue(fromAppState.jetstreamActiveGroupSelector);
+  const canConnectOrgs = useCanPerformOperation('orgs.connect');
+
+  const reconnectOnlyLoginUrl = existingOrg && !canConnectOrgs ? getReconnectOnlyLoginUrl(existingOrg) : null;
 
   const parsedCustomUrl = useMemo(() => parseSalesforceLoginUrl(customUrl), [customUrl]);
   const showCustomUrlError = orgType === 'custom' && !!customUrl.trim() && !parsedCustomUrl.success;
-  const loginUrl = orgType === 'custom' ? (parsedCustomUrl.success ? parsedCustomUrl.loginUrl : null) : loginUrlMap[orgType];
+  const selectedLoginUrl = orgType === 'custom' ? (parsedCustomUrl.success ? parsedCustomUrl.loginUrl : null) : loginUrlMap[orgType];
+  const loginUrl = reconnectOnlyLoginUrl ?? selectedLoginUrl;
   const canContinue = !!loginUrl;
 
   function handleAddOrg() {
@@ -112,6 +143,10 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
     setAddToActiveOrgGroup(true);
   }
 
+  if (!existingOrg && !canConnectOrgs) {
+    return null;
+  }
+
   return (
     // TODO: figure out way to close this once an org is added - this was fixed, but it caused the component to fully re-render each time!
     <Popover
@@ -128,79 +163,90 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
       }
       content={
         <div className="slds-text-align_left">
-          <RadioGroup label="Salesforce Org Type">
-            <Radio
-              name="prod"
-              label="Production / Developer"
-              value="prod"
-              checked={orgType === 'prod'}
-              onChange={() => setOrgType('prod')}
-            />
-            <Radio
-              name="sandbox"
-              label="Sandbox (test.salesforce.com)"
-              value="sandbox"
-              checked={orgType === 'sandbox'}
-              onChange={() => setOrgType('sandbox')}
-            />
-            <Radio
-              name="pre-release"
-              label="Pre-release"
-              value="pre-release"
-              checked={orgType === 'pre-release'}
-              onChange={() => setOrgType('pre-release')}
-            />
-            <Radio
-              name="custom"
-              label="Custom Login URL"
-              value="custom"
-              checked={orgType === 'custom'}
-              onChange={() => setOrgType('custom')}
-            />
-          </RadioGroup>
-
-          {orgType === 'custom' && (
-            <Input
-              id="org-custom-url"
+          {reconnectOnlyLoginUrl ? (
+            <ReadOnlyFormElement
+              id="org-reconnect-login-url"
               label="Salesforce Login URL"
-              labelHelp="Enter your My Domain, or paste any Salesforce URL. A domain containing -- is treated as a sandbox unless it names another environment, such as .develop."
-              isRequired
-              hasError={showCustomUrlError}
-              errorMessageId="org-custom-url-error"
-              errorMessage={!parsedCustomUrl.success ? parsedCustomUrl.error : null}
-              helpText={
-                parsedCustomUrl.success ? (
-                  <Grid vertical>
-                    <span className="slds-truncate" title={parsedCustomUrl.loginUrl}>
-                      {parsedCustomUrl.loginUrl}
-                    </span>
-                    {parsedCustomUrl.isSandbox && (
-                      <span>
-                        <Icon
-                          type="utility"
-                          icon="success"
-                          className="slds-icon slds-icon_xx-small slds-icon-text-success slds-m-right_xx-small"
-                          omitContainer
-                        />
-                        Sandbox detected
-                      </span>
-                    )}
-                  </Grid>
-                ) : null
-              }
-            >
-              <input
-                id="org-custom-url"
-                className="slds-input"
-                placeholder="acme or acme--uat.sandbox"
-                value={customUrl}
-                aria-describedby={showCustomUrlError ? 'org-custom-url-error' : undefined}
-                aria-invalid={showCustomUrlError}
-                autoComplete="off"
-                spellCheck={false}
-                onChange={(event) => setCustomUrl(event.target.value || '')}
-              />
-            </Input>
+              helpText="Your team's access profile allows reconnecting orgs you have already added, but not connecting new orgs."
+              value={reconnectOnlyLoginUrl}
+            />
+          ) : (
+            <>
+              <RadioGroup label="Salesforce Org Type">
+                <Radio
+                  name="prod"
+                  label="Production / Developer"
+                  value="prod"
+                  checked={orgType === 'prod'}
+                  onChange={() => setOrgType('prod')}
+                />
+                <Radio
+                  name="sandbox"
+                  label="Sandbox (test.salesforce.com)"
+                  value="sandbox"
+                  checked={orgType === 'sandbox'}
+                  onChange={() => setOrgType('sandbox')}
+                />
+                <Radio
+                  name="pre-release"
+                  label="Pre-release"
+                  value="pre-release"
+                  checked={orgType === 'pre-release'}
+                  onChange={() => setOrgType('pre-release')}
+                />
+                <Radio
+                  name="custom"
+                  label="Custom Login URL"
+                  value="custom"
+                  checked={orgType === 'custom'}
+                  onChange={() => setOrgType('custom')}
+                />
+              </RadioGroup>
+
+              {orgType === 'custom' && (
+                <Input
+                  id="org-custom-url"
+                  label="Salesforce Login URL"
+                  labelHelp="Enter your My Domain, or paste any Salesforce URL. A domain containing -- is treated as a sandbox unless it names another environment, such as .develop."
+                  isRequired
+                  hasError={showCustomUrlError}
+                  errorMessageId="org-custom-url-error"
+                  errorMessage={!parsedCustomUrl.success ? parsedCustomUrl.error : null}
+                  helpText={
+                    parsedCustomUrl.success ? (
+                      <Grid vertical>
+                        <span className="slds-truncate" title={parsedCustomUrl.loginUrl}>
+                          {parsedCustomUrl.loginUrl}
+                        </span>
+                        {parsedCustomUrl.isSandbox && (
+                          <span>
+                            <Icon
+                              type="utility"
+                              icon="success"
+                              className="slds-icon slds-icon_xx-small slds-icon-text-success slds-m-right_xx-small"
+                              omitContainer
+                            />
+                            Sandbox detected
+                          </span>
+                        )}
+                      </Grid>
+                    ) : null
+                  }
+                >
+                  <input
+                    id="org-custom-url"
+                    className="slds-input"
+                    placeholder="acme or acme--uat.sandbox"
+                    value={customUrl}
+                    aria-describedby={showCustomUrlError ? 'org-custom-url-error' : undefined}
+                    aria-invalid={showCustomUrlError}
+                    autoComplete="off"
+                    spellCheck={false}
+                    onChange={(event) => setCustomUrl(event.target.value || '')}
+                  />
+                </Input>
+              )}
+            </>
           )}
           {orgGroup && (
             <Checkbox

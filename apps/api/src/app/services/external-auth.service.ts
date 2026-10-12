@@ -3,7 +3,7 @@ import { ClientInfo, convertUserProfileToSession_External, InvalidAccessToken } 
 import { TokenSource, UserProfileSession } from '@jetstream/auth/types';
 import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
-import { Maybe, UserProfileUi } from '@jetstream/types';
+import { AccessProfileSurfaceKey, isAccessProfileSurfaceAllowed, Maybe, UserProfileUi } from '@jetstream/types';
 import { randomUUID } from 'crypto';
 import { fromUnixTime } from 'date-fns';
 import * as express from 'express';
@@ -32,6 +32,10 @@ export const TOKEN_EXPIRATION_SHORT = 60 * 60 * 24 * 7 * 1000; // 7 days
 const SECONDS_PER_DAY = 60 * 60 * 24;
 
 export type Audience = typeof AUDIENCE_WEB_EXT | typeof AUDIENCE_DESKTOP;
+
+export function getSurfaceForAudience(audience: Audience): AccessProfileSurfaceKey {
+  return audience === AUDIENCE_DESKTOP ? 'desktop' : 'browser-extension';
+}
 
 /**
  * Returns true when the access token expires within `withinDays` days (or is already expired).
@@ -261,6 +265,14 @@ export function decodeToken(token: string): JwtDecodedPayload {
   return decoder(token) as JwtDecodedPayload;
 }
 
+/**
+ * Mirrors `/api/me`, which drops the membership of an inactive team, so the token check and the client
+ * agree on whether a profile applies.
+ */
+function getActiveTeamAccessProfile<T>(teamMembership?: { accessProfile: T | null; team: { status: string } } | null): T | null {
+  return teamMembership?.team.status === 'ACTIVE' ? teamMembership.accessProfile : null;
+}
+
 export async function verifyToken(
   { token, deviceId }: { token: string; deviceId: string },
   audience: Audience,
@@ -280,6 +292,10 @@ export async function verifyToken(
     throw new InvalidAccessToken('Browser extension is not enabled');
   } else if (audience === AUDIENCE_DESKTOP && !entitlements?.desktop) {
     throw new InvalidAccessToken('Desktop application is not enabled');
+  } else if (
+    !isAccessProfileSurfaceAllowed(getActiveTeamAccessProfile(userAccessToken.user.teamMembership), getSurfaceForAudience(audience))
+  ) {
+    throw new InvalidAccessToken('Team access profile does not allow this application');
   }
 
   const { jwtVerifier } = prepareJwtFns(userAccessToken.userId, TOKEN_EXPIRATION, audience);

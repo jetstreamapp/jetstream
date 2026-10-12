@@ -2,9 +2,10 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import { Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
+import { ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, ConfirmationModalPromise, DropDown, Grid, Icon, ScopedNotification } from '@jetstream/ui';
 import { ConfirmPageChange, useAnalytics } from '@jetstream/ui-core';
+import { useCanPerformOperation } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useMemo } from 'react';
 import { LoadMultiObjectRun } from '../load-records-multi-object-types';
@@ -32,6 +33,7 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
   apiVersion,
 }) => {
   const { trackEvent } = useAnalytics();
+  const canWriteRecords = useCanPerformOperation('records.write');
   const { downloadRequests, downloadResults, handleCloseDownloadModal, downloadModalData } = useDownloadResults();
 
   const requests = useAtomValue(requestsState);
@@ -131,7 +133,12 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
           </ScopedNotification>
         )}
         {!loading && totalRecordCount > 0 && (
-          <button className="slds-button slds-button_brand" onClick={handleLoadStarted}>
+          <button
+            className="slds-button slds-button_brand"
+            disabled={!canWriteRecords}
+            title={canWriteRecords ? undefined : ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['records.write']}
+            onClick={handleLoadStarted}
+          >
             Load <strong className="slds-m-horizontal_xx-small">{formatNumber(totalRecordCount)}</strong>
             {pluralizeFromNumber('Record', totalRecordCount)} ({formatNumber(totalGroupCount)}{' '}
             {pluralizeFromNumber('Group', totalGroupCount)}
@@ -144,7 +151,7 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
             Cancel Remaining Requests
           </button>
         )}
-        {loadFinished && failedGroupCount > 0 && (
+        {loadFinished && failedGroupCount > 0 && canWriteRecords && (
           <button className="slds-button slds-button_neutral slds-m-left_small" onClick={handleRetryFailed}>
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
             Retry Failed {pluralizeFromNumber('Group', failedGroupCount)} ({formatNumber(failedGroupCount)})

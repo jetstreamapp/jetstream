@@ -1,5 +1,6 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import {
+  ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES,
   ChangeSet,
   DeployMetadataTableRow,
   DeployOptions,
@@ -10,7 +11,7 @@ import {
 } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
 import { fromDeployMetadataState, fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
-import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { applicationCookieState, googleDriveAccessState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtom, useAtomValue } from 'jotai';
 import { Fragment, useState } from 'react';
@@ -29,6 +30,7 @@ export const AddToChangeset = ({ className, selectedOrg, loading, selectedRows }
   const { trackEvent } = useAnalytics();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
+  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
@@ -81,9 +83,13 @@ export const AddToChangeset = ({ className, selectedOrg, loading, selectedRows }
     <Fragment>
       <button
         className={classNames('slds-button slds-button_neutral', className)}
-        disabled={loading || selectedRows.size === 0}
+        disabled={loading || selectedRows.size === 0 || !canDeployMetadata}
         onClick={handleClick}
-        title="You can deploy the selected components to an existing outbound changeset."
+        title={
+          canDeployMetadata
+            ? 'You can deploy the selected components to an existing outbound changeset.'
+            : ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['metadata.deploy']
+        }
       >
         <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
         <span>Add To Outbound Changeset</span>
