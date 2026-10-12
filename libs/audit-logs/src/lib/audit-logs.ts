@@ -55,6 +55,13 @@ export enum AuditLogAction {
   // Salesforce Canvas app authorization
   CANVAS_ORG_AUTHORIZED = 'CANVAS_ORG_AUTHORIZED',
   CANVAS_ORG_DELETED = 'CANVAS_ORG_DELETED',
+
+  // Jetstream admin app. Written with `teamId` unset and the team in `resourceId` so they stay out of a team's own audit log
+  ADMIN_TEAM_PROVISIONED = 'ADMIN_TEAM_PROVISIONED',
+  ADMIN_TEAM_STRIPE_LINKED = 'ADMIN_TEAM_STRIPE_LINKED',
+  ADMIN_TEAM_INVITATION_SENT = 'ADMIN_TEAM_INVITATION_SENT',
+  ADMIN_TEAM_INVITATION_RESENT = 'ADMIN_TEAM_INVITATION_RESENT',
+  ADMIN_TEAM_INVITATION_REVOKED = 'ADMIN_TEAM_INVITATION_REVOKED',
 }
 
 export enum AuditLogResource {
