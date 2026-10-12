@@ -7,10 +7,13 @@ import {
   ThemeApplier,
   ViewEditCloneRecordWrapper,
 } from '@jetstream/ui-core';
+import { canvasAccessPolicyState } from '@jetstream/ui/app-state';
+import { useHydrateAtoms } from 'jotai/utils';
 import { Suspense } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import ModalContainer from 'react-modal-promise';
 import z from 'zod';
+import { parseCanvasAccessPolicy } from '../utils/canvas.utils';
 import { AppRoutes } from './AppRoutes';
 import AppInitializer from './core/AppInitializer';
 import './core/monaco-loader';
@@ -23,7 +26,12 @@ const isFullscreen = z
   .preprocess((val) => (val === undefined ? true : val), z.coerce.boolean())
   .parse(sr.context?.environment?.parameters?.isFullScreen);
 
+// The VF page also passes the tools and actions the user's Jetstream custom permissions allow
+const canvasAccessPolicy = parseCanvasAccessPolicy(sr.context?.environment?.parameters?.accessProfile);
+
 export const App = () => {
+  // Hydrated before anything renders, so restricted tools never flash into view
+  useHydrateAtoms([[canvasAccessPolicyState, canvasAccessPolicy]] as const);
   const [colorScheme, setColorScheme] = useCanvasColorScheme();
 
   return (

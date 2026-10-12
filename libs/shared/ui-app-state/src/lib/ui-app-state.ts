@@ -20,6 +20,7 @@ import {
   SoqlQueryFormatOptionsSchema,
   TeamBillingStatusSchema,
   type AccessProfileOperationKey,
+  type AccessProfilePolicy,
   type AccessProfileToolKey,
   type Announcement,
   type ApplicationState,
@@ -331,12 +332,19 @@ export function useFeatureFlag(key: FeatureFlagKey): boolean {
   return featureFlags[key] ?? DEFAULT_FEATURE_FLAGS[key];
 }
 
+/**
+ * Tools and operations the canvas app's Salesforce custom permissions grant, set by the canvas app before it
+ * renders. `null` means full access.
+ */
+export const canvasAccessPolicyState = atom<Pick<AccessProfilePolicy, 'tools' | 'operations'> | null>(null);
+
 export const abilityState = atom((get) => {
   const userProfile = get(userProfileSyncState);
   return getUserAbility({
     isBrowserExtension: isBrowserExtension(),
     isDesktop: isDesktop(),
     isCanvasApp: isCanvasApp(),
+    canvasAccessPolicy: get(canvasAccessPolicyState),
     user: userProfile,
   });
 });

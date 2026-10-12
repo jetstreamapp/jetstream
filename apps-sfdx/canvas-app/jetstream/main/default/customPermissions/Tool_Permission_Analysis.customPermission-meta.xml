@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomPermission xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Opens Permission Analysis to audit profiles and permission sets. Only applies to users with Jetstream: Limited Access.</description>
+    <isLicensed>false</isLicensed>
+    <label>Jetstream: Tool - Permission Analysis</label>
+</CustomPermission>

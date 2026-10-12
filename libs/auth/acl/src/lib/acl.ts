@@ -1,7 +1,9 @@
 import { AbilityBuilder, createMongoAbility, type CreateAbility, type MongoAbility } from '@casl/ability';
 import {
   AccessProfileOperationKey,
+  AccessProfilePolicy,
   AccessProfileToolKey,
+  Maybe,
   TeamBillingStatusSchema,
   TeamMemberRole,
   TeamMemberRoleSchema,
@@ -74,6 +76,11 @@ type GetAbilityOptions = {
   user?: Pick<UserProfileUi, 'teamMembership' | 'entitlements'>;
   isBrowserExtension?: boolean;
   isCanvasApp?: boolean;
+  /**
+   * The canvas app has no Jetstream team, so Salesforce custom permissions supply its policy instead.
+   * Only read when `isCanvasApp` is set, omitted or null means full access.
+   */
+  canvasAccessPolicy?: Maybe<Pick<AccessProfilePolicy, 'tools' | 'operations'>>;
   isDesktop?: boolean;
 };
 
@@ -83,7 +90,7 @@ type GetAbilityOptions = {
  * @see https://casl.js.org/v6/en/guide/define-rules
  * @param options
  */
-function getAbilityRules({ isBrowserExtension, isDesktop, isCanvasApp, user }: GetAbilityOptions) {
+function getAbilityRules({ isBrowserExtension, isDesktop, isCanvasApp, canvasAccessPolicy, user }: GetAbilityOptions) {
   const { can, cannot, rules } = new AbilityBuilder<AppAbility>(createMongoAbility);
 
   if (!user) {
@@ -109,7 +116,7 @@ function getAbilityRules({ isBrowserExtension, isDesktop, isCanvasApp, user }: G
   // No profile means full access, so members are unaffected until an admin assigns one. Team Dashboard
   // abilities above never depend on the profile, so an admin who restricts themselves cannot get locked out.
   // Billing has no core functionality, so it gets no tools or operations either.
-  const accessPolicy = user.teamMembership?.accessProfile?.policy;
+  const accessPolicy = isCanvasApp ? canvasAccessPolicy : user.teamMembership?.accessProfile?.policy;
   if (!isBillingRole && !accessPolicy) {
     can('access', 'Tool');
     can('perform', 'Operation');

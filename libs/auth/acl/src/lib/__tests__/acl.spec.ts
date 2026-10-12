@@ -374,6 +374,39 @@ describe('acl', () => {
         expect(canAccessTool(ability, 'query')).toBe(false);
         expect(canPerformOperation(ability, 'records.export')).toBe(false);
       });
+
+      describe('canvas app', () => {
+        it('should grant every tool and operation without a canvas policy', () => {
+          const ability = getUserAbility({ user: { entitlements }, isCanvasApp: true, canvasAccessPolicy: null });
+          expect(ACCESS_PROFILE_TOOL_KEYS.every((key) => canAccessTool(ability, key))).toBe(true);
+          expect(ACCESS_PROFILE_OPERATION_KEYS.every((key) => canPerformOperation(ability, key))).toBe(true);
+        });
+
+        it('should only grant the tools and operations in the canvas policy', () => {
+          const ability = getUserAbility({
+            user: { entitlements },
+            isCanvasApp: true,
+            canvasAccessPolicy: { tools: ['query', 'data-analysis'], operations: ['records.export'] },
+          });
+          expect(canAccessTool(ability, 'query')).toBe(true);
+          expect(canAccessTool(ability, 'data-analysis')).toBe(true);
+          expect(canAccessTool(ability, 'load')).toBe(false);
+          expect(canPerformOperation(ability, 'records.export')).toBe(true);
+          expect(canPerformOperation(ability, 'records.write')).toBe(false);
+        });
+
+        it('should grant nothing with an empty canvas policy', () => {
+          const ability = getUserAbility({ user: { entitlements }, isCanvasApp: true, canvasAccessPolicy: { tools: [], operations: [] } });
+          expect(ACCESS_PROFILE_TOOL_KEYS.some((key) => canAccessTool(ability, key))).toBe(false);
+          expect(ACCESS_PROFILE_OPERATION_KEYS.some((key) => canPerformOperation(ability, key))).toBe(false);
+        });
+
+        it('should ignore a canvas policy outside the canvas app', () => {
+          const ability = getUserAbility({ user: getUser('MEMBER'), canvasAccessPolicy: { tools: [], operations: [] } });
+          expect(ACCESS_PROFILE_TOOL_KEYS.every((key) => canAccessTool(ability, key))).toBe(true);
+          expect(ACCESS_PROFILE_OPERATION_KEYS.every((key) => canPerformOperation(ability, key))).toBe(true);
+        });
+      });
     });
   });
 
