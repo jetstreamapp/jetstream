@@ -1,18 +1,10 @@
 import { OtpEnrollmentData, UserProfileAuthFactor } from '@jetstream/auth/types';
 import { logger } from '@jetstream/shared/client-logger';
-import {
-  deleteAuthFactor,
-  getOtpQrCode,
-  saveOtpAuthFactor,
-  StepUpCancelledError,
-  toggleEnableDisableAuthFactor,
-} from '@jetstream/shared/data';
+import { deleteAuthFactor, getOtpQrCode, saveOtpAuthFactor, toggleEnableDisableAuthFactor } from '@jetstream/shared/data';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { DropDownItem } from '@jetstream/types';
 import { Badge, Card, ConfirmationModalPromise, DropDown, fireToast, Input, Spinner } from '@jetstream/ui';
-import { useStepUpAuth } from '@jetstream/ui-core';
 import { FormEvent, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
-import { MANAGE_2FA_STEP_UP } from '../step-up-prompts';
 
 export interface Profile2faOtpProps {
   isConfigured: boolean;
@@ -27,27 +19,18 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
   const [editIsActive, setEditIsActive] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [twoFaCode, setTwoFaCode] = useState('');
-  const { runWithStepUp } = useStepUpAuth();
 
-  // Identity is verified here, when enrollment starts: the secret minted after the prompt is what the
-  // save is checked against, so the code the user types is validated immediately and never expires
-  // while they are busy re-authenticating.
   const get2faConfiguration = useCallback(async () => {
     try {
       setIsLoading(true);
-      setOtp2fa(await runWithStepUp(({ stepUpNonce }) => getOtpQrCode(stepUpNonce), MANAGE_2FA_STEP_UP));
+      setOtp2fa(await getOtpQrCode());
     } catch (ex) {
-      // Dismissing the identity prompt closes the set-up form again; it is not an error to report
-      setEditIsActive(false);
-      if (ex instanceof StepUpCancelledError) {
-        return;
-      }
       logger.error('Failed to get 2fa config', ex);
       fireToast({ message: 'Failed to get configuration, please try again later.', type: 'error' });
     } finally {
       setIsLoading(false);
     }
-  }, [runWithStepUp]);
+  }, []);
 
   useEffect(() => {
     if (editIsActive && !otp2fa) {
@@ -64,15 +47,11 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
           })
         ) {
           setIsLoading(true);
-          onUpdate(
-            await runWithStepUp(({ stepUpNonce }) => toggleEnableDisableAuthFactor('2fa-otp', 'disable', stepUpNonce), MANAGE_2FA_STEP_UP),
-          );
+          onUpdate(await toggleEnableDisableAuthFactor('2fa-otp', 'disable'));
         }
       } else if (action === 'enable') {
         setIsLoading(true);
-        onUpdate(
-          await runWithStepUp(({ stepUpNonce }) => toggleEnableDisableAuthFactor('2fa-otp', 'enable', stepUpNonce), MANAGE_2FA_STEP_UP),
-        );
+        onUpdate(await toggleEnableDisableAuthFactor('2fa-otp', 'enable'));
       } else if (action === 'delete') {
         if (
           await ConfirmationModalPromise({
@@ -80,14 +59,10 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
           })
         ) {
           setIsLoading(true);
-          onUpdate(await runWithStepUp(({ stepUpNonce }) => deleteAuthFactor('2fa-otp', stepUpNonce), MANAGE_2FA_STEP_UP));
+          onUpdate(await deleteAuthFactor('2fa-otp'));
         }
       }
     } catch (ex) {
-      // Dismissing the identity prompt is a deliberate choice, not an error to report
-      if (ex instanceof StepUpCancelledError) {
-        return;
-      }
       logger.error('Failed to save 2fa', ex);
       fireToast({ message: getErrorMessage(ex), type: 'error' });
     } finally {
@@ -115,9 +90,6 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
     setEditIsActive(false);
     setTwoFaCode('');
     setIsLoading(false);
-    // Drop the minted secret too: reopening set-up must go through the identity prompt again rather
-    // than resume an abandoned enrollment that the server still honors for the enrollment TTL
-    setOtp2fa(undefined);
   }
 
   const menuItems = useMemo(() => {

@@ -28,10 +28,8 @@ function getEmailLink({ baseUrl, email, teamId, token }: { baseUrl: string; emai
   return url.toString();
 }
 
-async function enrollInTotp(page: Page, password: string) {
-  // Identity is verified when enrollment starts, before the secret is shown
+async function enrollInTotp(page: Page) {
   await page.getByRole('button', { name: 'Set Up' }).click();
-  await new AuthenticationPage(page).completeStepUpWithPassword(password);
   const secret = await page.getByTestId('totp-secret').innerText();
   await page.getByTestId('settings-page').getByRole('textbox').click();
   const code = generateTOTP(decodeBase32IgnorePadding(secret), 30, 6);
@@ -309,7 +307,7 @@ test.describe('Team Dashboard', () => {
               await page.getByRole('button', { name: 'Avatar' }).click();
               await page.getByRole('menuitem', { name: 'Profile' }).click();
 
-              const secret = await enrollInTotp(page, user.password);
+              const secret = await enrollInTotp(page);
               await page.close();
 
               return { user, context, secret };
@@ -451,7 +449,7 @@ test.describe('Team Dashboard', () => {
       const page2Promise = page.waitForEvent('popup');
       await page.getByRole('link', { name: 'Update your profile settings' }).click();
       const page2 = await page2Promise;
-      await enrollInTotp(page2, existingUser1.password);
+      await enrollInTotp(page2);
       await page2.close();
 
       await page.reload();
