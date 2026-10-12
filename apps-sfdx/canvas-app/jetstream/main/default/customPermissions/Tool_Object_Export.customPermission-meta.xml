@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomPermission xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Opens Export Object Metadata to export object and field metadata to a file. Only applies to users with Jetstream: Limited Access.</description>
+    <isLicensed>false</isLicensed>
+    <label>Jetstream: Tool - Export Object Metadata</label>
+</CustomPermission>

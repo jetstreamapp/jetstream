@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomPermission xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Opens Platform Events to subscribe to platform events. Publishing also needs Jetstream: Action - Create and Update Records. Only applies to users with Jetstream: Limited Access.</description>
+    <isLicensed>false</isLicensed>
+    <label>Jetstream: Tool - Platform Events</label>
+</CustomPermission>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomPermission xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Opens Debug Logs to view debug logs. Purging logs also needs Jetstream: Action - Delete Records. Only applies to users with Jetstream: Limited Access.</description>
+    <isLicensed>false</isLicensed>
+    <label>Jetstream: Tool - Debug Logs</label>
+</CustomPermission>
