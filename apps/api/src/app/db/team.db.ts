@@ -13,6 +13,7 @@ import { computeNextCertNotificationDate } from '@jetstream/shared/utils';
 import {
   addMemberFromInvitation,
   assertSeatAvailable,
+  findDefaultAccessProfileId,
   isBillableRole,
   isSeatConsumingMember,
   isSeatReservingInvitation,
@@ -20,11 +21,16 @@ import {
   withTeamSeatLock,
 } from '@jetstream/team-seats';
 import {
+  ACCESS_PROFILE_POLICY_VERSION,
+  AccessProfilePolicySchema,
   DomainVerificationSchema,
   Maybe,
   TEAM_MEMBER_ROLE_ADMIN,
   TEAM_MEMBER_ROLE_BILLING,
   TEAM_MEMBER_STATUS_ACTIVE,
+  TeamAccessProfile,
+  TeamAccessProfileRequest,
+  TeamAccessProfileSchema,
   TeamEntitlementSchema,
   TeamInvitationRequest,
   TeamInvitationUpdateRequest,
@@ -56,7 +62,7 @@ const INVITE_SELECT = {
   id: true,
   email: true,
   expiresAt: true,
-  features: true,
+  accessProfileId: true,
   lastSentAt: true,
   role: true,
   team: { select: { name: true } },
@@ -67,7 +73,7 @@ const INVITE_SELECT = {
 
 const SELECT_TEAM_MEMBER = {
   teamId: true,
-  features: true,
+  accessProfileId: true,
   role: true,
   status: true,
   createdAt: true,
@@ -102,6 +108,24 @@ const SELECT_TEAM_MEMBER = {
     },
   },
 } satisfies Prisma.TeamMemberSelect;
+
+const SELECT_ACCESS_PROFILE = {
+  id: true,
+  name: true,
+  description: true,
+  policy: true,
+  isDefault: true,
+  version: true,
+  createdAt: true,
+  updatedAt: true,
+  _count: { select: { members: true, invitations: true } },
+} satisfies Prisma.TeamAccessProfileSelect;
+
+type AccessProfileWithCounts = Prisma.TeamAccessProfileGetPayload<{ select: typeof SELECT_ACCESS_PROFILE }>;
+
+function toTeamAccessProfile({ _count, ...accessProfile }: AccessProfileWithCounts): TeamAccessProfile {
+  return TeamAccessProfileSchema.parse({ ...accessProfile, memberCount: _count.members, invitationCount: _count.invitations });
+}
 
 /**
  * Full team graph behind the user-facing payload. A function rather than a const because the
@@ -145,6 +169,10 @@ function selectTeamWithRelated() {
       select: INVITE_SELECT,
       where: { expiresAt: { gte: addDays(new Date(), -TEAM_INVITE_EXPIRES_DAYS) } },
     },
+    accessProfiles: {
+      select: SELECT_ACCESS_PROFILE,
+      orderBy: { name: 'asc' },
+    },
     loginConfig: {
       select: {
         allowedMfaMethods: true,
@@ -184,7 +212,11 @@ function sortTeamMembers(members: TeamMember[], runningUserId: string) {
  * one seat definition instead of recomputing it from members and invitations.
  */
 function toTeamUserFacing(team: TeamWithRelated, runningUserId?: string): TeamUserFacing {
-  const userFacingTeam = TeamUserFacingSchema.parse({ ...team, seats: summarizeSeatsFromTeam(team) });
+  const userFacingTeam = TeamUserFacingSchema.parse({
+    ...team,
+    accessProfiles: team.accessProfiles.map(toTeamAccessProfile),
+    seats: summarizeSeatsFromTeam(team),
+  });
   if (runningUserId) {
     sortTeamMembers(userFacingTeam.members, runningUserId);
   }
@@ -747,10 +779,10 @@ export async function updateTeamMemberRole({
   data: TeamMemberUpdateRequest;
 }): Promise<{
   teamMember: TeamMember;
-  previousMember: { role: string; features: string[]; email: string };
+  previousMember: { role: string; accessProfileId: string | null; email: string };
 }> {
   const teamMember = await prisma.teamMember.findUniqueOrThrow({
-    select: { role: true, status: true, features: true, user: { select: { email: true } } },
+    select: { user: { select: { email: true } } },
     where: { teamId_userId: { teamId, userId } },
   });
 
@@ -759,29 +791,34 @@ export async function updateTeamMemberRole({
   // change committed between the read above and the lock would otherwise let a seat be taken unchecked.
   // This function only changes role; status is left unchanged (nextStatus omitted), so the guard
   // derives the effective status from its own read.
-  const updatedTeamMember = await withTeamSeatLock(teamId, async (tx) => {
+  const { updatedTeamMember, previousMember } = await withTeamSeatLock(teamId, async (tx) => {
     const current = await tx.teamMember.findUniqueOrThrow({
-      select: { role: true, status: true },
+      select: { role: true, status: true, accessProfileId: true },
       where: { teamId_userId: { teamId, userId } },
     });
     // Only a member who is not already using a seat needs one (e.g. BILLING → MEMBER). MEMBER → ADMIN
-    // and features-only updates are seat-neutral and never hit the check.
+    // and access-profile-only updates are seat-neutral and never hit the check.
     const nextRole = data.role ?? current.role;
     const needsSeat = isSeatConsumingMember({ role: nextRole, status: current.status }) && !isSeatConsumingMember(current);
     if (needsSeat) {
       await assertSeatAvailable(tx, { teamId, kind: 'ADD', role: nextRole });
     }
     await assertTeamRetainsActiveAdmin(tx, { teamId, userId, nextRole: data.role });
-    return tx.teamMember.update({
+    if (data.accessProfileId) {
+      await assertAccessProfileBelongsToTeam(tx, { teamId, accessProfileId: data.accessProfileId });
+    }
+    const updated = await tx.teamMember.update({
       select: SELECT_TEAM_MEMBER,
       where: { teamId_userId: { teamId, userId } },
       data: { ...TeamMemberUpdateRequestSchema.parse(data), updatedById: runningUserId },
     });
+    // From the locked re-read, so the audit log describes what this write actually replaced
+    return { updatedTeamMember: updated, previousMember: { role: current.role, accessProfileId: current.accessProfileId } };
   });
 
   return {
     teamMember: TeamMemberSchema.parse(updatedTeamMember),
-    previousMember: { role: teamMember.role, features: teamMember.features as string[], email: teamMember.user.email },
+    previousMember: { ...previousMember, email: teamMember.user.email },
   };
 }
 
@@ -855,6 +892,151 @@ export async function updateTeamMemberStatusAndRole({
   };
 }
 
+async function assertAccessProfileBelongsToTeam(
+  tx: Prisma.TransactionClient,
+  { teamId, accessProfileId }: { teamId: string; accessProfileId: string },
+): Promise<void> {
+  const accessProfile = await tx.teamAccessProfile.findFirst({ select: { id: true }, where: { id: accessProfileId, teamId } });
+  if (!accessProfile) {
+    throw new NotFoundError('The selected access profile does not exist. Refresh and try again.');
+  }
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+}
+
+function toAccessProfileData({ name, description, isDefault, policy }: TeamAccessProfileRequest) {
+  return {
+    name,
+    description,
+    isDefault,
+    policy: AccessProfilePolicySchema.parse({ v: ACCESS_PROFILE_POLICY_VERSION, ...policy }),
+  };
+}
+
+export async function createAccessProfile({
+  teamId,
+  runningUserId,
+  request,
+}: {
+  teamId: string;
+  runningUserId: string;
+  request: TeamAccessProfileRequest;
+}): Promise<TeamAccessProfile> {
+  try {
+    // The team lock serializes default changes so two admins saving a default at once cannot leave two defaults
+    return await withTeamSeatLock(teamId, async (tx) => {
+      if (request.isDefault) {
+        await tx.teamAccessProfile.updateMany({ where: { teamId, isDefault: true }, data: { isDefault: false } });
+      }
+      const accessProfile = await tx.teamAccessProfile.create({
+        select: SELECT_ACCESS_PROFILE,
+        data: { ...toAccessProfileData(request), teamId, createdById: runningUserId, updatedById: runningUserId },
+      });
+      return toTeamAccessProfile(accessProfile);
+    });
+  } catch (ex) {
+    if (isUniqueConstraintError(ex)) {
+      throw new UserFacingError(`An access profile named "${request.name}" already exists.`);
+    }
+    throw ex;
+  }
+}
+
+export async function updateAccessProfile({
+  teamId,
+  id,
+  runningUserId,
+  request,
+}: {
+  teamId: string;
+  id: string;
+  runningUserId: string;
+  request: TeamAccessProfileRequest;
+}): Promise<{ previousAccessProfile: TeamAccessProfile; accessProfile: TeamAccessProfile }> {
+  try {
+    return await withTeamSeatLock(teamId, async (tx) => {
+      const previousAccessProfile = await tx.teamAccessProfile.findFirst({ select: SELECT_ACCESS_PROFILE, where: { id, teamId } });
+      if (!previousAccessProfile) {
+        throw new NotFoundError('Access profile not found');
+      }
+      if (request.isDefault) {
+        await tx.teamAccessProfile.updateMany({ where: { teamId, isDefault: true, id: { not: id } }, data: { isDefault: false } });
+      }
+      const accessProfile = await tx.teamAccessProfile.update({
+        select: SELECT_ACCESS_PROFILE,
+        where: { id },
+        // The version lets clients that cached the policy notice the change on their next heartbeat or verify
+        data: { ...toAccessProfileData(request), version: { increment: 1 }, updatedById: runningUserId },
+      });
+      return { previousAccessProfile: toTeamAccessProfile(previousAccessProfile), accessProfile: toTeamAccessProfile(accessProfile) };
+    });
+  } catch (ex) {
+    if (isUniqueConstraintError(ex)) {
+      throw new UserFacingError(`An access profile named "${request.name}" already exists.`);
+    }
+    throw ex;
+  }
+}
+
+/**
+ * Deletes a profile. Members and invitations that use it must be moved somewhere explicit first, because
+ * silently falling back to full access would widen what they can do. `reassignToAccessProfileId` of null
+ * moves them to full access; it is required only when the profile is in use.
+ *
+ * Runs under the team row lock so an invitation accepted at the same time cannot copy the profile id
+ * after the reassignment and before the delete.
+ */
+export async function deleteAccessProfile({
+  teamId,
+  id,
+  runningUserId,
+  reassignToAccessProfileId,
+}: {
+  teamId: string;
+  id: string;
+  runningUserId: string;
+  reassignToAccessProfileId?: string | null;
+}): Promise<{ deletedAccessProfile: TeamAccessProfile; reassignedUserIds: string[]; reassignedInvitationCount: number }> {
+  return withTeamSeatLock(teamId, async (tx) => {
+    const existing = await tx.teamAccessProfile.findFirst({ select: SELECT_ACCESS_PROFILE, where: { id, teamId } });
+    if (!existing) {
+      throw new NotFoundError('Access profile not found');
+    }
+    const isInUse = existing._count.members > 0 || existing._count.invitations > 0;
+    if (isInUse && reassignToAccessProfileId === undefined) {
+      throw new UserFacingError('This access profile is still assigned. Choose which profile its members and invitations should move to.');
+    }
+    if (reassignToAccessProfileId === id) {
+      throw new UserFacingError('Members cannot be moved to the profile that is being deleted.');
+    }
+    if (reassignToAccessProfileId) {
+      await assertAccessProfileBelongsToTeam(tx, { teamId, accessProfileId: reassignToAccessProfileId });
+    }
+
+    const reassignedMembers = await tx.teamMember.findMany({ select: { userId: true }, where: { teamId, accessProfileId: id } });
+    const nextAccessProfileId = reassignToAccessProfileId ?? null;
+    if (reassignedMembers.length) {
+      await tx.teamMember.updateMany({
+        where: { teamId, accessProfileId: id },
+        data: { accessProfileId: nextAccessProfileId, updatedById: runningUserId },
+      });
+    }
+    const { count: reassignedInvitationCount } = await tx.teamMemberInvitation.updateMany({
+      where: { teamId, accessProfileId: id },
+      data: { accessProfileId: nextAccessProfileId, updatedById: runningUserId },
+    });
+    await tx.teamAccessProfile.delete({ where: { id } });
+
+    return {
+      deletedAccessProfile: toTeamAccessProfile(existing),
+      reassignedUserIds: reassignedMembers.map(({ userId }) => userId),
+      reassignedInvitationCount,
+    };
+  });
+}
+
 /**
  * Returns the team's billing account, creating it for `customerId` when the team has none. An existing
  * account keeps its customer, so callers must compare `customerId` before trusting the account: moving a
@@ -919,6 +1101,17 @@ export async function createTeamInvitation({
       await assertSeatAvailable(tx, { teamId, kind: 'ADD', role });
     }
 
+    // An omitted profile falls back to the team default, an explicit null is full access
+    let accessProfileId: string | null;
+    if (request.accessProfileId === undefined) {
+      accessProfileId = await findDefaultAccessProfileId(tx, teamId);
+    } else {
+      accessProfileId = request.accessProfileId;
+    }
+    if (accessProfileId) {
+      await assertAccessProfileBelongsToTeam(tx, { teamId, accessProfileId });
+    }
+
     return tx.teamMemberInvitation.create({
       select: INVITE_SELECT,
       data: {
@@ -928,7 +1121,7 @@ export async function createTeamInvitation({
         updatedById: runningUserId,
         role,
         expiresAt: addDays(new Date(), TEAM_INVITE_EXPIRES_DAYS),
-        features: request.features || ['ALL'],
+        accessProfileId,
         lastSentAt: new Date(),
       },
     });
@@ -955,7 +1148,7 @@ export async function updateTeamInvitation({
 }) {
   return withTeamSeatLock(teamId, async (tx) => {
     const existingInvitation = await tx.teamMemberInvitation.findFirst({
-      select: { email: true, role: true, expiresAt: true },
+      select: { email: true, role: true, accessProfileId: true, expiresAt: true },
       where: { id, teamId },
     });
     if (!existingInvitation) {
@@ -979,15 +1172,18 @@ export async function updateTeamInvitation({
     if (isBillableRole(nextRole) && !isSeatReservingInvitation(existingInvitation)) {
       await assertSeatAvailable(tx, { teamId, kind: 'ADD', role: nextRole });
     }
+    if (request.accessProfileId) {
+      await assertAccessProfileBelongsToTeam(tx, { teamId, accessProfileId: request.accessProfileId });
+    }
 
     // Atomic compare-and-set on role: if another admin changed the role since the controller read,
     // count will be 0 and we abort rather than applying a write authorized against a stale value.
     const result = await tx.teamMemberInvitation.updateMany({
       where: { id, teamId, role: expectedRole },
       data: {
-        // Only write role/features if the caller provided an explicit value; otherwise leave them untouched.
+        // Only write role/profile if the caller provided an explicit value; otherwise leave them untouched.
         ...(request.role ? { role: request.role } : {}),
-        ...(request.features ? { features: request.features } : {}),
+        ...(request.accessProfileId !== undefined ? { accessProfileId: request.accessProfileId } : {}),
         expiresAt: addDays(new Date(), TEAM_INVITE_EXPIRES_DAYS),
         lastSentAt: new Date(),
         updatedById: runningUserId,
@@ -1009,13 +1205,13 @@ export async function updateTeamInvitation({
     if (!updated) {
       throw new NotAllowedError('This invitation was modified by another admin. Refresh and try again.');
     }
-    return updated;
+    return { ...updated, previousAccessProfileId: existingInvitation.accessProfileId };
   });
 }
 
 export async function findTeamInvitationById({ id, teamId }: { id: string; teamId: string }) {
   const existingInvitation = await prisma.teamMemberInvitation.findFirst({
-    select: { id: true, email: true, role: true, features: true, expiresAt: true, lastSentAt: true },
+    select: { id: true, email: true, role: true, accessProfileId: true, expiresAt: true, lastSentAt: true },
     where: { teamId, id },
   });
 
@@ -1116,18 +1312,18 @@ export async function verifyTeamInvitation({
 export async function acceptTeamInvitation({ user, teamId, token }: { user: UserProfileSession; teamId: string; token: string }): Promise<{
   email: string;
   role: string;
-  features: string[];
+  accessProfileId: string | null;
 }> {
   const existingInvitation = await verifyTeamInvitation({ user, teamId, token });
 
-  const { role, features } = await withTeamSeatLock(teamId, (tx) =>
+  const { role, accessProfileId } = await withTeamSeatLock(teamId, (tx) =>
     addMemberFromInvitation(tx, { teamId, userId: user.id, invitation: existingInvitation }),
   );
 
   return {
     email: existingInvitation.email,
     role,
-    features: features as string[],
+    accessProfileId,
   };
 }
 

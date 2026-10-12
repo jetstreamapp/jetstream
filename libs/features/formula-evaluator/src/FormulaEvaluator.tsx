@@ -40,7 +40,7 @@ import {
   registerCompletions,
   useAmplitude,
 } from '@jetstream/ui-core';
-import { selectedOrgState } from '@jetstream/ui/app-state';
+import { selectedOrgState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import type { FieldSchema, FormulaContext, FormulaValue } from '@jetstreamapp/sf-formula-parser';
 import { evaluateFormula, extractFieldsByCategory, formatFormula } from '@jetstreamapp/sf-formula-parser';
 import { OnMount, useMonaco } from '@monaco-editor/react';
@@ -73,6 +73,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const fieldsComboRef = useRef<SobjectFieldComboboxRef>(null);
   const { trackEvent } = useAmplitude();
   const selectedOrg = useAtomValue(selectedOrgState);
+  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
   const [loading, setLoading] = useState(false);
   const [refreshLoading, setRefreshLoading] = useState(false);
   const [fieldErrorMessage, setFieldErrorMessage] = useState<string | null>(null);
@@ -435,13 +436,15 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
               title={<div>Results</div>}
               actions={
                 <ButtonGroupContainer>
-                  <button
-                    className="slds-button slds-button_neutral"
-                    disabled={deployFormulaDisabled}
-                    onClick={() => setDeployModalOpen(true)}
-                  >
-                    Deploy
-                  </button>
+                  {canDeployMetadata && (
+                    <button
+                      className="slds-button slds-button_neutral"
+                      disabled={deployFormulaDisabled}
+                      onClick={() => setDeployModalOpen(true)}
+                    >
+                      Deploy
+                    </button>
+                  )}
                   <Tooltip
                     openDelay={500}
                     content={

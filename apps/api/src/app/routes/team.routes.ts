@@ -99,6 +99,23 @@ routes.put(
   teamController.updateTeamMemberStatusAndRole.controllerFn(),
 );
 
+// Access profiles: which tools and operations members see, and which surfaces they may sign in to
+routes.post(
+  '/:teamId/access-profiles',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN]),
+  teamController.createAccessProfile.controllerFn(),
+);
+routes.put(
+  '/:teamId/access-profiles/:id',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN]),
+  teamController.updateAccessProfile.controllerFn(),
+);
+routes.delete(
+  '/:teamId/access-profiles/:id',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN]),
+  teamController.deleteAccessProfile.controllerFn(),
+);
+
 // Purchased seats (BILLING is included so finance can act on money without an admin)
 routes.post(
   '/:teamId/seats/preview',

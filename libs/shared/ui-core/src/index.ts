@@ -25,6 +25,7 @@ export * from './app/NotificationsRequestModal';
 export * from './app/ProBadge';
 export * from './app/RequireMetadataApiBanner';
 export * from './app/ThemeApplier';
+export * from './app/ToolAccessGuard';
 export * from './app/useInitDataHistory';
 export * from './auth/StepUpAuthModal';
 export * from './auth/useStepUpAuth';

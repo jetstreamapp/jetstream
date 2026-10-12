@@ -16,9 +16,13 @@
  *   host fallbacks (apex → _jetstream. for DNS, apex → www. for files), detection of
  *   non-matching Jetstream values (drives the clearer user-facing error message), and
  *   resilience to DNS/fetch failures.
+ * - The access profile handlers (create/update/delete routes, plus the admin-only gate on assigning a
+ *   profile when inviting, resending an invitation or updating a member) are driven through their
+ *   route definitions with the team service mocked, to lock in what reaches the service and the audit log.
  */
 import { Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { checkDomainVerification, fetchSamlMetadata, maskSsoSecrets } from '../team.controller';
+import { NotAllowedError, UserFacingError } from '../../utils/error-handler';
+import { checkDomainVerification, fetchSamlMetadata, maskSsoSecrets, routeDefinition } from '../team.controller';
 
 const assertDomainResolvesToPublicIpMock = vi.hoisted(() => vi.fn());
 // fetchSamlMetadata and checkDomainVerification's file fallback fetch each hop via
@@ -27,10 +31,23 @@ const assertDomainResolvesToPublicIpMock = vi.hoisted(() => vi.fn());
 const fetchWithPinnedPublicIpMock = vi.hoisted(() => vi.fn());
 // checkDomainVerification resolves TXT records via `dns/promises` — mocked so tests control DNS answers.
 const resolveTxtMock = vi.hoisted(() => vi.fn());
+// The service, db and audit seams the access profile route handlers call
+const routeMocks = vi.hoisted(() => ({
+  sendJson: vi.fn(),
+  createTeamAuditLog: vi.fn(),
+  findTeamInvitationById: vi.fn(),
+  canRunningUserUpdateTargetUserOrThrow: vi.fn(),
+  updateTeamMember: vi.fn(),
+  createInvitation: vi.fn(),
+  resendInvitation: vi.fn(),
+  createAccessProfile: vi.fn(),
+  updateAccessProfile: vi.fn(),
+  deleteAccessProfile: vi.fn(),
+}));
 
 // Mock the transitive import chain of team.controller.ts down to the minimum needed
-// to load the module. We are exercising maskSsoSecrets and fetchSamlMetadata — nothing
-// else from the controller touches its DB/service layer. vitest hoists these vi.mock
+// to load the module. The pure helpers never touch the DB/service layer; the route handler
+// tests only reach the functions in routeMocks. vitest hoists these vi.mock
 // calls before the imports above at runtime, so the load-order is correct.
 // Holder so the mocked getLogger() can be pointed at warnMock for checkDomainVerification's
 // warning assertions. Defaults to a no-op logger for every other test.
@@ -43,15 +60,25 @@ vi.mock('@jetstream/api-config', () => ({
   getExceptionLog: (error: unknown) => ({ error: error instanceof Error ? error.message : error }),
   logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
   getLogger: () => loggerHolder.current,
+  errorTracker: { error: vi.fn(), warn: vi.fn() },
   prisma: {},
   rollbarServer: { error: vi.fn(), warn: vi.fn() },
 }));
 vi.mock('@jetstream/audit-logs', () => ({
-  AuditLogAction: {},
-  AuditLogResource: {},
-  createTeamAuditLog: vi.fn(),
+  AuditLogAction: {
+    TEAM_INVITATION_CREATED: 'TEAM_INVITATION_CREATED',
+    TEAM_INVITATION_RESENT: 'TEAM_INVITATION_RESENT',
+    TEAM_MEMBER_ROLE_UPDATED: 'TEAM_MEMBER_ROLE_UPDATED',
+    TEAM_MEMBER_ACCESS_PROFILE_UPDATED: 'TEAM_MEMBER_ACCESS_PROFILE_UPDATED',
+    TEAM_ACCESS_PROFILE_CREATED: 'TEAM_ACCESS_PROFILE_CREATED',
+    TEAM_ACCESS_PROFILE_UPDATED: 'TEAM_ACCESS_PROFILE_UPDATED',
+    TEAM_ACCESS_PROFILE_DELETED: 'TEAM_ACCESS_PROFILE_DELETED',
+  },
+  AuditLogResource: { TEAM_MEMBER: 'team_member', TEAM_INVITATION: 'team_invitation', TEAM_ACCESS_PROFILE: 'team_access_profile' },
+  createTeamAuditLog: routeMocks.createTeamAuditLog,
 }));
 vi.mock('@jetstream/auth/server', () => ({
+  getApiAddressFromReq: vi.fn(() => '127.0.0.1'),
   encryptSecret: vi.fn(),
   oidcService: { getDiscoveredConfigForSaving: vi.fn() },
   samlService: { parseIdpMetadata: vi.fn() },
@@ -73,9 +100,17 @@ vi.mock('dns/promises', () => ({ resolveTxt: resolveTxtMock }));
 vi.mock('@jetstream/prisma', () => ({
   Prisma: { PrismaClientKnownRequestError: class extends Error {} },
 }));
-vi.mock('../../db/team.db', () => ({}));
-vi.mock('../../services/team.service', () => ({}));
-vi.mock('../../utils/response.handlers', () => ({ sendJson: vi.fn() }));
+vi.mock('../../db/team.db', () => ({ findTeamInvitationById: routeMocks.findTeamInvitationById }));
+vi.mock('../../services/team.service', () => ({
+  canRunningUserUpdateTargetUserOrThrow: routeMocks.canRunningUserUpdateTargetUserOrThrow,
+  updateTeamMember: routeMocks.updateTeamMember,
+  createInvitation: routeMocks.createInvitation,
+  resendInvitation: routeMocks.resendInvitation,
+  createAccessProfile: routeMocks.createAccessProfile,
+  updateAccessProfile: routeMocks.updateAccessProfile,
+  deleteAccessProfile: routeMocks.deleteAccessProfile,
+}));
+vi.mock('../../utils/response.handlers', () => ({ sendJson: routeMocks.sendJson }));
 
 describe('maskSsoSecrets', () => {
   it('masks spPrivateKey on SAML configuration while preserving non-secret fields', () => {
@@ -397,5 +432,380 @@ describe('checkDomainVerification', () => {
 
     expect(result).toEqual({ verified: false, verificationMethod: null, foundNonMatchingValue: false });
     expect(fetchWithPinnedPublicIpMock).toHaveBeenCalled();
+  });
+});
+
+const TEAM_ID = '4d2c1b0a-9f8e-4d7c-8b6a-5f4e3d2c1b0a';
+const RUNNING_USER_ID = '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
+const TARGET_USER_ID = '9e8d7c6b-5a4f-4e3d-9c2b-1a0f9e8d7c6b';
+const INVITATION_ID = '2f3e4d5c-6b7a-4980-a1b2-c3d4e5f6a7b8';
+const ACCESS_PROFILE_ID = '6b1f8d4e-2c3a-4e5f-9a7b-1c2d3e4f5a6b';
+const OTHER_ACCESS_PROFILE_ID = '0d9c8b7a-6f5e-4d3c-8b2a-1f0e9d8c7b6a';
+const INVITEE_EMAIL = 'invitee@example.com';
+
+type AccessProfileRouteName =
+  | 'createInvitation'
+  | 'resendInvitation'
+  | 'updateTeamMember'
+  | 'createAccessProfile'
+  | 'updateAccessProfile'
+  | 'deleteAccessProfile';
+
+/** Runs a team route handler the way express would after the team role middleware has passed */
+async function invokeTeamRoute(
+  routeName: AccessProfileRouteName,
+  {
+    role = 'ADMIN',
+    params = {},
+    body = {},
+    query = {},
+  }: { role?: string; params?: Record<string, string>; body?: unknown; query?: Record<string, string> } = {},
+) {
+  const req = {
+    params: { teamId: TEAM_ID, ...params },
+    body,
+    query,
+    ip: '127.0.0.1',
+    headers: { 'user-agent': 'vitest' },
+    get: () => undefined,
+    session: { user: { id: RUNNING_USER_ID, teamMembership: { teamId: TEAM_ID, role, status: 'ACTIVE' } } },
+  };
+  const res = { locals: { requestId: 'req-1' } };
+  const next = vi.fn();
+  await routeDefinition[routeName].controllerFn()(req as never, res as never, next);
+  return { res, next };
+}
+
+function expectForbidden(next: Mock) {
+  expect(next).toHaveBeenCalledTimes(1);
+  const [error] = next.mock.calls[0];
+  expect(error).toBeInstanceOf(NotAllowedError);
+  expect(error.status).toBe(403);
+  // Distinguishes the profile gate from the role checks that run before it
+  expect(error.message).toBe('Only administrators can assign access profiles');
+}
+
+function findAuditLogEntry(action: string) {
+  return routeMocks.createTeamAuditLog.mock.calls.map(([entry]) => entry).find((entry) => entry.action === action);
+}
+
+function makeTeam() {
+  return {
+    id: TEAM_ID,
+    members: [{ userId: TARGET_USER_ID, role: 'MEMBER', status: 'ACTIVE' }],
+    accessProfiles: [
+      { id: ACCESS_PROFILE_ID, name: 'Read only' },
+      { id: OTHER_ACCESS_PROFILE_ID, name: 'Data loaders' },
+    ],
+  };
+}
+
+function makeAccessProfile(overrides: Record<string, unknown> = {}) {
+  return {
+    id: ACCESS_PROFILE_ID,
+    name: 'Read only',
+    description: null,
+    policy: { v: 1, tools: ['query'], operations: [], surfaces: [] },
+    isDefault: false,
+    version: 1,
+    memberCount: 0,
+    invitationCount: 0,
+    ...overrides,
+  };
+}
+
+const ACCESS_PROFILE_REQUEST = { name: 'Read only', policy: { tools: ['query'], operations: [], surfaces: [] } };
+
+describe('assigning an access profile is limited to admins', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    routeMocks.canRunningUserUpdateTargetUserOrThrow.mockResolvedValue(undefined);
+    routeMocks.findTeamInvitationById.mockResolvedValue({
+      id: INVITATION_ID,
+      email: INVITEE_EMAIL,
+      role: 'MEMBER',
+      accessProfileId: null,
+      expiresAt: new Date(),
+      lastSentAt: new Date(),
+    });
+    routeMocks.createInvitation.mockResolvedValue({
+      invitations: [],
+      createdInvitation: { id: INVITATION_ID, email: INVITEE_EMAIL, role: 'MEMBER', accessProfileId: null, expiresAt: new Date() },
+    });
+    routeMocks.resendInvitation.mockResolvedValue({
+      invitations: [],
+      updatedInvitation: { id: INVITATION_ID, email: INVITEE_EMAIL, role: 'MEMBER', accessProfileId: null, previousAccessProfileId: null },
+    });
+    routeMocks.updateTeamMember.mockResolvedValue({
+      team: makeTeam(),
+      previousMember: { role: 'MEMBER', accessProfileId: null, email: 'member@example.com' },
+    });
+  });
+
+  const assignments: [string, string | null][] = [
+    ['a profile', ACCESS_PROFILE_ID],
+    ['full access (null)', null],
+  ];
+
+  describe('invite', () => {
+    it.each(assignments)('refuses a BILLING caller who assigns %s', async (_label, accessProfileId) => {
+      const { next } = await invokeTeamRoute('createInvitation', {
+        role: 'BILLING',
+        body: { email: INVITEE_EMAIL, role: 'MEMBER', accessProfileId },
+      });
+
+      expectForbidden(next);
+      expect(routeMocks.createInvitation).not.toHaveBeenCalled();
+    });
+
+    it('lets a BILLING caller invite without choosing a profile, so the team default applies', async () => {
+      const { next } = await invokeTeamRoute('createInvitation', { role: 'BILLING', body: { email: INVITEE_EMAIL, role: 'MEMBER' } });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(routeMocks.createInvitation).toHaveBeenCalledWith({
+        runningUserId: RUNNING_USER_ID,
+        teamId: TEAM_ID,
+        request: { email: INVITEE_EMAIL, role: 'MEMBER' },
+      });
+    });
+
+    it('lets an ADMIN assign a profile', async () => {
+      const { next } = await invokeTeamRoute('createInvitation', {
+        role: 'ADMIN',
+        body: { email: INVITEE_EMAIL, role: 'MEMBER', accessProfileId: ACCESS_PROFILE_ID },
+      });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(routeMocks.createInvitation).toHaveBeenCalledWith(
+        expect.objectContaining({ request: { email: INVITEE_EMAIL, role: 'MEMBER', accessProfileId: ACCESS_PROFILE_ID } }),
+      );
+    });
+  });
+
+  describe('resend or update invitation', () => {
+    it.each(assignments)('refuses a BILLING caller who assigns %s', async (_label, accessProfileId) => {
+      const { next } = await invokeTeamRoute('resendInvitation', {
+        role: 'BILLING',
+        params: { id: INVITATION_ID },
+        body: { accessProfileId },
+      });
+
+      expectForbidden(next);
+      expect(routeMocks.resendInvitation).not.toHaveBeenCalled();
+    });
+
+    it('lets a BILLING caller resend without touching the profile', async () => {
+      const { next } = await invokeTeamRoute('resendInvitation', { role: 'BILLING', params: { id: INVITATION_ID }, body: {} });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(routeMocks.resendInvitation).toHaveBeenCalledWith({
+        runningUserId: RUNNING_USER_ID,
+        teamId: TEAM_ID,
+        invitationId: INVITATION_ID,
+        expectedRole: 'MEMBER',
+        request: {},
+      });
+    });
+
+    it('records the previous and new profile in the audit entry when an ADMIN changes it', async () => {
+      routeMocks.resendInvitation.mockResolvedValue({
+        invitations: [],
+        updatedInvitation: {
+          id: INVITATION_ID,
+          email: INVITEE_EMAIL,
+          role: 'MEMBER',
+          accessProfileId: ACCESS_PROFILE_ID,
+          previousAccessProfileId: OTHER_ACCESS_PROFILE_ID,
+        },
+      });
+
+      const { next } = await invokeTeamRoute('resendInvitation', {
+        role: 'ADMIN',
+        params: { id: INVITATION_ID },
+        body: { accessProfileId: ACCESS_PROFILE_ID },
+      });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(findAuditLogEntry('TEAM_INVITATION_RESENT')?.metadata).toEqual({
+        inviteeEmail: INVITEE_EMAIL,
+        role: 'MEMBER',
+        previousAccessProfileId: OTHER_ACCESS_PROFILE_ID,
+        accessProfileId: ACCESS_PROFILE_ID,
+      });
+    });
+  });
+
+  describe('update member', () => {
+    it.each(assignments)('refuses a BILLING caller who assigns %s', async (_label, accessProfileId) => {
+      const { next } = await invokeTeamRoute('updateTeamMember', {
+        role: 'BILLING',
+        params: { userId: TARGET_USER_ID },
+        body: { accessProfileId },
+      });
+
+      expectForbidden(next);
+      expect(routeMocks.updateTeamMember).not.toHaveBeenCalled();
+    });
+
+    it('lets a BILLING caller change a role without touching the profile', async () => {
+      const { next } = await invokeTeamRoute('updateTeamMember', {
+        role: 'BILLING',
+        params: { userId: TARGET_USER_ID },
+        body: { role: 'BILLING' },
+      });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(routeMocks.updateTeamMember).toHaveBeenCalledWith(expect.objectContaining({ data: { role: 'BILLING' } }));
+      expect(findAuditLogEntry('TEAM_MEMBER_ACCESS_PROFILE_UPDATED')).toBeUndefined();
+    });
+  });
+});
+
+describe('access profile routes', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('create passes the parsed request to the service and records the new profile', async () => {
+    const team = makeTeam();
+    routeMocks.createAccessProfile.mockResolvedValue({ team, accessProfile: makeAccessProfile({ isDefault: true }) });
+
+    const { res, next } = await invokeTeamRoute('createAccessProfile', { body: { ...ACCESS_PROFILE_REQUEST, isDefault: true } });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(routeMocks.createAccessProfile).toHaveBeenCalledWith({
+      runningUserId: RUNNING_USER_ID,
+      teamId: TEAM_ID,
+      request: { name: 'Read only', description: null, isDefault: true, policy: { tools: ['query'], operations: [], surfaces: [] } },
+    });
+    expect(routeMocks.sendJson).toHaveBeenCalledWith(res, team);
+    expect(findAuditLogEntry('TEAM_ACCESS_PROFILE_CREATED')).toEqual(
+      expect.objectContaining({
+        teamId: TEAM_ID,
+        resourceId: ACCESS_PROFILE_ID,
+        metadata: { name: 'Read only', isDefault: true, policy: { v: 1, tools: ['query'], operations: [], surfaces: [] } },
+      }),
+    );
+  });
+
+  it('update passes the profile id from the path and records the before and after', async () => {
+    const team = makeTeam();
+    routeMocks.updateAccessProfile.mockResolvedValue({
+      team,
+      previousAccessProfile: makeAccessProfile(),
+      accessProfile: makeAccessProfile({ name: 'Renamed', version: 2, memberCount: 3 }),
+    });
+
+    const { res, next } = await invokeTeamRoute('updateAccessProfile', {
+      params: { id: ACCESS_PROFILE_ID },
+      body: { ...ACCESS_PROFILE_REQUEST, name: 'Renamed' },
+    });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(routeMocks.updateAccessProfile).toHaveBeenCalledWith({
+      runningUserId: RUNNING_USER_ID,
+      teamId: TEAM_ID,
+      id: ACCESS_PROFILE_ID,
+      request: expect.objectContaining({ name: 'Renamed' }),
+    });
+    expect(routeMocks.sendJson).toHaveBeenCalledWith(res, team);
+    expect(findAuditLogEntry('TEAM_ACCESS_PROFILE_UPDATED')?.metadata).toEqual(
+      expect.objectContaining({ name: 'Renamed', previousName: 'Read only', memberCount: 3 }),
+    );
+  });
+
+  describe('delete', () => {
+    function givenDeleteResult({
+      reassignedUserIds = [],
+      reassignedInvitationCount = 0,
+    }: {
+      reassignedUserIds?: string[];
+      reassignedInvitationCount?: number;
+    }) {
+      routeMocks.deleteAccessProfile.mockResolvedValue({
+        team: makeTeam(),
+        deletedAccessProfile: makeAccessProfile({ id: ACCESS_PROFILE_ID }),
+        reassignedUserIds,
+        reassignedInvitationCount,
+      });
+    }
+
+    function getReassignTarget() {
+      return routeMocks.deleteAccessProfile.mock.calls[0][0].reassignToAccessProfileId;
+    }
+
+    beforeEach(() => {
+      givenDeleteResult({});
+    });
+
+    it('parses reassignTo=FULL_ACCESS to null', async () => {
+      await invokeTeamRoute('deleteAccessProfile', { params: { id: ACCESS_PROFILE_ID }, query: { reassignTo: 'FULL_ACCESS' } });
+
+      expect(routeMocks.deleteAccessProfile).toHaveBeenCalledWith(
+        expect.objectContaining({ runningUserId: RUNNING_USER_ID, teamId: TEAM_ID, id: ACCESS_PROFILE_ID }),
+      );
+      expect(getReassignTarget()).toBeNull();
+    });
+
+    it('passes a profile id in reassignTo through unchanged', async () => {
+      await invokeTeamRoute('deleteAccessProfile', { params: { id: ACCESS_PROFILE_ID }, query: { reassignTo: OTHER_ACCESS_PROFILE_ID } });
+
+      expect(getReassignTarget()).toBe(OTHER_ACCESS_PROFILE_ID);
+    });
+
+    it('leaves the reassignment undefined when reassignTo is omitted', async () => {
+      await invokeTeamRoute('deleteAccessProfile', { params: { id: ACCESS_PROFILE_ID } });
+
+      expect(getReassignTarget()).toBeUndefined();
+    });
+
+    it('rejects a reassignTo that is neither a profile id nor FULL_ACCESS', async () => {
+      const { next } = await invokeTeamRoute('deleteAccessProfile', {
+        params: { id: ACCESS_PROFILE_ID },
+        query: { reassignTo: 'everyone' },
+      });
+
+      expect(next.mock.calls[0][0]).toBeInstanceOf(UserFacingError);
+      expect(routeMocks.deleteAccessProfile).not.toHaveBeenCalled();
+    });
+
+    it('omits the reassignment destination from the audit entry when nothing was moved', async () => {
+      await invokeTeamRoute('deleteAccessProfile', { params: { id: ACCESS_PROFILE_ID }, query: { reassignTo: OTHER_ACCESS_PROFILE_ID } });
+
+      const { metadata } = findAuditLogEntry('TEAM_ACCESS_PROFILE_DELETED');
+      expect(metadata).not.toHaveProperty('reassignedToAccessProfileId');
+      expect(metadata).not.toHaveProperty('reassignedToAccessProfileName');
+      expect(metadata).toEqual(expect.objectContaining({ name: 'Read only', reassignedUserIds: [], reassignedInvitationCount: 0 }));
+    });
+
+    it('records the destination profile in the audit entry when members were moved', async () => {
+      givenDeleteResult({ reassignedUserIds: [TARGET_USER_ID] });
+
+      await invokeTeamRoute('deleteAccessProfile', { params: { id: ACCESS_PROFILE_ID }, query: { reassignTo: OTHER_ACCESS_PROFILE_ID } });
+
+      expect(findAuditLogEntry('TEAM_ACCESS_PROFILE_DELETED').metadata).toEqual(
+        expect.objectContaining({
+          reassignedToAccessProfileId: OTHER_ACCESS_PROFILE_ID,
+          reassignedToAccessProfileName: 'Data loaders',
+          reassignedUserIds: [TARGET_USER_ID],
+          reassignedInvitationCount: 0,
+        }),
+      );
+    });
+
+    it('records full access as the destination when only invitations were moved', async () => {
+      givenDeleteResult({ reassignedInvitationCount: 2 });
+
+      await invokeTeamRoute('deleteAccessProfile', { params: { id: ACCESS_PROFILE_ID }, query: { reassignTo: 'FULL_ACCESS' } });
+
+      expect(findAuditLogEntry('TEAM_ACCESS_PROFILE_DELETED').metadata).toEqual(
+        expect.objectContaining({
+          reassignedToAccessProfileId: null,
+          reassignedToAccessProfileName: 'Full access',
+          reassignedUserIds: [],
+          reassignedInvitationCount: 2,
+        }),
+      );
+    });
   });
 });

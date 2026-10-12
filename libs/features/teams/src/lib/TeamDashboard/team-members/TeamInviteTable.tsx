@@ -1,14 +1,15 @@
 import { css } from '@emotion/react';
-import { TeamTableAction, TeamUserFacing } from '@jetstream/types';
+import { TeamAccessProfile, TeamTableAction, TeamUserFacing } from '@jetstream/types';
 import { TeamInviteRow } from './InvitationRow';
 
 export interface TeamInviteTableProps {
   invitations: TeamUserFacing['invitations'];
+  accessProfiles: TeamAccessProfile[] | null;
   canUpdate: boolean;
   onUserAction: (payload: TeamTableAction) => Promise<unknown>;
 }
 
-export function TeamInviteTable({ invitations, canUpdate, onUserAction }: TeamInviteTableProps) {
+export function TeamInviteTable({ invitations, accessProfiles, canUpdate, onUserAction }: TeamInviteTableProps) {
   if (!invitations.length) {
     return null;
   }
@@ -41,6 +42,13 @@ export function TeamInviteTable({ invitations, canUpdate, onUserAction }: TeamIn
               Role
             </span>
           </th>
+          {accessProfiles && (
+            <th scope="col">
+              <span className="slds-truncate" title="Access Profile">
+                Access Profile
+              </span>
+            </th>
+          )}
           <th scope="col">
             <span className="slds-truncate" title="Status">
               Status
@@ -60,7 +68,13 @@ export function TeamInviteTable({ invitations, canUpdate, onUserAction }: TeamIn
       </thead>
       <tbody>
         {invitations.map((invitation) => (
-          <TeamInviteRow key={invitation.id} invitation={invitation} canUpdate={canUpdate} onUserAction={onUserAction} />
+          <TeamInviteRow
+            key={invitation.id}
+            invitation={invitation}
+            accessProfiles={accessProfiles}
+            canUpdate={canUpdate}
+            onUserAction={onUserAction}
+          />
         ))}
       </tbody>
     </table>

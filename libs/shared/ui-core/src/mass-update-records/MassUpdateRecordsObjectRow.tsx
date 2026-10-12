@@ -4,7 +4,7 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { Field, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, fireToast, Grid, GridCol, Icon, ScopedNotification, Spinner } from '@jetstream/ui';
-import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { applicationCookieState, googleDriveAccessState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import isNumber from 'lodash/isNumber';
 import { Fragment, FunctionComponent, ReactNode, useState } from 'react';
@@ -67,6 +67,7 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
   const { trackEvent } = useAmplitude();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
+  const canExportRecords = useCanPerformOperation('records.export');
 
   const [downloadRecordsLoading, setDownloadRecordsLoading] = useState(false);
   const [downloadModalData, setDownloadModalData] = useState<{ open: boolean; data: any[]; header: string[]; fileNameParts: string[] }>({
@@ -185,7 +186,7 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
             <ScopedNotification theme="info" className="slds-m-top_x-small w-100">
               {formatNumber(validationResults.impactedRecords)} {pluralizeFromNumber('record', validationResults.impactedRecords)} will be
               updated
-              {validationResults.impactedRecords > 0 && (
+              {canExportRecords && validationResults.impactedRecords > 0 && (
                 <button
                   className="slds-button slds-button_neutral slds-m-left_small slds-is-relative"
                   disabled={downloadRecordsLoading}

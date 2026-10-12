@@ -3,6 +3,7 @@ import { getPendingEmailChangeForUser } from '@jetstream/auth/server';
 import { UserProfileSession } from '@jetstream/auth/types';
 import { Entitlement, Prisma } from '@jetstream/prisma';
 import {
+  getAccessProfileFingerprint,
   Maybe,
   SoqlQueryFormatOptions,
   SoqlQueryFormatOptionsSchema,
@@ -109,6 +110,7 @@ const UserFacingProfileSelect = {
     select: {
       role: true,
       status: true,
+      accessProfile: { select: { id: true, name: true, version: true, policy: true } },
       team: {
         select: {
           id: true,
@@ -209,6 +211,15 @@ export const findIdByUserIdUserFacing = async ({
     featureFlags,
     featureFlagsSignature: signFeatureFlags(user.id, featureFlags),
   });
+};
+
+export const findAccessProfileFingerprint = async ({ userId }: { userId: string }): Promise<string> => {
+  // Matches `/api/me`, which ignores the membership of an inactive team
+  const teamMembership = await prisma.teamMember.findFirst({
+    select: { accessProfile: { select: { id: true, version: true } } },
+    where: { userId, team: { status: 'ACTIVE' } },
+  });
+  return getAccessProfileFingerprint(teamMembership?.accessProfile);
 };
 
 export const getBillingAccount = async (id: string) => {

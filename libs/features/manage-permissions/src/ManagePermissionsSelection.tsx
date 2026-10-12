@@ -37,7 +37,14 @@ import {
   jobsState,
   useAmplitude,
 } from '@jetstream/ui-core';
-import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState, useFeatureFlag } from '@jetstream/ui/app-state';
+import {
+  applicationCookieState,
+  selectSkipFrontdoorAuth,
+  selectedOrgState,
+  useCanAccessTool,
+  useCanPerformOperation,
+  useFeatureFlag,
+} from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
@@ -78,6 +85,8 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   const selectedOrg = useAtomValue(selectedOrgState);
   const { serverUrl } = useAtomValue(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
+  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
+  const canUsePermissionAnalysis = useCanAccessTool('permission-analysis');
   const { trackEvent } = useAmplitude();
 
   const renderPopoverTrigger = (recordType: ProfileOrPermSetRecordType) => (item: ListItem) => (
@@ -88,7 +97,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
       recordId={item.id}
       recordType={recordType}
       meta={item.meta as PermissionSetWithProfileRecord | PermissionSetNoProfileRecord | undefined}
-      allowManageAssignments={recordType === 'PermissionSet'}
+      allowManageAssignments={recordType === 'PermissionSet' && canDeployMetadata}
       trackEvent={trackEvent}
     />
   );
@@ -259,7 +268,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
                 </button>
               </Tooltip>
             )}
-            {!isAnalysis && analysisToolsEnabled && (
+            {!isAnalysis && analysisToolsEnabled && canUsePermissionAnalysis && (
               <Link className="slds-button slds-button_neutral" to={APP_ROUTES.PERMISSION_ANALYSIS.ROUTE}>
                 Open in Permission Analysis
               </Link>

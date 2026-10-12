@@ -1,6 +1,13 @@
 import { getDefaultLoginConfigurationUI, type LoginConfigurationUI } from '@jetstream/auth/types';
-import { SoqlQueryFormatOptionsSchema, type UserProfileUi } from '@jetstream/types';
-import { getUserAbility } from '../acl';
+import {
+  ACCESS_PROFILE_OPERATION_KEYS,
+  ACCESS_PROFILE_TOOL_KEYS,
+  AccessProfilePolicySchema,
+  SoqlQueryFormatOptionsSchema,
+  type TeamMemberRole,
+  type UserProfileUi,
+} from '@jetstream/types';
+import { canAccessTool, canPerformOperation, getUserAbility } from '../acl';
 import { getLoginConfigurationAbility } from '../acl.login-configuration';
 
 const preferences: UserProfileUi['preferences'] = {
@@ -274,6 +281,98 @@ describe('acl', () => {
       it('should not grant profile access in browser extension', () => {
         const ability = getUserAbility({ user, isBrowserExtension: true });
         expect(ability.can('read', 'Profile')).toBe(false);
+      });
+    });
+
+    describe('access profiles', () => {
+      function getUser(
+        role: TeamMemberRole,
+        accessProfile: NonNullable<UserProfileUi['teamMembership']>['accessProfile'] = null,
+      ): UserProfileUi {
+        return {
+          id: '1',
+          email: 'test@example.com',
+          name: 'Test User',
+          emailVerified: true,
+          picture: null,
+          userId: '1',
+          preferences,
+          entitlements,
+          subscriptions: [],
+          featureFlags: {},
+          teamMembership: {
+            role,
+            status: 'ACTIVE',
+            team: { id: '1', name: 'Test Team', billingStatus: 'ACTIVE' },
+            accessProfile,
+          },
+        };
+      }
+
+      const analystProfile = {
+        id: 'profile-1',
+        name: 'Analyst',
+        version: 1,
+        policy: AccessProfilePolicySchema.parse({ v: 1, tools: ['query', 'data-analysis'], operations: ['records.export'], surfaces: [] }),
+      };
+
+      it('should grant every tool and operation to users without a team', () => {
+        const ability = getUserAbility({ user: { entitlements } });
+        expect(ACCESS_PROFILE_TOOL_KEYS.every((key) => canAccessTool(ability, key))).toBe(true);
+        expect(ACCESS_PROFILE_OPERATION_KEYS.every((key) => canPerformOperation(ability, key))).toBe(true);
+      });
+
+      it('should grant every tool and operation to members without a profile', () => {
+        const ability = getUserAbility({ user: getUser('MEMBER') });
+        expect(ACCESS_PROFILE_TOOL_KEYS.every((key) => canAccessTool(ability, key))).toBe(true);
+        expect(ACCESS_PROFILE_OPERATION_KEYS.every((key) => canPerformOperation(ability, key))).toBe(true);
+      });
+
+      it('should only grant the tools and operations in the profile', () => {
+        const ability = getUserAbility({ user: getUser('MEMBER', analystProfile) });
+        expect(canAccessTool(ability, 'query')).toBe(true);
+        expect(canAccessTool(ability, 'data-analysis')).toBe(true);
+        expect(canAccessTool(ability, 'load')).toBe(false);
+        expect(canAccessTool(ability, 'anonymous-apex')).toBe(false);
+        expect(canPerformOperation(ability, 'records.export')).toBe(true);
+        expect(canPerformOperation(ability, 'records.write')).toBe(false);
+        expect(canPerformOperation(ability, 'records.delete')).toBe(false);
+      });
+
+      it('should apply the profile on desktop and in the browser extension', () => {
+        const desktopAbility = getUserAbility({ user: getUser('MEMBER', analystProfile), isDesktop: true });
+        const extensionAbility = getUserAbility({ user: getUser('MEMBER', analystProfile), isBrowserExtension: true });
+        expect(canAccessTool(desktopAbility, 'load')).toBe(false);
+        expect(canAccessTool(extensionAbility, 'load')).toBe(false);
+        expect(canAccessTool(desktopAbility, 'query')).toBe(true);
+        expect(canAccessTool(extensionAbility, 'query')).toBe(true);
+      });
+
+      it('should not let a profile change team dashboard abilities for admins', () => {
+        const restrictedAdmin = getUserAbility({
+          user: getUser('ADMIN', { ...analystProfile, policy: { ...analystProfile.policy, tools: [] } }),
+        });
+        const unrestrictedAdmin = getUserAbility({ user: getUser('ADMIN') });
+        expect(canAccessTool(restrictedAdmin, 'query')).toBe(false);
+        expect(restrictedAdmin.can('update', 'TeamMember')).toBe(unrestrictedAdmin.can('update', 'TeamMember'));
+        expect(restrictedAdmin.can('read', 'AuditLog')).toBe(unrestrictedAdmin.can('read', 'AuditLog'));
+        expect(restrictedAdmin.can('update', 'Team')).toBe(true);
+      });
+
+      it('should only let admins edit and assign access profiles', () => {
+        const admin = getUserAbility({ user: getUser('ADMIN') });
+        const billing = getUserAbility({ user: getUser('BILLING') });
+        const member = getUserAbility({ user: getUser('MEMBER') });
+        expect(admin.can('update', 'TeamAccessProfile')).toBe(true);
+        expect(billing.can('read', 'TeamAccessProfile')).toBe(true);
+        expect(billing.can('update', 'TeamAccessProfile')).toBe(false);
+        expect(member.can('read', 'TeamAccessProfile')).toBe(false);
+      });
+
+      it('should grant no tools or operations to the billing role', () => {
+        const ability = getUserAbility({ user: getUser('BILLING') });
+        expect(canAccessTool(ability, 'query')).toBe(false);
+        expect(canPerformOperation(ability, 'records.export')).toBe(false);
       });
     });
   });

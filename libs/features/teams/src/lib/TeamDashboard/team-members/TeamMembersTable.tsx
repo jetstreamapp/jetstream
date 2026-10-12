@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { LoginConfigurationWithCallbacks } from '@jetstream/auth/types';
-import { TeamGlobalAction, TeamSeatSummary, TeamTableAction, TeamUserFacing, UserProfileUi } from '@jetstream/types';
+import { TeamAccessProfile, TeamGlobalAction, TeamSeatSummary, TeamTableAction, TeamUserFacing, UserProfileUi } from '@jetstream/types';
 import { ButtonGroupContainer, Card } from '@jetstream/ui';
 import { abilityState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
@@ -19,6 +19,8 @@ export interface TeamMembersTableProps {
   manageSeatsDisabledReason: string | null;
   teamMembers: TeamUserFacing['members'];
   invitations: TeamUserFacing['invitations'];
+  /** NULL hides the access profile column, for roles that cannot read profiles */
+  accessProfiles: TeamAccessProfile[] | null;
   userProfile: UserProfileUi;
   configuredSsoProvider?: LoginConfigurationWithCallbacks['ssoProvider'] | null;
   onGlobalAction: (action: TeamGlobalAction) => Promise<void>;
@@ -34,6 +36,7 @@ export function TeamMembersTable({
   canManageSeats,
   manageSeatsDisabledReason,
   invitations,
+  accessProfiles,
   userProfile,
   configuredSsoProvider,
   onGlobalAction,
@@ -134,6 +137,13 @@ export function TeamMembersTable({
                 Role
               </span>
             </th>
+            {accessProfiles && (
+              <th scope="col">
+                <span className="slds-truncate" title="Access Profile">
+                  Access Profile
+                </span>
+              </th>
+            )}
             <th scope="col">
               <span className="slds-truncate" title="Status">
                 Status
@@ -155,6 +165,7 @@ export function TeamMembersTable({
               requireMfa={requireMfa}
               allowIdentityLinking={allowIdentityLinking}
               member={member}
+              accessProfiles={accessProfiles}
               isCurrentUser={userProfile.id === member.userId}
               configuredSsoProvider={configuredSsoProvider}
               onUserAction={onUserAction}
@@ -165,7 +176,7 @@ export function TeamMembersTable({
       {invitations.length > 0 && (
         <>
           <h4 className="slds-text-align_center slds-text-heading_small slds-m-around_small">Team Member Invitations</h4>
-          <TeamInviteTable invitations={invitations} canUpdate={canUpdate} onUserAction={onUserAction} />
+          <TeamInviteTable invitations={invitations} accessProfiles={accessProfiles} canUpdate={canUpdate} onUserAction={onUserAction} />
         </>
       )}
     </Card>

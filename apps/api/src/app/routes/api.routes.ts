@@ -19,6 +19,7 @@ import { routeDefinition as stepUpAuthController } from '../controllers/step-up-
 import { routeDefinition as testController } from '../controllers/test.controller';
 import * as userFeedbackController from '../controllers/user-feedback.controller';
 import { routeDefinition as userController } from '../controllers/user.controller';
+import { findAccessProfileFingerprint } from '../db/user.db';
 import { deferredResponseMiddleware as dfr } from '../utils/deferred-response.middleware';
 import { sendJson } from '../utils/response.handlers';
 import {
@@ -50,6 +51,7 @@ routes.get('/heartbeat', async (req: express.Request, res: express.Response) => 
   const result: AppInfo = {
     version: ENV.VERSION || 'unknown',
     announcements: await getAnnouncements(req.session.user),
+    accessProfileFingerprint: req.session.user ? await findAccessProfileFingerprint({ userId: req.session.user.id }) : undefined,
     appInfo: getDefaultAppState({
       serverUrl: ENV.JETSTREAM_SERVER_URL,
       environment: ENV.ENVIRONMENT,

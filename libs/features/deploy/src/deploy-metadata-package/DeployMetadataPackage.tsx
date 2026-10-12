@@ -1,8 +1,8 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { DeployOptions, DeployResult, SalesforceOrgUi } from '@jetstream/types';
+import { ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES, DeployOptions, DeployResult, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
-import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { applicationCookieState, googleDriveAccessState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { Fragment, useState } from 'react';
@@ -19,6 +19,7 @@ export const DeployMetadataPackage = ({ className, selectedOrg: initialSelectedO
   const { trackEvent } = useAmplitude();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
+  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initialSelectedOrg);
   const [configModalOpen, setConfigModalOpen] = useState<boolean>(false);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState<boolean>(false);
@@ -66,8 +67,13 @@ export const DeployMetadataPackage = ({ className, selectedOrg: initialSelectedO
     <Fragment>
       <button
         className={classNames('slds-button slds-button_neutral', className)}
+        disabled={!canDeployMetadata}
         onClick={handleClick}
-        title="If you have an existing metadata package zip file, you can deploy that file to the currently selected org."
+        title={
+          canDeployMetadata
+            ? 'If you have an existing metadata package zip file, you can deploy that file to the currently selected org.'
+            : ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['metadata.deploy']
+        }
       >
         <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
         <span>Upload Metadata Zip</span>

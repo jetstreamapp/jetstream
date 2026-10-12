@@ -67,7 +67,7 @@ import {
   useQueryRestore,
 } from '@jetstream/ui-core';
 import { getFlattenSubqueryFlattenedFieldMap } from '@jetstream/ui-core/shared';
-import { fromAppState, googleDriveAccessState, soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
+import { fromAppState, googleDriveAccessState, soqlQueryFormatOptionsState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import { recordDataHistoryAction } from '@jetstream/ui/data-history';
 import { queryHistoryDb } from '@jetstream/ui/db';
 import { Query, composeQuery, formatQuery, parseQuery, stripComments } from '@jetstreamapp/soql-parser-js';
@@ -134,6 +134,9 @@ export const QueryResults = React.memo(() => {
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(fromAppState.applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontdoorLogin = useAtomValue(fromAppState.selectSkipFrontdoorAuth);
+  const canWriteRecords = useCanPerformOperation('records.write');
+  const canDeleteRecords = useCanPerformOperation('records.delete');
+  const canExportRecords = useCanPerformOperation('records.export');
   const [totalRecordCount, setTotalRecordCount] = useState<number | null>(null);
   const bulkDeleteJob = useObservable(
     fromJetstreamEvents
@@ -763,30 +766,34 @@ export const QueryResults = React.memo(() => {
               onCreateNewRecord={handleCreateNewRecord}
             />
           )}
-          <QueryResultsCopyToClipboard
-            className="collapsible-button collapsible-button-md"
-            hasRecords={hasRecords()}
-            fields={fields || []}
-            records={records || []}
-            filteredRows={filteredRows}
-            selectedRows={selectedRows}
-            isTooling={isTooling}
-          />
-          <QueryResultsDownloadButton
-            selectedOrg={selectedOrg}
-            sObject={sobject}
-            soql={soql}
-            columns={queryResults?.columns?.columns || []}
-            disabled={!hasRecords()}
-            isTooling={isTooling}
-            nextRecordsUrl={nextRecordsUrl}
-            fields={fields || []}
-            subqueryFields={subqueryFields}
-            records={records || []}
-            filteredRows={filteredRows}
-            selectedRows={selectedRows}
-            totalRecordCount={totalRecordCount || 0}
-          />
+          {canExportRecords && (
+            <>
+              <QueryResultsCopyToClipboard
+                className="collapsible-button collapsible-button-md"
+                hasRecords={hasRecords()}
+                fields={fields || []}
+                records={records || []}
+                filteredRows={filteredRows}
+                selectedRows={selectedRows}
+                isTooling={isTooling}
+              />
+              <QueryResultsDownloadButton
+                selectedOrg={selectedOrg}
+                sObject={sobject}
+                soql={soql}
+                columns={queryResults?.columns?.columns || []}
+                disabled={!hasRecords()}
+                isTooling={isTooling}
+                nextRecordsUrl={nextRecordsUrl}
+                fields={fields || []}
+                subqueryFields={subqueryFields}
+                records={records || []}
+                filteredRows={filteredRows}
+                selectedRows={selectedRows}
+                totalRecordCount={totalRecordCount || 0}
+              />
+            </>
+          )}
         </ToolbarItemActions>
       </Toolbar>
       <div className="slds-grid">
@@ -811,16 +818,18 @@ export const QueryResults = React.memo(() => {
         >
           {loading && <Spinner />}
           {/* this only shows content if allowContentDownload.enabled is true  */}
-          <Grid className="slds-m-left_small">
-            <QueryResultsAttachmentDownload
-              selectedOrg={selectedOrg}
-              enabled={allowContentDownload.enabled}
-              sobjectName={allowContentDownload.sobjectName}
-              selectedRecords={selectedRows}
-              hasRecords={!loading && !errorMessage && !!records?.length && !!recordCount}
-              hasPaidPlan={hasPaidPlan}
-            />
-          </Grid>
+          {canExportRecords && (
+            <Grid className="slds-m-left_small">
+              <QueryResultsAttachmentDownload
+                selectedOrg={selectedOrg}
+                enabled={allowContentDownload.enabled}
+                sobjectName={allowContentDownload.sobjectName}
+                selectedRecords={selectedRows}
+                hasRecords={!loading && !errorMessage && !!records?.length && !!recordCount}
+                hasPaidPlan={hasPaidPlan}
+              />
+            </Grid>
+          )}
           {errorMessage && (
             <div className="slds-m-around_medium slds-box slds-text-color_error">
               <div className="slds-inline_icon_text slds-grid">
@@ -850,14 +859,14 @@ export const QueryResults = React.memo(() => {
               <EmptyState
                 size="large"
                 headline="There are no records matching your query"
-                subHeading="Go back and adjust your query or create a new record."
+                subHeading={canWriteRecords ? 'Go back and adjust your query or create a new record.' : 'Go back and adjust your query.'}
                 illustration={<CampingRainIllustration />}
               >
                 <Link className="slds-button slds-button_brand" to=".." state={{ soql }}>
                   <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Go Back
                 </Link>
-                {queryResults?.parsedQuery?.sObject && (
+                {canWriteRecords && queryResults?.parsedQuery?.sObject && (
                   <button className="slds-button slds-button_neutral slds-m-left_small" onClick={handleCreateNewRecord}>
                     Create a new record
                   </button>
@@ -920,6 +929,9 @@ export const QueryResults = React.memo(() => {
                 handleGetAsApex(record);
               }}
               onReloadQuery={() => executeQuery(soql, RECORD_BULK_ACTION, { isTooling })}
+              canWriteRecords={canWriteRecords}
+              canDeleteRecords={canDeleteRecords}
+              canExportRecords={canExportRecords}
             />
           )}
         </AutoFullHeightContainer>

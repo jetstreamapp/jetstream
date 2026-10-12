@@ -12,6 +12,8 @@ import {
   TEAM_MEMBER_ROLE_MEMBER,
   TEAM_MEMBER_STATUS_ACTIVE,
   TEAM_MEMBER_STATUS_INACTIVE,
+  TeamAccessProfile,
+  TeamAccessProfileRequest,
   TeamInvitationRequest,
   TeamInvitationUpdateRequest,
   TeamInviteUserFacing,
@@ -125,7 +127,10 @@ export async function updateTeamMember({
   runningUserId: string;
   userId: string;
   data: TeamMemberUpdateRequest;
-}): Promise<{ team: TeamUserFacing; previousMember: { role: string; features: string[]; email: string } }> {
+}): Promise<{
+  team: TeamUserFacing;
+  previousMember: { role: string; accessProfileId: string | null; email: string };
+}> {
   const { teamMember, previousMember } = await teamDbService.updateTeamMemberRole({
     teamId,
     userId,
@@ -195,6 +200,52 @@ export async function updateTeamMemberStatusAndRole({
   return { team, previousMember, allSessionsRevoked };
 }
 
+export async function createAccessProfile({
+  runningUserId,
+  teamId,
+  request,
+}: {
+  runningUserId: string;
+  teamId: string;
+  request: TeamAccessProfileRequest;
+}): Promise<{ team: TeamUserFacing; accessProfile: TeamAccessProfile }> {
+  const accessProfile = await teamDbService.createAccessProfile({ runningUserId, teamId, request });
+  const team = await teamDbService.findByUserId({ userId: runningUserId });
+  return { team, accessProfile };
+}
+
+export async function updateAccessProfile({
+  runningUserId,
+  teamId,
+  id,
+  request,
+}: {
+  runningUserId: string;
+  teamId: string;
+  id: string;
+  request: TeamAccessProfileRequest;
+}): Promise<{ team: TeamUserFacing; previousAccessProfile: TeamAccessProfile; accessProfile: TeamAccessProfile }> {
+  const { previousAccessProfile, accessProfile } = await teamDbService.updateAccessProfile({ runningUserId, teamId, id, request });
+  const team = await teamDbService.findByUserId({ userId: runningUserId });
+  return { team, previousAccessProfile, accessProfile };
+}
+
+export async function deleteAccessProfile({
+  runningUserId,
+  teamId,
+  id,
+  reassignToAccessProfileId,
+}: {
+  runningUserId: string;
+  teamId: string;
+  id: string;
+  reassignToAccessProfileId?: string | null;
+}) {
+  const result = await teamDbService.deleteAccessProfile({ runningUserId, teamId, id, reassignToAccessProfileId });
+  const team = await teamDbService.findByUserId({ userId: runningUserId });
+  return { team, ...result };
+}
+
 export async function getTeamInvitations({ teamId }: { teamId: string }) {
   const invitations = await teamDbService.getTeamInvitations({ teamId });
   return invitations;
@@ -210,7 +261,7 @@ export async function createInvitation({
   request: TeamInvitationRequest;
 }): Promise<{
   invitations: TeamInviteUserFacing[];
-  createdInvitation: { id: string; email: string; role: string; features: string[]; expiresAt: Date };
+  createdInvitation: { id: string; email: string; role: string; accessProfileId: string | null; expiresAt: Date };
 }> {
   const createdInvitation = await teamDbService.createTeamInvitation({
     runningUserId,
@@ -233,7 +284,7 @@ export async function createInvitation({
       id: createdInvitation.id,
       email: createdInvitation.email,
       role: createdInvitation.role,
-      features: createdInvitation.features as string[],
+      accessProfileId: createdInvitation.accessProfileId,
       expiresAt: createdInvitation.expiresAt,
     },
   };
@@ -251,7 +302,10 @@ export async function resendInvitation({
   invitationId: string;
   expectedRole: string;
   request: TeamInvitationUpdateRequest;
-}): Promise<{ invitations: TeamInviteUserFacing[]; updatedInvitation: { id: string; email: string; role: string } }> {
+}): Promise<{
+  invitations: TeamInviteUserFacing[];
+  updatedInvitation: { id: string; email: string; role: string; accessProfileId: string | null; previousAccessProfileId: string | null };
+}> {
   const updatedInvitation = await teamDbService.updateTeamInvitation({
     id: invitationId,
     teamId,
@@ -275,6 +329,8 @@ export async function resendInvitation({
       id: updatedInvitation.id,
       email: updatedInvitation.email,
       role: updatedInvitation.role,
+      accessProfileId: updatedInvitation.accessProfileId,
+      previousAccessProfileId: updatedInvitation.previousAccessProfileId,
     },
   };
 }
@@ -425,7 +481,7 @@ export async function acceptTeamInvitation({
   currentSessionProvider: OauthProviderType | SsoProviderType | 'credentials';
   teamId: string;
   token: string;
-}): Promise<{ email: string; role: string; features: string[] }> {
+}): Promise<{ email: string; role: string; accessProfileId: string | null }> {
   const { canEnroll } = await verifyTeamInvitation({ user, currentSessionProvider, teamId, token });
   if (!canEnroll) {
     throw new UserFacingError('Please review the enrollment requirements and try again.');

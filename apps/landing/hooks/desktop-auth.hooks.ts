@@ -17,10 +17,13 @@ const ERROR_MESSAGES = {
   RUNTIME_ERROR: 'Error communicating with desktop application, is the application open?',
   UNKNOWN_ERROR: 'There was an unexpected error authenticating your account',
   INVALID_SUBSCRIPTION: 'You do not have a valid subscription to use the desktop application, sign up to get access today.',
+  SURFACE_NOT_ALLOWED:
+    "Your team's Jetstream access profile does not allow the desktop application. Contact your team administrator for access.",
 };
 
 const ERROR_MAP = {
   MissingEntitlement: ERROR_MESSAGES.INVALID_SUBSCRIPTION,
+  SurfaceNotAllowed: ERROR_MESSAGES.SURFACE_NOT_ALLOWED,
 };
 
 const STORAGE_KEY = 'desktop-auth-success';

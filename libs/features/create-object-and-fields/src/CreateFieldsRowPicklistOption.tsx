@@ -1,6 +1,7 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, Grid } from '@jetstream/ui';
 import { FieldDefinitionType, FieldDefinitions, FieldValue, FieldValues } from '@jetstream/ui-core';
+import { useCanPerformOperation } from '@jetstream/ui/app-state';
 import { FunctionComponent, useRef } from 'react';
 import CreateFieldsRowField from './CreateFieldsRowField';
 import CreateNewGlobalPicklistModal from './CreateNewGlobalPicklistModal';
@@ -31,6 +32,7 @@ export const CreateFieldsRowPicklistOption: FunctionComponent<CreateFieldsRowPic
   onBlur,
 }) => {
   const createFieldRowRef = useRef<{ fetchValues: (newValue?: string, skipCache?: boolean) => void }>(null);
+  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
 
   function handlePicklistCreated(name: string) {
     createFieldRowRef.current?.fetchValues(name, true);
@@ -63,7 +65,7 @@ export const CreateFieldsRowPicklistOption: FunctionComponent<CreateFieldsRowPic
             onChange={(value) => onChange('globalValueSet', value)}
             onBlur={() => onBlur('globalValueSet')}
           />
-          <CreateNewGlobalPicklistModal selectedOrg={selectedOrg} onCreated={handlePicklistCreated} />
+          {canDeployMetadata && <CreateNewGlobalPicklistModal selectedOrg={selectedOrg} onCreated={handlePicklistCreated} />}
         </Grid>
       )}
       {!values._picklistGlobalValueSet && (

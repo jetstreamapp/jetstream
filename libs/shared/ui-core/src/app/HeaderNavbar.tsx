@@ -1,5 +1,5 @@
 import { css, SerializedStyles } from '@emotion/react';
-import { AppAbility } from '@jetstream/acl';
+import { AppAbility, canAccessTool } from '@jetstream/acl';
 import type { ReleasePlatform } from '@jetstream/release-notes';
 import { jetstreamLogoProUrl, jetstreamLogoUrl } from '@jetstream/shared/assets';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
@@ -271,11 +271,29 @@ export const HeaderNavbar = ({
 
   const releaseNotePlatform: ReleasePlatform = isDesktop ? 'desktop' : isBrowserExtension() ? 'extension' : 'web';
 
+  const canUseQueryTool = canAccessTool(ability, 'query');
+  const canUseDataHistory = canAccessTool(ability, 'data-history');
+
   const rightHandMenuItems = useMemo(() => {
     // Spreads to nothing while the in-app popover is disabled (see SHOW_WHATS_NEW_POPOVER above).
     const whatsNewItems: React.ReactNode[] = SHOW_WHATS_NEW_POPOVER
       ? [<HeaderWhatsNewPopover key="whats-new" platform={releaseNotePlatform} />]
       : [];
+
+    // Quick Query, record search and user search all read records, so they follow the member's access to the
+    // Query tool. Leaving them unmounted also unregisters their keyboard shortcuts.
+    const toolItems: React.ReactNode[] = [];
+    if (canUseQueryTool) {
+      toolItems.push(
+        <QuickQueryPopover key="quick-query" />,
+        <RecordSearchPopover key="record-search" />,
+        <UserSearchPopover key="user-search" />,
+      );
+    }
+    toolItems.push(<Jobs key="jobs" />);
+    if (canUseDataHistory) {
+      toolItems.push(<HeaderDataHistoryButton key="data-history" />);
+    }
 
     if (isReadOnlyUser) {
       return [...whatsNewItems, <HeaderHelpPopover key="help" />];
@@ -299,13 +317,7 @@ export const HeaderNavbar = ({
         );
       }
 
-      items.push(
-        <QuickQueryPopover key="quick-query" />,
-        <RecordSearchPopover key="record-search" />,
-        <UserSearchPopover key="user-search" />,
-        <Jobs key="jobs" />,
-        <HeaderDataHistoryButton key="data-history" />,
-      );
+      items.push(...toolItems);
 
       // Add update notification for desktop
       if (isDesktop) {
@@ -323,41 +335,22 @@ export const HeaderNavbar = ({
     }
 
     if (!isBillingEnabled) {
-      return [
-        <QuickQueryPopover key="quick-query" />,
-        <RecordSearchPopover key="record-search" />,
-        <UserSearchPopover key="user-search" />,
-        <Jobs key="jobs" />,
-        <HeaderDataHistoryButton key="data-history" />,
-        ...whatsNewItems,
-        <HeaderHelpPopover key="help" />,
-        <HeaderDonatePopover key="donate" />,
-      ];
+      return [...toolItems, ...whatsNewItems, <HeaderHelpPopover key="help" />, <HeaderDonatePopover key="donate" />];
     }
 
     if (!hasPaidPlan) {
       return [
         <UpgradeToProButton key="upgrade-to-pro" trackEvent={trackEvent} source="navbar" />,
-        <QuickQueryPopover key="quick-query" />,
-        <RecordSearchPopover key="record-search" />,
-        <UserSearchPopover key="user-search" />,
-        <Jobs key="jobs" />,
-        <HeaderDataHistoryButton key="data-history" />,
+        ...toolItems,
         ...whatsNewItems,
         <HeaderHelpPopover key="help" />,
       ];
     }
 
-    return [
-      <QuickQueryPopover key="quick-query" />,
-      <RecordSearchPopover key="record-search" />,
-      <UserSearchPopover key="user-search" />,
-      <Jobs key="jobs" />,
-      <HeaderDataHistoryButton key="data-history" />,
-      ...whatsNewItems,
-      <HeaderHelpPopover key="help" />,
-    ];
+    return [...toolItems, ...whatsNewItems, <HeaderHelpPopover key="help" />];
   }, [
+    canUseQueryTool,
+    canUseDataHistory,
     isReadOnlyUser,
     isEmbeddedApp,
     isDesktop,

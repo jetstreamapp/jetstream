@@ -37,6 +37,7 @@ const teamSeatsMock = vi.hoisted(() => ({
   withTeamSeatLock: vi.fn(),
   assertSeatAvailable: vi.fn(),
   addMemberFromInvitation: vi.fn(),
+  findDefaultAccessProfileId: vi.fn(),
 }));
 
 const auditLogMock = vi.hoisted(() => ({ createTeamAuditLog: vi.fn() }));
@@ -504,6 +505,8 @@ describe('handleSsoLogin seat enforcement', () => {
     teamSeatsMock.withTeamSeatLock.mockImplementation(async (_teamId: string, fn: (tx: unknown) => Promise<unknown>) => fn(prismaMock));
     teamSeatsMock.assertSeatAvailable.mockResolvedValue(seats);
     teamSeatsMock.addMemberFromInvitation.mockResolvedValue({ role: 'MEMBER', status: 'ACTIVE' });
+    // The team has no default access profile (full access) unless a test says otherwise
+    teamSeatsMock.findDefaultAccessProfileId.mockResolvedValue(null);
     // No invitation and no existing user unless a test says otherwise
     prismaMock.teamMemberInvitation.findFirst.mockResolvedValue(null);
     prismaMock.teamMember.findUnique.mockResolvedValue(null);
@@ -527,16 +530,33 @@ describe('handleSsoLogin seat enforcement', () => {
       expect(teamSeatsMock.assertSeatAvailable).toHaveBeenCalledWith(prismaMock, { teamId: TEAM_ID, kind: 'ADD', role: 'MEMBER' });
       expect(prismaMock.teamMember.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ teamId: TEAM_ID, userId: 'user-1', role: 'MEMBER', features: ['ALL'], status: 'ACTIVE' }),
+          data: expect.objectContaining({
+            teamId: TEAM_ID,
+            userId: 'user-1',
+            role: 'MEMBER',
+            status: 'ACTIVE',
+            accessProfileId: null,
+          }),
         }),
       );
+      expect(teamSeatsMock.findDefaultAccessProfileId).toHaveBeenCalledWith(prismaMock, TEAM_ID);
       expect(teamSeatsMock.addMemberFromInvitation).not.toHaveBeenCalled();
       // A leftover expired invitation would otherwise reserve a second seat for this member if resent
       expect(prismaMock.teamMemberInvitation.deleteMany).toHaveBeenCalledWith({ where: { teamId: TEAM_ID, email: 'user@example.com' } });
     });
 
+    it("assigns the team's default access profile to a JIT provisioned member", async () => {
+      teamSeatsMock.findDefaultAccessProfileId.mockResolvedValue('profile-default');
+
+      await handleSsoLogin('saml', TEAM_ID, userInfo, {} as any);
+
+      expect(prismaMock.teamMember.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ accessProfileId: 'profile-default' }) }),
+      );
+    });
+
     it('with an invitation re-reads it under the lock and delegates to addMemberFromInvitation (no separate ADD check)', async () => {
-      prismaMock.teamMemberInvitation.findFirst.mockResolvedValue({ id: 'invite-1', role: 'MEMBER', features: ['ALL'] });
+      prismaMock.teamMemberInvitation.findFirst.mockResolvedValue({ id: 'invite-1', role: 'MEMBER' });
 
       await handleSsoLogin('saml', TEAM_ID, userInfo, {} as any);
 
@@ -552,6 +572,8 @@ describe('handleSsoLogin seat enforcement', () => {
       });
       expect(teamSeatsMock.assertSeatAvailable).not.toHaveBeenCalled();
       expect(prismaMock.teamMember.create).not.toHaveBeenCalled();
+      // The invitation carries its own access profile, so the team default must not be consulted
+      expect(teamSeatsMock.findDefaultAccessProfileId).not.toHaveBeenCalled();
     });
 
     it('rejects the login and rolls back the user when the invitation disappears before the lock and JIT provisioning is disabled', async () => {
@@ -566,9 +588,7 @@ describe('handleSsoLogin seat enforcement', () => {
         ssoRequireMfa: false,
         allowedMfaMethods: new Set(),
       } as any);
-      prismaMock.teamMemberInvitation.findFirst
-        .mockResolvedValueOnce({ id: 'invite-1', role: 'MEMBER', features: ['ALL'] })
-        .mockResolvedValueOnce(null);
+      prismaMock.teamMemberInvitation.findFirst.mockResolvedValueOnce({ id: 'invite-1', role: 'MEMBER' }).mockResolvedValueOnce(null);
 
       await expect(handleSsoLogin('saml', TEAM_ID, userInfo, {} as any)).rejects.toBeInstanceOf(SsoAutoProvisioningDisabled);
 
@@ -605,7 +625,7 @@ describe('handleSsoLogin seat enforcement', () => {
     });
 
     it('with an invitation re-reads it under the lock and delegates to addMemberFromInvitation (no separate ADD check)', async () => {
-      prismaMock.teamMemberInvitation.findFirst.mockResolvedValue({ id: 'invite-1', role: 'MEMBER', features: ['ALL'] });
+      prismaMock.teamMemberInvitation.findFirst.mockResolvedValue({ id: 'invite-1', role: 'MEMBER' });
 
       await handleSsoLogin('saml', TEAM_ID, userInfo, {} as any);
 
@@ -625,9 +645,7 @@ describe('handleSsoLogin seat enforcement', () => {
     });
 
     it('applies an invitation created while waiting for the lock instead of a plain MEMBER JIT join', async () => {
-      prismaMock.teamMemberInvitation.findFirst
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce({ id: 'invite-late', role: 'ADMIN', features: ['ALL'] });
+      prismaMock.teamMemberInvitation.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'invite-late', role: 'ADMIN' });
 
       await handleSsoLogin('saml', TEAM_ID, userInfo, {} as any);
 
@@ -640,9 +658,7 @@ describe('handleSsoLogin seat enforcement', () => {
     });
 
     it('falls back to JIT provisioning as a MEMBER when the invitation disappears before the lock', async () => {
-      prismaMock.teamMemberInvitation.findFirst
-        .mockResolvedValueOnce({ id: 'invite-1', role: 'ADMIN', features: ['ALL'] })
-        .mockResolvedValueOnce(null);
+      prismaMock.teamMemberInvitation.findFirst.mockResolvedValueOnce({ id: 'invite-1', role: 'ADMIN' }).mockResolvedValueOnce(null);
 
       await handleSsoLogin('saml', TEAM_ID, userInfo, {} as any);
 
@@ -650,7 +666,7 @@ describe('handleSsoLogin seat enforcement', () => {
       expect(teamSeatsMock.assertSeatAvailable).toHaveBeenCalledWith(prismaMock, { teamId: TEAM_ID, kind: 'ADD', role: 'MEMBER' });
       expect(prismaMock.teamMember.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ teamId: TEAM_ID, userId: 'user-1', role: 'MEMBER', features: ['ALL'] }),
+          data: expect.objectContaining({ teamId: TEAM_ID, userId: 'user-1', role: 'MEMBER' }),
         }),
       );
     });
@@ -667,9 +683,7 @@ describe('handleSsoLogin seat enforcement', () => {
         ssoRequireMfa: false,
         allowedMfaMethods: new Set(),
       } as any);
-      prismaMock.teamMemberInvitation.findFirst
-        .mockResolvedValueOnce({ id: 'invite-1', role: 'MEMBER', features: ['ALL'] })
-        .mockResolvedValueOnce(null);
+      prismaMock.teamMemberInvitation.findFirst.mockResolvedValueOnce({ id: 'invite-1', role: 'MEMBER' }).mockResolvedValueOnce(null);
 
       await expect(handleSsoLogin('saml', TEAM_ID, userInfo, {} as any)).rejects.toBeInstanceOf(SsoAutoProvisioningDisabled);
 
@@ -694,9 +708,22 @@ describe('handleSsoLogin seat enforcement', () => {
 
       expect(teamSeatsMock.assertSeatAvailable).toHaveBeenCalledWith(prismaMock, { teamId: TEAM_ID, kind: 'ADD', role: 'MEMBER' });
       expect(prismaMock.teamMember.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ teamId: TEAM_ID, userId: 'user-1', role: 'MEMBER' }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ teamId: TEAM_ID, userId: 'user-1', role: 'MEMBER', accessProfileId: null }),
+        }),
       );
       expect(teamSeatsMock.addMemberFromInvitation).not.toHaveBeenCalled();
+    });
+
+    it("assigns the team's default access profile when joining without an invitation", async () => {
+      teamSeatsMock.findDefaultAccessProfileId.mockResolvedValue('profile-default');
+
+      await handleSsoLogin('saml', TEAM_ID, userInfo, {} as any);
+
+      expect(teamSeatsMock.findDefaultAccessProfileId).toHaveBeenCalledWith(prismaMock, TEAM_ID);
+      expect(prismaMock.teamMember.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ accessProfileId: 'profile-default' }) }),
+      );
     });
 
     it('maps a seat rejection to SsoLicenseLimitExceeded with the user id in the audit entry', async () => {

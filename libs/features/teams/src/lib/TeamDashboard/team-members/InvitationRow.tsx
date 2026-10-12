@@ -1,17 +1,20 @@
 import { css } from '@emotion/react';
-import { TeamInvitationAction, TeamUserFacing } from '@jetstream/types';
+import { TeamAccessProfile, TeamInvitationAction, TeamUserFacing } from '@jetstream/types';
 import { Badge, DropDown, Tooltip } from '@jetstream/ui';
 import { isBefore } from 'date-fns/isBefore';
 import { isValid } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
+import { AccessProfileCell } from '../access-profiles/AccessProfileCell';
 import { TeamMembersTableProps } from './TeamMembersTable';
 
 export const TeamInviteRow = ({
   invitation,
+  accessProfiles,
   canUpdate,
   onUserAction,
 }: {
   invitation: TeamUserFacing['invitations'][number];
+  accessProfiles: TeamAccessProfile[] | null;
   canUpdate: boolean;
   onUserAction: TeamMembersTableProps['onUserAction'];
 }) => {
@@ -39,6 +42,11 @@ export const TeamInviteRow = ({
       <td className="slds-cell-wrap">
         <RoleCell role={invitation.role} />
       </td>
+      {accessProfiles && (
+        <td className="slds-cell-wrap">
+          <AccessProfileCell role={invitation.role} accessProfileId={invitation.accessProfileId} accessProfiles={accessProfiles} />
+        </td>
+      )}
       <td className="slds-cell-wrap">
         <StatusCell expiresAt={invitation.expiresAt} />
       </td>

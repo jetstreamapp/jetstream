@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { ProfileOrPermSetPopover } from '@jetstream/ui';
 import { fromPermissionsState, useAmplitude } from '@jetstream/ui-core';
-import { applicationCookieState, selectedOrgState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { applicationCookieState, selectedOrgState, selectSkipFrontdoorAuth, useCanPerformOperation } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 
 export interface PermissionColumnGroupHeaderProps {
@@ -24,6 +24,7 @@ export function PermissionColumnGroupHeader({ id, label, type }: PermissionColum
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const profilesById = useAtomValue(fromPermissionsState.profilesByIdSelector);
   const permissionSetsById = useAtomValue(fromPermissionsState.permissionSetsByIdSelector);
+  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
   const { trackEvent } = useAmplitude();
 
   const isPermissionSet = type === 'Permission Set';
@@ -60,7 +61,7 @@ export function PermissionColumnGroupHeader({ id, label, type }: PermissionColum
           recordId={id}
           recordType={isPermissionSet ? 'PermissionSet' : 'Profile'}
           meta={meta}
-          allowManageAssignments={isPermissionSet}
+          allowManageAssignments={isPermissionSet && canDeployMetadata}
           buttonTitle={`View ${fullLabel} details`}
           trackEvent={trackEvent}
         />

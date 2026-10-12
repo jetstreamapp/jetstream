@@ -1257,6 +1257,7 @@ export const AUTH_ERROR_MESSAGES = {
   InvalidVerificationType: 'The form is invalid, refresh the page and start over.',
   LoginWithExistingIdentity: 'To confirm your identity, sign in with the same account you used originally.',
   MissingEntitlement: `You are not permitted to access this feature.`,
+  SurfaceNotAllowed: `Your team's Jetstream access profile does not allow this application. Contact your team administrator for access.`,
   PasswordResetRequired: 'You must reset your password before signing in.',
   PasswordReused: 'You cannot reuse your previously used passwords. Choose a different password.',
   ProviderEmailNotVerified: 'You must first verify your email address with the provider in order to register.',
