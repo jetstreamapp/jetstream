@@ -56,10 +56,12 @@ overrides:
   "@xmldom/xmldom": "^0.8.15"
   # Force a patched @xhmikosr/decompress on the dev-only @swc/cli binary-download path
   # (@swc/cli -> @xhmikosr/bin-wrapper -> downloader -> decompress). <10.2.1 allows archive
-  # extraction to write files/links outside the target dir (GHSA-mp2f-45pm-3cg9), and <10.2.2
-  # still allows it through a symlink chain (GHSA-hrh2-vp3x-79xf). 10.2.2 stays within
-  # downloader's declared ^10.0.1 range.
-  "@xhmikosr/decompress": "^10.2.2"
+  # extraction to write files/links outside the target dir (GHSA-mp2f-45pm-3cg9), and <10.2.2 (11.x:
+  # <11.1.4) still allows it through a symlink chain (GHSA-hrh2-vp3x-79xf). downloader 16.3 declares
+  # ^11.1.3, which also brings the readers onto file-type 21 (20.x has an ASF-parser infinite loop and
+  # a ZIP decompression bomb, GHSA-5v7r-6r5c-r473 / GHSA-j47w-4g3g-c36v). Do not force file-type 21 on
+  # the 8.x readers instead: they check for ext "gz" and silently extract nothing from a .tar.gz.
+  "@xhmikosr/decompress": "^11.1.4"
   # Docusaurus 3.10 still declares tinypool ^1, and <2.1.2 has prototype-pollution gadgets in the
   # worker options that lead to RCE (GHSA-5gmw-xhrv-c9v3, GHSA-85c8-ppgw-ccpr). Docs build only.
   # tinypool 2.0's only breaking change is dropping Node 18.
@@ -92,3 +94,32 @@ overrides:
   # ^7.x ranges, deduping the tree to a single tar version.
   tar: "^7.5.20"
   "next-images>loader-utils": "2.0.4"
+  # prisma 7.10 pins mysql2 3.15.3 exactly: <3.22.0 downgrades auth to mysql_clear_password and leaks
+  # credentials (GHSA-3f6p-5ww8-9rcr), <=3.23.0 has an unbounded zlib inflate (GHSA-rgwj-5xj2-c3m3).
+  # We only use PostgreSQL, so the MySQL driver never runs. Remove after upgrading prisma past a pin >=3.23.1.
+  "prisma>mysql2": "^3.23.1"
+  # @prisma/config 7.10 uses deepmerge-ts 7.1.5, which exhausts the stack on recursive object graphs
+  # (GHSA-ggr8-5vv4-36mx). It only merges our own prisma.config.ts. 8.0's breaking changes (Map values
+  # deep-merge, two renamed types) do not apply to a plain config object.
+  "@prisma/config>deepmerge-ts": "^8.0.0"
+  # get-uri 8.0.1 pins basic-ftp ^5.3.1; <=6.2.0 has a quadratic-time directory listing parser
+  # (GHSA-c475-qrg2-pj4r). Release tooling only (release-it -> proxy-agent), which never speaks FTP.
+  # 6.0's only breaking change disables separate FTP transfer hosts by default.
+  "get-uri>basic-ftp": "^6.2.1"
+  # The docs dev server (webpack-dev-server -> express 4 / body-parser 1.x) resolves qs 6.15.3, which
+  # has an array-limit bypass and a DoS (GHSA-x5fp-wj9c-mxmx, GHSA-4mjr-xmp4-gh2g). The API on
+  # express 5 already resolves 6.16.0.
+  qs: "^6.16.0"
+  # sockjs 0.3.24 (docs dev server) pins uuid ^8.3.2, which is missing a buffer bounds check in v3/v5/v6
+  # (GHSA-w5hq-g745-h8pq). sockjs only calls v4. 11.1.1 is the oldest patched line that still ships CJS.
+  "sockjs>uuid": "^11.1.1"
+  # <7.1.6 has quadratic-complexity selector parsing (GHSA-rj75-hqrm-r3gf). Only @tailwindcss/typography
+  # (6.0.10 exact pin) and the docs build's cssnano 6 preset (6.1.4) still resolve a 6.x, and they
+  # parse our own CSS at build time. 7.0's only change makes insertions during iteration safe.
+  "postcss-selector-parser@<7.1.6": "^7.1.6"
+  # <=7.29.0 can read arbitrary files via a sourceMappingURL comment (GHSA-4x5r-pxfx-6jf8). 7.26.10 and
+  # 7.28.6 come from the apps-sfdx LWC lint/jest toolchain; the rest of the tree is already on 7.29.7.
+  "@babel/core": ">=7.29.6 <8.0.0"
+  # ts-node 10.9.2 (apps-sfdx jest) pins diff ^4.0.1, and <4.0.4 has a DoS in parsePatch/applyPatch
+  # (GHSA-73rr-hh4g-fpgx). 4.0.4 stays within ts-node's declared range.
+  "ts-node>diff": "^4.0.4"
