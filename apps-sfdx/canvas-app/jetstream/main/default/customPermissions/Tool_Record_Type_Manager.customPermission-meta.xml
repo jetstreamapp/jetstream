@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomPermission xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Opens Record Type Picklist Manager to view record type picklist values. Saving changes also needs Jetstream: Action - Deploy Metadata and Change Configuration. Only applies to users with Jetstream: Limited Access.</description>
+    <isLicensed>false</isLicensed>
+    <label>Jetstream: Tool - Record Type Picklist Manager</label>
+</CustomPermission>

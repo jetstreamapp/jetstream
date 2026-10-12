@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveCanvasScopeId, extractSandboxName } from '../canvas.utils';
+import { deriveCanvasScopeId, extractSandboxName, parseCanvasAccessPolicy } from '../canvas.utils';
 
 describe('extractSandboxName', () => {
   it('extracts the sandbox name from a My Domain sandbox host', () => {
@@ -57,5 +57,50 @@ describe('deriveCanvasScopeId', () => {
     expect(deriveCanvasScopeId({ username: 'alice@acme.com', hostOrUrl: 'https://acme--uat.sandbox.my.salesforce.com' })).toBe(
       'alice@acme.com',
     );
+  });
+});
+
+describe('parseCanvasAccessPolicy', () => {
+  it('returns full access when the parameter is missing, as older package versions do not send it', () => {
+    expect(parseCanvasAccessPolicy(undefined)).toBeNull();
+  });
+
+  it('returns full access for users without Limited Access', () => {
+    expect(parseCanvasAccessPolicy(null)).toBeNull();
+    // The whole parameter bag may arrive as JSON text, which turns the Apex null into the string "null"
+    expect(parseCanvasAccessPolicy('null')).toBeNull();
+  });
+
+  it('only allows the tools and operations Salesforce granted, plus connecting orgs', () => {
+    expect(parseCanvasAccessPolicy({ tools: ['query', 'data-analysis'], operations: ['records.export'] })).toEqual({
+      tools: ['query', 'data-analysis'],
+      operations: ['records.export', 'orgs.connect'],
+    });
+  });
+
+  it('allows nothing but connecting orgs when Limited Access is the only permission', () => {
+    expect(parseCanvasAccessPolicy({ tools: [], operations: [] })).toEqual({ tools: [], operations: ['orgs.connect'] });
+  });
+
+  it('drops keys it does not recognize', () => {
+    expect(parseCanvasAccessPolicy({ tools: ['query', 'some-future-tool'], operations: ['records.purge'] })).toEqual({
+      tools: ['query'],
+      operations: ['orgs.connect'],
+    });
+  });
+
+  it('reads a policy sent as JSON text', () => {
+    expect(parseCanvasAccessPolicy(JSON.stringify({ tools: ['load'], operations: ['records.write'] }))).toEqual({
+      tools: ['load'],
+      operations: ['records.write', 'orgs.connect'],
+    });
+  });
+
+  it('fails closed when the policy cannot be read', () => {
+    const noAccess = { tools: [], operations: ['orgs.connect'] };
+    expect(parseCanvasAccessPolicy('not json')).toEqual(noAccess);
+    expect(parseCanvasAccessPolicy(true)).toEqual(noAccess);
+    expect(parseCanvasAccessPolicy(['query'])).toEqual(noAccess);
+    expect(parseCanvasAccessPolicy({ tools: 'query', operations: null })).toEqual(noAccess);
   });
 });
