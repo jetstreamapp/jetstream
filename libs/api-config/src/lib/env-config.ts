@@ -120,9 +120,12 @@ const envSchema = z.object({
   IS_LOCAL_DOCKER: booleanSchema,
   ENABLE_TEST_ENDPOINTS: booleanSchema,
   DEFERRED_RESPONSE_ENABLED: booleanSchema,
-  // Defaults are applied in the middleware (45000ms / 25000ms) since numberSchema transforms undefined → null
+  // Defaults are applied in the middleware (75000ms / 25000ms / 600000ms) since numberSchema transforms undefined → null
   DEFERRED_RESPONSE_THRESHOLD_MS: numberSchema,
   DEFERRED_RESPONSE_KEEPALIVE_MS: numberSchema,
+  // Backstop only — total request duration, including the pre-deferral threshold, after which a
+  // deferred response gives up on upstream instead of holding the socket open
+  DEFERRED_RESPONSE_MAX_DURATION_MS: numberSchema,
   // SYSTEM
   NODE_ENV: z
     .enum(['development', 'test', 'production'])

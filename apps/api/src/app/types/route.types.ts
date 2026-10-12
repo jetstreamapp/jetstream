@@ -35,8 +35,14 @@ export type Request<
  */
 export interface DeferredResponseState {
   active: boolean;
+  /**
+   * The max duration backstop gave up on the upstream and ended the response. The controller may still
+   * finish afterwards and try to respond — that is expected here, not an unhandled response.
+   */
+  abandoned: boolean;
   timer: NodeJS.Timeout | null;
   keepaliveInterval: NodeJS.Timeout | null;
+  maxDurationTimer: NodeJS.Timeout | null;
   startTime: number;
   keepaliveCount: number;
 }

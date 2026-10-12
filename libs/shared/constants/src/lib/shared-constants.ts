@@ -130,6 +130,17 @@ export const ERROR_MESSAGES = {
   SFDC_ORG_DOES_NOT_EXIST: /^getaddrinfo ENOTFOUND [a-z0-9-.]+\.salesforce\.com$/i,
   SFDC_REST_API_NOT_ENABLED: /api is not enabled/i,
   SFDC_REST_API_NOT_ENABLED_MSG: 'Your org/user does not have API access which is required for Jetstream to communicate with Salesforce.',
+  // Node's fetch collapses every transport failure into an opaque "fetch failed", which used to reach
+  // users verbatim. These replace it — see getSalesforceFetchFailureMessage. Only UNREACHABLE invites a
+  // plain retry; the timeout and interrupted wording deliberately avoid saying the operation failed,
+  // because the request may have reached Salesforce and been applied with only the response lost.
+  SFDC_UPSTREAM_TIMEOUT: 'Salesforce did not respond in time. The operation may still have been applied — reload to check before retrying.',
+  SFDC_UPSTREAM_INTERRUPTED:
+    'The connection to Salesforce was interrupted. The operation may still have been applied — reload to check before retrying.',
+  SFDC_UPSTREAM_UNREACHABLE: 'Unable to reach Salesforce. Check your connection and try again.',
+  // The org's instance hostname no longer resolves — the org was deleted, or a sandbox refreshed or renamed.
+  // Treated as a connection error so the org is flagged for reconnect.
+  SFDC_ORG_NOT_FOUND: 'This Salesforce org could not be found. It may have been deleted or refreshed — reconnect it to continue.',
 } as const;
 
 export const MIME_TYPES: {

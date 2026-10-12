@@ -2,6 +2,7 @@ import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { parse } from '@jetstreamapp/simple-xml';
 import isObject from 'lodash/isObject';
+import { getSalesforceFetchFailureMessage } from './fetch-transport-errors';
 import { ApiRequestOptions, ApiRequestOutputType, BulkXmlErrorResponse, FetchFn, FetchResponse, Logger, SoapErrorResponse } from './types';
 
 const SOAP_API_AUTH_ERROR_REGEX = /<faultcode>[a-zA-Z]+:INVALID_SESSION_ID<\/faultcode>/;
@@ -356,6 +357,14 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
         })
         .then((response) => {
           return response as Response;
+        })
+        .catch((error) => {
+          const transportFailureMessage = getSalesforceFetchFailureMessage(error);
+          if (!transportFailureMessage) {
+            throw error;
+          }
+          logger.warn({ url, method, cause: error.cause }, '[API REQUEST][TRANSPORT FAILURE]');
+          throw new Error(transportFailureMessage, { cause: error });
         });
     };
     return apiRequest;

@@ -1,5 +1,5 @@
 import { ENV, getLogger } from '@jetstream/api-config';
-import { HTTP } from '@jetstream/shared/constants';
+import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import type { Response as ExpressResponse, NextFunction, Request } from 'express';
 import type { DeferredResponseState, Response } from '../types/route.types';
 import { setCookieHeaders } from './response.handlers';
@@ -9,10 +9,15 @@ export type { DeferredResponseState };
 /**
  * Middleware that prevents Cloudflare 524 timeouts for long-running Salesforce API requests.
  *
- * When a response takes longer than the threshold (default 45s), the middleware begins
+ * When a response takes longer than the threshold (default 75s), the middleware begins
  * streaming space characters as chunked keepalive bytes. When the actual response is ready,
  * it is written to the stream. JSON.parse natively ignores leading whitespace, so Axios
  * on the client handles this transparently.
+ *
+ * Keepalives stop DEFERRED_RESPONSE_MAX_DURATION_MS (default 10m) after the request arrived, which
+ * bounds how long a silent upstream can hold a socket open. That is a backstop, not the normal path —
+ * it sits well above undici's 300s headersTimeout, which is what actually ends most stalled
+ * Salesforce calls.
  *
  * NOTE: If compression middleware is re-enabled, chunks may be buffered and not flushed
  * to Cloudflare in time. This middleware requires compression to be disabled.
@@ -24,8 +29,10 @@ export function deferredResponseMiddleware(req: Request, res: Response, next: Ne
 
   const deferred: DeferredResponseState = {
     active: false,
+    abandoned: false,
     timer: null,
     keepaliveInterval: null,
+    maxDurationTimer: null,
     startTime: Date.now(),
     keepaliveCount: 0,
   };
@@ -79,6 +86,41 @@ export function deferredResponseMiddleware(req: Request, res: Response, next: Ne
         }
         return;
       }
+
+      // Backstop: without this the keepalive loop runs for as long as upstream stays silent, holding
+      // a socket open long after the client (and Cloudflare) have given up. Salesforce calls made via
+      // fetch are bounded by undici's 300s headersTimeout, but nothing bounds the other paths.
+      // The budget is measured from when the request arrived rather than from now, so the configured
+      // value can be compared directly against Cloudflare and load balancer timeouts. The floor keeps
+      // a max duration set below the threshold from producing a zero delay.
+      const maxDurationMs = Number(ENV.DEFERRED_RESPONSE_MAX_DURATION_MS) || 600_000;
+      deferred.maxDurationTimer = setTimeout(
+        () => {
+          if (!deferred.active || res.writableEnded) {
+            return;
+          }
+          getLogger().error(
+            {
+              method: req.method,
+              url: req.originalUrl,
+              elapsedMs: Date.now() - deferred.startTime,
+              keepaliveCount: deferred.keepaliveCount,
+            },
+            '[DEFERRED][MAX_DURATION] Upstream never responded, abandoning deferred response',
+          );
+          // Flagged before the write so that when the controller eventually finishes, sendJson and the
+          // error handler can tell this apart from a genuinely unhandled response.
+          deferred.abandoned = true;
+          // Headers were committed as 200 when the response was deferred, so the failure has to be
+          // reported in the body — same envelope the error handler writes.
+          writeDeferredResponse(res, {
+            error: true,
+            success: false,
+            message: ERROR_MESSAGES.SFDC_UPSTREAM_TIMEOUT,
+          });
+        },
+        Math.max(maxDurationMs - elapsedMs, 1_000),
+      );
 
       // Start periodic keepalive
       deferred.keepaliveInterval = setInterval(
@@ -230,6 +272,10 @@ export function clearDeferredTimers(deferred: DeferredResponseState) {
   if (deferred.keepaliveInterval) {
     clearInterval(deferred.keepaliveInterval);
     deferred.keepaliveInterval = null;
+  }
+  if (deferred.maxDurationTimer) {
+    clearTimeout(deferred.maxDurationTimer);
+    deferred.maxDurationTimer = null;
   }
 }
 

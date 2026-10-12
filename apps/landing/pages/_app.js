@@ -1,3 +1,7 @@
+// Must stay the first import — Zod probes for eval support when the first schema is constructed,
+// which happens while these imports are evaluated. See configure-zod.
+import '@jetstream/shared/utils/configure-zod';
+
 import { CookieConsentBanner, useConditionalGoogleAnalytics } from '@jetstream/ui/cookie-consent-banner';
 import Layout from '../components/layouts/Layout';
 import './index.css';
