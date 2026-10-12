@@ -1,5 +1,17 @@
 # Changelog
 
+## [10.24.3](https://github.com/jetstreamapp/jetstream/compare/v10.24.2...v10.24.3) (2026-10-12)
+
+### Bug Fixes
+
+- **auth:** verify identity before 2FA, password and account-deletion changes ([c21d29a](https://github.com/jetstreamapp/jetstream/commit/c21d29a25af605619c221431f0e2edb4c48df9c1))
+- **query:** remove blank option from picklist filter values ([3f3b677](https://github.com/jetstreamapp/jetstream/commit/3f3b67795e7c344bcde5342f727f79dd9c768cd6)), closes [#2121](https://github.com/jetstreamapp/jetstream/issues/2121)
+- **record-type-manager:** load existing picklist defaults instead of showing them all blank ([9362066](https://github.com/jetstreamapp/jetstream/commit/9362066348c490ccb1f8fa2a4ea1ef330fea086a))
+
+### Reverts
+
+- identity verification before 2FA, password and account-deletion changes ([e2b947a](https://github.com/jetstreamapp/jetstream/commit/e2b947a628c9fb665e423bb06ef010d7a460404d)), references [#2140](https://github.com/jetstreamapp/jetstream/issues/2140)
+
 ## [10.24.2](https://github.com/jetstreamapp/jetstream/compare/v10.24.1...v10.24.2) (2026-10-08)
 
 ### Bug Fixes
