@@ -1,5 +1,5 @@
 import { useGoBackShortcut, useIntegerInput, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
-import { Maybe } from '@jetstream/types';
+import { ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES, Maybe } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
@@ -16,7 +16,7 @@ import {
   Tooltip,
 } from '@jetstream/ui';
 import { DeployResults, MassUpdateRecordsDeploymentRow, MetadataRow, SkipDataHistoryCheckbox, useDeployRecords } from '@jetstream/ui-core';
-import { selectedOrgState } from '@jetstream/ui/app-state';
+import { selectedOrgState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { useAtomCallback } from 'jotai/utils';
 import isNumber from 'lodash/isNumber';
@@ -38,6 +38,7 @@ export const MassUpdateRecordsDeployment = () => {
   const navigate = useNavigate();
   const selectedOrg = useAtomValue(selectedOrgState);
   const rows = useAtomValue(fromMassUpdateState.rowsState);
+  const canWriteRecords = useCanPerformOperation('records.write');
   const [loading, setLoading] = useState(false);
   const [batchSize, setBatchSize] = useState<Maybe<number>>(10000);
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
@@ -78,7 +79,9 @@ export const MassUpdateRecordsDeployment = () => {
     resumePolling(row, getRows);
   }
 
-  usePrimaryActionShortcut(handleDeploy, { disabled: loading || !!batchSizeError });
+  const deployDisabled = loading || !!batchSizeError || !canWriteRecords;
+
+  usePrimaryActionShortcut(handleDeploy, { disabled: deployDisabled });
   useGoBackShortcut(() => navigate('..'), { disabled: loading });
 
   useEffect(() => {
@@ -118,16 +121,16 @@ export const MassUpdateRecordsDeployment = () => {
           <Tooltip
             openDelay={500}
             content={
-              <div className="slds-p-bottom_small">
-                <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
-              </div>
+              canWriteRecords ? (
+                <div className="slds-p-bottom_small">
+                  <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                </div>
+              ) : (
+                ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['records.write']
+              )
             }
           >
-            <button
-              className="slds-button slds-button_brand slds-is-relative"
-              onClick={handleDeploy}
-              disabled={loading || !!batchSizeError}
-            >
+            <button className="slds-button slds-button_brand slds-is-relative" onClick={handleDeploy} disabled={deployDisabled}>
               {loading && <Spinner size="small" />}
               Update Records
             </button>

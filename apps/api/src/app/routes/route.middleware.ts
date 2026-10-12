@@ -28,9 +28,9 @@ import { randomBytes } from 'node:crypto';
 import os from 'node:os';
 import { v4 as uuid } from 'uuid';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
-import { checkUserEntitlement } from '../db/user.db';
+import { checkUserEntitlement, isAccessProfileSurfaceAllowedForUser } from '../db/user.db';
 import * as sfdcEncService from '../services/salesforce-org-encryption.service';
-import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
+import { AuthenticationError, NotAllowedError, NotFoundError, UserFacingError } from '../utils/error-handler';
 import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
 
 export function basicAuthMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -268,13 +268,39 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
     }
   } catch (ex) {
     getLogger().warn({ err: ex }, '[INIT-ORG][ERROR]');
-    if (ex instanceof NotFoundError) {
+    if (ex instanceof NotFoundError || ex instanceof NotAllowedError) {
       return next(ex);
     }
     return next(new UserFacingError('There was an error initializing the connection to Salesforce'));
   }
 
   next();
+}
+
+export const WEB_APP_NOT_ALLOWED_MESSAGE = 'Your team access profile does not include the Jetstream web application.';
+
+/**
+ * Every Salesforce connection from a web session resolves its org through `getOrgForRequest`, so refusing there
+ * keeps Salesforce data off the server for members limited to the desktop application or browser extension.
+ * Desktop and extension requests authenticate with their own tokens and never reach this.
+ */
+async function assertWebAppAllowed(userId: string) {
+  if (!(await isAccessProfileSurfaceAllowedForUser({ userId, surface: 'web' }))) {
+    throw new NotAllowedError(WEB_APP_NOT_ALLOWED_MESSAGE);
+  }
+}
+
+/** For routes that manage orgs without connecting to one, such as listing orgs or adding a new one */
+export async function verifyWebAppAllowed(req: express.Request, _res: express.Response, next: express.NextFunction) {
+  try {
+    if (!req.session.user) {
+      return next(new AuthenticationError('Unauthorized'));
+    }
+    await assertWebAppAllowed(req.session.user.id);
+    next();
+  } catch (ex) {
+    next(ex);
+  }
 }
 
 export const verifyEntitlement =
@@ -358,6 +384,8 @@ export async function getOrgForRequest(
   requestId?: string,
   requestContext?: { ipAddress?: string; userAgent?: string },
 ) {
+  await assertWebAppAllowed(user.id);
+
   const org = await salesforceOrgsDb.findByUniqueId_UNSAFE(user.id, uniqueId);
   if (!org || org.jetstreamUserId2 !== user.id) {
     throw new NotFoundError('An org with the provided id does not exist');

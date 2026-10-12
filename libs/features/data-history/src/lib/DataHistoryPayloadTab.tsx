@@ -53,7 +53,12 @@ export interface DataHistoryPayloadTabProps {
    */
   viewStateCache: Map<DataHistoryFileKind, string>;
   /** Open the format download modal for the given target (hosted by the detail modal) */
-  onRequestDownload: (target: DataHistoryExportTarget) => void;
+  onRequestDownload?: (target: DataHistoryExportTarget) => void;
+  /**
+   * Whether the member's access profile allows exporting data. When false the Download and Copy controls are
+   * hidden, since both put record data outside Jetstream.
+   */
+  canExportRecords?: boolean;
 }
 
 /** Roughly how many wrapped lines of a single cell stay visible before it is clipped */
@@ -93,6 +98,7 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
   cache,
   viewStateCache,
   onRequestDownload,
+  canExportRecords = true,
 }) => {
   const { trackEvent } = useAmplitude();
   const [payload, setPayload] = useState<LoadedDataHistoryPayload | null>(() => cache.get(kind) ?? null);
@@ -216,43 +222,47 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
             ))}
           </RadioGroup>
         )}
-        <button
-          className="slds-button slds-button_neutral"
-          disabled={loading || !!loadError}
-          onClick={() => onRequestDownload(activeTarget)}
-        >
-          <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-          Download
-        </button>
-        <ButtonGroupContainer className="slds-m-left_x-small">
-          <Tooltip
-            openDelay={1000}
-            content={
-              knownNonTabular
-                ? 'This data is not in a table format, so it copies as JSON.'
-                : 'This will copy in a format compatible with a spreadsheet program, such as Excel or Google Sheets. Use the dropdown for additional options.'
-            }
+        {canExportRecords && onRequestDownload && (
+          <button
+            className="slds-button slds-button_neutral slds-m-right_x-small"
+            disabled={loading || !!loadError}
+            onClick={() => onRequestDownload(activeTarget)}
           >
-            <button
-              className="slds-button slds-button_neutral slds-button_first slds-is-relative"
-              disabled={loading || copying || !!loadError}
-              onClick={() => handleCopy(knownNonTabular ? 'json' : 'excel')}
+            <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+            Download
+          </button>
+        )}
+        {canExportRecords && (
+          <ButtonGroupContainer>
+            <Tooltip
+              openDelay={1000}
+              content={
+                knownNonTabular
+                  ? 'This data is not in a table format, so it copies as JSON.'
+                  : 'This will copy in a format compatible with a spreadsheet program, such as Excel or Google Sheets. Use the dropdown for additional options.'
+              }
             >
-              {copying && <Spinner size="x-small" />}
-              <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Copy to Clipboard
-            </button>
-          </Tooltip>
-          <DropDown
-            className="slds-button_last"
-            dropDownClassName="slds-dropdown_actions"
-            position="left"
-            disabled={loading || copying || !!loadError}
-            items={copyFormats}
-            onSelected={(id) => handleCopy(id as CopyAsDataType)}
-          />
-        </ButtonGroupContainer>
-        {copySuccess && (
+              <button
+                className="slds-button slds-button_neutral slds-button_first slds-is-relative"
+                disabled={loading || copying || !!loadError}
+                onClick={() => handleCopy(knownNonTabular ? 'json' : 'excel')}
+              >
+                {copying && <Spinner size="x-small" />}
+                <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
+                Copy to Clipboard
+              </button>
+            </Tooltip>
+            <DropDown
+              className="slds-button_last"
+              dropDownClassName="slds-dropdown_actions"
+              position="left"
+              disabled={loading || copying || !!loadError}
+              items={copyFormats}
+              onSelected={(id) => handleCopy(id as CopyAsDataType)}
+            />
+          </ButtonGroupContainer>
+        )}
+        {canExportRecords && copySuccess && (
           <span className="slds-text-color_success slds-m-left_x-small">
             <Icon
               type="utility"
@@ -281,7 +291,8 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
         <Fragment>
           {activeViewTable.table.truncated && (
             <p className="slds-text-color_weak slds-m-bottom_xx-small">
-              Showing the first {activeViewTable.table.rows.length.toLocaleString()} rows. Download the file to see everything.
+              Showing the first {activeViewTable.table.rows.length.toLocaleString()} rows.
+              {canExportRecords && onRequestDownload && ' Download the file to see everything.'}
             </p>
           )}
           <div css={tableContainerStyles}>
@@ -299,7 +310,9 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
       {!loading && !activeViewTable && payload?.jsonText != null && (
         <div>
           {payload.jsonTruncated && (
-            <p className="slds-text-color_weak slds-m-bottom_xx-small">Showing a preview. Download the file to see everything.</p>
+            <p className="slds-text-color_weak slds-m-bottom_xx-small">
+              Showing a preview.{onRequestDownload && ' Download the file to see everything.'}
+            </p>
           )}
           <pre className="slds-p-around_x-small" css={jsonStyles}>
             {payload.jsonText}

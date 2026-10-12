@@ -93,7 +93,7 @@ export async function createSsoFixture(options: SsoFixtureOptions = {}): Promise
   const team = await prisma.team.create({
     data: {
       name: `SSO Team ${randomUUID().slice(0, 6)}`,
-      members: addTeamMember && userId ? { create: { userId, role: 'ADMIN', features: ['ALL'], status: 'ACTIVE' } } : undefined,
+      members: addTeamMember && userId ? { create: { userId, role: 'ADMIN', status: 'ACTIVE' } } : undefined,
       loginConfig: {
         create: {
           allowedMfaMethods: ['otp', 'email'],

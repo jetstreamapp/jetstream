@@ -82,7 +82,13 @@ describe('useGridKeyboardNavigation — copying a range', () => {
     { _key: '4', Name: 'Delta', Amount: '40' },
   ];
 
-  function copyRange(columns: TanstackColumnDef<Row>[], data: Row[], from: [string, string], to: [string, string]) {
+  function copyRange(
+    columns: TanstackColumnDef<Row>[],
+    data: Row[],
+    from: [string, string],
+    to: [string, string],
+    options: { allowCopy?: boolean } = {},
+  ) {
     const { result } = renderHook(() => {
       const table = useTable({
         features: jetstreamTableFeatures,
@@ -90,12 +96,12 @@ describe('useGridKeyboardNavigation — copying a range', () => {
         columns,
         getRowId: (row) => row._key,
       }) as unknown as TanstackTable<Row>;
-      return useGridKeyboardNavigation({ table, getRootElement: () => null });
+      return useGridKeyboardNavigation({ table, getRootElement: () => null, ...options });
     });
     act(() => result.current.handleCellMouseDown(from[0], from[1], false));
     act(() => result.current.handleCellMouseEnter(to[0], to[1]));
     act(() => result.current.copySelection());
-    return copyRecordsToClipboard.mock.calls[0][0] as Record<string, string>[];
+    return copyRecordsToClipboard.mock.calls[0]?.[0] as Record<string, string>[] | undefined;
   }
 
   test('skips placeholder spanner rows so they do not land as blank lines mid-range', () => {
@@ -104,6 +110,12 @@ describe('useGridKeyboardNavigation — copying a range', () => {
       { c0: 'Alpha', c1: '10' },
       { c0: 'Delta', c1: '40' },
     ]);
+  });
+
+  test('copies nothing when the grid turned copying off (access profile without export)', () => {
+    copyRange(columns, spannerData, ['1', 'Name'], ['4', 'Amount'], { allowCopy: false });
+
+    expect(copyRecordsToClipboard).not.toHaveBeenCalled();
   });
 
   test('keeps genuinely empty DATA rows — dropping them would misalign everything below', () => {

@@ -1,9 +1,11 @@
 import { css } from '@emotion/react';
 import { createInvitation } from '@jetstream/shared/data';
 import { getErrorMessage, SsoRequirementConfig } from '@jetstream/shared/utils';
-import { Feature, Maybe, TeamInviteUserFacing, TeamMemberRole } from '@jetstream/types';
+import { Maybe, TEAM_MEMBER_ROLE_BILLING, TeamAccessProfile, TeamInviteUserFacing, TeamMemberRole } from '@jetstream/types';
 import { Input, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { useState } from 'react';
+import { getDefaultAccessProfileId } from './access-profiles/access-profile.utils';
+import { TeamAccessProfileDropdown } from './access-profiles/TeamAccessProfileDropdown';
 import { getSsoInviteWarning } from './team-member-invite.utils';
 import { evaluateSeatGate, SeatGate } from './team-seats/seat-gate';
 import { SeatChangeNotice } from './team-seats/SeatChangeNotice';
@@ -12,6 +14,8 @@ import { TeamMemberRoleDropdown } from './TeamMemberRoleDropdown';
 
 interface TeamMemberInviteModalProps {
   teamId: string;
+  accessProfiles: TeamAccessProfile[];
+  canAssignAccessProfile: boolean;
   userRole: TeamMemberRole;
   seatGate: SeatGate;
   ssoConfig: Maybe<SsoRequirementConfig>;
@@ -19,11 +23,20 @@ interface TeamMemberInviteModalProps {
   onClose: (invitations?: TeamInviteUserFacing[]) => void;
 }
 
-export function TeamMemberInviteModal({ teamId, userRole, seatGate, ssoConfig, verifiedDomains, onClose }: TeamMemberInviteModalProps) {
+export function TeamMemberInviteModal({
+  teamId,
+  accessProfiles,
+  canAssignAccessProfile,
+  userRole,
+  seatGate,
+  ssoConfig,
+  verifiedDomains,
+  onClose,
+}: TeamMemberInviteModalProps) {
   const [email, setEmail] = useState('');
   const [invalidEmail, setInvalidEmail] = useState(false);
   const [role, setRole] = useState<TeamMemberRole>('MEMBER');
-  const [features] = useState<Feature[]>(['ALL']);
+  const [accessProfileId, setAccessProfileId] = useState<string | null>(() => getDefaultAccessProfileId(accessProfiles));
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -37,7 +50,13 @@ export function TeamMemberInviteModal({ teamId, userRole, seatGate, ssoConfig, v
     setErrorMessage(null);
     setLoading(true);
     try {
-      const invitations = await createInvitation(teamId, { email, features, role });
+      // Only admins choose a profile, everyone else's invitations receive the team default on the server. The picker is
+      // hidden for billing invitations, so a choice made before switching to Billing is not sent.
+      const invitations = await createInvitation(teamId, {
+        email,
+        role,
+        accessProfileId: canAssignAccessProfile && role !== TEAM_MEMBER_ROLE_BILLING ? accessProfileId : undefined,
+      });
       onClose(invitations);
     } catch (ex) {
       setErrorMessage(getErrorMessage(ex));
@@ -115,7 +134,14 @@ export function TeamMemberInviteModal({ teamId, userRole, seatGate, ssoConfig, v
           />
         </Input>
 
-        {/* TODO: allow choosing specific features */}
+        {canAssignAccessProfile && role !== TEAM_MEMBER_ROLE_BILLING && (
+          <TeamAccessProfileDropdown
+            accessProfiles={accessProfiles}
+            accessProfileId={accessProfileId}
+            disabled={loading}
+            onChange={setAccessProfileId}
+          />
+        )}
       </form>
     </Modal>
   );

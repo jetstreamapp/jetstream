@@ -8,10 +8,13 @@ import { assertDomainResolvesToPublicIp, fetchWithPinnedPublicIp } from '@jetstr
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { auditSeatLimitRejection, SeatLimitError, SeatLimitRejectionContext } from '@jetstream/team-seats';
 import {
+  ACCESS_PROFILE_FULL_ACCESS_ID,
   CreateSalesforceCanvasOrgRequestSchema,
   TEAM_MEMBER_ROLE_ACCESS,
+  TEAM_MEMBER_ROLE_ADMIN,
   TEAM_MEMBER_ROLE_MEMBER,
   TEAM_MEMBER_STATUS_INACTIVE,
+  TeamAccessProfileRequestSchema,
   TeamInvitationRequestSchema,
   TeamInvitationUpdateRequestSchema,
   TeamLoginConfigRequestSchema,
@@ -21,6 +24,7 @@ import {
   TeamMemberUpdateRequestSchema,
   TeamSeatChangePreviewRequestSchema,
   TeamSeatUpdateRequestSchema,
+  TeamUserFacing,
   UpdateSalesforceCanvasOrgRequestSchema,
 } from '@jetstream/types';
 import * as crypto from 'crypto';
@@ -61,6 +65,23 @@ export function maskSsoSecrets<
 }
 
 type SeatBlockAuditContext = Omit<SeatLimitRejectionContext, 'ipAddress' | 'userAgent'>;
+
+/**
+ * Assigning access profiles is limited to admins. BILLING can still invite and manage members, and their
+ * invitations receive the team default profile.
+ */
+function assertCanAssignAccessProfile(runningUserRole: string | undefined, accessProfileId: string | null | undefined) {
+  if (accessProfileId !== undefined && runningUserRole !== TEAM_MEMBER_ROLE_ADMIN) {
+    throw new NotAllowedError('Only administrators can assign access profiles');
+  }
+}
+
+function getAccessProfileName(team: Pick<TeamUserFacing, 'accessProfiles'>, accessProfileId: string | null | undefined) {
+  if (!accessProfileId) {
+    return 'Full access';
+  }
+  return team.accessProfiles.find(({ id }) => id === accessProfileId)?.name ?? null;
+}
 
 /**
  * Runs a membership change, recording an audit entry when it is refused for lack of a seat. The
@@ -313,6 +334,47 @@ export const routeDefinition = {
       body: TeamSeatUpdateRequestSchema,
     } satisfies RouteValidator,
   },
+  createAccessProfile: {
+    controllerFn: () => createAccessProfile,
+    responseType: z.any(),
+    validators: {
+      hasSourceOrg: false,
+      logErrorToBugTracker: true,
+      params: z.object({
+        teamId: z.uuid(),
+      }),
+      body: TeamAccessProfileRequestSchema,
+    } satisfies RouteValidator,
+  },
+  updateAccessProfile: {
+    controllerFn: () => updateAccessProfile,
+    responseType: z.any(),
+    validators: {
+      hasSourceOrg: false,
+      logErrorToBugTracker: true,
+      params: z.object({
+        teamId: z.uuid(),
+        id: z.uuid(),
+      }),
+      body: TeamAccessProfileRequestSchema,
+    } satisfies RouteValidator,
+  },
+  deleteAccessProfile: {
+    controllerFn: () => deleteAccessProfile,
+    responseType: z.any(),
+    validators: {
+      hasSourceOrg: false,
+      logErrorToBugTracker: true,
+      params: z.object({
+        teamId: z.uuid(),
+        id: z.uuid(),
+      }),
+      query: z.object({
+        /** Where members and invitations using the profile move to, required when it is in use */
+        reassignTo: z.union([z.uuid(), z.literal(ACCESS_PROFILE_FULL_ACCESS_ID)]).optional(),
+      }),
+    } satisfies RouteValidator,
+  },
   getInvitations: {
     controllerFn: () => getInvitations,
     responseType: z.array(z.any()),
@@ -558,7 +620,7 @@ const acceptInvitation = createRoute(routeDefinition.acceptInvitation.validators
   const {
     email: inviteeEmail,
     role,
-    features,
+    accessProfileId,
   } = await withSeatBlockAudit(
     req,
     {
@@ -591,7 +653,7 @@ const acceptInvitation = createRoute(routeDefinition.acceptInvitation.validators
     action: AuditLogAction.TEAM_INVITATION_ACCEPTED,
     resource: AuditLogResource.TEAM_MEMBER,
     resourceId: user.id,
-    metadata: { inviteeEmail, role, features },
+    metadata: { inviteeEmail, role, accessProfileId },
     ipAddress: req.ip,
     userAgent: req.headers['user-agent'] as string,
   });
@@ -720,6 +782,7 @@ const updateTeamMember = createRoute(routeDefinition.updateTeamMember.validators
   if (body.role && !allowedRoleUpdates.has(body.role)) {
     throw new NotAllowedError('You are not allowed to assign the specified role');
   }
+  assertCanAssignAccessProfile(runningUserRole, body.accessProfileId);
 
   // Only a role change can be refused for a seat, so a request without one opts out of the audit entry
   const { team, previousMember } = await withSeatBlockAudit(
@@ -737,19 +800,124 @@ const updateTeamMember = createRoute(routeDefinition.updateTeamMember.validators
   sendJson(res, team);
 
   const updatedMember = team.members.find((member) => member.userId === userId);
+  if (body.role) {
+    createTeamAuditLog({
+      userId: user.id,
+      teamId,
+      action: AuditLogAction.TEAM_MEMBER_ROLE_UPDATED,
+      resource: AuditLogResource.TEAM_MEMBER,
+      resourceId: userId,
+      metadata: {
+        targetUserId: userId,
+        targetEmail: previousMember.email,
+        previousRole: previousMember.role,
+        newRole: updatedMember?.role ?? body.role,
+      },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] as string,
+    });
+  }
+
+  if (body.accessProfileId !== undefined && body.accessProfileId !== previousMember.accessProfileId) {
+    createTeamAuditLog({
+      userId: user.id,
+      teamId,
+      action: AuditLogAction.TEAM_MEMBER_ACCESS_PROFILE_UPDATED,
+      resource: AuditLogResource.TEAM_MEMBER,
+      resourceId: userId,
+      metadata: {
+        targetUserId: userId,
+        targetEmail: previousMember.email,
+        previousAccessProfileId: previousMember.accessProfileId,
+        previousAccessProfileName: getAccessProfileName(team, previousMember.accessProfileId),
+        newAccessProfileId: body.accessProfileId,
+        newAccessProfileName: getAccessProfileName(team, body.accessProfileId),
+      },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] as string,
+    });
+  }
+});
+
+const createAccessProfile = createRoute(routeDefinition.createAccessProfile.validators, async ({ params, body, user }, req, res) => {
+  const { teamId } = params;
+  const { team, accessProfile } = await teamService.createAccessProfile({ runningUserId: user.id, teamId, request: body });
+  sendJson(res, team);
+
   createTeamAuditLog({
     userId: user.id,
     teamId,
-    action: AuditLogAction.TEAM_MEMBER_ROLE_UPDATED,
-    resource: AuditLogResource.TEAM_MEMBER,
-    resourceId: userId,
+    action: AuditLogAction.TEAM_ACCESS_PROFILE_CREATED,
+    resource: AuditLogResource.TEAM_ACCESS_PROFILE,
+    resourceId: accessProfile.id,
+    metadata: { name: accessProfile.name, isDefault: accessProfile.isDefault, policy: accessProfile.policy },
+    ipAddress: req.ip,
+    userAgent: req.headers['user-agent'] as string,
+  });
+});
+
+const updateAccessProfile = createRoute(routeDefinition.updateAccessProfile.validators, async ({ params, body, user }, req, res) => {
+  const { teamId, id } = params;
+  const { team, previousAccessProfile, accessProfile } = await teamService.updateAccessProfile({
+    runningUserId: user.id,
+    teamId,
+    id,
+    request: body,
+  });
+  sendJson(res, team);
+
+  createTeamAuditLog({
+    userId: user.id,
+    teamId,
+    action: AuditLogAction.TEAM_ACCESS_PROFILE_UPDATED,
+    resource: AuditLogResource.TEAM_ACCESS_PROFILE,
+    resourceId: accessProfile.id,
     metadata: {
-      targetUserId: userId,
-      targetEmail: previousMember.email,
-      previousRole: previousMember.role,
-      newRole: updatedMember?.role ?? body.role,
-      previousFeatures: previousMember.features,
-      newFeatures: updatedMember?.features ?? body.features,
+      name: accessProfile.name,
+      previousName: previousAccessProfile.name,
+      previousIsDefault: previousAccessProfile.isDefault,
+      newIsDefault: accessProfile.isDefault,
+      previousPolicy: previousAccessProfile.policy,
+      newPolicy: accessProfile.policy,
+      memberCount: accessProfile.memberCount,
+    },
+    ipAddress: req.ip,
+    userAgent: req.headers['user-agent'] as string,
+  });
+});
+
+const deleteAccessProfile = createRoute(routeDefinition.deleteAccessProfile.validators, async ({ params, query, user }, req, res) => {
+  const { teamId, id } = params;
+  let reassignToAccessProfileId: string | null | undefined = query?.reassignTo;
+  if (reassignToAccessProfileId === ACCESS_PROFILE_FULL_ACCESS_ID) {
+    reassignToAccessProfileId = null;
+  }
+  const { team, deletedAccessProfile, reassignedUserIds, reassignedInvitationCount } = await teamService.deleteAccessProfile({
+    runningUserId: user.id,
+    teamId,
+    id,
+    reassignToAccessProfileId,
+  });
+  sendJson(res, team);
+
+  createTeamAuditLog({
+    userId: user.id,
+    teamId,
+    action: AuditLogAction.TEAM_ACCESS_PROFILE_DELETED,
+    resource: AuditLogResource.TEAM_ACCESS_PROFILE,
+    resourceId: deletedAccessProfile.id,
+    metadata: {
+      name: deletedAccessProfile.name,
+      policy: deletedAccessProfile.policy,
+      // Only a profile that was still assigned moves anyone, so an unused profile records no destination
+      ...(reassignedUserIds.length || reassignedInvitationCount
+        ? {
+            reassignedToAccessProfileId: reassignToAccessProfileId ?? null,
+            reassignedToAccessProfileName: getAccessProfileName(team, reassignToAccessProfileId),
+          }
+        : {}),
+      reassignedUserIds,
+      reassignedInvitationCount,
     },
     ipAddress: req.ip,
     userAgent: req.headers['user-agent'] as string,
@@ -831,6 +999,7 @@ const createInvitation = createRoute(routeDefinition.createInvitation.validators
   if (!allowedRoleUpdates.has(body.role)) {
     throw new NotAllowedError('You are not allowed to assign the specified role');
   }
+  assertCanAssignAccessProfile(user.teamMembership?.role, body.accessProfileId);
 
   const { invitations, createdInvitation } = await withSeatBlockAudit(
     req,
@@ -852,7 +1021,7 @@ const createInvitation = createRoute(routeDefinition.createInvitation.validators
     metadata: {
       inviteeEmail: createdInvitation.email,
       role: createdInvitation.role,
-      features: createdInvitation.features,
+      accessProfileId: createdInvitation.accessProfileId,
       expiresAt: createdInvitation.expiresAt.toISOString(),
     },
     ipAddress: req.ip,
@@ -873,10 +1042,11 @@ const resendInvitation = createRoute(routeDefinition.resendInvitation.validators
 
   // Caller must be authorized to (a) act on the invitation's CURRENT role — otherwise e.g. a
   // BILLING caller could silently demote an ADMIN invitation to MEMBER, or just "touch" it
-  // (extend expiry, resend email, overwrite features) — and (b) assign the target role.
+  // (extend expiry, resend email, overwrite the access profile) — and (b) assign the target role.
   if (!allowedRoleUpdates.has(existingRole) || !allowedRoleUpdates.has(invitationRole)) {
     throw new NotAllowedError('You are not allowed to modify an invitation for the specified role');
   }
+  assertCanAssignAccessProfile(user.teamMembership?.role, body.accessProfileId);
 
   const { invitations, updatedInvitation } = await withSeatBlockAudit(
     req,
@@ -903,7 +1073,12 @@ const resendInvitation = createRoute(routeDefinition.resendInvitation.validators
     action: AuditLogAction.TEAM_INVITATION_RESENT,
     resource: AuditLogResource.TEAM_INVITATION,
     resourceId: updatedInvitation.id,
-    metadata: { inviteeEmail: updatedInvitation.email, role: updatedInvitation.role },
+    metadata: {
+      inviteeEmail: updatedInvitation.email,
+      role: updatedInvitation.role,
+      previousAccessProfileId: updatedInvitation.previousAccessProfileId,
+      accessProfileId: updatedInvitation.accessProfileId,
+    },
     ipAddress: req.ip,
     userAgent: req.headers['user-agent'] as string,
   });

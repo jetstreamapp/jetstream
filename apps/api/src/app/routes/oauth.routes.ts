@@ -1,11 +1,11 @@
 import express, { Router } from 'express';
 import { routeDefinition as oauthController } from '../controllers/oauth.controller';
-import { checkAuth } from './route.middleware';
+import { checkAuth, verifyWebAppAllowed } from './route.middleware';
 
 export const routes: express.Router = Router();
 
 // salesforce org authentication
-routes.get('/sfdc/auth', checkAuth, oauthController.salesforceOauthInitAuth.controllerFn());
-routes.get('/sfdc/callback', checkAuth, oauthController.salesforceOauthCallback.controllerFn());
+routes.get('/sfdc/auth', checkAuth, verifyWebAppAllowed, oauthController.salesforceOauthInitAuth.controllerFn());
+routes.get('/sfdc/callback', checkAuth, verifyWebAppAllowed, oauthController.salesforceOauthCallback.controllerFn());
 
 export default routes;

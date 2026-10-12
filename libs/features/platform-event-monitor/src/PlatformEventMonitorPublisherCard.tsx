@@ -2,8 +2,17 @@ import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/
 import { clearCacheForOrg, describeSObject } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
-import { DescribeSObjectResult, ListItem, Maybe, PicklistFieldValues, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
+import {
+  ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES,
+  DescribeSObjectResult,
+  ListItem,
+  Maybe,
+  PicklistFieldValues,
+  SalesforceOrgUi,
+  SalesforceRecord,
+} from '@jetstream/types';
 import { Card, ComboboxWithItems, Grid, Icon, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
+import { useCanPerformOperation } from '@jetstream/ui/app-state';
 import { formatRelative } from 'date-fns/formatRelative';
 import { Fragment, FunctionComponent, useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { PlatformEventObject } from './platform-event-monitor.types';
@@ -29,6 +38,7 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
   publish,
 }) => {
   const isMounted = useRef(true);
+  const canWriteRecords = useCanPerformOperation('records.write');
 
   const [
     {
@@ -146,7 +156,8 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
       actions={
         <button
           className="slds-button slds-button_brand slds-is-relative"
-          disabled={!sobjectDescribeLoaded || !sobjectDescribeData}
+          disabled={!sobjectDescribeLoaded || !sobjectDescribeData || !canWriteRecords}
+          title={canWriteRecords ? undefined : ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['records.write']}
           onClick={() => publishEvent(publishEventRecord)}
         >
           Publish Event

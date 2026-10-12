@@ -127,7 +127,6 @@ describe('handleSignInOrRegistration - credentials register', () => {
         id: 'invite-id',
         email: SSO_DOMAIN_EMAIL,
         role: 'ADMIN',
-        features: [],
         createdById: 'inviter-id',
         team: { id: TEAM_ID, name: 'Acme', loginConfig: SSO_DOMAIN_LOGIN_CONFIGURATION },
       });
@@ -148,7 +147,6 @@ describe('handleSignInOrRegistration - credentials register', () => {
         id: 'invite-id',
         email: SSO_DOMAIN_EMAIL,
         role: 'MEMBER',
-        features: [],
         createdById: 'inviter-id',
         team: { id: TEAM_ID, name: 'Acme', loginConfig: SSO_DOMAIN_LOGIN_CONFIGURATION },
       });
@@ -165,7 +163,6 @@ describe('handleSignInOrRegistration - credentials register', () => {
         id: 'invite-id',
         email: SSO_DOMAIN_EMAIL,
         role: 'MEMBER',
-        features: [],
         createdById: 'inviter-id',
         team: {
           id: OTHER_TEAM_ID,

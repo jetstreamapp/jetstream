@@ -38,7 +38,13 @@ import {
   type SortColumn,
 } from '@jetstream/ui';
 import { PermissionAnalysisHistoryModal, RequireMetadataApiBanner, fromJetstreamEvents, jobsState } from '@jetstream/ui-core';
-import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
+import {
+  applicationCookieState,
+  selectSkipFrontdoorAuth,
+  selectedOrgState,
+  useCanAccessTool,
+  useCanPerformOperation,
+} from '@jetstream/ui/app-state';
 import { getDexieDb } from '@jetstream/ui/db';
 import { isValid } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
@@ -234,8 +240,11 @@ interface FieldUsageOrgLoginProps {
 function FieldUsageObjectGroupCell(
   props: RenderGroupCellProps<FieldUsageTreeRow> &
     FieldUsageOrgLoginProps & {
-      /** From parent {@link useHref}; one value for all groups (avoids N identical hook calls). */
-      queryResultsHref: string;
+      /**
+       * From parent {@link useHref}; one value for all groups (avoids N identical hook calls). `null` when the member's
+       * access profile does not include Query Records, which hides the link.
+       */
+      queryResultsHref: string | null;
     },
 ): ReactElement {
   const { groupKey, childRows, serverUrl, org, skipFrontDoorAuth, queryResultsHref } = props;
@@ -251,6 +260,9 @@ function FieldUsageObjectGroupCell(
   const handleOpenQueryResults = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation();
+      if (!queryResultsHref) {
+        return;
+      }
       openFieldUsageObjectQueryInNewTab(api, label, childRows, queryResultsHref);
     },
     [api, label, childRows, queryResultsHref],
@@ -261,17 +273,19 @@ function FieldUsageObjectGroupCell(
       size="large"
       panelProps={FIELD_USAGE_POPOVER_PANEL_PROPS}
       footer={
-        <footer className="slds-popover__footer">
-          <button
-            type="button"
-            className="slds-button slds-button_neutral"
-            title={`Run this SELECT in Query Records (new tab) for ${label}`}
-            onClick={handleOpenQueryResults}
-          >
-            <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_left" omitContainer />
-            View query results
-          </button>
-        </footer>
+        queryResultsHref ? (
+          <footer className="slds-popover__footer">
+            <button
+              type="button"
+              className="slds-button slds-button_neutral"
+              title={`Run this SELECT in Query Records (new tab) for ${label}`}
+              onClick={handleOpenQueryResults}
+            >
+              <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_left" omitContainer />
+              View query results
+            </button>
+          </footer>
+        ) : undefined
       }
       content={
         <div>
@@ -551,6 +565,8 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
   const selectedOrg = useAtomValue(selectedOrgState);
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
+  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
+  const canUseQueryTool = useCanAccessTool('query');
   const jobs = useAtomValue(jobsState);
   const [searchParams, setSearchParams] = useSearchParams();
   const jobId = searchParams.get('job');
@@ -947,7 +963,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
             serverUrl={serverUrl}
             org={selectedOrg}
             skipFrontDoorAuth={skipFrontDoorAuth}
-            queryResultsHref={fieldUsageQueryResultsHref}
+            queryResultsHref={canUseQueryTool ? fieldUsageQueryResultsHref : null}
           />
         ),
         renderCell: (p) =>
@@ -1127,7 +1143,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         },
       },
     ],
-    [parsedResult, serverUrl, selectedOrg, skipFrontDoorAuth, fieldUsageQueryResultsHref],
+    [parsedResult, serverUrl, selectedOrg, skipFrontDoorAuth, fieldUsageQueryResultsHref, canUseQueryTool],
   );
 
   const whereUsedColumns: ColumnWithFilter<WhereUsedTableRow>[] = useMemo(
@@ -1412,7 +1428,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                   <Icon type="utility" icon="date_time" className="slds-button__icon" omitContainer title="Field Usage history" />
                 </button>
               </Tooltip>
-              {parsedResult && treeFieldRows.some((row) => !row.isObjectErrorPlaceholder) && (
+              {canDeployMetadata && parsedResult && treeFieldRows.some((row) => !row.isObjectErrorPlaceholder) && (
                 <Tooltip
                   ariaRole="label"
                   content={

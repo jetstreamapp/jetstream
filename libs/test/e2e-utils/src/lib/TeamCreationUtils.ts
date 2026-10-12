@@ -277,7 +277,6 @@ export class TeamCreationUtils {
         teamId: this.team.id,
         email,
         role,
-        features: ['ALL'],
         expiresAt: new Date(now - DAY_MS),
         lastSentAt: new Date(now - 15 * DAY_MS),
         createdById: this.adminUser.userId,

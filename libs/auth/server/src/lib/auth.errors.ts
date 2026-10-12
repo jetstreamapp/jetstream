@@ -32,6 +32,7 @@ type ErrorType =
   | 'SsoInvalidAction'
   | 'SsoLicenseLimitExceeded'
   | 'SsoRequired'
+  | 'SurfaceNotAllowed'
   | 'TooManyVerificationAttempts';
 
 type ErrorOptions = Error | Record<string, unknown>;
@@ -154,6 +155,11 @@ export class InvalidAccessToken extends AuthError {
 
 export class MissingEntitlement extends AuthError {
   static type: ErrorType = 'MissingEntitlement';
+}
+
+/** The member's team access profile does not allow the desktop application or browser extension */
+export class SurfaceNotAllowed extends AuthError {
+  static type: ErrorType = 'SurfaceNotAllowed';
 }
 
 /**

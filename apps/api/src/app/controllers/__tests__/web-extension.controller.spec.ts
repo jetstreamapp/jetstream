@@ -21,6 +21,13 @@ const mocks = vi.hoisted(() => ({
   getApiAddressFromReq: vi.fn(() => '127.0.0.1'),
   getClientInfoFromReq: vi.fn(() => ({ appVersion: '1.2.3' })),
   createUserActivityFromReq: vi.fn(),
+  findByUserIdAndDeviceId: vi.fn(),
+  createToken: vi.fn(),
+  decryptJwtTokenOrPlaintext: vi.fn(),
+  verifyToken: vi.fn(),
+  issueAccessToken: vi.fn(),
+  decodeToken: vi.fn(),
+  getSurfaceForAudience: vi.fn(),
 }));
 
 vi.mock('@jetstream/api-config', () => ({
@@ -44,9 +51,16 @@ vi.mock('@jetstream/auth/server', () => {
       this.name = 'MissingEntitlement';
     }
   }
+  class SurfaceNotAllowed extends Error {
+    constructor() {
+      super('Surface not allowed');
+      this.name = 'SurfaceNotAllowed';
+    }
+  }
   return {
     InvalidSession,
     MissingEntitlement,
+    SurfaceNotAllowed,
     getApiAddressFromReq: mocks.getApiAddressFromReq,
     getClientInfoFromReq: mocks.getClientInfoFromReq,
     createUserActivityFromReq: mocks.createUserActivityFromReq,
@@ -69,8 +83,8 @@ vi.mock('../../db/web-extension.db', () => ({
   TOKEN_TYPE_AUTH: 'AUTH_TOKEN',
   TOKEN_SOURCE_BROWSER_EXTENSION: 'BROWSER_EXTENSION',
   TOKEN_SOURCE_DESKTOP: 'DESKTOP',
-  create: vi.fn(),
-  findByUserIdAndDeviceId: vi.fn(),
+  create: mocks.createToken,
+  findByUserIdAndDeviceId: mocks.findByUserIdAndDeviceId,
   deleteByUserIdAndDeviceId: vi.fn(),
 }));
 vi.mock('../../db/data-sync.db', () => ({ findByUpdatedAt: vi.fn(), syncRecordChanges: vi.fn() }));
@@ -80,12 +94,14 @@ vi.mock('../../services/external-auth.service', () => ({
   AUDIENCE_DESKTOP: 'https://getjetstream.app/desktop-app',
   isTokenWithinRefreshWindow: mocks.isTokenWithinRefreshWindow,
   rotateToken: mocks.rotateToken,
-  issueAccessToken: vi.fn(),
-  decodeToken: vi.fn(),
+  getSurfaceForAudience: mocks.getSurfaceForAudience,
+  verifyToken: mocks.verifyToken,
+  issueAccessToken: mocks.issueAccessToken,
+  decodeToken: mocks.decodeToken,
   TOKEN_EXPIRATION_SHORT: 1,
   TOKEN_AUTO_REFRESH_DAYS: 2,
 }));
-vi.mock('../../services/jwt-token-encryption.service', () => ({ decryptJwtTokenOrPlaintext: vi.fn() }));
+vi.mock('../../services/jwt-token-encryption.service', () => ({ decryptJwtTokenOrPlaintext: mocks.decryptJwtTokenOrPlaintext }));
 vi.mock('../../utils/response.handlers', () => ({ sendJson: mocks.sendJson, redirect: mocks.redirect }));
 vi.mock('../data-sync.controller', () => ({
   routeDefinition: { pull: { validators: { hasSourceOrg: false } }, push: { validators: { hasSourceOrg: false } } },
@@ -110,6 +126,22 @@ function makeRes() {
     locals: { deviceId: 'device-1', ipAddress: '127.0.0.1', cookies: {}, requestId: 'req-1' },
     log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
   };
+}
+
+async function invokeInitSession(session: Record<string, unknown> = {}) {
+  const req = {
+    get: () => undefined,
+    body: {},
+    query: {},
+    params: {},
+    session: { user: { id: 'user-1' }, ...session },
+    externalAuth: { user: { id: 'user-1' }, deviceId: 'device-1' },
+    log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+  };
+  const res = makeRes();
+  const next = vi.fn();
+  await routeDefinition.initSession.controllerFn()(req as never, res as never, next);
+  return { req, res, next };
 }
 
 async function invokeVerify(headers: Record<string, string>) {
@@ -186,22 +218,6 @@ describe('web-extension.controller initSession pending-verification gate', () =>
     mocks.checkUserEntitlement.mockResolvedValue(true);
   });
 
-  async function invokeInitSession(session: Record<string, unknown>) {
-    const req = {
-      get: () => undefined,
-      body: {},
-      query: {},
-      params: {},
-      session: { user: { id: 'user-1' }, ...session },
-      externalAuth: { user: { id: 'user-1' }, deviceId: 'device-1' },
-      log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
-    };
-    const res = makeRes();
-    const next = vi.fn();
-    await routeDefinition.initSession.controllerFn()(req as never, res as never, next);
-    return { req, res, next };
-  }
-
   it.each([
     ['pendingVerification', { pendingVerification: [{ type: '2fa-otp', exp: Date.now() }] }],
     ['pendingMfaEnrollment', { pendingMfaEnrollment: { factor: '2fa-otp' } }],
@@ -226,5 +242,87 @@ describe('web-extension.controller initSession pending-verification gate', () =>
     expect(mocks.checkUserEntitlement).toHaveBeenCalledWith({ userId: 'user-1', entitlement: 'chromeExtension' });
     expect(next).toHaveBeenCalledTimes(1);
     expect((next.mock.calls[0][0] as Error).name).toBe('MissingEntitlement');
+  });
+});
+
+/**
+ * A team access profile can keep a member out of the browser extension. The check runs before a stored token is
+ * reused or a new one is issued, so a member whose profile no longer allows the browser extension cannot sign in with
+ * a token issued earlier.
+ */
+describe('web-extension.controller initSession access profile surface gate', () => {
+  const ACTIVE_MEMBERSHIP = { teamId: 'team-1', role: 'MEMBER', status: 'ACTIVE' };
+
+  function makeAccessProfile(surfaces: string[]) {
+    return { id: 'profile-1', name: 'Restricted', version: 1, policy: { v: 1, tools: ['query'], operations: [], surfaces } };
+  }
+
+  function givenTeamMembership(teamMembership: Record<string, unknown> | undefined) {
+    mocks.findIdByUserIdUserFacing.mockResolvedValue({ ...userProfile, teamMembership });
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.checkUserEntitlement.mockResolvedValue(true);
+    mocks.getSurfaceForAudience.mockReturnValue('browser-extension');
+    mocks.findByUserIdAndDeviceId.mockResolvedValue(null);
+    mocks.issueAccessToken.mockResolvedValue('new-token');
+    mocks.decodeToken.mockReturnValue({ exp: 2_000_000_000 });
+  });
+
+  it('refuses a member whose profile excludes the browser extension without reusing or issuing a token', async () => {
+    givenTeamMembership({ ...ACTIVE_MEMBERSHIP, accessProfile: makeAccessProfile(['desktop']) });
+    // A stored token that still verifies must not be handed back either
+    mocks.findByUserIdAndDeviceId.mockResolvedValue({ token: 'encrypted-stored-token' });
+    mocks.decryptJwtTokenOrPlaintext.mockReturnValue('stored-token');
+    mocks.verifyToken.mockResolvedValue({});
+
+    const { next } = await invokeInitSession();
+
+    expect(mocks.getSurfaceForAudience).toHaveBeenCalledWith('https://getjetstream.app/web-extension');
+    expect(next).toHaveBeenCalledTimes(1);
+    expect((next.mock.calls[0][0] as Error).name).toBe('SurfaceNotAllowed');
+    expect(mocks.findByUserIdAndDeviceId).not.toHaveBeenCalled();
+    expect(mocks.issueAccessToken).not.toHaveBeenCalled();
+    expect(mocks.createToken).not.toHaveBeenCalled();
+    expect(mocks.sendJson).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['a user who is not on a team', undefined],
+    ['a member without a profile (full access)', { ...ACTIVE_MEMBERSHIP, accessProfile: null }],
+    [
+      'a member whose profile allows the browser extension',
+      { ...ACTIVE_MEMBERSHIP, accessProfile: makeAccessProfile(['browser-extension']) },
+    ],
+  ])('issues a token for %s', async (_label, teamMembership) => {
+    givenTeamMembership(teamMembership);
+
+    const { res, next } = await invokeInitSession();
+
+    expect(next).not.toHaveBeenCalled();
+    expect(mocks.issueAccessToken).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'user-1' }),
+      'https://getjetstream.app/web-extension',
+      1,
+    );
+    expect(mocks.createToken).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ source: 'BROWSER_EXTENSION', token: 'new-token', deviceId: 'device-1' }),
+    );
+    expect(mocks.sendJson).toHaveBeenCalledWith(res, { accessToken: 'new-token' });
+  });
+
+  it('reuses a stored token that still verifies for a member without a profile', async () => {
+    givenTeamMembership({ ...ACTIVE_MEMBERSHIP, accessProfile: null });
+    mocks.findByUserIdAndDeviceId.mockResolvedValue({ token: 'encrypted-stored-token' });
+    mocks.decryptJwtTokenOrPlaintext.mockReturnValue('stored-token');
+    mocks.verifyToken.mockResolvedValue({});
+
+    const { res, next } = await invokeInitSession();
+
+    expect(next).not.toHaveBeenCalled();
+    expect(mocks.issueAccessToken).not.toHaveBeenCalled();
+    expect(mocks.sendJson).toHaveBeenCalledWith(res, { accessToken: 'stored-token' });
   });
 });
