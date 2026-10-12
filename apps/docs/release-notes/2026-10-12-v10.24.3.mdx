@@ -1,0 +1,30 @@
+---
+slug: v10.24.3
+title: 10.24.3 - Record type picklist defaults and picklist filter fix
+date: '2026-10-12'
+tags: [web, desktop, extension]
+versions:
+  web: 10.24.3
+  desktop: 4.19.3
+  extension: 3.22.3
+summary: The Record Type Picklist Manager now shows each field's existing default value and keeps it when you deploy.
+highlights:
+  - title: Picklist defaults in the Record Type Picklist Manager
+    description: Fields now show the default value configured in Salesforce instead of a blank default, and deploying edited values keeps it.
+    docLink: /deploy/record-type-picklist-manager
+  - title: No blank option in picklist filters
+    description: Picklist filters in the Query Builder no longer list an empty value at the end.
+    docLink: /query
+---
+
+{/* truncate */}
+
+## What's new
+
+### Picklist defaults in the Record Type Picklist Manager
+
+Since version 8.24.0, the Record Type Picklist Manager showed no default value for any field, regardless of what was configured in Salesforce. Deploying a field whose values you edited also cleared its existing default unless you selected it again. Defaults now load correctly and are kept when you deploy. If you deployed changes with this tool since 8.24.0, check that the affected picklists still have the default you expect.
+
+### Other fixes
+
+- Picklist filters using equals or not equals in the Query Builder no longer show a blank option at the end of the value list.
