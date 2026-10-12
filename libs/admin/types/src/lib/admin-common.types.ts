@@ -34,11 +34,26 @@ export interface AdminSessionUser {
   picture: string | null;
 }
 
-export const SearchQuerySchema = z.object({
+export const DEFAULT_PAGE_SIZE = 50;
+
+/** Search text plus 1-based page number shared by the paginated list endpoints */
+export const PaginatedSearchQuerySchema = z.object({
   query: z.string().trim().max(255).optional(),
-  limit: z.coerce.number().int().min(1).max(200).default(50),
+  page: z.coerce.number().int().min(1).max(100_000).default(1),
+  pageSize: z.coerce.number().int().min(1).max(200).default(DEFAULT_PAGE_SIZE),
 });
-export type SearchQuery = z.infer<typeof SearchQuerySchema>;
+export type PaginatedSearchQuery = z.infer<typeof PaginatedSearchQuerySchema>;
+
+export interface PaginatedResult<T> {
+  items: T[];
+  /** Rows matching the filters across every page */
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export const SortDirectionSchema = z.enum(['asc', 'desc']);
+export type SortDirection = z.infer<typeof SortDirectionSchema>;
 
 export const IdParamsSchema = z.object({
   id: z.guid(),

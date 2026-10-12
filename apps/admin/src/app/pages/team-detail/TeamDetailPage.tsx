@@ -11,12 +11,13 @@ import { KeyValueList } from '../../components/KeyValueList';
 import { PageHeader } from '../../components/PageHeader';
 import { PageSpinner } from '../../components/Spinner';
 import { SubscriptionTable } from '../../components/SubscriptionTable';
-import { Table } from '../../components/Table';
 import { useAsyncAction } from '../../hooks/useAsyncAction';
-import { EMPTY_VALUE, formatDate, formatDateTime, formatRelative } from '../../utils/format';
+import { formatDate, formatDateTime } from '../../utils/format';
 import { StripeLinkResultAlert } from './StripeLinkResultAlert';
 import { TeamBillingCard } from './TeamBillingCard';
+import { TeamDomainsCard } from './TeamDomainsCard';
 import { TeamInvitationsCard } from './TeamInvitationsCard';
+import { TeamMembersCard } from './TeamMembersCard';
 
 /** Navigation state set by the provisioning wizard after it creates a team */
 export interface TeamDetailLocationState {
@@ -78,7 +79,7 @@ export function TeamDetailPage() {
       {provisionResult && (
         <div className="mb-4 space-y-2">
           <Alert tone="success" title="Team provisioned">
-            No email has been sent. Invite the first admin below when you are ready.
+            No email has been sent. Invite or add the first admin below when you are ready.
           </Alert>
           <StripeLinkResultAlert
             result={provisionResult.stripe}
@@ -101,34 +102,7 @@ export function TeamDetailPage() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
-          <Card title={`Members (${team.members.length})`} flush>
-            <Table
-              rows={team.members}
-              getRowKey={({ userId }) => userId}
-              emptyMessage="No members yet"
-              columns={[
-                {
-                  key: 'email',
-                  header: 'Email',
-                  render: ({ userId, email }) => (
-                    <Link to={`/users/${userId}`} className="text-blue-700 hover:underline">
-                      {email}
-                    </Link>
-                  ),
-                },
-                { key: 'name', header: 'Name', render: ({ name }) => name || EMPTY_VALUE },
-                { key: 'role', header: 'Role', render: ({ role }) => role },
-                { key: 'status', header: 'Status', render: ({ status }) => <StatusBadge status={status} /> },
-                {
-                  key: 'lastLoggedIn',
-                  header: 'Last login',
-                  className: 'whitespace-nowrap',
-                  render: ({ lastLoggedIn }) => <span title={formatDateTime(lastLoggedIn)}>{formatRelative(lastLoggedIn)}</span>,
-                },
-                { key: 'createdAt', header: 'Joined', className: 'whitespace-nowrap', render: ({ createdAt }) => formatDate(createdAt) },
-              ]}
-            />
-          </Card>
+          <TeamMembersCard team={team} onChanged={reload} />
           <TeamInvitationsCard team={team} onChanged={reload} />
           <Card title="Subscriptions" flush>
             <SubscriptionTable subscriptions={team.subscriptions} />
@@ -150,14 +124,14 @@ export function TeamDetailPage() {
             />
           </Card>
           <TeamBillingCard team={team} onChanged={reload} />
-          <Card title="Entitlements" description="Synced from the Stripe subscription unless billing is manual">
+          <Card title="Entitlements" description="Synced from the Stripe subscription's entitlements">
             <EntitlementList entitlements={team.entitlements} />
           </Card>
+          <TeamDomainsCard team={team} onChanged={reload} />
           <Card title="Login configuration">
             {team.loginConfig ? (
               <KeyValueList
                 items={[
-                  { label: 'Domains', value: team.loginConfig.domains.length ? team.loginConfig.domains.join(', ') : EMPTY_VALUE },
                   { label: 'Require MFA', value: <BooleanBadge value={team.loginConfig.requireMfa} /> },
                   {
                     label: 'SSO',

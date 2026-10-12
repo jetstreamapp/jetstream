@@ -1,7 +1,7 @@
 import { StripeLinkResult, TeamDetail } from '@jetstream/admin/types';
 import { useState } from 'react';
 import { apiPost } from '../../api/admin-api-client';
-import { BooleanBadge } from '../../components/Badge';
+import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { ErrorAlert } from '../../components/ErrorAlert';
@@ -50,7 +50,16 @@ export function TeamBillingCard({ team, onChanged }: { team: TeamDetail; onChang
                 label: 'Stripe customer',
                 value: <StripeIdLink id={billingAccount.customerId} href={getStripeDashboardUrl(billingAccount.customerId)} />,
               },
-              { label: 'Manual billing', value: <BooleanBadge value={billingAccount.manualBilling} /> },
+              {
+                label: 'Seat limit',
+                value: billingAccount.manualBilling ? (
+                  <Badge tone="purple" title="manualBilling: team admins cannot change seats and Stripe sync leaves the limit alone">
+                    Fixed by agreement
+                  </Badge>
+                ) : (
+                  <Badge title="Follows the Stripe subscription quantity; team admins can change seats">Follows subscription</Badge>
+                ),
+              },
               {
                 label: 'Seats',
                 value: (

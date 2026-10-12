@@ -14,6 +14,10 @@ import { summarizeCustomer, summarizeSubscription } from '../stripe/stripe-summa
 import { getStripe } from '../stripe/stripe.client';
 import { ConflictError, NotFoundError, RequestMetadata } from '../utils/route.utils';
 import { evaluateProvisioningChecks, hasBlockingCheck } from './provisioning-checks';
+import { AddedTeamMember, addMemberInTransaction, recordMembersAdded } from './team-members.service';
+
+/** Each added member costs a few queries, so the default 5 second interactive transaction limit is too tight */
+const PROVISIONING_TRANSACTION_OPTIONS = { timeout: 30_000 };
 
 export async function getProvisioningLookup(customerId: string, quoteId?: string): Promise<ProvisioningLookupResult> {
   const [{ customer, quotes, subscriptions }, linkedTeam, linkedUser] = await Promise.all([
@@ -58,7 +62,7 @@ export async function provisionTeam(
   admin: AdminSessionUser,
   requestMetadata: RequestMetadata,
 ): Promise<ProvisionTeamResponse> {
-  const { customerId, quoteId, name, billingMode, licenseCountLimit, entitlements } = request;
+  const { customerId, quoteId, name, seatMode, licenseCountLimit, entitlements, members } = request;
 
   // Re-checked here because Stripe or the database may have changed since the admin looked
   const lookup = await getProvisioningLookup(customerId, quoteId ?? undefined);
@@ -67,37 +71,48 @@ export async function provisionTeam(
     throw new ConflictError(blockers.map(({ message }) => message).join(' '));
   }
 
-  const isManualBilling = billingMode === 'MANUAL';
+  const isFixedSeats = seatMode === 'FIXED';
 
+  // One transaction, so a member who cannot be added (already on a team, no seat left) leaves nothing behind.
+  // The team is invisible to other transactions until commit, so its seats need no lock.
   // TeamBillingAccount.customerId is unique, so a concurrent provision of the same customer fails here (409)
-  const team = await prisma.team.create({
-    select: { id: true },
-    data: {
-      name,
-      status: TEAM_STATUS_ACTIVE,
-      billingStatus: isManualBilling ? TEAM_BILLING_STATUS_MANUAL : TEAM_BILLING_STATUS_ACTIVE,
-      loginConfig: { create: {} },
-      entitlements: { create: isManualBilling && entitlements ? entitlements : {} },
-      billingAccount: {
-        create: {
-          customerId,
-          manualBilling: isManualBilling,
-          licenseCountLimit: licenseCountLimit ?? null,
+  const { teamId, addedMembers } = await prisma.$transaction(async (tx) => {
+    const team = await tx.team.create({
+      select: { id: true },
+      data: {
+        name,
+        status: TEAM_STATUS_ACTIVE,
+        billingStatus: isFixedSeats ? TEAM_BILLING_STATUS_MANUAL : TEAM_BILLING_STATUS_ACTIVE,
+        loginConfig: { create: {} },
+        entitlements: { create: isFixedSeats && entitlements ? entitlements : {} },
+        billingAccount: {
+          create: {
+            customerId,
+            manualBilling: isFixedSeats,
+            licenseCountLimit: licenseCountLimit ?? null,
+          },
         },
       },
-    },
-  });
+    });
+
+    const addedMembers: AddedTeamMember[] = [];
+    for (const member of members) {
+      addedMembers.push(await addMemberInTransaction(tx, team.id, member));
+    }
+    return { teamId: team.id, addedMembers };
+  }, PROVISIONING_TRANSACTION_OPTIONS);
 
   await createAuditLog({
     action: AuditLogAction.ADMIN_TEAM_PROVISIONED,
     resource: AuditLogResource.TEAM,
-    resourceId: team.id,
-    metadata: { adminEmail: admin.email, customerId, quoteId: quoteId ?? null, name, billingMode, licenseCountLimit, entitlements },
+    resourceId: teamId,
+    metadata: { adminEmail: admin.email, customerId, quoteId: quoteId ?? null, name, seatMode, licenseCountLimit, entitlements },
     ...requestMetadata,
   });
+  await recordMembersAdded(teamId, addedMembers, admin, requestMetadata);
 
-  const stripeLinkResult = await linkTeamToStripe(team.id, admin, requestMetadata);
-  return { teamId: team.id, stripe: stripeLinkResult };
+  const stripeLinkResult = await linkTeamToStripe(teamId, admin, requestMetadata);
+  return { teamId, stripe: stripeLinkResult };
 }
 
 /**

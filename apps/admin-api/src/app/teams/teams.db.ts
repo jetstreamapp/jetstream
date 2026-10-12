@@ -1,4 +1,4 @@
-import { SearchQuery, TeamDetail, TeamListItem } from '@jetstream/admin/types';
+import { PaginatedResult, PaginatedSearchQuery, TeamDetail, TeamListItem } from '@jetstream/admin/types';
 import { prisma } from '@jetstream/api-config';
 import { Prisma } from '@jetstream/prisma';
 import { BILLABLE_ROLES, TEAM_MEMBER_STATUS_ACTIVE } from '@jetstream/types';
@@ -29,23 +29,28 @@ function buildTeamSearchWhere(query: string | undefined): Prisma.TeamWhereInput 
   return { OR: conditions };
 }
 
-export async function searchTeams({ query, limit }: SearchQuery): Promise<TeamListItem[]> {
-  const teams = await prisma.team.findMany({
-    where: buildTeamSearchWhere(query),
-    orderBy: { createdAt: 'desc' },
-    take: limit,
-    select: {
-      id: true,
-      name: true,
-      status: true,
-      billingStatus: true,
-      createdAt: true,
-      billingAccount: { select: { customerId: true, manualBilling: true, licenseCountLimit: true } },
-      _count: { select: { members: true } },
-    },
-  });
+export async function searchTeams({ query, page, pageSize }: PaginatedSearchQuery): Promise<PaginatedResult<TeamListItem>> {
+  const where = buildTeamSearchWhere(query);
+  const [teams, total] = await Promise.all([
+    prisma.team.findMany({
+      where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        billingStatus: true,
+        createdAt: true,
+        billingAccount: { select: { customerId: true, manualBilling: true, licenseCountLimit: true } },
+        _count: { select: { members: true } },
+      },
+    }),
+    prisma.team.count({ where }),
+  ]);
 
-  return teams.map(({ id, name, status, billingStatus, createdAt, billingAccount, _count }) => ({
+  const items = teams.map(({ id, name, status, billingStatus, createdAt, billingAccount, _count }) => ({
     id,
     name,
     status,
@@ -56,6 +61,8 @@ export async function searchTeams({ query, limit }: SearchQuery): Promise<TeamLi
     manualBilling: billingAccount?.manualBilling ?? false,
     licenseCountLimit: billingAccount?.licenseCountLimit ?? null,
   }));
+
+  return { items, total, page, pageSize };
 }
 
 export async function getTeamDetail(teamId: string): Promise<TeamDetail> {
@@ -96,6 +103,11 @@ export async function getTeamDetail(teamId: string): Promise<TeamDetail> {
         select: { id: true, email: true, role: true, expiresAt: true, lastSentAt: true, createdAt: true },
       },
       loginConfig: { select: { domains: true, requireMfa: true, ssoProvider: true, ssoEnabled: true, autoAddToTeam: true } },
+      // verificationCode is deliberately not selected
+      domainVerifications: {
+        orderBy: { createdAt: 'asc' },
+        select: { id: true, domain: true, status: true, verifiedAt: true, createdAt: true },
+      },
     },
   });
 
@@ -145,6 +157,13 @@ export async function getTeamDetail(teamId: string): Promise<TeamDetail> {
       createdAt: createdAt.toISOString(),
     })),
     loginConfig: team.loginConfig,
+    domains: team.domainVerifications.map(({ id, domain, status, verifiedAt, createdAt }) => ({
+      id,
+      domain,
+      status,
+      verifiedAt: toIsoString(verifiedAt),
+      createdAt: createdAt.toISOString(),
+    })),
     auditLogs: await findAuditLogs(teamAuditLogWhere(teamId)),
   };
 }

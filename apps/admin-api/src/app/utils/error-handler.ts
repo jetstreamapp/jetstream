@@ -21,6 +21,15 @@ function getClientErrorStatus(err: unknown): number | null {
   return typeof status === 'number' && status >= 400 && status < 500 ? status : null;
 }
 
+/** SeatLimitError's own message is written for a team admin ("purchase more seats"), not for us */
+export function describeSeatLimitError({ code, seats }: Pick<SeatLimitError, 'code' | 'seats'>): string {
+  if (code === 'PAST_DUE') {
+    return 'The team is past due, so nobody who takes a seat can be added until its billing is resolved.';
+  }
+  const usage = seats ? ` ${seats.used} used and ${seats.reserved} held by open invitations, out of ${seats.effective}.` : '';
+  return `The team has no free seat.${usage} Free a seat, or use the Billing role, which does not take one.`;
+}
+
 export function errorHandler(err: unknown, _: Request, res: Response, _next: NextFunction) {
   if (err instanceof ZodError) {
     sendError(res, 400, 'Invalid request', z.treeifyError(err));
@@ -34,7 +43,7 @@ export function errorHandler(err: unknown, _: Request, res: Response, _next: Nex
     return;
   }
   if (err instanceof SeatLimitError) {
-    sendError(res, 409, err.message);
+    sendError(res, 409, describeSeatLimitError(err));
     return;
   }
   if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {

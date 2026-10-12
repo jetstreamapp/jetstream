@@ -46,7 +46,7 @@ export function AppLayout() {
     <div className="flex min-h-full">
       <aside className="hidden w-56 shrink-0 flex-col border-r border-slate-200 bg-white md:flex">
         <div className="flex h-14 items-center gap-2 border-b border-slate-200 px-4">
-          <span className="rounded bg-blue-600 px-1.5 py-0.5 text-xs font-bold text-white">JS</span>
+          <img src="/favicon.svg" alt="" className="h-6 w-6" />
           <span className="text-sm font-semibold text-slate-900">Jetstream Admin</span>
         </div>
         <nav className="flex flex-1 flex-col gap-1 p-3">

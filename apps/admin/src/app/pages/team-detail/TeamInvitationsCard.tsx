@@ -1,5 +1,5 @@
 import { SendTeamInvitationRequest, SendTeamInvitationRequestSchema, TeamDetail, TeamInvitationItem } from '@jetstream/admin/types';
-import { TeamMemberRoleSchema } from '@jetstream/types';
+import { TeamMemberRole } from '@jetstream/types';
 import { FormEvent, useState } from 'react';
 import { apiDelete, apiPost } from '../../api/admin-api-client';
 import { Badge } from '../../components/Badge';
@@ -7,16 +7,9 @@ import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { Alert, ErrorAlert } from '../../components/ErrorAlert';
 import { Table } from '../../components/Table';
+import { TEAM_ROLE_LABELS, TeamRoleSelect } from '../../components/TeamRoleSelect';
 import { useAsyncAction } from '../../hooks/useAsyncAction';
 import { formatDateTime, formatRelative, isDateInPast } from '../../utils/format';
-
-type TeamMemberRole = SendTeamInvitationRequest['role'];
-
-const ROLE_LABELS: Record<TeamMemberRole, string> = {
-  ADMIN: 'Admin',
-  MEMBER: 'Member',
-  BILLING: 'Billing (no seat)',
-};
 
 function InviteMemberForm({ teamId, teamName, onInvited }: { teamId: string; teamName: string; onInvited: (email: string) => void }) {
   const [email, setEmail] = useState('');
@@ -38,7 +31,7 @@ function InviteMemberForm({ teamId, teamName, onInvited }: { teamId: string; tea
     setValidationError(null);
     const { data: request } = parsedRequest;
     // Sending is the explicit "email them now" action, so confirm before anything goes out
-    if (!window.confirm(`Send an invitation email to ${request.email} to join ${teamName} as ${ROLE_LABELS[request.role]}?`)) {
+    if (!window.confirm(`Send an invitation email to ${request.email} to join ${teamName} as ${TEAM_ROLE_LABELS[request.role]}?`)) {
       return;
     }
     const invitation = await sendInvitation(request);
@@ -64,20 +57,10 @@ function InviteMemberForm({ teamId, teamName, onInvited }: { teamId: string; tea
             className="rounded-md border-0 py-1.5 text-sm text-slate-900 shadow-sm ring-1 ring-slate-300 ring-inset focus:ring-2 focus:ring-blue-600 focus:ring-inset"
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs text-slate-600">
-          Role
-          <select
-            value={role}
-            onChange={(event) => setRole(event.target.value as TeamMemberRole)}
-            className="rounded-md border-0 py-1.5 pr-8 text-sm text-slate-900 shadow-sm ring-1 ring-slate-300 ring-inset focus:ring-2 focus:ring-blue-600 focus:ring-inset"
-          >
-            {TeamMemberRoleSchema.options.map((roleOption) => (
-              <option key={roleOption} value={roleOption}>
-                {ROLE_LABELS[roleOption]}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="flex flex-col gap-1 text-xs text-slate-600">
+          <span aria-hidden="true">Role</span>
+          <TeamRoleSelect value={role} onChange={setRole} />
+        </div>
         <Button type="submit" variant="primary" loading={loading}>
           Send invitation
         </Button>

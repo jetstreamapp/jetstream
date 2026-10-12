@@ -1,6 +1,7 @@
-import { SearchQuery, UserDetail, UserListItem, UserWebSessionItem } from '@jetstream/admin/types';
+import { PaginatedResult, UserDetail, UserListItem, UserListQuery, UserPlanFilter, UserWebSessionItem } from '@jetstream/admin/types';
 import { prisma } from '@jetstream/api-config';
 import { Prisma } from '@jetstream/prisma';
+import { TEAM_MEMBER_STATUS_ACTIVE, TEAM_STATUS_ACTIVE } from '@jetstream/types';
 import { z } from 'zod';
 import { NotFoundError } from '../utils/route.utils';
 import {
@@ -12,8 +13,24 @@ import {
   toSubscriptionItem,
 } from '../utils/serializers';
 
-const ACTIVE_SUBSCRIPTION_STATUS = 'ACTIVE';
+/** Subscription rows only exist for current Stripe subscriptions; INCOMPLETE ones have not been paid yet */
+const PERSONAL_PLAN_SUBSCRIPTION_STATUSES = ['ACTIVE', 'TRIALING'];
 const RECENT_ACTIVITY_LIMIT = 50;
+
+const ACTIVE_TEAM_MEMBERSHIP_WHERE: Prisma.TeamMemberWhereInput = {
+  status: TEAM_MEMBER_STATUS_ACTIVE,
+  team: { status: TEAM_STATUS_ACTIVE },
+};
+const PERSONAL_PLAN_SUBSCRIPTION_WHERE: Prisma.SubscriptionWhereInput = { status: { in: PERSONAL_PLAN_SUBSCRIPTION_STATUSES } };
+
+const USER_PLAN_WHERE: Record<UserPlanFilter, Prisma.UserWhereInput> = {
+  TEAM: { teamMembership: { is: ACTIVE_TEAM_MEMBERSHIP_WHERE } },
+  PRO: { subscriptions: { some: PERSONAL_PLAN_SUBSCRIPTION_WHERE } },
+  FREE: {
+    NOT: { teamMembership: { is: ACTIVE_TEAM_MEMBERSHIP_WHERE } },
+    subscriptions: { none: PERSONAL_PLAN_SUBSCRIPTION_WHERE },
+  },
+};
 
 function buildUserSearchWhere(query: string | undefined): Prisma.UserWhereInput {
   if (!query) {
@@ -30,25 +47,40 @@ function buildUserSearchWhere(query: string | undefined): Prisma.UserWhereInput 
   return { OR: conditions };
 }
 
-export async function searchUsers({ query, limit }: SearchQuery): Promise<UserListItem[]> {
-  const users = await prisma.user.findMany({
-    where: buildUserSearchWhere(query),
-    orderBy: { createdAt: 'desc' },
-    take: limit,
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      emailVerified: true,
-      createdAt: true,
-      lastLoggedIn: true,
-      lockedUntil: true,
-      teamMembership: { select: { role: true, team: { select: { id: true, name: true } } } },
-      _count: { select: { subscriptions: { where: { status: ACTIVE_SUBSCRIPTION_STATUS } } } },
-    },
-  });
+function buildUserOrderBy({ sort, direction }: Pick<UserListQuery, 'sort' | 'direction'>): Prisma.UserOrderByWithRelationInput[] {
+  // Users who never logged in sort after everyone else in either direction; id keeps pages stable on ties
+  const primary: Prisma.UserOrderByWithRelationInput =
+    sort === 'lastLoggedIn' ? { lastLoggedIn: { sort: direction, nulls: 'last' } } : { createdAt: direction };
+  return [primary, { id: 'asc' }];
+}
 
-  return users.map(({ id, email, name, emailVerified, createdAt, lastLoggedIn, lockedUntil, teamMembership, _count }) => ({
+export async function searchUsers({ query, plan, sort, direction, page, pageSize }: UserListQuery): Promise<PaginatedResult<UserListItem>> {
+  const where: Prisma.UserWhereInput = { AND: [buildUserSearchWhere(query), plan ? USER_PLAN_WHERE[plan] : {}] };
+
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      orderBy: buildUserOrderBy({ sort, direction }),
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        emailVerified: true,
+        createdAt: true,
+        lastLoggedIn: true,
+        lockedUntil: true,
+        teamMembership: {
+          select: { role: true, status: true, team: { select: { id: true, name: true, status: true, billingStatus: true } } },
+        },
+        _count: { select: { subscriptions: { where: PERSONAL_PLAN_SUBSCRIPTION_WHERE } } },
+      },
+    }),
+    prisma.user.count({ where }),
+  ]);
+
+  const items = users.map(({ id, email, name, emailVerified, createdAt, lastLoggedIn, lockedUntil, teamMembership, _count }) => ({
     id,
     email,
     name,
@@ -59,8 +91,12 @@ export async function searchUsers({ query, limit }: SearchQuery): Promise<UserLi
     teamId: teamMembership?.team.id ?? null,
     teamName: teamMembership?.team.name ?? null,
     teamRole: teamMembership?.role ?? null,
-    hasActiveSubscription: _count.subscriptions > 0,
+    isActiveTeamMember: teamMembership?.status === TEAM_MEMBER_STATUS_ACTIVE && teamMembership.team.status === TEAM_STATUS_ACTIVE,
+    teamBillingStatus: teamMembership?.team.billingStatus ?? null,
+    hasPersonalSubscription: _count.subscriptions > 0,
   }));
+
+  return { items, total, page, pageSize };
 }
 
 const SessionJsonSchema = z

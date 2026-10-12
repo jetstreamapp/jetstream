@@ -2,8 +2,7 @@ import { AdminSessionUser, SendTeamInvitationRequest, TeamInvitationItem } from 
 import { prisma } from '@jetstream/api-config';
 import { AuditLogAction, AuditLogResource, createAuditLog } from '@jetstream/audit-logs';
 import { sendTeamInviteEmail } from '@jetstream/email';
-import { assertSeatAvailable, withTeamSeatLock } from '@jetstream/team-seats';
-import { BILLABLE_ROLES } from '@jetstream/types';
+import { assertSeatAvailable, isBillableRole, withTeamSeatLock } from '@jetstream/team-seats';
 import { addDays } from 'date-fns';
 import { ConflictError, NotFoundError, RequestMetadata } from '../utils/route.utils';
 
@@ -11,10 +10,6 @@ import { ConflictError, NotFoundError, RequestMetadata } from '../utils/route.ut
 const TEAM_INVITE_EXPIRES_DAYS = 14;
 
 const INVITATION_SELECT = { id: true, email: true, role: true, token: true, expiresAt: true, lastSentAt: true, createdAt: true } as const;
-
-function isBillableRole(role: string) {
-  return (BILLABLE_ROLES as ReadonlySet<string>).has(role);
-}
 
 function toInvitationItem({
   id,

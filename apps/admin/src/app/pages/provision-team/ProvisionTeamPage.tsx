@@ -10,13 +10,21 @@ import { Alert, ErrorAlert } from '../../components/ErrorAlert';
 import { StripeIdLink } from '../../components/ExternalLink';
 import { KeyValueList } from '../../components/KeyValueList';
 import { PageHeader } from '../../components/PageHeader';
+import { TEAM_ROLE_LABELS } from '../../components/TeamRoleSelect';
 import { useAsyncAction } from '../../hooks/useAsyncAction';
 import { classNames } from '../../utils/class-names';
 import { EMPTY_VALUE, formatNumber, getStripeDashboardUrl } from '../../utils/format';
 import type { TeamDetailLocationState } from '../team-detail/TeamDetailPage';
 import { CustomerReviewStep } from './CustomerReviewStep';
 import { CustomerSearchStep } from './CustomerSearchStep';
-import { buildProvisionRequest, getQuoteLabel, INITIAL_TEAM_FORM, ProvisionFormErrors, TeamFormState } from './provision-team.utils';
+import {
+  buildProvisionRequest,
+  getQuoteLabel,
+  INITIAL_TEAM_FORM,
+  ProvisionFormErrors,
+  SEAT_MODE_LABELS,
+  TeamFormState,
+} from './provision-team.utils';
 import { TeamDetailsStep } from './TeamDetailsStep';
 
 type WizardStep = 'customer' | 'review-customer' | 'team-details' | 'confirm';
@@ -188,7 +196,7 @@ export function ProvisionTeamPage() {
                     'None'
                   ),
                 },
-                { label: 'Billing mode', value: validatedRequest.billingMode === 'MANUAL' ? 'Manual billing' : 'Stripe subscription' },
+                { label: 'Seats', value: SEAT_MODE_LABELS[validatedRequest.seatMode] },
                 {
                   label: 'Seat limit',
                   value: validatedRequest.licenseCountLimit
@@ -198,11 +206,28 @@ export function ProvisionTeamPage() {
                 {
                   label: 'Entitlements',
                   value:
-                    validatedRequest.billingMode === 'MANUAL' && validatedRequest.entitlements ? (
-                      <EntitlementList entitlements={validatedRequest.entitlements} />
+                    validatedRequest.seatMode === 'FIXED' && validatedRequest.entitlements ? (
+                      <div className="space-y-1">
+                        <EntitlementList entitlements={validatedRequest.entitlements} />
+                        <p className="text-xs text-slate-500">Replaced by the subscription&apos;s entitlements once it starts</p>
+                      </div>
                     ) : (
                       'From the Stripe subscription'
                     ),
+                },
+                {
+                  label: 'Members',
+                  value: form.members.length ? (
+                    <ul className="space-y-0.5">
+                      {form.members.map(({ user, role }) => (
+                        <li key={user.id}>
+                          {user.email} <span className="text-xs text-slate-500">({TEAM_ROLE_LABELS[role]})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    'None'
+                  ),
                 },
               ]}
             />
@@ -213,7 +238,8 @@ export function ProvisionTeamPage() {
               <li>
                 The Stripe customer is tagged with the new team id, so the subscription syncs to this team when the quote is accepted.
               </li>
-              <li>No email is sent. Invite the first admin from the team page when you are ready.</li>
+              {form.members.length > 0 && <li>The members above join the team right away. They are not emailed.</li>}
+              <li>No email is sent. Invite anyone else from the team page when you are ready.</li>
             </ul>
           </Alert>
           {provisionError && <ErrorAlert error={provisionError} title="Team not created" />}

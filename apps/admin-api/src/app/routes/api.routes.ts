@@ -1,19 +1,24 @@
 import {
+  ApproveTeamDomainRequestSchema,
   IdParamsSchema,
+  PaginatedSearchQuerySchema,
   ProvisioningLookupParamsSchema,
   ProvisioningLookupQuerySchema,
   ProvisionTeamRequestSchema,
-  SearchQuerySchema,
   SendTeamInvitationRequestSchema,
   StripeCustomerSearchQuerySchema,
   TeamInvitationParamsSchema,
+  TeamMemberToAddSchema,
+  UserListQuerySchema,
 } from '@jetstream/admin/types';
 import { createRateLimit } from '@jetstream/api-config';
 import express from 'express';
 import { requireAdminRequestHeader, requireAdminSession } from '../auth/auth.middleware';
 import { getDashboardSummary } from '../metrics/dashboard.db';
 import { searchStripeCustomers } from '../stripe/stripe-customers.service';
+import { approveTeamDomain } from '../teams/team-domains.service';
 import { resendTeamInvitation, revokeTeamInvitation, sendTeamInvitation } from '../teams/team-invitations.service';
+import { addTeamMember } from '../teams/team-members.service';
 import { getProvisioningLookup, linkTeamToStripe, provisionTeam } from '../teams/team-provisioning.service';
 import { getTeamDetail, searchTeams } from '../teams/teams.db';
 import { getUserDetail, searchUsers } from '../users/users.db';
@@ -37,7 +42,7 @@ apiRoutes.get(
 
 apiRoutes.get(
   '/teams',
-  createRoute({ query: SearchQuerySchema }, async ({ query }) => searchTeams(query)),
+  createRoute({ query: PaginatedSearchQuerySchema }, async ({ query }) => searchTeams(query)),
 );
 
 apiRoutes.post(
@@ -56,6 +61,21 @@ apiRoutes.post(
   '/teams/:id/stripe-link',
   createRoute({ params: IdParamsSchema }, async ({ params, admin, requestMetadata }) =>
     linkTeamToStripe(params.id, admin, requestMetadata),
+  ),
+);
+
+apiRoutes.post(
+  '/teams/:id/members',
+  createRoute({ params: IdParamsSchema, body: TeamMemberToAddSchema, status: 201 }, async ({ params, body, admin, requestMetadata }) =>
+    addTeamMember(params.id, body, admin, requestMetadata),
+  ),
+);
+
+apiRoutes.post(
+  '/teams/:id/domains',
+  createRoute(
+    { params: IdParamsSchema, body: ApproveTeamDomainRequestSchema, status: 201 },
+    async ({ params, body, admin, requestMetadata }) => approveTeamDomain(params.id, body.domain, admin, requestMetadata),
   ),
 );
 
@@ -95,7 +115,7 @@ apiRoutes.get(
 
 apiRoutes.get(
   '/users',
-  createRoute({ query: SearchQuerySchema }, async ({ query }) => searchUsers(query)),
+  createRoute({ query: UserListQuerySchema }, async ({ query }) => searchUsers(query)),
 );
 
 apiRoutes.get(

@@ -69,7 +69,11 @@ export function CustomerReviewStep({
         />
       </Card>
 
-      <Card title="Quote" description="Pick the quote this team is being provisioned for. Checks below reflect the selected quote." flush>
+      <Card
+        title="Quote (optional)"
+        description="Pre-fills the seat limit and checks the line items. Nothing is written to the quote: the team is linked through the customer, so any subscription the customer starts syncs to it."
+        flush
+      >
         <Table
           rows={[null, ...quotes]}
           getRowKey={(quote) => quote?.id ?? 'none'}

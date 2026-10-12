@@ -1,4 +1,23 @@
-import { AuditLogItem, EntitlementFlags, SubscriptionItem } from './admin-common.types';
+import { z } from 'zod';
+import { AuditLogItem, EntitlementFlags, PaginatedSearchQuerySchema, SortDirectionSchema, SubscriptionItem } from './admin-common.types';
+
+/**
+ * TEAM: an active member of an active team, whatever the team's billing status.
+ * PRO: has an active or trialing personal subscription.
+ * FREE: neither. A user can be both TEAM and PRO, so they show up under both filters.
+ */
+export const UserPlanFilterSchema = z.enum(['TEAM', 'PRO', 'FREE']);
+export type UserPlanFilter = z.infer<typeof UserPlanFilterSchema>;
+
+export const UserSortFieldSchema = z.enum(['createdAt', 'lastLoggedIn']);
+export type UserSortField = z.infer<typeof UserSortFieldSchema>;
+
+export const UserListQuerySchema = PaginatedSearchQuerySchema.extend({
+  plan: UserPlanFilterSchema.optional(),
+  sort: UserSortFieldSchema.default('createdAt'),
+  direction: SortDirectionSchema.default('desc'),
+});
+export type UserListQuery = z.infer<typeof UserListQuerySchema>;
 
 export interface UserListItem {
   id: string;
@@ -11,7 +30,11 @@ export interface UserListItem {
   teamId: string | null;
   teamName: string | null;
   teamRole: string | null;
-  hasActiveSubscription: boolean;
+  /** Team plan access: the membership and the team are both active */
+  isActiveTeamMember: boolean;
+  /** ACTIVE, PAST_DUE or MANUAL; null without a team */
+  teamBillingStatus: string | null;
+  hasPersonalSubscription: boolean;
 }
 
 export interface UserIdentityItem {

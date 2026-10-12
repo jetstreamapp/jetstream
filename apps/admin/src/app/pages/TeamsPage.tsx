@@ -1,21 +1,25 @@
 import { PlusIcon } from '@heroicons/react/20/solid';
-import { TeamListItem } from '@jetstream/admin/types';
+import { DEFAULT_PAGE_SIZE, PaginatedResult, TeamListItem } from '@jetstream/admin/types';
 import { Link } from 'react-router';
 import { useApiQuery } from '../api/admin-api-client';
-import { BooleanBadge, StatusBadge } from '../components/Badge';
+import { Badge, StatusBadge } from '../components/Badge';
 import { ButtonLink } from '../components/Button';
 import { Card } from '../components/Card';
 import { ErrorAlert } from '../components/ErrorAlert';
 import { PageHeader } from '../components/PageHeader';
+import { Pagination } from '../components/Pagination';
 import { SearchInput } from '../components/SearchInput';
 import { Spinner } from '../components/Spinner';
 import { Table } from '../components/Table';
-import { buildSearchPath, useUrlSearchQuery } from '../hooks/useUrlSearchQuery';
+import { buildListPath, useUrlListState, useUrlSearchQuery } from '../hooks/useUrlSearchQuery';
 import { EMPTY_VALUE, formatDate, formatNumber } from '../utils/format';
 
 export function TeamsPage() {
   const { inputValue, setInputValue, query } = useUrlSearchQuery();
-  const { data: teams, error, loading, reload } = useApiQuery<TeamListItem[]>(buildSearchPath('/api/teams', query));
+  const { page, setPage } = useUrlListState();
+  const { data, error, loading, reload } = useApiQuery<PaginatedResult<TeamListItem>>(
+    buildListPath('/api/teams', { query, page, pageSize: DEFAULT_PAGE_SIZE }),
+  );
 
   return (
     <>
@@ -45,7 +49,7 @@ export function TeamsPage() {
       )}
       <Card flush>
         <Table
-          rows={teams ?? []}
+          rows={data?.items ?? []}
           getRowKey={({ id }) => id}
           emptyMessage={loading ? 'Loading…' : 'No teams found'}
           columns={[
@@ -77,10 +81,15 @@ export function TeamsPage() {
               header: 'Stripe customer',
               render: ({ customerId }) => (customerId ? <span className="font-mono text-xs">{customerId}</span> : EMPTY_VALUE),
             },
-            { key: 'manualBilling', header: 'Manual billing', render: ({ manualBilling }) => <BooleanBadge value={manualBilling} /> },
+            {
+              key: 'seatMode',
+              header: 'Seats',
+              render: ({ manualBilling }) => (manualBilling ? <Badge tone="purple">Fixed</Badge> : <Badge>Subscription</Badge>),
+            },
             { key: 'createdAt', header: 'Created', className: 'whitespace-nowrap', render: ({ createdAt }) => formatDate(createdAt) },
           ]}
         />
+        {data && <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onPageChange={setPage} />}
       </Card>
     </>
   );
