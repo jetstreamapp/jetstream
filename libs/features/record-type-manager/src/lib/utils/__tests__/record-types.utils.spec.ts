@@ -1,7 +1,7 @@
-import { ReadMetadataRecordTypeExtended } from '@jetstream/types';
+import { ReadMetadataRecordType, ReadMetadataRecordTypeExtended } from '@jetstream/types';
 import JSZip from 'jszip';
 import { RecordTypePicklistSummary } from '../../types/record-types.types';
-import { getObjectWithRecordTypesXml, prepareRecordTypeMetadataPackage } from '../record-types.utils';
+import { getObjectWithRecordTypesXml, prepareRecordTypeMetadataPackage, repairAndEnrichMetadata } from '../record-types.utils';
 
 const TEST_DATA: { 'Contact.Record_Type_1': ReadMetadataRecordTypeExtended; 'Contact.Record_Type_2': ReadMetadataRecordTypeExtended } = {
   'Contact.Record_Type_1': {
@@ -103,6 +103,40 @@ const TEST_DATA: { 'Contact.Record_Type_1': ReadMetadataRecordTypeExtended; 'Con
 function removeIndentation(xml: string) {
   return xml.replace(/>\s*\n\s*</g, '><').trim();
 }
+
+describe('repairAndEnrichMetadata', () => {
+  it('should normalize parser-coerced boolean defaults to strings', () => {
+    // Shape produced by the SOAP XML parser: booleans for `default`, a lone value or picklist is not wrapped in an array
+    const parsedRecordType = {
+      fullName: 'Contact.Record_Type_1',
+      active: true,
+      label: 'Record Type 1',
+      picklistValues: [
+        {
+          picklist: 'LeadSource',
+          values: [
+            { fullName: 'Other', default: false },
+            { fullName: 'Web', default: true },
+          ],
+        },
+        {
+          picklist: 'Level__c',
+          values: { fullName: 'Primary', default: true },
+        },
+      ],
+    } as unknown as ReadMetadataRecordType;
+
+    const { picklistValues } = repairAndEnrichMetadata(parsedRecordType);
+
+    expect(picklistValues.map(({ values }) => values)).toEqual([
+      [
+        { fullName: 'Other', default: 'false' },
+        { fullName: 'Web', default: 'true' },
+      ],
+      [{ fullName: 'Primary', default: 'true' }],
+    ]);
+  });
+});
 
 describe('getObjectWithRecordTypesXml', () => {
   it('should work', () => {

@@ -15,6 +15,7 @@ import { RecordTypePicklistSummary } from '../types/record-types.types';
  * Some fullName have invalid objects vs reality
  * Some picklist field names are different from metadadata API vs reality
  * Ensure array data types are consistent
+ * Ensure `default` is a string, the XML parser coerces it to a boolean
  * @param record
  * @returns
  */
@@ -26,6 +27,7 @@ export function repairAndEnrichMetadata(record: ReadMetadataRecordType): ReadMet
     picklistValues.values = ensureArray(picklistValues.values);
     picklistValues.values.forEach((value) => {
       value.fullName = decodeURIComponent(value.fullName);
+      value.default = String(value.default) === 'true' ? 'true' : 'false';
     });
     return {
       fieldName,
