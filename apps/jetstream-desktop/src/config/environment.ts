@@ -1,4 +1,4 @@
-import { getDefaultAppState } from '@jetstream/shared/utils';
+import { SFDC_DEFAULT_API_VERSION } from '@jetstream/shared/constants';
 import type { Maybe } from '@jetstream/types';
 import { app } from 'electron';
 import { z } from 'zod';
@@ -23,13 +23,11 @@ const isAutomatedTesting = args.includes('--automated-testing');
 // renderer fully loads, then exit with a pass/fail code. See config/smoke-test.ts.
 const isSmokeTest = args.includes('--smoke-test');
 
-const { defaultApiVersion } = getDefaultAppState();
-
 const ENV_INTERNAL_DEV = {
   ENVIRONMENT: 'development',
   CLIENT_URL: 'http://localhost:4201',
   SERVER_URL: 'http://localhost:3333',
-  SFDC_API_VERSION: defaultApiVersion.replace('v', ''),
+  SFDC_API_VERSION: SFDC_DEFAULT_API_VERSION,
   DESKTOP_SFDC_CALLBACK_URL: 'jetstream://addOrg/oauth/sfdc/callback',
   DESKTOP_SFDC_CLIENT_ID: '3MVG94YrNIs0WS4d2PK0lDfKIz_loKEkofpaTrvi7_3g_tLRZSQ9_XNQpSmtNVMs7hnO77x3RqRGaxy86vnK_',
 };

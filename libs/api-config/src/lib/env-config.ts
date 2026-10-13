@@ -1,4 +1,5 @@
 import type { UserProfileSession, UserProfileUiWithIdentities } from '@jetstream/auth/types';
+import { SFDC_DEFAULT_API_VERSION } from '@jetstream/shared/constants';
 import { SoqlQueryFormatOptionsSchema, type Maybe } from '@jetstream/types';
 import chalk from 'chalk';
 import * as dotenv from 'dotenv';
@@ -334,7 +335,7 @@ const parseResults = envSchema.safeParse({
   EXAMPLE_USER: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE) ? EXAMPLE_USER : null,
   EXAMPLE_USER_PASSWORD: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE) ? process.env.EXAMPLE_USER_PASSWORD : null,
   EXAMPLE_USER_FULL_PROFILE: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE) ? EXAMPLE_USER_FULL_PROFILE : null,
-  SFDC_API_VERSION: process.env.NX_SFDC_API_VERSION || process.env.SFDC_API_VERSION,
+  SFDC_API_VERSION: SFDC_DEFAULT_API_VERSION,
   STRIPE_BILLING_PORTAL_LINK: process.env.NX_PUBLIC_STRIPE_BILLING_PORTAL_LINK,
   JETSTREAM_CLIENT_URL: process.env.NX_PUBLIC_CLIENT_URL || process.env.JETSTREAM_CLIENT_URL,
   JETSTREAM_SERVER_URL: process.env.NX_PUBLIC_SERVER_URL || process.env.JETSTREAM_SERVER_URL,
