@@ -69,15 +69,14 @@ overrides:
   # @react-email/ui (the `email:dev` preview server) pins next to exactly 16.3.3, which has an RCE
   # in next/og ImageResponse (GHSA-vcvr-r3jv-pc5j) and an image-optimizer SSRF (GHSA-cjq9-62q9-8jv4).
   "@react-email/ui>next": "^16.3.8"
-  # nx 23.2.1 pins brace-expansion 5.0.9 (recursion DoS: GHSA-6j4f-fj2g-mc7p, GHSA-qhr7-859c-m2p7) and
-  # smol-toml 1.6.1 (malformed-TOML DoS: GHSA-7w5x-hrqm-74c2) exactly. nx 23.3.0 ships patched pins:
-  # remove these two after upgrading nx.
-  "nx>brace-expansion": "^5.0.12"
-  "nx>smol-toml": "^1.9.0"
   # release-it 21.1.0 pins undici 7.29.0, which can skip TLS certificate validation on a dropped
   # connection (GHSA-w293-vg96-wgc3). release-it calls the GitHub API with a token in CI.
   # release-it 21.1.1 ships the patched pin: remove this after upgrading release-it.
   "release-it>undici": "^7.29.1"
+  # nx 23.3.0 (latest) pins undici 7.29.0 exactly, the same TLS-validation and request-handling advisories
+  # (GHSA-w293-vg96-wgc3 and nine more) as release-it above. Dev tooling only. Remove after a nx release that
+  # pins >=7.29.1.
+  "nx>undici": "^7.29.1"
   # <7.0.3 allows RCE via RegExp.flags / Date.prototype (GHSA-5c6j-r48x-rmvq). Docs build only
   # (copy-webpack-plugin, css-minimizer-webpack-plugin). 7.0's only breaking change is requiring Node 20+.
   serialize-javascript: "^7.0.5"

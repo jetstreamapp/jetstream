@@ -96,3 +96,4 @@ certificates
 
 .nx/migrate-runs
 server.log
+.vitest
