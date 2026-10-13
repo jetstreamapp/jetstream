@@ -209,7 +209,7 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
           [HTTP.HEADERS.X_SFDC_Session]: accessToken,
         },
       })
-        .catch((ex) => handleFetchFailure(ex, url))
+        .catch((ex) => handleFetchFailure(ex, url, method, logger))
         .then(async (response) => {
           if (enableLogging) {
             logger.trace(`[API RESPONSE]: ${response.status}`);
@@ -371,17 +371,27 @@ function createBadGatewayError(message: string | undefined) {
 }
 
 /**
- * A domain that does not resolve means the org itself is gone (most often a deleted sandbox), so it gets a message the
- * user can act on rather than a bare `fetch failed`. Every other network failure is rethrown unchanged.
+ * Node's fetch (undici) rejects with a bare `TypeError: fetch failed` when the connection to Salesforce fails, and keeps
+ * the reason (ECONNRESET, EAI_AGAIN, UND_ERR_SOCKET, ...) only on `cause`. These are reported as a 502 so they are
+ * attributed upstream and retried by clients like any other gateway failure, and the reason is logged because nothing
+ * downstream sees it. A domain that does not resolve means the org itself is gone (most often a deleted sandbox), so it
+ * gets a message the user can act on. Anything else, including browser and Electron transports, is rethrown unchanged.
  */
-function handleFetchFailure(ex: unknown, url: string): never {
-  const cause = ex instanceof Error ? (ex.cause as { code?: string } | undefined) : undefined;
-  if (cause?.code === 'ENOTFOUND') {
+function handleFetchFailure(ex: unknown, url: string, method: string, logger: Logger): never {
+  if (!(ex instanceof TypeError) || ex.message !== 'fetch failed') {
+    throw ex;
+  }
+  const cause = ex.cause as { code?: string; message?: string; name?: string } | undefined;
+  const code = cause?.code || cause?.name || 'unknown';
+  const { hostname, pathname } = new URL(url);
+  logger.warn({ code, cause: cause?.message, method, hostname, pathname }, '[SALESFORCE][CONNECTION FAILED]');
+
+  if (code === 'ENOTFOUND') {
     throw createBadGatewayError(
-      `The Salesforce domain ${new URL(url).hostname} could not be found, so the org may have been deleted. Reconnect the org if it still exists, otherwise remove it from Jetstream.`,
+      `The Salesforce domain ${hostname} could not be found, so the org may have been deleted. Reconnect the org if it still exists, otherwise remove it from Jetstream.`,
     );
   }
-  throw ex;
+  throw createBadGatewayError(`The connection to Salesforce failed (${code}). This is usually temporary - please try again.`);
 }
 
 /**
