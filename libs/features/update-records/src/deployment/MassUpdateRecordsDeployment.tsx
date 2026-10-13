@@ -1,5 +1,5 @@
 import { useGoBackShortcut, useIntegerInput, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
-import { BulkJobBatchInfo, Maybe } from '@jetstream/types';
+import { Maybe } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
@@ -27,23 +27,12 @@ import * as fromMassUpdateState from '../mass-update-records.state';
 const HEIGHT_BUFFER = 170;
 const MAX_BATCH_SIZE = 10000;
 
-const updateDeploymentResultsState =
-  (sobject: string, deployResults: DeployResults, fatalError?: boolean) => (priorRowsMap: Map<string, MetadataRow>) => {
-    const rowsMap = new Map(priorRowsMap);
-    const row: MetadataRow = { ...rowsMap.get(sobject), deployResults: { ...deployResults } } as MetadataRow;
-    // Something went horribly wrong (e.x. lost internet connection) mark all as not processed
-    if (fatalError && row.deployResults.jobInfo?.batches?.length) {
-      row.deployResults.jobInfo = { ...row.deployResults.jobInfo, state: 'Failed' };
-      row.deployResults.jobInfo.batches = row.deployResults.jobInfo.batches.map((batch): BulkJobBatchInfo => {
-        if (batch.state !== 'Completed') {
-          return { ...batch, state: 'NotProcessed' };
-        }
-        return batch;
-      });
-    }
-    rowsMap.set(row.sobject, row);
-    return rowsMap;
-  };
+const updateDeploymentResultsState = (sobject: string, deployResults: DeployResults) => (priorRowsMap: Map<string, MetadataRow>) => {
+  const rowsMap = new Map(priorRowsMap);
+  const row: MetadataRow = { ...rowsMap.get(sobject), deployResults: { ...deployResults } } as MetadataRow;
+  rowsMap.set(row.sobject, row);
+  return rowsMap;
+};
 
 export const MassUpdateRecordsDeployment = () => {
   const navigate = useNavigate();
@@ -64,13 +53,13 @@ export const MassUpdateRecordsDeployment = () => {
   );
 
   const handleDeployResults = useCallback(
-    (sobject: string, deployResults: DeployResults, fatalError?: boolean) => {
-      setDeploymentState(updateDeploymentResultsState(sobject, deployResults, fatalError));
+    (sobject: string, deployResults: DeployResults) => {
+      setDeploymentState(updateDeploymentResultsState(sobject, deployResults));
     },
     [setDeploymentState],
   );
 
-  const { loadDataForRows, pollResultsUntilDone } = useDeployRecords(selectedOrg, handleDeployResults);
+  const { loadDataForRows, pollResultsUntilDone, resumePolling } = useDeployRecords(selectedOrg, handleDeployResults);
 
   useEffect(() => {
     if (rows.every((row) => row.deployResults.done)) {
@@ -82,6 +71,11 @@ export const MassUpdateRecordsDeployment = () => {
     setLoading(true);
     await loadDataForRows(rows, { batchSize: batchSize ?? 10000, serialMode, skipHistory: skipDataHistory });
     pollResultsUntilDone(getRows);
+  }
+
+  function handleCheckStatusAgain(row: MetadataRow) {
+    setLoading(true);
+    resumePolling(row, getRows);
   }
 
   usePrimaryActionShortcut(handleDeploy, { disabled: loading || !!batchSizeError });
@@ -193,6 +187,7 @@ export const MassUpdateRecordsDeployment = () => {
             limit={row.limit}
             validationResults={row.validationResults}
             batchSize={batchSize ?? 1000}
+            onCheckStatusAgain={() => handleCheckStatusAgain(row)}
           />
         ))}
       </AutoFullHeightContainer>

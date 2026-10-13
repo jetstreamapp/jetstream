@@ -5,7 +5,7 @@ import { bulkApiGetRecords } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { BulkJobBatchInfo, BulkJobResultRecord, DownloadAction, DownloadType, SalesforceOrgUi } from '@jetstream/types';
-import { Card, FileDownloadModal, Grid, SalesforceLogin, ScopedNotification, Spinner, SupportLink } from '@jetstream/ui';
+import { Card, FileDownloadModal, Grid, Icon, SalesforceLogin, ScopedNotification, Spinner, SupportLink } from '@jetstream/ui';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, useEffect, useState } from 'react';
@@ -42,6 +42,8 @@ export type MassUpdateRecordsDeploymentRowProps = {
   batchSize: number;
   omitTransformationText?: boolean;
   onModalOpenChange?: (isOpen: boolean) => void;
+  /** Shown once polling has given up on the job's status, to pick it back up */
+  onCheckStatusAgain?: () => void;
 } & Pick<MetadataRow, 'sobject' | 'deployResults' | 'configuration' | 'limit'>;
 
 export const MassUpdateRecordsDeploymentRow = ({
@@ -55,6 +57,7 @@ export const MassUpdateRecordsDeploymentRow = ({
   batchSize,
   omitTransformationText,
   onModalOpenChange,
+  onCheckStatusAgain,
 }: MassUpdateRecordsDeploymentRowProps) => {
   const { trackEvent } = useAmplitude();
   const [downloadModalData, setDownloadModalData] = useState<DownloadModalData>({ open: false, data: [], header: [], fileNameParts: [] });
@@ -63,7 +66,8 @@ export const MassUpdateRecordsDeploymentRow = ({
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
 
-  const { done, processingErrors, status, fatalErrorMessage, jobInfo, processingEndTime, processingStartTime } = deployResults;
+  const { done, processingErrors, status, fatalErrorMessage, statusCheckFailed, jobInfo, processingEndTime, processingStartTime } =
+    deployResults;
   const effectiveLimit = getEffectiveRecordLimit(limit);
 
   useEffect(() => {
@@ -263,6 +267,12 @@ export const MassUpdateRecordsDeploymentRow = ({
           <ScopedNotification theme="error" className="slds-m-around_small">
             {fatalErrorMessage || <SupportLink />}
           </ScopedNotification>
+        )}
+        {statusCheckFailed && onCheckStatusAgain && (
+          <button className="slds-button slds-button_neutral slds-m-left_small" onClick={onCheckStatusAgain}>
+            <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+            Check status again
+          </button>
         )}
       </Card>
     </Fragment>

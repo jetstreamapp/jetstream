@@ -121,16 +121,13 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   const getDeploymentResults = useAtomCallback(useCallback((get) => [{ deployResults: get(deployResultsState), sobject }], [sobject]));
 
   const handleDeployResults = useCallback(
-    (sobject: string, deployResults: DeployResults, fatalError?: boolean) => {
+    (sobject: string, deployResults: DeployResults) => {
       setDeployResults(deployResults);
-      if (fatalError) {
-        setErrorMessage('An error occurred while processing your request. Please try again.');
-      }
     },
     [setDeployResults],
   );
 
-  const { loadDataForProvidedRecords, pollResultsUntilDone } = useDeployRecords(selectedOrg, handleDeployResults, 'QUERY');
+  const { loadDataForProvidedRecords, pollResultsUntilDone, resumePolling } = useDeployRecords(selectedOrg, handleDeployResults, 'QUERY');
 
   const { fields: valueFields, loadChildFields, loadFields } = useFieldListItemsWithDrillIn(selectedOrg);
 
@@ -569,6 +566,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             hasExternalWhereClause={!!parsedQuery.where}
             batchSize={batchSize ?? 10000}
             omitTransformationText
+            onCheckStatusAgain={() => resumePolling({ deployResults, sobject }, getDeploymentResults)}
           />
         )}
       </div>
