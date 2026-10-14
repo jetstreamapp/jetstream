@@ -1,5 +1,6 @@
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { logger } from '@jetstream/shared/client-logger';
+import { SFDC_DEFAULT_API_VERSION } from '@jetstream/shared/constants';
 import type { SalesforceOrgUi, SObjectOrganization } from '@jetstream/types';
 import { OrgAndApiConnection, SessionInfo } from './extension.types';
 
@@ -10,7 +11,8 @@ export function initApiClient({ key: accessToken, hostname }: SessionInfo): ApiC
     userId: 'unknown',
     organizationId: 'unknown',
     accessToken,
-    apiVersion: '68.0', // FIXME: this should not be hard-coded
+    // Replaced with the org's latest version in initApiClientAndOrg
+    apiVersion: SFDC_DEFAULT_API_VERSION,
     instanceUrl,
     // refreshToken: refresh_token,
     logger,

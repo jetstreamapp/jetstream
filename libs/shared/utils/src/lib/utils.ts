@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { DATE_FORMATS } from '@jetstream/shared/constants';
+import { DATE_FORMATS, SFDC_DEFAULT_API_VERSION } from '@jetstream/shared/constants';
 import {
   ApplicationState,
   BulkJob,
@@ -44,7 +44,7 @@ export function getDefaultAppState(initial?: Maybe<Partial<ApplicationState>>): 
     serverUrl: 'https://getjetstream.app',
     environment: 'production',
     stage: 'production',
-    defaultApiVersion: 'v68.0',
+    defaultApiVersion: `v${SFDC_DEFAULT_API_VERSION}`,
     google_appId: 'unset',
     google_apiKey: 'unset',
     google_clientId: 'unset',

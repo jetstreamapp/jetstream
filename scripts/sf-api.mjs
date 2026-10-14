@@ -49,7 +49,7 @@ Commands:
   put <path> <body>              PUT request
   delete <path>                  DELETE request
 
-Paths may be a full url, an absolute path (/services/data/v68.0/...), or a short path
+Paths may be a full url, an absolute path (/services/data/latest/...), or a short path
 (sobjects/Account/describe) which is prefixed with /services/data/<version>/ automatically.
 
 Bodies may be inline JSON, @path/to/file.json, or - to read stdin.
@@ -71,7 +71,7 @@ Environment variables (in .env):
   SF_LOCAL_INSTANCE_URL          Optional. Overrides the instance url returned by the token request
   SF_LOCAL_LOGIN_URL             Optional. Defaults to https://login.salesforce.com
                                  (use https://test.salesforce.com for sandboxes)
-  SF_LOCAL_API_VERSION           Optional. Defaults to v68.0
+  SF_LOCAL_API_VERSION           Optional. Defaults to latest (the newest version the org supports)
   SF_LOCAL_CLIENT_SECRET         Unused - the JWT flow authenticates with the signed assertion
 `;
 
@@ -196,7 +196,7 @@ function buildUrl({ instanceUrl, path, isTooling }) {
   if (path.startsWith('/services/')) {
     return `${instanceUrl}${path}`;
   }
-  const apiVersion = process.env.SF_LOCAL_API_VERSION || 'v68.0';
+  const apiVersion = process.env.SF_LOCAL_API_VERSION || 'latest';
   const prefix = `/services/data/${apiVersion}${isTooling ? '/tooling' : ''}`;
   return `${instanceUrl}${prefix}/${path.replace(/^\//, '')}`;
 }
