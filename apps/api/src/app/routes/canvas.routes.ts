@@ -58,6 +58,9 @@ routes.use(
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'", '*.salesforce.com'],
+        // Monaco starts its language workers from blob: URLs; without this they fall back to script-src, get
+        // blocked, and Monaco runs that work on the main thread instead (matches the main app's policy).
+        workerSrc: ["'self'", 'blob:'],
         styleSrc: ["'self'", "'unsafe-inline'"],
         fontSrc: ["'self'"],
         imgSrc: ["'self'", 'data:'],
