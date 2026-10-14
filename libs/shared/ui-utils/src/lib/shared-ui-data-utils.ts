@@ -314,11 +314,19 @@ export async function copyRecordsToClipboard(
       const excelString = transformTabularDataToHtml(recordsToCopy, fields, includeHeader);
       copied = await copyToClipboard(excelString, {
         format: 'text/html',
-        onCopy: () =>
-          new ClipboardItem({
+        onCopy: (clipboardData) => {
+          // execCommand fallback, used when the Clipboard API is blocked (e.g. the Canvas app's cross-origin
+          // iframe): the library only sets `format`, so without this the copy would have no text/plain and
+          // pasting into a text field or back into the grid would get nothing.
+          if ('setData' in clipboardData) {
+            clipboardData.setData('text/plain', plainText);
+            return;
+          }
+          return new ClipboardItem({
             'text/html': new Blob([excelString], { type: 'text/html' }),
             'text/plain': new Blob([plainText], { type: 'text/plain' }),
-          }),
+          });
+        },
       });
     } else if (copyFormat === 'csv') {
       recordsToCopy = fields ? flattenRecords(recordsToCopy, fields) : recordsToCopy;

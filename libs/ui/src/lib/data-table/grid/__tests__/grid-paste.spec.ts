@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'vitest';
-import { computePasteTargets, parsePastedText, PasteSelectionRect } from '../grid-paste';
+import { afterEach, describe, expect, test } from 'vitest';
+import { computePasteTargets, isClipboardReadAllowedByPolicy, parsePastedText, PasteSelectionRect } from '../grid-paste';
 
 function makeRow(id: string, grouped = false): any {
   return { id, original: { _key: id }, getIsGrouped: () => grouped };
@@ -135,5 +135,24 @@ describe('computePasteTargets', () => {
       { rowKey: 'r0', columnKey: 'A', value: 'Z' },
       { rowKey: 'r1', columnKey: 'A', value: 'Z' },
     ]);
+  });
+});
+
+describe('isClipboardReadAllowedByPolicy', () => {
+  afterEach(() => {
+    delete (document as any).featurePolicy;
+  });
+
+  test('reports allowed where the browser exposes no policy (Firefox, Safari)', () => {
+    expect(isClipboardReadAllowedByPolicy()).toBe(true);
+  });
+
+  test('follows the policy for clipboard-read where the browser exposes it', () => {
+    const allowedFeatures = new Set<string>();
+    (document as any).featurePolicy = { allowsFeature: (feature: string) => allowedFeatures.has(feature) };
+    // A cross-origin iframe without `allow="clipboard-read"` (the Canvas app)
+    expect(isClipboardReadAllowedByPolicy()).toBe(false);
+    allowedFeatures.add('clipboard-read');
+    expect(isClipboardReadAllowedByPolicy()).toBe(true);
   });
 });

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { copyRecordsToClipboard, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
+import copyToClipboard from 'copy-to-clipboard';
 import { FocusEvent as ReactFocusEvent, KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { isFrozenColumn } from '../components/grid-layout';
 import { ActiveCell } from '../components/GridRow';
@@ -725,7 +726,8 @@ export function useGridKeyboardNavigation<TRow extends object>({
         flashCells(getRootElement(), rows, columns, rect.minRowIndex, rect.maxRowIndex, rect.minColumnIndex, rect.maxColumnIndex);
         return transformTabularDataToExcelStr(records, fields);
       });
-      void navigator.clipboard.writeText(blocks.join('\n\n')).catch(() => undefined);
+      // copy-to-clipboard falls back to execCommand where the Clipboard API is blocked (the Canvas app's iframe).
+      void copyToClipboard(blocks.join('\n\n'), { format: 'text/plain' });
       onAnnounce?.(`Copied ${copiedCellCount} cells across ${boundsList.length} ranges`);
     },
     [table, getRootElement, onAnnounce],
