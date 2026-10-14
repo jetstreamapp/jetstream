@@ -1,7 +1,14 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiAddBatchToJob, bulkApiCloseJob, bulkApiCreateJob, bulkApiGetJob } from '@jetstream/shared/data';
-import { checkIfBulkApiJobIsDone, convertDateToLocale, generateCsv, tracker, useBrowserNotifications } from '@jetstream/shared/ui-utils';
+import {
+  checkIfBulkApiJobIsDone,
+  checkStatusWithRetry,
+  convertDateToLocale,
+  generateCsv,
+  tracker,
+  useBrowserNotifications,
+} from '@jetstream/shared/ui-utils';
 import { delay, getErrorMessage, isFatalBulkApiError, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { BulkJobBatchInfo, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { applicationCookieState } from '@jetstream/ui/app-state';
@@ -14,13 +21,22 @@ import { captureMassUpdateResults, MassUpdateHistoryContext, MassUpdateSource, s
 import { DeployResults, MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
 import { getEffectiveRecordLimit, getFieldsToQuery, prepareRecords, queryAndPrepareRecordsForUpdate } from './mass-update-records.utils';
 
+const POLL_INTERVAL_MS = 5000;
+
+type PollableRow = Pick<MetadataRow, 'deployResults' | 'sobject'>;
+
+function isAwaitingResults({ deployResults }: PollableRow) {
+  return !deployResults.done && !!deployResults.jobInfo?.id;
+}
+
 export function useDeployRecords(
   org: SalesforceOrgUi,
-  onDeployResults: (sobject: string, deployResults: DeployResults, fatalError?: boolean) => void,
+  onDeployResults: (sobject: string, deployResults: DeployResults) => void,
   source: MassUpdateSource = 'STAND-ALONE',
 ) {
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const isMounted = useRef(true);
+  const isPolling = useRef(false);
   const { notifyUser } = useBrowserNotifications(serverUrl);
   const { trackEvent } = useAmplitude();
   /**
@@ -407,12 +423,12 @@ export function useDeployRecords(
   );
 
   const pollResults = useCallback(
-    async (rows: Pick<MetadataRow, 'deployResults' | 'sobject'>[]) => {
-      let allDone = true;
+    async (rows: PollableRow[]) => {
       for (const row of rows) {
-        if (!row.deployResults.done && row.deployResults.jobInfo?.id) {
+        const jobId = row.deployResults.jobInfo?.id;
+        if (!row.deployResults.done && jobId) {
           try {
-            const jobInfo = await bulkApiGetJob(org, row.deployResults.jobInfo.id);
+            const jobInfo = await checkStatusWithRetry(() => bulkApiGetJob(org, jobId), POLL_INTERVAL_MS);
             const { batchIdToIndex } = row.deployResults;
             // Compared against the batches that were actually RECORDED as added, not the planned count:
             // a batch whose upload failed never appears in the job, so waiting for the planned count
@@ -450,21 +466,22 @@ export function useDeployRecords(
                   processingErrorCount: row.deployResults.processingErrors.length,
                 });
               }
-            } else {
-              allDone = false;
             }
 
             onDeployResults(row.sobject, { ...deployResults });
           } catch (ex) {
             logger.error('Error polling bulk api job', ex);
             tracker.error('There was an error polling bulk api job', ex);
-            const deployResults: DeployResults = {
+            // Only the status check failed, so the last known job state is kept rather than marked failed, and
+            // the user can pick polling back up with `resumePolling`.
+            onDeployResults(row.sobject, {
               ...row.deployResults,
               done: true,
               status: 'Error',
+              statusCheckFailed: true,
               processingEndTime: convertDateToLocale(new Date()),
-            };
-            onDeployResults(row.sobject, deployResults, true);
+              fatalErrorMessage: `Unable to get the status of this job, but the update itself is not affected. ${getErrorMessage(ex)}`,
+            });
             // The job was created and its batches uploaded before polling began, so a failed status
             // poll says nothing about the update itself — Salesforce finishes the job regardless. Settle
             // the entry as `incomplete` (outcome unknown — the same status an abandoned run gets), not
@@ -477,7 +494,6 @@ export function useDeployRecords(
           }
         }
       }
-      return allDone;
     },
     [org, onDeployResults, takeHistoryCapture],
   );
@@ -492,26 +508,63 @@ export function useDeployRecords(
    * and onDeployResults() will be called with the modified rows
    */
   const pollResultsUntilDone = useCallback(
-    async (getRows: () => Pick<MetadataRow, 'deployResults' | 'sobject'>[]) => {
+    async (getRows: () => PollableRow[]) => {
+      isPolling.current = true;
       try {
-        let done = false;
-        while (!done && isMounted.current) {
-          await delay(5000);
-          done = await pollResults(getRows());
+        // Re-read after each pass rather than trusting the rows that pass started with, so a row resumed while
+        // the last check was in flight is still picked up
+        while (isMounted.current) {
+          await delay(POLL_INTERVAL_MS);
+          await pollResults(getRows());
+          if (!getRows().some(isAwaitingResults)) {
+            break;
+          }
         }
-        notifyUser(`Updating records has finished`, { body: 'Updating records has finished', tag: 'massUpdateRecords' });
+        if (getRows().some(({ deployResults }) => deployResults.statusCheckFailed)) {
+          notifyUser(`Unable to get the status of your update`, {
+            body: 'Your update itself is not affected - check its status again in Jetstream',
+            tag: 'massUpdateRecords',
+          });
+        } else {
+          notifyUser(`Updating records has finished`, { body: 'Updating records has finished', tag: 'massUpdateRecords' });
+        }
       } catch (ex) {
         tracker.error('There was an error polling for mass record update results', ex);
         logger.warn('Error polling for jobs', ex);
         notifyUser(`Updating records has failed`, { body: 'There was a problem with your data processing', tag: 'massUpdateRecords' });
+      } finally {
+        isPolling.current = false;
       }
     },
     [notifyUser, pollResults],
+  );
+
+  /**
+   * Picks polling back up for a row whose status checks were given up on. The Salesforce job was never affected, so
+   * the row only needs to go back in progress; a poll loop still running for other rows picks it up on its next pass.
+   * Results are not recaptured to Data History, which already settled the entry when polling gave up.
+   */
+  const resumePolling = useCallback(
+    (row: PollableRow, getRows: () => PollableRow[]) => {
+      onDeployResults(row.sobject, {
+        ...row.deployResults,
+        done: false,
+        status: 'In Progress',
+        statusCheckFailed: false,
+        processingEndTime: null,
+        fatalErrorMessage: null,
+      });
+      if (!isPolling.current) {
+        void pollResultsUntilDone(getRows);
+      }
+    },
+    [onDeployResults, pollResultsUntilDone],
   );
 
   return {
     loadDataForRows,
     loadDataForProvidedRecords,
     pollResultsUntilDone,
+    resumePolling,
   };
 }

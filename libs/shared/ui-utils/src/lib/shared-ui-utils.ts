@@ -9,6 +9,7 @@ import {
   checkMetadataResults,
   checkMetadataRetrieveResults,
   checkMetadataRetrieveResultsAndDeployToTarget,
+  isTransientRequestFailure,
 } from '@jetstream/shared/data';
 import { NOOP, REGEX, delay, ensureArray, ensureBoolean, getErrorMessage, orderObjectsBy, orderValues } from '@jetstream/shared/utils';
 import type {
@@ -1078,6 +1079,27 @@ const DEFAULT_INTERVAL_5_SEC = 5000;
 const DEFAULT_MAX_ATTEMPTS = 500;
 // number of attempts before checking less often
 const BACK_OFF_INTERVAL = 25;
+/** Consecutive transient failures a status check absorbs before the poll gives up */
+const MAX_STATUS_CHECK_ATTEMPTS = 3;
+
+/**
+ * Status checks are read-only, so one that fails transiently (a dropped connection to Jetstream or Salesforce) is
+ * repeated after the poll interval instead of failing a job that is still running in Salesforce. Only a run of
+ * consecutive failures, or one the server rejected outright, ends the poll.
+ */
+export async function checkStatusWithRetry<T>(checkStatus: () => Promise<T>, retryDelay: number): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await checkStatus();
+    } catch (ex) {
+      if (attempt >= MAX_STATUS_CHECK_ATTEMPTS || !isTransientRequestFailure(ex)) {
+        throw ex;
+      }
+      logger.warn('[POLL] Status check failed, checking again', { attempt, error: getErrorMessage(ex) });
+      await delay(retryDelay);
+    }
+  }
+}
 
 export function checkIfBulkApiJobIsDone(jobInfo: BulkJobWithBatches, totalBatches: number) {
   if (jobInfo.state === 'Failed' || jobInfo.state === 'Aborted') {
@@ -1115,7 +1137,7 @@ export async function pollMetadataResultsUntilDone(
   let deployResults: DeployResult = {} as DeployResult;
   while (!done && attempts <= maxAttempts) {
     await delay(interval);
-    deployResults = await checkMetadataResults(selectedOrg, id, includeDetails);
+    deployResults = await checkStatusWithRetry(() => checkMetadataResults(selectedOrg, id, includeDetails), interval);
     logger.log({ deployResults });
     onChecked(deployResults);
     done = deployResults.done;
@@ -1157,7 +1179,7 @@ export async function pollRetrieveMetadataResultsUntilDone(
     if (isCanceled && isCanceled()) {
       throw new Error(JOB_CANCELED_ERROR_MESSAGE);
     }
-    retrieveResults = await checkMetadataRetrieveResults(selectedOrg, id);
+    retrieveResults = await checkStatusWithRetry(() => checkMetadataRetrieveResults(selectedOrg, id), interval);
     logger.log({ retrieveResults });
     onChecked(retrieveResults);
     done = retrieveResults.done;
@@ -1194,7 +1216,7 @@ export async function pollBulkApiJobUntilDone(
     await delay(interval);
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    jobInfoWithBatches = await bulkApiGetJob(selectedOrg, jobInfo.id!);
+    jobInfoWithBatches = await checkStatusWithRetry(() => bulkApiGetJob(selectedOrg, jobInfo.id!), interval);
 
     logger.log({ jobInfoWithBatches });
     onChecked(jobInfoWithBatches);

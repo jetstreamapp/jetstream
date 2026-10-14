@@ -38,6 +38,8 @@ export interface DeployResults {
   processingEndTime?: Maybe<string>;
   lastChecked?: string; // {formatDate(lastChecked, 'h:mm:ss')}
   fatalErrorMessage?: Maybe<string>;
+  /** Polling gave up on the job's status; the job itself is unaffected and keeps running in Salesforce */
+  statusCheckFailed?: boolean;
 }
 
 export interface ValidationResults {

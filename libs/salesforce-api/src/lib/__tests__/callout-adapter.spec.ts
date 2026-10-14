@@ -964,15 +964,39 @@ describe('callout-adapter XML parsing', () => {
       });
     });
 
-    it('rethrows any other network failure unchanged', async () => {
-      const networkError = new TypeError('fetch failed', { cause: Object.assign(new Error('connect ECONNRESET'), { code: 'ECONNRESET' }) });
-      const mockFetch = vi.fn(() => Promise.reject(networkError)) as unknown as FetchFn;
+    it('reports any other connection failure as a 502 naming the cause, and logs it', async () => {
+      const mockFetch = vi.fn(() =>
+        Promise.reject(new TypeError('fetch failed', { cause: Object.assign(new Error('other side closed'), { code: 'UND_ERR_SOCKET' }) })),
+      ) as unknown as FetchFn;
+      const logger = { trace: vi.fn(), error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() };
+
+      const apiRequest = getApiRequestFactoryFn(mockFetch)({ logger });
+
+      const request = apiRequest({ url: '/services/data/v67.0/jobs/ingest/750', method: 'GET', sessionInfo: mockSessionInfo });
+      await expect(request).rejects.toBeInstanceOf(ApiRequestError);
+      await expect(request).rejects.toMatchObject({
+        status: 502,
+        message: 'The connection to Salesforce failed (UND_ERR_SOCKET). This is usually temporary - please try again.',
+      });
+      expect(logger.warn).toHaveBeenCalledWith(
+        {
+          code: 'UND_ERR_SOCKET',
+          cause: 'other side closed',
+          method: 'GET',
+          hostname: 'test.salesforce.com',
+          pathname: '/services/data/v67.0/jobs/ingest/750',
+        },
+        '[SALESFORCE][CONNECTION FAILED]',
+      );
+    });
+
+    it('rethrows failures that did not come from the connection unchanged', async () => {
+      const abortError = new DOMException('This operation was aborted', 'AbortError');
+      const mockFetch = vi.fn(() => Promise.reject(abortError)) as unknown as FetchFn;
 
       const apiRequest = getApiRequestFactoryFn(mockFetch)();
 
-      await expect(apiRequest({ url: '/services/oauth2/userinfo', method: 'GET', sessionInfo: mockSessionInfo })).rejects.toBe(
-        networkError,
-      );
+      await expect(apiRequest({ url: '/services/oauth2/userinfo', method: 'GET', sessionInfo: mockSessionInfo })).rejects.toBe(abortError);
     });
   });
 

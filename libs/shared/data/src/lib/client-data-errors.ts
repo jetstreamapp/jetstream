@@ -57,6 +57,25 @@ export function isApiRequestError(error: unknown): error is ApiRequestError {
   return error instanceof Error && (error as Partial<ApiRequestError>).isApiRequestError === true;
 }
 
+/** Message of a request the caller canceled - the capitalized form the error tracker's ignore list matches */
+export const REQUEST_CANCELED_MESSAGE = 'Canceled';
+
+/**
+ * True when the request failed for a reason that repeating it may not hit again: no response at all (connection
+ * drop, offline) or a 429/5xx, which includes an upstream Salesforce connection failure the server reports as a 502.
+ * A 4xx is the server rejecting the request itself, which a repeat would not change.
+ */
+export function isTransientRequestFailure(error: unknown): boolean {
+  if (!isApiRequestError(error)) {
+    return false;
+  }
+  const { status, message } = error;
+  if (status === null) {
+    return message !== REQUEST_CANCELED_MESSAGE;
+  }
+  return status === 429 || status >= 500;
+}
+
 /**
  * True when the server explicitly rejected the request as unauthenticated or forbidden, as opposed
  * to a network failure or a server error, which say nothing about whether the user is signed in.

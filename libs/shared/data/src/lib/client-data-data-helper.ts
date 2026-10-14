@@ -27,7 +27,7 @@ import isString from 'lodash/isString';
 import { v4 as uuid } from 'uuid';
 import { getCacheItemHttp, saveCacheItemHttp } from './client-data-cache';
 import { SOBJECT_DESCRIBE_CACHED_RESPONSES } from './client-data-data-cached-responses';
-import { ApiRequestError, StepUpRequiredError } from './client-data-errors';
+import { ApiRequestError, REQUEST_CANCELED_MESSAGE, StepUpRequiredError } from './client-data-errors';
 import { errorMiddleware, notifyOrgActivity } from './middleware';
 
 interface RequestOptions {
@@ -427,7 +427,7 @@ function responseErrorInterceptor(options: RequestOptions) {
       }
     } else if (error.code === AxiosError.ERR_CANCELED) {
       // Keep the capitalized form the error tracker's ignore list matches (axios's default is lowercase 'canceled')
-      message = 'Canceled';
+      message = REQUEST_CANCELED_MESSAGE;
     } else {
       // No HTTP response at all (connection drop, offline, proxy kill). Surface the network-level detail
       // so these are distinguishable from genuinely unknown failures in the UI and in error tracking.
