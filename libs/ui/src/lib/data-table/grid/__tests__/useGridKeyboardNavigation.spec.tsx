@@ -7,7 +7,9 @@ import { TanstackColumnDef, TanstackTable } from '../grid-types';
 import { useGridKeyboardNavigation } from '../keyboard/useGridKeyboardNavigation';
 import { getSelectionBounds } from '../selection/grid-selection';
 
-const copyRecordsToClipboard = vi.hoisted(() => vi.fn());
+const copyRecordsToClipboard = vi.hoisted(() =>
+  vi.fn<typeof import('@jetstream/shared/ui-utils').copyRecordsToClipboard>(async () => true),
+);
 vi.mock('@jetstream/shared/ui-utils', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@jetstream/shared/ui-utils')>()),
   copyRecordsToClipboard,
@@ -110,6 +112,28 @@ describe('useGridKeyboardNavigation — copying a range', () => {
       { c1: '', c2: '' },
       { c1: 'Charlie', c2: '30' },
     ]);
+  });
+
+  test('announces "Copied" only when the clipboard write landed', async () => {
+    const onAnnounce = vi.fn();
+    const { result } = renderHook(() => {
+      const table = useTable({
+        features: jetstreamTableFeatures,
+        data,
+        columns,
+        getRowId: (row) => row._key,
+      }) as unknown as TanstackTable<Row>;
+      return useGridKeyboardNavigation({ table, getRootElement: () => null, onAnnounce });
+    });
+    act(() => result.current.handleCellMouseDown('1', 'Name', false));
+    act(() => result.current.handleCellMouseEnter('2', 'Amount'));
+
+    await act(async () => result.current.copySelection());
+    expect(onAnnounce).toHaveBeenLastCalledWith('Copied 2 rows by 2 columns');
+
+    copyRecordsToClipboard.mockResolvedValueOnce(false);
+    await act(async () => result.current.copySelection());
+    expect(onAnnounce).toHaveBeenLastCalledWith('Unable to copy to the clipboard.');
   });
 });
 

@@ -40,6 +40,8 @@ export type GridInteractionSource = 'mouse' | 'keyboard' | 'select-all' | 'drag-
 /** Rows to jump on PageUp/PageDown (approximate viewport page). */
 const PAGE_SIZE = 12;
 
+const COPY_FAILED_ANNOUNCEMENT = 'Unable to copy to the clipboard.';
+
 /**
  * Interactive controls inside a cell that Space/Enter can "activate" (and that Tab cycles in actionable
  * mode). Deliberately does NOT exclude `tabindex="-1"` — in-cell controls are removed from the page tab
@@ -705,15 +707,18 @@ export function useGridKeyboardNavigation<TRow extends object>({
         // text/plain Excel string — pastes into Excel/Sheets as a proper grid.
         const rect = boundsList[0];
         const { fields, records } = buildRegion(rect);
-        void copyRecordsToClipboard(records, 'excel', fields, false);
-        flashCells(getRootElement(), rows, columns, rect.minRowIndex, rect.maxRowIndex, rect.minColumnIndex, rect.maxColumnIndex);
         const copiedRowCount = records.length - (includeHeader ? 1 : 0);
         const copiedColCount = fields.length;
-        onAnnounce?.(
-          `Copied ${copiedRowCount} ${copiedRowCount === 1 ? 'row' : 'rows'} by ${copiedColCount} ${
-            copiedColCount === 1 ? 'column' : 'columns'
-          }`,
+        void copyRecordsToClipboard(records, 'excel', fields, false).then((copied) =>
+          onAnnounce?.(
+            copied
+              ? `Copied ${copiedRowCount} ${copiedRowCount === 1 ? 'row' : 'rows'} by ${copiedColCount} ${
+                  copiedColCount === 1 ? 'column' : 'columns'
+                }`
+              : COPY_FAILED_ANNOUNCEMENT,
+          ),
         );
+        flashCells(getRootElement(), rows, columns, rect.minRowIndex, rect.maxRowIndex, rect.minColumnIndex, rect.maxColumnIndex);
         return;
       }
 
@@ -727,8 +732,9 @@ export function useGridKeyboardNavigation<TRow extends object>({
         return transformTabularDataToExcelStr(records, fields);
       });
       // copy-to-clipboard falls back to execCommand where the Clipboard API is blocked (the Canvas app's iframe).
-      void copyToClipboard(blocks.join('\n\n'), { format: 'text/plain' });
-      onAnnounce?.(`Copied ${copiedCellCount} cells across ${boundsList.length} ranges`);
+      void copyToClipboard(blocks.join('\n\n'), { format: 'text/plain' }).then((copied) =>
+        onAnnounce?.(copied ? `Copied ${copiedCellCount} cells across ${boundsList.length} ranges` : COPY_FAILED_ANNOUNCEMENT),
+      );
     },
     [table, getRootElement, onAnnounce],
   );
