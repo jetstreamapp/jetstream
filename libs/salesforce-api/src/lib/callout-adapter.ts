@@ -198,6 +198,10 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
         method,
         body,
         duplex,
+        // Salesforce marks describe responses as cacheable, and where Salesforce is called straight from the
+        // browser (Canvas, web extension) the HTTP cache kept serving a stale describe even after an explicit
+        // refresh, so new objects/fields never appeared. Jetstream keeps its own cache, so always go to the network.
+        cache: 'no-store',
         headers: {
           // default headers, can be overridden by caller
           [HTTP.HEADERS.CONTENT_TYPE]: 'application/json; charset=UTF-8',

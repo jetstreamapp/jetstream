@@ -51,6 +51,7 @@ export interface FetchOptions {
   headers?: [string, string][] | Record<string, string> | Headers;
   duplex?: ApiRequestOptions['duplex'];
   signal?: AbortSignal;
+  cache?: RequestCache;
 }
 
 export interface FetchResponse<T = unknown> {
