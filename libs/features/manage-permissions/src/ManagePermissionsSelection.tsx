@@ -1,6 +1,13 @@
 import { css } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { formatNumber, useNonInitialEffect, usePrimaryActionShortcut, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
+import {
+  formatNumber,
+  getManagedPermissionSetSource,
+  isManagedPermissionSet,
+  useNonInitialEffect,
+  usePrimaryActionShortcut,
+  useProfilesAndPermSets,
+} from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import {
@@ -14,7 +21,9 @@ import {
 } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
+  Checkbox,
   ConnectedSobjectListMultiSelect,
+  Grid,
   Icon,
   KeyboardShortcut,
   ListWithFilterMultiSelect,
@@ -44,6 +53,7 @@ import { useResetAtom } from 'jotai/utils';
 import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { usePermissionableSobjects } from './usePermissionableSobjects';
+import { useShowManagedPermissionSets } from './useShowManagedPermissionSets';
 import { getPermissionsSobjectFilter } from './utils/permission-manager-utils';
 
 const HEIGHT_BUFFER = 170;
@@ -80,23 +90,42 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const { trackEvent } = useAmplitude();
 
-  const renderPopoverTrigger = (recordType: ProfileOrPermSetRecordType) => (item: ListItem) => (
-    <ProfileOrPermSetPopover
-      org={selectedOrg}
-      serverUrl={serverUrl}
-      skipFrontDoorAuth={skipFrontDoorAuth}
-      recordId={item.id}
-      recordType={recordType}
-      meta={item.meta as PermissionSetWithProfileRecord | PermissionSetNoProfileRecord | undefined}
-      allowManageAssignments={recordType === 'PermissionSet'}
-      trackEvent={trackEvent}
-    />
-  );
+  const renderPopoverTrigger = (recordType: ProfileOrPermSetRecordType) => (item: ListItem) => {
+    const meta = item.meta as PermissionSetWithProfileRecord | PermissionSetNoProfileRecord | undefined;
+    return (
+      <Grid verticalAlign="center">
+        {recordType === 'PermissionSet' && isManagedPermissionSet(meta, selectedOrg.orgNamespacePrefix) && (
+          <Tooltip
+            content={`Provided by ${getManagedPermissionSetSource(meta)}. Salesforce does not allow these permissions to be changed, so this permission set is read-only.`}
+          >
+            <Icon
+              type="utility"
+              icon="lock"
+              className="slds-icon slds-icon-text-default slds-icon_xx-small slds-m-right_xx-small"
+              omitContainer
+              description="Managed, read-only"
+            />
+          </Tooltip>
+        )}
+        <ProfileOrPermSetPopover
+          org={selectedOrg}
+          serverUrl={serverUrl}
+          skipFrontDoorAuth={skipFrontDoorAuth}
+          recordId={item.id}
+          recordType={recordType}
+          meta={meta}
+          allowManageAssignments={recordType === 'PermissionSet'}
+          trackEvent={trackEvent}
+        />
+      </Grid>
+    );
+  };
 
   const [profiles, setProfiles] = useAtom(fromPermissionsState.profilesState);
   const [selectedProfiles, setSelectedProfiles] = useAtom(fromPermissionsState.selectedProfilesPermSetState);
 
   const [permissionSets, setPermissionSets] = useAtom(fromPermissionsState.permissionSetsState);
+  const [managedPermissionSets, setManagedPermissionSets] = useAtom(fromPermissionsState.managedPermissionSetsState);
   const [selectedPermissionSets, setSelectedPermissionSets] = useAtom(fromPermissionsState.selectedPermissionSetsState);
 
   const [sobjects, setSobjects] = useAtom(fromPermissionsState.sObjectsState);
@@ -113,7 +142,8 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
 
   const jobs = useAtomValue(jobsState);
 
-  const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg, profiles, permissionSets);
+  const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg, profiles, permissionSets, managedPermissionSets);
+  const { showManagedPermissionSets, toggleShowManagedPermissionSets } = useShowManagedPermissionSets();
 
   // Objects Salesforce will not accept any permission record for (ApexClass, Attachment, ...) are excluded
   // from the picker. Objects that support only field-level security (PricebookEntry, Task, ...) are kept,
@@ -127,6 +157,26 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   const sobjectFilterFn = useMemo(() => getPermissionsSobjectFilter(permissionableSobjects), [permissionableSobjects]);
 
   const hasSelectionsMade = useAtomValue(fromPermissionsState.hasSelectionsMade);
+  const permissionListsLoaded = useAtomValue(fromPermissionsState.permissionListsLoaded);
+
+  const visiblePermissionSets = useMemo(() => {
+    if (!showManagedPermissionSets || !managedPermissionSets?.length) {
+      return permissionSets;
+    }
+    return (permissionSets || []).concat(managedPermissionSets);
+  }, [permissionSets, managedPermissionSets, showManagedPermissionSets]);
+
+  /**
+   * Hiding managed permission sets has to drop them from the selection as well - otherwise the editor would
+   * build read-only columns for permission sets the user can no longer see or deselect.
+   */
+  function handleToggleManagedPermissionSets(visible: boolean) {
+    toggleShowManagedPermissionSets(visible);
+    if (!visible && managedPermissionSets?.length) {
+      const managedIds = new Set(managedPermissionSets.map(({ id }) => id));
+      setSelectedPermissionSets((previouslySelected) => previouslySelected.filter((id) => !managedIds.has(id)));
+    }
+  }
 
   const isAnalysis = selectionMode === 'permission-analysis';
   const analysisToolsEnabled = useFeatureFlag('analysis-tools');
@@ -135,7 +185,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
     return selectedProfiles.length > 0 || selectedPermissionSets.length > 0;
   }, [selectedProfiles.length, selectedPermissionSets.length]);
 
-  const continueEnabled = isAnalysis ? canContinueAnalysis : hasSelectionsMade;
+  const continueEnabled = permissionListsLoaded && (isAnalysis ? canContinueAnalysis : hasSelectionsMade);
 
   // Run only on first render
   useEffect(() => {
@@ -148,7 +198,8 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   useNonInitialEffect(() => {
     setProfiles(profilesAndPermSetsData.profiles);
     setPermissionSets(profilesAndPermSetsData.permissionSets);
-  }, [profilesAndPermSetsData.profiles, profilesAndPermSetsData.permissionSets]);
+    setManagedPermissionSets(profilesAndPermSetsData.managedPermissionSets);
+  }, [profilesAndPermSetsData.profiles, profilesAndPermSetsData.permissionSets, profilesAndPermSetsData.managedPermissionSets]);
 
   useEffect(() => {
     resetFieldsByObject();
@@ -385,12 +436,24 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
                 descriptorSingular: 'permission set',
                 descriptorPlural: 'permission sets',
               }}
-              items={permissionSets}
+              items={visiblePermissionSets}
               allowRefresh
               lastRefreshed={profilesAndPermSetsData.lastRefreshed}
               selectedItems={selectedPermissionSets}
               loading={profilesAndPermSetsData.loading}
               itemTrailingRenderer={renderPopoverTrigger('PermissionSet')}
+              headerContent={
+                !!managedPermissionSets?.length && (
+                  <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
+                    <Checkbox
+                      id="show-managed-permission-sets"
+                      checked={showManagedPermissionSets}
+                      label={`Show managed permission sets (${formatNumber(managedPermissionSets.length)})`}
+                      onChange={handleToggleManagedPermissionSets}
+                    />
+                  </div>
+                )
+              }
               onSelected={setSelectedPermissionSets}
               errorReattempt={profilesAndPermSetsData.fetchMetadata}
               onRefresh={() => profilesAndPermSetsData.fetchMetadata(true)}

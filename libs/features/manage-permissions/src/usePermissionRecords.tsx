@@ -16,6 +16,8 @@ import {
   TabVisibilityPermissionDefinitionMap,
   TabVisibilityPermissionRecord,
 } from '@jetstream/types';
+import { fromPermissionsState } from '@jetstream/ui-core';
+import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   getFieldDefinitionKey,
@@ -38,6 +40,8 @@ const INVALID_ID_PREFIX = '000';
 
 export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: string[], profilePermSetIds: string[], permSetIds: string[]) {
   const isMounted = useRef(true);
+  // Profiles are never managed, so only permission set ids can appear here.
+  const readOnlyPermissionSetIds = useAtomValue(fromPermissionsState.managedPermissionSetIdsSelector);
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -102,7 +106,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
         queryAndCombineResults<TabDefinitionRecord>(limit, selectedOrg, getQueryTabDefinition(sobjects), true).then((tabs) =>
           groupByFlat(tabs, 'SobjectName'),
         ),
-        querySystemPermissions(limit, selectedOrg, profilePermSetIds, permSetIds),
+        querySystemPermissions(limit, selectedOrg, profilePermSetIds, permSetIds, readOnlyPermissionSetIds),
         queryFieldAuditMetadata(limit, selectedOrg, sobjects),
       ]).then(
         ([
@@ -140,6 +144,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
               permSetIds,
               objectPermissions,
               objectPermissionableSobjects,
+              readOnlyPermissionSetIds,
             ),
             fieldPermissionMap: getFieldPermissionMap(
               fieldDefinition,
@@ -147,6 +152,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
               permSetIds,
               fieldPermissions,
               fieldAudit.auditByFieldDefinitionId,
+              readOnlyPermissionSetIds,
             ),
             tabVisibilityPermissionMap: getTabVisibilityPermissionMap(
               sobjects,
@@ -154,6 +160,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
               permSetIds,
               tabVisibilityPermissions,
               tabDefinitions,
+              readOnlyPermissionSetIds,
             ),
             systemPermissionMap: systemPermissions.permissionMap,
             systemPermissionsUnavailable: systemPermissions.loadFailed,
@@ -208,6 +215,7 @@ function getSystemPermissionMap(
   selectedProfiles: string[],
   selectedPermissionSets: string[],
   permissionSetRecords: SystemPermissionSetRecord[],
+  readOnlyPermissionSetIds: ReadonlySet<string>,
 ): Record<string, SystemPermissionDefinitionMap> {
   const recordsById = groupByFlat(permissionSetRecords, 'Id');
 
@@ -224,6 +232,7 @@ function getSystemPermissionMap(
       const record = recordsById[id];
       currItem.permissions[id] = {
         enabled: record ? !!record[name] : false,
+        isReadOnly: readOnlyPermissionSetIds.has(id),
       };
     }
 
@@ -301,6 +310,7 @@ async function querySystemPermissions(
   selectedOrg: SalesforceOrgUi,
   profilePermSetIds: string[],
   permSetIds: string[],
+  readOnlyPermissionSetIds: ReadonlySet<string>,
 ): Promise<SystemPermissionResult> {
   const fetchUsingDescribe = async (skipDescribeCache: boolean) => {
     const describeResult = await limit(() => describeSObject(selectedOrg, 'PermissionSet', false, skipDescribeCache));
@@ -313,7 +323,7 @@ async function querySystemPermissions(
         systemPermissionFields.map(({ name }) => name),
       ),
     );
-    return getSystemPermissionMap(systemPermissionFields, profilePermSetIds, permSetIds, permissionSetRecords);
+    return getSystemPermissionMap(systemPermissionFields, profilePermSetIds, permSetIds, permissionSetRecords, readOnlyPermissionSetIds);
   };
 
   const fetchRetryingStaleDescribe = async () => {
@@ -443,6 +453,7 @@ function getObjectPermissionMap(
   selectedPermissionSets: string[],
   permissions: ObjectPermissionRecord[],
   objectPermissionableSobjects: Set<string>,
+  readOnlyPermissionSetIds: ReadonlySet<string>,
 ): Record<string, ObjectPermissionDefinitionMap> {
   const objectPermissionsByFieldByParentId = permissions.reduce((output: Record<string, Record<string, ObjectPermissionRecord>>, item) => {
     output[item.SobjectType] = output[item.SobjectType] || {};
@@ -462,6 +473,7 @@ function getObjectPermissionMap(
 
     function processProfileAndPermSet(id: string) {
       const permissionRecord = objectPermissionsByFieldByParentId[item]?.[id];
+      const isReadOnly = readOnlyPermissionSetIds.has(id);
       currItem.permissionKeys.push(id);
       if (permissionRecord) {
         currItem.permissions[id] = {
@@ -475,6 +487,7 @@ function getObjectPermissionMap(
           // Salesforce creates placeholder records in some cases, but the record is invalid and cannot be modified
           // we will create a new record which will supersede this one if the user modifies permissions
           record: permissionRecord.Id.startsWith(INVALID_ID_PREFIX) ? null : permissionRecord,
+          isReadOnly,
         };
       } else {
         currItem.permissions[id] = {
@@ -486,6 +499,7 @@ function getObjectPermissionMap(
           modifyAll: false,
           viewAllFields: false,
           record: null,
+          isReadOnly,
         };
       }
     }
@@ -504,6 +518,7 @@ function getFieldPermissionMap(
   selectedPermissionSets: string[],
   permissions: FieldPermissionRecord[],
   auditByFieldDefinitionId: Record<string, FieldAuditMetadata>,
+  readOnlyPermissionSetIds: ReadonlySet<string>,
 ): Record<string, FieldPermissionDefinitionMap> {
   const fieldPermissionsByFieldByParentId = permissions.reduce((output: Record<string, Record<string, FieldPermissionRecord>>, field) => {
     output[field.Field] = output[field.Field] || {};
@@ -524,6 +539,7 @@ function getFieldPermissionMap(
 
     function processProfileAndPermSet(id: string) {
       const fieldPermissionRecord = fieldPermissionsByFieldByParentId[fieldKey]?.[id];
+      const isReadOnly = readOnlyPermissionSetIds.has(id);
       currItem.permissionKeys.push(id);
       if (fieldPermissionRecord) {
         currItem.permissions[id] = {
@@ -532,12 +548,14 @@ function getFieldPermissionMap(
           // Salesforce creates placeholder records in some cases, but the record is invalid and cannot be modified
           // we will create a new record which will supersede this one if the user modifies permissions
           record: fieldPermissionRecord.Id.startsWith(INVALID_ID_PREFIX) ? null : fieldPermissionRecord,
+          isReadOnly,
         };
       } else {
         currItem.permissions[id] = {
           read: false,
           edit: false,
           record: null,
+          isReadOnly,
         };
       }
     }
@@ -556,6 +574,7 @@ function getTabVisibilityPermissionMap(
   selectedPermissionSets: string[],
   permissions: TabVisibilityPermissionRecord[],
   tabDefinitions: Record<string, TabDefinitionRecord>,
+  readOnlyPermissionSetIds: ReadonlySet<string>,
 ): Record<string, TabVisibilityPermissionDefinitionMap> {
   const objectPermissionsByFieldByParentId = permissions.reduce(
     (output: Record<string, Record<string, TabVisibilityPermissionRecord>>, item) => {
@@ -578,6 +597,7 @@ function getTabVisibilityPermissionMap(
 
     function processProfileAndPermSet(id: string) {
       const permissionRecord = objectPermissionsByFieldByParentId[item]?.[id];
+      const isReadOnly = readOnlyPermissionSetIds.has(id);
       currItem.permissionKeys.push(id);
       if (permissionRecord) {
         currItem.permissions[id] = {
@@ -585,6 +605,7 @@ function getTabVisibilityPermissionMap(
           visible: permissionRecord.Visibility === 'DefaultOn' ? true : false,
           record: permissionRecord,
           canSetPermission: true,
+          isReadOnly,
         };
       } else {
         currItem.permissions[id] = {
@@ -592,6 +613,7 @@ function getTabVisibilityPermissionMap(
           visible: false,
           record: null,
           canSetPermission: !!tabDefinitions[item],
+          isReadOnly,
         };
       }
     }

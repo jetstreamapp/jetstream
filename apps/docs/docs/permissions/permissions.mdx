@@ -38,6 +38,23 @@ there with the **Open in Permission Analysis** button on this screen.
 
 :::
 
+## Comparing against managed package permission sets
+
+Permission sets installed from a managed package, and the standard permission sets Salesforce provides (such as
+**Sales Cloud User**), are hidden by default because Salesforce does not allow their permissions to be changed.
+Turn on **Show managed permission sets** above the Permission Sets list to include them in your selection.
+
+These appear with a lock icon and the name of the package they came from, or **Salesforce standard**. You can view
+and export everything they grant and compare it side by side with your own permission sets, but every checkbox in
+their column is read-only, and they are never included when you save.
+
+:::note
+
+A permission set in your own org's namespace is not treated as managed - you publish that package, so Jetstream
+leaves those fully editable.
+
+:::
+
 ## Adjusting Permissions
 
 By default, field permissions will be shown. You can toggle the Object Permissions by clicking on the **Object Permissions** tab.

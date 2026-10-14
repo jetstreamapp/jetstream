@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
-import { ProfileOrPermSetPopover } from '@jetstream/ui';
+import { getManagedPermissionSetSource, isManagedPermissionSet } from '@jetstream/shared/ui-utils';
+import { Icon, ProfileOrPermSetPopover, Tooltip } from '@jetstream/ui';
 import { fromPermissionsState, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, selectedOrgState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
@@ -28,7 +29,8 @@ export function PermissionColumnGroupHeader({ id, label, type }: PermissionColum
 
   const isPermissionSet = type === 'Permission Set';
   const meta = isPermissionSet ? permissionSetsById[id] : profilesById[id];
-  const fullLabel = `${label} (${type})`;
+  const isReadOnly = isManagedPermissionSet(meta, selectedOrg.orgNamespacePrefix);
+  const fullLabel = isReadOnly ? `${label} (${type}) — Managed, read-only` : `${label} (${type})`;
 
   return (
     <span
@@ -39,6 +41,17 @@ export function PermissionColumnGroupHeader({ id, label, type }: PermissionColum
         max-width: 100%;
       `}
     >
+      {isReadOnly && (
+        <Tooltip content={`Provided by ${getManagedPermissionSetSource(meta)}. Salesforce does not allow these permissions to be changed.`}>
+          <Icon
+            type="utility"
+            icon="lock"
+            className="slds-icon slds-icon-text-default slds-icon_xx-small slds-shrink-none"
+            omitContainer
+            description="Managed, read-only"
+          />
+        </Tooltip>
+      )}
       <span className="slds-truncate" title={fullLabel}>
         {fullLabel}
       </span>

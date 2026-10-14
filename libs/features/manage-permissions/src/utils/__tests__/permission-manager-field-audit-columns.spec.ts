@@ -8,6 +8,8 @@ import {
 } from '../permission-manager-field-audit-columns';
 import { getFieldColumns } from '../permission-manager-table-utils';
 
+const NO_READ_ONLY: ReadonlySet<string> = new Set();
+
 const PROFILE_ID = '0PS1t000000Profile';
 const PERM_SET_ID = '0PS1t000000PermSet';
 
@@ -22,12 +24,12 @@ const AUDIT_COLUMN_KEYS = ['createdDate', 'createdBy', 'lastModifiedDate', 'last
 
 describe('field permission audit columns', () => {
   it('should place the audit columns after the row action and before any permission column', () => {
-    const columns = getFieldColumns([], [], {}, {});
+    const columns = getFieldColumns([], [], {}, {}, NO_READ_ONLY);
     expect(columns.map(({ key }) => key)).toEqual(['sobject', 'tableLabel', '_ROW_ACTION', ...AUDIT_COLUMN_KEYS]);
   });
 
   it('should keep every audit column ahead of the profile and permission set columns', () => {
-    const keys = getFieldColumns([PROFILE_ID], [PERM_SET_ID], profilesById, permissionSetsById).map(({ key }) => key);
+    const keys = getFieldColumns([PROFILE_ID], [PERM_SET_ID], profilesById, permissionSetsById, NO_READ_ONLY).map(({ key }) => key);
     const lastAuditIndex = Math.max(...AUDIT_COLUMN_KEYS.map((key) => keys.indexOf(key)));
     const firstPermissionIndex = keys.findIndex((key) => key.startsWith(PROFILE_ID) || key.startsWith(PERM_SET_ID));
 
@@ -36,7 +38,7 @@ describe('field permission audit columns', () => {
   });
 
   it('should leave the frozen columns unchanged and contiguous', () => {
-    const columns = getFieldColumns([PROFILE_ID], [], profilesById, {});
+    const columns = getFieldColumns([PROFILE_ID], [], profilesById, {}, NO_READ_ONLY);
     const frozenIndexes = columns.map((column, index) => ({ column, index })).filter(({ column }) => column.frozen);
 
     expect(frozenIndexes.map(({ column }) => column.key)).toEqual(['tableLabel', '_ROW_ACTION']);
@@ -44,20 +46,20 @@ describe('field permission audit columns', () => {
   });
 
   it('should keep the object group cell spanning only the object, field and row action columns', () => {
-    const [sobjectColumn] = getFieldColumns([PROFILE_ID], [], profilesById, {});
+    const [sobjectColumn] = getFieldColumns([PROFILE_ID], [], profilesById, {}, NO_READ_ONLY);
     expect(sobjectColumn.colSpan?.({ type: 'GROUP' } as any)).toBe(3);
     expect(sobjectColumn.colSpan?.({ type: 'ROW' } as any)).toBeUndefined();
   });
 
   it('should not make audit columns editable, which also keeps them out of paste targets', () => {
-    const columns = getFieldColumns([PROFILE_ID], [], profilesById, {});
+    const columns = getFieldColumns([PROFILE_ID], [], profilesById, {}, NO_READ_ONLY);
     AUDIT_COLUMN_KEYS.forEach((key) => {
       expect(columns.find((column) => column.key === key)?.editable).toBeUndefined();
     });
   });
 
   it('should omit the SET filter on date columns, where values are near unique per row', () => {
-    const columns = getFieldColumns([], [], {}, {});
+    const columns = getFieldColumns([], [], {}, {}, NO_READ_ONLY);
     expect(columns.find((column) => column.key === 'createdDate')?.filters).toEqual(['DATE']);
     expect(columns.find((column) => column.key === 'lastModifiedDate')?.filters).toEqual(['DATE']);
     // The user name columns have few distinct values, so the SET filter is useful there
@@ -65,7 +67,7 @@ describe('field permission audit columns', () => {
   });
 
   it('should format the date value and leave standard fields (which have no audit data) blank', () => {
-    const createdDate = getFieldColumns([], [], {}, {}).find((column) => column.key === 'createdDate');
+    const createdDate = getFieldColumns([], [], {}, {}, NO_READ_ONLY).find((column) => column.key === 'createdDate');
     const withAudit = { createdDate: '2020-04-22T14:48:23.000+0000' } as PermissionTableFieldCell;
     const standardField = {} as PermissionTableFieldCell;
 

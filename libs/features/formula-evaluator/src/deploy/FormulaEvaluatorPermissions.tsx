@@ -11,7 +11,12 @@ import {
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 
-export interface FormulaEvaluatorPermissionsProps extends Omit<ReturnType<typeof useProfilesAndPermSets>, 'profilesAndPermSetsById'> {
+// `managedPermissionSets` is omitted on purpose - deploying field permissions to a managed-package
+// permission set is not something Salesforce allows, so they are never offered here.
+export interface FormulaEvaluatorPermissionsProps extends Omit<
+  ReturnType<typeof useProfilesAndPermSets>,
+  'profilesAndPermSetsById' | 'managedPermissionSets'
+> {
   selectedOrg: SalesforceOrgUi;
   selectedProfiles: string[];
   selectedPermissionSets: string[];

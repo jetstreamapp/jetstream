@@ -3,6 +3,8 @@ import { ColumnWithFilter, computeFilterSetValues } from '@jetstream/ui';
 import { describe, expect, it } from 'vitest';
 import { getObjectColumns, getTabVisibilityColumns } from '../permission-manager-table-utils';
 
+const NO_READ_ONLY: ReadonlySet<string> = new Set();
+
 /**
  * Regression coverage for the `tableLabel` column resolving to the literal string `undefined (undefined)`.
  *
@@ -44,22 +46,22 @@ function getTableLabelSetValues<TRow extends object>(columns: ColumnWithFilter<T
 
 describe('tableLabel column filter values', () => {
   it('uses the formatted row label for the object table', () => {
-    const columns = getObjectColumns([], [], {}, {});
+    const columns = getObjectColumns([], [], {}, {}, NO_READ_ONLY);
     const rows = [buildObjectRow('Account', 'Account'), buildObjectRow('Albright Power', 'AlbrightPower__c')];
 
     expect(getTableLabelSetValues(columns, rows)).toEqual(['Account (Account)', 'Albright Power (AlbrightPower__c)']);
   });
 
   it('uses the formatted row label for the tab visibility table', () => {
-    const columns = getTabVisibilityColumns([], [], {}, {});
+    const columns = getTabVisibilityColumns([], [], {}, {}, NO_READ_ONLY);
     const rows = [buildTabRow('Account', 'Account'), buildTabRow('Albright Power', 'AlbrightPower__c')];
 
     expect(getTableLabelSetValues(columns, rows)).toEqual(['Account (Account)', 'Albright Power (AlbrightPower__c)']);
   });
 
   it.each([
-    ['object', () => getObjectColumns([], [], {}, {})],
-    ['tab visibility', () => getTabVisibilityColumns([], [], {}, {})],
+    ['object', () => getObjectColumns([], [], {}, {}, NO_READ_ONLY)],
+    ['tab visibility', () => getTabVisibilityColumns([], [], {}, {}, NO_READ_ONLY)],
   ])('does not override getValue on the %s tableLabel column', (_label, getColumns) => {
     // A `getValue` here would have to re-derive a value the row already holds - the source of the bug
     const tableLabelColumn = getColumns().find(({ key }) => key === 'tableLabel');

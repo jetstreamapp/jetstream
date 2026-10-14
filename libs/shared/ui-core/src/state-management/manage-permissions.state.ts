@@ -22,6 +22,12 @@ export const selectedProfilesPermSetState = atomWithReset<string[]>([]);
 
 export const permissionSetsState = atomWithReset<ListItem<string, PermissionSetNoProfileRecord>[] | null>(null);
 
+/**
+ * Managed-package and Salesforce standard permission sets (read-only). Kept apart from `permissionSetsState`
+ * because that atom seeds the editable list on remount - mixing the two would make managed sets look editable.
+ */
+export const managedPermissionSetsState = atomWithReset<ListItem<string, PermissionSetNoProfileRecord>[] | null>(null);
+
 export const selectedPermissionSetsState = atomWithReset<string[]>([]);
 
 export const fieldsByObject = atomWithReset<Record<string, string[]> | null>(null);
@@ -51,6 +57,14 @@ export const hasSelectionsMade = atom((get) => {
   return true;
 });
 
+/**
+ * The lists are cleared while a refresh is in flight (or after it fails). The editor learns which permission sets are
+ * read-only from the managed list, so it must not open without them - managed permission sets would become editable.
+ */
+export const permissionListsLoaded = atom((get) => {
+  return !!get(profilesState) && !!get(permissionSetsState) && !!get(managedPermissionSetsState);
+});
+
 export const profilesByIdSelector = atom<Record<string, PermissionSetWithProfileRecord>>((get) => {
   const profiles = get(profilesState);
   if (profiles) {
@@ -62,13 +76,15 @@ export const profilesByIdSelector = atom<Record<string, PermissionSetWithProfile
   return {};
 });
 
+// Includes managed permission sets - the editor needs their records to render the read-only columns.
 export const permissionSetsByIdSelector = atom<Record<string, PermissionSetNoProfileRecord>>((get) => {
-  const permSets = get(permissionSetsState);
-  if (permSets) {
-    return permSets.reduce<Record<string, PermissionSetNoProfileRecord>>((output, permSet) => {
-      output[permSet.id] = permSet.meta as PermissionSetNoProfileRecord;
-      return output;
-    }, {});
-  }
-  return {};
+  const permSets = (get(permissionSetsState) || []).concat(get(managedPermissionSetsState) || []);
+  return permSets.reduce<Record<string, PermissionSetNoProfileRecord>>((output, permSet) => {
+    output[permSet.id] = permSet.meta as PermissionSetNoProfileRecord;
+    return output;
+  }, {});
+});
+
+export const managedPermissionSetIdsSelector = atom<ReadonlySet<string>>((get) => {
+  return new Set((get(managedPermissionSetsState) || []).map(({ id }) => id));
 });

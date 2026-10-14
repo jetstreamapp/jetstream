@@ -7,6 +7,8 @@ import {
 import { describe, expect, it } from 'vitest';
 import { getObjectColumns, getObjectRows, updateRowsFromColumnAction, updateRowsFromRowAction } from '../permission-manager-table-utils';
 
+const NO_READ_ONLY: ReadonlySet<string> = new Set();
+
 /**
  * Objects such as PricebookEntry and Task accept `FieldPermissions` but have no `ObjectPermissions`
  * record, so they belong in the object picker (for their fields) while the object permission table has
@@ -24,7 +26,16 @@ function buildPermissionMap(apiName: string, supportsObjectPermissions: boolean)
       supportsObjectPermissions,
       permissionKeys: [PARENT_ID],
       permissions: {
-        [PARENT_ID]: { create: false, read: false, edit: false, delete: false, viewAll: false, modifyAll: false, viewAllFields: false },
+        [PARENT_ID]: {
+          create: false,
+          read: false,
+          edit: false,
+          delete: false,
+          viewAll: false,
+          modifyAll: false,
+          viewAllFields: false,
+          isReadOnly: false,
+        },
       },
     },
   };
@@ -42,9 +53,15 @@ describe('getObjectRows', () => {
 });
 
 describe('object permission columns', () => {
-  const columns = getObjectColumns([], [PARENT_ID], {} as Record<string, PermissionSetWithProfileRecord>, {
-    [PARENT_ID]: { Label: 'Sales User', Name: 'Sales_User' } as PermissionSetNoProfileRecord,
-  });
+  const columns = getObjectColumns(
+    [],
+    [PARENT_ID],
+    {} as Record<string, PermissionSetWithProfileRecord>,
+    {
+      [PARENT_ID]: { Label: 'Sales User', Name: 'Sales_User' } as PermissionSetNoProfileRecord,
+    },
+    NO_READ_ONLY,
+  );
   const permissionColumns = columns.filter((column) => column.key.startsWith(PARENT_ID));
 
   it.each([

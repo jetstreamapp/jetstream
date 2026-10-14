@@ -50,6 +50,11 @@ export interface ObjectPermissionItem {
   viewAllFields: boolean;
   record?: Maybe<ObjectPermissionRecord>;
   errorMessage?: string;
+  /**
+   * True for permission sets installed from a managed package. Salesforce rejects any change to them, so
+   * every edit path treats these as read-only and they are never included in a save.
+   */
+  isReadOnly: boolean;
 }
 
 /**
@@ -81,6 +86,11 @@ export interface FieldPermissionItem {
   edit: boolean;
   record?: Maybe<FieldPermissionRecord>;
   errorMessage?: Maybe<string>;
+  /**
+   * True for permission sets installed from a managed package. Salesforce rejects any change to them, so
+   * every edit path treats these as read-only and they are never included in a save.
+   */
+  isReadOnly: boolean;
 }
 
 export interface TabVisibilityPermissionDefinitionMap {
@@ -106,6 +116,11 @@ export interface TabVisibilityPermissionItem {
    */
   canSetPermission: boolean;
   errorMessage?: string;
+  /**
+   * True for permission sets installed from a managed package. Salesforce rejects any change to them, so
+   * every edit path treats these as read-only and they are never included in a save.
+   */
+  isReadOnly: boolean;
 }
 
 export interface SystemPermissionDefinitionMap {
@@ -121,6 +136,11 @@ export interface SystemPermissionDefinitionMap {
 export interface SystemPermissionItem {
   enabled: boolean;
   errorMessage?: Maybe<string>;
+  /**
+   * True for permission sets installed from a managed package. Salesforce rejects any change to them, so
+   * every edit path treats these as read-only and they are never included in a save.
+   */
+  isReadOnly: boolean;
 }
 
 export interface ObjectPermissionRecordForSave extends Omit<ObjectPermissionRecord, 'Id' | 'Parent'> {
@@ -210,6 +230,11 @@ export interface PermissionTableObjectCellPermissionBase<
   sobject: string;
   errorMessage?: Maybe<string>;
   record: T;
+  /**
+   * True for permission sets installed from a managed package. Salesforce rejects any change to them, so
+   * every edit path treats these as read-only and they are never included in a save.
+   */
+  isReadOnly: boolean;
 }
 
 export interface PermissionTableObjectCellPermission extends PermissionTableObjectCellPermissionBase<ObjectPermissionItem> {
