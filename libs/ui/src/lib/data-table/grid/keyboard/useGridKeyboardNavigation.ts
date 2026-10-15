@@ -729,7 +729,8 @@ export function useGridKeyboardNavigation<TRow extends object>({
         const { fields, records } = buildRegion(rect);
         copiedCellCount += (records.length - (includeHeader ? 1 : 0)) * fields.length;
         flashCells(getRootElement(), rows, columns, rect.minRowIndex, rect.maxRowIndex, rect.minColumnIndex, rect.maxColumnIndex);
-        return transformTabularDataToExcelStr(records, fields);
+        // The fields are synthetic keys (c0, c1...); "with header" rows are already in `records` as data.
+        return transformTabularDataToExcelStr(records, fields, false);
       });
       // copy-to-clipboard falls back to execCommand where the Clipboard API is blocked (the Canvas app's iframe).
       void copyToClipboard(blocks.join('\n\n'), { format: 'text/plain' }).then((copied) =>
