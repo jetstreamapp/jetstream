@@ -6,6 +6,7 @@ import {
   getClientInfoFromReq,
   getCookieConfig,
   hashPassword,
+  isHMACDoubleCSRFTokenValidForSession,
   randomString,
   timingSafeStringCompare,
   validateCSRFToken,
@@ -282,6 +283,33 @@ describe('validateHMACDoubleCSRFToken', () => {
     const isValid = validateHMACDoubleCSRFToken(secret, invalidToken, invalidToken, sessionId);
 
     expect(isValid).toBe(false);
+  });
+});
+
+describe('isHMACDoubleCSRFTokenValidForSession', () => {
+  const secret = 'test-secret';
+  const sessionId = 'session-123';
+
+  it('accepts a token issued for the session without needing a header', () => {
+    const token = generateHMACDoubleCSRFToken(secret, sessionId);
+
+    expect(isHMACDoubleCSRFTokenValidForSession(secret, token, sessionId)).toBe(true);
+  });
+
+  it('rejects a token issued for a previous session', () => {
+    const token = generateHMACDoubleCSRFToken(secret, 'previous-session');
+
+    expect(isHMACDoubleCSRFTokenValidForSession(secret, token, sessionId)).toBe(false);
+  });
+
+  it('rejects a token signed with a different secret', () => {
+    const token = generateHMACDoubleCSRFToken('previous-secret', sessionId);
+
+    expect(isHMACDoubleCSRFTokenValidForSession(secret, token, sessionId)).toBe(false);
+  });
+
+  it('rejects a malformed token', () => {
+    expect(isHMACDoubleCSRFTokenValidForSession(secret, 'not-a-valid-token', sessionId)).toBe(false);
   });
 });
 

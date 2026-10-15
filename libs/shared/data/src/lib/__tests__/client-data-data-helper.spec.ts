@@ -1,10 +1,17 @@
+import { CSRF_TOKEN_INVALID_ERROR_TYPE } from '@jetstream/auth/types';
 import { HTTP } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AxiosAdapterConfig, handleRequest } from '../client-data-data-helper';
+import { getCacheItemHttp, saveCacheItemHttp } from '../client-data-cache';
+import { AxiosAdapterConfig, getCsrfTokenFromCookie, handleRequest } from '../client-data-data-helper';
 import { ApiRequestError, isAuthenticationFailure } from '../client-data-errors';
 import { onOrgActivity } from '../middleware';
+
+vi.mock('../client-data-cache', () => ({
+  getCacheItemHttp: vi.fn(async () => null),
+  saveCacheItemHttp: vi.fn(async () => undefined),
+}));
 
 const mockedAdapter = vi.fn<(config: InternalAxiosRequestConfig) => Promise<AxiosResponse>>();
 
@@ -217,5 +224,154 @@ describe('org activity reporting', () => {
     await captureResult(handleRequest({ method: 'GET', url: '/api/query' }, { org }));
 
     expect(activeOrgs).toEqual(['org-1']);
+  });
+});
+
+describe('CSRF rejection', () => {
+  // jsdom serves the page over http, so the cookie has no `__Host-` prefix
+  const csrfCookieName = HTTP.COOKIE.CSRF_SUFFIX;
+
+  function setCsrfCookie(value: string) {
+    document.cookie = `${csrfCookieName}=${value}; path=/`;
+  }
+
+  function errorResponseWithBody(status: number, data: Record<string, unknown>): AxiosError {
+    const config = { method: 'post', url: '/api/query' } as InternalAxiosRequestConfig;
+    return new AxiosError(`Request failed with status code ${status}`, AxiosError.ERR_BAD_REQUEST, config, {}, {
+      config,
+      data,
+      status,
+      statusText: '',
+      headers: {},
+    } as AxiosResponse);
+  }
+
+  const csrfRejection = () =>
+    errorResponseWithBody(403, { error: true, message: 'Invalid CSRF token', errorType: CSRF_TOKEN_INVALID_ERROR_TYPE });
+
+  const sentCsrfTokens = () => mockedAdapter.mock.calls.map(([config]) => config.headers[HTTP.HEADERS.X_CSRF_TOKEN]);
+
+  beforeEach(() => {
+    mockedAdapter.mockReset();
+    vi.mocked(getCacheItemHttp).mockReset();
+    vi.mocked(saveCacheItemHttp).mockReset();
+    AxiosAdapterConfig.adapter = mockedAdapter;
+  });
+
+  afterEach(() => {
+    document.cookie = `${csrfCookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+    AxiosAdapterConfig.adapter = undefined;
+  });
+
+  it('resends the request once with the cookie the server just replaced', async () => {
+    setCsrfCookie('token-for-previous-session');
+    mockedAdapter
+      .mockImplementationOnce(async () => {
+        // Stands in for the Set-Cookie on the rejection
+        setCsrfCookie('token-for-current-session');
+        throw csrfRejection();
+      })
+      .mockImplementationOnce((config) => Promise.resolve(successResponse(config, { records: [] })));
+
+    const result = await handleRequest({ method: 'POST', url: '/api/query', data: { query: 'SELECT Id FROM Account' } });
+
+    expect(result).toEqual({ data: { records: [] } });
+    expect(sentCsrfTokens()).toEqual(['token-for-previous-session', 'token-for-current-session']);
+  });
+
+  it('sends the header on the resend when the cookie did not exist yet for the first attempt', async () => {
+    mockedAdapter
+      .mockImplementationOnce(async () => {
+        // A concurrent request re-created the cookie after the browser dropped it
+        setCsrfCookie('token-for-current-session');
+        throw csrfRejection();
+      })
+      .mockImplementationOnce((config) => Promise.resolve(successResponse(config, {})));
+
+    await handleRequest({ method: 'PUT', url: '/api/orgs/org-1/move', data: {} });
+
+    expect(sentCsrfTokens()).toEqual([undefined, 'token-for-current-session']);
+  });
+
+  it('reports a second CSRF rejection instead of retrying again', async () => {
+    setCsrfCookie('token');
+    mockedAdapter.mockRejectedValue(csrfRejection());
+
+    const error = await captureResult(handleRequest({ method: 'POST', url: '/api/query', data: {} }));
+
+    expect(mockedAdapter).toHaveBeenCalledTimes(2);
+    expect(error).toBeInstanceOf(ApiRequestError);
+    expect((error as ApiRequestError).status).toBe(403);
+    expect((error as ApiRequestError).message).toBe('Invalid CSRF token');
+  });
+
+  /**
+   * Concurrent rejections each issue a different replacement token. Any await between reading the
+   * cookie and sending lets another one land in between, so the resend would send a header that no
+   * longer matches its cookie and fail with no retry left.
+   */
+  it('sends the resend with the cookie as it is at send time, without a cache lookup in between', async () => {
+    const org = { uniqueId: 'org-1' } as SalesforceOrgUi;
+    setCsrfCookie('token-for-previous-session');
+    vi.mocked(getCacheItemHttp)
+      .mockResolvedValueOnce(null)
+      .mockImplementation(async () => {
+        setCsrfCookie('token-from-concurrent-rejection');
+        return null;
+      });
+    const cookieAtSend: (string | null)[] = [];
+    mockedAdapter
+      .mockImplementationOnce(async () => {
+        setCsrfCookie('token-for-current-session');
+        throw csrfRejection();
+      })
+      .mockImplementationOnce(async (config) => {
+        cookieAtSend.push(getCsrfTokenFromCookie());
+        return successResponse(config, { records: [] });
+      });
+
+    await handleRequest(
+      { method: 'POST', url: '/api/query', data: { query: 'SELECT Id FROM Account' } },
+      { org, useCache: true, useBodyInCacheKey: true },
+    );
+
+    expect(getCacheItemHttp).toHaveBeenCalledTimes(1);
+    expect(sentCsrfTokens()[1]).toBe('token-for-current-session');
+    expect(cookieAtSend).toEqual(['token-for-current-session']);
+  });
+
+  it('processes the recovered response once', async () => {
+    const org = { uniqueId: 'org-1' } as SalesforceOrgUi;
+    const activeOrgs: string[] = [];
+    const unsubscribe = onOrgActivity(({ uniqueId }) => activeOrgs.push(uniqueId));
+    setCsrfCookie('token-for-previous-session');
+    mockedAdapter
+      .mockImplementationOnce(async () => {
+        setCsrfCookie('token-for-current-session');
+        throw csrfRejection();
+      })
+      .mockImplementationOnce(async (config) => ({
+        ...successResponse(config, { records: [] }),
+        headers: { [HTTP.HEADERS.X_SFDC_ORG_ACTIVITY]: 'org-1' },
+      }));
+
+    try {
+      await handleRequest({ method: 'POST', url: '/api/query', data: {} }, { org, useCache: true });
+    } finally {
+      unsubscribe();
+    }
+
+    expect(activeOrgs).toEqual(['org-1']);
+    expect(saveCacheItemHttp).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not resend a 403 for any other reason', async () => {
+    setCsrfCookie('token');
+    mockedAdapter.mockRejectedValue(errorResponseWithBody(403, { error: true, message: 'Forbidden' }));
+
+    const error = await captureResult(handleRequest({ method: 'POST', url: '/api/query', data: {} }));
+
+    expect(mockedAdapter).toHaveBeenCalledTimes(1);
+    expect((error as ApiRequestError).status).toBe(403);
   });
 });
