@@ -64,6 +64,7 @@ import isUndefined from 'lodash/isUndefined';
 import type { IDisposable, editor } from 'monaco-editor';
 import { UnparseConfig, parse as parseCsv, unparse, unparse as unparseCsv } from 'papaparse';
 import * as XLSX from 'xlsx';
+import { decodeTextFile } from './decode-text-file';
 import { parseJson } from './parse-json';
 
 let codepageTablePromise: Promise<void> | undefined;
@@ -1286,23 +1287,27 @@ export async function pollAndDeployMetadataResultsWhenReady(
 
 /**
  * Read file in browser using FileReader
- * @param file
- * @param readAsArrayBuffer
+ *
+ * `text` reads the bytes and decodes them with {@link decodeTextFile} instead of `readAsText`, which decodes
+ * everything without a byte-order mark as UTF-8 and so turned Excel's Windows-1252 csv files into "Caf�".
  */
 export function readFile(file: File, type: 'array_buffer'): Promise<ArrayBuffer>;
 export function readFile(file: File, type: 'text' | 'data_url'): Promise<string>;
 export function readFile(file: File, type: 'text' | 'array_buffer' | 'data_url' = 'text'): Promise<string | ArrayBuffer> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    if (type === 'array_buffer') {
-      reader.readAsArrayBuffer(file);
-    } else if (type === 'data_url') {
+    if (type === 'data_url') {
       reader.readAsDataURL(file);
     } else {
-      reader.readAsText(file);
+      reader.readAsArrayBuffer(file);
     }
     reader.onload = (_event: ProgressEvent<FileReader>) => {
-      resolve(reader.result || '');
+      const result = reader.result || '';
+      if (type === 'text' && result instanceof ArrayBuffer) {
+        resolve(decodeTextFile(result));
+        return;
+      }
+      resolve(result);
     };
     reader.onabort = (event: ProgressEvent<FileReader>) => {
       logger.log('onabort', { event });
