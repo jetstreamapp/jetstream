@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { STEP_UP_AUTH_REQUIRED_ERROR_TYPE } from '@jetstream/auth/types';
+import { CSRF_TOKEN_INVALID_ERROR_TYPE, STEP_UP_AUTH_REQUIRED_ERROR_TYPE } from '@jetstream/auth/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { delay } from '@jetstream/shared/utils';
@@ -135,6 +135,7 @@ export async function handleRequest<T = any>(config: AxiosRequestConfig, options
   const axiosInstance = axios.create({ ...baseConfig, ...config, adapter: AxiosAdapterConfig.adapter });
   axiosInstance.interceptors.request.use(requestInterceptor(options));
   axiosInstance.interceptors.response.use(null, retryInterceptor(config, options));
+  axiosInstance.interceptors.response.use(null, csrfRetryInterceptor(config, options));
   axiosInstance.interceptors.response.use(responseInterceptor(options), responseErrorInterceptor(options));
   const response = await axiosInstance.request<ApiResponse<T>>(config);
   return response.data;
@@ -288,6 +289,37 @@ function retryInterceptor(config: AxiosRequestConfig, options: RequestOptions = 
       return await axiosInstance.request(config);
     }
     return Promise.reject(error);
+  };
+}
+
+/**
+ * Resend a request once when the server rejected it with a CSRF error.
+ *
+ * The CSRF check runs before any route handler, so the rejected request had no effect and is safe to
+ * send again, mutations included. The resend reads the cookie again, which by then holds a token the
+ * server accepts: the rejection itself replaces a cookie issued for another session, and a cookie the
+ * browser had dropped is re-created by whichever request reached the server first.
+ *
+ * The resend instance carries no response interceptors at all: it has no CSRF interceptor, so a second
+ * rejection is reported rather than retried, and whatever it returns goes back through the outer chain
+ * registered by `handleRequest`, which processes the response exactly once.
+ */
+function csrfRetryInterceptor(config: AxiosRequestConfig, options: RequestOptions = {}) {
+  return async (error: AxiosError) => {
+    const errorBody = error.response?.data as Maybe<{ errorType?: string }>;
+    if (error.response?.status !== 403 || errorBody?.errorType !== CSRF_TOKEN_INVALID_ERROR_TYPE) {
+      return Promise.reject(error);
+    }
+    logger.warn(`[HTTP][CSRF][RETRYING REQUEST]`, config.url);
+
+    // The rejected attempt reached the server, so it was a cache miss and a second lookup would miss too.
+    // Skipping it keeps the cookie read right next to the send - an await in between lets a concurrent
+    // rejection replace the cookie after the header was read from it, which would fail the only resend.
+    const retryOptions: RequestOptions = { ...options, skipRequestCache: true };
+    // The adapter must be carried over for the same reason as in `retryInterceptor`
+    const axiosInstance = axios.create({ ...config, adapter: AxiosAdapterConfig.adapter });
+    axiosInstance.interceptors.request.use(requestInterceptor(retryOptions));
+    return await axiosInstance.request(config);
   };
 }
 

@@ -498,9 +498,16 @@ export function validateHMACDoubleCSRFToken(
   if (!cookieToken || !headerToken || !timingSafeStringCompare(cookieToken, headerToken)) {
     return false;
   }
+  return isHMACDoubleCSRFTokenValidForSession(secret, cookieToken, sessionId);
+}
 
+/**
+ * Whether a token was issued by this server for this session, independent of what the client sent in
+ * the header. A token that fails this check can never pass validation, so it must be replaced.
+ */
+export function isHMACDoubleCSRFTokenValidForSession(secret: string, token: string, sessionId: string): boolean {
   try {
-    const parts = cookieToken.split(':');
+    const parts = token.split(':');
     // Expect format: randomValue:timestamp:sessionId:hmac (4 parts)
     if (parts.length !== 4) {
       return false;

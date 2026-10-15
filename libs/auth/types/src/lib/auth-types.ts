@@ -161,6 +161,12 @@ export type StepUpPurpose = z.infer<typeof StepUpPurposeSchema>;
  */
 export const STEP_UP_AUTH_REQUIRED_ERROR_TYPE = 'STEP_UP_AUTH_REQUIRED';
 
+/**
+ * `errorType` on the 403 for a request rejected by the double-submit CSRF check. The request never
+ * reached a handler, so the client can safely send it again once with the current cookie value.
+ */
+export const CSRF_TOKEN_INVALID_ERROR_TYPE = 'CSRF_TOKEN_INVALID';
+
 export interface StepUpAvailableMethods {
   methods: StepUpMethod[];
   /**
