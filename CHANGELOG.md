@@ -1,5 +1,16 @@
 # Changelog
 
+## [10.24.4](https://github.com/jetstreamapp/jetstream/compare/v10.24.3...v10.24.4) (2026-10-15)
+
+### Bug Fixes
+
+- **api:** report dropped Salesforce connections as 502s and log the cause ([3d24698](https://github.com/jetstreamapp/jetstream/commit/3d2469886c490f6e248324be753bf2a32f50735d))
+- **deps:** resolve 13 dependency security advisories ([29c4385](https://github.com/jetstreamapp/jetstream/commit/29c4385b632bf7e957cace32e649c62ba57f2d79))
+- let a mass update check its status again instead of marking it failed ([f44f427](https://github.com/jetstreamapp/jetstream/commit/f44f427b2e908aa8d193bae0c43ec33f490e2610))
+- recover from a stale CSRF cookie instead of failing every request until logout ([a676bf9](https://github.com/jetstreamapp/jetstream/commit/a676bf9907a8d31141168a2d872813fb038f9d33))
+- retry a failed status check before giving up on a bulk, deploy or retrieve job ([58f454f](https://github.com/jetstreamapp/jetstream/commit/58f454f1980f60658594515c39dad98f6a66e428))
+- stop Excel's Windows-1252 csv files from loading é as � ([2082a1c](https://github.com/jetstreamapp/jetstream/commit/2082a1ce1a23b8f202698c4bd8d043d0bcedc8c5)), closes [#2156](https://github.com/jetstreamapp/jetstream/issues/2156)
+
 ## [10.24.3](https://github.com/jetstreamapp/jetstream/compare/v10.24.2...v10.24.3) (2026-10-12)
 
 ### Bug Fixes
