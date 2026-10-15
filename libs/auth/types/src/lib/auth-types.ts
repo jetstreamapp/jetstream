@@ -150,8 +150,13 @@ export type StepUpMethod = z.infer<typeof StepUpMethodSchema>;
 /**
  * A step-up grant is bound to the action it was obtained for so it cannot be silently reused by a
  * different sensitive route. Extend this as more routes adopt step-up.
+ *
+ * - CHANGE_EMAIL: request an email address change
+ * - MANAGE_2FA: add, replace, enable, disable or remove a two-factor method
+ * - MANAGE_PASSWORD: set or remove the account password
+ * - DELETE_ACCOUNT: delete the account and everything in it
  */
-export const StepUpPurposeSchema = z.enum(['CHANGE_EMAIL']);
+export const StepUpPurposeSchema = z.enum(['CHANGE_EMAIL', 'MANAGE_2FA', 'MANAGE_PASSWORD', 'DELETE_ACCOUNT']);
 export type StepUpPurpose = z.infer<typeof StepUpPurposeSchema>;
 
 /**
