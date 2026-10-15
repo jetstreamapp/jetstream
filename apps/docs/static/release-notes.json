@@ -1,5 +1,38 @@
 [
   {
+    "slug": "v10.24.4",
+    "title": "10.24.4 - Excel CSV accented characters and job status retries",
+    "date": "2026-10-15",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.24.4", "desktop": "4.19.4", "extension": "3.22.4" },
+    "summary": "CSV files saved by Excel for Windows now load accented characters correctly, and a dropped connection no longer marks a running job as failed.",
+    "highlights": [
+      {
+        "title": "Accented characters in CSV files saved by Excel",
+        "description": "CSV files saved with Excel's default Windows encoding now load é and other accented characters correctly instead of �.",
+        "docLink": "/load"
+      },
+      {
+        "title": "Job status checks retry after a dropped connection",
+        "description": "Bulk loads, mass updates, metadata deployments and metadata retrievals repeat a failed status check instead of reporting a running job as failed."
+      },
+      {
+        "title": "Check status again for mass updates",
+        "description": "When Update Records stops checking on a job, a Check status again button resumes polling and the job keeps its last known state.",
+        "docLink": "/load/update-records"
+      },
+      {
+        "title": "Salesforce API version 68.0",
+        "description": "The Salesforce API version was updated to 68.0 (Winter '27) for all orgs."
+      },
+      {
+        "title": "Saves no longer fail after an idle session in Safari",
+        "description": "Fixed an issue where every save or update was rejected after the app sat idle, until you logged out and back in.",
+        "platforms": ["web"]
+      }
+    ]
+  },
+  {
     "slug": "v10.24.3",
     "title": "10.24.3 - Record type picklist defaults and picklist filter fix",
     "date": "2026-10-12",
