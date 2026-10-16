@@ -8,6 +8,7 @@ const LOGIN_ERROR_MESSAGES: Record<AdminLoginErrorCode, string> = {
   NOT_ALLOWED: 'This account does not have access.',
   INVALID_STATE: 'The sign-in attempt expired or was started in another tab. Please try again.',
   SIGN_IN_FAILED: 'Sign-in failed. Please try again.',
+  ACCESS_IDENTITY_MISMATCH: 'Sign in with the same Google account you used for Cloudflare Access.',
 };
 
 export function LoginPage() {

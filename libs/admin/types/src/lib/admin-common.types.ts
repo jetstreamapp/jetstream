@@ -15,7 +15,7 @@ export const ADMIN_LOGOUT_PATH = '/auth/logout';
 /** Query parameter the API appends to the SPA login route when Google sign-in is rejected */
 export const ADMIN_LOGIN_ERROR_PARAM = 'error';
 
-export const AdminLoginErrorCodeSchema = z.enum(['NOT_ALLOWED', 'INVALID_STATE', 'SIGN_IN_FAILED']);
+export const AdminLoginErrorCodeSchema = z.enum(['NOT_ALLOWED', 'INVALID_STATE', 'SIGN_IN_FAILED', 'ACCESS_IDENTITY_MISMATCH']);
 export type AdminLoginErrorCode = z.infer<typeof AdminLoginErrorCodeSchema>;
 
 export interface AdminApiSuccessResponse<T> {

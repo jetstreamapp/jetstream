@@ -1,23 +1,41 @@
 import { ADMIN_REQUEST_HEADER } from '@jetstream/admin/types';
-import { enrichRequestContext } from '@jetstream/api-config';
+import { enrichRequestContext, getLogger } from '@jetstream/api-config';
 import type { NextFunction, Request, Response } from 'express';
 import { ADMIN_ENV } from '../config/admin-env.config';
+import { isAccessIdentityMatch } from './admin-access';
 import { clearSessionCookie, readSessionCookie } from './admin-session';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
+/**
+ * Every request re-checks the allowlist and, when Cloudflare Access is in front, that the cookie was
+ * issued to the same person Access let through. Either failure clears the cookie, since it can never
+ * become valid again on its own.
+ */
 export async function requireAdminSession(req: Request, res: Response, next: NextFunction) {
   try {
     const user = await readSessionCookie(req);
-    if (!user || !ADMIN_ENV.allowedEmails.has(user.email)) {
-      if (user) {
-        clearSessionCookie(res);
-      }
+    if (!user) {
+      res.status(401).json({ error: true, message: 'Unauthorized' });
+      return;
+    }
+    const { cloudflareAccessEmail } = res.locals;
+    if (!ADMIN_ENV.allowedEmails.has(user.email)) {
+      clearSessionCookie(res);
+      res.status(401).json({ error: true, message: 'Unauthorized' });
+      return;
+    }
+    if (ADMIN_ENV.cloudflareAccessEnabled && !isAccessIdentityMatch(user.email, cloudflareAccessEmail)) {
+      getLogger().warn(
+        { adminEmail: user.email, cloudflareAccessEmail, ipAddress: req.ip },
+        '[ADMIN][AUTH] Session rejected: the cookie belongs to a different identity than the Cloudflare Access session',
+      );
+      clearSessionCookie(res);
       res.status(401).json({ error: true, message: 'Unauthorized' });
       return;
     }
     res.locals.admin = user;
-    enrichRequestContext({ adminEmail: user.email, cloudflareAccessEmail: res.locals.cloudflareAccessEmail });
+    enrichRequestContext({ adminEmail: user.email, cloudflareAccessEmail });
     next();
   } catch (ex) {
     next(ex);

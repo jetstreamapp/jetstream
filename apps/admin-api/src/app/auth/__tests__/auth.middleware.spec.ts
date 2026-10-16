@@ -1,13 +1,15 @@
 import type { NextFunction, Request, Response } from 'express';
-import { readSessionCookie } from '../admin-session';
+import { ADMIN_ENV } from '../../config/admin-env.config';
+import { clearSessionCookie, readSessionCookie } from '../admin-session';
 import { requireAdminRequestHeader, requireAdminSession } from '../auth.middleware';
 
-vi.mock('@jetstream/api-config', () => ({ enrichRequestContext: vi.fn() }));
+vi.mock('@jetstream/api-config', () => ({ enrichRequestContext: vi.fn(), getLogger: () => ({ warn: vi.fn() }) }));
 
 vi.mock('../../config/admin-env.config', () => ({
   ADMIN_ENV: {
     ADMIN_BASE_URL: 'https://admin.getjetstream.app',
     allowedEmails: new Set(['austin@getjetstream.app']),
+    cloudflareAccessEnabled: false,
   },
 }));
 
@@ -15,6 +17,8 @@ vi.mock('../admin-session', () => ({
   readSessionCookie: vi.fn(),
   clearSessionCookie: vi.fn(),
 }));
+
+const admin = { email: 'austin@getjetstream.app', name: 'Austin', picture: null };
 
 function createRequest({ method = 'GET', headers = {} }: { method?: string; headers?: Record<string, string> }) {
   const normalizedHeaders = Object.fromEntries(Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value]));
@@ -64,6 +68,11 @@ describe('requireAdminRequestHeader', () => {
 });
 
 describe('requireAdminSession', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    ADMIN_ENV.cloudflareAccessEnabled = false;
+  });
+
   it('rejects a request without a session', async () => {
     vi.mocked(readSessionCookie).mockResolvedValue(null);
     const next = vi.fn() as NextFunction;
@@ -83,12 +92,47 @@ describe('requireAdminSession', () => {
   });
 
   it('attaches the admin to the response for an allowlisted session', async () => {
-    const admin = { email: 'austin@getjetstream.app', name: 'Austin', picture: null };
     vi.mocked(readSessionCookie).mockResolvedValue(admin);
     const next = vi.fn() as NextFunction;
     const res = createResponse();
     await requireAdminSession(createRequest({}), res, next);
     expect(next).toHaveBeenCalledWith();
     expect(res.locals.admin).toEqual(admin);
+  });
+
+  it('ignores the Access identity when Cloudflare Access is not configured', async () => {
+    vi.mocked(readSessionCookie).mockResolvedValue(admin);
+    const next = vi.fn() as NextFunction;
+    const res = createResponse();
+    res.locals.cloudflareAccessEmail = 'someone-else@getjetstream.app';
+    await requireAdminSession(createRequest({}), res, next);
+    expect(next).toHaveBeenCalledWith();
+  });
+
+  it('accepts a session whose email matches the Cloudflare Access identity, ignoring case', async () => {
+    ADMIN_ENV.cloudflareAccessEnabled = true;
+    vi.mocked(readSessionCookie).mockResolvedValue(admin);
+    const next = vi.fn() as NextFunction;
+    const res = createResponse();
+    res.locals.cloudflareAccessEmail = 'Austin@GetJetstream.app';
+    await requireAdminSession(createRequest({}), res, next);
+    expect(next).toHaveBeenCalledWith();
+    expect(res.locals.admin).toEqual(admin);
+  });
+
+  it.each([
+    ['another admin', 'other@getjetstream.app'],
+    ['no email claim (service token)', null],
+  ])('rejects and clears a session presented through a different Access identity: %s', async (_, cloudflareAccessEmail) => {
+    ADMIN_ENV.cloudflareAccessEnabled = true;
+    vi.mocked(readSessionCookie).mockResolvedValue(admin);
+    const next = vi.fn() as NextFunction;
+    const res = createResponse();
+    res.locals.cloudflareAccessEmail = cloudflareAccessEmail;
+    await requireAdminSession(createRequest({}), res, next);
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(401);
+    expect(clearSessionCookie).toHaveBeenCalled();
+    expect(res.locals.admin).toBeUndefined();
   });
 });

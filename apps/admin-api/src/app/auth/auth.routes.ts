@@ -2,7 +2,7 @@ import { ADMIN_LOGIN_ERROR_PARAM, AdminLoginErrorCode } from '@jetstream/admin/t
 import { createRateLimit, getLogger } from '@jetstream/api-config';
 import express, { type Response } from 'express';
 import { ADMIN_ENV } from '../config/admin-env.config';
-import { evaluateAdminSignIn, sanitizeReturnTo } from './admin-access';
+import { evaluateAdminSignIn, isAccessIdentityMatch, sanitizeReturnTo } from './admin-access';
 import { clearOauthStateCookie, clearSessionCookie, readOauthStateCookie, setOauthStateCookie, setSessionCookie } from './admin-session';
 import { requireAdminRequestHeader } from './auth.middleware';
 import { completeGoogleAuthorization, createGoogleAuthorizationRequest } from './google-oauth';
@@ -44,6 +44,16 @@ authRoutes.get('/callback', async (req, res) => {
     if (!decision.allowed) {
       getLogger().warn({ reason: decision.reason, ipAddress: req.ip }, '[ADMIN][AUTH] Sign-in rejected');
       redirectToLoginWithError(res, 'NOT_ALLOWED');
+      return;
+    }
+
+    const { cloudflareAccessEmail } = res.locals;
+    if (ADMIN_ENV.cloudflareAccessEnabled && !isAccessIdentityMatch(decision.user.email, cloudflareAccessEmail)) {
+      getLogger().warn(
+        { adminEmail: decision.user.email, cloudflareAccessEmail, ipAddress: req.ip },
+        '[ADMIN][AUTH] Sign-in rejected: Google account differs from the Cloudflare Access identity',
+      );
+      redirectToLoginWithError(res, 'ACCESS_IDENTITY_MISMATCH');
       return;
     }
 

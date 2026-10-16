@@ -49,6 +49,15 @@ export function evaluateAdminSignIn(
 }
 
 /**
+ * With Cloudflare Access in front, the Google identity and the Access identity have to be the same
+ * person. The session cookie is a bearer token, so tying it to the Access email means a copied cookie
+ * only works from the Access session of the admin it was issued to.
+ */
+export function isAccessIdentityMatch(email: string, cloudflareAccessEmail: unknown): boolean {
+  return typeof cloudflareAccessEmail === 'string' && cloudflareAccessEmail.trim().toLowerCase() === email;
+}
+
+/**
  * Only same-origin relative paths are accepted as a post-login destination, so the login flow
  * cannot be used as an open redirect (`//evil.com` and `/\evil.com` are protocol-relative in browsers).
  */

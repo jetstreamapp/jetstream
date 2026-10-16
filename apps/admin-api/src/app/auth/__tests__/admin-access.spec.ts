@@ -1,4 +1,4 @@
-import { evaluateAdminSignIn, sanitizeReturnTo } from '../admin-access';
+import { evaluateAdminSignIn, isAccessIdentityMatch, sanitizeReturnTo } from '../admin-access';
 
 const accessConfig = {
   allowedDomain: 'getjetstream.app',
@@ -63,4 +63,19 @@ describe('sanitizeReturnTo', () => {
       expect(sanitizeReturnTo(returnTo)).toBe('/');
     },
   );
+});
+
+describe('isAccessIdentityMatch', () => {
+  it('matches the same address regardless of case and surrounding whitespace', () => {
+    expect(isAccessIdentityMatch('austin@getjetstream.app', ' Austin@GetJetstream.app ')).toBe(true);
+  });
+
+  it.each([
+    ['a different admin', 'other@getjetstream.app'],
+    ['a missing email claim', null],
+    ['an undefined email claim', undefined],
+    ['a non-string claim', 42],
+  ])('does not match %s', (_, cloudflareAccessEmail) => {
+    expect(isAccessIdentityMatch('austin@getjetstream.app', cloudflareAccessEmail)).toBe(false);
+  });
 });
