@@ -164,6 +164,6 @@ export async function getTeamDetail(teamId: string): Promise<TeamDetail> {
       verifiedAt: toIsoString(verifiedAt),
       createdAt: createdAt.toISOString(),
     })),
-    auditLogs: await findAuditLogs(teamAuditLogWhere(teamId)),
+    auditLogs: await findAuditLogs(teamAuditLogWhere(teamId, billingAccount?.customerId)),
   };
 }

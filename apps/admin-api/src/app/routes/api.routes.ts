@@ -6,16 +6,18 @@ import {
   ProvisioningLookupQuerySchema,
   ProvisionTeamRequestSchema,
   SendTeamInvitationRequestSchema,
+  StripeCustomerParamsSchema,
   StripeCustomerSearchQuerySchema,
   TeamInvitationParamsSchema,
   TeamMemberToAddSchema,
+  UpdateStripeCustomerProductionOrgIdRequestSchema,
   UserListQuerySchema,
 } from '@jetstream/admin/types';
 import { createRateLimit } from '@jetstream/api-config';
 import express from 'express';
 import { requireAdminRequestHeader, requireAdminSession } from '../auth/auth.middleware';
 import { getDashboardSummary } from '../metrics/dashboard.db';
-import { searchStripeCustomers } from '../stripe/stripe-customers.service';
+import { getStripeCustomerSummary, searchStripeCustomers, updateStripeCustomerProductionOrgId } from '../stripe/stripe-customers.service';
 import { approveTeamDomain } from '../teams/team-domains.service';
 import { resendTeamInvitation, revokeTeamInvitation, sendTeamInvitation } from '../teams/team-invitations.service';
 import { addTeamMember } from '../teams/team-members.service';
@@ -104,6 +106,20 @@ apiRoutes.delete(
 apiRoutes.get(
   '/stripe/customers',
   createRoute({ query: StripeCustomerSearchQuerySchema }, async ({ query }) => searchStripeCustomers(query.query)),
+);
+
+apiRoutes.get(
+  '/stripe/customers/:customerId',
+  createRoute({ params: StripeCustomerParamsSchema }, async ({ params }) => getStripeCustomerSummary(params.customerId)),
+);
+
+apiRoutes.post(
+  '/stripe/customers/:customerId/production-org-id',
+  createRoute(
+    { params: StripeCustomerParamsSchema, body: UpdateStripeCustomerProductionOrgIdRequestSchema },
+    async ({ params, body, admin, requestMetadata }) =>
+      updateStripeCustomerProductionOrgId(params.customerId, body.productionOrgId, admin, requestMetadata),
+  ),
 );
 
 apiRoutes.get(

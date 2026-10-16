@@ -11,6 +11,7 @@ import {
   toEntitlementFlags,
   toIsoString,
   toSubscriptionItem,
+  userAuditLogWhere,
 } from '../utils/serializers';
 
 /** Subscription rows only exist for current Stripe subscriptions; INCOMPLETE ones have not been paid yet */
@@ -179,7 +180,10 @@ export async function getUserDetail(userId: string): Promise<UserDetail> {
     throw new NotFoundError(`User ${userId} not found`);
   }
 
-  const [webSessions, auditLogs] = await Promise.all([getWebSessions(userId), findAuditLogs({ userId }, RECENT_ACTIVITY_LIMIT)]);
+  const [webSessions, auditLogs] = await Promise.all([
+    getWebSessions(userId),
+    findAuditLogs(userAuditLogWhere(userId, user.billingAccount?.customerId), RECENT_ACTIVITY_LIMIT),
+  ]);
   const { teamMembership } = user;
 
   return {

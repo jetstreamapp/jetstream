@@ -37,6 +37,7 @@ export function summarizeCustomer(customer: Stripe.Customer): StripeCustomerSumm
     email: customer.email ?? null,
     createdAt: new Date(customer.created * 1000).toISOString(),
     metadata: customer.metadata ?? {},
+    productionOrgId: customer.metadata?.productionOrgId || null,
     livemode: customer.livemode,
   };
 }

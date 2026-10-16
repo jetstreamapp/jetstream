@@ -18,10 +18,17 @@ export function StripeLinkResultAlert({ result, actions }: { result: StripeLinkR
     <Alert tone="success" title="Stripe customer linked">
       <p>Customer metadata {result.customerMetadataUpdated ? 'updated' : 'already up to date'}.</p>
       {result.subscriptionsNudged.length > 0 ? (
-        <p className="mt-1">
-          Re-saved {result.subscriptionsNudged.length} subscription(s) so the main API re-syncs seats and entitlements:{' '}
-          <span className="font-mono text-xs">{result.subscriptionsNudged.join(', ')}</span>
-        </p>
+        <>
+          <p className="mt-1">
+            Re-saved {result.subscriptionsNudged.length} subscription(s) in Stripe:{' '}
+            <span className="font-mono text-xs">{result.subscriptionsNudged.join(', ')}</span>
+          </p>
+          <p className="mt-1">
+            That makes Stripe send a <span className="font-mono text-xs">customer.subscription.updated</span> webhook; the main API syncs
+            seats and entitlements when it receives it, usually within seconds. Refresh the team to confirm. If the Seats row still says
+            "Awaiting Stripe sync", check the webhook delivery for this event in the Stripe dashboard.
+          </p>
+        </>
       ) : (
         <p className="mt-1">No subscriptions yet. Seats and entitlements sync automatically once the quote is accepted.</p>
       )}

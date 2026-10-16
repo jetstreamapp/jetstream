@@ -26,10 +26,6 @@ export async function getProvisioningLookup(customerId: string, quoteId?: string
     prisma.billingAccount.findUnique({ where: { customerId }, select: { userId: true } }),
   ]);
 
-  if (customer.deleted) {
-    throw new NotFoundError(`Customer ${customerId} has been deleted in Stripe`);
-  }
-
   const subscriptionSummaries = subscriptions.map(summarizeSubscription);
   const selectedQuote = quotes.find(({ id }) => id === quoteId) ?? null;
   const checks = evaluateProvisioningChecks({

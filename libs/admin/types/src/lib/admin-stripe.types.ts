@@ -1,3 +1,4 @@
+import { SALESFORCE_ORG_ID_REGEX } from '@jetstream/types';
 import { z } from 'zod';
 
 export const STRIPE_CUSTOMER_ID_PATTERN = /^cus_[A-Za-z0-9]+$/;
@@ -11,9 +12,22 @@ export const StripeCustomerSearchQuerySchema = z.object({
   query: z.string().trim().min(2).max(255),
 });
 
-export const ProvisioningLookupParamsSchema = z.object({
+export const StripeCustomerParamsSchema = z.object({
   customerId: z.string().regex(STRIPE_CUSTOMER_ID_PATTERN),
 });
+
+export const ProvisioningLookupParamsSchema = StripeCustomerParamsSchema;
+
+export const UpdateStripeCustomerProductionOrgIdRequestSchema = z.object({
+  /** The customer's Salesforce production org id; null or blank clears it */
+  productionOrgId: z
+    .string()
+    .trim()
+    .nullable()
+    .transform((value) => value || null)
+    .pipe(z.string().regex(SALESFORCE_ORG_ID_REGEX, 'Enter a Salesforce org id: 15 or 18 characters starting with 00D').nullable()),
+});
+export type UpdateStripeCustomerProductionOrgIdRequest = z.infer<typeof UpdateStripeCustomerProductionOrgIdRequestSchema>;
 
 export const ProvisioningLookupQuerySchema = z.object({
   quoteId: z.string().regex(STRIPE_QUOTE_ID_PATTERN).optional(),
@@ -25,6 +39,8 @@ export interface StripeCustomerSummary {
   email: string | null;
   createdAt: string;
   metadata: Record<string, string>;
+  /** `metadata.productionOrgId`, collected at Checkout or set from the admin app */
+  productionOrgId: string | null;
   livemode: boolean;
 }
 

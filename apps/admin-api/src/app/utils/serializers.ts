@@ -55,7 +55,22 @@ export async function findAuditLogs(where: Prisma.AuditLogWhereInput, limit = 50
   }));
 }
 
-/** A team's own audit log plus the admin app's entries about it, which are keyed by resource instead of teamId */
-export function teamAuditLogWhere(teamId: string): Prisma.AuditLogWhereInput {
-  return { OR: [{ teamId }, { resource: AuditLogResource.TEAM, resourceId: teamId }] };
+/**
+ * A team's own audit log plus the admin app's entries about it, which are keyed by resource instead of
+ * teamId, and the admin app's entries about its Stripe customer
+ */
+export function teamAuditLogWhere(teamId: string, customerId?: string | null): Prisma.AuditLogWhereInput {
+  const conditions: Prisma.AuditLogWhereInput[] = [{ teamId }, { resource: AuditLogResource.TEAM, resourceId: teamId }];
+  if (customerId) {
+    conditions.push({ resource: AuditLogResource.STRIPE_CUSTOMER, resourceId: customerId });
+  }
+  return { OR: conditions };
+}
+
+/** A user's own audit log plus the admin app's entries about their personal Stripe customer */
+export function userAuditLogWhere(userId: string, customerId?: string | null): Prisma.AuditLogWhereInput {
+  if (!customerId) {
+    return { userId };
+  }
+  return { OR: [{ userId }, { resource: AuditLogResource.STRIPE_CUSTOMER, resourceId: customerId }] };
 }

@@ -64,6 +64,7 @@ export enum AuditLogAction {
   ADMIN_TEAM_INVITATION_REVOKED = 'ADMIN_TEAM_INVITATION_REVOKED',
   ADMIN_TEAM_MEMBER_ADDED = 'ADMIN_TEAM_MEMBER_ADDED',
   ADMIN_TEAM_DOMAIN_APPROVED = 'ADMIN_TEAM_DOMAIN_APPROVED',
+  ADMIN_STRIPE_CUSTOMER_PRODUCTION_ORG_UPDATED = 'ADMIN_STRIPE_CUSTOMER_PRODUCTION_ORG_UPDATED',
 }
 
 export enum AuditLogResource {
@@ -76,6 +77,8 @@ export enum AuditLogResource {
   TEAM_SSO_CONFIG = 'sso_config',
   TEAM_DOMAIN_VERIFICATION = 'domain_verification',
   SALESFORCE_CANVAS_ORG = 'salesforce_canvas_org',
+  /** A Stripe customer, keyed by its `cus_` id; the linked team or user is in the metadata */
+  STRIPE_CUSTOMER = 'stripe_customer',
 }
 
 export interface CreateAuditLogParams {

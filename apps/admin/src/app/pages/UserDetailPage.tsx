@@ -11,6 +11,7 @@ import { StripeIdLink } from '../components/ExternalLink';
 import { KeyValueList } from '../components/KeyValueList';
 import { PageHeader } from '../components/PageHeader';
 import { PageSpinner } from '../components/Spinner';
+import { StripeCustomerSection } from '../components/StripeCustomerSection';
 import { SubscriptionTable } from '../components/SubscriptionTable';
 import { Table } from '../components/Table';
 import {
@@ -210,17 +211,22 @@ export function UserDetailPage() {
           </Card>
           <Card title="Billing">
             {user.billingAccount ? (
-              <KeyValueList
-                items={[
-                  {
-                    label: 'Stripe customer',
-                    value: (
-                      <StripeIdLink id={user.billingAccount.customerId} href={getStripeDashboardUrl(user.billingAccount.customerId)} />
-                    ),
-                  },
-                  { label: 'Manual billing', value: <BooleanBadge value={user.billingAccount.manualBilling} /> },
-                ]}
-              />
+              <div className="space-y-3">
+                <KeyValueList
+                  items={[
+                    {
+                      label: 'Stripe customer',
+                      value: (
+                        <StripeIdLink id={user.billingAccount.customerId} href={getStripeDashboardUrl(user.billingAccount.customerId)} />
+                      ),
+                    },
+                    { label: 'Manual billing', value: <BooleanBadge value={user.billingAccount.manualBilling} /> },
+                  ]}
+                />
+                <div className="border-t border-slate-200 pt-3">
+                  <StripeCustomerSection customerId={user.billingAccount.customerId} />
+                </div>
+              </div>
             ) : (
               <p className="text-sm text-slate-500">No personal billing account</p>
             )}

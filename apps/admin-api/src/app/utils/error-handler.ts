@@ -3,6 +3,7 @@ import { getLogger } from '@jetstream/api-config';
 import { Prisma } from '@jetstream/prisma';
 import { SeatLimitError } from '@jetstream/team-seats';
 import type { NextFunction, Request, Response } from 'express';
+import Stripe from 'stripe';
 import { z, ZodError } from 'zod';
 import { AdminHttpError } from './route.utils';
 
@@ -48,6 +49,11 @@ export function errorHandler(err: unknown, _: Request, res: Response, _next: Nex
   }
   if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
     sendError(res, 409, 'A record with the same unique value already exists');
+    return;
+  }
+  // A `cus_` or `qt_` id that Stripe does not know; the message names the id ("No such customer: ...")
+  if (err instanceof Stripe.errors.StripeInvalidRequestError && err.code === 'resource_missing') {
+    sendError(res, 404, err.message);
     return;
   }
 
