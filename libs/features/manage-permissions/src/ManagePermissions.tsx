@@ -16,6 +16,7 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
   const resetProfilesState = useResetAtom(fromPermissionsState.profilesState);
   const resetSelectedProfilesPermSetState = useResetAtom(fromPermissionsState.selectedProfilesPermSetState);
   const resetPermissionSetsState = useResetAtom(fromPermissionsState.permissionSetsState);
+  const resetManagedPermissionSetsState = useResetAtom(fromPermissionsState.managedPermissionSetsState);
   const resetSelectedPermissionSetsState = useResetAtom(fromPermissionsState.selectedPermissionSetsState);
   const resetSObjectsState = useResetAtom(fromPermissionsState.sObjectsState);
   const resetSelectedSObjectsState = useResetAtom(fromPermissionsState.selectedSObjectsState);
@@ -28,6 +29,7 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 
   const hasSelectionsMade = useAtomValue(fromPermissionsState.hasSelectionsMade);
+  const permissionListsLoaded = useAtomValue(fromPermissionsState.permissionListsLoaded);
 
   // reset everything if the selected org changes
   useEffect(() => {
@@ -38,6 +40,7 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
       resetProfilesState();
       resetSelectedProfilesPermSetState();
       resetPermissionSetsState();
+      resetManagedPermissionSetsState();
       resetSelectedPermissionSetsState();
       resetSObjectsState();
       resetSelectedSObjectsState();
@@ -51,6 +54,7 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
       resetProfilesState();
       resetSelectedProfilesPermSetState();
       resetPermissionSetsState();
+      resetManagedPermissionSetsState();
       resetSelectedPermissionSetsState();
       resetSObjectsState();
       resetSelectedSObjectsState();
@@ -64,7 +68,10 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg, priorSelectedOrg]);
 
-  return location.pathname.endsWith('/editor') && !hasSelectionsMade ? <Navigate to="." /> : <Outlet />;
+  // Checked here rather than only on the Continue button, because browser back/forward can reach the editor too
+  const canOpenEditor = hasSelectionsMade && permissionListsLoaded;
+
+  return location.pathname.endsWith('/editor') && !canOpenEditor ? <Navigate to="." /> : <Outlet />;
 };
 
 export default ManagePermissions;

@@ -37,6 +37,8 @@ export interface ListWithFilterMultiSelectProps {
    * Clicks inside the rendered node are prevented from bubbling up, so row selection is unaffected.
    */
   itemTrailingRenderer?: (item: ListItemType) => ReactNode;
+  /** Optional control rendered between the filter's result count and the select-all checkbox. */
+  headerContent?: ReactNode;
   onSelected: (items: string[]) => void;
   errorReattempt?: () => void;
   onRefresh?: () => void;
@@ -58,6 +60,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
   lastRefreshed,
   autoFillContainerProps,
   itemTrailingRenderer,
+  headerContent,
   onSelected,
   errorReattempt,
   onRefresh = NOOP,
@@ -178,6 +181,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
                 Showing {formatNumber(filteredItems.length)} of {formatNumber(items.length)}{' '}
                 {pluralizeIfMultiple(labels.descriptorSingular, items)}
               </div>
+              {headerContent}
               {allowSelectAll && (
                 <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
                   <Checkbox

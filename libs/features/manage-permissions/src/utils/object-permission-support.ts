@@ -14,6 +14,10 @@ export const OBJECTS_WITHOUT_VIEW_ALL_MODIFY_ALL = new Set(['Idea', 'PendingOrdS
 export const VIEW_ALL_MODIFY_ALL_UNSUPPORTED_MESSAGE =
   'Salesforce does not support View All or Modify All for this object. Access is controlled through sharing settings instead.';
 
+/** Shown on every locked checkbox in a managed permission set's column group. */
+export const MANAGED_PERMISSION_SET_READ_ONLY_MESSAGE =
+  'This permission set is provided by a managed package or by Salesforce. Salesforce does not allow its permissions to be changed, so it is shown for reference only.';
+
 export function supportsViewAllModifyAll(sobject: string): boolean {
   return !OBJECTS_WITHOUT_VIEW_ALL_MODIFY_ALL.has(sobject);
 }

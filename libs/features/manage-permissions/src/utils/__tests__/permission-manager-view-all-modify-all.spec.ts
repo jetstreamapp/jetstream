@@ -13,7 +13,17 @@ import { filterPermissionRows } from '../permission-manager-utils';
 const PARENT_ID = 'permSet1';
 
 function buildPermissionItem(overrides: Partial<ObjectPermissionItem> = {}): ObjectPermissionItem {
-  return { create: false, read: false, edit: false, delete: false, viewAll: false, modifyAll: false, viewAllFields: false, ...overrides };
+  return {
+    create: false,
+    read: false,
+    edit: false,
+    delete: false,
+    viewAll: false,
+    modifyAll: false,
+    viewAllFields: false,
+    isReadOnly: false,
+    ...overrides,
+  };
 }
 
 function buildPermissionMap(apiName: string): Record<string, ObjectPermissionDefinitionMap> {
@@ -46,6 +56,7 @@ function buildRow(apiName: string, permissionOverrides: Partial<PermissionTableO
         parentId: PARENT_ID,
         sobject: apiName,
         record,
+        isReadOnly: false,
         create: false,
         read: false,
         edit: false,

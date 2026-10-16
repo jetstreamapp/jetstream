@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
+import { clearCacheForOrg, queryAllWithCache } from '@jetstream/shared/data';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
   ListItem,
@@ -12,7 +12,12 @@ import {
 import { Query, composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { formatRelative } from 'date-fns/formatRelative';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { isPermissionSetWithProfile } from '../shared-ui-utils';
+import {
+  isManagedPermissionSet,
+  isPermissionSetWithProfile,
+  isSalesforceInternalPermissionSet,
+  isSalesforceProvidedPermissionSet,
+} from '../shared-ui-utils';
 
 let _lastRefreshed: string;
 
@@ -28,6 +33,7 @@ export function useProfilesAndPermSets(
   selectedOrg: SalesforceOrgUi,
   _initProfiles?: ListItem<string, PermissionSetWithProfileRecord>[] | null,
   _initPermissionSets?: ListItem<string, PermissionSetNoProfileRecord>[] | null,
+  _initManagedPermissionSets?: ListItem<string, PermissionSetNoProfileRecord>[] | null,
 ) {
   const isMounted = useRef(true);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
@@ -36,6 +42,9 @@ export function useProfilesAndPermSets(
   const [profiles, setProfiles] = useState<ListItem<string, PermissionSetWithProfileRecord>[] | null>(_initProfiles || null);
   const [permissionSets, setPermissionSets] = useState<ListItem<string, PermissionSetNoProfileRecord>[] | null>(
     _initPermissionSets || null,
+  );
+  const [managedPermissionSets, setManagedPermissionSets] = useState<ListItem<string, PermissionSetNoProfileRecord>[] | null>(
+    _initManagedPermissionSets || null,
   );
 
   const [profilesAndPermSetsById, setProfilesAndPermSetsById] = useState<
@@ -49,7 +58,7 @@ export function useProfilesAndPermSets(
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         newItemsById[item.id] = item.meta!;
       });
-      permissionSets.forEach((item) => {
+      permissionSets.concat(managedPermissionSets || []).forEach((item) => {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         newItemsById[item.id] = item.meta!;
       });
@@ -57,7 +66,7 @@ export function useProfilesAndPermSets(
     } else {
       setProfilesAndPermSetsById({});
     }
-  }, [profiles, permissionSets]);
+  }, [profiles, permissionSets, managedPermissionSets]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -79,6 +88,7 @@ export function useProfilesAndPermSets(
     } else {
       setProfiles([]);
       setPermissionSets([]);
+      setManagedPermissionSets([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg]);
@@ -98,20 +108,22 @@ export function useProfilesAndPermSets(
           clearCacheForOrg(selectedOrg);
           setProfiles(null);
           setPermissionSets(null);
+          setManagedPermissionSets(null);
         }
 
-        const { data, cache } = await queryWithCache<PermissionSetRecord>(
-          selectedOrg,
-          getQueryForPermissionSetsWithProfiles(selectedOrg.orgNamespacePrefix),
-        );
+        const { data, cache } = await queryAllWithCache<PermissionSetRecord>(selectedOrg, getQueryForPermissionSetsWithProfiles());
         if (isMounted.current) {
           if (cache) {
             setLastRefreshed(`Last updated from Salesforce ${formatRelative(cache.age, new Date())}`);
           }
 
-          const output = getListItemFromQueryResults(data.queryResults.records.filter((item) => item.Type !== 'Group'));
+          const output = getListItemFromQueryResults(
+            data.queryResults.records.filter((item) => item.Type !== 'Group' && !isSalesforceInternalPermissionSet(item)),
+            selectedOrg.orgNamespacePrefix,
+          );
           setProfiles(output.profiles);
           setPermissionSets(output.permissionSets);
+          setManagedPermissionSets(output.managedPermissionSets);
         }
       } catch (ex) {
         logger.info('[useProfilesAndPermSets][ERROR]', getErrorMessage(ex));
@@ -133,6 +145,8 @@ export function useProfilesAndPermSets(
     loading: loading && !profiles?.length,
     profiles,
     permissionSets,
+    /** Managed-package and Salesforce standard permission sets - read-only, and excluded from `permissionSets`. */
+    managedPermissionSets,
     profilesAndPermSetsById,
     hasError,
     lastRefreshed,
@@ -143,12 +157,13 @@ export function useProfilesAndPermSets(
  * Convert records into ListItem
  * @param records
  */
-function getListItemFromQueryResults(records: PermissionSetRecord[]) {
+function getListItemFromQueryResults(records: PermissionSetRecord[], orgNamespacePrefix: Maybe<string>) {
   return records.reduce(
     (
       output: {
         profiles: ListItem<string, PermissionSetWithProfileRecord>[];
         permissionSets: ListItem<string, PermissionSetNoProfileRecord>[];
+        managedPermissionSets: ListItem<string, PermissionSetNoProfileRecord>[];
       },
       record,
     ) => {
@@ -164,6 +179,13 @@ function getListItemFromQueryResults(records: PermissionSetRecord[]) {
         listItem.label = record.Profile.Name;
         listItem.secondaryLabel = record.IsCustom ? 'Custom Profile' : 'Standard Profile';
         output.profiles.push(listItem);
+      } else if (isManagedPermissionSet(record, orgNamespacePrefix)) {
+        // The source goes in the secondary label so the list filter, which searches label and secondary
+        // label, can find a permission set by the package it came from.
+        listItem.secondaryLabel = isSalesforceProvidedPermissionSet(record)
+          ? `${record.Name} • Salesforce standard`
+          : `${record.Name} • Managed package: ${record.NamespacePrefix}`;
+        output.managedPermissionSets.push(listItem);
       } else {
         output.permissionSets.push(listItem);
       }
@@ -172,11 +194,12 @@ function getListItemFromQueryResults(records: PermissionSetRecord[]) {
     {
       profiles: [],
       permissionSets: [],
+      managedPermissionSets: [],
     },
   );
 }
 
-function getQueryForPermissionSetsWithProfiles(orgNamespace?: Maybe<string>): string {
+function getQueryForPermissionSetsWithProfiles(): string {
   const query: Query = {
     fields: [
       getField('Id'),
@@ -209,34 +232,8 @@ function getQueryForPermissionSetsWithProfiles(orgNamespace?: Maybe<string>): st
   };
   // TODO: we should omit profiles that do not allow editing (not sure how to identify)
   // maybe user access query?
-  if (!orgNamespace) {
-    query.where = {
-      left: {
-        field: 'NamespacePrefix',
-        operator: '=',
-        value: 'null',
-        literalType: 'NULL',
-      },
-    };
-  } else {
-    query.where = {
-      left: {
-        field: 'NamespacePrefix',
-        operator: '=',
-        value: 'null',
-        literalType: 'NULL',
-      },
-      operator: 'OR',
-      right: {
-        left: {
-          field: 'NamespacePrefix',
-          operator: '=',
-          value: orgNamespace,
-          literalType: 'STRING',
-        },
-      },
-    };
-  }
+  // Managed-package and Salesforce standard permission sets are fetched too, but returned in their own list -
+  // callers that assign permissions ignore them, and the permission manager shows them read-only.
   const soql = composeQuery(query);
   logger.log('getQueryForPermissionSetsWithProfiles()', soql);
   return soql;

@@ -1646,6 +1646,51 @@ export function isPermissionSetWithProfile(value: PermissionSetRecord): value is
   return value.IsOwnedByProfile;
 }
 
+/** Namespaces Salesforce uses for the permission sets it provides itself, as opposed to an installed package. */
+const SALESFORCE_PERMISSION_SET_NAMESPACES = new Set(['force', 'sfdcInternalInt']);
+
+/**
+ * A permission set installed from a managed package or provided by Salesforce (e.g. "Sales Cloud User").
+ * Salesforce rejects any change to its permissions, so Jetstream can show it but never edit it.
+ *
+ * A permission set in the org's own namespace is a package the org publishes, not one it installed - it stays
+ * editable and is treated like any other permission set. Salesforce namespaces are case-insensitive.
+ */
+export function isManagedPermissionSet(record: Maybe<PermissionSetRecord>, orgNamespacePrefix: Maybe<string>): boolean {
+  if (isSalesforceProvidedPermissionSet(record)) {
+    return true;
+  }
+  if (!record?.NamespacePrefix) {
+    return false;
+  }
+  return record.NamespacePrefix.toLowerCase() !== orgNamespacePrefix?.toLowerCase();
+}
+
+/**
+ * A standard permission set Salesforce provides (e.g. "Sales Cloud User"), rather than one from an installed package.
+ * The `Standard` type is checked on its own so a standard permission set is never treated as editable, even without
+ * a Salesforce namespace.
+ */
+export function isSalesforceProvidedPermissionSet(record: Maybe<PermissionSetRecord>): boolean {
+  if (!record) {
+    return false;
+  }
+  return record.Type === 'Standard' || (!!record.NamespacePrefix && SALESFORCE_PERMISSION_SET_NAMESPACES.has(record.NamespacePrefix));
+}
+
+/**
+ * Session-based permission sets Salesforce creates for its own integration users (e.g. `C2CMcpServicePermSet`).
+ * They are never useful to compare against and would bury the real managed permission sets, so they are hidden.
+ */
+export function isSalesforceInternalPermissionSet(record: PermissionSetRecord): boolean {
+  return record.Type === 'Session' && isSalesforceProvidedPermissionSet(record);
+}
+
+/** Where a managed permission set came from, phrased to follow "Provided by" in tooltips. */
+export function getManagedPermissionSetSource(record: Maybe<PermissionSetRecord>): string {
+  return isSalesforceProvidedPermissionSet(record) ? 'Salesforce' : `the ${record?.NamespacePrefix} managed package`;
+}
+
 /**
  * Returns a reducer function for useReducers that can be used for fetch actions
  * Nested function allows type safety, otherwise generic would not be able to be specified un useReducer

@@ -45,6 +45,7 @@ export const AppStateResetOnOrgChange = () => {
     useResetAtom(fromPermissionsState.profilesState),
     useResetAtom(fromPermissionsState.selectedProfilesPermSetState),
     useResetAtom(fromPermissionsState.permissionSetsState),
+    useResetAtom(fromPermissionsState.managedPermissionSetsState),
     useResetAtom(fromPermissionsState.selectedPermissionSetsState),
     useResetAtom(fromPermissionsState.sObjectsState),
     useResetAtom(fromPermissionsState.selectedSObjectsState),

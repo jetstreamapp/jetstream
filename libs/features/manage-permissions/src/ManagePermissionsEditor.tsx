@@ -147,6 +147,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
 
   const profilesById = useAtomValue(fromPermissionsState.profilesByIdSelector);
   const permissionSetsById = useAtomValue(fromPermissionsState.permissionSetsByIdSelector);
+  const readOnlyPermissionSetIds = useAtomValue(fromPermissionsState.managedPermissionSetIdsSelector);
   const [fieldsByObject, setFieldsByObject] = useAtom(fromPermissionsState.fieldsByObject);
   const [fieldsByKey, setFieldsByKey] = useAtom(fromPermissionsState.fieldsByKey);
   const [objectPermissionMap, setObjectPermissionMap] = useAtom(fromPermissionsState.objectPermissionMap);
@@ -456,10 +457,18 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     systemPermissionMapOverride?: Record<string, SystemPermissionDefinitionMap>,
   ) {
     if (includeColumns) {
-      setObjectColumns(getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
-      setFieldColumns(getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
-      setTabVisibilityColumns(getTabVisibilityColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
-      setSystemPermissionColumns(getSystemPermissionColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
+      setObjectColumns(
+        getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById, readOnlyPermissionSetIds),
+      );
+      setFieldColumns(
+        getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById, readOnlyPermissionSetIds),
+      );
+      setTabVisibilityColumns(
+        getTabVisibilityColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById, readOnlyPermissionSetIds),
+      );
+      setSystemPermissionColumns(
+        getSystemPermissionColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById, readOnlyPermissionSetIds),
+      );
     }
     const tempObjectRows = getObjectRows(selectedSObjects, objectPermissionMapOverride || objectPermissionMap || {});
     setObjectRows(tempObjectRows);
@@ -504,19 +513,43 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         case 'gdrive': {
           const fileData = generateExcelWorkbookFromTable(
             {
-              columns: getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+              columns: getObjectColumns(
+                selectedProfiles,
+                selectedPermissionSets,
+                profilesById,
+                permissionSetsById,
+                readOnlyPermissionSetIds,
+              ),
               rows: getObjectRows(selectedSObjects, objectPermissionMap || {}),
             },
             {
-              columns: getTabVisibilityColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+              columns: getTabVisibilityColumns(
+                selectedProfiles,
+                selectedPermissionSets,
+                profilesById,
+                permissionSetsById,
+                readOnlyPermissionSetIds,
+              ),
               rows: getTabVisibilityRows(selectedSObjects, tabVisibilityPermissionMap || {}),
             },
             {
-              columns: getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+              columns: getFieldColumns(
+                selectedProfiles,
+                selectedPermissionSets,
+                profilesById,
+                permissionSetsById,
+                readOnlyPermissionSetIds,
+              ),
               rows: getFieldRows(selectedSObjects, fieldsByObject || {}, fieldPermissionMap || {}),
             },
             {
-              columns: getSystemPermissionColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+              columns: getSystemPermissionColumns(
+                selectedProfiles,
+                selectedPermissionSets,
+                profilesById,
+                permissionSetsById,
+                readOnlyPermissionSetIds,
+              ),
               rows: getSystemPermissionRows(systemPermissionMap || {}),
             },
           );
@@ -539,19 +572,43 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         case 'csv': {
           const zipFile = await generateCsvFilesFromTable(
             {
-              columns: getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+              columns: getObjectColumns(
+                selectedProfiles,
+                selectedPermissionSets,
+                profilesById,
+                permissionSetsById,
+                readOnlyPermissionSetIds,
+              ),
               rows: getObjectRows(selectedSObjects, objectPermissionMap || {}),
             },
             {
-              columns: getTabVisibilityColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+              columns: getTabVisibilityColumns(
+                selectedProfiles,
+                selectedPermissionSets,
+                profilesById,
+                permissionSetsById,
+                readOnlyPermissionSetIds,
+              ),
               rows: getTabVisibilityRows(selectedSObjects, tabVisibilityPermissionMap || {}),
             },
             {
-              columns: getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+              columns: getFieldColumns(
+                selectedProfiles,
+                selectedPermissionSets,
+                profilesById,
+                permissionSetsById,
+                readOnlyPermissionSetIds,
+              ),
               rows: getFieldRows(selectedSObjects, fieldsByObject || {}, fieldPermissionMap || {}),
             },
             {
-              columns: getSystemPermissionColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+              columns: getSystemPermissionColumns(
+                selectedProfiles,
+                selectedPermissionSets,
+                profilesById,
+                permissionSetsById,
+                readOnlyPermissionSetIds,
+              ),
               rows: getSystemPermissionRows(systemPermissionMap || {}),
             },
           );

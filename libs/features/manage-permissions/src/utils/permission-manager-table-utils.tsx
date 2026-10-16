@@ -56,6 +56,7 @@ import startCase from 'lodash/startCase';
 import { Fragment, useContext, useMemo, useRef, useState } from 'react';
 import { PermissionColumnGroupHeader } from '../PermissionColumnGroupHeader';
 import {
+  MANAGED_PERMISSION_SET_READ_ONLY_MESSAGE,
   OBJECT_PERMISSIONS_UNSUPPORTED_MESSAGE,
   supportsViewAllModifyAll,
   VIEW_ALL_MODIFY_ALL_UNSUPPORTED_MESSAGE,
@@ -118,8 +119,17 @@ function isBlockedObjectPermission(row: PermissionTableCellExtended): boolean {
   return 'allowObjectPermission' in row && !row.allowObjectPermission;
 }
 
+/**
+ * True when the permission belongs to a managed-package permission set. Salesforce rejects any change to
+ * those, so every path that writes a permission value routes through this - the disabled checkbox only
+ * covers a direct click, not the bulk and paste actions.
+ */
+function isReadOnlyPermission(row: PermissionTableCellExtended, permissionId: string): boolean {
+  return !!row.permissions[permissionId]?.isReadOnly;
+}
+
 function setObjectValue(which: ObjectPermissionTypes, row: PermissionTableObjectCell, permissionId: string, value: boolean) {
-  if (isBlockedViewAllModifyAll(which, row) || isBlockedObjectPermission(row)) {
+  if (isBlockedViewAllModifyAll(which, row) || isBlockedObjectPermission(row) || isReadOnlyPermission(row, permissionId)) {
     return row;
   }
   const newRow = { ...row, permissions: { ...row.permissions, [permissionId]: { ...row.permissions[permissionId] } } };
@@ -150,6 +160,9 @@ function setObjectValue(which: ObjectPermissionTypes, row: PermissionTableObject
 }
 
 function setFieldValue(which: FieldPermissionTypes, row: PermissionTableFieldCell, permissionId: string, value: boolean) {
+  if (isReadOnlyPermission(row, permissionId)) {
+    return row;
+  }
   const newRow = { ...row, permissions: { ...row.permissions, [permissionId]: { ...row.permissions[permissionId] } } };
   const permission = newRow.permissions[permissionId];
   if (which === 'read') {
@@ -168,6 +181,9 @@ function setTabVisibilityValue(
   permissionId: string,
   value: boolean,
 ) {
+  if (isReadOnlyPermission(row, permissionId)) {
+    return row;
+  }
   const newRow = { ...row, permissions: { ...row.permissions, [permissionId]: { ...row.permissions[permissionId] } } };
   const permission = newRow.permissions[permissionId];
   if (which === 'available') {
@@ -186,6 +202,9 @@ function setSystemPermissionValue(
   permissionId: string,
   value: boolean,
 ) {
+  if (isReadOnlyPermission(row, permissionId)) {
+    return row;
+  }
   const newRow = { ...row, permissions: { ...row.permissions, [permissionId]: { ...row.permissions[permissionId] } } };
   const permission = newRow.permissions[permissionId];
   if (which === 'enabled') {
@@ -348,35 +367,44 @@ export function resetGridChanges({
   }
 }
 
+/**
+ * Every `getDirty*` collector excludes read-only permissions. Nothing should be able to dirty one, so this is
+ * the last line of defense before DML - Salesforce would reject a managed-package permission set outright.
+ */
 export function getDirtyObjectPermissions(dirtyRows: Record<string, DirtyRow<PermissionTableObjectCell>>) {
   return Object.values(dirtyRows).flatMap(({ row }) =>
     Object.values(row.permissions).filter(
       (permission) =>
-        permission.createIsDirty ||
-        permission.readIsDirty ||
-        permission.editIsDirty ||
-        permission.deleteIsDirty ||
-        permission.viewAllIsDirty ||
-        permission.modifyAllIsDirty ||
-        permission.viewAllFieldsIsDirty,
+        !permission.isReadOnly &&
+        (permission.createIsDirty ||
+          permission.readIsDirty ||
+          permission.editIsDirty ||
+          permission.deleteIsDirty ||
+          permission.viewAllIsDirty ||
+          permission.modifyAllIsDirty ||
+          permission.viewAllFieldsIsDirty),
     ),
   );
 }
 
 export function getDirtyFieldPermissions(dirtyRows: Record<string, DirtyRow<PermissionTableFieldCell>>) {
   return Object.values(dirtyRows).flatMap(({ row }) =>
-    Object.values(row.permissions).filter((permission) => permission.readIsDirty || permission.editIsDirty),
+    Object.values(row.permissions).filter((permission) => !permission.isReadOnly && (permission.readIsDirty || permission.editIsDirty)),
   );
 }
 
 export function getDirtyTabVisibilityPermissions(dirtyRows: Record<string, DirtyRow<PermissionTableTabVisibilityCell>>) {
   return Object.values(dirtyRows).flatMap(({ row }) =>
-    Object.values(row.permissions).filter((permission) => permission.availableIsDirty || permission.visibleIsDirty),
+    Object.values(row.permissions).filter(
+      (permission) => !permission.isReadOnly && (permission.availableIsDirty || permission.visibleIsDirty),
+    ),
   );
 }
 
 export function getDirtySystemPermissions(dirtyRows: Record<string, DirtyRow<PermissionTableSystemPermissionCell>>) {
-  return Object.values(dirtyRows).flatMap(({ row }) => Object.values(row.permissions).filter((permission) => permission.enabledIsDirty));
+  return Object.values(dirtyRows).flatMap(({ row }) =>
+    Object.values(row.permissions).filter((permission) => !permission.isReadOnly && permission.enabledIsDirty),
+  );
 }
 
 export function getObjectColumns(
@@ -384,6 +412,7 @@ export function getObjectColumns(
   selectedPermissionSets: string[],
   profilesById: Record<string, PermissionSetWithProfileRecord>,
   permissionSetsById: Record<string, PermissionSetNoProfileRecord>,
+  readOnlyPermissionSetIds: ReadonlySet<string>,
 ) {
   const newColumns: ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>[] = [
     {
@@ -435,6 +464,7 @@ export function getObjectColumns(
           permissionType: 'object',
           id: profileId,
           type: 'Profile',
+          isReadOnly: false,
           label: profile?.Profile?.Name || '',
           actionType: startCase(permissionType) as 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll' | 'ViewAllFields',
           actionKey: permissionType,
@@ -452,6 +482,7 @@ export function getObjectColumns(
           permissionType: 'object',
           id: permissionSetId,
           type: 'Permission Set',
+          isReadOnly: readOnlyPermissionSetIds.has(permissionSetId),
           label: permissionSet?.Name || '',
           actionType: startCase(permissionType) as 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll' | 'ViewAllFields',
           actionKey: permissionType,
@@ -514,6 +545,7 @@ function getRowObjectPermissionFromObjectPermissionItem(
     modifyAllIsDirty: false,
     viewAllFieldsIsDirty: false,
     errorMessage: item.errorMessage,
+    isReadOnly: item.isReadOnly,
   };
 }
 
@@ -562,6 +594,7 @@ export function getFieldColumns(
   selectedPermissionSets: string[],
   profilesById: Record<string, PermissionSetWithProfileRecord>,
   permissionSetsById: Record<string, PermissionSetNoProfileRecord>,
+  readOnlyPermissionSetIds: ReadonlySet<string>,
 ) {
   const newColumns: ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>[] = [
     {
@@ -646,6 +679,7 @@ export function getFieldColumns(
           permissionType: 'field',
           id: profileId,
           type: 'Profile',
+          isReadOnly: false,
           label: profile?.Profile?.Name || '',
           actionType: startCase(permissionType) as 'Read' | 'Edit',
           actionKey: permissionType,
@@ -663,6 +697,7 @@ export function getFieldColumns(
           permissionType: 'field',
           id: permissionSetId,
           type: 'Permission Set',
+          isReadOnly: readOnlyPermissionSetIds.has(permissionSetId),
           label: permissionSet?.Name || '',
           actionType: startCase(permissionType) as 'Read' | 'Edit',
           actionKey: permissionType,
@@ -681,6 +716,7 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
   type,
   actionType,
   actionKey,
+  isReadOnly,
 }: {
   permissionType: T;
   isFirstItem: boolean;
@@ -689,13 +725,17 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
   type: 'Profile' | 'Permission Set';
   actionType: PermissionActionType<T>;
   actionKey: PermissionActionAction<T>;
+  /** Managed-package permission set - the whole column group is read-only. */
+  isReadOnly: boolean;
 }): PermissionTypeColumn<T> {
   const numItems = permissionType === 'object' ? 7 : permissionType === 'systemPermission' ? 1 : 2;
   const maxLabelWidth = Math.max((actionType.length + 3) * 7.5, 116);
   const profileOrPermSetWidth = (`${label} (${type})`.length * 7.5) / numItems;
   const colWidth = Math.max(maxLabelWidth, profileOrPermSetWidth);
   const column: ColumnWithFilter<PermissionTableCellExtended, PermissionTableSummaryRow> = {
-    name: `${label} (${type})`,
+    // `name` is what the CSV/xlsx exports use for the group header - the on-screen header is rendered by
+    // `PermissionColumnGroupHeader` instead, which builds its own label, so the marker only shows in exports.
+    name: isReadOnly ? `${label} (${type}) [Managed]` : `${label} (${type})`,
     key: `${id}-${actionKey}`,
     width: colWidth,
     filters: ['BOOLEAN_SET'],
@@ -712,6 +752,9 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
     // Paste/clear eligibility only (no popup editor): mirrors the checkbox's own disabled logic so
     // pasted true/false values can never land on cells the user couldn't click.
     editable: (row) => {
+      if (isReadOnly) {
+        return false;
+      }
       if (permissionType === 'tabVisibility' && 'canSetPermission' in row && !row.canSetPermission) {
         return false;
       }
@@ -727,6 +770,9 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
       return true;
     },
     cellClass: (row) => {
+      if (isReadOnly) {
+        return 'bg-color-gray';
+      }
       if (permissionType === 'object') {
         if ('allowObjectPermission' in row && !row.allowObjectPermission) {
           return 'is-disabled';
@@ -819,7 +865,15 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
       }
 
       const unsupportedViewAllModifyAll = isBlockedViewAllModifyAll(actionKey as PermissionTypes, row);
-      const disabled = unsupportedViewAllModifyAll || (actionKey === 'edit' && 'allowEditPermission' in row && !row.allowEditPermission);
+      // `disabled` (not `readOnly`) is deliberate: the grid's keyboard activation skips disabled inputs,
+      // and `readonly` does nothing on a checkbox.
+      const disabled =
+        isReadOnly || unsupportedViewAllModifyAll || (actionKey === 'edit' && 'allowEditPermission' in row && !row.allowEditPermission);
+      const disabledReason = isReadOnly
+        ? MANAGED_PERMISSION_SET_READ_ONLY_MESSAGE
+        : unsupportedViewAllModifyAll
+          ? VIEW_ALL_MODIFY_ALL_UNSUPPORTED_MESSAGE
+          : null;
 
       const checkbox = (
         <input
@@ -839,8 +893,8 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
 
       return (
         <div className="slds-align_absolute-center h-100">
-          {unsupportedViewAllModifyAll ? (
-            <Tooltip ariaRole="label" content={VIEW_ALL_MODIFY_ALL_UNSUPPORTED_MESSAGE}>
+          {disabledReason ? (
+            <Tooltip ariaRole="label" content={disabledReason}>
               {checkbox}
             </Tooltip>
           ) : (
@@ -869,10 +923,13 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
       );
     },
     getValue: ({ row }) => (row.permissions[id] as any)[actionKey as any],
-    summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
+    summaryCellClass: ({ type }) => (type === 'HEADING' || isReadOnly ? 'bg-color-gray' : null),
     renderSummaryCell: (args) => {
       if (args.row.type === 'HEADING') {
         return <SummaryFilterRenderer columnKey={`${id}-${actionKey}`} label={actionType} />;
+      }
+      if (isReadOnly) {
+        return null;
       }
       return <PinnedSelectAllRendererWrapper {...(args as RenderSummaryCellProps<any, unknown>)} />;
     },
@@ -998,6 +1055,7 @@ function getRowFieldPermissionFromFieldPermissionItem(
     readIsDirty: false,
     editIsDirty: false,
     errorMessage: item.errorMessage,
+    isReadOnly: item.isReadOnly,
   };
 }
 
@@ -1031,6 +1089,7 @@ export function getTabVisibilityColumns(
   selectedPermissionSets: string[],
   profilesById: Record<string, PermissionSetWithProfileRecord>,
   permissionSetsById: Record<string, PermissionSetNoProfileRecord>,
+  readOnlyPermissionSetIds: ReadonlySet<string>,
 ) {
   const newColumns: ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>[] = [
     {
@@ -1099,6 +1158,7 @@ export function getTabVisibilityColumns(
           permissionType: 'tabVisibility',
           id: profileId,
           type: 'Profile',
+          isReadOnly: false,
           label: profile?.Profile?.Name || '',
           actionType: startCase(actionKey) as 'Available' | 'Visible',
           actionKey,
@@ -1116,6 +1176,7 @@ export function getTabVisibilityColumns(
           permissionType: 'tabVisibility',
           id: permissionSetId,
           type: 'Permission Set',
+          isReadOnly: readOnlyPermissionSetIds.has(permissionSetId),
           label: permissionSet?.Name || '',
           actionType: startCase(actionKey) as 'Available' | 'Visible',
           actionKey,
@@ -1188,6 +1249,7 @@ function getRowTabVisibilityPermissionFromFieldPermissionItem(
     availableIsDirty: false,
     record: item,
     errorMessage: item.errorMessage,
+    isReadOnly: item.isReadOnly,
   };
 }
 
@@ -1196,6 +1258,7 @@ export function getSystemPermissionColumns(
   selectedPermissionSets: string[],
   profilesById: Record<string, PermissionSetWithProfileRecord>,
   permissionSetsById: Record<string, PermissionSetNoProfileRecord>,
+  readOnlyPermissionSetIds: ReadonlySet<string>,
 ) {
   const newColumns: ColumnWithFilter<PermissionTableSystemPermissionCell, PermissionTableSummaryRow>[] = [
     {
@@ -1264,6 +1327,7 @@ export function getSystemPermissionColumns(
         label: profile?.Profile?.Name || '',
         actionType: 'Enabled',
         actionKey: 'enabled',
+        isReadOnly: false,
       }),
     );
   });
@@ -1278,6 +1342,7 @@ export function getSystemPermissionColumns(
         label: permissionSet?.Name || '',
         actionType: 'Enabled',
         actionKey: 'enabled',
+        isReadOnly: readOnlyPermissionSetIds.has(permissionSetId),
       }),
     );
   });
@@ -1322,6 +1387,7 @@ function getRowSystemPermissionFromItem(
     enabledIsDirty: false,
     record: item,
     errorMessage: item.errorMessage,
+    isReadOnly: item.isReadOnly,
   };
 }
 
@@ -1483,7 +1549,7 @@ export function updateRowsFromColumnAction<TRows extends PermissionTableCellExte
 ): TRows[] {
   const newRows = [...rows];
   return newRows.map((row, _index) => {
-    if (isBlockedObjectPermission(row)) {
+    if (isBlockedObjectPermission(row) || isReadOnlyPermission(row, id)) {
       return row;
     }
     // Reset restores the saved value, so it stays allowed even where the permission cannot be set
@@ -1570,6 +1636,9 @@ export function updateRowsFromRowAction<TRows extends PermissionTableCellExtende
     row = { ...row };
     row.permissions = { ...row.permissions };
     for (const permissionId in row.permissions) {
+      if (isReadOnlyPermission(row, permissionId)) {
+        continue;
+      }
       row.permissions = { ...row.permissions, [permissionId]: { ...row.permissions[permissionId] } } as any;
       if (type === 'object' && !isBlockedObjectPermission(row)) {
         const permission = row.permissions[permissionId] as PermissionTableObjectCellPermission;
@@ -1622,6 +1691,9 @@ export function resetRow<TRows extends PermissionTableCellExtended>(type: Permis
     row = { ...row };
     row.permissions = { ...row.permissions };
     for (const permissionId in row.permissions) {
+      if (isReadOnlyPermission(row, permissionId)) {
+        continue;
+      }
       row.permissions = { ...row.permissions, [permissionId]: { ...row.permissions[permissionId] } } as any;
       if (type === 'object') {
         const permission = row.permissions[permissionId] as PermissionTableObjectCellPermission;

@@ -5,6 +5,8 @@ import * as XLSX from 'xlsx';
 import { generateFieldCsv, generateFieldWorksheet } from '../permission-manager-export-utils';
 import { getFieldColumns } from '../permission-manager-table-utils';
 
+const NO_READ_ONLY: ReadonlySet<string> = new Set();
+
 const PROFILE_ID = '0PS1t000000Profile';
 const profilesById = {
   [PROFILE_ID]: { Label: 'System Administrator', Profile: { Name: 'System Administrator' } } as PermissionSetWithProfileRecord,
@@ -15,7 +17,7 @@ const PREFIX_COLUMN_COUNT = 7;
 /** Date headers carry the zone the timestamps are rendered in, which varies by where the test runs */
 const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-const columns = getFieldColumns([PROFILE_ID], [], profilesById, {});
+const columns = getFieldColumns([PROFILE_ID], [], profilesById, {}, NO_READ_ONLY);
 
 /** Worksheets are built in dense mode, so cells live in `!data` rather than under their A1 address */
 function getCell(worksheet: XLSX.WorkSheet, address: string): XLSX.CellObject {

@@ -27,7 +27,8 @@ function buildSystemRow(
       field: apiName,
       enabled,
       enabledIsDirty: enabled !== baseline,
-      record: { enabled: baseline },
+      record: { enabled: baseline, isReadOnly: false },
+      isReadOnly: false,
     };
   }
   return { key: apiName, sobject: apiName, apiName, label: apiName, tableLabel: apiName, permissions };
@@ -51,7 +52,8 @@ function buildCellPermission(
     enabled,
     enabledIsDirty,
     // when dirty, the originally loaded value is the opposite of the current value
-    record: { enabled: enabledIsDirty ? !enabled : enabled },
+    record: { enabled: enabledIsDirty ? !enabled : enabled, isReadOnly: false },
+    isReadOnly: false,
   };
 }
 
@@ -79,13 +81,13 @@ describe('getSystemPermissionRows', () => {
       apiName: 'PermissionsModifyAllData',
       label: 'Modify All Data',
       permissionKeys: ['P1', 'P2'],
-      permissions: { P1: { enabled: false }, P2: { enabled: true } },
+      permissions: { P1: { enabled: false, isReadOnly: false }, P2: { enabled: true, isReadOnly: false } },
     },
     PermissionsApiEnabled: {
       apiName: 'PermissionsApiEnabled',
       label: 'API Enabled',
       permissionKeys: ['P1', 'P2'],
-      permissions: { P1: { enabled: true }, P2: { enabled: false } },
+      permissions: { P1: { enabled: true, isReadOnly: false }, P2: { enabled: false, isReadOnly: false } },
     },
   };
 

@@ -465,7 +465,7 @@ export function getUpdatedSystemPermissions(
           ...currentMap,
           permissions: {
             ...currentMap.permissions,
-            [dirtyPermission.parentId]: { enabled: dirtyPermission.enabled },
+            [dirtyPermission.parentId]: { enabled: dirtyPermission.enabled, isReadOnly: dirtyPermission.isReadOnly },
           },
         };
       } else {
@@ -558,6 +558,7 @@ export function getUpdatedObjectPermissions(
               modifyAll: dirtyPermission.modifyAll,
               viewAllFields: dirtyPermission.viewAllFields,
               record: fieldPermission as ObjectPermissionRecord,
+              isReadOnly: dirtyPermission.isReadOnly,
             },
           },
         };
@@ -576,6 +577,7 @@ export function getUpdatedObjectPermissions(
               modifyAll: dirtyPermission.modifyAll,
               viewAllFields: dirtyPermission.viewAllFields,
               record: isDelete ? null : (fieldPermission as ObjectPermissionRecord),
+              isReadOnly: dirtyPermission.isReadOnly,
             },
           },
         };
@@ -649,6 +651,7 @@ export function getUpdatedFieldPermissions(
               read: dirtyPermission.read,
               edit: dirtyPermission.edit,
               record: fieldPermission as FieldPermissionRecord,
+              isReadOnly: dirtyPermission.isReadOnly,
             },
           },
         };
@@ -662,6 +665,7 @@ export function getUpdatedFieldPermissions(
               read: dirtyPermission.read,
               edit: dirtyPermission.edit,
               record: isDelete ? null : (fieldPermission as FieldPermissionRecord),
+              isReadOnly: dirtyPermission.isReadOnly,
             },
           },
         };

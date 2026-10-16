@@ -118,6 +118,7 @@ import UtilityIcon_Italic from './icons/utility/Italic';
 import UtilityIcon_Left from './icons/utility/Left';
 import UtilityIcon_LightBulb from './icons/utility/LightBulb';
 import UtilityIcon_Link from './icons/utility/Link';
+import UtilityIcon_Lock from './icons/utility/Lock';
 import UtilityIcon_Logout from './icons/utility/Logout';
 import UtilityIcon_Magicwand from './icons/utility/Magicwand';
 import UtilityIcon_MergeField from './icons/utility/MergeField';
@@ -329,6 +330,7 @@ const utilityIcons = {
   left: UtilityIcon_Left,
   light_bulb: UtilityIcon_LightBulb,
   link: UtilityIcon_Link,
+  lock: UtilityIcon_Lock,
   logout: UtilityIcon_Logout,
   magicwand: UtilityIcon_Magicwand,
   merge_field: UtilityIcon_MergeField,

@@ -21,6 +21,7 @@ export const PermissionAnalysis: FunctionComponent = () => {
   const resetProfilesState = useResetAtom(fromPermissionsState.profilesState);
   const resetSelectedProfilesPermSetState = useResetAtom(fromPermissionsState.selectedProfilesPermSetState);
   const resetPermissionSetsState = useResetAtom(fromPermissionsState.permissionSetsState);
+  const resetManagedPermissionSetsState = useResetAtom(fromPermissionsState.managedPermissionSetsState);
   const resetSelectedPermissionSetsState = useResetAtom(fromPermissionsState.selectedPermissionSetsState);
   const resetSObjectsState = useResetAtom(fromPermissionsState.sObjectsState);
   const resetSelectedSObjectsState = useResetAtom(fromPermissionsState.selectedSObjectsState);
@@ -44,6 +45,7 @@ export const PermissionAnalysis: FunctionComponent = () => {
       resetProfilesState();
       resetSelectedProfilesPermSetState();
       resetPermissionSetsState();
+      resetManagedPermissionSetsState();
       resetSelectedPermissionSetsState();
       resetSObjectsState();
       resetSelectedSObjectsState();
@@ -56,6 +58,7 @@ export const PermissionAnalysis: FunctionComponent = () => {
       resetProfilesState();
       resetSelectedProfilesPermSetState();
       resetPermissionSetsState();
+      resetManagedPermissionSetsState();
       resetSelectedPermissionSetsState();
       resetSObjectsState();
       resetSelectedSObjectsState();

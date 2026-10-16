@@ -1,6 +1,8 @@
 import { PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
 import { getFieldColumns, getObjectColumns, getSystemPermissionColumns, getTabVisibilityColumns } from '../permission-manager-table-utils';
 
+const NO_READ_ONLY: ReadonlySet<string> = new Set();
+
 const PROFILE_ID = '0PS1t000000Profile';
 const PERM_SET_ID = '0PS1t000000PermSet';
 
@@ -20,7 +22,7 @@ const COLUMN_BUILDERS = [
 
 describe('profile / permission set columns', () => {
   describe.each(COLUMN_BUILDERS)('%s table', (_type, getColumns, permissionsPerGroup) => {
-    const columns = getColumns([PROFILE_ID], [PERM_SET_ID], profilesById, permissionSetsById);
+    const columns = getColumns([PROFILE_ID], [PERM_SET_ID], profilesById, permissionSetsById, NO_READ_ONLY);
     const groupColumns = columns.filter((column) => column.key.startsWith(PROFILE_ID) || column.key.startsWith(PERM_SET_ID));
 
     test('builds one column per permission for each profile and permission set', () => {

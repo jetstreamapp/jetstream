@@ -189,7 +189,11 @@ export interface PermissionSetRecord {
   Id: string;
   Name: string;
   Label: string;
-  Type: 'Profile' | 'Regular' | 'Group';
+  /**
+   * `Standard` is a Salesforce-provided permission set (e.g. "Sales Cloud User"), `Session` is session-based
+   * activation and `Group` is the aggregate permission set behind a permission set group.
+   */
+  Type: 'Profile' | 'Regular' | 'Group' | 'Session' | 'Standard';
   IsCustom: boolean;
   IsOwnedByProfile: boolean;
   NamespacePrefix: string | null;
@@ -214,7 +218,7 @@ export interface PermissionSetAssignmentRecord {
 }
 
 export interface PermissionSetNoProfileRecord extends PermissionSetRecord {
-  Type: 'Regular';
+  Type: 'Regular' | 'Session' | 'Standard';
   IsOwnedByProfile: false;
   ProfileId: null;
   Profile: undefined;
