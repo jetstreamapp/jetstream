@@ -788,6 +788,10 @@ export async function saveOrUpdateSubscription({
       subscriptions: activeSubscriptions,
       seatState: await resolveTeamSeatState(activeSubscriptions),
     });
+    // Stripe's entitlement summary event only fires when entitlements change, so a customer that already had them
+    // before it was linked to a team (e.g. a team provisioned from the admin app) would otherwise never sync
+    const { data: activeEntitlements } = await fetchCustomerEntitlements({ customerId: customer.id });
+    await subscriptionDbService.updateTeamEntitlements(customer.id, resolveEntitlementAccessFromStripe(activeEntitlements));
   } else {
     throw new Error(`Invalid type for subscription update: ${type}`);
   }

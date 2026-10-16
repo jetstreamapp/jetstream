@@ -43,6 +43,8 @@ const mocks = vi.hoisted(() => ({
   findTeamEntitlements: vi.fn(async () => ({})),
   findUserById: vi.fn(),
   findBillingAccountByCustomerId: vi.fn(),
+  activeEntitlementsList: vi.fn(async () => ({ data: [] as { lookup_key: string }[] })),
+  updateTeamEntitlements: vi.fn(async () => ({})),
 }));
 
 vi.mock('stripe', () => ({
@@ -54,7 +56,7 @@ vi.mock('stripe', () => ({
       search: vi.fn(),
       create: vi.fn(),
     };
-    entitlements = { activeEntitlements: { list: vi.fn(async () => ({ data: [] })) } };
+    entitlements = { activeEntitlements: { list: mocks.activeEntitlementsList } };
     webhooks = { constructEvent: mocks.webhooksConstructEvent };
     prices = { list: mocks.pricesList, retrieve: mocks.pricesRetrieve };
     checkout = { sessions: { create: mocks.checkoutSessionsCreate, retrieve: mocks.checkoutSessionsRetrieve } };
@@ -82,7 +84,7 @@ vi.mock('../../db/subscription.db', () => ({
   updateSubscriptionStateForCustomer: mocks.updateSubscriptionStateForCustomer,
   updateTeamSubscriptionStateForCustomer: mocks.updateTeamSubscriptionStateForCustomer,
   updateUserEntitlements: vi.fn(async () => ({})),
-  updateTeamEntitlements: vi.fn(async () => ({})),
+  updateTeamEntitlements: mocks.updateTeamEntitlements,
   getTeamBillingAccountForSeats: mocks.getTeamBillingAccountForSeats,
   isTeamSeatStateInSync: mocks.isTeamSeatStateInSync,
 }));
@@ -786,6 +788,24 @@ describe('seat state synchronization', () => {
         },
       }),
     );
+  });
+
+  it('syncs entitlements from the webhook path for a customer linked to a team after its subscription started', async () => {
+    // No entitlement summary event follows the link, so the subscription webhook is the only chance to pick them up
+    mocks.activeEntitlementsList.mockResolvedValueOnce({ data: [{ lookup_key: 'chromeExtension' }, { lookup_key: 'desktop' }] });
+    const customer = customerWithPlan('TEAM_MONTHLY', undefined, { teamId: 'team_1', type: 'TEAM' });
+
+    await stripeService.saveOrUpdateSubscription({ customer, sendWelcomeEmail: false });
+
+    expect(mocks.activeEntitlementsList).toHaveBeenCalledWith({ customer: 'cus_1' });
+    expect(mocks.updateTeamEntitlements).toHaveBeenCalledWith('cus_1', {
+      chromeExtension: true,
+      desktop: true,
+      analysisTools: true,
+      googleDrive: false,
+      recordSync: false,
+      salesforceCanvas: false,
+    });
   });
 
   it('re-synchronizes the team when only the seat mirror has drifted', async () => {
