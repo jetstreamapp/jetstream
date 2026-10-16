@@ -33,7 +33,11 @@ function AddExistingUserForm({ team, onAdded }: { team: TeamDetail; onAdded: (em
     if (!pendingUser) {
       return;
     }
-    if (!window.confirm(`Add ${pendingUser.email} to ${team.name} as ${TEAM_ROLE_LABELS[role]}? No email is sent.`)) {
+    if (
+      !window.confirm(
+        `Add ${pendingUser.email} to ${team.name} as ${TEAM_ROLE_LABELS[role]}? They are signed out so they sign in again under the team's login rules. No email is sent.`,
+      )
+    ) {
       return;
     }
     const result = await addMember({ userId: pendingUser.id, role });
@@ -47,7 +51,8 @@ function AddExistingUserForm({ team, onAdded }: { team: TeamDetail; onAdded: (em
     <div className="space-y-2 border-t border-slate-200 px-4 py-3">
       <p className="text-sm font-medium text-slate-900">Add existing user</p>
       <p className="text-xs text-slate-500">
-        Adds someone who already has a Jetstream account straight to the team. No invitation or email is sent.
+        Adds someone who already has a Jetstream account straight to the team and signs them out, so they sign in again under the
+        team&apos;s login rules. No invitation or email is sent.
       </p>
       {pendingUser ? (
         <div className="flex flex-wrap items-center gap-2 rounded-md bg-slate-50 px-3 py-2 text-sm ring-1 ring-slate-200">

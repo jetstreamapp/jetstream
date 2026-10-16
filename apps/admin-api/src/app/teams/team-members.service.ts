@@ -1,7 +1,7 @@
 import { AdminSessionUser, TeamMemberToAdd } from '@jetstream/admin/types';
 import { getLogger, prisma } from '@jetstream/api-config';
 import { AuditLogAction, AuditLogResource, createAuditLog } from '@jetstream/audit-logs';
-import { updateUserSessionTeamMembership } from '@jetstream/auth/server';
+import { revokeAllUserSessions } from '@jetstream/auth/server';
 import { Prisma } from '@jetstream/prisma';
 import { assertSeatAvailable, isBillableRole, withTeamSeatLock } from '@jetstream/team-seats';
 import { TEAM_MEMBER_STATUS_ACTIVE, TeamMemberRole } from '@jetstream/types';
@@ -44,8 +44,9 @@ export async function addMemberInTransaction(
 }
 
 /**
- * Run after the membership commits. Signed-in sessions carry a copy of the team membership, so they
- * are patched to pick up the team without the user signing in again.
+ * Run after the membership commits. The user's sessions are revoked rather than patched with the new
+ * membership: they were signed in under no team's login rules, and signing in again is what applies the
+ * team's MFA and SSO requirements (a new team requires MFA by default).
  */
 export async function recordMembersAdded(
   teamId: string,
@@ -54,8 +55,8 @@ export async function recordMembersAdded(
   requestMetadata: RequestMetadata,
 ) {
   for (const { userId, email, role } of members) {
-    await updateUserSessionTeamMembership({ userId, teamMembership: { teamId, role, status: TEAM_MEMBER_STATUS_ACTIVE } }).catch((ex) => {
-      getLogger().error({ err: ex, userId, teamId }, '[ADMIN] Failed to update sessions after adding a team member');
+    await revokeAllUserSessions(userId).catch((ex) => {
+      getLogger().error({ err: ex, userId, teamId }, '[ADMIN] Failed to revoke sessions after adding a team member');
     });
 
     await createAuditLog({

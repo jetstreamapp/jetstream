@@ -239,7 +239,12 @@ export function ProvisionTeamPage() {
               <li>
                 The Stripe customer is tagged with the new team id, so the subscription syncs to this team when the quote is accepted.
               </li>
-              {form.members.length > 0 && <li>The members above join the team right away. They are not emailed.</li>}
+              {form.members.length > 0 && (
+                <li>
+                  The members above join the team right away and are signed out, so they sign in again under the team&apos;s login rules.
+                  They are not emailed.
+                </li>
+              )}
               <li>No email is sent. Invite anyone else from the team page when you are ready.</li>
             </ul>
           </Alert>
