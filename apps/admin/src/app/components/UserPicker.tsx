@@ -30,6 +30,7 @@ export function UserPicker({ selectedUserIds, onSelect, actionLabel = 'Add' }: U
   const hasQuery = query.length >= MIN_QUERY_LENGTH;
   const { data, error, loading } = useApiQuery<PaginatedResult<UserListItem>>(
     hasQuery ? buildListPath('/api/users', { query, pageSize: RESULT_LIMIT }) : null,
+    { keepPreviousData: true },
   );
   const users = hasQuery ? (data?.items ?? []) : [];
 

@@ -80,8 +80,9 @@ export function ProvisionTeamPage() {
     error: lookupError,
     loading: lookupLoading,
     reload: reloadLookup,
-  } = useApiQuery<ProvisioningLookupResult>(lookupPath);
-  // The lookup hook keeps the previous customer's data while loading, so only trust it when it matches the selection
+  } = useApiQuery<ProvisioningLookupResult>(lookupPath, { keepPreviousData: true });
+  // Previous data keeps the review step in place while a quote change reloads it, but it can belong to
+  // the previous customer, so only trust it when it matches the selection
   const currentLookup = lookup && lookup.customer.id === customerId ? lookup : null;
   const selectedQuote = currentLookup?.quotes.find(({ id }) => id === selectedQuoteId) ?? null;
 

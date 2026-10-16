@@ -33,6 +33,7 @@ export function UsersPage() {
 
   const { data, error, loading, reload } = useApiQuery<PaginatedResult<UserListItem>>(
     buildListPath('/api/users', { query, plan, sort, direction, page, pageSize: DEFAULT_PAGE_SIZE }),
+    { keepPreviousData: true },
   );
 
   function handleSortChange({ key, direction }: TableSort) {

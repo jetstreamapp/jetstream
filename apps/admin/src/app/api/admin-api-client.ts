@@ -119,17 +119,27 @@ export interface ApiQueryResult<T> {
   reload: () => void;
 }
 
+export interface ApiQueryOptions {
+  /**
+   * Keep showing the previous path's data while a different path loads or after it fails, so search
+   * results don't flash empty between keystrokes. Off by default: a detail page must never render, or
+   * act on, another record's data under the current record's URL.
+   */
+  keepPreviousData?: boolean;
+}
+
 /**
- * Fetches `path` whenever it changes (pass null to skip). Previous data stays visible while a new
- * request is in flight so search results don't flash empty between keystrokes.
+ * Fetches `path` whenever it changes (pass null to skip). A reload of the same path keeps its data
+ * visible while in flight and after a failure; see `keepPreviousData` for a change of path.
  */
-export function useApiQuery<T>(path: string | null): ApiQueryResult<T> {
+export function useApiQuery<T>(path: string | null, { keepPreviousData = false }: ApiQueryOptions = {}): ApiQueryResult<T> {
   const [reloadCount, setReloadCount] = useState(0);
   // Each fetch is identified by path + reload count; loading and error are derived by comparing the
   // settled request against the current one, so the effect never has to set state synchronously
   const requestKey = path ? `${path}#${reloadCount}` : null;
-  const [settled, setSettled] = useState<{ requestKey: string | null; data: T | null; error: Error | null }>({
+  const [settled, setSettled] = useState<{ requestKey: string | null; dataPath: string | null; data: T | null; error: Error | null }>({
     requestKey: null,
+    dataPath: null,
     data: null,
     error: null,
   });
@@ -142,13 +152,13 @@ export function useApiQuery<T>(path: string | null): ApiQueryResult<T> {
     apiGet<T>(path, abortController.signal)
       .then((result) => {
         if (!abortController.signal.aborted) {
-          setSettled({ requestKey, data: result, error: null });
+          setSettled({ requestKey, dataPath: path, data: result, error: null });
         }
       })
       .catch((ex: unknown) => {
         if (!abortController.signal.aborted) {
           const error = ex instanceof Error ? ex : new Error(getErrorMessage(ex));
-          setSettled((previous) => ({ requestKey, data: previous.data, error }));
+          setSettled((previous) => ({ ...previous, requestKey, error }));
         }
       });
     return () => abortController.abort();
@@ -156,7 +166,7 @@ export function useApiQuery<T>(path: string | null): ApiQueryResult<T> {
 
   const reload = useCallback(() => setReloadCount((count) => count + 1), []);
   const isCurrentRequestSettled = settled.requestKey === requestKey;
-  const data = settled.data;
+  const data = keepPreviousData || settled.dataPath === path ? settled.data : null;
   const error = isCurrentRequestSettled ? settled.error : null;
   const loading = !!requestKey && !isCurrentRequestSettled;
 

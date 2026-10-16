@@ -19,6 +19,7 @@ export function TeamsPage() {
   const { page, setPage } = useUrlListState();
   const { data, error, loading, reload } = useApiQuery<PaginatedResult<TeamListItem>>(
     buildListPath('/api/teams', { query, page, pageSize: DEFAULT_PAGE_SIZE }),
+    { keepPreviousData: true },
   );
 
   return (

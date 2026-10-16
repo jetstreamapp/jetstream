@@ -21,7 +21,9 @@ export function CustomerSearchStep({ onSelect }: { onSelect: (customer: StripeCu
     error,
     loading,
     reload,
-  } = useApiQuery<StripeCustomerSummary[]>(canSearch ? `/api/stripe/customers?${new URLSearchParams({ query }).toString()}` : null);
+  } = useApiQuery<StripeCustomerSummary[]>(canSearch ? `/api/stripe/customers?${new URLSearchParams({ query }).toString()}` : null, {
+    keepPreviousData: true,
+  });
   // Searching by quote id resolves to the quote's customer; carry the quote forward so it is preselected
   const searchedQuoteId = STRIPE_QUOTE_ID_PATTERN.test(query) ? query : null;
 

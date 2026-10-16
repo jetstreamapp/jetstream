@@ -115,4 +115,32 @@ describe('useApiQuery', () => {
     expect(result.current.loading).toBe(false);
     expect(result.current.data).toBe('first');
   });
+
+  it("never returns another path's data, including after the new path fails", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, { data: 'team-a' }));
+    const { result, rerender } = renderHook(({ path }) => useApiQuery<string>(path), { initialProps: { path: '/api/teams/a' } });
+    await waitFor(() => expect(result.current.data).toBe('team-a'));
+
+    fetchMock.mockResolvedValueOnce(jsonResponse(500, { error: true, message: 'Database unavailable' }));
+    rerender({ path: '/api/teams/b' });
+
+    expect(result.current.data).toBeNull();
+    await waitFor(() => expect(result.current.error?.message).toBe('Database unavailable'));
+    expect(result.current.data).toBeNull();
+  });
+
+  it("keeps the previous path's data when asked to", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, { data: 'first page' }));
+    const { result, rerender } = renderHook(({ path }) => useApiQuery<string>(path, { keepPreviousData: true }), {
+      initialProps: { path: '/api/teams?page=1' },
+    });
+    await waitFor(() => expect(result.current.data).toBe('first page'));
+
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, { data: 'second page' }));
+    rerender({ path: '/api/teams?page=2' });
+
+    expect(result.current.loading).toBe(true);
+    expect(result.current.data).toBe('first page');
+    await waitFor(() => expect(result.current.data).toBe('second page'));
+  });
 });
