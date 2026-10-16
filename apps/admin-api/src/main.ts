@@ -1,7 +1,7 @@
 // Must be first: initializes Sentry, validates the shared env and connects the database
 import '@jetstream/api-config';
 
-import { httpLogger, logger, requestContextMiddleware } from '@jetstream/api-config';
+import { createRateLimit, httpLogger, logger, requestContextMiddleware } from '@jetstream/api-config';
 import cookieParser from 'cookie-parser';
 import express from 'express';
 import helmet from 'helmet';
@@ -50,6 +50,9 @@ app.use((_, res, next) => {
 app.get('/healthz', (_, res) => {
   res.status(200).json({ error: false, uptime: process.uptime(), message: 'Healthy' });
 });
+
+// Generous for a handful of staff on the SPA; it caps abuse of the direct Render URL and the OAuth callback
+app.use(createRateLimit('admin', { limit: 300 }));
 
 const cloudflareAccessMiddleware = createCloudflareAccessMiddleware();
 if (cloudflareAccessMiddleware) {

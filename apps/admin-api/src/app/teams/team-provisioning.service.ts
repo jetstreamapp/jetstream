@@ -98,14 +98,20 @@ export async function provisionTeam(
     return { teamId: team.id, addedMembers };
   }, PROVISIONING_TRANSACTION_OPTIONS);
 
-  await createAuditLog({
-    action: AuditLogAction.ADMIN_TEAM_PROVISIONED,
-    resource: AuditLogResource.TEAM,
-    resourceId: teamId,
-    metadata: { adminEmail: admin.email, customerId, quoteId: quoteId ?? null, name, seatMode, licenseCountLimit, entitlements },
-    ...requestMetadata,
-  });
-  await recordMembersAdded(teamId, addedMembers, admin, requestMetadata);
+  // The team exists from here on: a failed audit write is logged rather than thrown, so the Stripe link still
+  // runs and the admin lands on the new team instead of a "not created" error they cannot retry past
+  try {
+    await createAuditLog({
+      action: AuditLogAction.ADMIN_TEAM_PROVISIONED,
+      resource: AuditLogResource.TEAM,
+      resourceId: teamId,
+      metadata: { adminEmail: admin.email, customerId, quoteId: quoteId ?? null, name, seatMode, licenseCountLimit, entitlements },
+      ...requestMetadata,
+    });
+    await recordMembersAdded(teamId, addedMembers, admin, requestMetadata);
+  } catch (ex) {
+    getLogger().error({ err: ex, teamId, customerId }, '[ADMIN] Failed to write the audit log for a provisioned team');
+  }
 
   const stripeLinkResult = await linkTeamToStripe(teamId, admin, requestMetadata);
   return { teamId, stripe: stripeLinkResult };
@@ -143,13 +149,18 @@ export async function linkTeamToStripe(
     getLogger().error({ err: ex, teamId, customerId }, '[ADMIN] Failed to link team to Stripe customer');
   }
 
-  await createAuditLog({
-    action: AuditLogAction.ADMIN_TEAM_STRIPE_LINKED,
-    resource: AuditLogResource.TEAM,
-    resourceId: teamId,
-    metadata: { adminEmail: admin.email, customerId, ...result },
-    ...requestMetadata,
-  });
+  // The link has already happened; a failed audit write is logged so the admin still gets the outcome
+  try {
+    await createAuditLog({
+      action: AuditLogAction.ADMIN_TEAM_STRIPE_LINKED,
+      resource: AuditLogResource.TEAM,
+      resourceId: teamId,
+      metadata: { adminEmail: admin.email, customerId, ...result },
+      ...requestMetadata,
+    });
+  } catch (ex) {
+    getLogger().error({ err: ex, teamId, customerId }, '[ADMIN] Failed to write the audit log for a Stripe link');
+  }
 
   return result;
 }

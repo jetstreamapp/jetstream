@@ -100,10 +100,10 @@ export async function updateStripeCustomerProductionOrgId(
 
 /** Everything provisioning needs to know about a customer: the customer, its recent quotes and current subscriptions */
 export async function getStripeCustomerContext(customerId: string, quoteId?: string) {
-  const [customer, quoteList, subscriptionList] = await Promise.all([
+  const [customer, quoteList, subscriptions] = await Promise.all([
     retrieveCustomerOrThrow(customerId),
     getStripe().quotes.list({ customer: customerId, limit: QUOTE_LOOKUP_LIMIT }),
-    getStripe().subscriptions.list({ customer: customerId, status: 'all', limit: 20 }),
+    listCurrentSubscriptions(customerId),
   ]);
 
   const quotesToSummarize = quoteList.data.filter(({ status, id }) => status !== 'canceled' || id === quoteId);
@@ -119,14 +119,14 @@ export async function getStripeCustomerContext(customerId: string, quoteId?: str
     }),
   );
 
-  return {
-    customer,
-    quotes,
-    subscriptions: subscriptionList.data.filter(isCurrentSubscription),
-  };
+  return { customer, quotes, subscriptions };
 }
 
+/**
+ * Without a status filter Stripe leaves out canceled subscriptions, so paging through every one stays
+ * cheap and a current subscription can never fall off the end of a page of old ones.
+ */
 export async function listCurrentSubscriptions(customerId: string) {
-  const { data } = await getStripe().subscriptions.list({ customer: customerId, status: 'all', limit: 20 });
-  return data.filter(isCurrentSubscription);
+  const subscriptions = await getStripe().subscriptions.list({ customer: customerId, limit: 100 }).autoPagingToArray({ limit: 1000 });
+  return subscriptions.filter(isCurrentSubscription);
 }
