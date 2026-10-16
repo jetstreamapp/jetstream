@@ -1,6 +1,7 @@
 import { AdminSessionUser, TeamDomainItem } from '@jetstream/admin/types';
 import { prisma } from '@jetstream/api-config';
 import { AuditLogAction, AuditLogResource, createAuditLog } from '@jetstream/audit-logs';
+import { lockTeamLoginConfiguration } from '@jetstream/auth/server';
 import { BLOCKED_PUBLIC_EMAIL_DOMAINS } from '@jetstream/shared/constants';
 import { randomBytes } from 'node:crypto';
 import { AdminHttpError, ConflictError, NotFoundError, RequestMetadata } from '../utils/route.utils';
@@ -29,6 +30,7 @@ export async function approveTeamDomain(
     if (!team) {
       throw new NotFoundError(`Team ${teamId} not found`);
     }
+    await lockTeamLoginConfiguration(tx, team.loginConfigId);
 
     // DomainVerification.domain is unique across all teams
     const existing = await tx.domainVerification.findUnique({
