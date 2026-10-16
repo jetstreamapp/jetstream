@@ -188,16 +188,24 @@ async function readPlatformVersions() {
 
 // ── Enrichment ──────────────────────────────────────────────────────────────
 
+// REST, not `gh pr view`: that goes through GraphQL, whose hourly budget is shared with every other
+// GitHub tool on the account and is often exhausted, while the REST budget sits nearly idle.
 async function enrichPr(pr) {
   try {
-    const raw = (await $`gh pr view ${pr.number} --repo ${REPO_SLUG} --json title,body,labels,files`).stdout.trim();
-    const data = JSON.parse(raw);
+    const pullEndpoint = `repos/${REPO_SLUG}/pulls/${pr.number}`;
+    const filesEndpoint = `${pullEndpoint}/files?per_page=100`;
+    const [pullResult, filesResult] = await Promise.all([
+      $`gh api ${pullEndpoint}`,
+      $`gh api --paginate ${filesEndpoint} --jq ${'.[].filename'}`,
+    ]);
+    const data = JSON.parse(pullResult.stdout);
+    const filePaths = filesResult.stdout.split('\n').filter(Boolean);
     return {
       number: pr.number,
       title: data.title || pr.label,
       labels: (data.labels ?? []).map(({ name }) => name),
       body: truncate((data.body ?? '').trim(), BODY_TRUNCATE),
-      areas: rollupAreas((data.files ?? []).map(({ path: filePath }) => filePath)),
+      areas: rollupAreas(filePaths),
     };
   } catch {
     // gh unavailable / not authed / PR not found — fall back to merge-commit data
