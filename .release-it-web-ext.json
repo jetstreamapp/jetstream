@@ -1,12 +1,6 @@
 {
   "$schema": "./node_modules/release-it/schema/release-it.json",
   "plugins": {
-    "@release-it/conventional-changelog": {
-      "preset": {
-        "name": "conventionalcommits"
-      },
-      "ignoreRecommendedBump": true
-    },
     "@release-it/bumper": {
       "in": "apps/jetstream-web-extension/src/manifest.json",
       "out": "apps/jetstream-web-extension/src/manifest.json"
