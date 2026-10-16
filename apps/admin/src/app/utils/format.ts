@@ -37,11 +37,49 @@ export function formatNumber(value: number | null | undefined): string {
   return value.toLocaleString();
 }
 
+/**
+ * Stripe's own lists (https://docs.stripe.com/currencies#zero-decimal), not ISO 4217: Stripe keeps ISK
+ * and a few others at two decimals for backwards compatibility, so Intl's digit counts would mis-scale them
+ */
+const STRIPE_ZERO_DECIMAL_CURRENCIES = new Set([
+  'BIF',
+  'CLP',
+  'DJF',
+  'GNF',
+  'JPY',
+  'KMF',
+  'KRW',
+  'MGA',
+  'PYG',
+  'RWF',
+  'UGX',
+  'VND',
+  'VUV',
+  'XAF',
+  'XOF',
+  'XPF',
+]);
+const STRIPE_THREE_DECIMAL_CURRENCIES = new Set(['BHD', 'JOD', 'KWD', 'OMR', 'TND']);
+
+function getStripeMinorUnitDivisor(currencyCode: string) {
+  if (STRIPE_ZERO_DECIMAL_CURRENCIES.has(currencyCode)) {
+    return 1;
+  }
+  if (STRIPE_THREE_DECIMAL_CURRENCIES.has(currencyCode)) {
+    return 1000;
+  }
+  return 100;
+}
+
+/** Formats a Stripe amount, which is an integer in the currency's smallest unit */
 export function formatCurrency(amountInMinorUnits: number | null, currency: string | null): string {
   if (amountInMinorUnits === null || !currency) {
     return EMPTY_VALUE;
   }
-  return new Intl.NumberFormat(undefined, { style: 'currency', currency: currency.toUpperCase() }).format(amountInMinorUnits / 100);
+  const currencyCode = currency.toUpperCase();
+  return new Intl.NumberFormat(undefined, { style: 'currency', currency: currencyCode }).format(
+    amountInMinorUnits / getStripeMinorUnitDivisor(currencyCode),
+  );
 }
 
 export function getStripeDashboardUrl(objectId: string): string {

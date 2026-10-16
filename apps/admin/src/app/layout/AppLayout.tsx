@@ -1,11 +1,11 @@
 import { ArrowRightStartOnRectangleIcon, ChartBarIcon, PlusIcon, UserGroupIcon, UsersIcon } from '@heroicons/react/20/solid';
 import { ADMIN_LOGOUT_PATH, AdminSessionUser } from '@jetstream/admin/types';
-import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router';
 import { apiPost, LOGIN_ROUTE, useApiQuery } from '../api/admin-api-client';
 import { ButtonLink } from '../components/Button';
 import { ErrorAlert } from '../components/ErrorAlert';
 import { PageSpinner, Spinner } from '../components/Spinner';
+import { useAsyncAction } from '../hooks/useAsyncAction';
 import { classNames } from '../utils/class-names';
 
 const NAV_ITEMS = [
@@ -17,14 +17,18 @@ const NAV_ITEMS = [
 export function AppLayout() {
   const navigate = useNavigate();
   const { data: adminUser, error, loading, reload } = useApiQuery<AdminSessionUser>('/api/me');
-  const [signingOut, setSigningOut] = useState(false);
+  const {
+    run: signOut,
+    loading: signingOut,
+    error: signOutError,
+  } = useAsyncAction(async () => {
+    await apiPost(ADMIN_LOGOUT_PATH);
+    return true;
+  });
 
+  // The session cookie is only cleared by a successful logout, so a failure must not look signed out
   async function handleSignOut() {
-    setSigningOut(true);
-    try {
-      await apiPost(ADMIN_LOGOUT_PATH);
-    } finally {
-      setSigningOut(false);
+    if (await signOut()) {
       navigate(LOGIN_ROUTE);
     }
   }
@@ -105,6 +109,11 @@ export function AppLayout() {
         </header>
         <main className="flex-1 px-4 py-6 md:px-6">
           <div className="mx-auto max-w-7xl">
+            {signOutError && (
+              <div className="mb-4">
+                <ErrorAlert error={signOutError} title="Unable to sign out" onRetry={handleSignOut} />
+              </div>
+            )}
             <Outlet />
           </div>
         </main>
