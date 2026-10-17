@@ -1,6 +1,14 @@
-import { Field, FieldType, PicklistFieldValues } from '@jetstream/types';
-import { describe, expect, it } from 'vitest';
-import { convertMetadataToEditableFields, removeUnavailablePicklistValues } from '../ui-record-form-utils';
+import { genericRequest } from '@jetstream/shared/data';
+import { DescribeSObjectResult, Field, FieldType, PicklistFieldValues, SalesforceOrgUi } from '@jetstream/types';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  convertMetadataToEditableFields,
+  getPicklistValuesForRecordAndRecordType,
+  mockPicklistValuesFromSobjectDescribe,
+  removeUnavailablePicklistValues,
+} from '../ui-record-form-utils';
+
+vi.mock('@jetstream/shared/data', () => ({ genericRequest: vi.fn() }));
 
 function getField(name: string, type: FieldType): Field {
   return { name, type, label: `${name} label` } as Field;
@@ -119,5 +127,33 @@ describe('removeUnavailablePicklistValues', () => {
 
     expect(record).toEqual({ Name: '', Status__c: '', Categories__c: undefined });
     expect(fieldsWithClearedValues).toEqual([]);
+  });
+});
+
+describe('getPicklistValuesForRecordAndRecordType', () => {
+  const org = { uniqueId: 'org-1' } as SalesforceOrgUi;
+  const sobjectMetadata = {
+    recordTypeInfos: [{ recordTypeId: '012000000000000AAA', master: true }],
+    fields: [
+      {
+        ...getField('Industry', 'picklist'),
+        defaultValue: null,
+        picklistValues: [{ label: 'Banking', value: 'Banking' }],
+      },
+    ],
+  } as unknown as DescribeSObjectResult;
+
+  it('should fall back to the describe picklist values when the UI API request fails', async () => {
+    vi.mocked(genericRequest).mockRejectedValue(new Error('The requested resource does not exist'));
+
+    const picklistValues = await getPicklistValuesForRecordAndRecordType({
+      org,
+      sobjectName: 'Account',
+      sobjectMetadata,
+      apiVersion: 'v68.0',
+    });
+
+    expect(picklistValues).toEqual(mockPicklistValuesFromSobjectDescribe(sobjectMetadata));
+    expect(picklistValues.Industry.values.map(({ value }) => value)).toEqual(['Banking']);
   });
 });
