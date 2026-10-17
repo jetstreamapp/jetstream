@@ -16,16 +16,21 @@ describe('resetFilter', () => {
 
 describe('isFilterActive', () => {
   test('TEXT active only when non-empty', () => {
-    expect(isFilterActive({ type: 'TEXT', value: '' }, 0)).toBe(false);
-    expect(isFilterActive({ type: 'TEXT', value: 'x' }, 0)).toBe(true);
+    expect(isFilterActive({ type: 'TEXT', value: '' }, [])).toBe(false);
+    expect(isFilterActive({ type: 'TEXT', value: 'x' }, [])).toBe(true);
   });
-  test('SET active when fewer than total selected', () => {
-    expect(isFilterActive({ type: 'SET', value: ['a', 'b'] }, 2)).toBe(false);
-    expect(isFilterActive({ type: 'SET', value: ['a'] }, 2)).toBe(true);
+  test('SET active when any current value is deselected', () => {
+    expect(isFilterActive({ type: 'SET', value: ['a', 'b'] }, ['a', 'b'])).toBe(false);
+    expect(isFilterActive({ type: 'SET', value: ['a'] }, ['a', 'b'])).toBe(true);
+  });
+  test('SET ignores selected values that are no longer in the data', () => {
+    // same length as the current values, but 'b' is deselected
+    expect(isFilterActive({ type: 'SET', value: [EMPTY_FIELD, 'a'] }, ['a', 'b'])).toBe(true);
+    expect(isFilterActive({ type: 'SET', value: [EMPTY_FIELD, 'a', 'b'] }, ['a', 'b'])).toBe(false);
   });
   test('BOOLEAN_SET active unless both selected', () => {
-    expect(isFilterActive({ type: 'BOOLEAN_SET', value: ['True', 'False'] }, 2)).toBe(false);
-    expect(isFilterActive({ type: 'BOOLEAN_SET', value: ['True'] }, 2)).toBe(true);
+    expect(isFilterActive({ type: 'BOOLEAN_SET', value: ['True', 'False'] }, ['True', 'False'])).toBe(false);
+    expect(isFilterActive({ type: 'BOOLEAN_SET', value: ['True'] }, ['True', 'False'])).toBe(true);
   });
 });
 
@@ -195,6 +200,7 @@ describe('hasFilterApplied', () => {
     const filterSetValues = { Name: ['Alpha', 'Bravo'] };
     expect(hasFilterApplied({ Name: [{ type: 'SET', value: ['Alpha', 'Bravo'] }] }, filterSetValues)).toBe(false);
     expect(hasFilterApplied({ Name: [{ type: 'SET', value: ['Alpha'] }] }, filterSetValues)).toBe(true);
+    expect(hasFilterApplied({ Name: [{ type: 'SET', value: [EMPTY_FIELD, 'Alpha'] }] }, filterSetValues)).toBe(true);
     expect(hasFilterApplied({ Name: [{ type: 'TEXT', value: '' }] }, filterSetValues)).toBe(false);
     expect(hasFilterApplied({ Name: [{ type: 'TEXT', value: 'x' }] }, filterSetValues)).toBe(true);
   });

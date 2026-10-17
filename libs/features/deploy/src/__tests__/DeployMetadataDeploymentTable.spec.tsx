@@ -48,11 +48,11 @@ const rows = getRows({
   ApexPage: getListMetadataItem('ApexPage', { loading: true }),
 });
 
-function setup() {
+function setup(tableRows = rows) {
   return render(
     <Provider>
       <DeployMetadataDeploymentTable
-        rows={rows}
+        rows={tableRows}
         hasSelectedRows={false}
         onSelectedRows={vi.fn()}
         onViewOrCompareOpen={vi.fn()}
@@ -89,6 +89,33 @@ describe('DeployMetadataDeploymentTable', () => {
     expect(screen.getByText('AccountTriggerHandler')).toBeTruthy();
     expect(screen.getByText('AddPrimaryContact')).toBeTruthy();
     expect(screen.getByText('Showing 4 of 6 objects')).toBeTruthy();
+  });
+
+  it('keeps column filters applied when hiding empty types', () => {
+    // No loading/error types, so hiding the empty types removes every blank name from the filter's value list
+    setup(
+      getRows({
+        ApexClass: getListMetadataItem('ApexClass', {
+          items: [getListMetadataResult('ApexClass', 'AccountTriggerHandler'), getListMetadataResult('ApexClass', 'AddPrimaryContact')],
+        }),
+        AnalyticSnapshot: getListMetadataItem('AnalyticSnapshot'),
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filter Name' }));
+    fireEvent.click(screen.getByLabelText('AddPrimaryContact'));
+    expect(screen.queryByRole('gridcell', { name: 'AddPrimaryContact' })).toBeNull();
+
+    fireEvent.click(getHideEmptyTypesCheckbox());
+
+    expect(screen.getByRole('gridcell', { name: 'AccountTriggerHandler' })).toBeTruthy();
+    expect(screen.queryByRole('gridcell', { name: 'AddPrimaryContact' })).toBeNull();
+
+    // The blank name was never deselected, so the empty type comes back
+    fireEvent.click(getHideEmptyTypesCheckbox());
+
+    expect(screen.getByText('Analytic Snapshots')).toBeTruthy();
+    expect(screen.queryByRole('gridcell', { name: 'AddPrimaryContact' })).toBeNull();
   });
 
   it('keeps types that are still loading or failed to load visible when hiding empty types', () => {

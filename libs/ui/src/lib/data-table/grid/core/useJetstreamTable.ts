@@ -19,12 +19,14 @@ import { buildColumnDefs } from '../buildColumnDefs';
 import { ColumnFilterValue, makeGlobalFilterFn } from '../filterFns';
 import { EMPTY_FIELD, NON_DATA_COLUMN_KEYS } from '../grid-constants';
 import { jetstreamTableFeatures } from '../grid-features';
-import { computeFilterSetValues, hasFilterApplied, isFilterActive, resetFilter } from '../grid-filters';
+import { computeFilterSetValues, hasFilterApplied, isFilterActive, isSetFilterNarrowing, resetFilter } from '../grid-filters';
 import { getSearchTextByRow, getSortedFilteredLeafRows } from '../grid-row-utils';
 import {
   ColumnWithFilter,
+  DataTableBooleanSetFilter,
   DataTableFilter,
   DataTableRef,
+  DataTableSetFilter,
   DefaultColumnOptions,
   FILTER_SET_TYPES,
   RowWithKey,
@@ -125,16 +127,20 @@ function filterReducer(state: FilterState, action: FilterAction): FilterState {
 
       const distinctSetValues = computeFilterSetValues(columns, data, ignoreRowInSetFilter, getSubRows);
 
-      // Default SET filters to "all selected" unless the user previously customized the selection.
+      // Default SET filters to "all selected" unless the user previously customized the selection. A
+      // customized selection is kept as-is, including values no longer in the data, so they come back
+      // selected (or deselected) if those rows return.
       Object.keys(filters).forEach((columnKey) => {
-        const setFilter = filters[columnKey]?.find(({ type }) => FILTER_SET_TYPES.has(type));
+        const setFilter = filters[columnKey]?.find((filter): filter is DataTableSetFilter | DataTableBooleanSetFilter =>
+          FILTER_SET_TYPES.has(filter.type),
+        );
         const allValues = distinctSetValues[columnKey];
         if (!setFilter || !allValues) {
           return;
         }
         const prevAll = state.filterSetValues?.[columnKey];
-        if (!hasFilters || !setFilter.value || !prevAll || setFilter.value.length === prevAll.length) {
-          (setFilter as { value: string[] }).value = allValues;
+        if (!hasFilters || !setFilter.value || !prevAll || !isSetFilterNarrowing(setFilter.value, prevAll)) {
+          setFilter.value = allValues;
         }
       });
 
@@ -307,13 +313,13 @@ export function useJetstreamTable<TRow extends object = RowWithKey>(
   const columnFilters = useMemo<ColumnFiltersState>(() => {
     const result: ColumnFiltersState = [];
     Object.entries(filters).forEach(([columnKey, columnFilters]) => {
-      const totalSetValues = filterSetValues[columnKey]?.length ?? 0;
-      const active = columnFilters.some((filter) => isFilterActive(filter, totalSetValues));
+      const setValues = filterSetValues[columnKey] ?? [];
+      const activeFilters = columnFilters.filter((filter) => isFilterActive(filter, setValues));
       const column = columnByKey.get(columnKey);
-      if (!active || !column) {
+      if (!activeFilters.length || !column) {
         return;
       }
-      const value: ColumnFilterValue<TRow> = { filters: columnFilters, column, totalSetValues, rowAlwaysVisible };
+      const value: ColumnFilterValue<TRow> = { filters: activeFilters, column, rowAlwaysVisible };
       result.push({ id: columnKey, value });
     });
     return result;

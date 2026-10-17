@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import { createRef } from 'react';
 import { describe, expect, test } from 'vitest';
 import { useJetstreamTable } from '../core/useJetstreamTable';
+import { EMPTY_FIELD } from '../grid-constants';
 import { ColumnWithFilter, DataTableRef } from '../grid-types';
 
 interface Row {
@@ -76,6 +77,28 @@ describe('useJetstreamTable', () => {
     });
     const rows = result.current.table.getRowModel().rows.map((row) => row.original);
     expect(rowKeys(rows)).toEqual(['2']);
+  });
+
+  test('SET filter keeps narrowing when the data drops a value the filter had selected', () => {
+    // e.g. deploy metadata "Hide Empty Types" removes the blank-Name rows the user left selected
+    const blankRow: Row = { _key: '4', Id: '004', Name: null as unknown as string, Notes: '' };
+    const ref = createRef<DataTableRef<Row>>();
+    const { result, rerender } = renderHook(
+      ({ rows }: { rows: Row[] }) => useJetstreamTable<Row>({ data: rows, columns, getRowKey: (row) => row._key, ref }),
+      { initialProps: { rows: [...data, blankRow] } },
+    );
+    act(() => undefined);
+    act(() => {
+      result.current.updateFilter('Name', { type: 'SET', value: [EMPTY_FIELD, 'Alpha', 'Bravo'] });
+    });
+    expect(rowKeys(result.current.table.getRowModel().rows.map((row) => row.original)).sort()).toEqual(['2', '3', '4']);
+
+    rerender({ rows: data });
+    expect(rowKeys(result.current.table.getRowModel().rows.map((row) => row.original)).sort()).toEqual(['2', '3']);
+
+    // the blank value is still selected once it comes back
+    rerender({ rows: [...data, blankRow] });
+    expect(rowKeys(result.current.table.getRowModel().rows.map((row) => row.original)).sort()).toEqual(['2', '3', '4']);
   });
 
   test('rowAlwaysVisible bypasses active filters', () => {
