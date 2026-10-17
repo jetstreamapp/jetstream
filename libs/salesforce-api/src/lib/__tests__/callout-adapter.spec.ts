@@ -83,6 +83,32 @@ describe('sanitizeCallerHeaders', () => {
   });
 });
 
+describe('getApiRequestFactoryFn request options', () => {
+  it('never lets an HTTP cache answer the request (browser-direct Canvas/extension describes went stale)', async () => {
+    const mockFetch = vi.fn<FetchFn>().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      type: 'basic',
+      json: () => Promise.resolve({ sobjects: [] }),
+      text: () => Promise.resolve('{"sobjects":[]}'),
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+      clone() {
+        return this;
+      },
+    });
+
+    const apiRequest = getApiRequestFactoryFn(mockFetch)();
+    await apiRequest({
+      url: '/services/data/v65.0/sobjects',
+      sessionInfo: { accessToken: 'test-token', instanceUrl: 'https://test.salesforce.com' } as any,
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch.mock.calls[0][1].cache).toBe('no-store');
+  });
+});
+
 // Mock XML responses from Salesforce
 const MOCK_RESPONSES = {
   SOAP_DESCRIBE_METADATA: `<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns="http://soap.sforce.com/2006/04/metadata"><soapenv:Body><describeMetadataResponse><result><metadataObjects><directoryName>installedPackages</directoryName><inFolder>false</inFolder><metaFile>false</metaFile><suffix>installedPackage</suffix><xmlName>InstalledPackage</xmlName></metadataObjects><metadataObjects><childXmlNames>CustomLabel</childXmlNames><directoryName>labels</directoryName><inFolder>false</inFolder><metaFile>false</metaFile><suffix>labels</suffix><xmlName>CustomLabels</xmlName></metadataObjects><organizationNamespace></organizationNamespace><partialSaveAllowed>true</partialSaveAllowed><testRequired>false</testRequired></result></describeMetadataResponse></soapenv:Body></soapenv:Envelope>`,

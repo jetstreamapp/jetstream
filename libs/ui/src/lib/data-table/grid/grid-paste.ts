@@ -138,3 +138,14 @@ export function flashPastedCells(root: HTMLElement | null, cellKeys: Set<string>
   });
   setTimeout(() => flashed.forEach((cellEl) => cellEl.classList.remove('pasted')), 600);
 }
+
+/**
+ * Whether Permissions Policy lets the async Clipboard API read the clipboard, which the right-click "Paste"
+ * item depends on (Ctrl/Cmd+V uses the native paste event and needs no permission). A cross-origin iframe
+ * whose embedder didn't delegate `clipboard-read` is always rejected — the Canvas app, since Salesforce owns
+ * that iframe. Only Chromium exposes the policy; other browsers report allowed and keep their own prompts.
+ */
+export function isClipboardReadAllowedByPolicy(): boolean {
+  const { featurePolicy } = document as Document & { featurePolicy?: { allowsFeature: (feature: string) => boolean } };
+  return featurePolicy?.allowsFeature('clipboard-read') ?? true;
+}

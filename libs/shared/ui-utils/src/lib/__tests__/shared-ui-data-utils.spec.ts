@@ -104,8 +104,8 @@ describe('copyRecordsToClipboard', () => {
 
       const [, options] = getCopyCall();
       // copy-to-clipboard would normally invoke onCopy on a successful copy; we invoke it directly
-      // since the library is mocked.
-      options?.onCopy?.(undefined as never);
+      // since the library is mocked. The async Clipboard API path hands onCopy the library's ClipboardItem.
+      options?.onCopy?.({} as ClipboardItem);
 
       expect(clipboardItemSpy).toHaveBeenCalledTimes(1);
       // The Clipboard API expects Blob values, so assert both the MIME type and the decoded content.
@@ -120,6 +120,24 @@ describe('copyRecordsToClipboard', () => {
       expect(plainBlob.type).toBe('text/plain');
       expect(await htmlBlob.text()).toBe('<table><tr><th>Id</th><th>Name</th></tr><tr><td>001</td><td>Acme</td></tr></table>');
       expect(await plainBlob.text()).toBe('Id\tName\n001\tAcme');
+    });
+
+    it('onCopy adds tab-delimited plain text on the execCommand fallback path (Clipboard API blocked)', async () => {
+      const clipboardItemSpy = vi.fn();
+      vi.stubGlobal('ClipboardItem', clipboardItemSpy);
+
+      const records = [{ Id: '001', Name: 'Acme' }];
+      await copyRecordsToClipboard(records, 'excel', ['Id', 'Name']);
+
+      const [, options] = getCopyCall();
+      // The fallback hands onCopy the copy event's DataTransfer; the library itself only sets text/html.
+      const clipboardData = { setData: vi.fn() };
+      const result = options?.onCopy?.(clipboardData as unknown as DataTransfer);
+
+      expect(result).toBeUndefined();
+      expect(clipboardItemSpy).not.toHaveBeenCalled();
+      expect(clipboardData.setData).toHaveBeenCalledTimes(1);
+      expect(clipboardData.setData).toHaveBeenCalledWith('text/plain', 'Id\tName\n001\tAcme');
     });
   });
 

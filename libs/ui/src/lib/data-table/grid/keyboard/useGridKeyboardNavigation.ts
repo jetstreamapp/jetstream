@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { copyRecordsToClipboard, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
+import copyToClipboard from 'copy-to-clipboard';
 import { FocusEvent as ReactFocusEvent, KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { isFrozenColumn } from '../components/grid-layout';
 import { ActiveCell } from '../components/GridRow';
@@ -38,6 +39,8 @@ export type GridInteractionSource = 'mouse' | 'keyboard' | 'select-all' | 'drag-
 
 /** Rows to jump on PageUp/PageDown (approximate viewport page). */
 const PAGE_SIZE = 12;
+
+const COPY_FAILED_ANNOUNCEMENT = 'Unable to copy to the clipboard.';
 
 /**
  * Interactive controls inside a cell that Space/Enter can "activate" (and that Tab cycles in actionable
@@ -704,15 +707,18 @@ export function useGridKeyboardNavigation<TRow extends object>({
         // text/plain Excel string — pastes into Excel/Sheets as a proper grid.
         const rect = boundsList[0];
         const { fields, records } = buildRegion(rect);
-        void copyRecordsToClipboard(records, 'excel', fields, false);
-        flashCells(getRootElement(), rows, columns, rect.minRowIndex, rect.maxRowIndex, rect.minColumnIndex, rect.maxColumnIndex);
         const copiedRowCount = records.length - (includeHeader ? 1 : 0);
         const copiedColCount = fields.length;
-        onAnnounce?.(
-          `Copied ${copiedRowCount} ${copiedRowCount === 1 ? 'row' : 'rows'} by ${copiedColCount} ${
-            copiedColCount === 1 ? 'column' : 'columns'
-          }`,
+        void copyRecordsToClipboard(records, 'excel', fields, false).then((copied) =>
+          onAnnounce?.(
+            copied
+              ? `Copied ${copiedRowCount} ${copiedRowCount === 1 ? 'row' : 'rows'} by ${copiedColCount} ${
+                  copiedColCount === 1 ? 'column' : 'columns'
+                }`
+              : COPY_FAILED_ANNOUNCEMENT,
+          ),
         );
+        flashCells(getRootElement(), rows, columns, rect.minRowIndex, rect.maxRowIndex, rect.minColumnIndex, rect.maxColumnIndex);
         return;
       }
 
@@ -723,10 +729,13 @@ export function useGridKeyboardNavigation<TRow extends object>({
         const { fields, records } = buildRegion(rect);
         copiedCellCount += (records.length - (includeHeader ? 1 : 0)) * fields.length;
         flashCells(getRootElement(), rows, columns, rect.minRowIndex, rect.maxRowIndex, rect.minColumnIndex, rect.maxColumnIndex);
-        return transformTabularDataToExcelStr(records, fields);
+        // The fields are synthetic keys (c0, c1...); "with header" rows are already in `records` as data.
+        return transformTabularDataToExcelStr(records, fields, false);
       });
-      void navigator.clipboard.writeText(blocks.join('\n\n')).catch(() => undefined);
-      onAnnounce?.(`Copied ${copiedCellCount} cells across ${boundsList.length} ranges`);
+      // copy-to-clipboard falls back to execCommand where the Clipboard API is blocked (the Canvas app's iframe).
+      void copyToClipboard(blocks.join('\n\n'), { format: 'text/plain' }).then((copied) =>
+        onAnnounce?.(copied ? `Copied ${copiedCellCount} cells across ${boundsList.length} ranges` : COPY_FAILED_ANNOUNCEMENT),
+      );
     },
     [table, getRootElement, onAnnounce],
   );

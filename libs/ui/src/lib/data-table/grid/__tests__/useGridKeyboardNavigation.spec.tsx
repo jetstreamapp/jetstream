@@ -7,11 +7,15 @@ import { TanstackColumnDef, TanstackTable } from '../grid-types';
 import { useGridKeyboardNavigation } from '../keyboard/useGridKeyboardNavigation';
 import { getSelectionBounds } from '../selection/grid-selection';
 
-const copyRecordsToClipboard = vi.hoisted(() => vi.fn());
+const copyRecordsToClipboard = vi.hoisted(() =>
+  vi.fn<typeof import('@jetstream/shared/ui-utils').copyRecordsToClipboard>(async () => true),
+);
 vi.mock('@jetstream/shared/ui-utils', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@jetstream/shared/ui-utils')>()),
   copyRecordsToClipboard,
 }));
+const copyToClipboard = vi.hoisted(() => vi.fn<typeof import('copy-to-clipboard').default>(async () => true));
+vi.mock('copy-to-clipboard', () => ({ default: copyToClipboard }));
 
 interface Row {
   _key: string;
@@ -54,7 +58,10 @@ const frozenDataColumns: TanstackColumnDef<Row>[] = [
 ];
 
 describe('useGridKeyboardNavigation — copying a range', () => {
-  beforeEach(() => copyRecordsToClipboard.mockClear());
+  beforeEach(() => {
+    copyRecordsToClipboard.mockClear();
+    copyToClipboard.mockClear();
+  });
 
   /** Deploy's metadata table: a "No metadata found" child row renders a message through a row-level
    * colSpan and has no cell values. Row '2' is an ordinary row that happens to be blank. */
@@ -110,6 +117,57 @@ describe('useGridKeyboardNavigation — copying a range', () => {
       { c1: '', c2: '' },
       { c1: 'Charlie', c2: '30' },
     ]);
+  });
+
+  test('announces "Copied" only when the clipboard write landed', async () => {
+    const onAnnounce = vi.fn();
+    const { result } = renderHook(() => {
+      const table = useTable({
+        features: jetstreamTableFeatures,
+        data,
+        columns,
+        getRowId: (row) => row._key,
+      }) as unknown as TanstackTable<Row>;
+      return useGridKeyboardNavigation({ table, getRootElement: () => null, onAnnounce });
+    });
+    act(() => result.current.handleCellMouseDown('1', 'Name', false));
+    act(() => result.current.handleCellMouseEnter('2', 'Amount'));
+
+    await act(async () => result.current.copySelection());
+    expect(onAnnounce).toHaveBeenLastCalledWith('Copied 2 rows by 2 columns');
+
+    copyRecordsToClipboard.mockResolvedValueOnce(false);
+    await act(async () => result.current.copySelection());
+    expect(onAnnounce).toHaveBeenLastCalledWith('Unable to copy to the clipboard.');
+  });
+
+  test('stacks disjoint ranges as plain text blocks and announces the result', async () => {
+    const onAnnounce = vi.fn();
+    const { result } = renderHook(() => {
+      const table = useTable({
+        features: jetstreamTableFeatures,
+        data,
+        columns,
+        getRowId: (row) => row._key,
+      }) as unknown as TanstackTable<Row>;
+      return useGridKeyboardNavigation({ table, getRootElement: () => null, onAnnounce });
+    });
+    act(() => result.current.handleCellMouseDown('1', 'Name', false));
+    act(() => result.current.handleCellMouseEnter('1', 'Amount'));
+    act(() => {
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+    act(() => result.current.handleCellMouseDown('3', 'Name', false, 0, true));
+    act(() => result.current.handleCellMouseEnter('3', 'Amount'));
+
+    await act(async () => result.current.copySelection());
+    expect(copyRecordsToClipboard).not.toHaveBeenCalled();
+    expect(copyToClipboard).toHaveBeenLastCalledWith('Alpha\t10\n\nCharlie\t30', { format: 'text/plain' });
+    expect(onAnnounce).toHaveBeenLastCalledWith('Copied 4 cells across 2 ranges');
+
+    copyToClipboard.mockResolvedValueOnce(false);
+    await act(async () => result.current.copySelection());
+    expect(onAnnounce).toHaveBeenLastCalledWith('Unable to copy to the clipboard.');
   });
 });
 

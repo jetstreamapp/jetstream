@@ -4,7 +4,13 @@ import { isObjectLike } from 'lodash';
 
 export const fetchFn: Parameters<typeof getApiRequestFactoryFn>[0] = (url, options) => {
   return new Promise<Response>((resolve, reject) => {
-    const headers = (options.headers as Record<string, string>) || {};
+    const headers = { ...(options.headers as Record<string, string>) };
+    // The Canvas SDK runs the XHR from Salesforce's proxy frame, so a fetch cache mode can't be passed through.
+    // Send the headers browsers add for `no-store` instead, which also make the HTTP cache skip its stored copy.
+    if (options.cache === 'no-store') {
+      headers['Cache-Control'] = 'no-cache';
+      headers['Pragma'] = 'no-cache';
+    }
     const contentType = Object.entries(headers).find(([key]) => key.toLowerCase() === 'content-type')?.[1] || 'application/json';
     window.Sfdc.canvas.client.ajax(url, {
       client: sr.client,

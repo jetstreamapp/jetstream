@@ -22,7 +22,7 @@ import {
   resolveHeaderContextMenuItems,
   REVERT_RANGE_ACTION,
 } from '../grid-context-menu';
-import { computePasteTargets, flashPastedCells, parsePastedText } from '../grid-paste';
+import { computePasteTargets, flashPastedCells, isClipboardReadAllowedByPolicy, parsePastedText } from '../grid-paste';
 import { getSortedFilteredLeafRows } from '../grid-row-utils';
 import {
   ColumnWithFilter,
@@ -687,10 +687,9 @@ export function GridContainer<TRow extends object = RowWithKey>({
       const items = actionData ? resolveCellMenuItems(actionData) : [];
       // Ctrl/Meta lets the native browser menu through; so does an empty menu with no selection and no
       // paste affordance (the rectangular copy + paste items are injected when the menu renders). Paste
-      // requires an active cell to anchor the target, so match the renderer's `onPaste && activeCell`
-      // gate — otherwise right-clicking before a cell is focused suppresses the native menu for an
-      // empty custom one.
-      if (!items.length && !hasRangeSelection && !(onPaste && activeCell)) {
+      // requires an active cell to anchor the target, so match the renderer's paste gate — otherwise
+      // right-clicking before a cell is focused suppresses the native menu for an empty custom one.
+      if (!items.length && !hasRangeSelection && !(onPaste && activeCell && isClipboardReadAllowedByPolicy())) {
         return;
       }
       event.preventDefault();
@@ -938,8 +937,9 @@ export function GridContainer<TRow extends object = RowWithKey>({
                     { label: 'Copy selected cells with header', value: COPY_RANGE_WITH_HEADER_ACTION } as ContextMenuItem,
                   ]
                 : []),
-              // A group header row has no editable cells to anchor a paste on.
-              ...(onPaste && keyboardNav.activeCell && contextMenu.area !== 'group'
+              // A group header row has no editable cells to anchor a paste on. Where Permissions Policy blocks
+              // clipboard reads (the Canvas app's iframe) the item could never work — Ctrl/Cmd+V still does.
+              ...(onPaste && keyboardNav.activeCell && contextMenu.area !== 'group' && isClipboardReadAllowedByPolicy()
                 ? [{ label: 'Paste', value: PASTE_RANGE_ACTION } as ContextMenuItem]
                 : []),
               ...(revertableCount
