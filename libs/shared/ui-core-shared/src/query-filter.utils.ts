@@ -73,12 +73,20 @@ export const QUERY_OPERATORS: ListItem<string, QueryFilterOperator>[] = [
   { id: 'excludes', label: 'Excludes', value: 'excludes' },
 ];
 
-function findResourceMeta(fields: ListItem[], selected: ExpressionConditionRowSelectedItems) {
-  return selected.resource && getFlattenedListItemsById(fields)[selected.resource]?.meta;
-}
-
-function findFormulaOperandMeta(fields: ListItem[], selected: ExpressionConditionRowSelectedItems) {
-  return selected.formula?.resource && getFlattenedListItemsById(fields)[selected.formula.resource]?.meta;
+/**
+ * Looks up field metadata by resource id.
+ * The flattened map is built on first use and kept for the life of this snapshot of fields, since a FORMULA() row
+ * runs the lookup once per candidate second field and rebuilding the map each time is quadratic on large objects.
+ */
+function createFieldMetaLookup(fields: ListItem[]): (resource: Maybe<string>) => Field | undefined {
+  let fieldsById: Record<string, ListItem> | undefined;
+  return (resource) => {
+    if (!resource) {
+      return undefined;
+    }
+    fieldsById = fieldsById || getFlattenedListItemsById(fields);
+    return fieldsById[resource]?.meta;
+  };
 }
 
 const FORMULA_NUMBER_TYPES = new Set<FieldType>(['double', 'currency', 'percent', 'int']);
@@ -91,7 +99,7 @@ export function isFormulaFieldSupported(type: Maybe<FieldType>): type is FieldTy
 
 /**
  * Whether a field can be the second operand of a FORMULA() filter given the first operand.
- * Mirrors the rules getFormulaHelpText() explains so the second field list only offers fields that will not warn.
+ * Mirrors the rules getFormulaCompatibilityWarning() explains so the second field list only offers fields that will not warn.
  */
 export function isFormulaOperandCompatible(leftType: Maybe<FieldType>, rightType: Maybe<FieldType>): boolean {
   if (!isFormulaFieldSupported(rightType)) {
@@ -109,22 +117,24 @@ export function isFormulaOperandCompatible(leftType: Maybe<FieldType>, rightType
 
 /**
  * Explains the FORMULA() restrictions that Salesforce would otherwise only report after the query runs.
+ * Shared by the filter row and query restore so a restored row warns the same way a row built in the UI does.
  */
-function getFormulaHelpText(fields: ListItem[], selected: ExpressionConditionRowSelectedItems): ExpressionConditionHelpText | undefined {
-  const leftType: Maybe<FieldType> = findResourceMeta(fields, selected)?.type;
-  const rightType: Maybe<FieldType> = findFormulaOperandMeta(fields, selected)?.type;
-
-  if (leftType && rightType) {
-    const hasUnsupportedType = [leftType, rightType].some((type) => !FORMULA_NUMBER_TYPES.has(type) && !FORMULA_DATE_TYPES.has(type));
-    if (hasUnsupportedType) {
-      return { type: 'warning', value: 'FORMULA() only supports number, currency, date and datetime fields.' };
-    }
-    if (FORMULA_DATE_TYPES.has(leftType) && FORMULA_DATE_TYPES.has(rightType) && leftType !== rightType) {
-      return { type: 'warning', value: 'FORMULA() cannot mix date and datetime fields.' };
-    }
-    if (!FORMULA_DATE_TYPES.has(leftType) && FORMULA_DATE_TYPES.has(rightType)) {
-      return { type: 'warning', value: 'FORMULA() does not allow a date field on the right when the left field is not a date.' };
-    }
+export function getFormulaCompatibilityWarning(
+  leftType: Maybe<FieldType>,
+  rightType: Maybe<FieldType>,
+): ExpressionConditionHelpText | undefined {
+  if (!leftType || !rightType) {
+    return undefined;
+  }
+  const hasUnsupportedType = [leftType, rightType].some((type) => !FORMULA_NUMBER_TYPES.has(type) && !FORMULA_DATE_TYPES.has(type));
+  if (hasUnsupportedType) {
+    return { type: 'warning', value: 'FORMULA() only supports number, currency, date and datetime fields.' };
+  }
+  if (FORMULA_DATE_TYPES.has(leftType) && FORMULA_DATE_TYPES.has(rightType) && leftType !== rightType) {
+    return { type: 'warning', value: 'FORMULA() cannot mix date and datetime fields.' };
+  }
+  if (!FORMULA_DATE_TYPES.has(leftType) && FORMULA_DATE_TYPES.has(rightType)) {
+    return { type: 'warning', value: 'FORMULA() does not allow a date field on the right when the left field is not a date.' };
   }
   return undefined;
 }
@@ -354,13 +364,14 @@ export function getFieldResourceTypes(field: Field, operator: Maybe<QueryFilterO
 }
 
 export function getResourceTypeFnsFromFields(fields: ListItem[]): ExpressionGetResourceTypeFns {
+  const findFieldMeta = createFieldMetaLookup(fields);
   const getResourceTypeFns: ExpressionGetResourceTypeFns & { fields: ListItem[] } = {
     fields,
     getTypes: (selected: ExpressionConditionRowSelectedItems): ListItem<ExpressionRowValueType>[] | undefined => {
       if (selected.function === FORMULA_FILTER_FUNCTION) {
         return undefined;
       }
-      const fieldMeta: Field = findResourceMeta(fields, selected);
+      const fieldMeta = findFieldMeta(selected.resource);
       if (!fieldMeta) {
         return;
       }
@@ -371,7 +382,7 @@ export function getResourceTypeFnsFromFields(fields: ListItem[]): ExpressionGetR
       if (selected.function === FORMULA_FILTER_FUNCTION) {
         return 'TEXT';
       }
-      const fieldMeta: Field = findResourceMeta(fields, selected);
+      const fieldMeta = findFieldMeta(selected.resource);
       if (!fieldMeta) {
         return;
       }
@@ -383,9 +394,9 @@ export function getResourceTypeFnsFromFields(fields: ListItem[]): ExpressionGetR
     },
     getHelpText: (selected: ExpressionConditionRowSelectedItems): ExpressionConditionHelpText | undefined => {
       if (selected.function === FORMULA_FILTER_FUNCTION) {
-        return getFormulaHelpText(fields, selected);
+        return getFormulaCompatibilityWarning(findFieldMeta(selected.resource)?.type, findFieldMeta(selected.formula?.resource)?.type);
       }
-      const fieldMeta: Field = findResourceMeta(fields, selected);
+      const fieldMeta = findFieldMeta(selected.resource);
       if (!fieldMeta) {
         return undefined;
       }
@@ -406,15 +417,15 @@ export function getResourceTypeFnsFromFields(fields: ListItem[]): ExpressionGetR
       selected: ExpressionConditionRowSelectedItems,
       functions: ListItem<string, QueryFilterOperator>[],
     ): ListItem<string, QueryFilterOperator>[] => {
-      const leftType: Maybe<FieldType> = findResourceMeta(fields, selected)?.type;
+      const leftType = findFieldMeta(selected.resource)?.type;
       return functions.filter(({ value }) => value !== FORMULA_FILTER_FUNCTION || isFormulaFieldSupported(leftType));
     },
     isFormulaOperandAllowed: (selected: ExpressionConditionRowSelectedItems, item: ListItem): boolean => {
-      const leftType: Maybe<FieldType> = findResourceMeta(fields, selected)?.type;
+      const leftType = findFieldMeta(selected.resource)?.type;
       return isFormulaOperandCompatible(leftType, (item.meta as Maybe<Field>)?.type);
     },
     checkSelected: (selected: ExpressionConditionRowSelectedItems): ExpressionConditionRowSelectedItems => {
-      const fieldMeta: Field = findResourceMeta(fields, selected);
+      const fieldMeta = findFieldMeta(selected.resource);
       if (selected.function === FORMULA_FILTER_FUNCTION) {
         // the field was changed to one that cannot be used in a formula, so the row goes back to a regular comparison
         if (!isFormulaFieldSupported(fieldMeta?.type)) {
@@ -450,7 +461,7 @@ export function getResourceTypeFnsFromFields(fields: ListItem[]): ExpressionGetR
       return selected;
     },
     getSelectItems: (selected: ExpressionConditionRowSelectedItems): ListItem[] | undefined => {
-      const fieldMeta: Field = findResourceMeta(fields, selected);
+      const fieldMeta = findFieldMeta(selected.resource);
       if (!fieldMeta) {
         return [];
       }

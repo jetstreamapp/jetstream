@@ -33,6 +33,7 @@ import {
   fetchMetadataFromSoql,
   getFieldResourceTypes,
   getFieldSelectItems,
+  getFormulaCompatibilityWarning,
   getQueryFieldBaseKey,
   getQueryFieldKey,
   getSubqueryFieldBaseKey,
@@ -372,7 +373,9 @@ function processHavingClause(
 }
 
 /**
- * Restores FORMULA('FieldA + FieldB') > 100. Returns undefined if either field is not available, so the caller reports the filter as unsupported.
+ * Restores FORMULA('FieldA + FieldB') > 100.
+ * Returns undefined so the caller reports the filter as unsupported when either field is not available, or when the
+ * condition is negated: the row only offers plain comparisons, so `NOT (FORMULA(...) > 100)` has no way to keep its NOT.
  */
 function restoreFormulaCondition(
   condition: ValueFunctionCondition,
@@ -381,16 +384,21 @@ function restoreFormulaCondition(
   fieldWrapperWithParentKey: Record<string, FieldWrapperWithParentKey>,
   priorConditionIsNegation: boolean,
 ): ExpressionConditionType | undefined {
+  if (priorConditionIsNegation) {
+    return undefined;
+  }
   const { left, right, operator: formulaOperator } = formula;
   const leftField = fieldWrapperWithParentKey[left.parts.join('.').toLowerCase()];
   const rightField = fieldWrapperWithParentKey[right.parts.join('.').toLowerCase()];
   if (!leftField || !rightField) {
     return undefined;
   }
-  const operator = getOperatorFromWhereClause(condition.operator, condition.value as string, priorConditionIsNegation);
+  const operator = getOperatorFromWhereClause(condition.operator, condition.value as string);
   return {
     key,
     resourceType: 'TEXT',
+    // the container only recomputes help text when a field changes, so a restored row has to start with its warning
+    helpText: getFormulaCompatibilityWarning(leftField.fieldMetadata.metadata?.type, rightField.fieldMetadata.metadata?.type),
     selected: {
       resource: leftField.fieldKey,
       resourceMeta: leftField.fieldMetadata.metadata,

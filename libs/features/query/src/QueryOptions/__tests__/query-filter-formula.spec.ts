@@ -7,7 +7,7 @@ import {
   ListItem,
   QueryFilterOperator,
 } from '@jetstream/types';
-import { getResourceTypeFnsFromFields, QUERY_FILTER_FORMULA_FUNCTIONS } from '@jetstream/ui-core/shared';
+import { getFormulaCompatibilityWarning, getResourceTypeFnsFromFields, QUERY_FILTER_FORMULA_FUNCTIONS } from '@jetstream/ui-core/shared';
 import { composeQuery, WhereClause } from '@jetstreamapp/soql-parser-js';
 import { describe, expect, it } from 'vitest';
 
@@ -156,6 +156,14 @@ describe('FORMULA() filter rows', () => {
       const helpText = getResourceTypeFns.getHelpText?.(createFormulaSelected({ resource: 'CloseDate', formulaResource: 'CreatedDate' }));
       expect(helpText?.type).toBe('warning');
       expect(helpText?.value).toContain('cannot mix date and datetime');
+    });
+
+    it('only warns once both field types are known, so query restore can reuse the same rules', () => {
+      expect(getFormulaCompatibilityWarning('date', undefined)).toBeUndefined();
+      expect(getFormulaCompatibilityWarning(undefined, 'datetime')).toBeUndefined();
+      expect(getFormulaCompatibilityWarning('date', 'datetime')?.value).toContain('cannot mix date and datetime');
+      expect(getFormulaCompatibilityWarning('currency', 'date')?.value).toContain('date field on the right');
+      expect(getFormulaCompatibilityWarning('currency', 'currency')).toBeUndefined();
     });
 
     it('warns when a date is on the right of a non-date field', () => {
