@@ -302,10 +302,11 @@ async function smokeTestPackagedApp(context) {
   console.log(`packaged smoke test: launching ${executablePath}`);
   try {
     await new Promise((resolve, reject) => {
-      // The runAsNode fuse is enabled, so an inherited ELECTRON_RUN_AS_NODE (set by e.g. VSCode
-      // terminals) would make the app run as plain Node and crash before Electron even starts.
-      // NODE_OPTIONS (set in CI) is dropped too: the enableNodeOptionsEnvironmentVariable fuse is
-      // disabled, so Electron would just log a loud startup error about it on every launch.
+      // An inherited ELECTRON_RUN_AS_NODE (set by e.g. VSCode terminals) is dropped so the launch is
+      // hermetic. The runAsNode fuse is disabled, so the packaged binary ignores the variable anyway;
+      // stripping it keeps this test independent of that fuse setting. NODE_OPTIONS (set in CI) is
+      // dropped too: the enableNodeOptionsEnvironmentVariable fuse is disabled, so Electron would just
+      // log a loud startup error about it on every launch.
       const { ELECTRON_RUN_AS_NODE, NODE_OPTIONS, ...spawnEnv } = process.env;
       const child = spawn(executablePath, [`--user-data-dir=${userDataDir}`, '--smoke-test'], {
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -376,7 +377,9 @@ const config = {
   ],
 
   electronFuses: {
-    runAsNode: true,
+    // Nothing in the app re-executes itself as Node, and leaving this on lets any local process run
+    // arbitrary JS under the signed, notarized Jetstream identity via ELECTRON_RUN_AS_NODE=1.
+    runAsNode: false,
     enableCookieEncryption: true,
     enableNodeOptionsEnvironmentVariable: false,
     enableNodeCliInspectArguments: false,

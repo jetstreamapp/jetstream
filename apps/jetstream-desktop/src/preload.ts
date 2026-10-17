@@ -54,9 +54,9 @@ const API: ElectronAPI = {
   // Request / Response
   checkAuth: () => ipcRenderer.invoke('checkAuth'),
   addOrg: (payload) => ipcRenderer.invoke('addOrg', payload),
-  selectFolder: () => ipcRenderer.invoke('selectFolder'),
   getPreferences: () => ipcRenderer.invoke('getPreferences'),
   setPreferences: (payload) => ipcRenderer.invoke('setPreferences', payload),
+  pickDownloadFolder: () => ipcRenderer.invoke('pickDownloadFolder'),
   configureCrashReporter: (dsn) => ipcRenderer.invoke('configureCrashReporter', dsn),
   request: (payload) => ipcRenderer.invoke('request', payload),
   downloadZipToFile: (payload) => ipcRenderer.invoke('downloadZipToFile', payload),
