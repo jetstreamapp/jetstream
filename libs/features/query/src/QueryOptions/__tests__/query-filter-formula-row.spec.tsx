@@ -167,6 +167,28 @@ describe('FORMULA() filter row', () => {
     expect(row.helpText).toBeUndefined();
   });
 
+  it('clears the second field when the first field is changed to one it cannot be combined with', () => {
+    // date - date is allowed, but CloseDate cannot stay the second field once the first field is a number
+    const { getLatestRow } = renderRow({
+      resource: 'CloseDate',
+      resourceGroup: null,
+      function: 'FORMULA',
+      operator: 'gt',
+      value: '10',
+      formula: { operator: '-', resource: 'CloseDate', resourceGroup: null },
+    });
+
+    selectOption('Field', 'Amount');
+
+    const row = getLatestRow();
+    expect(row.selected).toMatchObject({ resource: 'Amount', function: 'FORMULA', operator: 'gt', value: '10' });
+    expect(row.selected.formula).toMatchObject({ operator: '-', resource: null });
+    expect(row.helpText).toBeUndefined();
+    // the second field list only offers fields compatible with the new first field
+    fireEvent.click(screen.getByLabelText('Second Field'));
+    expect(getOptionIds()).toEqual(['Account', 'Amount', 'ExpectedRevenue']);
+  });
+
   it('only shows Field Math for number and date fields', () => {
     const { unmount } = renderRow({ resource: 'Amount', resourceGroup: null, function: null, operator: 'gt', value: '100' });
     expect(screen.getByText('Field Math')).toBeTruthy();

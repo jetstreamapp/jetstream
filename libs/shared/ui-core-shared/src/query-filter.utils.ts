@@ -427,9 +427,16 @@ export function getResourceTypeFnsFromFields(fields: ListItem[]): ExpressionGetR
     checkSelected: (selected: ExpressionConditionRowSelectedItems): ExpressionConditionRowSelectedItems => {
       const fieldMeta = findFieldMeta(selected.resource);
       if (selected.function === FORMULA_FILTER_FUNCTION) {
+        const leftType = fieldMeta?.type;
         // the field was changed to one that cannot be used in a formula, so the row goes back to a regular comparison
-        if (!isFormulaFieldSupported(fieldMeta?.type)) {
+        if (!isFormulaFieldSupported(leftType)) {
           return { ...selected, function: null, formula: undefined };
+        }
+        // the second field was chosen for the previous first field; the second field list no longer offers it, so keeping it
+        // would show an empty input while still composing an invalid comparison. Fields of unknown type are left alone.
+        const operandMeta: Maybe<Field> = findFieldMeta(selected.formula?.resource) || selected.formula?.resourceMeta;
+        if (selected.formula?.resource && operandMeta?.type && !isFormulaOperandCompatible(leftType, operandMeta.type)) {
+          return { ...selected, formula: { ...selected.formula, resource: null, resourceGroup: null, resourceMeta: undefined } };
         }
         return selected;
       }

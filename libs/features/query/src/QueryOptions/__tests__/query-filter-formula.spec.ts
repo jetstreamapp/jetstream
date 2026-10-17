@@ -202,6 +202,18 @@ describe('FORMULA() filter rows', () => {
       expect(selected?.function).toBe('FORMULA');
       expect(selected?.formula?.resource).toBe('ExpectedRevenue');
     });
+
+    it('clears the second field when the first field is changed to one it cannot be combined with', () => {
+      // CloseDate was allowed as the second field while the first field was a date, but not once the first field is a number
+      const selected = getResourceTypeFns.checkSelected?.(createFormulaSelected({ resource: 'Amount', formulaResource: 'CloseDate' }));
+      expect(selected?.function).toBe('FORMULA');
+      expect(selected?.formula).toEqual({ operator: '-', resource: null, resourceGroup: null, resourceMeta: undefined });
+    });
+
+    it('keeps a second field whose type is not known', () => {
+      const selected = createFormulaSelected({ resource: 'Amount', formulaResource: 'Unknown__c' });
+      expect(getResourceTypeFns.checkSelected?.(selected)?.formula?.resource).toBe('Unknown__c');
+    });
   });
 
   describe('second field eligibility', () => {
