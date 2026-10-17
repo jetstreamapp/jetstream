@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { MAX_SUBQUERY_DEPTH } from '@jetstream/shared/constants';
-import { formatNumber, queryFilterHasValue } from '@jetstream/shared/ui-utils';
+import { formatNumber, getFilterResourceText, queryFilterHasValue } from '@jetstream/shared/ui-utils';
 import { getSubqueryPath, getSubqueryPathDepth, multiWordObjectFilter, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
   ChildRelationship,
@@ -40,7 +40,8 @@ const FILTER_OPERATOR_LABELS: Record<string, string> = {
 };
 
 function getFilterRowText(row: ExpressionConditionType): string {
-  const { resource, operator, value } = row.selected;
+  const { operator, value } = row.selected;
+  const resource = getFilterResourceText(row.selected);
   const operatorLabel = (operator && FILTER_OPERATOR_LABELS[operator]) || operator || '';
   if (operator === 'isNull' || operator === 'isNotNull') {
     return `${resource} ${operatorLabel}`.trim();

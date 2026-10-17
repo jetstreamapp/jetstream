@@ -187,7 +187,7 @@ export class QueryPage {
     const groupRole = isNumber(groupNumber) ? ` Of Group ${groupNumber}` : '';
     const condition = this.page.getByRole('group', { name: `Condition ${conditionNumber}${groupRole}` });
 
-    await condition.getByLabel('Field').click();
+    await condition.getByLabel('Field', { exact: true }).click();
     await this.page.keyboard.type(field, { delay: 100 });
     // await condition.getByLabel('Field').fill(field);
     await condition.getByRole('option', { name: field }).first().click();
@@ -229,7 +229,7 @@ export class QueryPage {
 
     const orderByRow = this.page.getByRole('group', { name: `Filter row ${groupNumber}` });
 
-    await orderByRow.getByLabel('Field').click();
+    await orderByRow.getByLabel('Field', { exact: true }).click();
     await this.page.keyboard.type(field, { delay: 100 });
     // await orderByRow.getByLabel('Field').fill(field);
     await orderByRow.getByRole('option', { name: field }).first().click();
