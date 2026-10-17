@@ -291,7 +291,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
           setFormErrors({
             hasErrors: true,
             fieldErrors: {},
-            generalErrors: ['Oops. There was a problem loading the record information. Make sure the record id is valid.'],
+            generalErrors: [`Oops. There was a problem loading the record information: ${getErrorMessage(ex)}`],
           });
           setLoading(false);
           if (recordId) {

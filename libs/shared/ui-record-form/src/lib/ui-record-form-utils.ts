@@ -2,7 +2,6 @@ import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BLANK_PICKLIST_VALUE } from '@jetstream/shared/constants';
 import { genericRequest } from '@jetstream/shared/data';
 import { sortQueryFields } from '@jetstream/shared/ui-utils';
-import { getErrorMessage } from '@jetstream/shared/utils';
 import {
   CloneEditView,
   DescribeSObjectResult,
@@ -288,13 +287,10 @@ export async function getPicklistValuesForRecordAndRecordType({
       });
       picklistValues = results.picklistFieldValues;
     } catch (ex) {
-      logger.warn('[RECORD-UI][ERROR]', ex);
-      if (getErrorMessage(ex).endsWith('not supported in UI API')) {
-        // UI API is not supported, artificially build picklist values
-        picklistValues = mockPicklistValuesFromSobjectDescribe(sobjectMetadata);
-      } else {
-        throw ex;
-      }
+      // Record type specific values only narrow the picklists, so any UI API failure (object not supported, an org on an
+      // older API version, missing permission) falls back to the describe instead of blocking the whole record form
+      logger.warn('[RECORD-UI][ERROR] Unable to fetch record type picklist values, using the describe instead', ex);
+      picklistValues = mockPicklistValuesFromSobjectDescribe(sobjectMetadata);
     }
   } else {
     // UI API is not supported because there is no record type id, artificially build picklist values

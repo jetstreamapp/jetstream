@@ -49,6 +49,15 @@ function copyDirectory(source, destination, options = {}) {
         if (item === 'base' || item === 'editor') {
           // Always copy base and editor folders when they're direct children of vs
           copyDirectory(sourcePath, destPath, { includeAll: true });
+        } else if (item === 'assets') {
+          // Web worker scripts - without them Monaco runs its language services on the main thread. The TypeScript worker
+          // is skipped because no editor in the extension uses JavaScript or TypeScript and it is most of the folder's size
+          mkdirSync(destPath, { recursive: true });
+          for (const assetItem of readdirSync(sourcePath)) {
+            if (!assetItem.startsWith('ts.worker')) {
+              copyFileSync(join(sourcePath, assetItem), join(destPath, assetItem));
+            }
+          }
         } else if (relativePath.startsWith('language/') && relativePath.split('/').length === 2) {
           // Check if this is a language folder
           const language = relativePath.split('/')[1];

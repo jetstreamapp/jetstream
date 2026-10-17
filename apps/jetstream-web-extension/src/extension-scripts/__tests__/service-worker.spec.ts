@@ -103,6 +103,11 @@ function jsonResponse(status: number, data: unknown) {
   return { status, json: async () => ({ data }) } as unknown as Response;
 }
 
+/** The API's generic error handler body, used when the auth middleware rejects a token before the verify controller runs */
+function errorHandlerResponse(status: number, message: string) {
+  return { status, json: async () => ({ error: true, success: false, message }) } as unknown as Response;
+}
+
 function unparseableResponse(status: number) {
   return {
     status,
@@ -166,6 +171,42 @@ describe('service-worker handleVerifyAuth', () => {
     expect(result).toEqual({ hasTokens: true, loggedIn: false, error: 'Invalid session' });
     expect(swMock.sync.remove).toHaveBeenCalledWith(AUTH_KEY);
     expect(swMock.state.syncStore.authTokens).toBeUndefined();
+  });
+
+  it('clears tokens when the auth middleware rejects an expired or revoked token', async () => {
+    seedAuth('token-1');
+    fetchMock.mockResolvedValue(errorHandlerResponse(401, 'Unauthorized'));
+
+    const result = await handleVerifyAuth(senderMock);
+
+    expect(result).toEqual({ hasTokens: true, loggedIn: false, error: 'Unauthorized' });
+    expect(swMock.sync.remove).toHaveBeenCalledWith(AUTH_KEY);
+    expect(swMock.state.syncStore.authTokens).toBeUndefined();
+  });
+
+  it('keeps the cached session on a 5xx from the API error handler', async () => {
+    seedAuth('token-1');
+    fetchMock.mockResolvedValue(errorHandlerResponse(500, 'Internal Server Error'));
+
+    const result = await handleVerifyAuth(senderMock);
+
+    expect(result).toEqual({ hasTokens: true, loggedIn: true });
+    expect(swMock.sync.remove).not.toHaveBeenCalled();
+  });
+
+  it('keeps a token that Chrome Sync replaced while the rejected verify was in flight', async () => {
+    const seeded = seedAuth('token-1');
+    const syncedFromOtherInstall = { ...seeded, accessToken: 'token-2' };
+    fetchMock.mockImplementation(async () => {
+      swMock.state.syncStore.authTokens = syncedFromOtherInstall;
+      return errorHandlerResponse(401, 'Unauthorized');
+    });
+
+    const result = await handleVerifyAuth(senderMock);
+
+    expect(result).toEqual({ hasTokens: true, loggedIn: true });
+    expect(swMock.sync.remove).not.toHaveBeenCalled();
+    expect(swMock.state.syncStore.authTokens).toEqual(syncedFromOtherInstall);
   });
 
   it('writes back a rotated token on success', async () => {
