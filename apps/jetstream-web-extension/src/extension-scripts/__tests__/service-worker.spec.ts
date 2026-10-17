@@ -168,6 +168,22 @@ describe('service-worker handleVerifyAuth', () => {
     expect(swMock.state.syncStore.authTokens).toBeUndefined();
   });
 
+  it('clears tokens when the auth middleware rejects the token, whose 401 body only has success:false at the top level', async () => {
+    seedAuth('token-1');
+    // Shape emitted by the API error handler for an AuthenticationError (e.g. the team access profile no
+    // longer allows the browser extension): `data` carries skipLogout, not the route's success flag
+    fetchMock.mockResolvedValue({
+      status: 401,
+      json: async () => ({ error: true, success: false, message: 'Unauthorized', data: { skipLogout: true } }),
+    } as unknown as Response);
+
+    const result = await handleVerifyAuth(senderMock);
+
+    expect(result).toEqual({ hasTokens: true, loggedIn: false, error: 'Unauthorized' });
+    expect(swMock.sync.remove).toHaveBeenCalledWith(AUTH_KEY);
+    expect(swMock.state.syncStore.authTokens).toBeUndefined();
+  });
+
   it('writes back a rotated token on success', async () => {
     seedAuth('token-1');
     fetchMock.mockResolvedValue(jsonResponse(200, { success: true, accessToken: 'rotated-token' }));

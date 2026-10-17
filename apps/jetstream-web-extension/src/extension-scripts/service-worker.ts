@@ -478,17 +478,19 @@ export async function handleVerifyAuth(_sender: browser.Runtime.MessageSender): 
       return { hasTokens: true, loggedIn: true };
     }
 
-    const results: { success: true; userProfile?: UserProfileUi; accessToken?: string } | { success: false; error: string } | null =
-      await response
-        .json()
-        .then(
-          ({ data }) =>
-            (data ?? null) as
-              | { success: true; userProfile?: UserProfileUi; accessToken?: string }
-              | { success: false; error: string }
-              | null,
-        )
-        .catch(() => null);
+    type VerifyAuthResult = { success: true; userProfile?: UserProfileUi; accessToken?: string } | { success: false; error: string };
+    const results: VerifyAuthResult | null = await response
+      .json()
+      .then((body: { success?: boolean; message?: string; data?: VerifyAuthResult | null } | null) => {
+        // The auth middleware rejects a token (revoked, entitlement removed, team access profile no longer
+        // allows the extension) before the route runs. Its body carries success:false at the top level and
+        // `data` only holds flags such as skipLogout, so map it to the route's own failure shape.
+        if (body?.success === false && body.data?.success !== false) {
+          return { success: false, error: body.message || 'Unauthorized' } satisfies VerifyAuthResult;
+        }
+        return body?.data ?? null;
+      })
+      .catch(() => null);
 
     if (!results || results.success === false) {
       const status = response.status;
