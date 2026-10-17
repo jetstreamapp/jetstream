@@ -5,8 +5,9 @@ description: Write a commit message for the current changes - conventional commi
 
 # Commit messages
 
-Commitlint runs on every commit via `.husky/commit-msg`, and the header feeds the
-generated `CHANGELOG.md`, so the header is public and permanent. The body is for
+Commitlint runs on every commit via `.husky/commit-msg`. The header is public and
+permanent: it is what `git log --oneline` shows, and desktop and extension GitHub
+Releases list every commit subject since the previous tag. The body is for
 the next developer who runs `git blame` on a line that looks wrong - not for the
 end user, and not as a tour of the diff.
 
@@ -47,10 +48,11 @@ which are written separately (see `.claude/commands/release-notes.md`).
 - Scope is optional - use the app or lib the change is confined to (`query`,
   `desktop`, `data-table`, `deploy`, `api`, `ui`, `load`), and drop it when the
   change spans several.
-- Only `feat` and `fix` appear in the changelog, where the subject stands alone
-  beside thirty others with no body for context. `fix: handle null` tells a
-  reader nothing. This does:
+- The subject has to stand alone in a log, beside thirty others with no body for
+  context. `fix: handle null` tells a reader nothing. This does:
   `fix(query): stop in-flight field fetches from clobbering the current object`
+- PR titles follow the same rules. Web GitHub Releases are generated from the
+  merged PR titles, so the title is that release's public entry.
 
 ## Body
 
@@ -72,11 +74,6 @@ Not worth a line:
 - Test setup, formatter runs, lint fixes, import reordering.
 - Anything already obvious from the subject.
 - Narrating each branch of the implementation.
-
-Never write a bare `#123` in body prose. conventional-changelog scrapes it as a
-separate reference, so the entry renders as
-`closes [#1147] [#1448], references [#1147] [#1448]` - see commit `381fdae`.
-Name the issue as "the reported stall" in prose and put the number in the footer.
 
 ## Footer
 

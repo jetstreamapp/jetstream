@@ -31,6 +31,10 @@ If a command needs the raw token instead, use `GH_TOKEN=$(pnpm --silent gh:bot t
 - **The user explicitly asks to post as themselves** ("as me", "from my account") - use plain
   `gh`. The bot is only the default, not a requirement.
 - **Reads** (`gh pr view`, `gh pr diff`, `gh api` GETs) - use plain `gh`; no bot identity needed.
+  The exception is a GraphQL read while the user's GraphQL budget is exhausted
+  (`API rate limit already exceeded for user ID`): run it through `pnpm gh:bot run`, since the app
+  has its own budget. `resolveReviewThread` can't go that way - the app gets `FORBIDDEN` - so it
+  waits for the user's reset.
 - **git push / PR creation from the user's own branches** - those should stay attributed to the
   user unless they say otherwise.
 

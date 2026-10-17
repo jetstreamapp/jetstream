@@ -1,0 +1,7 @@
+# Shapes the auto-generated notes on web GitHub Releases (`github.autoGenerate` in .release-it.json).
+# Customer-facing notes are written by hand in apps/docs/release-notes.
+changelog:
+  exclude:
+    labels:
+      - dependencies # Dependabot bumps
+      - admin # internal staff-only admin app
