@@ -11,6 +11,7 @@ import { fromUnixTime } from 'date-fns/fromUnixTime';
 import { isAfter } from 'date-fns/isAfter';
 import { jwtDecode } from 'jwt-decode';
 import isNumber from 'lodash/isNumber';
+import isString from 'lodash/isString';
 import browser from 'webextension-polyfill';
 import { environment } from '../environments/environment';
 import { initApiClientAndOrg } from '../utils/api-client';
@@ -438,6 +439,24 @@ function runVerifyAuth(sender: browser.Runtime.MessageSender): Promise<VerifyAut
   return inFlightVerifyAuth;
 }
 
+type VerifyAuthResult = { success: true; userProfile?: UserProfileUi; accessToken?: string } | { success: false; error: string };
+
+/**
+ * The verify controller wraps its answer in `data`, but a token the auth middleware rejects (expired, revoked, entitlement
+ * removed) never reaches the controller - the API's error handler answers with `{ error: true, success: false, message }`.
+ * Both are definitive answers from Jetstream. Anything else, such as an HTML page from a proxy, returns null.
+ */
+function parseVerifyAuthResponseBody(body: unknown): VerifyAuthResult | null {
+  if (!body || typeof body !== 'object') {
+    return null;
+  }
+  const { data, success, message } = body as { data?: VerifyAuthResult; success?: boolean; message?: unknown };
+  if (success === false) {
+    return { success: false, error: isString(message) ? message : 'Unauthorized' };
+  }
+  return data ?? null;
+}
+
 /**
  * Verifies that user is logged in to Jetstream and has access to use the browser extension.
  * Exported for unit testing — production code reaches this via runVerifyAuth.
@@ -478,21 +497,21 @@ export async function handleVerifyAuth(_sender: browser.Runtime.MessageSender): 
       return { hasTokens: true, loggedIn: true };
     }
 
-    const results: { success: true; userProfile?: UserProfileUi; accessToken?: string } | { success: false; error: string } | null =
-      await response
-        .json()
-        .then(
-          ({ data }) =>
-            (data ?? null) as
-              | { success: true; userProfile?: UserProfileUi; accessToken?: string }
-              | { success: false; error: string }
-              | null,
-        )
-        .catch(() => null);
+    const results = await response
+      .json()
+      .then(parseVerifyAuthResponseBody)
+      .catch(() => null);
 
     if (!results || results.success === false) {
       const status = response.status;
       if (results && results.success === false && status === 401) {
+        // The server rejected the token we sent, not necessarily the one stored now. Chrome Sync may have delivered a token
+        // that another install rotated while this request was in flight, so keep that one and let the next check verify it.
+        const latestAuthTokens = ((await browser.storage.sync.get(storageTypes.authTokens.key)) as Partial<AuthTokensStorage>).authTokens;
+        if (latestAuthTokens?.accessToken && latestAuthTokens.accessToken !== authTokens.accessToken) {
+          storageSyncCache.authTokens = latestAuthTokens;
+          return { hasTokens: true, loggedIn: true };
+        }
         logger.info('Error verifying tokens', results.error);
         browser.storage.sync.remove(storageTypes.authTokens.key).catch((err) => {
           logger.error('Error removing tokens', err);
