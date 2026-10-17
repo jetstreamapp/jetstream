@@ -69,7 +69,7 @@ export const HeaderFilterButton = memo(({ columnKey, columnName }: { columnKey: 
   const popoverRef = useRef<PopoverRef>(null);
 
   useEffect(() => {
-    setActive(!!filters?.some((filter) => isFilterActive(filter, (filterSetValues[columnKey] || []).length)));
+    setActive(!!filters?.some((filter) => isFilterActive(filter, filterSetValues[columnKey] || [])));
   }, [columnKey, filterSetValues, filters]);
 
   function getFilter(filter: DataTableFilter, autoFocus = false) {

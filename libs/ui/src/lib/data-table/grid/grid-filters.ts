@@ -55,7 +55,18 @@ export function resetFilter(type: FilterType, setValues: string[] = []): DataTab
   }
 }
 
-export function isFilterActive(filter: DataTableFilter, totalValues: number): boolean {
+/**
+ * True when at least one of the column's current distinct values is deselected.
+ *
+ * Do NOT compare lengths instead — a retained selection can hold values that are no longer in the data
+ * (e.g. the rows were filtered out upstream), so a narrowing filter can be as long as the value list.
+ */
+export function isSetFilterNarrowing(selectedValues: readonly string[], setValues: readonly string[]): boolean {
+  const selected = new Set(selectedValues);
+  return setValues.some((value) => !selected.has(value));
+}
+
+export function isFilterActive(filter: DataTableFilter, setValues: readonly string[]): boolean {
   switch (filter?.type) {
     case 'TEXT':
       return !!filter.value;
@@ -66,7 +77,7 @@ export function isFilterActive(filter: DataTableFilter, totalValues: number): bo
     case 'TIME':
       return !!filter.value;
     case 'SET':
-      return (filter.value?.length || 0) < totalValues;
+      return isSetFilterNarrowing(filter.value || [], setValues);
     case 'BOOLEAN_SET':
       return (filter.value?.length || 0) !== 2;
     default:
@@ -181,7 +192,7 @@ export function hasFilterApplied(filters: Record<string, DataTableFilter[]>, fil
     columnFilters.some((filter) => {
       switch (filter.type) {
         case 'SET':
-          return filter.value.length < (filterSetValues[key]?.length || 0);
+          return isSetFilterNarrowing(filter.value, filterSetValues[key] || []);
         case 'BOOLEAN_SET':
           return filter.value.length < 2; // true/false
         case 'DATE':
