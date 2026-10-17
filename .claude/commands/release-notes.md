@@ -171,6 +171,10 @@ developers who _use_ Jetstream, not the people who build it. The PR digest is fu
 detail that means nothing to them; do not surface it. Every line you keep must read as "what changed
 for me, the user." Apply this filter:
 
+- **Never mention the internal admin app** (`apps/admin`, `apps/admin-api`, `libs/admin`). It is
+  staff-only tooling for provisioning teams and looking up users. The context script already drops
+  those PRs and commits and lists them under "Excluded"; leave them out even when a shared library
+  changed alongside them.
 - **Remove outright** (no user-visible effect): named dependencies and version bumps (`fast-jwt`,
   `dompurify`, `tar`, `soql-parser-js`, `react-hook-form`, Monaco, Electron, Vite, Zod, etc.),
   generic "dependency upgrades" / "security dependency upgrades" / CVE mentions, framework and state

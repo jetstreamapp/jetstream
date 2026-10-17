@@ -81,7 +81,8 @@
       "@jetstream/ui/db": ["./libs/shared/ui-db/src/index.ts"],
       "@jetstream/salesforce-oauth": ["./libs/auth/salesforce-oauth/src/index.ts"],
       "@jetstream/ui-styles/main.css": ["./libs/shared/ui-styles/src/main.css"],
-      "@jetstream/ui-styles/brand-theme.css": ["./libs/shared/ui-styles/src/brand-theme.css"]
+      "@jetstream/ui-styles/brand-theme.css": ["./libs/shared/ui-styles/src/brand-theme.css"],
+      "@jetstream/admin/types": ["./libs/admin/types/src/index.ts"]
     },
     "types": ["*"],
     "esModuleInterop": false,

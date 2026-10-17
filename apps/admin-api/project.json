@@ -1,0 +1,64 @@
+{
+  "name": "admin-api",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/admin-api/src",
+  "projectType": "application",
+  "tags": ["scope:server"],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "dependsOn": [
+        "^build",
+        {
+          "projects": ["prisma"],
+          "target": "build"
+        },
+        "typecheck"
+      ],
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "platform": "node",
+        "format": ["cjs"],
+        "bundle": true,
+        "outputPath": "dist/apps/admin-api",
+        "main": "apps/admin-api/src/main.ts",
+        "tsConfig": "apps/admin-api/tsconfig.app.json",
+        "generatePackageJson": true,
+        "sourcemap": true,
+        "esbuildOptions": {
+          "sourcemap": true,
+          "outExtension": {
+            ".js": ".js"
+          }
+        },
+        "skipTypeCheck": true,
+        "declaration": false
+      },
+      "configurations": {
+        "development": {
+          "inspect": true
+        },
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "continuous": true,
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "admin-api:build",
+        "inspect": "inspect",
+        "port": 7779
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "admin-api:build:development"
+        },
+        "production": {
+          "buildTarget": "admin-api:build:production"
+        }
+      }
+    }
+  }
+}

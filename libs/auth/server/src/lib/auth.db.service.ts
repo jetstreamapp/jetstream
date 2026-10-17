@@ -908,6 +908,16 @@ export async function withEmailAddressLock(tx: Prisma.TransactionClient, email: 
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`email:${email.toLowerCase()}`}))`;
 }
 
+/**
+ * Serializes every writer that rebuilds `LoginConfiguration.domains` from the team's verified DomainVerification
+ * records. Each one reads the records and then overwrites the list, so two concurrent domain changes would each
+ * miss the other's uncommitted record and the later write would drop a domain from SSO and domain auto-join.
+ * Take it before reading the records: under ReadCommitted, every read after the lock sees all committed changes.
+ */
+export async function lockTeamLoginConfiguration(tx: Prisma.TransactionClient, loginConfigId: string) {
+  await tx.$queryRaw`SELECT "id" FROM "login_configuration" WHERE "id" = ${loginConfigId}::uuid FOR UPDATE`;
+}
+
 export async function updateUserSessionTeamMembership({
   userId,
   teamMembership,

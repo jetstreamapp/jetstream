@@ -55,6 +55,16 @@ export enum AuditLogAction {
   // Salesforce Canvas app authorization
   CANVAS_ORG_AUTHORIZED = 'CANVAS_ORG_AUTHORIZED',
   CANVAS_ORG_DELETED = 'CANVAS_ORG_DELETED',
+
+  // Jetstream admin app. Written with `teamId` unset and the team in `resourceId` so they stay out of a team's own audit log
+  ADMIN_TEAM_PROVISIONED = 'ADMIN_TEAM_PROVISIONED',
+  ADMIN_TEAM_STRIPE_LINKED = 'ADMIN_TEAM_STRIPE_LINKED',
+  ADMIN_TEAM_INVITATION_SENT = 'ADMIN_TEAM_INVITATION_SENT',
+  ADMIN_TEAM_INVITATION_RESENT = 'ADMIN_TEAM_INVITATION_RESENT',
+  ADMIN_TEAM_INVITATION_REVOKED = 'ADMIN_TEAM_INVITATION_REVOKED',
+  ADMIN_TEAM_MEMBER_ADDED = 'ADMIN_TEAM_MEMBER_ADDED',
+  ADMIN_TEAM_DOMAIN_APPROVED = 'ADMIN_TEAM_DOMAIN_APPROVED',
+  ADMIN_STRIPE_CUSTOMER_PRODUCTION_ORG_UPDATED = 'ADMIN_STRIPE_CUSTOMER_PRODUCTION_ORG_UPDATED',
 }
 
 export enum AuditLogResource {
@@ -67,6 +77,8 @@ export enum AuditLogResource {
   TEAM_SSO_CONFIG = 'sso_config',
   TEAM_DOMAIN_VERIFICATION = 'domain_verification',
   SALESFORCE_CANVAS_ORG = 'salesforce_canvas_org',
+  /** A Stripe customer, keyed by its `cus_` id; the linked team or user is in the metadata */
+  STRIPE_CUSTOMER = 'stripe_customer',
 }
 
 export interface CreateAuditLogParams {

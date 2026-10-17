@@ -1,0 +1,29 @@
+{
+  "name": "admin",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/admin/src",
+  "projectType": "application",
+  "tags": ["scope:browser"],
+  "targets": {
+    "build": {
+      "outputs": ["{workspaceRoot}/dist/apps/admin"],
+      "defaultConfiguration": "production",
+      "configurations": {
+        "development": {
+          "mode": "development"
+        },
+        "production": {
+          "mode": "production"
+        }
+      }
+    },
+    "serve-static": {
+      "executor": "@nx/web:file-server",
+      "dependsOn": ["build"],
+      "options": {
+        "buildTarget": "admin:build",
+        "spa": true
+      }
+    }
+  }
+}
