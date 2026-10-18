@@ -39,7 +39,8 @@ export function formatNumber(value: number | null | undefined): string {
 
 /**
  * Stripe's own lists (https://docs.stripe.com/currencies#zero-decimal), not ISO 4217: Stripe keeps ISK
- * and a few others at two decimals for backwards compatibility, so Intl's digit counts would mis-scale them
+ * and UGX at two decimals for backwards compatibility (see "Special cases"), so Intl's digit counts would
+ * mis-scale them and UGX is left out here even though Stripe's zero-decimal table lists it
  */
 const STRIPE_ZERO_DECIMAL_CURRENCIES = new Set([
   'BIF',
@@ -52,7 +53,6 @@ const STRIPE_ZERO_DECIMAL_CURRENCIES = new Set([
   'MGA',
   'PYG',
   'RWF',
-  'UGX',
   'VND',
   'VUV',
   'XAF',
