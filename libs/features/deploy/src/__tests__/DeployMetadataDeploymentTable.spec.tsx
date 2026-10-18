@@ -118,6 +118,25 @@ describe('DeployMetadataDeploymentTable', () => {
     expect(screen.queryByRole('gridcell', { name: 'AddPrimaryContact' })).toBeNull();
   });
 
+  it('keeps empty types filtered out by name after toggling Hide Empty Types on and off', () => {
+    setup(
+      getRows({
+        ApexClass: getListMetadataItem('ApexClass', { items: [getListMetadataResult('ApexClass', 'AccountTriggerHandler')] }),
+        AnalyticSnapshot: getListMetadataItem('AnalyticSnapshot'),
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filter Name' }));
+    fireEvent.click(screen.getByLabelText('-BLANK-'));
+    expect(screen.queryByText('Analytic Snapshots')).toBeNull();
+
+    fireEvent.click(getHideEmptyTypesCheckbox());
+    fireEvent.click(getHideEmptyTypesCheckbox());
+
+    expect(screen.getByRole('gridcell', { name: 'AccountTriggerHandler' })).toBeTruthy();
+    expect(screen.queryByText('Analytic Snapshots')).toBeNull();
+  });
+
   it('keeps types that are still loading or failed to load visible when hiding empty types', () => {
     setup();
 

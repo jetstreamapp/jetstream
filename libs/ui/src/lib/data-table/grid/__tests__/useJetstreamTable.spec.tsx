@@ -113,6 +113,7 @@ describe('useJetstreamTable', () => {
 
   test.each([
     ['shrinks', [data[1]]],
+    ['drops only the deselected value', [data[1], data[2]]],
     ['is emptied', []],
   ])('SET filter keeps a deselected value deselected after the data %s and is restored', (_label, interimRows) => {
     const { result, rerender } = setupWithRows(data);
