@@ -41,8 +41,23 @@ function setup(overrides: Partial<Parameters<typeof useJetstreamTable<Row>>[0]> 
   return { ...result, ref };
 }
 
+/** Like `setup`, but the data is a prop so tests can `rerender({ rows })` to simulate data changes. */
+function setupWithRows(initialRows: Row[]) {
+  const ref = createRef<DataTableRef<Row>>();
+  const result = renderHook(
+    ({ rows }: { rows: Row[] }) => useJetstreamTable<Row>({ data: rows, columns, getRowKey: (row) => row._key, ref }),
+    { initialProps: { rows: initialRows } },
+  );
+  act(() => undefined);
+  return result;
+}
+
 function rowKeys(rows: readonly Row[]) {
   return rows.map((row) => row._key);
+}
+
+function visibleRowKeys(table: ReturnType<typeof useJetstreamTable<Row>>['table']) {
+  return rowKeys(table.getRowModel().rows.map((row) => row.original)).sort();
 }
 
 describe('useJetstreamTable', () => {
@@ -82,23 +97,33 @@ describe('useJetstreamTable', () => {
   test('SET filter keeps narrowing when the data drops a value the filter had selected', () => {
     // e.g. deploy metadata "Hide Empty Types" removes the blank-Name rows the user left selected
     const blankRow: Row = { _key: '4', Id: '004', Name: null as unknown as string, Notes: '' };
-    const ref = createRef<DataTableRef<Row>>();
-    const { result, rerender } = renderHook(
-      ({ rows }: { rows: Row[] }) => useJetstreamTable<Row>({ data: rows, columns, getRowKey: (row) => row._key, ref }),
-      { initialProps: { rows: [...data, blankRow] } },
-    );
-    act(() => undefined);
+    const { result, rerender } = setupWithRows([...data, blankRow]);
     act(() => {
       result.current.updateFilter('Name', { type: 'SET', value: [EMPTY_FIELD, 'Alpha', 'Bravo'] });
     });
-    expect(rowKeys(result.current.table.getRowModel().rows.map((row) => row.original)).sort()).toEqual(['2', '3', '4']);
+    expect(visibleRowKeys(result.current.table)).toEqual(['2', '3', '4']);
 
     rerender({ rows: data });
-    expect(rowKeys(result.current.table.getRowModel().rows.map((row) => row.original)).sort()).toEqual(['2', '3']);
+    expect(visibleRowKeys(result.current.table)).toEqual(['2', '3']);
 
     // the blank value is still selected once it comes back
     rerender({ rows: [...data, blankRow] });
-    expect(rowKeys(result.current.table.getRowModel().rows.map((row) => row.original)).sort()).toEqual(['2', '3', '4']);
+    expect(visibleRowKeys(result.current.table)).toEqual(['2', '3', '4']);
+  });
+
+  test.each([
+    ['shrinks', [data[1]]],
+    ['is emptied', []],
+  ])('SET filter keeps a deselected value deselected after the data %s and is restored', (_label, interimRows) => {
+    const { result, rerender } = setupWithRows(data);
+    act(() => {
+      result.current.updateFilter('Name', { type: 'SET', value: ['Alpha', 'Bravo'] });
+    });
+    expect(visibleRowKeys(result.current.table)).toEqual(['2', '3']);
+
+    rerender({ rows: interimRows });
+    rerender({ rows: data });
+    expect(visibleRowKeys(result.current.table)).toEqual(['2', '3']);
   });
 
   test('rowAlwaysVisible bypasses active filters', () => {

@@ -130,6 +130,10 @@ function filterReducer(state: FilterState, action: FilterAction): FilterState {
       // Default SET filters to "all selected" unless the user previously customized the selection. A
       // customized selection is kept as-is, including values no longer in the data, so they come back
       // selected (or deselected) if those rows return.
+      //
+      // "All selected" needs BOTH equal length and full coverage of the previous values: a retained
+      // selection can hold values no longer in the data, so after a shrink it covers the remaining values
+      // while still excluding others (length alone fails the reverse case, a stale value plus a deselected one).
       Object.keys(filters).forEach((columnKey) => {
         const setFilter = filters[columnKey]?.find((filter): filter is DataTableSetFilter | DataTableBooleanSetFilter =>
           FILTER_SET_TYPES.has(filter.type),
@@ -139,7 +143,12 @@ function filterReducer(state: FilterState, action: FilterAction): FilterState {
           return;
         }
         const prevAll = state.filterSetValues?.[columnKey];
-        if (!hasFilters || !setFilter.value || !prevAll || !isSetFilterNarrowing(setFilter.value, prevAll)) {
+        if (
+          !hasFilters ||
+          !setFilter.value ||
+          !prevAll ||
+          (setFilter.value.length === prevAll.length && !isSetFilterNarrowing(setFilter.value, prevAll))
+        ) {
           setFilter.value = allValues;
         }
       });
