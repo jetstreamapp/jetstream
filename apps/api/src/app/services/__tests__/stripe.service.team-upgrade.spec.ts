@@ -808,6 +808,48 @@ describe('seat state synchronization', () => {
     });
   });
 
+  it('keeps provisioned entitlements while a fixed-seat team waits for its subscription to start', async () => {
+    // A future-start subscription schedule has no subscription yet, but its schedule events still run the sync
+    const customer = {
+      ...customerWithPlan('TEAM_MONTHLY', undefined, { teamId: 'team_1', type: 'TEAM' }),
+      subscriptions: { object: 'list', data: [] },
+    } as unknown as StripeCustomer;
+
+    await stripeService.saveOrUpdateSubscription({ customer, sendWelcomeEmail: false });
+
+    expect(mocks.updateTeamSubscriptionStateForCustomer).toHaveBeenCalledWith(
+      expect.objectContaining({ teamId: 'team_1', subscriptions: [] }),
+    );
+    expect(mocks.activeEntitlementsList).not.toHaveBeenCalled();
+    expect(mocks.updateTeamEntitlements).not.toHaveBeenCalled();
+  });
+
+  it('leaves revoking an ended subscription to the entitlement summary event', async () => {
+    const teamMetadata = { teamId: 'team_1', type: 'TEAM' };
+    const endedCustomer = {
+      ...customerWithPlan('TEAM_MONTHLY', undefined, teamMetadata),
+      subscriptions: { object: 'list', data: [{ ...subscriptionWithPrice('TEAM_MONTHLY'), status: 'canceled' }] },
+    } as unknown as StripeCustomer;
+
+    await stripeService.saveOrUpdateSubscription({ customer: endedCustomer, sendWelcomeEmail: false });
+    expect(mocks.updateTeamEntitlements).not.toHaveBeenCalled();
+
+    // Stripe fires the summary event whenever active entitlements change, including when a subscription ends
+    mocks.customersRetrieve.mockResolvedValueOnce(endedCustomer);
+    await stripeService.updateEntitlementsFromWebhook({ customer: 'cus_1', entitlements: { data: [] } } as unknown as Parameters<
+      typeof StripeService.updateEntitlementsFromWebhook
+    >[0]);
+
+    expect(mocks.updateTeamEntitlements).toHaveBeenCalledWith('cus_1', {
+      chromeExtension: false,
+      desktop: false,
+      analysisTools: false,
+      googleDrive: false,
+      recordSync: false,
+      salesforceCanvas: false,
+    });
+  });
+
   it('re-synchronizes the team when only the seat mirror has drifted', async () => {
     mocks.findTeamSubscriptions.mockResolvedValue([{ status: 'ACTIVE' }]);
     mocks.findTeamEntitlements.mockResolvedValue({ chromeExtension: true, googleDrive: true, desktop: true, recordSync: true });
