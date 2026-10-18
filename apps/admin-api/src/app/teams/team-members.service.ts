@@ -1,5 +1,5 @@
 import { AdminSessionUser, TeamMemberToAdd } from '@jetstream/admin/types';
-import { getLogger, prisma } from '@jetstream/api-config';
+import { prisma } from '@jetstream/api-config';
 import { AuditLogAction, AuditLogResource, createAuditLog } from '@jetstream/audit-logs';
 import { revokeAllUserSessions } from '@jetstream/auth/server';
 import { Prisma } from '@jetstream/prisma';
@@ -17,6 +17,11 @@ export interface AddedTeamMember {
  * Adds an existing user straight to a team, with no invitation or email. Applies the same rules as
  * accepting an invitation: one team per user and a free seat for billable roles. An invitation the
  * team has open for the user's email is removed first, so it stops reserving a seat.
+ *
+ * The user's sessions are revoked rather than patched with the new membership: they were signed in under
+ * no team's login rules, and signing in again is what applies the team's MFA and SSO requirements (a new
+ * team requires MFA by default). Revoking in the same transaction means a membership never commits while
+ * those sessions are still live.
  *
  * The caller's transaction must hold the team's seat lock, or have created the team itself.
  */
@@ -39,15 +44,14 @@ export async function addMemberInTransaction(
   }
   // TeamMember.userId is unique, so a user who joins another team concurrently fails here with a 409
   await tx.teamMember.create({ data: { teamId, userId, role, status: TEAM_MEMBER_STATUS_ACTIVE } });
+  // No notifySessionsRevoked after commit: its listener lives in the main API's socket server, not this process.
+  // Those sockets are push-only and their sessions are gone, so they lose access on the next request or reconnect.
+  await revokeAllUserSessions(userId, null, tx);
 
   return { userId, email: user.email, role };
 }
 
-/**
- * Run after the membership commits. The user's sessions are revoked rather than patched with the new
- * membership: they were signed in under no team's login rules, and signing in again is what applies the
- * team's MFA and SSO requirements (a new team requires MFA by default).
- */
+/** Run after the membership commits */
 export async function recordMembersAdded(
   teamId: string,
   members: AddedTeamMember[],
@@ -55,10 +59,6 @@ export async function recordMembersAdded(
   requestMetadata: RequestMetadata,
 ) {
   for (const { userId, email, role } of members) {
-    await revokeAllUserSessions(userId).catch((ex) => {
-      getLogger().error({ err: ex, userId, teamId }, '[ADMIN] Failed to revoke sessions after adding a team member');
-    });
-
     await createAuditLog({
       action: AuditLogAction.ADMIN_TEAM_MEMBER_ADDED,
       resource: AuditLogResource.TEAM,
