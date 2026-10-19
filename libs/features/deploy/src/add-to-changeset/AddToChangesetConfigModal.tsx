@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { getOrgType, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { isProductionOrg } from '@jetstream/shared/utils';
+import { decodeURIComponentSafe, isProductionOrg } from '@jetstream/shared/utils';
 import { ChangeSet, DeployOptions, ListItem, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItems, Grid, GridCol, Input, Modal, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
 import { OrgLabelBadge } from '@jetstream/ui-core';
@@ -75,7 +75,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
     if (selectedMetadata) {
       setSelectedMetadataList(
         Object.keys(selectedMetadata).reduce((output: string[], key) => {
-          selectedMetadata[key].forEach((item) => output.push(`${key}: ${decodeURIComponent(item.fullName)}`));
+          selectedMetadata[key].forEach((item) => output.push(`${key}: ${decodeURIComponentSafe(item.fullName)}`));
           return output;
         }, []),
       );

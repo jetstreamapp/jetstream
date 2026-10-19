@@ -1079,6 +1079,22 @@ export function decodeHtmlEntity(value: Maybe<string>) {
 }
 
 /**
+ * Decodes a URI encoded value, returning it unchanged if it is not valid URI encoding.
+ * `decodeURIComponent` throws on any `%` that is not followed by two hex digits, which free text from
+ * Salesforce (such as a deploy failure message that mentions a percentage) can contain.
+ */
+export function decodeURIComponentSafe(value: Maybe<string>): string {
+  if (!value) {
+    return '';
+  }
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+/**
  * Some fullNames from listMetadata need to be modified
  */
 export function getFullNameFromListMetadata({

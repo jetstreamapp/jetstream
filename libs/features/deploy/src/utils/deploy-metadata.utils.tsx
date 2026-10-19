@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, INDEXED_DB } from '@jetstream/shared/constants';
 import { getLocalStore } from '@jetstream/shared/data';
 import { tracker } from '@jetstream/shared/ui-utils';
-import { ensureArray, getSuccessOrFailureChar, orderValues, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { decodeURIComponentSafe, ensureArray, getSuccessOrFailureChar, orderValues, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
   ChangeSet,
   ContextMenuItem,
@@ -593,7 +593,7 @@ export function getDeployResultsExcelData(deployResults: DeployResult, deploymen
         ?.filter((item) => item.componentType)
         .map((item) => ({
           Id: item.id,
-          'Api Name': decodeURIComponent(item.fullName),
+          'Api Name': decodeURIComponentSafe(item.fullName),
           Type: item.componentType,
           Success: item.success,
           Created: item.created,
@@ -604,10 +604,10 @@ export function getDeployResultsExcelData(deployResults: DeployResult, deploymen
     [`Failed Components`]:
       deployResults.details?.componentFailures?.map((item) => ({
         Id: item.id,
-        'Api Name': decodeURIComponent(item.fullName),
+        'Api Name': decodeURIComponentSafe(item.fullName),
         Type: item.componentType,
         'Error Type': item.problemType,
-        'Error Message': decodeURIComponent(item.problem),
+        'Error Message': decodeURIComponentSafe(item.problem),
         Line: item.lineNumber,
         Column: item.columnNumber,
         Success: item.success,

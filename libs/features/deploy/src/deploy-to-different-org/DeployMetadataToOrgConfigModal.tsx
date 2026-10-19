@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { getOrgType, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { decodeURIComponentSafe } from '@jetstream/shared/utils';
 import { DeployOptions, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal, ScopedNotification } from '@jetstream/ui';
 import { GroupScopedOrgsCombobox, OrgLabelBadge } from '@jetstream/ui-core';
@@ -60,7 +61,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
     if (selectedMetadata) {
       setSelectedMetadataList(
         Object.keys(selectedMetadata).reduce((output: string[], key) => {
-          selectedMetadata[key].forEach((item) => output.push(`${key}: ${decodeURIComponent(item.fullName)}`));
+          selectedMetadata[key].forEach((item) => output.push(`${key}: ${decodeURIComponentSafe(item.fullName)}`));
           return output;
         }, []),
       );
