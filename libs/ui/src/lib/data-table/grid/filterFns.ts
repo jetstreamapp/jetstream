@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { filterRecord, getFilterValue, isFilterActive } from './grid-filters';
+import { filterRecord, getFilterValue } from './grid-filters';
 import { ColumnWithFilter, DataTableFilter, TanstackFilterFn, TanstackRow } from './grid-types';
 
 /**
@@ -8,31 +8,27 @@ import { ColumnWithFilter, DataTableFilter, TanstackFilterFn, TanstackRow } from
  * that exact predicate composition into a per-column TanStack `filterFn`.
  *
  * A column's filter value (the entry in TanStack `columnFilters`) carries everything the predicate
- * needs: the active filters, the column (so `getValue` can run), and the count of distinct SET values
- * (so `isFilterActive` can tell whether a SET filter is actually narrowing).
+ * needs: the column's active filters and the column (so `getValue` can run). The `isFilterActive`
+ * step runs once per column when the value is built, not per row, because it is O(distinct values).
  */
 export interface ColumnFilterValue<TRow extends object = any> {
+  /** Only the filters that narrow results (e.g. a SET filter with every value selected is excluded). */
   filters: DataTableFilter[];
   column: ColumnWithFilter<TRow>;
-  totalSetValues: number;
   /** When provided and true for a row, the row bypasses all column filters (legacy `rowAlwaysVisible`). */
   rowAlwaysVisible?: (row: TRow) => boolean;
 }
 
 export const jetstreamColumnFilterFn: TanstackFilterFn = (row: TanstackRow<any>, _columnId, filterValue: ColumnFilterValue) => {
-  if (!filterValue || !Array.isArray(filterValue.filters)) {
+  if (!filterValue || !Array.isArray(filterValue.filters) || filterValue.filters.length === 0) {
     return true;
   }
-  const { filters, column, totalSetValues, rowAlwaysVisible } = filterValue;
+  const { filters, column, rowAlwaysVisible } = filterValue;
   if (rowAlwaysVisible && rowAlwaysVisible(row.original)) {
     return true;
   }
-  const activeFilters = filters.filter((filter) => isFilterActive(filter, totalSetValues));
-  if (activeFilters.length === 0) {
-    return true;
-  }
   const value = getFilterValue(column, row.original);
-  return activeFilters.every((filter) => filterRecord(filter, value));
+  return filters.every((filter) => filterRecord(filter, value));
 };
 
 // TanStack requires `resolveFilterValue` / `autoRemove` to be undefined for object filter values; this
