@@ -135,3 +135,8 @@ export class NotAllowedError extends Error {
     this.additionalData = additionalData;
   }
 }
+
+/** A dependency such as the database failed, so the request was never evaluated. Clients should retry it, not treat it as rejected. */
+export class ServiceUnavailableError extends Error {
+  readonly status = 503;
+}

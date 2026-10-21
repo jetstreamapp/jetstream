@@ -270,7 +270,13 @@ const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({
     sendJson(res, { success: true, userProfile, accessToken: rotatedAccessToken });
   } catch (ex) {
     getLogger().error({ userId: user?.id, deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error verifying web extension token');
-    sendJson(res, { success: false, error: 'Invalid session' }, 401);
+    // A 401 signs the extension out, so it is reserved for a rejected session. Anything else (e.g. a database outage)
+    // is answered as temporary so the extension keeps its session and checks again later.
+    if (ex instanceof InvalidSession) {
+      sendJson(res, { success: false, error: 'Invalid session' }, 401);
+    } else {
+      sendJson(res, { success: false, error: 'Unable to verify your session, please try again later' }, 503);
+    }
   }
 });
 

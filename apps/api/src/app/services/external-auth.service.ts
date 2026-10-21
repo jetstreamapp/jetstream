@@ -8,10 +8,11 @@ import { randomUUID } from 'crypto';
 import { fromUnixTime } from 'date-fns';
 import * as express from 'express';
 import jwt from 'fast-jwt';
+import isString from 'lodash/isString';
 import { LRUCache } from 'lru-cache';
 import * as webExtDb from '../db/web-extension.db';
 import { decryptJwtTokenOrPlaintext, hashToken } from '../services/jwt-token-encryption.service';
-import { AuthenticationError } from '../utils/error-handler';
+import { AuthenticationError, ServiceUnavailableError } from '../utils/error-handler';
 
 // Short TTL so a token revoked/rotated in the DB stops being served from a stale in-process cache
 // quickly across ALL workers/instances (each process has its own LRU; invalidateCacheEntry only
@@ -340,9 +341,23 @@ export async function getUserAndDeviceIdForExternalAuth(
     }
     return { user, deviceId };
   } catch (ex) {
+    // Anything other than a rejected token (e.g. the database being unreachable) must not look like "no user": the
+    // middleware would answer 401 and the desktop app and browser extension treat a 401 as final and sign the user out
+    if (!isTokenRejection(ex)) {
+      throw ex;
+    }
     getLogger().warn({ audience, deviceId, ...getErrorMessageAndStackObj(ex) }, '[EXTERNAL-AUTH][AUTH ERROR] Error decoding token');
     return { user: null, deviceId };
   }
+}
+
+/** The token itself was refused: unknown or expired for the device, an inactive user, a missing entitlement or a bad JWT */
+function isTokenRejection(ex: unknown): boolean {
+  if (ex instanceof InvalidAccessToken) {
+    return true;
+  }
+  // fast-jwt does not type its TokenError as an export, but every one of its error codes carries this prefix
+  return ex instanceof Error && 'code' in ex && isString(ex.code) && ex.code.startsWith('FAST_JWT_');
 }
 
 /**
@@ -393,6 +408,16 @@ export function getExternalAuthMiddleware(audience: Audience, options?: External
       enrichRequestContext({ userId: user.id, deviceId });
       next();
     } catch (ex) {
+      // Not an authentication failure, so answer with a server error the clients will retry. A generic error rather
+      // than `ex` itself, which the error handler would answer as a 400 with the database's message if it is a Prisma error.
+      if (!(ex instanceof AuthenticationError)) {
+        getLogger().error(
+          { audience, deviceId: getDeviceId(req, res), ...getErrorMessageAndStackObj(ex) },
+          '[EXTERNAL AUTH ERROR] Unable to verify token',
+        );
+        next(new ServiceUnavailableError('Unable to verify your session, please try again later'));
+        return;
+      }
       getLogger().warn(
         { audience, deviceId: getDeviceId(req, res), ...getErrorMessageAndStackObj(ex) },
         '[EXTERNAL AUTH ERROR] Error decoding token',

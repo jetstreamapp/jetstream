@@ -4,11 +4,13 @@ import { UserProfileUi } from '@jetstream/types';
 import * as express from 'express';
 import { Mock, vi } from 'vitest';
 import * as webExtDb from '../../db/web-extension.db';
+import { AuthenticationError, ServiceUnavailableError } from '../../utils/error-handler';
 import {
   addDeviceIdToLocals,
   AUDIENCE_WEB_EXT,
   findDeviceEnvironmentChange,
   getDeviceId,
+  getExternalAuthMiddleware,
   isTokenWithinRefreshWindow,
   logDeviceEnvironmentChange,
   rotateToken,
@@ -35,6 +37,7 @@ vi.mock('../../db/web-extension.db', async () => {
     ...actual,
     replaceTokenIfCurrent: vi.fn(),
     findByUserIdAndDeviceId: vi.fn(),
+    findByAccessTokenAndDeviceId: vi.fn(),
   };
 });
 vi.mock('../jwt-token-encryption.service', async () => {
@@ -353,6 +356,44 @@ describe('external-auth.service', () => {
       expect(res.locals.deviceId).toBeFalsy();
       expect(enrichRequestContext).toHaveBeenCalledWith({ deviceId: undefined });
       expect(next).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getExternalAuthMiddleware', () => {
+    // A unique token per test keeps the middleware's in-process cache from leaking results between tests
+    async function runMiddleware(accessToken: string) {
+      const next = vi.fn();
+      const request = buildRequest({
+        headers: { Authorization: `Bearer ${accessToken}`, [HTTP.HEADERS.X_EXT_DEVICE_ID]: 'device-abc' },
+      });
+      await getExternalAuthMiddleware(AUDIENCE_WEB_EXT)(request, buildResponse(), next);
+      return next.mock.calls[0][0];
+    }
+
+    it('rejects with a 401 when the token is not on record for the device', async () => {
+      mockWebExtDb.findByAccessTokenAndDeviceId.mockResolvedValue(null);
+
+      const error = await runMiddleware(makeTokenWithExp(Date.now() / 1000 + SECONDS_PER_DAY));
+
+      expect(error).toBeInstanceOf(AuthenticationError);
+      expect(error.status).toBe(401);
+    });
+
+    it('rejects with a 401 when the token is not a valid JWT', async () => {
+      const error = await runMiddleware('not-a-jwt');
+
+      expect(error).toBeInstanceOf(AuthenticationError);
+      expect(mockWebExtDb.findByAccessTokenAndDeviceId).not.toHaveBeenCalled();
+    });
+
+    it('answers a database failure with a 503 instead of a 401, so clients keep their session', async () => {
+      mockWebExtDb.findByAccessTokenAndDeviceId.mockRejectedValue(new Error('Connection terminated unexpectedly'));
+
+      const error = await runMiddleware(makeTokenWithExp(Date.now() / 1000 + 2 * SECONDS_PER_DAY));
+
+      expect(error).toBeInstanceOf(ServiceUnavailableError);
+      expect(error.status).toBe(503);
+      expect(error.message).not.toContain('Connection terminated');
     });
   });
 });
