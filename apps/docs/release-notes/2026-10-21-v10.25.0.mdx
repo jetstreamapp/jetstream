@@ -1,0 +1,54 @@
+---
+slug: v10.25.0
+title: 10.25.0 - Managed permission sets in Manage Permissions
+date: '2026-10-21'
+tags: [web, desktop, extension]
+versions:
+  web: 10.25.0
+  desktop: 4.20.0
+  extension: 3.23.0
+summary: Manage Permissions can now show managed-package and Salesforce standard permission sets as read-only columns. Profile lists also load for users without the View All Profiles permission.
+highlights:
+  - title: Managed permission sets in Manage Permissions
+    description: Turn on "Show managed permission sets" to add package and Salesforce standard permission sets to the grid as read-only columns.
+    docLink: /permissions
+  - title: Profile lists without View All Profiles
+    description: Profile and permission set lists load again for users without View All Profiles, and show a warning about the missing permission.
+    docLink: /required-permissions
+  - title: Fewer unexpected sign-outs
+    description: The desktop app and browser extension keep you signed in when Jetstream is temporarily unavailable.
+    platforms: [desktop, extension]
+  - title: Deploy results with a % in the message
+    description: Deploy failures whose Salesforce message contains a percent sign now display instead of breaking the results view.
+    docLink: /deploy-metadata
+---
+
+{/* truncate */}
+
+## What's new
+
+### Managed permission sets in Manage Permissions
+
+A new "Show managed permission sets" toggle above the Permission Sets list adds permission sets from managed packages and Salesforce's standard ones (such as "Sales Cloud User") to the selection. The toggle is off by default and remembered for next time.
+
+- Managed sets show a lock icon and their source, either `Managed package: namespace` or `Salesforce standard`.
+- Their columns in the grid are tinted and read-only, and they are never included in a save.
+- Exports include them, with `[Managed]` in the column name.
+- The toggle also appears in Permission Analysis.
+
+### Profile lists without View All Profiles
+
+Starting in Winter '27, Salesforce hides profile names from users without the View All Profiles permission. Manage Permissions, Permission Analysis, Create Object, Create Fields and the Formula Evaluator deploy now load their lists anyway, leaving out the profiles they cannot name, and show a warning naming the missing permission.
+
+### Fewer unexpected sign-outs
+
+The desktop app and the browser extension no longer sign you out when Jetstream has a temporary server problem while checking your session. You stay signed in and the check runs again later.
+
+### Other fixes
+
+- The browser extension now shows the sign-in screen when your session has expired or been revoked, instead of staying signed in while record sync fails.
+- The View/Edit Record modal no longer fails with "There was a problem loading the record information" when Salesforce cannot return picklist values for the record type, and shows the real error when the record cannot load.
+- Deploy Metadata column filters keep working after you check Hide Empty Types.
+- In Salesforce Canvas, copying grid cells and pasting them back into the grid, a text field or an editor now works, and the grid's right-click Paste is hidden where the browser blocks it.
+- New objects and fields now appear after a refresh in Salesforce Canvas and the browser extension.
+- Code editors in the browser extension and Salesforce Canvas now run validation and other language features in the background instead of on the page itself.

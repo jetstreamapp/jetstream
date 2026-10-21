@@ -1,5 +1,35 @@
 [
   {
+    "slug": "v10.25.0",
+    "title": "10.25.0 - Managed permission sets in Manage Permissions",
+    "date": "2026-10-21",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.25.0", "desktop": "4.20.0", "extension": "3.23.0" },
+    "summary": "Manage Permissions can now show managed-package and Salesforce standard permission sets as read-only columns. Profile lists also load for users without the View All Profiles permission.",
+    "highlights": [
+      {
+        "title": "Managed permission sets in Manage Permissions",
+        "description": "Turn on \"Show managed permission sets\" to add package and Salesforce standard permission sets to the grid as read-only columns.",
+        "docLink": "/permissions"
+      },
+      {
+        "title": "Profile lists without View All Profiles",
+        "description": "Profile and permission set lists load again for users without View All Profiles, and show a warning about the missing permission.",
+        "docLink": "/required-permissions"
+      },
+      {
+        "title": "Fewer unexpected sign-outs",
+        "description": "The desktop app and browser extension keep you signed in when Jetstream is temporarily unavailable.",
+        "platforms": ["desktop", "extension"]
+      },
+      {
+        "title": "Deploy results with a % in the message",
+        "description": "Deploy failures whose Salesforce message contains a percent sign now display instead of breaking the results view.",
+        "docLink": "/deploy-metadata"
+      }
+    ]
+  },
+  {
     "slug": "v10.24.4",
     "title": "10.24.4 - Excel CSV accented characters and job status retries",
     "date": "2026-10-15",
