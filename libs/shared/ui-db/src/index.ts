@@ -1,5 +1,6 @@
 export * from './lib/analysis-job-history-retention';
 export * from './lib/api-request-history.db';
+export * from './lib/automation-control-history.db';
 export * from './lib/client-data.db';
 export * from './lib/data-history.db';
 export * from './lib/db-hooks';

@@ -17,6 +17,7 @@ export const AutomationControl = () => {
   const resetSelectedSObjectsState = useResetAtom(fromAutomationControlState.selectedSObjectsState);
   const resetAutomationTypes = useResetAtom(fromAutomationControlState.automationTypes);
   const resetSelectedAutomationTypes = useResetAtom(fromAutomationControlState.selectedAutomationTypes);
+  const resetPendingHistoryRestore = useResetAtom(fromAutomationControlState.pendingHistoryRestore);
 
   const hasSelectionsMade = useAtomValue(fromAutomationControlState.hasSelectionsMade);
 
@@ -30,6 +31,7 @@ export const AutomationControl = () => {
       resetSelectedSObjectsState();
       resetAutomationTypes();
       resetSelectedAutomationTypes();
+      resetPendingHistoryRestore();
       if (location.pathname.endsWith('/editor')) {
         navigate('..');
       }
@@ -38,6 +40,7 @@ export const AutomationControl = () => {
       resetSelectedSObjectsState();
       resetAutomationTypes();
       resetSelectedAutomationTypes();
+      resetPendingHistoryRestore();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg, priorSelectedOrg]);

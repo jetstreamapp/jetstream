@@ -256,6 +256,8 @@ export const ANALYTICS_KEYS = {
   automation_toggle_all: 'automation_toggle_all',
   automation_process_builder_refresh: 'automation_process_builder_refresh',
   automation_export: 'automation_export',
+  automation_history_opened: 'automation_history_opened',
+  automation_history_restore: 'automation_history_restore',
   /** QUERY */
   query_BulkDelete: 'query_BulkDelete',
   query_BulkUndelete: 'query_BulkUndelete',
