@@ -51,11 +51,12 @@ In these cases, Jetstream may display a warning banner and/or a "Limited Access"
 
 Some features also rely on standard Salesforce permissions for the underlying operation, enforced by Salesforce exactly as they would be in Setup:
 
-| Permission                   | API Name                          | Required for                                                                                                                                                               |
-| ---------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| View Setup and Configuration | `PermissionsViewSetup`            | Reading setup metadata behind Automation Control, Manage Permissions, Permission Analysis, "Where is this used" / Where Used, and the metadata browser.                    |
-| Customize Application        | `PermissionsCustomizeApplication` | Creating/editing objects, fields, record types, and picklists; deleting unused fields in Data Analysis; activating/deactivating validation, workflow, and duplicate rules. |
-| Author Apex                  | `PermissionsAuthorApex`           | Running Anonymous Apex; enabling/disabling Apex triggers in Automation Control.                                                                                            |
+| Permission                   | API Name                          | Required for                                                                                                                                                                                                                                                                  |
+| ---------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| View Setup and Configuration | `PermissionsViewSetup`            | Reading setup metadata behind Automation Control, Manage Permissions, Permission Analysis, "Where is this used" / Where Used, and the metadata browser.                                                                                                                       |
+| View All Profiles            | `PermissionsViewAllProfiles`      | Listing profiles other than your own in Manage Permissions, Permission Analysis, Create Object and Fields, and the Formula Evaluator deploy. Salesforce enforces profile filtering starting in Winter '27. Without this permission, other users' profile names show as blank. |
+| Customize Application        | `PermissionsCustomizeApplication` | Creating/editing objects, fields, record types, and picklists; deleting unused fields in Data Analysis; activating/deactivating validation, workflow, and duplicate rules.                                                                                                    |
+| Author Apex                  | `PermissionsAuthorApex`           | Running Anonymous Apex; enabling/disabling Apex triggers in Automation Control.                                                                                                                                                                                               |
 
 ## Connecting an org
 

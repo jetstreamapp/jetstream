@@ -37,6 +37,7 @@ import {
   Tooltip,
   fireToast,
   getModifierKey,
+  HiddenProfilesNotice,
 } from '@jetstream/ui';
 import {
   PermissionAnalysisHistoryModal,
@@ -423,6 +424,12 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
               lastRefreshed={profilesAndPermSetsData.lastRefreshed}
               loading={profilesAndPermSetsData.loading}
               itemTrailingRenderer={renderPopoverTrigger('Profile')}
+              headerContent={
+                <HiddenProfilesNotice
+                  className="slds-m-vertical_xx-small"
+                  hiddenProfileCount={profilesAndPermSetsData.hiddenProfileCount}
+                />
+              }
               onSelected={setSelectedProfiles}
               errorReattempt={profilesAndPermSetsData.fetchMetadata}
               onRefresh={() => profilesAndPermSetsData.fetchMetadata(true)}

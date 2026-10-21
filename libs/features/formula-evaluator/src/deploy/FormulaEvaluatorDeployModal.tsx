@@ -280,6 +280,7 @@ export const FormulaEvaluatorDeployModal = ({
                     <FormulaEvaluatorPermissions
                       selectedOrg={selectedOrg}
                       hasError={permissionData.hasError}
+                      hiddenProfileCount={permissionData.hiddenProfileCount}
                       lastRefreshed={permissionData.lastRefreshed}
                       loading={permissionData.loading}
                       profiles={permissionData.profiles}

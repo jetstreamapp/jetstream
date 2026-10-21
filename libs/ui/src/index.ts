@@ -172,6 +172,7 @@ export * from './lib/widgets/CopyToClipboardWithToolTip';
 export * from './lib/widgets/FeedbackLink';
 export * from './lib/widgets/HelpText';
 export * from './lib/widgets/Icon';
+export * from './lib/widgets/HiddenProfilesNotice';
 export * from './lib/widgets/ItemSelectionSummary';
 export * from './lib/widgets/KeyboardShortcut';
 export * from './lib/widgets/ManagePermissionSetAssignmentsModal';

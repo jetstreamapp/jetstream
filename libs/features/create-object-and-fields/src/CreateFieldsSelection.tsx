@@ -19,6 +19,7 @@ import {
   ProfileOrPermSetRecordType,
   Tooltip,
   getModifierKey,
+  HiddenProfilesNotice,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, filterCreateFieldsSobjects } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
@@ -193,6 +194,12 @@ export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps
               lastRefreshed={profilesAndPermSetsData.lastRefreshed}
               loading={profilesAndPermSetsData.loading}
               itemTrailingRenderer={renderPopoverTrigger('Profile')}
+              headerContent={
+                <HiddenProfilesNotice
+                  className="slds-m-vertical_xx-small"
+                  hiddenProfileCount={profilesAndPermSetsData.hiddenProfileCount}
+                />
+              }
               onSelected={setSelectedProfiles}
               errorReattempt={profilesAndPermSetsData.fetchMetadata}
               onRefresh={() => profilesAndPermSetsData.fetchMetadata(true)}
