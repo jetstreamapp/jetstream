@@ -492,9 +492,9 @@ const handleCheckAuthEvent: MainIpcHandler<'checkAuth'> = async (): Promise<
       const response = await verifyAuthToken({ accessToken, deviceId });
       if (!response.success) {
         if ('networkError' in response && response.networkError) {
-          // Transport failure (offline, DNS, upstream proxy, etc.) — keep the cached session
-          // and try again on the next interval instead of forcing re-login.
-          logger.warn('Auth check skipped due to network error, keeping cached session', response.error);
+          // Transport failure (offline, DNS, upstream proxy, a temporary server error, etc.) — keep
+          // the cached session and try again on the next interval instead of forcing re-login.
+          logger.warn('Auth check skipped due to network or server error, keeping cached session', response.error);
           return { userProfile, authInfo: { deviceId, accessToken } };
         }
         logger.error('Authentication error', response.error);

@@ -44,7 +44,7 @@ export async function verifyAuthToken({ accessToken, deviceId }: { deviceId: str
 
 /**
  * Shared JSON-response handler for desktop auth endpoints.
- * Differentiates between transport-level failures (non-2xx, non-JSON, malformed JSON,
+ * Differentiates between transport-level failures (non-401 error statuses, non-JSON, malformed JSON,
  * schema mismatch) and deliberate `{success:false}` responses from the server so callers
  * — and our logs — see the real failure cause instead of a generic "Unauthorized".
  * This also surfaces cases where an upstream proxy (Cloudflare Access, etc.) returns
@@ -86,6 +86,16 @@ async function parseAuthResponse<T extends z.ZodTypeAny>(
 
   if (!response.ok) {
     logger.warn(`${label}: non-2xx response`, { requestId, status, url: response.url, payload });
+    // Only a 401 means the server rejected the session. Any other failure (a 5xx during an outage, a 429 from the
+    // rate limiter) is temporary, so callers keep the cached session instead of signing the user out.
+    if (status !== 401) {
+      const serverError = (payload as Maybe<{ error?: unknown }>)?.error;
+      return {
+        success: false,
+        networkError: true,
+        error: typeof serverError === 'string' ? serverError : `The server could not complete the request (status ${status}).`,
+      };
+    }
   }
 
   const results = schema.safeParse(payload);
