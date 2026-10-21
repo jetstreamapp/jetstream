@@ -1,5 +1,8 @@
 import {
   ApexTrigger,
+  AutomationControlHistoryItem,
+  AutomationControlHistorySource,
+  AutomationControlRestoreAction,
   AutomationMetadataType,
   DuplicateRule,
   FlowProcessBuilder,
@@ -353,7 +356,30 @@ export interface TableContext {
 export type TableRowOrItemOrChild = TableRow | TableRowItem | TableRowItemChild;
 export type TableRowItemOrChild = TableRowItem | TableRowItemChild;
 
-export type TableRowItemSnapshot = Pick<TableRowItem, 'key' | 'type' | 'sobject' | 'isActive' | 'activeVersionNumber'>;
+/** The activation state to stage for one automation item when restoring from history */
+export type TableRowItemSnapshot = Pick<TableRowItem, 'key' | 'type' | 'sobject' | 'label' | 'isActive'> & {
+  activeVersionNumber: number | null;
+};
+
+export interface StagedHistoryRestoreResult {
+  /** Items staged as pending changes because Salesforce differs from the restore target */
+  stagedCount: number;
+  stagedKeys: string[];
+  /** Items that already match the restore target in Salesforce */
+  unchangedCount: number;
+  /** Items that could not be staged */
+  missingItems: { key: string; label: string; reason: string }[];
+}
+
+export interface HistoryItemRow extends AutomationControlHistoryItem {
+  typeLabel: string;
+}
+
+export interface StagedHistoryRestore {
+  action: AutomationControlRestoreAction;
+  source: AutomationControlHistorySource;
+  result: StagedHistoryRestoreResult;
+}
 
 export interface TableRow {
   path: [string];

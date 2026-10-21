@@ -18,7 +18,7 @@ sidebar_label: Automation Control
 slug: /automation-control
 ---
 
-Automation Control allows you to quickly disable or enable automation in your org with the option to easily rollback your changes.
+Automation Control allows you to quickly disable or enable automation in your org with the option to easily roll back your changes, even after you have closed your browser.
 
 **The following automation is supported**:
 
@@ -74,6 +74,31 @@ Once the changes are submitted, you will be given the option to roll back the ch
 To rollback your changes, click the **Rollback** button.
 
 <img src={require('./automation-control-rollback.png').default} alt="Automation control pending changes modal" />
+
+## History
+
+Every time you deploy changes from Automation Control, the changes are saved to your history, including what each item was set to before and after the deployment and whether it succeeded. This means you can still roll back your changes after closing the browser, or apply the same changes again later, for example if you disable the same automation before each data load.
+
+Click **History** on the object selection page or from the editor to see the deployments for the selected org, newest first. Choose a deployment to see each item that was changed.
+
+- **Roll Back** restores every item that was deployed successfully to the state it was in before the deployment.
+- **Re-deploy** applies the same changes again, including any items that failed the first time.
+
+If a deployment is interrupted, for example by closing the browser before it finishes, it is still saved to your history and any items without a result are marked as **Not confirmed**. Rolling back includes these items, and any that were never changed are skipped because they already match Salesforce.
+
+Jetstream first loads the current state of each item from Salesforce and then opens the editor with the changes staged, so only the items that are different from what is in Salesforce are included. Items that already match are skipped, and items that no longer exist, such as a deleted validation rule or flow version, are listed so you know they were not included. Review the highlighted changes, adjust them if needed, and click **Review Changes** to deploy them as usual.
+
+:::note
+
+History is stored in your browser, not on the Jetstream server, and the last 100 deployments are kept for each org. Only the active state of each item is saved, not the full metadata.
+
+:::
+
+## Downloading a package
+
+From **Review Changes** or from a deployment in **History**, click **Download Package** and choose either **Before these changes** or **After these changes**. This downloads a metadata package that sets each item to its active state from before or after the changes, which you can deploy at any time from [Deploy Metadata](../deploy/deploy-metadata.mdx) by choosing **Upload Metadata Zip**. For example, download the "before" package prior to deploying so you always have a way to roll back, or use the "after" package to make the same change in another org.
+
+The package is built from the current metadata in Salesforce when you download it, with only the active state changed. For Flows and Process Builders, the package only sets the active version. Items that no longer exist in Salesforce are left out of the package and listed when you download it.
 
 ## Exporting metadata
 
