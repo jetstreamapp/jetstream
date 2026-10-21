@@ -50,12 +50,14 @@ function copyDirectory(source, destination, options = {}) {
           // Always copy base and editor folders when they're direct children of vs
           copyDirectory(sourcePath, destPath, { includeAll: true });
         } else if (item === 'assets') {
-          // Web worker scripts - without them Monaco runs its language services on the main thread. The TypeScript worker
-          // is skipped because no editor in the extension uses JavaScript or TypeScript and it is most of the folder's size
+          // Web worker scripts, without the content hash so the extension's monaco-loader can start them directly (see the
+          // comment there for why). The TypeScript worker is skipped because no editor in the extension uses JavaScript or
+          // TypeScript and it is most of the folder's size.
           mkdirSync(destPath, { recursive: true });
           for (const assetItem of readdirSync(sourcePath)) {
-            if (!assetItem.startsWith('ts.worker')) {
-              copyFileSync(join(sourcePath, assetItem), join(destPath, assetItem));
+            const workerName = /^(editor|json|css|html)\.worker-.+\.js$/.exec(assetItem)?.[1];
+            if (workerName) {
+              copyFileSync(join(sourcePath, assetItem), join(destPath, `${workerName}.worker.js`));
             }
           }
         } else if (relativePath.startsWith('language/') && relativePath.split('/').length === 2) {
