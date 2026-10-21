@@ -51,11 +51,10 @@ function copyDirectory(source, destination, options = {}) {
           copyDirectory(sourcePath, destPath, { includeAll: true });
         } else if (item === 'assets') {
           // Web worker scripts, without the content hash so the extension's monaco-loader can start them directly (see the
-          // comment there for why). The TypeScript worker is skipped because no editor in the extension uses JavaScript or
-          // TypeScript and it is most of the folder's size.
+          // comment there for why). The TypeScript worker backs JavaScript editors, such as LWC/Aura files in the metadata viewer.
           mkdirSync(destPath, { recursive: true });
           for (const assetItem of readdirSync(sourcePath)) {
-            const workerName = /^(editor|json|css|html)\.worker-.+\.js$/.exec(assetItem)?.[1];
+            const workerName = /^(editor|json|css|html|ts)\.worker-.+\.js$/.exec(assetItem)?.[1];
             if (workerName) {
               copyFileSync(join(sourcePath, assetItem), join(destPath, `${workerName}.worker.js`));
             }

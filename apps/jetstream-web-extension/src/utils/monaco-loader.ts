@@ -16,6 +16,8 @@ function getWorker(_workerId: string, label: string) {
     workerName = 'css';
   } else if (label === 'html' || label === 'handlebars' || label === 'razor') {
     workerName = 'html';
+  } else if (label === 'typescript' || label === 'javascript') {
+    workerName = 'ts';
   }
   return new Worker(`${MONACO_VS_PATH}/assets/${workerName}.worker.js`, { name: label });
 }
