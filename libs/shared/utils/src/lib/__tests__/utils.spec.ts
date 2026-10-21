@@ -5,6 +5,7 @@ import {
   base64ToArrayBuffer,
   buildDateFromString,
   dateFromTimestamp,
+  decodeURIComponentSafe,
   flattenRecord,
   getErrorMessage,
   getExcelSafeSheetName,
@@ -105,6 +106,31 @@ describe('utils.getFullNameFromListMetadata', () => {
         namespace: 'TEST',
       }),
     ).toEqual('AttributeSet__c-Attribute Set Layout');
+  });
+});
+
+describe('utils.decodeURIComponentSafe', () => {
+  it('should decode URI encoded values', () => {
+    expect(decodeURIComponentSafe('Account-Account %28Marketing%29 Layout')).toEqual('Account-Account (Marketing) Layout');
+    expect(decodeURIComponentSafe('Case-Support %26 Service Layout')).toEqual('Case-Support & Service Layout');
+  });
+
+  it('should return values that are not valid URI encoding unchanged', () => {
+    const coverageMessage = 'Average test coverage across all Apex Classes and Triggers is 74%, at least 75% test coverage is required.';
+    expect(() => decodeURIComponent(coverageMessage)).toThrow(URIError);
+    expect(decodeURIComponentSafe(coverageMessage)).toEqual(coverageMessage);
+    expect(decodeURIComponentSafe('100%')).toEqual('100%');
+    expect(decodeURIComponentSafe('%E0%A4%A')).toEqual('%E0%A4%A');
+  });
+
+  it('should leave values without encoding unchanged', () => {
+    expect(decodeURIComponentSafe('MyApexClass')).toEqual('MyApexClass');
+  });
+
+  it('should return an empty string for missing values', () => {
+    expect(decodeURIComponentSafe(undefined)).toEqual('');
+    expect(decodeURIComponentSafe(null)).toEqual('');
+    expect(decodeURIComponentSafe('')).toEqual('');
   });
 });
 

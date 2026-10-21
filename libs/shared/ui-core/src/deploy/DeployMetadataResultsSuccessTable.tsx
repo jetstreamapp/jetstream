@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { decodeURIComponentSafe } from '@jetstream/shared/utils';
 import { DeployMessage } from '@jetstream/types';
 import { Checkbox, Grid } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
@@ -58,7 +59,7 @@ export const DeployMetadataResultsSuccessTable: FunctionComponent<DeployMetadata
             <tr className="slds-hint-parent" key={`${row.id}-row-${i}`}>
               <th scope="row">
                 <div className="slds-cell-wrap" title={row.fullName}>
-                  {decodeURIComponent(row.fullName)}
+                  {decodeURIComponentSafe(row.fullName)}
                 </div>
               </th>
               <td>

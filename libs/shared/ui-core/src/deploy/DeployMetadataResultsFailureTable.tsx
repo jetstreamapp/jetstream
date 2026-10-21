@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { decodeURIComponentSafe } from '@jetstream/shared/utils';
 import { DeployMessage } from '@jetstream/types';
 import { Grid } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
@@ -51,7 +52,7 @@ export const DeployMetadataResultsFailureTable: FunctionComponent<DeployMetadata
             <tr className="slds-hint-parent" key={`${row.id}-row-${i}`}>
               <th className="slds-cell-wrap" scope="row">
                 <p className="slds-line-clamp_large" title={row.fullName}>
-                  {decodeURIComponent(row.fullName)}
+                  {decodeURIComponentSafe(row.fullName)}
                 </p>
               </th>
               <td className="slds-cell-wrap">
@@ -67,7 +68,7 @@ export const DeployMetadataResultsFailureTable: FunctionComponent<DeployMetadata
               </td>
               <td className="slds-cell-wrap">
                 <p className="slds-line-clamp_large" title={row.problem}>
-                  {decodeURIComponent(row.problem)}
+                  {decodeURIComponentSafe(row.problem)}
                 </p>
               </td>
             </tr>
