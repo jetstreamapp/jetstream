@@ -43,6 +43,7 @@ export interface ChromeStorageState {
       colorScheme: ColorScheme;
       crashReportingEnabled: boolean;
     };
+    rejectedAccessToken?: string;
   };
 }
 
@@ -197,6 +198,24 @@ export interface AuthTokensStorage {
 }
 
 export type StorageTypes = ExtIdentifierStorage & AuthTokensStorage;
+
+/**
+ * storage.local key holding the access token Jetstream last rejected on this install. Every install shares one authTokens entry
+ * through Chrome Sync, and an install whose copy is stale (another install rotated the token, but Sync has not delivered it
+ * yet) gets a 401 for a session that is still valid elsewhere. Removing the shared entry would sync that sign-out to every
+ * install, so the rejection is kept local and the stored token is treated as signed out only here.
+ */
+export const REJECTED_ACCESS_TOKEN_KEY = 'rejectedAccessToken';
+
+export function withoutRejectedAuthTokens<T extends { accessToken: string }>(
+  authTokens: T | null | undefined,
+  rejectedAccessToken: string | null | undefined,
+): T | undefined {
+  if (!authTokens || (rejectedAccessToken && authTokens.accessToken === rejectedAccessToken)) {
+    return undefined;
+  }
+  return authTokens;
+}
 
 export const storageTypes = {
   extIdentifier: {

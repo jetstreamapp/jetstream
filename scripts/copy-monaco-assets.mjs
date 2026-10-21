@@ -49,6 +49,16 @@ function copyDirectory(source, destination, options = {}) {
         if (item === 'base' || item === 'editor') {
           // Always copy base and editor folders when they're direct children of vs
           copyDirectory(sourcePath, destPath, { includeAll: true });
+        } else if (item === 'assets') {
+          // Web worker scripts, without the content hash so the extension's monaco-loader can start them directly (see the
+          // comment there for why). The TypeScript worker backs JavaScript editors, such as LWC/Aura files in the metadata viewer.
+          mkdirSync(destPath, { recursive: true });
+          for (const assetItem of readdirSync(sourcePath)) {
+            const workerName = /^(editor|json|css|html|ts)\.worker-.+\.js$/.exec(assetItem)?.[1];
+            if (workerName) {
+              copyFileSync(join(sourcePath, assetItem), join(destPath, `${workerName}.worker.js`));
+            }
+          }
         } else if (relativePath.startsWith('language/') && relativePath.split('/').length === 2) {
           // Check if this is a language folder
           const language = relativePath.split('/')[1];

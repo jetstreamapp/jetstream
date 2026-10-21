@@ -11,6 +11,7 @@ import { fromUnixTime } from 'date-fns/fromUnixTime';
 import { isAfter } from 'date-fns/isAfter';
 import { jwtDecode } from 'jwt-decode';
 import isNumber from 'lodash/isNumber';
+import isString from 'lodash/isString';
 import browser from 'webextension-polyfill';
 import { environment } from '../environments/environment';
 import { initApiClientAndOrg } from '../utils/api-client';
@@ -28,10 +29,12 @@ import {
   Message,
   MessageResponse,
   OrgAndSessionInfo,
+  REJECTED_ACCESS_TOKEN_KEY,
   StorageTypes,
   storageTypes,
   TokenExchange,
   VerifyAuth,
+  withoutRejectedAuthTokens,
 } from '../utils/extension.types';
 import { getRecordPageRecordId, selectApiSessionCookie } from '../utils/web-extension.utils';
 
@@ -44,7 +47,15 @@ logger.log('Jetstream Service worker loaded.');
 let connections: Record<string, OrgAndSessionInfo> = {};
 
 const storageSyncCache: Partial<StorageTypes> = {};
-const initStorageSyncCache = browser.storage.sync.get().then((data) => Object.assign(storageSyncCache, data));
+// See REJECTED_ACCESS_TOKEN_KEY - storageSyncCache never holds this token, so this install treats it as signed out
+let rejectedAccessToken: string | undefined;
+const initStorageSyncCache = Promise.all([browser.storage.sync.get(), browser.storage.local.get(REJECTED_ACCESS_TOKEN_KEY)]).then(
+  ([data, localData]) => {
+    rejectedAccessToken = localData[REJECTED_ACCESS_TOKEN_KEY] as string | undefined;
+    Object.assign(storageSyncCache, data);
+    storageSyncCache.authTokens = withoutRejectedAuthTokens(storageSyncCache.authTokens, rejectedAccessToken);
+  },
+);
 
 const storageSessionCache: Partial<{ connections: Record<string, OrgAndSessionInfo> }> = {};
 const initStorageSessionCache = browser.storage.session.get().then((data) => {
@@ -70,10 +81,17 @@ browser.storage.onChanged.addListener((changes, namespace) => {
     switch (namespace) {
       case 'sync': {
         if (storageTypes.authTokens.key === key) {
-          storageSyncCache.authTokens = newValue as AuthTokensStorage['authTokens'];
+          storageSyncCache.authTokens = withoutRejectedAuthTokens(newValue as AuthTokensStorage['authTokens'], rejectedAccessToken);
         }
         if (storageTypes.extIdentifier.key === key) {
           storageSyncCache.extIdentifier = newValue as ExtIdentifierStorage['extIdentifier'];
+        }
+        break;
+      }
+      case 'local': {
+        if (key === REJECTED_ACCESS_TOKEN_KEY) {
+          rejectedAccessToken = newValue as string | undefined;
+          storageSyncCache.authTokens = withoutRejectedAuthTokens(storageSyncCache.authTokens, rejectedAccessToken);
         }
         break;
       }
@@ -349,6 +367,10 @@ async function handleTokenExchange(
     lastChecked: null,
     loggedIn: true,
   };
+  rejectedAccessToken = undefined;
+  await browser.storage.local.remove(REJECTED_ACCESS_TOKEN_KEY).catch((err) => {
+    logger.error('Error clearing rejected token', err);
+  });
   await browser.storage.sync.set({ [storageTypes.authTokens.key]: authState });
   storageSyncCache.authTokens = authState;
   return { success: true };
@@ -438,6 +460,24 @@ function runVerifyAuth(sender: browser.Runtime.MessageSender): Promise<VerifyAut
   return inFlightVerifyAuth;
 }
 
+type VerifyAuthResult = { success: true; userProfile?: UserProfileUi; accessToken?: string } | { success: false; error: string };
+
+/**
+ * The verify controller wraps its answer in `data`, but a token the auth middleware rejects (expired, revoked, entitlement
+ * removed) never reaches the controller - the API's error handler answers with `{ error: true, success: false, message }`.
+ * Both are definitive answers from Jetstream. Anything else, such as an HTML page from a proxy, returns null.
+ */
+function parseVerifyAuthResponseBody(body: unknown): VerifyAuthResult | null {
+  if (!body || typeof body !== 'object') {
+    return null;
+  }
+  const { data, success, message } = body as { data?: VerifyAuthResult; success?: boolean; message?: unknown };
+  if (success === false) {
+    return { success: false, error: isString(message) ? message : 'Unauthorized' };
+  }
+  return data ?? null;
+}
+
 /**
  * Verifies that user is logged in to Jetstream and has access to use the browser extension.
  * Exported for unit testing — production code reaches this via runVerifyAuth.
@@ -478,26 +518,29 @@ export async function handleVerifyAuth(_sender: browser.Runtime.MessageSender): 
       return { hasTokens: true, loggedIn: true };
     }
 
-    const results: { success: true; userProfile?: UserProfileUi; accessToken?: string } | { success: false; error: string } | null =
-      await response
-        .json()
-        .then(
-          ({ data }) =>
-            (data ?? null) as
-              | { success: true; userProfile?: UserProfileUi; accessToken?: string }
-              | { success: false; error: string }
-              | null,
-        )
-        .catch(() => null);
+    const results = await response
+      .json()
+      .then(parseVerifyAuthResponseBody)
+      .catch(() => null);
 
     if (!results || results.success === false) {
       const status = response.status;
       if (results && results.success === false && status === 401) {
+        // The server rejected the token we sent, not necessarily the one stored now. Chrome Sync may have delivered a token
+        // that another install rotated while this request was in flight, so keep that one and let the next check verify it.
+        const latestAuthTokens = ((await browser.storage.sync.get(storageTypes.authTokens.key)) as Partial<AuthTokensStorage>).authTokens;
+        if (latestAuthTokens?.accessToken && latestAuthTokens.accessToken !== authTokens.accessToken) {
+          storageSyncCache.authTokens = latestAuthTokens;
+          return { hasTokens: true, loggedIn: true };
+        }
+        // Sync may also not have delivered that rotation yet, so the stored token is still valid on whichever install rotated
+        // it. The rejection stays on this install instead of removing the shared token (see REJECTED_ACCESS_TOKEN_KEY).
         logger.info('Error verifying tokens', results.error);
-        browser.storage.sync.remove(storageTypes.authTokens.key).catch((err) => {
-          logger.error('Error removing tokens', err);
-        });
+        rejectedAccessToken = authTokens.accessToken;
         storageSyncCache.authTokens = undefined;
+        await browser.storage.local.set({ [REJECTED_ACCESS_TOKEN_KEY]: authTokens.accessToken }).catch((err) => {
+          logger.error('Error storing rejected token', err);
+        });
         return { hasTokens: true, loggedIn: false, error: results.error };
       }
       // Transient failure (network/5xx/non-401/unparseable body) — keep the cached session. We do
