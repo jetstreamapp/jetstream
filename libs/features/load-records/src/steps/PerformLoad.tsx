@@ -128,6 +128,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const batchApiLimitWarning = useAtomValue(fromLoadRecordsState.selectBatchApiLimitWarning);
   const batchApiLimitError = useAtomValue(fromLoadRecordsState.selectBatchApiLimitError);
   const trialRunSizeError = useAtomValue(fromLoadRecordsState.selectTrialRunSizeError);
+  const isTrialRunAvailable = useAtomValue(fromLoadRecordsState.selectIsTrialRunAvailable);
   const bulkApiModeLabel = useAtomValue(fromLoadRecordsState.selectBulkApiModeLabel);
   const batchApiModeLabel = useAtomValue(fromLoadRecordsState.selectBatchApiModeLabel);
 
@@ -597,8 +598,12 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
               className="slds-m-vertical_xx-small"
               checked={trialRun}
               label={'Trial Run'}
-              labelHelp="Test your data load by starting with a few records."
-              disabled={loading}
+              labelHelp={
+                isTrialRunAvailable
+                  ? 'Test your data load by starting with a few records.'
+                  : 'A trial run loads a few records before the rest, so it requires at least two records.'
+              }
+              disabled={loading || !isTrialRunAvailable}
               onChange={setTrialRun}
             />
 
