@@ -221,7 +221,7 @@ const handleSetPreferences: MainIpcHandler<'setPreferences'> = async (event, pay
   // round-trips its whole preferences snapshot through here on every toggle, so without this a
   // snapshot taken before a relocation would silently point history back at the old folder — and
   // any renderer code could aim all history I/O, or every download, at an arbitrary path.
-  const updatedPreferences = dataService.updateUserPreferences(dataService.withoutMainProcessOwnedPreferences(payload));
+  const updatedPreferences = dataService.updateUserPreferencesFromRenderer(payload);
   broadcastPreferencesChanged(updatedPreferences, { exclude: event.sender });
   // Start or stop the background update timers immediately, so the toggle takes effect without a
   // restart. An administrator policy still wins - refreshing re-applies the full precedence chain.
