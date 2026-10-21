@@ -1,4 +1,4 @@
-import { retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
+import { queryAll, retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
 import { pollRetrieveMetadataResultsUntilDone } from '@jetstream/shared/ui-utils';
 import { RetrieveResult, SalesforceOrgUi } from '@jetstream/types';
 import JSZip from 'jszip';
@@ -8,6 +8,7 @@ import { FlowViewRecord } from '../automation-control-types';
 
 vi.mock('@jetstream/shared/data', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@jetstream/shared/data')>()),
+  queryAll: vi.fn(),
   retrieveMetadataFromListMetadata: vi.fn(),
 }));
 vi.mock('@jetstream/shared/ui-utils', async (importOriginal) => ({
@@ -69,6 +70,19 @@ async function mockRetrieve(files: Record<string, string>) {
   } as RetrieveResult);
 }
 
+/** Flows that exist in Salesforce, as `[ApiName, NamespacePrefix, versionNumbers]` */
+function mockCurrentFlows(flows: [string, string | null, number[]][]) {
+  vi.mocked(queryAll).mockResolvedValue({
+    queryResults: {
+      records: flows.map(([ApiName, NamespacePrefix, versionNumbers]) => ({
+        ApiName,
+        NamespacePrefix,
+        Versions: { records: versionNumbers.map((VersionNumber) => ({ VersionNumber })) },
+      })),
+    },
+  } as unknown as Awaited<ReturnType<typeof queryAll>>);
+}
+
 function inactive(item: Omit<AutomationPackageItem, 'state'>): AutomationPackageItem {
   return { ...item, state: { isActive: false, activeVersionNumber: null } };
 }
@@ -87,6 +101,10 @@ describe('buildActivationPackage', () => {
       'triggers/MyTrigger.trigger-meta.xml': TRIGGER_META_XML,
       'duplicateRules/Account.Dup.duplicateRule': DUPLICATE_RULE_XML,
     });
+    mockCurrentFlows([
+      ['My_Flow', 'test_ns', [1, 2, 3]],
+      ['My_Process', null, [1]],
+    ]);
 
     const { data, includedCount, missingItems } = await buildActivationPackage(selectedOrg, 'v68.0', [
       inactive({ key: 'vr-a', type: 'ValidationRule', fullName: 'Account.Rule_A', label: 'Rule A' }),
@@ -191,11 +209,46 @@ describe('buildActivationPackage', () => {
   });
 
   test('builds a flow-only package without retrieving anything', async () => {
+    mockCurrentFlows([['My_Flow', null, [1]]]);
     const { includedCount } = await buildActivationPackage(selectedOrg, '68.0', [
       inactive({ key: 'flow', type: 'FlowRecordTriggered', fullName: 'My_Flow', label: 'My Flow' }),
     ]);
     expect(includedCount).toBe(1);
     expect(retrieveMetadataFromListMetadata).not.toHaveBeenCalled();
+  });
+
+  test('leaves out flows that were deleted or whose target version no longer exists', async () => {
+    mockCurrentFlows([
+      ['Kept_Flow', null, [1, 2]],
+      ['Version_Gone', null, [1, 2]],
+      ['Deactivated', null, []],
+    ]);
+
+    const { data, includedCount, missingItems } = await buildActivationPackage(selectedOrg, '68.0', [
+      { key: 'kept', type: 'FlowRecordTriggered', fullName: 'Kept_Flow', label: 'Kept', state: { isActive: true, activeVersionNumber: 2 } },
+      {
+        key: 'version-gone',
+        type: 'FlowRecordTriggered',
+        fullName: 'Version_Gone',
+        label: 'Version Gone',
+        state: { isActive: true, activeVersionNumber: 5 },
+      },
+      inactive({ key: 'deleted', type: 'FlowProcessBuilder', fullName: 'Deleted_Process', label: 'Deleted' }),
+      // deactivating only needs the flow to exist
+      inactive({ key: 'deactivated', type: 'FlowRecordTriggered', fullName: 'Deactivated', label: 'Deactivated' }),
+    ]);
+
+    expect(vi.mocked(queryAll).mock.calls[0][1]).toContain("ApiName IN ('Kept_Flow', 'Version_Gone', 'Deleted_Process', 'Deactivated')");
+    expect(includedCount).toBe(2);
+    expect(missingItems).toEqual([
+      { key: 'version-gone', label: 'Version Gone' },
+      { key: 'deleted', label: 'Deleted' },
+    ]);
+    const packageXml = await (await JSZip.loadAsync(data)).file('package.xml')!.async('string');
+    expect(packageXml).toContain('<members>Kept_Flow</members>');
+    expect(packageXml).toContain('<members>Deactivated</members>');
+    expect(packageXml).not.toContain('Version_Gone');
+    expect(packageXml).not.toContain('Deleted_Process');
   });
 
   test('fails when Salesforce cannot retrieve the metadata', async () => {

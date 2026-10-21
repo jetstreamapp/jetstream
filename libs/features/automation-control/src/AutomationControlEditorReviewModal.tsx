@@ -12,6 +12,7 @@ import { AutoFullHeightContainer, DataTable, Grid, Icon, Modal, Spinner } from '
 import { ConfirmPageChange, useAnalytics } from '@jetstream/ui-core';
 import { automationControlHistoryDb } from '@jetstream/ui/db';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { from, switchMap } from 'rxjs';
 import { deployMetadata, getAutomationTypeLabel, preparePayloads } from './automation-control-data-utils';
 import { buildHistoryEntry, saveHistoryEntry } from './automation-control-history-utils';
 import { getPackageItemsFromRows } from './automation-control-package-utils';
@@ -225,15 +226,15 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   /**
    * Record a deploy to history. The entry is saved before anything is submitted (every item incomplete),
    * so a deploy interrupted by closing the page is still recorded, then re-saved under the same key as
-   * results arrive. History is best-effort and must never break the deploy, so nothing here throws.
+   * results arrive. History is best-effort and must never break the deploy, so nothing here throws or rejects.
    *
-   * @returns function that saves the latest results
+   * @returns the initial save, to await before submitting, and a function that saves the latest results
    */
   function startHistoryEntry(submittedItemMap: DeploymentItemMap, isRollback: boolean) {
     const submittedItems = Object.values(submittedItemMap);
     // a rollback after a fully failed deploy has nothing to submit
     if (submittedItems.length === 0) {
-      return () => undefined;
+      return { initialSave: Promise.resolve(), saveResults: () => undefined };
     }
     try {
       const key = automationControlHistoryDb.generateKey();
@@ -246,76 +247,81 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
       const saveResults = (deployResultsByKey: Record<string, AutomationControlDeploymentItem>) => {
         try {
           const org = selectedOrg.uniqueId;
-          saveHistoryEntry(buildHistoryEntry({ key, org, action, source, isRollback, submittedItems, deployResultsByKey, createdAt }));
+          return saveHistoryEntry(
+            buildHistoryEntry({ key, org, action, source, isRollback, submittedItems, deployResultsByKey, createdAt }),
+          );
         } catch (ex) {
           logger.warn('[AUTOMATION][HISTORY] Error building history entry', ex);
+          return Promise.resolve();
         }
       };
-      saveResults({});
-      return saveResults;
+      return { initialSave: saveResults({}), saveResults };
     } catch (ex) {
       logger.warn('[AUTOMATION][HISTORY] Error starting history entry', ex);
-      return () => undefined;
+      return { initialSave: Promise.resolve(), saveResults: () => undefined };
     }
   }
 
   function handleDeployMetadata(currDeploymentItemMap: DeploymentItemMap, isRollback?: boolean) {
     trackEvent(ANALYTICS_KEYS.automation_deploy, { type: isRollback ? 'rollback' : 'deploy', items: deploymentItems.length });
     const deployResultsByKey: Record<string, AutomationControlDeploymentItem> = {};
-    const saveHistoryResults = startHistoryEntry(currDeploymentItemMap, !!isRollback);
-    return deployMetadata(defaultApiVersion, selectedOrg, currDeploymentItemMap).subscribe({
-      next: (items: { key: string; deploymentItem: AutomationControlDeploymentItem }[]) => {
-        logger.log('handleDeployMetadata - emitted()', items);
-        items.forEach(({ key, deploymentItem }) => {
-          deployResultsByKey[key] = deploymentItem;
-        });
-        saveHistoryResults(deployResultsByKey);
-        const tempDeploymentItemMap = items.reduce((output: DeploymentItemMap, item) => {
-          const successStatus = isRollback ? 'Rolled Back' : 'Deployed';
-          output[item.key] = {
-            ...deploymentItemMap[item.key],
-            status: item.deploymentItem.deployError ? 'Error' : successStatus,
-            deploy: item.deploymentItem,
-          };
-          return output;
-        }, {});
-        // use callback notation to ensure that we have the correct previous state variable
-        setDeploymentItemMap((prevState) => ({ ...prevState, ...tempDeploymentItemMap }));
-      },
-      error: (err) => {
-        logger.warn('handleDeployMetadata - error()', err);
-        // Set all items not already prepared as error since observable is canceled on error
-        setDeploymentItemMap((prevState) => ({
-          ...prevState,
-          ...Object.keys(deploymentItemMap).reduce((output: DeploymentItemMap, key) => {
-            output[key] = { ...deploymentItemMap[key], status: 'Error' };
+    const { initialSave, saveResults: saveHistoryResults } = startHistoryEntry(currDeploymentItemMap, !!isRollback);
+    // the entry must be committed before anything changes in Salesforce so an interrupted deploy is still recorded
+    return from(initialSave)
+      .pipe(switchMap(() => deployMetadata(defaultApiVersion, selectedOrg, currDeploymentItemMap)))
+      .subscribe({
+        next: (items: { key: string; deploymentItem: AutomationControlDeploymentItem }[]) => {
+          logger.log('handleDeployMetadata - emitted()', items);
+          items.forEach(({ key, deploymentItem }) => {
+            deployResultsByKey[key] = deploymentItem;
+          });
+          saveHistoryResults(deployResultsByKey);
+          const tempDeploymentItemMap = items.reduce((output: DeploymentItemMap, item) => {
+            const successStatus = isRollback ? 'Rolled Back' : 'Deployed';
+            output[item.key] = {
+              ...deploymentItemMap[item.key],
+              status: item.deploymentItem.deployError ? 'Error' : successStatus,
+              deploy: item.deploymentItem,
+            };
             return output;
-          }, {}),
-        }));
-        setInProgress(false);
-        setNextButtonLabel('Close');
-        setDidDeploy(true);
-        if (isRollback) {
-          setModalLabel('Rollback Complete');
-          setDidRollback(true);
-        } else {
-          setModalLabel('Deploy Complete');
-        }
-      },
-      complete: () => {
-        logger.log('handleDeployMetadata - complete()');
-        setInProgress(false);
-        setDidDeployMetadata(true);
-        setNextButtonLabel('Close');
-        setDidDeploy(true);
-        if (isRollback) {
-          setModalLabel('Rollback Complete');
-          setDidRollback(true);
-        } else {
-          setModalLabel('Deploy Complete');
-        }
-      },
-    });
+          }, {});
+          // use callback notation to ensure that we have the correct previous state variable
+          setDeploymentItemMap((prevState) => ({ ...prevState, ...tempDeploymentItemMap }));
+        },
+        error: (err) => {
+          logger.warn('handleDeployMetadata - error()', err);
+          // Set all items not already prepared as error since observable is canceled on error
+          setDeploymentItemMap((prevState) => ({
+            ...prevState,
+            ...Object.keys(deploymentItemMap).reduce((output: DeploymentItemMap, key) => {
+              output[key] = { ...deploymentItemMap[key], status: 'Error' };
+              return output;
+            }, {}),
+          }));
+          setInProgress(false);
+          setNextButtonLabel('Close');
+          setDidDeploy(true);
+          if (isRollback) {
+            setModalLabel('Rollback Complete');
+            setDidRollback(true);
+          } else {
+            setModalLabel('Deploy Complete');
+          }
+        },
+        complete: () => {
+          logger.log('handleDeployMetadata - complete()');
+          setInProgress(false);
+          setDidDeployMetadata(true);
+          setNextButtonLabel('Close');
+          setDidDeploy(true);
+          if (isRollback) {
+            setModalLabel('Rollback Complete');
+            setDidRollback(true);
+          } else {
+            setModalLabel('Deploy Complete');
+          }
+        },
+      });
   }
 
   function handleRollbackMetadata() {

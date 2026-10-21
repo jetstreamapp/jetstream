@@ -23,6 +23,7 @@ export const AutomationControlRestoreBanner: FunctionComponent<AutomationControl
   if (pendingRestore) {
     return (
       <ScopedNotification
+        key="pending"
         theme="light"
         className="slds-m-around_x-small"
         icon={<Spinner className="slds-spinner slds-spinner_brand slds-spinner_x-small slds-spinner_inline" hasContainer={false} />}
@@ -42,7 +43,8 @@ export const AutomationControlRestoreBanner: FunctionComponent<AutomationControl
   const actionLabel = getRestoreActionLabel(action);
 
   return (
-    <ScopedNotification theme="light" className="slds-m-around_x-small" allowClose>
+    // keyed apart from the loading banner so a dismissed result does not hide the next restore
+    <ScopedNotification key="staged" theme="light" className="slds-m-around_x-small" allowClose>
       {stagedCount > 0 ? (
         <Fragment>
           <p>

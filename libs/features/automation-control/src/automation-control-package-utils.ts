@@ -1,5 +1,6 @@
-import { retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
+import { queryAll, retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
 import { pollRetrieveMetadataResultsUntilDone } from '@jetstream/shared/ui-utils';
+import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   AutomationControlActivationState,
   AutomationControlHistoryItem,
@@ -9,6 +10,7 @@ import {
 } from '@jetstream/types';
 import JSZip from 'jszip';
 import { getDuplicateRuleFullName } from './automation-control-data-utils';
+import { getFlowVersionsQuery } from './automation-control-soql-utils';
 import {
   DuplicateRuleRecord,
   FlowViewRecord,
@@ -180,9 +182,13 @@ function serializeXml(document: Document) {
 }
 
 /** A FlowDefinition holds nothing but the active version, so it is generated rather than retrieved */
-function getFlowDefinitionXml({ state }: AutomationPackageItem) {
-  // 0 deactivates the flow
-  const activeVersionNumber = state.isActive && state.activeVersionNumber ? state.activeVersionNumber : 0;
+/** 0 deactivates the flow */
+function getFlowActiveVersionNumber({ state }: AutomationPackageItem) {
+  return state.isActive && state.activeVersionNumber ? state.activeVersionNumber : 0;
+}
+
+function getFlowDefinitionXml(item: AutomationPackageItem) {
+  const activeVersionNumber = getFlowActiveVersionNumber(item);
   return [
     XML_DECLARATION,
     `<FlowDefinition xmlns="${METADATA_NAMESPACE}">`,
@@ -246,6 +252,27 @@ async function retrieveCurrentMetadata(selectedOrg: SalesforceOrgUi, items: Auto
 }
 
 /**
+ * Version numbers of each flow that still exists, keyed by its namespaced fullName.
+ * Flow API names cannot contain `__`, so anything before the first one is the namespace.
+ */
+async function getCurrentFlowVersions(selectedOrg: SalesforceOrgUi, fullNames: string[]): Promise<Map<string, Set<number>>> {
+  const apiNames = Array.from(new Set(fullNames.map((fullName) => fullName.split('__').pop() as string)));
+  const records = (
+    await Promise.all(
+      splitArrayToMaxSize(apiNames, 300).map((currApiNames) =>
+        queryAll<Pick<FlowViewRecord, 'ApiName' | 'NamespacePrefix' | 'Versions'>>(selectedOrg, getFlowVersionsQuery(currApiNames), false),
+      ),
+    )
+  ).flatMap(({ queryResults }) => queryResults.records);
+  return new Map(
+    records.map(({ ApiName, NamespacePrefix, Versions }) => [
+      NamespacePrefix ? `${NamespacePrefix}__${ApiName}` : ApiName,
+      new Set((Versions?.records || []).map(({ VersionNumber }) => VersionNumber)),
+    ]),
+  );
+}
+
+/**
  * Build a deployable package that sets each item to its `state`. Items missing from Salesforce (e.g.
  * deleted since) are left out of the package and reported so the package still deploys.
  *
@@ -303,7 +330,21 @@ export async function buildActivationPackage(
     }
   });
 
+  // a flow deleted since, or whose target version was, would fail the whole deploy
+  const currentFlowVersions =
+    flowItems.length > 0
+      ? await getCurrentFlowVersions(
+          selectedOrg,
+          flowItems.map(({ fullName }) => fullName),
+        )
+      : null;
   flowItems.forEach((item) => {
+    const versionNumbers = currentFlowVersions?.get(item.fullName);
+    const activeVersionNumber = getFlowActiveVersionNumber(item);
+    if (!versionNumbers || (activeVersionNumber > 0 && !versionNumbers.has(activeVersionNumber))) {
+      missingItems.push({ key: item.key, label: item.label });
+      return;
+    }
     const member = getAutomationMetadataMember(item.type, item.fullName);
     output.file(member.fileName, getFlowDefinitionXml(item));
     includeMember(member);
