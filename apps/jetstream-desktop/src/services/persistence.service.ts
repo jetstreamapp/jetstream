@@ -431,11 +431,8 @@ export function updateUserPreferences(preferences: Partial<DesktopUserPreference
  * at a path it chose. The renderer round-trips whole preference snapshots, so the stored values are
  * kept rather than cleared; the one renderer-settable value is an empty download path, which only
  * turns the save-as prompt back on.
- *
- * Every entry point that accepts renderer preferences must pass through here, not just the IPC handler:
- * the `/api/me/profile` desktop route is reachable from the renderer too.
  */
-export function withoutMainProcessOwnedPreferences(preferences: Partial<DesktopUserPreferences>): Partial<DesktopUserPreferences> {
+function withoutMainProcessOwnedPreferences(preferences: Partial<DesktopUserPreferences>): Partial<DesktopUserPreferences> {
   const { dataHistoryFolder: _mainProcessOwnedFolder, fileDownload, ...rendererPreferences } = preferences;
   if (!fileDownload) {
     return rendererPreferences;
@@ -450,6 +447,14 @@ export function withoutMainProcessOwnedPreferences(preferences: Partial<DesktopU
       downloadPath: rendererDownloadPath === '' ? '' : (storedFileDownload?.downloadPath ?? ''),
     },
   };
+}
+
+/**
+ * The only way renderer-supplied preferences are saved - the `setPreferences` IPC handler and the
+ * `/api/me/profile` desktop route both come through here. Main-process writers use `updateUserPreferences`.
+ */
+export function updateUserPreferencesFromRenderer(preferences: Partial<DesktopUserPreferences>) {
+  return updateUserPreferences(withoutMainProcessOwnedPreferences(preferences));
 }
 
 /** Main-process-only setter for the auto-save download folder - see `withoutMainProcessOwnedPreferences`. */

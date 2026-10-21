@@ -296,31 +296,28 @@ describe('persistence.service', () => {
   // USER PREFERENCES
   // ────────────────────────────────────────────────
 
-  describe('withoutMainProcessOwnedPreferences', () => {
-    it('drops a renderer-supplied data history folder and download path, keeping the stored path', async () => {
+  describe('updateUserPreferencesFromRenderer', () => {
+    it('ignores a renderer-supplied data history folder and download path, keeping the stored values', async () => {
       const service = await importService();
+      service.updateUserPreferences({ dataHistoryFolder: '/Users/me/jetstream-history' });
       service.setDownloadFolderPath('/Users/me/Downloads/jetstream');
 
-      const sanitized = service.withoutMainProcessOwnedPreferences({
+      const updated = service.updateUserPreferencesFromRenderer({
         skipFrontdoorLogin: true,
         dataHistoryFolder: '/Users/victim/.ssh',
         fileDownload: { omitPrompt: true, downloadPath: '/Users/victim/Library/LaunchAgents' },
       });
 
-      expect(sanitized).toEqual({
-        skipFrontdoorLogin: true,
-        fileDownload: { omitPrompt: true, downloadPath: '/Users/me/Downloads/jetstream' },
-      });
-      expect(sanitized).not.toHaveProperty('dataHistoryFolder');
+      expect(updated.skipFrontdoorLogin).toBe(true);
+      expect(updated.dataHistoryFolder).toBe('/Users/me/jetstream-history');
+      expect(updated.fileDownload).toEqual({ omitPrompt: true, downloadPath: '/Users/me/Downloads/jetstream' });
     });
 
     it('lets the renderer clear the download path, which only turns the save prompt back on', async () => {
       const service = await importService();
       service.setDownloadFolderPath('/Users/me/Downloads/jetstream');
 
-      const updated = service.updateUserPreferences(
-        service.withoutMainProcessOwnedPreferences({ fileDownload: { omitPrompt: false, downloadPath: '' } }),
-      );
+      const updated = service.updateUserPreferencesFromRenderer({ fileDownload: { omitPrompt: false, downloadPath: '' } });
 
       expect(updated.fileDownload).toEqual({ omitPrompt: false, downloadPath: '' });
     });
@@ -328,14 +325,14 @@ describe('persistence.service', () => {
     it('cannot set a download path when none is stored', async () => {
       const service = await importService();
 
-      const sanitized = service.withoutMainProcessOwnedPreferences({ fileDownload: { omitPrompt: true, downloadPath: '/tmp/anywhere' } });
+      const updated = service.updateUserPreferencesFromRenderer({ fileDownload: { omitPrompt: true, downloadPath: '/tmp/anywhere' } });
 
-      expect(sanitized.fileDownload).toEqual({ omitPrompt: true, downloadPath: '' });
+      expect(updated.fileDownload).toEqual({ omitPrompt: true, downloadPath: '' });
     });
 
-    it('passes updates without folder preferences through unchanged', async () => {
+    it('saves updates without folder preferences unchanged', async () => {
       const service = await importService();
-      expect(service.withoutMainProcessOwnedPreferences({ recordSyncEnabled: true })).toEqual({ recordSyncEnabled: true });
+      expect(service.updateUserPreferencesFromRenderer({ recordSyncEnabled: true }).recordSyncEnabled).toBe(true);
     });
   });
 
