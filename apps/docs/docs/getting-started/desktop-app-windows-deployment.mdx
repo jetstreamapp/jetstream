@@ -1,0 +1,157 @@
+---
+id: desktop-app-windows-deployment
+title: Deploying the Desktop App on Windows
+description: How IT teams can silently install, upgrade, detect and uninstall the Jetstream Desktop App on Windows with Microsoft Intune, SCCM or any other software-distribution tool.
+keywords:
+  [
+    salesforce,
+    jetstream,
+    desktop app,
+    windows,
+    silent install,
+    unattended install,
+    intune,
+    win32 app,
+    sccm,
+    configuration manager,
+    msi,
+    enterprise deployment,
+  ]
+sidebar_label: Windows Deployment
+slug: /desktop-app-windows-deployment
+---
+
+This page is for IT teams that deploy the Jetstream Desktop App to Windows computers with Microsoft
+Intune, Configuration Manager (SCCM), or a similar software-distribution tool.
+
+The Windows installer, `Jetstream-Setup-<version>.exe`, supports a fully silent, unattended
+install. Jetstream does not currently ship an MSI. In Intune, deploy the installer as a
+**Windows app (Win32)** as described [below](#deploying-with-microsoft-intune).
+
+## Getting the installer
+
+Download **Windows** from the [download page](https://getjetstream.app/desktop-app/). Every release
+is also available at a stable, versioned URL, which is convenient for scripted downloads:
+
+```
+https://release-updates.getjetstream.app/jetstream/releases/Jetstream-Setup-<version>.exe
+```
+
+The installer is signed by **Jetstream Solutions, LLC**.
+
+## Per-machine or per-user
+
+The installer can install Jetstream for every user of the computer or for a single user.
+
+| Install type | Location                                           | Who can install updates                     |
+| ------------ | -------------------------------------------------- | ------------------------------------------- |
+| Per-machine  | `C:\Program Files\Jetstream`                       | An administrator, or your deployment tool   |
+| Per-user     | `C:\Users\<user>\AppData\Local\Programs\Jetstream` | The user, with no administrator involvement |
+
+Most managed deployments install **per-machine** and
+[turn off automatic updates](./desktop-app-updates.mdx#managing-updates-for-an-organization), so
+your deployment tool alone decides which version people run. If you install per-machine and leave
+automatic updates on, users without administrator rights are prompted for administrator credentials
+whenever they try to install an update, and cannot complete it.
+
+## Command-line options
+
+| Option         | Effect                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------ |
+| `/S`           | Silent install. No windows or prompts are shown, and Jetstream is not launched afterwards. |
+| `/allusers`    | Install per-machine into `C:\Program Files\Jetstream`. Must run elevated (or as SYSTEM).   |
+| `/currentuser` | Install per-user for the account running the installer. Does not require elevation.        |
+| `/D=<path>`    | Install to a different folder. Must be the last option and must not be wrapped in quotes.  |
+
+Silent per-machine install, from an elevated prompt or as SYSTEM:
+
+```
+Jetstream-Setup-<version>.exe /S /allusers
+```
+
+Silent per-user install, run as the signed-in user:
+
+```
+Jetstream-Setup-<version>.exe /S /currentuser
+```
+
+The installer exits with code `0` on success.
+
+## Upgrading
+
+To move to a new version, run the new installer with the same options you installed with. It
+upgrades the existing install in place and keeps each user's settings and data.
+
+If Jetstream is open when the installer runs, the installer closes it first. If it cannot close it,
+the install fails with a non-zero exit code, and your deployment tool will retry on its next
+attempt.
+
+## Uninstalling
+
+The uninstaller lives in the installation folder:
+
+```
+"C:\Program Files\Jetstream\Uninstall Jetstream.exe" /S /allusers
+```
+
+For a per-user install, run `"%LOCALAPPDATA%\Programs\Jetstream\Uninstall Jetstream.exe" /S /currentuser`
+as that user. The exact command, including `/S`, is also written to the `QuietUninstallString`
+value of the registry key below.
+
+Uninstalling leaves each user's Jetstream data in place, so reinstalling picks up where they left
+off.
+
+## Detecting an installed version
+
+The installer registers Jetstream under the standard Windows uninstall key, in the 64-bit registry
+view:
+
+```
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\1cc64917-37e3-5b25-bfd9-19c922591cc1
+    DisplayVersion    REG_SZ    <version>
+```
+
+A per-user install writes the same key under `HKEY_CURRENT_USER` instead. Alternatively, check for
+`C:\Program Files\Jetstream\Jetstream.exe`.
+
+## Deploying with Microsoft Intune
+
+1. Download the installer and package it with the
+   [Microsoft Win32 Content Prep Tool](https://github.com/microsoft/Microsoft-Win32-Content-Prep-Tool):
+
+   ```
+   IntuneWinAppUtil.exe -c <folder containing the installer> -s Jetstream-Setup-<version>.exe -o <output folder>
+   ```
+
+2. In the Intune admin center, go to **Apps → Windows → Add**, choose **Windows app (Win32)**, and
+   upload the `.intunewin` file.
+3. On the **Program** page:
+   - **Install command:** `Jetstream-Setup-<version>.exe /S /allusers`
+   - **Uninstall command:** `"C:\Program Files\Jetstream\Uninstall Jetstream.exe" /S /allusers`
+   - **Install behavior:** System
+   - **Device restart behavior:** No specific action
+   - Leave the default return codes.
+4. On the **Requirements** page, select **64-bit** and Windows 10 or later.
+5. On the **Detection rules** page, choose **Manually configure detection rules** and add a
+   **Registry** rule:
+   - **Key path:**
+     `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\1cc64917-37e3-5b25-bfd9-19c922591cc1`
+   - **Value name:** `DisplayVersion`
+   - **Detection method:** Version comparison, **Greater than or equal to** `<version>`
+   - **Associated with a 32-bit app on 64-bit clients:** No
+6. Assign the app to your device groups.
+
+To turn off automatic updates on the same devices, deploy the `DisableAutoUpdate` registry value
+described in
+[managing updates for an organization](./desktop-app-updates.mdx#windows-registry-group-policy--intune),
+for example with a custom configuration profile or a remediation script.
+
+To roll out a new version later, add the new installer as another Win32 app with the new version in
+its detection rule and set it to **supersede** the previous one (with **Uninstall previous version**
+turned off, since the installer upgrades in place).
+
+## Portable build
+
+If installing software is not an option, the **Windows (Portable)** build on the
+[download page](https://getjetstream.app/desktop-app/) runs without installation and never updates
+itself. You replace the executable to move to a new version.

@@ -15,6 +15,7 @@ const sidebar = {
         'getting-started/managed-package/managed-package',
         'getting-started/desktop-app',
         'getting-started/desktop-app-updates',
+        'getting-started/desktop-app-windows-deployment',
         'getting-started/browser-extension/browser-extension',
         'getting-started/history-data-sync/history-data-sync',
       ],
