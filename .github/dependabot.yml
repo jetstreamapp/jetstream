@@ -4,7 +4,9 @@ updates:
   # comment) in the workflow files, Dependabot updates both the pinned SHA and
   # the comment when a new release ships.
   - package-ecosystem: github-actions
-    directory: /
+    directories:
+      - /
+      - /.github/actions/*
     schedule:
       interval: weekly
     # Collapse all action bumps into a single PR to keep review noise low.
