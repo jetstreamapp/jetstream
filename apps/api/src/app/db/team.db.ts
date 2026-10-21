@@ -1,5 +1,10 @@
 import { logger, prisma } from '@jetstream/api-config';
-import { clearLoginConfigurationCacheItem, notifySessionsRevoked, resolveSamlIdentifiers } from '@jetstream/auth/server';
+import {
+  clearLoginConfigurationCacheItem,
+  lockTeamLoginConfiguration,
+  notifySessionsRevoked,
+  resolveSamlIdentifiers,
+} from '@jetstream/auth/server';
 import {
   LoginConfigurationWithCallbacks,
   LoginConfigurationWithCallbacksSchema,
@@ -1679,6 +1684,9 @@ export const getDomainVerification = async (teamId: string, domainId: string) =>
 export const verifyDomainVerification = async (teamId: string, domainId: string) => {
   return prisma
     .$transaction(async (tx) => {
+      const { loginConfigId } = await tx.team.findUniqueOrThrow({ where: { id: teamId }, select: { loginConfigId: true } });
+      await lockTeamLoginConfiguration(tx, loginConfigId);
+
       const verification = await tx.domainVerification.update({
         where: { id: domainId, teamId },
         data: { status: 'VERIFIED', verifiedAt: new Date() },
@@ -1691,19 +1699,10 @@ export const verifyDomainVerification = async (teamId: string, domainId: string)
         })
         .then((items) => items.map((item) => item.domain));
 
-      const team = await tx.team.findUnique({
-        where: { id: teamId },
-        select: {
-          loginConfig: { select: { id: true, domains: true } },
-        },
+      await tx.loginConfiguration.update({
+        where: { id: loginConfigId },
+        data: { domains },
       });
-
-      if (team?.loginConfig) {
-        await tx.loginConfiguration.update({
-          where: { id: team.loginConfig.id },
-          data: { domains },
-        });
-      }
       return verification;
     })
     .then((items) => DomainVerificationSchema.parse(items));
@@ -1711,6 +1710,9 @@ export const verifyDomainVerification = async (teamId: string, domainId: string)
 
 export const deleteDomainVerification = async (teamId: string, domainId: string) => {
   return prisma.$transaction(async (tx) => {
+    const { loginConfigId } = await tx.team.findUniqueOrThrow({ where: { id: teamId }, select: { loginConfigId: true } });
+    await lockTeamLoginConfiguration(tx, loginConfigId);
+
     const record = await tx.domainVerification.findUnique({
       where: { id: domainId, teamId },
     });
@@ -1730,17 +1732,10 @@ export const deleteDomainVerification = async (teamId: string, domainId: string)
       })
       .then((items) => items.map((item) => item.domain));
 
-    const team = await tx.team.findUnique({
-      where: { id: teamId },
-      select: { loginConfig: { select: { id: true, domains: true } } },
+    await tx.loginConfiguration.update({
+      where: { id: loginConfigId },
+      data: { domains },
     });
-
-    if (team?.loginConfig) {
-      await tx.loginConfiguration.update({
-        where: { id: team.loginConfig.id },
-        data: { domains },
-      });
-    }
 
     return DomainVerificationSchema.parse(record);
   });

@@ -1,0 +1,26 @@
+@import 'tailwindcss' source(none);
+
+@source './**/*.{ts,tsx}';
+@source '../index.html';
+
+@plugin '@tailwindcss/forms';
+
+@theme {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', Arial, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --default-font-family: var(--font-sans);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+/* Tailwind v4 preflight leaves buttons on the browser default (arrow) cursor; restore the pointer for enabled buttons */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}

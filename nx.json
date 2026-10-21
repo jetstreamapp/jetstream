@@ -122,6 +122,7 @@
         "typecheckTargetName": "typecheck"
       },
       "include": [
+        "apps/admin/**/*",
         "apps/jetstream/**/*",
         "apps/jetstream-canvas/**/*",
         "apps/jetstream-desktop-client/**/*",

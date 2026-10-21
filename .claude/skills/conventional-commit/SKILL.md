@@ -48,6 +48,12 @@ which are written separately (see `.claude/commands/release-notes.md`).
 - Scope is optional - use the app or lib the change is confined to (`query`,
   `desktop`, `data-table`, `deploy`, `api`, `ui`, `load`), and drop it when the
   change spans several.
+- Work on the internal admin app (`apps/admin`, `apps/admin-api`, `libs/admin`)
+  always takes the scope `admin`, e.g. `feat(admin): add Stripe org id editing`,
+  and its PRs carry the `admin` label. `.github/release.yml` keeps that label out
+  of the web GitHub Release notes and the release-notes digest drops those PRs,
+  so the scope and label are what keep staff-only tooling out of both. Keep the
+  type honest; do not retype admin work as `chore` to hide it.
 - The subject has to stand alone in a log, beside thirty others with no body for
   context. `fix: handle null` tells a reader nothing. This does:
   `fix(query): stop in-flight field fetches from clobbering the current object`

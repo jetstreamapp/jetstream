@@ -43,7 +43,15 @@ const BODY_TRUNCATE = 1200;
 // infer the release-note `tags` / `versions` without reading raw file lists.
 // Shared client libraries are mounted by the web app, the desktop app and the browser
 // extension alike, so they are labelled with that reach rather than as generic "shared".
+const INTERNAL_ADMIN_AREA = 'internal admin app (staff only)';
+const INTERNAL_ADMIN_PATH = /^(apps\/admin(-api)?|libs\/admin)\//;
+/** Conventional-commit header with the `admin` scope, the same signal the `admin` PR label carries */
+const INTERNAL_ADMIN_SUBJECT = /^[a-z]+\(admin\)[!:]/;
+/** The label `.github/release.yml` excludes from GitHub Release notes */
+const INTERNAL_LABEL = 'admin';
+
 const AREA_RULES = [
+  { match: INTERNAL_ADMIN_PATH, area: INTERNAL_ADMIN_AREA },
   { match: /^apps\/jetstream-web-extension\//, area: 'extension' },
   { match: /^apps\/jetstream-desktop(-client)?\//, area: 'desktop' },
   { match: /^apps\/jetstream\//, area: 'web' },
@@ -129,10 +137,16 @@ const platformVersions = await readPlatformVersions();
 // When head is a tag/ref (not the working tree), label the range with it instead of the branch.
 const headLabel = head !== 'HEAD' ? head : currentBranch;
 
+// The admin app is staff-only tooling: its PRs and commits never belong in a customer-facing note,
+// so they are set aside here and listed separately for transparency.
 const enrichedPrs = [];
+const excludedPrs = [];
 for (const pr of prs) {
-  enrichedPrs.push(await enrichPr(pr));
+  const enrichedPr = await enrichPr(pr);
+  (enrichedPr.internal ? excludedPrs : enrichedPrs).push(enrichedPr);
 }
+const excludedDirectCommits = directCommits.filter(({ subject }) => INTERNAL_ADMIN_SUBJECT.test(subject));
+const includedDirectCommits = directCommits.filter((commit) => !excludedDirectCommits.includes(commit));
 
 const context = {
   mode,
@@ -148,7 +162,9 @@ const context = {
   platformReleases,
   platformVersions,
   prs: enrichedPrs,
-  directCommits,
+  directCommits: includedDirectCommits,
+  excludedPrs,
+  excludedDirectCommits,
 };
 
 if (options.json) {
@@ -200,17 +216,29 @@ async function enrichPr(pr) {
     ]);
     const data = JSON.parse(pullResult.stdout);
     const filePaths = filesResult.stdout.split('\n').filter(Boolean);
+    const title = data.title || pr.label;
+    const labels = (data.labels ?? []).map(({ name }) => name);
     return {
       number: pr.number,
-      title: data.title || pr.label,
-      labels: (data.labels ?? []).map(({ name }) => name),
+      title,
+      labels,
       body: truncate((data.body ?? '').trim(), BODY_TRUNCATE),
       areas: rollupAreas(filePaths),
+      internal: isInternalAdminPr({ title, labels, filePaths }),
     };
   } catch {
     // gh unavailable / not authed / PR not found — fall back to merge-commit data
-    return { number: pr.number, title: pr.label, labels: [], body: '', areas: [], ghUnavailable: true };
+    const title = pr.label;
+    return { number: pr.number, title, labels: [], body: '', areas: [], ghUnavailable: true, internal: isInternalAdminPr({ title }) };
   }
+}
+
+/** An `admin`-scoped title, the `admin` label, or a change confined to the admin app's own directories */
+function isInternalAdminPr({ title, labels = [], filePaths = [] }) {
+  if (INTERNAL_ADMIN_SUBJECT.test(title) || labels.some((label) => label.toLowerCase() === INTERNAL_LABEL)) {
+    return true;
+  }
+  return filePaths.length > 0 && filePaths.every((filePath) => INTERNAL_ADMIN_PATH.test(filePath));
 }
 
 function rollupAreas(filePaths) {
@@ -293,6 +321,21 @@ function printMarkdown(ctx) {
     lines.push(`## Direct commits (no PR) (${ctx.directCommits.length})`);
     lines.push('');
     for (const commit of ctx.directCommits) {
+      lines.push(`- ${commit.short} ${commit.subject}`);
+    }
+    lines.push('');
+  }
+
+  const excludedCount = ctx.excludedPrs.length + ctx.excludedDirectCommits.length;
+  if (excludedCount > 0) {
+    lines.push(`## Excluded: internal admin app (${excludedCount})`);
+    lines.push('');
+    lines.push('Staff-only tooling under apps/admin, apps/admin-api and libs/admin. Not for the release note; listed for completeness.');
+    lines.push('');
+    for (const pr of ctx.excludedPrs) {
+      lines.push(`- #${pr.number} ${pr.title}`);
+    }
+    for (const commit of ctx.excludedDirectCommits) {
       lines.push(`- ${commit.short} ${commit.subject}`);
     }
     lines.push('');

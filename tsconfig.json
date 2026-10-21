@@ -213,6 +213,15 @@
     },
     {
       "path": "./libs/features/apex-test-runner"
+    },
+    {
+      "path": "./libs/admin/types"
+    },
+    {
+      "path": "./apps/admin-api"
+    },
+    {
+      "path": "./apps/admin"
     }
   ],
   "compilerOptions": {
