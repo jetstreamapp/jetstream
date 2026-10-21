@@ -46,12 +46,25 @@ export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps
       setOrderByClauses(tempOrderByClauses);
     }
 
+    function handleMove(movedOrderBy: QueryOrderByClause, direction: 'UP' | 'DOWN') {
+      const currentIndex = orderByClauses.findIndex(({ key }) => key === movedOrderBy.key);
+      const targetIndex = direction === 'UP' ? currentIndex - 1 : currentIndex + 1;
+      if (currentIndex < 0 || targetIndex < 0 || targetIndex >= orderByClauses.length) {
+        return;
+      }
+      const reorderedClauses = [...orderByClauses];
+      [reorderedClauses[currentIndex], reorderedClauses[targetIndex]] = [reorderedClauses[targetIndex], reorderedClauses[currentIndex]];
+      setOrderByClauses(reorderedClauses);
+    }
+
     return (
       <Fragment>
         {orderByClauses.map((orderBy, i) => (
           <QueryOrderByRow
             key={orderBy.key}
             groupNumber={i + 1}
+            isFirst={i === 0}
+            isLast={i === orderByClauses.length - 1}
             sobject={sobject}
             fields={fields}
             order={order}
@@ -59,6 +72,7 @@ export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps
             orderBy={orderBy}
             onChange={handleUpdate}
             onDelete={handleDelete}
+            onMove={handleMove}
             onLoadRelatedFields={onLoadRelatedFields}
           />
         ))}
