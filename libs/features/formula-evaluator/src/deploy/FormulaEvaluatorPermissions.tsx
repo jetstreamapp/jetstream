@@ -7,6 +7,7 @@ import {
   ProfileOrPermSetPopover,
   ProfileOrPermSetRecordType,
   ScopedNotification,
+  HiddenProfilesNotice,
 } from '@jetstream/ui';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
@@ -29,6 +30,7 @@ export function FormulaEvaluatorPermissions({
   selectedProfiles,
   selectedPermissionSets,
   hasError,
+  hiddenProfileCount,
   lastRefreshed,
   loading,
   permissionSets,
@@ -76,6 +78,7 @@ export function FormulaEvaluatorPermissions({
           /** 8rem = modal outer padding, 90px=header height, 60px=footer height, 225px=all extra stuff above scroll area */
           autoFillContainerProps={{ maxHeight: 'calc(100vh - 8rem - 90px - 60px - 225px)', fillHeight: false }}
           itemTrailingRenderer={renderPopoverTrigger('Profile')}
+          headerContent={<HiddenProfilesNotice className="slds-m-vertical_xx-small" hiddenProfileCount={hiddenProfileCount} />}
           onSelected={onSelectedProfileChange}
           errorReattempt={fetchMetadata}
           onRefresh={() => fetchMetadata(true)}

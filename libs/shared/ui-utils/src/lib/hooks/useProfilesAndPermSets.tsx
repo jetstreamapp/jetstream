@@ -39,6 +39,7 @@ export function useProfilesAndPermSets(
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
   const [loading, setLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [hiddenProfileCount, setHiddenProfileCount] = useState(0);
   const [profiles, setProfiles] = useState<ListItem<string, PermissionSetWithProfileRecord>[] | null>(_initProfiles || null);
   const [permissionSets, setPermissionSets] = useState<ListItem<string, PermissionSetNoProfileRecord>[] | null>(
     _initPermissionSets || null,
@@ -117,13 +118,14 @@ export function useProfilesAndPermSets(
             setLastRefreshed(`Last updated from Salesforce ${formatRelative(cache.age, new Date())}`);
           }
 
-          const output = getListItemFromQueryResults(
+          const output = getProfileAndPermissionSetListItems(
             data.queryResults.records.filter((item) => item.Type !== 'Group' && !isSalesforceInternalPermissionSet(item)),
             selectedOrg.orgNamespacePrefix,
           );
           setProfiles(output.profiles);
           setPermissionSets(output.permissionSets);
           setManagedPermissionSets(output.managedPermissionSets);
+          setHiddenProfileCount(output.hiddenProfileCount);
         }
       } catch (ex) {
         logger.info('[useProfilesAndPermSets][ERROR]', getErrorMessage(ex));
@@ -149,24 +151,34 @@ export function useProfilesAndPermSets(
     managedPermissionSets,
     profilesAndPermSetsById,
     hasError,
+    /** Profiles the user cannot see because they lack the View All Profiles permission (Salesforce profile filtering). */
+    hiddenProfileCount,
     lastRefreshed,
   };
 }
 
 /**
  * Convert records into ListItem
- * @param records
+ *
+ * With profile filtering (enforced in Winter '27), users without View All Profiles get a null `Profile` on every
+ * profile-owned permission set except their own. Those rows have no usable name, so they are left out and counted.
  */
-function getListItemFromQueryResults(records: PermissionSetRecord[], orgNamespacePrefix: Maybe<string>) {
+export function getProfileAndPermissionSetListItems(records: PermissionSetRecord[], orgNamespacePrefix: Maybe<string>) {
   return records.reduce(
     (
       output: {
         profiles: ListItem<string, PermissionSetWithProfileRecord>[];
         permissionSets: ListItem<string, PermissionSetNoProfileRecord>[];
         managedPermissionSets: ListItem<string, PermissionSetNoProfileRecord>[];
+        hiddenProfileCount: number;
       },
       record,
     ) => {
+      if (isPermissionSetWithProfile(record) && !record.Profile) {
+        output.hiddenProfileCount++;
+        return output;
+      }
+
       const listItem: ListItem = {
         id: record.Id,
         label: record.Label,
@@ -195,6 +207,7 @@ function getListItemFromQueryResults(records: PermissionSetRecord[], orgNamespac
       profiles: [],
       permissionSets: [],
       managedPermissionSets: [],
+      hiddenProfileCount: 0,
     },
   );
 }

@@ -9,6 +9,7 @@ import {
   ProfileOrPermSetRecordType,
   Radio,
   RadioGroup,
+  HiddenProfilesNotice,
 } from '@jetstream/ui';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
@@ -154,6 +155,9 @@ export const CreateNewObjectPermissions = ({ selectedOrg, loading }: CreateNewOb
           loading={profilesAndPermSetsData.loading}
           disabled={loading}
           itemTrailingRenderer={renderPopoverTrigger('Profile')}
+          headerContent={
+            <HiddenProfilesNotice className="slds-m-vertical_xx-small" hiddenProfileCount={profilesAndPermSetsData.hiddenProfileCount} />
+          }
           onSelected={setSelectedProfiles}
           errorReattempt={profilesAndPermSetsData.fetchMetadata}
           onRefresh={() => profilesAndPermSetsData.fetchMetadata(true)}
