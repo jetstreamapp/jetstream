@@ -2,7 +2,7 @@ import { SoqlQueryFormatOptionsSchema, UserProfileUi } from '@jetstream/types';
 import { atom, createStore } from 'jotai';
 import { unwrap } from 'jotai/utils';
 import browser from 'webextension-polyfill';
-import { ChromeStorageState, DEFAULT_BUTTON_POSITION } from './extension.types';
+import { ChromeStorageState, DEFAULT_BUTTON_POSITION, REJECTED_ACCESS_TOKEN_KEY, withoutRejectedAuthTokens } from './extension.types';
 
 export const extensionStateStore = createStore();
 
@@ -32,7 +32,7 @@ browser.storage.onChanged.addListener((changes, namespace) => {
         crashReportingEnabled: newState.local.options?.crashReportingEnabled ?? true,
       };
 
-      newState.sync.authTokens = newState.sync.authTokens ?? null;
+      newState.sync.authTokens = withoutRejectedAuthTokens(newState.sync.authTokens, newState.local.rejectedAccessToken) ?? null;
       newState.sync.extIdentifier = newState.sync.extIdentifier ?? null;
       newState.sync.buttonPosition = newState.sync.buttonPosition ?? DEFAULT_BUTTON_POSITION;
 
@@ -43,7 +43,7 @@ browser.storage.onChanged.addListener((changes, namespace) => {
 
 async function initAuthState(): Promise<ChromeStorageState> {
   const [_local, _sync] = await Promise.all([
-    browser.storage.local.get(['options', 'connections']),
+    browser.storage.local.get(['options', 'connections', REJECTED_ACCESS_TOKEN_KEY]),
     browser.storage.sync.get(['extIdentifier', 'authTokens', 'buttonPosition', 'soqlQueryFormatOptions']),
   ]);
   const local = _local as Partial<ChromeStorageState['local']>;
@@ -61,7 +61,7 @@ async function initAuthState(): Promise<ChromeStorageState> {
     },
     sync: {
       ...sync,
-      authTokens: sync?.authTokens ?? null,
+      authTokens: withoutRejectedAuthTokens(sync?.authTokens, local?.rejectedAccessToken) ?? null,
       extIdentifier: sync?.extIdentifier ?? null,
       buttonPosition: {
         ...DEFAULT_BUTTON_POSITION,

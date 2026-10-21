@@ -29,10 +29,12 @@ import {
   Message,
   MessageResponse,
   OrgAndSessionInfo,
+  REJECTED_ACCESS_TOKEN_KEY,
   StorageTypes,
   storageTypes,
   TokenExchange,
   VerifyAuth,
+  withoutRejectedAuthTokens,
 } from '../utils/extension.types';
 import { getRecordPageRecordId, selectApiSessionCookie } from '../utils/web-extension.utils';
 
@@ -45,7 +47,15 @@ logger.log('Jetstream Service worker loaded.');
 let connections: Record<string, OrgAndSessionInfo> = {};
 
 const storageSyncCache: Partial<StorageTypes> = {};
-const initStorageSyncCache = browser.storage.sync.get().then((data) => Object.assign(storageSyncCache, data));
+// See REJECTED_ACCESS_TOKEN_KEY - storageSyncCache never holds this token, so this install treats it as signed out
+let rejectedAccessToken: string | undefined;
+const initStorageSyncCache = Promise.all([browser.storage.sync.get(), browser.storage.local.get(REJECTED_ACCESS_TOKEN_KEY)]).then(
+  ([data, localData]) => {
+    rejectedAccessToken = localData[REJECTED_ACCESS_TOKEN_KEY] as string | undefined;
+    Object.assign(storageSyncCache, data);
+    storageSyncCache.authTokens = withoutRejectedAuthTokens(storageSyncCache.authTokens, rejectedAccessToken);
+  },
+);
 
 const storageSessionCache: Partial<{ connections: Record<string, OrgAndSessionInfo> }> = {};
 const initStorageSessionCache = browser.storage.session.get().then((data) => {
@@ -71,10 +81,17 @@ browser.storage.onChanged.addListener((changes, namespace) => {
     switch (namespace) {
       case 'sync': {
         if (storageTypes.authTokens.key === key) {
-          storageSyncCache.authTokens = newValue as AuthTokensStorage['authTokens'];
+          storageSyncCache.authTokens = withoutRejectedAuthTokens(newValue as AuthTokensStorage['authTokens'], rejectedAccessToken);
         }
         if (storageTypes.extIdentifier.key === key) {
           storageSyncCache.extIdentifier = newValue as ExtIdentifierStorage['extIdentifier'];
+        }
+        break;
+      }
+      case 'local': {
+        if (key === REJECTED_ACCESS_TOKEN_KEY) {
+          rejectedAccessToken = newValue as string | undefined;
+          storageSyncCache.authTokens = withoutRejectedAuthTokens(storageSyncCache.authTokens, rejectedAccessToken);
         }
         break;
       }
@@ -350,6 +367,10 @@ async function handleTokenExchange(
     lastChecked: null,
     loggedIn: true,
   };
+  rejectedAccessToken = undefined;
+  await browser.storage.local.remove(REJECTED_ACCESS_TOKEN_KEY).catch((err) => {
+    logger.error('Error clearing rejected token', err);
+  });
   await browser.storage.sync.set({ [storageTypes.authTokens.key]: authState });
   storageSyncCache.authTokens = authState;
   return { success: true };
@@ -512,11 +533,14 @@ export async function handleVerifyAuth(_sender: browser.Runtime.MessageSender): 
           storageSyncCache.authTokens = latestAuthTokens;
           return { hasTokens: true, loggedIn: true };
         }
+        // Sync may also not have delivered that rotation yet, so the stored token is still valid on whichever install rotated
+        // it. The rejection stays on this install instead of removing the shared token (see REJECTED_ACCESS_TOKEN_KEY).
         logger.info('Error verifying tokens', results.error);
-        browser.storage.sync.remove(storageTypes.authTokens.key).catch((err) => {
-          logger.error('Error removing tokens', err);
-        });
+        rejectedAccessToken = authTokens.accessToken;
         storageSyncCache.authTokens = undefined;
+        await browser.storage.local.set({ [REJECTED_ACCESS_TOKEN_KEY]: authTokens.accessToken }).catch((err) => {
+          logger.error('Error storing rejected token', err);
+        });
         return { hasTokens: true, loggedIn: false, error: results.error };
       }
       // Transient failure (network/5xx/non-401/unparseable body) — keep the cached session. We do

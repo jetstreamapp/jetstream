@@ -1,10 +1,11 @@
 /**
  * Regression coverage for the frequent-logout fix in the browser extension service worker.
  *
- * handleVerifyAuth must only clear the stored tokens on a DEFINITIVE auth failure — an HTTP 401
- * with a parseable { success: false } body. Transient conditions (network failure, 5xx, other
- * non-401 status, or an unparseable/HTML body from an upstream proxy) must keep the cached
- * session so the user is not logged out spuriously.
+ * handleVerifyAuth must only sign out on a DEFINITIVE auth failure — an HTTP 401 with a parseable
+ * { success: false } body — and then only on this install: the token is shared through Chrome Sync,
+ * so it is recorded as rejected in storage.local instead of being removed from storage.sync.
+ * Transient conditions (network failure, 5xx, other non-401 status, or an unparseable/HTML body from
+ * an upstream proxy) must keep the cached session so the user is not logged out spuriously.
  *
  * The service worker keeps the verified token in a module-level cache (storageSyncCache) that is
  * normally hydrated by the real storage.onChanged listener. The tests reuse that listener (captured
@@ -16,8 +17,9 @@ import { handleVerifyAuth } from '../service-worker';
 const swMock = vi.hoisted(() => {
   const state: {
     syncStore: Record<string, unknown>;
+    localStore: Record<string, unknown>;
     onChangedListener: ((changes: Record<string, { newValue: unknown }>, namespace: string) => void) | null;
-  } = { syncStore: {}, onChangedListener: null };
+  } = { syncStore: {}, localStore: {}, onChangedListener: null };
 
   const sync = {
     get: vi.fn(async (keys?: string | string[]) => {
@@ -41,9 +43,20 @@ const swMock = vi.hoisted(() => {
     }),
   };
 
+  const local = {
+    get: vi.fn(async (key: string) => (key in state.localStore ? { [key]: state.localStore[key] } : {})),
+    set: vi.fn(async (items: Record<string, unknown>) => {
+      Object.assign(state.localStore, items);
+    }),
+    remove: vi.fn(async (key: string) => {
+      delete state.localStore[key];
+    }),
+  };
+
   const browser = {
     storage: {
       sync,
+      local,
       session: {
         get: vi.fn(async () => ({})),
         set: vi.fn(async () => undefined),
@@ -66,7 +79,7 @@ const swMock = vi.hoisted(() => {
     cookies: { get: vi.fn(), getAll: vi.fn() },
   };
 
-  return { state, browser, sync };
+  return { state, browser, sync, local };
 });
 
 vi.mock('webextension-polyfill', () => ({ default: swMock.browser }));
@@ -79,6 +92,7 @@ vi.mock('@jetstream/shared/client-logger', () => ({
 vi.mock('jwt-decode', () => ({ jwtDecode: vi.fn(() => ({ exp: 4102444800 })) }));
 
 const AUTH_KEY = 'authTokens';
+const REJECTED_KEY = 'rejectedAccessToken';
 const senderMock = { tab: undefined } as never;
 
 function seedAuth(accessToken: string, overrides: Record<string, unknown> = {}) {
@@ -123,6 +137,9 @@ describe('service-worker handleVerifyAuth', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     swMock.state.syncStore = {};
+    swMock.state.localStore = {};
+    // The rejected token lives in a module-level variable too, reset it through the real onChanged listener
+    swMock.state.onChangedListener?.({ [REJECTED_KEY]: { newValue: undefined } }, 'local');
     fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
   });
@@ -162,26 +179,50 @@ describe('service-worker handleVerifyAuth', () => {
     expect(swMock.sync.remove).not.toHaveBeenCalled();
   });
 
-  it('clears tokens on a definitive 401 with a { success: false } body', async () => {
+  it('signs out this install on a definitive 401 with a { success: false } body', async () => {
     seedAuth('token-1');
     fetchMock.mockResolvedValue(jsonResponse(401, { success: false, error: 'Invalid session' }));
 
     const result = await handleVerifyAuth(senderMock);
 
     expect(result).toEqual({ hasTokens: true, loggedIn: false, error: 'Invalid session' });
-    expect(swMock.sync.remove).toHaveBeenCalledWith(AUTH_KEY);
-    expect(swMock.state.syncStore.authTokens).toBeUndefined();
+    expect(swMock.sync.remove).not.toHaveBeenCalled();
+    expect(swMock.state.localStore[REJECTED_KEY]).toBe('token-1');
   });
 
-  it('clears tokens when the auth middleware rejects an expired or revoked token', async () => {
+  it('signs out this install when the auth middleware rejects an expired or revoked token', async () => {
     seedAuth('token-1');
     fetchMock.mockResolvedValue(errorHandlerResponse(401, 'Unauthorized'));
 
     const result = await handleVerifyAuth(senderMock);
 
     expect(result).toEqual({ hasTokens: true, loggedIn: false, error: 'Unauthorized' });
-    expect(swMock.sync.remove).toHaveBeenCalledWith(AUTH_KEY);
-    expect(swMock.state.syncStore.authTokens).toBeUndefined();
+    expect(swMock.sync.remove).not.toHaveBeenCalled();
+    expect(swMock.state.localStore[REJECTED_KEY]).toBe('token-1');
+    expect(await handleVerifyAuth(senderMock)).toEqual({ hasTokens: false, loggedIn: false });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the shared token alone when another install rotated it but Chrome Sync has not delivered the replacement', async () => {
+    const seeded = seedAuth('token-1');
+    fetchMock.mockResolvedValueOnce(errorHandlerResponse(401, 'Unauthorized'));
+
+    const result = await handleVerifyAuth(senderMock);
+
+    expect(result).toEqual({ hasTokens: true, loggedIn: false, error: 'Unauthorized' });
+    expect(swMock.sync.remove).not.toHaveBeenCalled();
+    expect(swMock.sync.set).not.toHaveBeenCalled();
+    expect(swMock.state.syncStore.authTokens).toEqual(seeded);
+
+    // The rotated token arrives later and signs this install back in
+    seedAuth('token-2');
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, { success: true }));
+
+    expect(await handleVerifyAuth(senderMock)).toEqual({ hasTokens: true, loggedIn: true });
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      expect.any(String),
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer token-2' }) }),
+    );
   });
 
   it('keeps the cached session on a 5xx from the API error handler', async () => {
