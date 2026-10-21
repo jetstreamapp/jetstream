@@ -24,16 +24,17 @@ import {
 import { RequireMetadataApiBanner, fromAutomationControlState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
-import { useAtomValue } from 'jotai';
-import { useState } from 'react';
+import { useAtom, useAtomValue } from 'jotai';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import AutomationControlEditorReviewModal from './AutomationControlEditorReviewModal';
 import AutomationControlEditorTable from './AutomationControlEditorTable';
+import AutomationControlHistoryButton from './AutomationControlHistoryButton';
 import AutomationControlLastRefreshedPopover from './AutomationControlLastRefreshedPopover';
+import AutomationControlRestoreBanner from './AutomationControlRestoreBanner';
 import {
   getAutomationDeployType,
   getDuplicateRuleFileName,
-  getDuplicateRuleFullName,
   isDuplicateRecord,
   isTableRow,
   isTableRowChild,
@@ -42,6 +43,8 @@ import {
   isValidationRecord,
   isWorkflowRuleRecord,
 } from './automation-control-data-utils';
+import { getRestoreSnapshot } from './automation-control-history-utils';
+import { getAutomationFullName } from './automation-control-package-utils';
 import { TableRowItem } from './automation-control-types';
 import { useAutomationControlData } from './useAutomationControlData';
 
@@ -59,6 +62,7 @@ export const AutomationControlEditor = () => {
 
   const selectedSObjects = useAtomValue(fromAutomationControlState.selectedSObjectsState);
   const selectedAutomationTypes = useAtomValue(fromAutomationControlState.selectedAutomationTypes);
+  const [pendingHistoryRestore, setPendingHistoryRestore] = useAtom(fromAutomationControlState.pendingHistoryRestore);
 
   const [dirtyRows, setDirtyRows] = useState<TableRowItem[]>([]);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
@@ -81,7 +85,9 @@ export const AutomationControlEditor = () => {
     toggleAll,
     resetChanges,
     tableRowsChange,
-    // restoreSnapshot,
+    stageHistoryRestore,
+    stagedRestore,
+    fetchStartedAt,
     dirtyCount,
   } = useAutomationControlData({
     selectedOrg,
@@ -89,6 +95,26 @@ export const AutomationControlEditor = () => {
     selectedSObjects,
     selectedAutomationTypes,
   });
+
+  // Stage a rollback/re-deploy chosen from history, but only against data fetched after it was chosen,
+  // so the pending changes are compared with the current state in Salesforce.
+  useEffect(() => {
+    if (!pendingHistoryRestore || loading || !fetchStartedAt || fetchStartedAt < pendingHistoryRestore.requestedAt) {
+      return;
+    }
+    setPendingHistoryRestore(null);
+    // a failed load is already shown on the page and there is nothing reliable to compare against
+    if (hasError) {
+      return;
+    }
+    const { entry, action } = pendingHistoryRestore;
+    stageHistoryRestore(action, { key: entry.key, createdAt: entry.createdAt }, getRestoreSnapshot(entry, action));
+  }, [fetchStartedAt, hasError, loading, pendingHistoryRestore, setPendingHistoryRestore, stageHistoryRestore]);
+
+  // A restore still waiting for data must not be staged later onto some other selection
+  useEffect(() => {
+    return () => setPendingHistoryRestore(null);
+  }, [setPendingHistoryRestore]);
 
   function handleResetChanges() {
     resetChanges();
@@ -108,6 +134,10 @@ export const AutomationControlEditor = () => {
   }
 
   usePrimaryActionShortcut(handleReviewChanges, { disabled: loading || !dirtyCount });
+
+  // Only recorded as the rollback/re-deploy when the deploy contains nothing beyond what was staged from history
+  const historyRestore =
+    stagedRestore && dirtyRows.every(({ key }) => stagedRestore.result.stagedKeys.includes(key)) ? stagedRestore : null;
   useGoBackShortcut(() => navigate('..'), {});
 
   function handleDeployModalClose(refreshData?: boolean) {
@@ -146,23 +176,18 @@ export const AutomationControlEditor = () => {
           const type = getAutomationDeployType(item.type);
           output[type] = output[type] || [];
           const record = item.record;
-          let fullName: string;
+          const fullName = getAutomationFullName(item.type, record);
           let fileName: string;
           if (isToolingApexRecord(item.type, record)) {
-            fullName = record.Name;
             fileName = `triggers/${record.Name}.trigger`;
           } else if (isDuplicateRecord(item.type, record)) {
-            fullName = getDuplicateRuleFullName(record);
             fileName = getDuplicateRuleFileName(record);
           } else if (isValidationRecord(item.type, record)) {
-            fullName = record.FullName;
             fileName = `objects/${record.EntityDefinition.QualifiedApiName}.object`;
           } else if (isWorkflowRuleRecord(item.type, record)) {
-            fullName = record.FullName;
             fileName = `workflows/${record.TableEnumOrId}.workflow`;
           } else {
-            fullName = record.ApiName;
-            fileName = `flows/${record.ApiName}.flow`;
+            fileName = `flows/${fullName}.flow`;
           }
           output[type].push({
             createdById: null,
@@ -309,6 +334,11 @@ export const AutomationControlEditor = () => {
           </button> */}
         </ToolbarItemGroup>
         <ToolbarItemActions>
+          <AutomationControlHistoryButton
+            className="collapsible-button collapsible-button-xl"
+            selectedOrg={selectedOrg}
+            hasUnsavedChanges={dirtyCount > 0}
+          />
           <button
             className="slds-button slds-button_neutral collapsible-button collapsible-button-xl"
             onClick={handleResetChanges}
@@ -347,13 +377,22 @@ export const AutomationControlEditor = () => {
               </div>
             }
           >
-            <button className="slds-button slds-button_brand" disabled={loading || !dirtyCount} onClick={handleReviewChanges}>
+            <button
+              className="slds-button slds-button_brand slds-m-left_xx-small"
+              disabled={loading || !dirtyCount}
+              onClick={handleReviewChanges}
+            >
               <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
               Review Changes
             </button>
           </Tooltip>
         </ToolbarItemActions>
       </Toolbar>
+      <AutomationControlRestoreBanner
+        pendingRestore={pendingHistoryRestore}
+        stagedRestore={stagedRestore}
+        onReviewChanges={handleReviewChanges}
+      />
       <div>
         <Grid>
           <Grid className="slds-grow slds-box_small slds-theme_default slds-is-relative" verticalAlign="center" wrap>
@@ -402,6 +441,7 @@ export const AutomationControlEditor = () => {
                 defaultApiVersion={defaultApiVersion}
                 selectedOrg={selectedOrg}
                 rows={dirtyRows}
+                historyRestore={historyRestore}
                 onClose={handleDeployModalClose}
               />
             )}

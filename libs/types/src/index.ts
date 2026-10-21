@@ -17,6 +17,7 @@ export * from './lib/socket.types';
 export * from './lib/sync/sync.types';
 export * from './lib/team.types';
 export * from './lib/types';
+export * from './lib/ui/automation-control-history.types';
 export * from './lib/ui/deploy-types';
 export * from './lib/ui/load-records-results-types';
 export * from './lib/ui/load-records-types';

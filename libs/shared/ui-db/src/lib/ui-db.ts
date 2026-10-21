@@ -4,6 +4,7 @@ import { sha1Hex } from '@jetstream/shared/utils';
 import type {
   AnalysisJobHistoryItem,
   ApiHistoryItem,
+  AutomationControlHistoryEntry,
   DataHistoryConfigItem,
   DataHistoryItem,
   LoadSavedMappingItem,
@@ -50,6 +51,7 @@ export type DexieDb = Dexie & {
   analysis_job_history: EntityTable<AnalysisJobHistoryItem, 'key'>;
   data_history: EntityTable<DataHistoryItem, 'key'>;
   data_history_config: EntityTable<DataHistoryConfigItem, 'key'>;
+  automation_control_history: EntityTable<AutomationControlHistoryEntry, 'key'>;
 };
 
 export type SyncableEntity = keyof typeof SyncableTables;
@@ -89,6 +91,10 @@ export const LocalOnlyTables = {
   data_history_config: {
     name: 'data_history_config',
     keyPrefix: 'dhc',
+  },
+  automation_control_history: {
+    name: 'automation_control_history',
+    keyPrefix: 'ach',
   },
 } as const;
 
@@ -213,6 +219,11 @@ function applySchema(db: DexieDb) {
   db.version(5).stores({
     data_history: 'key,createdAt,pinnedIdx,sizeBytes,[org+createdAt]',
     data_history_config: 'key',
+  });
+
+  /** `[org+createdAt]` serves both the per-org newest-first list and the per-org retention prune */
+  db.version(6).stores({
+    automation_control_history: 'key,[org+createdAt]',
   });
 }
 

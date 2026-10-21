@@ -8,7 +8,13 @@ import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, ReactNode } from 'react';
 import { isTableRow, isTableRowItem } from './automation-control-data-utils';
-import { DeploymentItemRow, DeploymentItemStatus, MetadataCompositeResponseError, TableRowOrItemOrChild } from './automation-control-types';
+import {
+  DeploymentItemRow,
+  DeploymentItemStatus,
+  HistoryItemRow,
+  MetadataCompositeResponseError,
+  TableRowOrItemOrChild,
+} from './automation-control-types';
 
 /**
  * Label cell for the automation-control tree. Indentation + the expand/collapse chevron come from the
@@ -228,5 +234,68 @@ export const AutomationDeployStatusRenderer = ({ row }: RenderCellProps<Deployme
         </GridCol>
       </Grid>
     </div>
+  );
+};
+
+export const HistoryActivationStateRenderer = ({ column, row }: RenderCellProps<HistoryItemRow, unknown>): ReactNode => {
+  const { isActive, activeVersionNumber } = column.key === 'previous' ? row.previous : row.deployed;
+  return (
+    <Grid>
+      <Checkbox
+        className="slds-align_absolute-center"
+        id={`${column.key}-${row.key}`}
+        checked={isActive}
+        label="value"
+        hideLabel
+        readOnly
+      />
+      {isNumber(activeVersionNumber) && <span>Version {activeVersionNumber}</span>}
+    </Grid>
+  );
+};
+
+export const HistoryItemStatusRenderer = ({ row }: RenderCellProps<HistoryItemRow, unknown>): ReactNode => {
+  const { status, errorMessage } = row;
+  if (status === 'incomplete') {
+    return (
+      <Grid verticalAlign="center">
+        <Icon
+          type="utility"
+          icon="warning"
+          className="slds-icon slds-icon-text-warning slds-icon_x-small slds-m-right_x-small"
+          containerClassname="slds-icon_container slds-icon-utility-warning"
+          description="result not confirmed"
+        />
+        <span title="The deployment did not finish, so this change may or may not have been applied">Not confirmed</span>
+      </Grid>
+    );
+  }
+  if (status === 'success') {
+    return (
+      <Grid verticalAlign="center">
+        <Icon
+          type="utility"
+          icon="success"
+          className="slds-icon slds-icon-text-success slds-icon_x-small slds-m-right_x-small"
+          containerClassname="slds-icon_container slds-icon-utility-success"
+          description="deployed successfully"
+        />
+        <span className="slds-text-success">Success</span>
+      </Grid>
+    );
+  }
+  return (
+    <Grid verticalAlign="center">
+      <Tooltip id={`${uniqueId('history-error')}`} content={errorMessage || 'An unknown error has occurred'}>
+        <CopyToClipboard
+          icon={{ type: 'utility', icon: 'error', description: 'deployment error' }}
+          content={errorMessage || 'An unknown error has occurred'}
+          className="slds-text-color_error"
+        />
+      </Tooltip>
+      <span className="slds-text-error slds-truncate" title={errorMessage || undefined}>
+        {errorMessage || 'Error'}
+      </span>
+    </Grid>
   );
 };
