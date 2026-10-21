@@ -157,6 +157,14 @@ describe('web-extension.controller verifyToken token rotation gating', () => {
     expect(mocks.sendJson).toHaveBeenCalledWith(res, { success: false, error: 'Invalid session' }, 401);
   });
 
+  it('returns a 503 instead of a 401 when verification fails for a reason other than the session', async () => {
+    mocks.findIdByUserIdUserFacing.mockRejectedValue(new Error('Connection terminated unexpectedly'));
+
+    const { res } = await invokeVerify({ Authorization: 'Bearer old-token', [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1' });
+
+    expect(mocks.sendJson).toHaveBeenCalledWith(res, expect.objectContaining({ success: false }), 503);
+  });
+
   it('does not rotate when the client does not support rotation', async () => {
     const { res } = await invokeVerify({ Authorization: 'Bearer old-token' });
 
