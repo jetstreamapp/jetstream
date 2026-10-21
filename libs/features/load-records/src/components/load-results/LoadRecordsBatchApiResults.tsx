@@ -231,7 +231,11 @@ export const LoadRecordsBatchApiResults = ({
         setFatalError(getErrorMessage(ex));
       }
       failLoad(getErrorMessage(ex), { reached: 'none' });
-      tracker.error('Error preparing batch api data', ex);
+      // A user-initiated abort throws 'Aborted' through this same path — keep the UI messaging but
+      // don't report it as an application error.
+      if (!isAborted.current) {
+        tracker.error('Error preparing batch api data', ex);
+      }
       return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

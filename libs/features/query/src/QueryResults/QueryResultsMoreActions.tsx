@@ -195,16 +195,21 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
                 </div>
               ),
             })
-        ).then(() => {
-          selectedRows.slice(0, MAX_NEW_TABS).forEach((record) => {
-            const { url } = getSfdcRetUrl(record, record.Id);
-            salesforceLoginAndRedirect({
-              org: selectedOrg,
-              returnUrl: url,
-              skipFrontDoorAuth: true,
+        )
+          .then(() => {
+            selectedRows.slice(0, MAX_NEW_TABS).forEach((record) => {
+              const { url } = getSfdcRetUrl(record, record.Id);
+              salesforceLoginAndRedirect({
+                org: selectedOrg,
+                returnUrl: url,
+                skipFrontDoorAuth: true,
+              });
             });
+          })
+          .catch((ex) => {
+            logger.info(ex);
+            // user canceled
           });
-        });
         break;
       }
       default:
