@@ -51,9 +51,11 @@ import Modal from '../modal/Modal';
 import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import ScopedNotification from '../scoped-notification/ScopedNotification';
 import {
+  getDownloadRecordCount,
   getInitialDownloadFileFormat,
   getWhichRecordsDefaultValue,
   hasSelectableSubset,
+  MAX_EXCEL_DOWNLOAD_CELLS,
   notifyExcelCellsTruncated,
   RADIO_ALL_BROWSER,
   RADIO_ALL_SERVER,
@@ -295,6 +297,24 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       setFileFormat((prevValue) => (FILE_FORMAT_ALLOWED_BULK_API.has(prevValue) ? prevValue : RADIO_FORMAT_CSV));
     }
   }, [isBulkApi]);
+
+  const downloadCellCount =
+    getDownloadRecordCount({ downloadRecordsValue, totalRecordCount, activeRecordCount: activeRecords.length }) * fields.length;
+  const isTooLargeForExcel = downloadCellCount > MAX_EXCEL_DOWNLOAD_CELLS;
+  /** The Bulk API streams its results to Google Drive as a CSV - except where the browser has to download them first */
+  const isGoogleDriveBuiltAsExcel = !isBulkApi || isBrowserExtension() || isCanvasApp();
+  const isGoogleDriveTooLarge = isTooLargeForExcel && isGoogleDriveBuiltAsExcel;
+
+  useEffect(() => {
+    const isExcelFormat =
+      fileFormat === RADIO_FORMAT_XLSX ||
+      fileFormat === RADIO_FORMAT_XLSX_LOAD_TEMPLATE ||
+      (fileFormat === RADIO_FORMAT_GDRIVE && isGoogleDriveBuiltAsExcel);
+    if (isTooLargeForExcel && isExcelFormat) {
+      handleFileFormatChange(RADIO_FORMAT_CSV);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTooLargeForExcel, isGoogleDriveBuiltAsExcel, fileFormat]);
 
   /**
    * Subqueries that have something nested beneath them, so their own child object has to be described to
@@ -667,7 +687,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 value={RADIO_FORMAT_XLSX}
                 checked={fileFormat === RADIO_FORMAT_XLSX}
                 onChange={handleFileFormatChange}
-                disabled={isBulkApi}
+                disabled={isBulkApi || isTooLargeForExcel}
               />
               <Radio
                 name="radio-download-file-format"
@@ -691,7 +711,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   value={RADIO_FORMAT_XLSX_LOAD_TEMPLATE}
                   checked={fileFormat === RADIO_FORMAT_XLSX_LOAD_TEMPLATE}
                   onChange={handleFileFormatChange}
-                  disabled={isBulkApi}
+                  disabled={isBulkApi || isTooLargeForExcel}
                 />
               )}
               {hasGoogleInputConfigured && (
@@ -701,6 +721,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   value={RADIO_FORMAT_GDRIVE}
                   checked={fileFormat === RADIO_FORMAT_GDRIVE}
                   onChange={handleFileFormatChange}
+                  disabled={isGoogleDriveTooLarge}
                 />
               )}
               {!googleIntegrationEnabled && googleShowUpgradeToPro && (
@@ -717,6 +738,14 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 />
               )}
             </RadioGroup>
+            {/* Under the Bulk API the Excel formats are already unavailable, which the format options make clear on their own */}
+            {isTooLargeForExcel && !isBulkApi && (
+              <ScopedNotification theme="info" className="slds-m-vertical_x-small">
+                {hasGoogleInputConfigured ? 'Excel and Google Drive downloads are' : 'Excel downloads are'} built in your browser and are
+                limited to {formatNumber(MAX_EXCEL_DOWNLOAD_CELLS)} cells (records × fields). This download has about{' '}
+                {formatNumber(downloadCellCount)}, so download it as CSV or JSON instead.
+              </ScopedNotification>
+            )}
             {isLoadTemplate && (
               <ScopedNotification theme="info" className="slds-m-vertical_x-small">
                 Creates an Excel file in the{' '}
