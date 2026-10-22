@@ -3,6 +3,7 @@
   "private": true,
   "sideEffects": [
     "**/*.css",
-    "**/*.scss"
+    "**/*.scss",
+    "**/configure-zod.ts"
   ]
 }
