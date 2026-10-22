@@ -234,7 +234,7 @@ export class QueryPage {
     // await orderByRow.getByLabel('Field').fill(field);
     await orderByRow.getByRole('option', { name: field }).first().click();
 
-    await orderByRow.getByLabel('Order').click();
+    await orderByRow.getByLabel('Order', { exact: true }).click();
     await orderByRow.getByRole('option', { name: direction ? 'Ascending (A to Z)' : 'Descending (Z to A)' }).click();
 
     if (nulls !== 'IGNORE') {
