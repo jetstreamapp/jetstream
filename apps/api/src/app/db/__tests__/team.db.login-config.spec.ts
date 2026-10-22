@@ -12,11 +12,10 @@ import * as teamDb from '../team.db';
 const prismaMock = vi.hoisted(() => ({
   team: {
     findFirstOrThrow: vi.fn(),
-    findUnique: vi.fn(),
   },
   loginConfiguration: {
     findUnique: vi.fn(),
-    create: vi.fn(),
+    upsert: vi.fn(),
     update: vi.fn(),
   },
   teamMember: {
@@ -84,15 +83,13 @@ describe('updateLoginConfiguration — empty allowedProviders guard', () => {
   }
 
   it('rejects an empty provider list when the team has no login configuration (no SSO possible)', async () => {
-    prismaMock.team.findFirstOrThrow.mockResolvedValueOnce({ id: 'team-id', loginConfigId: null });
+    prismaMock.loginConfiguration.findUnique.mockResolvedValueOnce(null);
 
     await expect(run([])).rejects.toThrow('At least one login provider must be selected when SSO is not enabled.');
-    expect(prismaMock.loginConfiguration.create).not.toHaveBeenCalled();
-    expect(prismaMock.loginConfiguration.update).not.toHaveBeenCalled();
+    expect(prismaMock.loginConfiguration.upsert).not.toHaveBeenCalled();
   });
 
   it('rejects an empty provider list when SSO is configured but not enabled', async () => {
-    prismaMock.team.findFirstOrThrow.mockResolvedValueOnce({ id: 'team-id', loginConfigId: 'login-config-id' });
     prismaMock.loginConfiguration.findUnique.mockResolvedValueOnce({
       requireMfa: false,
       allowIdentityLinking: true,
@@ -105,11 +102,10 @@ describe('updateLoginConfiguration — empty allowedProviders guard', () => {
     });
 
     await expect(run([])).rejects.toThrow('At least one login provider must be selected when SSO is not enabled.');
-    expect(prismaMock.loginConfiguration.update).not.toHaveBeenCalled();
+    expect(prismaMock.loginConfiguration.upsert).not.toHaveBeenCalled();
   });
 
   it('allows an empty provider list when SSO is enabled', async () => {
-    prismaMock.team.findFirstOrThrow.mockResolvedValueOnce({ id: 'team-id', loginConfigId: 'login-config-id' });
     prismaMock.loginConfiguration.findUnique.mockResolvedValueOnce({
       requireMfa: false,
       allowIdentityLinking: true,
@@ -120,41 +116,44 @@ describe('updateLoginConfiguration — empty allowedProviders guard', () => {
       ssoEnabled: true,
       ssoProvider: 'SAML',
     });
-    prismaMock.loginConfiguration.update.mockResolvedValueOnce({});
+    prismaMock.loginConfiguration.upsert.mockResolvedValueOnce({ id: 'login-config-id' });
     // Halt execution after the update so the test does not need to mock the full team re-fetch
     prismaMock.team.findFirstOrThrow.mockRejectedValueOnce(new Error('stop-after-update'));
 
     await expect(run([])).rejects.toThrow('stop-after-update');
-    expect(prismaMock.loginConfiguration.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ allowedProviders: [] }) }),
+    expect(prismaMock.loginConfiguration.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ update: expect.objectContaining({ allowedProviders: [] }) }),
     );
   });
 
-  it('allows a non-empty provider list without SSO', async () => {
-    prismaMock.team.findFirstOrThrow.mockResolvedValueOnce({ id: 'team-id', loginConfigId: null });
-    prismaMock.loginConfiguration.create.mockResolvedValueOnce({});
-    prismaMock.team.findFirstOrThrow.mockRejectedValueOnce(new Error('stop-after-create'));
+  it('creates the login configuration when the team has none', async () => {
+    prismaMock.loginConfiguration.findUnique.mockResolvedValueOnce(null);
+    prismaMock.loginConfiguration.upsert.mockResolvedValueOnce({ id: 'login-config-id' });
+    prismaMock.team.findFirstOrThrow.mockRejectedValueOnce(new Error('stop-after-upsert'));
 
-    await expect(run(['credentials'])).rejects.toThrow('stop-after-create');
-    expect(prismaMock.loginConfiguration.create).toHaveBeenCalled();
+    await expect(run(['credentials'])).rejects.toThrow('stop-after-upsert');
+    expect(prismaMock.loginConfiguration.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { teamId: 'team-id' },
+        create: expect.objectContaining({ teamId: 'team-id', allowedProviders: ['credentials'], createdById: 'admin-id' }),
+      }),
+    );
   });
 });
 
 describe('updateSsoSettings — only-login-provider guard', () => {
-  function mockTeam(allowedProviders: string[], ssoEnabled = true) {
-    prismaMock.team.findUnique.mockResolvedValueOnce({
-      loginConfigId: 'login-config-id',
-      loginConfig: {
-        ssoProvider: 'SAML',
-        ssoEnabled,
-        ssoJitProvisioningEnabled: false,
-        ssoBypassEnabled: true,
-        ssoBypassEnabledRoles: ['ADMIN'],
-        ssoRequireMfa: false,
-        allowedProviders,
-        samlConfiguration: { id: 'saml-config-id' },
-        oidcConfiguration: null,
-      },
+  function mockLoginConfig(allowedProviders: string[], ssoEnabled = true) {
+    prismaMock.loginConfiguration.findUnique.mockResolvedValueOnce({
+      id: 'login-config-id',
+      ssoProvider: 'SAML',
+      ssoEnabled,
+      ssoJitProvisioningEnabled: false,
+      ssoBypassEnabled: true,
+      ssoBypassEnabledRoles: ['ADMIN'],
+      ssoRequireMfa: false,
+      allowedProviders,
+      samlConfiguration: { id: 'saml-config-id' },
+      oidcConfiguration: null,
     });
   }
 
@@ -168,7 +167,7 @@ describe('updateSsoSettings — only-login-provider guard', () => {
   }
 
   it('rejects disabling SSO when it is the only allowed login provider', async () => {
-    mockTeam([]);
+    mockLoginConfig([]);
 
     await expect(run(false)).rejects.toThrow(
       'Cannot disable SSO because it is the only allowed login provider. Enable another login provider first.',
@@ -177,10 +176,10 @@ describe('updateSsoSettings — only-login-provider guard', () => {
   });
 
   it('allows disabling SSO when another login provider is allowed', async () => {
-    mockTeam(['credentials']);
+    mockLoginConfig(['credentials']);
     prismaMock.loginConfiguration.update.mockResolvedValueOnce({});
     // Halt execution after the update so the test does not need to mock getSsoConfiguration
-    prismaMock.team.findUnique.mockRejectedValueOnce(new Error('stop-after-update'));
+    prismaMock.loginConfiguration.findUnique.mockRejectedValueOnce(new Error('stop-after-update'));
 
     await expect(run(false)).rejects.toThrow('stop-after-update');
     expect(prismaMock.loginConfiguration.update).toHaveBeenCalledWith(
@@ -191,13 +190,11 @@ describe('updateSsoSettings — only-login-provider guard', () => {
 
 describe('deleteSamlConfiguration / deleteOidcConfiguration — only-login-provider guard', () => {
   it('rejects deleting the SAML configuration when SSO is the only allowed login provider', async () => {
-    prismaMock.team.findUnique.mockResolvedValueOnce({
-      loginConfigId: 'login-config-id',
-      loginConfig: {
-        ssoEnabled: true,
-        allowedProviders: [],
-        samlConfiguration: { id: 'saml-config-id', idpEntityId: 'entity-id', idpCertificateExpiresAt: null },
-      },
+    prismaMock.loginConfiguration.findUnique.mockResolvedValueOnce({
+      id: 'login-config-id',
+      ssoEnabled: true,
+      allowedProviders: [],
+      samlConfiguration: { id: 'saml-config-id', idpEntityId: 'entity-id', idpCertificateExpiresAt: null },
     });
 
     await expect(teamDb.deleteSamlConfiguration('team-id', 'admin-id')).rejects.toThrow(
@@ -207,13 +204,11 @@ describe('deleteSamlConfiguration / deleteOidcConfiguration — only-login-provi
   });
 
   it('rejects deleting the OIDC configuration when SSO is the only allowed login provider', async () => {
-    prismaMock.team.findUnique.mockResolvedValueOnce({
-      loginConfigId: 'login-config-id',
-      loginConfig: {
-        ssoEnabled: true,
-        allowedProviders: [],
-        oidcConfiguration: { id: 'oidc-config-id', issuer: 'https://example.com', clientId: 'client-id' },
-      },
+    prismaMock.loginConfiguration.findUnique.mockResolvedValueOnce({
+      id: 'login-config-id',
+      ssoEnabled: true,
+      allowedProviders: [],
+      oidcConfiguration: { id: 'oidc-config-id', issuer: 'https://example.com', clientId: 'client-id' },
     });
 
     await expect(teamDb.deleteOidcConfiguration('team-id', 'admin-id')).rejects.toThrow(
@@ -223,13 +218,11 @@ describe('deleteSamlConfiguration / deleteOidcConfiguration — only-login-provi
   });
 
   it('allows deleting the SAML configuration when SSO is not the only allowed login provider', async () => {
-    prismaMock.team.findUnique.mockResolvedValueOnce({
-      loginConfigId: 'login-config-id',
-      loginConfig: {
-        ssoEnabled: true,
-        allowedProviders: ['credentials'],
-        samlConfiguration: { id: 'saml-config-id', idpEntityId: 'entity-id', idpCertificateExpiresAt: null },
-      },
+    prismaMock.loginConfiguration.findUnique.mockResolvedValueOnce({
+      id: 'login-config-id',
+      ssoEnabled: true,
+      allowedProviders: ['credentials'],
+      samlConfiguration: { id: 'saml-config-id', idpEntityId: 'entity-id', idpCertificateExpiresAt: null },
     });
     prismaMock.teamMember.findMany.mockResolvedValueOnce([]);
     prismaMock.samlConfiguration.deleteMany.mockResolvedValueOnce({ count: 1 });

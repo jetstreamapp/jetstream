@@ -100,6 +100,7 @@ export async function updateLoginConfiguration({
   loginConfiguration: TeamLoginConfigRequest;
 }): Promise<{
   team: TeamUserFacing;
+  loginConfigId: string;
   previousLoginConfig: Awaited<ReturnType<typeof teamDbService.updateLoginConfiguration>>['previousLoginConfig'];
   sessionsRevoked: number;
 }> {
@@ -112,7 +113,7 @@ export async function updateLoginConfiguration({
       return 0;
     });
 
-  return { team: result.team, previousLoginConfig: result.previousLoginConfig, sessionsRevoked };
+  return { team: result.team, loginConfigId: result.loginConfigId, previousLoginConfig: result.previousLoginConfig, sessionsRevoked };
 }
 
 export async function updateTeamMember({

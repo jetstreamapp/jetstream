@@ -26,11 +26,11 @@ export async function approveTeamDomain(
   }
 
   const { verification, previousStatus } = await prisma.$transaction(async (tx) => {
-    const team = await tx.team.findUnique({ where: { id: teamId }, select: { loginConfigId: true } });
+    const team = await tx.team.findUnique({ where: { id: teamId }, select: { id: true } });
     if (!team) {
       throw new NotFoundError(`Team ${teamId} not found`);
     }
-    await lockTeamLoginConfiguration(tx, team.loginConfigId);
+    await lockTeamLoginConfiguration(tx, teamId);
 
     // DomainVerification.domain is unique across all teams
     const existing = await tx.domainVerification.findUnique({
@@ -62,7 +62,7 @@ export async function approveTeamDomain(
       select: { domain: true },
     });
     await tx.loginConfiguration.update({
-      where: { id: team.loginConfigId },
+      where: { teamId },
       data: { domains: verifiedDomains.map(({ domain }) => domain) },
     });
 

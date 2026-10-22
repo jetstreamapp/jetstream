@@ -665,7 +665,7 @@ const updateLoginConfiguration = createRoute(
   routeDefinition.updateLoginConfiguration.validators,
   async ({ params, body, user }, req, res) => {
     const { teamId } = params;
-    const { team, previousLoginConfig, sessionsRevoked } = await teamService.updateLoginConfiguration({
+    const { team, loginConfigId, previousLoginConfig, sessionsRevoked } = await teamService.updateLoginConfiguration({
       runningUserId: user.id,
       teamId,
       loginConfiguration: body,
@@ -697,7 +697,7 @@ const updateLoginConfiguration = createRoute(
       teamId,
       action: AuditLogAction.LOGIN_CONFIG_UPDATED,
       resource: AuditLogResource.TEAM_LOGIN_CONFIG,
-      resourceId: team.loginConfigId ?? undefined,
+      resourceId: loginConfigId,
       metadata: { changes, sessionsRevoked },
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'] as string,

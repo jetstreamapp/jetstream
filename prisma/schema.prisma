@@ -95,17 +95,17 @@ model AuthFactors {
 }
 
 model Team {
-  id            String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  name          String             @db.VarChar(255)
-  loginConfigId String             @unique @db.Uuid
-  loginConfig   LoginConfiguration @relation(fields: [loginConfigId], references: [id], onDelete: Cascade)
-  status        String             @default("ACTIVE") @db.VarChar(50) // 'ACTIVE' | 'INACTIVE'
-  billingStatus String             @default("ACTIVE") @db.VarChar(50) // 'ACTIVE' | 'PAST_DUE' | 'MANUAL'
-  createdAt     DateTime           @default(now())
-  createdById   String?            @db.Uuid
-  updatedAt     DateTime           @updatedAt
-  updatedById   String?            @db.Uuid
+  id            String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name          String   @db.VarChar(255)
+  status        String   @default("ACTIVE") @db.VarChar(50) // 'ACTIVE' | 'INACTIVE'
+  billingStatus String   @default("ACTIVE") @db.VarChar(50) // 'ACTIVE' | 'PAST_DUE' | 'MANUAL'
+  createdAt     DateTime @default(now())
+  createdById   String?  @db.Uuid
+  updatedAt     DateTime @updatedAt
+  updatedById   String?  @db.Uuid
 
+  // Every team is created with one, but the database cannot require it from this side
+  loginConfig          LoginConfiguration?
   members              TeamMember[]
   sharedOrgs           SalesforceOrg[]        @relation("TeamSharedOrgs")
   salesforceCanvasOrgs SalesforceCanvasOrg[]
@@ -181,6 +181,8 @@ model TeamMemberInvitation {
 
 model LoginConfiguration {
   id                   String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  teamId               String         @unique @db.Uuid
+  team                 Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
   // Populated from verified domains in DomainVerification table
   domains              String[]       @default([]) @db.VarChar(255)
   requireMfa           Boolean        @default(true)
@@ -188,7 +190,6 @@ model LoginConfiguration {
   allowedMfaMethods    AuthFactor[]   @default([otp, email])
   allowedProviders     AuthProvider[] @default([credentials, google, salesforce])
   autoAddToTeam        Boolean        @default(false)
-  team                 Team?
 
   // SSO Configuration
   ssoProvider               SsoProvider @default(NONE)

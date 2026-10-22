@@ -48,8 +48,8 @@ DELETE FROM audit_log
 WHERE "userId" IN (SELECT id FROM "User" WHERE "userId" LIKE 'seed|%')
   OR "teamId" IN (SELECT id FROM team WHERE name LIKE '[seed] %')
   OR "resourceId" IN (SELECT id::text FROM team WHERE name LIKE '[seed] %');
--- Deleting a login configuration cascades to its team and everything the team owns
-DELETE FROM login_configuration WHERE id IN (SELECT "loginConfigId" FROM team WHERE name LIKE '[seed] %');
+-- Cascades to the login configuration and everything else the team owns
+DELETE FROM team WHERE name LIKE '[seed] %';
 -- Cascades to billing accounts, subscriptions, entitlements and memberships
 DELETE FROM "User" WHERE "userId" LIKE 'seed|%';
 
@@ -126,18 +126,17 @@ CREATE TEMP TABLE seed_team ON COMMIT DROP AS
 SELECT
   team_number,
   uuid_generate_v4() AS id,
-  uuid_generate_v4() AS login_config_id,
   '[seed] ' || (ARRAY['Acme','Globex','Initech','Umbrella','Hooli','Stark','Wayne','Wonka','Tyrell','Cyberdyne'])[1 + team_number % 10] || ' ' || lpad(team_number::text, 3, '0') AS name,
   CASE WHEN team_number % 20 = 0 THEN 'INACTIVE' ELSE 'ACTIVE' END AS status,
   CASE WHEN team_number % 9 = 0 THEN 'PAST_DUE' WHEN team_number % 5 = 0 THEN 'MANUAL' ELSE 'ACTIVE' END AS billing_status,
   now() - random() * interval '700 days' AS created_at
 FROM generate_series(1, :team_count) AS team_number;
 
-INSERT INTO login_configuration (id, "createdAt", "updatedAt")
-SELECT login_config_id, created_at, created_at FROM seed_team;
+INSERT INTO team (id, name, status, "billingStatus", "createdAt", "updatedAt")
+SELECT id, name, status, billing_status, created_at, created_at FROM seed_team;
 
-INSERT INTO team (id, name, "loginConfigId", status, "billingStatus", "createdAt", "updatedAt")
-SELECT id, name, login_config_id, status, billing_status, created_at, created_at FROM seed_team;
+INSERT INTO login_configuration ("teamId", "createdAt", "updatedAt")
+SELECT id, created_at, created_at FROM seed_team;
 
 INSERT INTO team_entitlement ("teamId", "chromeExtension", "googleDrive", "recordSync", desktop, "analysisTools", "updatedAt")
 SELECT id, true, true, true, true, true, now() FROM seed_team;

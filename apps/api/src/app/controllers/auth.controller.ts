@@ -1337,7 +1337,7 @@ const startSso = createRoute(routeDefinition.startSso.validators, async ({ body,
 
     if (ssoProvider === 'OIDC') {
       const team = await getTeamLoginConfigWithSso(teamId);
-      if (!team?.loginConfig.oidcConfiguration) {
+      if (!team?.loginConfig?.oidcConfiguration) {
         throw new InvalidProvider('OIDC not configured for this team');
       }
 
@@ -1361,7 +1361,7 @@ const startSso = createRoute(routeDefinition.startSso.validators, async ({ body,
 
     if (ssoProvider === 'SAML') {
       const team = await getTeamLoginConfigWithSso(teamId);
-      if (!team?.loginConfig.samlConfiguration) {
+      if (!team?.loginConfig?.samlConfiguration) {
         throw new InvalidProvider('SAML not configured for this team');
       }
 
@@ -1412,7 +1412,7 @@ const handleSamlCallback = createRoute(
 
       const team = await getTeamLoginConfigWithSso(teamId);
 
-      if (!team?.loginConfig.samlConfiguration) {
+      if (!team?.loginConfig?.samlConfiguration) {
         throw new InvalidProvider('SAML not configured for this team');
       }
 
@@ -1504,7 +1504,7 @@ const getSamlMetadata = createRoute(routeDefinition.getSamlMetadata.validators, 
 
     const team = await getTeamLoginConfigWithSso(teamId);
 
-    if (!team?.loginConfig.samlConfiguration) {
+    if (!team?.loginConfig?.samlConfiguration) {
       res.set('Content-Type', 'application/xml');
       res.send(samlService.generatePlaceholderSamlConfiguration(teamId));
       return;
@@ -1531,7 +1531,7 @@ const initiateOidcLogin = createRoute(routeDefinition.initiateOidcLogin.validato
 
     const team = await getTeamLoginConfigWithSso(teamId);
 
-    if (!team?.loginConfig.ssoEnabled || !team?.loginConfig.oidcConfiguration) {
+    if (!team?.loginConfig?.ssoEnabled || !team?.loginConfig?.oidcConfiguration) {
       throw new InvalidProvider('OIDC not configured for this team');
     }
 
@@ -1598,7 +1598,7 @@ const handleOidcCallback = createRoute(
 
       const team = await getTeamLoginConfigWithSso(teamId);
 
-      if (!team?.loginConfig.oidcConfiguration) {
+      if (!team?.loginConfig?.oidcConfiguration) {
         throw new InvalidProvider('OIDC not configured for this team');
       }
 

@@ -914,8 +914,8 @@ export async function withEmailAddressLock(tx: Prisma.TransactionClient, email: 
  * miss the other's uncommitted record and the later write would drop a domain from SSO and domain auto-join.
  * Take it before reading the records: under ReadCommitted, every read after the lock sees all committed changes.
  */
-export async function lockTeamLoginConfiguration(tx: Prisma.TransactionClient, loginConfigId: string) {
-  await tx.$queryRaw`SELECT "id" FROM "login_configuration" WHERE "id" = ${loginConfigId}::uuid FOR UPDATE`;
+export async function lockTeamLoginConfiguration(tx: Prisma.TransactionClient, teamId: string) {
+  await tx.$queryRaw`SELECT "id" FROM "login_configuration" WHERE "teamId" = ${teamId}::uuid FOR UPDATE`;
 }
 
 export async function updateUserSessionTeamMembership({
@@ -1795,7 +1795,7 @@ async function getTeamInviteConfiguration({ email, teamInvite }: { email: string
   }
   return {
     ...invite,
-    loginConfiguration: LoginConfigurationSchema.parse(invite.team.loginConfig),
+    loginConfiguration: invite.team.loginConfig ? LoginConfigurationSchema.parse(invite.team.loginConfig) : null,
   };
 }
 
@@ -2303,7 +2303,7 @@ export async function discoverSsoByDomain(domain: string): Promise<{
     },
   });
 
-  if (!loginConfig?.team) {
+  if (!loginConfig) {
     return null;
   }
 

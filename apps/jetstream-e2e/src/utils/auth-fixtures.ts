@@ -112,6 +112,7 @@ export async function createSsoFixture(options: SsoFixtureOptions = {}): Promise
     },
     include: { loginConfig: true },
   });
+  const loginConfigId = team.loginConfig!.id;
 
   await prisma.domainVerification.create({
     data: {
@@ -128,7 +129,7 @@ export async function createSsoFixture(options: SsoFixtureOptions = {}): Promise
 
     await prisma.samlConfiguration.create({
       data: {
-        loginConfigId: team.loginConfigId!,
+        loginConfigId,
         name: 'Test SAML',
         entityId,
         acsUrl,
@@ -149,7 +150,7 @@ export async function createSsoFixture(options: SsoFixtureOptions = {}): Promise
   } else {
     await prisma.oidcConfiguration.create({
       data: {
-        loginConfigId: team.loginConfigId!,
+        loginConfigId,
         name: 'Test OIDC',
         issuer: oidcIssuer,
         clientId: oidcClientId,
@@ -172,7 +173,7 @@ export async function createSsoFixture(options: SsoFixtureOptions = {}): Promise
 
   return {
     teamId: team.id,
-    loginConfigId: team.loginConfigId!,
+    loginConfigId,
     userId,
     email,
     password,
@@ -182,12 +183,10 @@ export async function createSsoFixture(options: SsoFixtureOptions = {}): Promise
 
 export async function cleanupSsoFixture(fixture?: SsoFixture) {
   if (!fixture) return;
-  const { teamId, loginConfigId, domain } = fixture;
+  const { teamId, domain } = fixture;
 
   await prisma.domainVerification.deleteMany({ where: { domain } }).catch(() => {});
-  await prisma.samlConfiguration.deleteMany({ where: { loginConfigId } }).catch(() => {});
-  await prisma.oidcConfiguration.deleteMany({ where: { loginConfigId } }).catch(() => {});
-  await prisma.loginConfiguration.deleteMany({ where: { id: loginConfigId } }).catch(() => {});
+  // Cascades to the login configuration and its SSO configuration
   await prisma.team.deleteMany({ where: { id: teamId } }).catch(() => {});
   await prisma.user.deleteMany({ where: { email: { endsWith: `@${domain}` } } }).catch(() => {});
 }

@@ -77,12 +77,12 @@ async function createTeamWithSamlConfig({
   nonAdmins?: number;
   inactiveAdmins?: number;
 }) {
-  const loginConfig = await prisma.loginConfiguration.create({
-    data: { ssoEnabled, ssoProvider: 'SAML' },
+  const team = await prisma.team.create({
+    data: { name: `${TEST_PREFIX}-team-${uuid()}`, status: teamStatus },
   });
 
-  const team = await prisma.team.create({
-    data: { name: `${TEST_PREFIX}-team-${uuid()}`, loginConfigId: loginConfig.id, status: teamStatus },
+  const loginConfig = await prisma.loginConfiguration.create({
+    data: { teamId: team.id, ssoEnabled, ssoProvider: 'SAML' },
   });
 
   const samlConfiguration = await prisma.samlConfiguration.create({
@@ -120,11 +120,8 @@ async function createTeamWithSamlConfig({
 async function cleanUpTestData() {
   await prisma.teamMember.deleteMany({ where: { user: { email: { contains: TEST_PREFIX } } } });
   await prisma.user.deleteMany({ where: { email: { contains: TEST_PREFIX } } });
-  // SamlConfiguration cascades from LoginConfiguration, and Team must go before its login config
+  // LoginConfiguration and SamlConfiguration cascade from Team
   await prisma.team.deleteMany({ where: { name: { contains: TEST_PREFIX } } });
-  await prisma.loginConfiguration.deleteMany({
-    where: { team: null, samlConfiguration: { idpEntityId: 'http://www.okta.com/exkTestEntityId' } },
-  });
 }
 
 describe('SSO Certificate Expiration Integration Tests', () => {
