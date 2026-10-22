@@ -17,7 +17,7 @@ import {
   dataTableFileSizeFormatter,
 } from '@jetstream/ui';
 import { MonacoEditor, RequireMetadataApiBanner, fromJetstreamEvents, isAsyncJob } from '@jetstream/ui-core';
-import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
+import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { formatDate } from 'date-fns/format';
 import { useAtom, useAtomValue } from 'jotai';
@@ -43,6 +43,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const selectedOrg = useAtomValue(selectedOrgState);
+  const canDeleteRecords = useCanPerformOperation('records.delete');
   const [showLogsFromAllUsers, setShowLogsFromAllUsers] = useState(false);
   const [loadingLog, setLoadingLog] = useState(false);
   const [activeLogId, setActiveLogId] = useState<string | null>(null);
@@ -216,9 +217,11 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
             actions={
               <Fragment>
                 <DebugLogViewerTrace org={selectedOrg} />
-                <button className="slds-button slds-button_neutral slds-m-left_x-small" onClick={() => setPurgeModalOpen(true)}>
-                  Delete Logs
-                </button>
+                {canDeleteRecords && (
+                  <button className="slds-button slds-button_neutral slds-m-left_x-small" onClick={() => setPurgeModalOpen(true)}>
+                    Delete Logs
+                  </button>
+                )}
               </Fragment>
             }
           >

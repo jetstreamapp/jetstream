@@ -1,4 +1,5 @@
-import { SalesforceOrgUi } from '@jetstream/types';
+import { ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES, SalesforceOrgUi } from '@jetstream/types';
+import { useCanPerformOperation } from '@jetstream/ui/app-state';
 import { useSetAtom } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { Fragment, FunctionComponent, useState } from 'react';
@@ -18,6 +19,7 @@ export const CreateNewObject: FunctionComponent<CreateNewObjectProps> = ({
   initialSelectedPermissionSets = [],
   onClose,
 }) => {
+  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
   const setSelectedProfiles = useSetAtom(fromCreateObjectState.selectedProfilesState);
   const setSelectedPermissionSets = useSetAtom(fromCreateObjectState.selectedPermissionSetsState);
 
@@ -81,6 +83,8 @@ export const CreateNewObject: FunctionComponent<CreateNewObjectProps> = ({
     <Fragment>
       <button
         className="slds-button slds-button_neutral"
+        disabled={!canDeployMetadata}
+        title={canDeployMetadata ? undefined : ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['metadata.deploy']}
         onClick={() => {
           resetAll();
           setSelectedProfiles(initialSelectedProfiles);

@@ -2,9 +2,9 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { AddOrgHandlerFn, Maybe, OrgGroup, SalesforceOrgUi } from '@jetstream/types';
+import { ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES, AddOrgHandlerFn, Maybe, OrgGroup, SalesforceOrgUi } from '@jetstream/types';
 import { Alert, Card, EmptyState, fireToast, Grid, Icon, NoAccess2Illustration } from '@jetstream/ui';
-import { fromAppState } from '@jetstream/ui/app-state';
+import { fromAppState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useState } from 'react';
 import { Link } from 'react-router';
@@ -31,6 +31,7 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
   const setActiveOrgGroup = useSetAtom(fromAppState.ActiveOrgGroupState);
   const activeOrgGroup = useAtomValue(fromAppState.jetstreamActiveGroupSelector);
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
+  const canConnectOrgs = useCanPerformOperation('orgs.connect');
 
   const [loadingRetry, setLoadingRetry] = useState(false);
 
@@ -122,7 +123,8 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
           {hasConfiguredOrg && (
             <>
               <Alert type="info" leadingIcon="info">
-                This action requires an org to be selected. Select an existing org or connect a new one.
+                This action requires an org to be selected.{' '}
+                {canConnectOrgs ? 'Select an existing org or connect a new one.' : 'Select an org.'}
               </Alert>
               <Grid vertical align="spread" verticalAlign="center" className="slds-m-top_medium">
                 <Card
@@ -148,23 +150,33 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
                     />
                   </Card>
                 )}
-                <Card
-                  css={css`
-                    min-width: 20rem;
-                  `}
-                  title="Add a new Salesforce Org"
-                >
-                  <AddOrg
-                    className="slds-button slds-button_neutral"
-                    label="Add Salesforce Org"
-                    onAddOrg={handleAddOrg}
-                    onAddOrgHandlerFn={onAddOrgHandlerFn}
-                  />
-                </Card>
+                {canConnectOrgs && (
+                  <Card
+                    css={css`
+                      min-width: 20rem;
+                    `}
+                    title="Add a new Salesforce Org"
+                  >
+                    <AddOrg
+                      className="slds-button slds-button_neutral"
+                      label="Add Salesforce Org"
+                      onAddOrg={handleAddOrg}
+                      onAddOrgHandlerFn={onAddOrgHandlerFn}
+                    />
+                  </Card>
+                )}
               </Grid>
             </>
           )}
-          {!hasConfiguredOrg && <OrgWelcomeInstructions />}
+          {!hasConfiguredOrg && canConnectOrgs && <OrgWelcomeInstructions />}
+          {!hasConfiguredOrg && !canConnectOrgs && (
+            <EmptyState
+              size="large"
+              headline="No Salesforce orgs are connected"
+              subHeading={`${ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['orgs.connect']} Ask your team administrator to update your access profile.`}
+              illustration={<NoAccess2Illustration />}
+            />
+          )}
         </div>
       )}
     </Fragment>

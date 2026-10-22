@@ -10,7 +10,14 @@ import {
 } from '../data-table-formatters';
 import { EditorBoolean, EditorDate, EditorText, editorDropdown, editorRecordLookup } from './editors/CellEditors';
 import { ACTION_COLUMN_KEY, SELECT_COLUMN_KEY } from './grid-constants';
-import { ColumnType, ColumnWithFilter, FilterType, RowWithKey, SalesforceQueryColumnDefinition } from './grid-types';
+import {
+  ColumnType,
+  ColumnWithFilter,
+  FilterType,
+  RecordOperationPermissions,
+  RowWithKey,
+  SalesforceQueryColumnDefinition,
+} from './grid-types';
 import {
   ActionRendererMemo,
   BooleanRenderer,
@@ -57,6 +64,7 @@ export function getColumnDefinitions(
   isTooling: boolean,
   fieldMetadata?: Maybe<Record<string, Field>>,
   fieldMetadataSubquery?: Maybe<Record<string, Record<string, Field>>>,
+  { canWriteRecords = true, canDeleteRecords = true }: RecordOperationPermissions = {},
 ): SalesforceQueryColumnDefinition<any> {
   const includeRecordActions =
     !isTooling && results.queryResults.records.length
@@ -84,7 +92,13 @@ export function getColumnDefinitions(
   }
 
   const parentColumns: ColumnWithFilter<RowWithKey>[] = getFlattenedFields(results.parsedQuery || {}).map((field) =>
-    getQueryResultColumn({ field, queryColumnsByPath, isSubquery: subqueryRelationshipNames.has(field.toLowerCase()), fieldMetadata }),
+    getQueryResultColumn({
+      field,
+      queryColumnsByPath,
+      isSubquery: subqueryRelationshipNames.has(field.toLowerCase()),
+      allowEdit: canWriteRecords,
+      fieldMetadata,
+    }),
   );
 
   if (parentColumns.length > 0) {
@@ -97,7 +111,7 @@ export function getColumnDefinitions(
         width: 116,
         minWidth: 100,
         maxWidth: 150,
-        renderCell: (props) => <ActionRendererMemo {...props} />,
+        renderCell: (props) => <ActionRendererMemo {...props} canWriteRecords={canWriteRecords} canDeleteRecords={canDeleteRecords} />,
         frozen: true,
         sortable: false,
       });

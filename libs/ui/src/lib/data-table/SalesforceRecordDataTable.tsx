@@ -51,6 +51,7 @@ import {
 } from './data-table-types';
 import {
   NON_DATA_COLUMN_KEYS,
+  NO_TABLE_CONTEXT_MENU_ITEMS,
   TABLE_CONTEXT_MENU_ITEMS,
   addFieldLabelToColumn,
   copySalesforceRecordTableDataToClipboard,
@@ -166,6 +167,12 @@ export interface SalesforceRecordDataTableProps {
   onRecordsSaveCapture?: (info: RecordsSaveCaptureInfo) => void;
   /** Amplitude tracker (from the host's `useAmplitude`). Optional — defaults to a no-op. */
   trackEvent?: (key: string, value?: Record<string, any>) => void;
+  /** Inline editing plus the edit and clone row actions. Defaults to true. */
+  canWriteRecords?: boolean;
+  /** Delete and restore row actions. Defaults to true. */
+  canDeleteRecords?: boolean;
+  /** Copy to clipboard from the context menu and subquery modal, and subquery downloads. Defaults to true. */
+  canExportRecords?: boolean;
 }
 
 export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
@@ -199,6 +206,9 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     onSavedRecords,
     onRecordsSaveCapture,
     trackEvent = () => undefined,
+    canWriteRecords = true,
+    canDeleteRecords = true,
+    canExportRecords = true,
   }: SalesforceRecordDataTableProps) => {
     const isMounted = useRef(true);
     const [columns, setColumns] = useState<ColumnWithFilter<RowSalesforceRecordWithKey>[]>();
@@ -250,7 +260,10 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
 
     useEffect(() => {
       if (queryResults) {
-        const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling, fieldMetadata, fieldMetadataSubquery);
+        const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling, fieldMetadata, fieldMetadataSubquery, {
+          canWriteRecords,
+          canDeleteRecords,
+        });
         const fields = parentColumns.filter((column) => column.key && !NON_DATA_COLUMN_KEYS.has(column.key)).map((column) => column.key);
         setColumns(parentColumns);
         setFields(fields);
@@ -281,7 +294,10 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
      */
     useEffect(() => {
       if (fieldMetadata && queryResults) {
-        const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling, fieldMetadata, fieldMetadataSubquery);
+        const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling, fieldMetadata, fieldMetadataSubquery, {
+          canWriteRecords,
+          canDeleteRecords,
+        });
 
         setColumns(addFieldLabelToColumn(parentColumns, fieldMetadata) as unknown as ColumnWithFilter<RowSalesforceRecordWithKey>[]);
 
@@ -296,7 +312,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
 
         setSubqueryColumnsMap(subqueryColumns);
       }
-    }, [fieldMetadata, fieldMetadataSubquery, isTooling, queryResults]);
+    }, [fieldMetadata, fieldMetadataSubquery, isTooling, queryResults, canWriteRecords, canDeleteRecords]);
 
     useEffect(() => {
       // Flatten every field- + record-level message across dirty rows for the "Save Errors" popover.
@@ -356,12 +372,13 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
               {
                 label: 'View field metadata',
                 value: 'VIEW_FIELD_METADATA',
-                leadingDivider: true,
+                // Separates this from the copy actions, which are hidden without export
+                leadingDivider: canExportRecords,
               },
             ]
           : [];
       },
-      [columns],
+      [columns, canExportRecords],
     );
 
     useEffect(() => {
@@ -946,6 +963,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
               onSubqueryFieldReorder: handleSubqueryFieldsChanged,
               onSubqueryRecordsLoaded: handleSubqueryRecordsLoaded,
               confirmReplaceRecords: confirmDiscardUnsavedChanges,
+              canExportRecords,
               hasGoogleDriveAccess,
               googleShowUpgradeToPro,
               google_apiKey,
@@ -975,7 +993,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
               onRevertCells={handleRevertCells}
               isCellDirty={isCellDirty}
               context={tableContext}
-              contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
+              contextMenuItems={canExportRecords ? TABLE_CONTEXT_MENU_ITEMS : NO_TABLE_CONTEXT_MENU_ITEMS}
               contextMenuAction={handleContextMenuAction}
               getColumnHeaderMenuItems={getColumnHeaderMenuItems}
             />

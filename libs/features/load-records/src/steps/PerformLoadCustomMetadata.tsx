@@ -2,6 +2,7 @@ import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constant
 import { formatNumber, tracker, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { groupByFlat, isProductionOrg } from '@jetstream/shared/utils';
 import {
+  ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES,
   DeployMessage,
   DownloadModalData,
   DownloadType,
@@ -23,7 +24,7 @@ import {
   useAmplitude,
   useDeployMetadataPackage,
 } from '@jetstream/ui-core';
-import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth, useCanPerformOperation } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { ChangeEvent, Fragment, useCallback, useState } from 'react';
@@ -63,6 +64,7 @@ export const PerformLoadCustomMetadata = ({
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
+  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
   const [loadNumber, setLoadNumber] = useState<number>(0);
   const [rollbackOnError, setRollbackOnError] = useState<boolean>(() => isProduction);
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
@@ -296,7 +298,12 @@ export const PerformLoadCustomMetadata = ({
           <strong className="slds-m-left_xx-small">{selectedOrg.username}</strong>
         </div>
         <div className="slds-m-top_small">
-          <button className="slds-button slds-button_brand" disabled={loading} onClick={handleStartLoad}>
+          <button
+            className="slds-button slds-button_brand"
+            disabled={loading || !canDeployMetadata}
+            title={canDeployMetadata ? undefined : ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['metadata.deploy']}
+            onClick={handleStartLoad}
+          >
             Upsert <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedLabel}</strong> Records
           </button>
         </div>

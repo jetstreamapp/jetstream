@@ -172,4 +172,23 @@ describe('context menu — group header rows', () => {
       { c0: 'Alpha', c1: 'Three' },
     ]);
   });
+
+  test('an explicit empty list opts out of the range copy actions too', async () => {
+    renderTable({ contextMenuItems: [] });
+    // Drag-select a 2x2 range, which would otherwise inject "Copy selected cells" into the menu
+    fireEvent.mouseDown(getCell('1', 'Type'), { button: 0 });
+    fireEvent.mouseEnter(getCell('2', 'Name'));
+    fireEvent.mouseUp(getCell('2', 'Name'));
+
+    expect(await openMenu(getCell('2', 'Name'))).toEqual([]);
+  });
+
+  test('an explicit empty list opts out of the group copy actions too', async () => {
+    render(
+      <DataTree columns={columns} data={data} getRowKey={(row) => row._key} groupBy={['Type']} defaultExpanded contextMenuItems={[]} />,
+    );
+    const groupCell = document.querySelector('.jgrid-group-cell') as HTMLElement;
+
+    expect(await openMenu(groupCell)).toEqual([]);
+  });
 });

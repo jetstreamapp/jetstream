@@ -1,16 +1,18 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { atom } from 'jotai';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // `@jetstream/ui/app-state` fetches app info and the user profile at module load, and `..` is the
 // full ui-core barrel - neither is needed to exercise the login url derivation this component owns.
 // `doMock` rather than `mock` so the stub atoms can be built from a normal top-level import.
+let canConnectOrgs = true;
 vi.doMock('@jetstream/ui/app-state', () => ({
   fromAppState: {
     applicationCookieState: atom({ serverUrl: 'https://test.getjetstream.app' }),
     jetstreamActiveGroupSelector: atom(undefined),
   },
+  useCanPerformOperation: () => canConnectOrgs,
 }));
 
 vi.doMock('../..', () => ({
@@ -19,12 +21,13 @@ vi.doMock('../..', () => ({
 
 const { AddOrg } = await import('../AddOrg');
 
-function buildOrg(instanceUrl: string): SalesforceOrgUi {
+function buildOrg(instanceUrl: string, overrides: Partial<SalesforceOrgUi> = {}): SalesforceOrgUi {
   return {
     uniqueId: '00D000000000001-005000000000001',
     label: 'john.smith@acme.com',
     username: 'john.smith@acme.com',
     instanceUrl,
+    ...overrides,
   } as SalesforceOrgUi;
 }
 
@@ -45,6 +48,53 @@ function clickContinue() {
 }
 
 describe('AddOrg', () => {
+  afterEach(() => {
+    canConnectOrgs = true;
+  });
+
+  describe('access profile without orgs.connect', () => {
+    it('renders nothing for a new org', () => {
+      canConnectOrgs = false;
+      const { container } = render(<AddOrg onAddOrg={vi.fn()} />);
+      expect(container.innerHTML).toBe('');
+    });
+
+    it('still allows reconnecting an existing org', () => {
+      canConnectOrgs = false;
+      const { onAddOrgHandlerFn } = renderOpen(buildOrg('https://acme.my.salesforce.com'));
+      clickContinue();
+      expect(onAddOrgHandlerFn).toHaveBeenCalled();
+    });
+
+    it('locks reconnecting to the existing org so a different org cannot be added', () => {
+      canConnectOrgs = false;
+      const { onAddOrgHandlerFn } = renderOpen(buildOrg('https://acme--uat.sandbox.my.salesforce.com'));
+
+      expect(screen.queryByLabelText('Production / Developer')).toBeNull();
+      expect(screen.queryByLabelText('Custom Login URL')).toBeNull();
+      expect(getCustomUrlInput()).toBeNull();
+      expect(screen.getByText('https://acme--uat.sandbox.my.salesforce.com')).toBeTruthy();
+
+      clickContinue();
+      expect(onAddOrgHandlerFn).toHaveBeenCalledWith(
+        expect.objectContaining({ loginUrl: 'https://acme--uat.sandbox.my.salesforce.com' }),
+        expect.any(Function),
+      );
+    });
+
+    it.each([
+      [false, 'https://login.salesforce.com'],
+      [true, 'https://test.salesforce.com'],
+    ])('locks an org without a My Domain (sandbox: %s) to %s', (orgIsSandbox, expected) => {
+      canConnectOrgs = false;
+      const { onAddOrgHandlerFn } = renderOpen(buildOrg('https://cs42.salesforce.com', { orgIsSandbox }));
+
+      expect(screen.queryByLabelText('Sandbox (test.salesforce.com)')).toBeNull();
+      clickContinue();
+      expect(onAddOrgHandlerFn).toHaveBeenCalledWith(expect.objectContaining({ loginUrl: expected }), expect.any(Function));
+    });
+  });
+
   describe('reconnecting an existing org', () => {
     // The prefill is re-parsed to build the login url, so anything it drops sends the user to a host
     // their org does not serve

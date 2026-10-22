@@ -18,7 +18,7 @@ import Spinner from '../../../widgets/Spinner';
 import Tooltip from '../../../widgets/Tooltip';
 import { DataTableV2 } from '../DataTableV2';
 import { copySalesforceRecordTableDataToClipboard } from '../grid-clipboard';
-import { NON_DATA_COLUMN_KEYS, TABLE_CONTEXT_MENU_ITEMS } from '../grid-constants';
+import { NO_TABLE_CONTEXT_MENU_ITEMS, NON_DATA_COLUMN_KEYS, TABLE_CONTEXT_MENU_ITEMS } from '../grid-constants';
 import { GridSubqueryContext } from '../grid-context';
 import { getRowId, getSubqueryModalTagline, replaceSubqueryOnRecord } from '../grid-row-utils';
 import { ContextAction, ContextMenuActionData, DataTableCellProps, RowWithKey, SubqueryContext, SubqueryLevel } from '../grid-types';
@@ -232,6 +232,7 @@ function SubqueryModal({
   onSubqueryFieldReorder,
   onSubqueryRecordsLoaded,
   confirmReplaceRecords,
+  canExportRecords = true,
   onClose,
 }: SubqueryModalProps) {
   const isMounted = useRef(true);
@@ -421,6 +422,7 @@ function SubqueryModal({
     onSubqueryRecordsLoaded: handleNestedSubqueryRecordsLoaded,
     // Records loaded here are folded back into the record the table owns, so the same warning about unsaved edits applies
     confirmReplaceRecords,
+    canExportRecords,
     nestedRender: { relationshipPath: currentLevel.relationshipPath, onDrillDown: handleDrillDown },
   };
 
@@ -475,19 +477,21 @@ function SubqueryModal({
                   </>
                 )}
               </Grid>
-              <Grid verticalAlign="end">
-                <CopyRecordsToClipboardButton
-                  containerClassName="slds-m-right_xx-small"
-                  fields={fields}
-                  records={records}
-                  filteredRecords={filteredRecords}
-                  selectedRecords={selectedRecords}
-                />
-                <button className="slds-button slds-button_brand" onClick={() => setDownloadModalIsActive(true)}>
-                  <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  Download Records
-                </button>
-              </Grid>
+              {canExportRecords && (
+                <Grid verticalAlign="end">
+                  <CopyRecordsToClipboardButton
+                    containerClassName="slds-m-right_xx-small"
+                    fields={fields}
+                    records={records}
+                    filteredRecords={filteredRecords}
+                    selectedRecords={selectedRecords}
+                  />
+                  <button className="slds-button slds-button_brand" onClick={() => setDownloadModalIsActive(true)}>
+                    <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Download Records
+                  </button>
+                </Grid>
+              )}
             </Grid>
           }
         >
@@ -505,7 +509,7 @@ function SubqueryModal({
                   enableRowSelection
                   rowSelection={rowSelection}
                   onRowSelectionChange={setRowSelection}
-                  contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
+                  contextMenuItems={canExportRecords ? TABLE_CONTEXT_MENU_ITEMS : NO_TABLE_CONTEXT_MENU_ITEMS}
                   contextMenuAction={handleContextMenuAction}
                   onReorderColumns={handleColumnReorder}
                   onSortedAndFilteredRowsChange={handleSortedAndFilteredRowsChange}

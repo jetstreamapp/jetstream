@@ -81,7 +81,9 @@ import {
   StripeUserFacingCustomer,
   SyncRecord,
   SyncRecordOperation,
+  TeamAccessProfileRequest,
   TeamInvitationRequest,
+  TeamInvitationUpdateRequest,
   TeamInviteUserFacing,
   TeamLoginConfigRequest,
   TeamMemberRole,
@@ -198,6 +200,32 @@ export async function updateTeamMemberStatus(
   return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}/members/${userId}/status`, data }).then(unwrapResponseIgnoreCache);
 }
 
+export async function createTeamAccessProfile(teamId: string, data: TeamAccessProfileRequest): Promise<TeamUserFacing> {
+  return handleRequest({ method: 'POST', url: `/api/teams/${teamId}/access-profiles`, data }).then(unwrapResponseIgnoreCache);
+}
+
+export async function updateTeamAccessProfile(
+  teamId: string,
+  accessProfileId: string,
+  data: TeamAccessProfileRequest,
+): Promise<TeamUserFacing> {
+  return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}/access-profiles/${accessProfileId}`, data }).then(
+    unwrapResponseIgnoreCache,
+  );
+}
+
+/**
+ * @param reassignTo where members and invitations using the profile move to, `FULL_ACCESS` or another profile id.
+ * Required when the profile is assigned to anyone.
+ */
+export async function deleteTeamAccessProfile(teamId: string, accessProfileId: string, reassignTo?: string): Promise<TeamUserFacing> {
+  return handleRequest({
+    method: 'DELETE',
+    url: `/api/teams/${teamId}/access-profiles/${accessProfileId}`,
+    params: reassignTo ? { reassignTo } : undefined,
+  }).then(unwrapResponseIgnoreCache);
+}
+
 export async function getInvitations(teamId: string): Promise<TeamInviteUserFacing[]> {
   return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/invitations` }).then(unwrapResponseIgnoreCache);
 }
@@ -206,10 +234,12 @@ export async function createInvitation(teamId: string, data: TeamInvitationReque
   return handleRequest({ method: 'POST', url: `/api/teams/${teamId}/invitations`, data }).then(unwrapResponseIgnoreCache);
 }
 
-export async function resendInvitation(teamId: string, invitationId: string): Promise<TeamInviteUserFacing[]> {
-  return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}/invitations/${invitationId}`, data: {} }).then(
-    unwrapResponseIgnoreCache,
-  );
+export async function resendInvitation(
+  teamId: string,
+  invitationId: string,
+  data: TeamInvitationUpdateRequest = {},
+): Promise<TeamInviteUserFacing[]> {
+  return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}/invitations/${invitationId}`, data }).then(unwrapResponseIgnoreCache);
 }
 
 export async function cancelInvitation(teamId: string, invitationId: string): Promise<void> {

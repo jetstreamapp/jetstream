@@ -5,6 +5,7 @@ import { REGEX, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJobNew, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { DropDown, Input, getSfdcRetUrl, salesforceLoginAndRedirect, useConfirmation } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { useCanPerformOperation } from '@jetstream/ui/app-state';
 import { Query } from '@jetstreamapp/soql-parser-js';
 import { Fragment, FunctionComponent, useState } from 'react';
 import BulkUpdateFromQueryModal from './BulkUpdateFromQuery/BulkUpdateFromQueryModal';
@@ -75,6 +76,8 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
   const { trackEvent } = useAmplitude();
   const { confirm, setOptions } = useConfirmation();
   const [openModal, setOpenModal] = useState<false | 'bulk-update' | 'apex'>(false);
+  const canWriteRecords = useCanPerformOperation('records.write');
+  const canDeleteRecords = useCanPerformOperation('records.delete');
 
   function handleAction(id: 'bulk-delete' | 'bulk-undelete' | 'get-as-apex' | 'open-in-new-tab' | 'bulk-update' | 'new-record') {
     logger.log({ id, selectedRows });
@@ -232,47 +235,57 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
         actionText="Record actions"
         disabled={disabled}
         items={[
-          {
-            id: 'bulk-update',
-            subheader: 'Actions',
-            value: 'Bulk update records',
-            disabled: !sObject || !totalRecordCount || !parsedQuery,
-            icon: {
-              icon: 'upload',
-              type: 'utility',
-            },
-          },
-          {
-            id: 'new-record',
-            value: 'Create new record',
-            disabled: !sObject || !parsedQuery,
-            trailingDivider: true,
-            icon: {
-              icon: 'record_create',
-              type: 'utility',
-            },
-          },
-          {
-            id: 'bulk-delete',
-            subheader: 'Selected Record Actions',
-            value: 'Delete selected records',
-            disabled: disabled || selectedRows.length === 0,
-            icon: {
-              icon: 'delete',
-              type: 'utility',
-            },
-          },
-          {
-            id: 'bulk-undelete',
-            value: 'Restore records from the Recycle Bin',
-            disabled: !includeDeletedRecords || disabled || selectedRows.length === 0,
-            icon: {
-              icon: 'undelete',
-              type: 'utility',
-            },
-          },
+          ...(canWriteRecords
+            ? [
+                {
+                  id: 'bulk-update',
+                  subheader: 'Actions',
+                  value: 'Bulk update records',
+                  disabled: !sObject || !totalRecordCount || !parsedQuery,
+                  icon: {
+                    icon: 'upload',
+                    type: 'utility',
+                  },
+                },
+                {
+                  id: 'new-record',
+                  value: 'Create new record',
+                  disabled: !sObject || !parsedQuery,
+                  trailingDivider: true,
+                  icon: {
+                    icon: 'record_create',
+                    type: 'utility',
+                  },
+                },
+              ]
+            : []),
+          ...(canDeleteRecords
+            ? [
+                {
+                  id: 'bulk-delete',
+                  subheader: 'Selected Record Actions',
+                  value: 'Delete selected records',
+                  disabled: disabled || selectedRows.length === 0,
+                  icon: {
+                    icon: 'delete',
+                    type: 'utility',
+                  },
+                },
+                {
+                  id: 'bulk-undelete',
+                  value: 'Restore records from the Recycle Bin',
+                  disabled: !includeDeletedRecords || disabled || selectedRows.length === 0,
+                  icon: {
+                    icon: 'undelete',
+                    type: 'utility',
+                  },
+                },
+              ]
+            : []),
           {
             id: 'get-as-apex',
+            // Heads the section when the delete actions above it are hidden
+            subheader: canDeleteRecords ? undefined : 'Selected Record Actions',
             value: 'Convert selected records to Apex',
             disabled: disabled || selectedRows.length === 0,
             icon: {

@@ -1,32 +1,53 @@
 import { css } from '@emotion/react';
 import { IconName, IconType } from '@jetstream/icon-factory';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { Badge, Icon } from '@jetstream/ui';
+import { isAccessProfileSurfaceAllowed } from '@jetstream/types';
+import { Badge, Icon, ScopedNotification } from '@jetstream/ui';
+import { abilityState, userProfileState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
-import { Fragment } from 'react';
+import { useAtomValue } from 'jotai';
+import { Fragment, useMemo } from 'react';
 import { Link } from 'react-router';
+import { AppHomeAlternativeApplicationFormats } from './AppHomeAlternativeApplicationFormats';
 
-const HOME_ITEMS = [
-  {
-    title: 'Manage Profile',
-    icon: { type: 'standard', icon: 'user' },
-    items: [APP_ROUTES.PROFILE],
-  },
-  {
-    title: 'Manage Billing',
-    icon: { type: 'standard', icon: 'billing' },
-    items: [APP_ROUTES.BILLING],
-  },
-  {
-    title: 'Manage Team',
-    icon: { type: 'standard', icon: 'team_member' },
-    items: [APP_ROUTES.TEAM_DASHBOARD],
-  },
-];
+interface HomeCard {
+  title: string;
+  icon: { type: string; icon: string };
+  items: (typeof APP_ROUTES)[keyof typeof APP_ROUTES][];
+}
 
 const CURRENT_TIME = new Date().getTime();
 
-export const AppHomeBillingUser = () => {
+/**
+ * Home page for members without access to Jetstream's tools in the web app: the billing role, and members whose
+ * team access profile excludes the web application.
+ */
+export const AppHomeReadOnlyUser = () => {
+  const ability = useAtomValue(abilityState);
+  const userProfile = useAtomValue(userProfileState);
+  const accessProfile = userProfile.teamMembership?.accessProfile;
+  // The billing role never has tools, so only explain the restriction to other members, matching the ACL
+  const isWebAppRestricted = userProfile.teamMembership?.role !== 'BILLING' && !isAccessProfileSurfaceAllowed(accessProfile, 'web');
+  const hasOtherApplication =
+    isAccessProfileSurfaceAllowed(accessProfile, 'desktop') || isAccessProfileSurfaceAllowed(accessProfile, 'browser-extension');
+
+  const homeCards = useMemo(() => {
+    const cards: HomeCard[] = [];
+    if (ability.can('read', 'Profile')) {
+      cards.push({ title: 'Manage Profile', icon: { type: 'standard', icon: 'user' }, items: [APP_ROUTES.PROFILE] });
+    }
+    if (ability.can('read', 'Settings')) {
+      cards.push({ title: 'Manage Settings', icon: { type: 'standard', icon: 'settings' }, items: [APP_ROUTES.SETTINGS] });
+    }
+    if (ability.can('read', 'Billing')) {
+      cards.push({ title: 'Manage Billing', icon: { type: 'standard', icon: 'billing' }, items: [APP_ROUTES.BILLING] });
+    }
+    if (ability.can('read', 'Team')) {
+      cards.push({ title: 'Manage Team', icon: { type: 'standard', icon: 'team_member' }, items: [APP_ROUTES.TEAM_DASHBOARD] });
+    }
+    return cards;
+  }, [ability]);
+
   return (
     <div
       className="slds-m-top_small"
@@ -58,7 +79,8 @@ export const AppHomeBillingUser = () => {
           }
         `}
       >
-        {HOME_ITEMS.map((card) => (
+        {isWebAppRestricted && <WebAppRestrictedNotice hasOtherApplication={hasOtherApplication} />}
+        {homeCards.map((card) => (
           <div key={card.title} className="slds-card slds-box_x-small">
             <article className="slds-tile slds-media">
               <div className="slds-media__figure">
@@ -124,7 +146,30 @@ export const AppHomeBillingUser = () => {
             </article>
           </div>
         ))}
+        {isWebAppRestricted && <AppHomeAlternativeApplicationFormats />}
       </div>
     </div>
   );
 };
+
+function WebAppRestrictedNotice({ hasOtherApplication }: { hasOtherApplication: boolean }) {
+  return (
+    <ScopedNotification
+      theme="info"
+      css={css`
+        grid-column: 1 / -1;
+      `}
+    >
+      <h2 className="slds-text-heading_small">Web access is restricted</h2>
+      <p>
+        Your team's access profile does not include the Jetstream web application, so you can't connect Salesforce orgs or use Jetstream
+        tools here. You can still manage your profile and settings.
+      </p>
+      <p>
+        {hasOtherApplication
+          ? 'Use one of the applications below, or ask a team admin if you need access to the web application.'
+          : 'Your access profile does not include any Jetstream application, ask a team admin if you need access.'}
+      </p>
+    </ScopedNotification>
+  );
+}

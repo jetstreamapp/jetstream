@@ -1,7 +1,7 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber, useGoBackShortcut, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { groupByFlat, pluralizeIfMultiple } from '@jetstream/shared/utils';
-import { ListItem } from '@jetstream/types';
+import { ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES, ListItem } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   BadgePopover,
@@ -17,10 +17,10 @@ import {
   getModifierKey,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
-import { selectedOrgState } from '@jetstream/ui/app-state';
+import { selectedOrgState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
-import { FunctionComponent, useCallback, useState } from 'react';
+import { FunctionComponent, ReactNode, useCallback, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import CreateFieldsDeployModal from './CreateFieldsDeployModal';
 import CreateFieldsImportExport from './CreateFieldsImportExport';
@@ -74,6 +74,7 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
   const selectedOrg = useAtomValue(selectedOrgState);
+  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
 
   const profiles = useAtomValue(fromCreateFieldsState.profilesState);
   const permissionSets = useAtomValue(fromCreateFieldsState.permissionSetsState);
@@ -152,8 +153,19 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
     setDeployModalOpen(false);
   }
 
-  usePrimaryActionShortcut(handleSubmit, { disabled: !allValid });
+  usePrimaryActionShortcut(handleSubmit, { disabled: !allValid || !canDeployMetadata });
   useGoBackShortcut(() => navigate('..'), {});
+
+  let submitTooltip: ReactNode = 'All fields must be fully configured';
+  if (!canDeployMetadata) {
+    submitTooltip = ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['metadata.deploy'];
+  } else if (allValid) {
+    submitTooltip = (
+      <div className="slds-p-bottom_small">
+        <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -220,19 +232,8 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
             <span>Reset Fields</span>
           </button>
-          <Tooltip
-            openDelay={500}
-            content={
-              allValid ? (
-                <div className="slds-p-bottom_small">
-                  <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
-                </div>
-              ) : (
-                'All fields must be fully configured'
-              )
-            }
-          >
-            <button className="slds-button slds-button_brand" onClick={() => handleSubmit()} disabled={!allValid}>
+          <Tooltip openDelay={500} content={submitTooltip}>
+            <button className="slds-button slds-button_brand" onClick={() => handleSubmit()} disabled={!allValid || !canDeployMetadata}>
               <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
               Upsert Fields
             </button>

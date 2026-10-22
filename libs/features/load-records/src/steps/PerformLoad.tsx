@@ -26,7 +26,10 @@ import { ChangeEvent, FunctionComponent, useCallback, useEffect, useMemo, useRef
 import LoadRecordsAssignmentRules from '../components/LoadRecordsAssignmentRules';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
+import { useAllowedLoadTypes } from '../useAllowedLoadTypes';
 import { buildLoadRecordsHistoryConfig, LoadRecordsHistoryConfig, startLoadRecordsHistory } from '../utils/data-history-capture';
+
+const LOAD_TYPE_NOT_ALLOWED_MESSAGE = `Your Jetstream access does not include this type of data load.`;
 
 /**
  * The only Data History values that differ between an initial load, a trial run and a retry —
@@ -97,6 +100,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
 }) => {
   const hasZipAttachment = !!inputZipFileData;
   const { trackEvent } = useAmplitude();
+  const isLoadTypeAllowed = useAllowedLoadTypes().includes(loadType);
   const runIdCounter = useRef(0);
 
   const [apiMode, setApiMode] = useAtom(fromLoadRecordsState.apiModeState);
@@ -153,7 +157,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   // Find the active run for retry purposes
   const activeRun = runs.find((run) => String(run.id) === activeRunId);
   const activeRunHasFailures = activeRun?.result && activeRun.result.failure > 0 && activeRun.result.failedRecords.length > 0;
-  const canRetry = activeRunHasFailures && !hasAnyRunInProgress;
+  const canRetry = activeRunHasFailures && !hasAnyRunInProgress && isLoadTypeAllowed;
 
   const numRecordsImpactedLabel = formatNumber(inputFileDataToLoad.length);
   const numRecordsImpactedTrialRunLabel = formatNumber(inputFileDataTrialRun.length);
@@ -269,7 +273,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   async function handleStartLoad(isTrialRun = false) {
     // Defensive guard: ignore rapid double-clicks or re-entrant calls while a load is starting or already running.
     // Button `disabled` covers most cases, but the ConfirmationModalPromise await below leaves a race window.
-    if (loading || hasAnyRunInProgress || loadInProgressTrialRun) {
+    if (loading || hasAnyRunInProgress || loadInProgressTrialRun || !isLoadTypeAllowed) {
       return;
     }
     const isFirstLoad = runs.length === 0;
@@ -646,7 +650,8 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
               <button
                 data-testid="start-load"
                 className="slds-button slds-button_brand"
-                disabled={hasDataInputError() || loadInProgressTrialRun || hasLoadResultsTrialRun || loadInProgress}
+                disabled={hasDataInputError() || loadInProgressTrialRun || hasLoadResultsTrialRun || loadInProgress || !isLoadTypeAllowed}
+                title={isLoadTypeAllowed ? undefined : LOAD_TYPE_NOT_ALLOWED_MESSAGE}
                 onClick={() => handleStartLoad(true)}
               >
                 {loadTypeLabel} <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedTrialRunLabel}</strong>{' '}
@@ -658,7 +663,8 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             <button
               data-testid="start-load"
               className="slds-button slds-button_brand"
-              disabled={hasDataInputError() || (trialRun && !hasLoadResultsTrialRun) || loadInProgress}
+              disabled={hasDataInputError() || (trialRun && !hasLoadResultsTrialRun) || loadInProgress || !isLoadTypeAllowed}
+              title={isLoadTypeAllowed ? undefined : LOAD_TYPE_NOT_ALLOWED_MESSAGE}
               onClick={() => handleStartLoad()}
             >
               {loadTypeLabel} <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedLabel}</strong>{' '}

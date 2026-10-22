@@ -2,10 +2,15 @@ import { logger } from '@jetstream/shared/client-logger';
 import { getAuthErrorMessage, HTTP, isAuthErrorType, isLoginMethod } from '@jetstream/shared/constants';
 import { checkHeartbeat, disconnectSocket, initSocket, registerMiddleware, updateUserProfile } from '@jetstream/shared/data';
 import { initErrorTracker, setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/ui-utils';
-import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
+import {
+  Announcement,
+  getAccessProfileFingerprint,
+  JetstreamEventSaveSoqlQueryFormatOptionsPayload,
+  SalesforceOrgUi,
+} from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude, useInitDataHistory } from '@jetstream/ui-core';
-import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
+import { DEFAULT_PROFILE, fetchLatestUserProfile, fromAppState } from '@jetstream/ui/app-state';
 import { CookieConsentBanner, useConditionalGoogleAnalytics } from '@jetstream/ui/cookie-consent-banner';
 import { ensureLocalStorageReady, initDexieDb, pruneAnalysisJobHistory } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
@@ -42,7 +47,7 @@ export interface AppInitializerProps {
 }
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnouncements, children }) => {
-  const userProfile = useAtomValue(fromAppState.userProfileState);
+  const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
   const ability = useAtomValue(fromAppState.abilityState);
   const { version, announcements, appInfo } = useAtomValue(fromAppState.appInfoState);
   const [orgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
@@ -189,7 +194,7 @@ APP VERSION ${version}
     async (_: FocusEvent) => {
       try {
         if (document.visibilityState === 'visible') {
-          const { version: serverVersion, announcements } = await checkHeartbeat();
+          const { version: serverVersion, announcements, accessProfileFingerprint } = await checkHeartbeat();
           // TODO: inform user that there is a new version and that they should refresh their browser.
           // We could force refresh, but don't want to get into some weird infinite refresh state
           if (version !== serverVersion) {
@@ -198,12 +203,19 @@ APP VERSION ${version}
           if (announcements && onAnnouncements) {
             onAnnouncements(announcements);
           }
+          // An admin changed this member's access profile since the page loaded, pick it up without a reload
+          if (
+            accessProfileFingerprint &&
+            accessProfileFingerprint !== getAccessProfileFingerprint(userProfile.teamMembership?.accessProfile)
+          ) {
+            setUserProfile(await fetchLatestUserProfile());
+          }
         }
       } catch {
         // ignore error, but user should have been logged out if this failed
       }
     },
-    [onAnnouncements, version],
+    [onAnnouncements, setUserProfile, userProfile, version],
   );
 
   useEffect(() => {

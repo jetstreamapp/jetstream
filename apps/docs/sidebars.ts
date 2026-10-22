@@ -29,6 +29,7 @@ const sidebar = {
       label: 'Team Management',
       items: [
         'team-management/team-management',
+        'team-management/access-profiles',
         {
           type: 'category',
           label: 'Single Sign-On (SSO)',

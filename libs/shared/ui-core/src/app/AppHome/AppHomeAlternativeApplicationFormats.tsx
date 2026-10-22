@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
+import { isAccessProfileSurfaceAllowed } from '@jetstream/types';
 import { Badge, Icon } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
@@ -16,8 +17,25 @@ const IS_NEW =
 export const AppHomeAlternativeApplicationFormats = () => {
   const { trackEvent } = useAmplitude();
   const ability = useAtomValue(fromAppState.abilityState);
+  const userProfile = useAtomValue(fromAppState.userProfileState);
   const hasExtensionAccess = ability.can('access', 'ChromeExtension');
   const hasDesktopAccess = ability.can('access', 'Desktop');
+
+  // Don't advertise a form-factor the member's team access profile does not let them sign in to
+  const accessProfile = userProfile.teamMembership?.accessProfile;
+  const showDesktop = isAccessProfileSurfaceAllowed(accessProfile, 'desktop');
+  const showExtension = isAccessProfileSurfaceAllowed(accessProfile, 'browser-extension');
+
+  if (!showDesktop && !showExtension) {
+    return null;
+  }
+
+  let paidSubscriptionSubject = 'The desktop application and browser extension require';
+  if (!showExtension) {
+    paidSubscriptionSubject = 'The desktop application requires';
+  } else if (!showDesktop) {
+    paidSubscriptionSubject = 'The browser extension requires';
+  }
 
   return (
     <div
@@ -59,9 +77,9 @@ export const AppHomeAlternativeApplicationFormats = () => {
               </Badge>
             )}
           </h3>
-          {(!hasExtensionAccess || !hasDesktopAccess) && (
+          {((showExtension && !hasExtensionAccess) || (showDesktop && !hasDesktopAccess)) && (
             <p className="slds-m-bottom_x-small">
-              The desktop application and browser extension <strong>require a paid subscription</strong>.{' '}
+              {paidSubscriptionSubject} <strong>a paid subscription</strong>.{' '}
               <Link
                 to={APP_ROUTES.BILLING.ROUTE}
                 onClick={() => trackEvent(ANALYTICS_KEYS.billing_page_accessed, { action: 'clicked', source: 'app_home' })}
@@ -70,67 +88,78 @@ export const AppHomeAlternativeApplicationFormats = () => {
               </Link>
             </p>
           )}
-          <h4 className="slds-text-title_caps">Desktop Application</h4>
-          <a
-            href={APP_ROUTES.DESKTOP_APPLICATION.ROUTE}
-            target="_blank"
-            className="slds-text-heading_x-small"
-            rel="noreferrer"
-            onClick={() => trackEvent(ANALYTICS_KEYS.desktop_app_download_link, { action: 'clicked', source: 'app_home' })}
-          >
-            Download the Desktop Application
-          </a>
-          {!hasDesktopAccess && (
-            <p className="slds-m-top_xx-small">
-              When using the desktop application, none of your Salesforce data is sent to the Jetstream server.
-            </p>
-          )}
-          <p>
-            <a href={APP_ROUTES.DESKTOP_APPLICATION.DOCS} target="_blank" className="slds-text-body_small" rel="noreferrer">
-              Documentation
-              <Icon
-                type="utility"
-                icon="help_doc_ext"
-                className="slds-icon slds-icon_xx-small slds-icon-text-default slds-m-left_xx-small"
-                omitContainer
-              />
-            </a>
-          </p>
-          <h4 className="slds-text-title_caps slds-m-top_xx-small">Browser Extension</h4>
-          <p>
-            <a
-              href={APP_ROUTES.BROWSER_EXTENSION.ROUTE}
-              target="_blank"
-              className="slds-text-heading_x-small"
-              rel="noreferrer"
-              onClick={() => trackEvent(ANALYTICS_KEYS.browser_extension_link, { action: 'clicked', source: 'app_home' })}
-            >
-              Download Chrome or Firefox Extension
-            </a>
-          </p>
-          {!hasExtensionAccess && (
+          {showDesktop && (
             <>
-              <p className="slds-m-top_xx-small">Use your favorite Jetstream features in any Salesforce Org with the browser extensions!</p>
-              <ul className="slds-list_dotted slds-m-bottom_small">
-                <li>Instant access to Jetstream from any Salesforce page on any Salesforce org you are logged in to</li>
-                <li>
-                  The browser extension operates 100% within your browser, none of your Salesforce data is processed by Jetstream servers
-                </li>
-              </ul>
+              <h4 className="slds-text-title_caps">Desktop Application</h4>
+              <a
+                href={APP_ROUTES.DESKTOP_APPLICATION.ROUTE}
+                target="_blank"
+                className="slds-text-heading_x-small"
+                rel="noreferrer"
+                onClick={() => trackEvent(ANALYTICS_KEYS.desktop_app_download_link, { action: 'clicked', source: 'app_home' })}
+              >
+                Download the Desktop Application
+              </a>
+              {!hasDesktopAccess && (
+                <p className="slds-m-top_xx-small">
+                  When using the desktop application, none of your Salesforce data is sent to the Jetstream server.
+                </p>
+              )}
+              <p>
+                <a href={APP_ROUTES.DESKTOP_APPLICATION.DOCS} target="_blank" className="slds-text-body_small" rel="noreferrer">
+                  Documentation
+                  <Icon
+                    type="utility"
+                    icon="help_doc_ext"
+                    className="slds-icon slds-icon_xx-small slds-icon-text-default slds-m-left_xx-small"
+                    omitContainer
+                  />
+                </a>
+              </p>
             </>
           )}
+          {showExtension && (
+            <>
+              <h4 className="slds-text-title_caps slds-m-top_xx-small">Browser Extension</h4>
+              <p>
+                <a
+                  href={APP_ROUTES.BROWSER_EXTENSION.ROUTE}
+                  target="_blank"
+                  className="slds-text-heading_x-small"
+                  rel="noreferrer"
+                  onClick={() => trackEvent(ANALYTICS_KEYS.browser_extension_link, { action: 'clicked', source: 'app_home' })}
+                >
+                  Download Chrome or Firefox Extension
+                </a>
+              </p>
+              {!hasExtensionAccess && (
+                <>
+                  <p className="slds-m-top_xx-small">
+                    Use your favorite Jetstream features in any Salesforce Org with the browser extensions!
+                  </p>
+                  <ul className="slds-list_dotted slds-m-bottom_small">
+                    <li>Instant access to Jetstream from any Salesforce page on any Salesforce org you are logged in to</li>
+                    <li>
+                      The browser extension operates 100% within your browser, none of your Salesforce data is processed by Jetstream
+                      servers
+                    </li>
+                  </ul>
+                </>
+              )}
 
-          <p>
-            <a href={APP_ROUTES.BROWSER_EXTENSION.DOCS} target="_blank" className="slds-text-body_small" rel="noreferrer">
-              Documentation
-              <Icon
-                type="utility"
-                icon="help_doc_ext"
-                className="slds-icon slds-icon_xx-small slds-icon-text-default slds-m-left_xx-small"
-                omitContainer
-              />
-            </a>
-          </p>
+              <p>
+                <a href={APP_ROUTES.BROWSER_EXTENSION.DOCS} target="_blank" className="slds-text-body_small" rel="noreferrer">
+                  Documentation
+                  <Icon
+                    type="utility"
+                    icon="help_doc_ext"
+                    className="slds-icon slds-icon_xx-small slds-icon-text-default slds-m-left_xx-small"
+                    omitContainer
+                  />
+                </a>
+              </p>
+            </>
+          )}
         </div>
       </article>
     </div>

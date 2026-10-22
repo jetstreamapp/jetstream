@@ -35,6 +35,7 @@ import {
   fireToast,
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
+import { useCanPerformOperation } from '@jetstream/ui/app-state';
 import { Fragment } from 'react';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
 
@@ -111,6 +112,7 @@ export const LoadRecordsSelectObjectAndFile = ({
   children,
 }: LoadRecordsSelectObjectAndFileProps) => {
   const { trackEvent } = useAmplitude();
+  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
   const hasGoogleInputConfigured =
     isDesktop() ||
     isBrowserExtension() ||
@@ -319,6 +321,11 @@ export const LoadRecordsSelectObjectAndFile = ({
                 <ScopedNotification theme="info">
                   Custom metadata will always perform an upsert based on the <strong>DeveloperName</strong>.
                 </ScopedNotification>
+                {!canDeployMetadata && (
+                  <ScopedNotification theme="warning" className="slds-m-top_x-small">
+                    Custom metadata records are loaded with a metadata deployment, which your Jetstream access does not include.
+                  </ScopedNotification>
+                )}
               </GridCol>
             )}
             <GridCol className="slds-m-top_large">{children}</GridCol>
