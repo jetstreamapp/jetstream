@@ -151,6 +151,9 @@ export const selectTrialRunSizeError = atom<string | null>((get) => {
   return null;
 });
 
+/** A trial run loads a subset of the file before the rest, so it needs at least two records to split between the two */
+export const selectIsTrialRunAvailable = atom((get) => (get(inputFileDataState)?.length || 0) > 1);
+
 export const selectBulkApiModeLabel = atom<string | React.ReactNode>((get) => {
   const inputFileDataLength = get(inputFileDataState)?.length || 0;
   const loadType = get(loadTypeState);
