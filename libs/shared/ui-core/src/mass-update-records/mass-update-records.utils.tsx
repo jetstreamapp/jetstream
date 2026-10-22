@@ -252,6 +252,7 @@ async function queryCustomCriteriaRecordIds(
   records: SalesforceRecord[],
   customWhereClause: string,
   org: SalesforceOrgUi,
+  signal?: AbortSignal,
 ): Promise<Set<string>> {
   const recordIds = records.map(({ Id }) => Id);
   if (!recordIds.length) {
@@ -262,7 +263,14 @@ async function queryCustomCriteriaRecordIds(
   }
 
   const baseSoql = composeQuery({ fields: [getField('Id')], sObject: row.sobject });
-  const { queryResults } = await queryAllFromList<SalesforceRecord>(org, buildChunkedIdInQueries(baseSoql, recordIds, customWhereClause));
+  const { queryResults } = await queryAllFromList<SalesforceRecord>(
+    org,
+    buildChunkedIdInQueries(baseSoql, recordIds, customWhereClause),
+    false,
+    false,
+    undefined,
+    signal,
+  );
   return new Set(queryResults.records.map(({ Id }) => Id));
 }
 
@@ -285,7 +293,7 @@ export async function queryRecordsForRow(
   row: MetadataRow,
   fields: string[],
   org: SalesforceOrgUi,
-  { resolveCustomCriteria = true }: { resolveCustomCriteria?: boolean } = {},
+  { resolveCustomCriteria = true, signal }: { resolveCustomCriteria?: boolean; signal?: AbortSignal } = {},
 ): Promise<{ records: SalesforceRecord[]; customCriteriaRecordIds: Set<string> }> {
   const limit = getEffectiveRecordLimit(row.limit);
   const customWhereClause = getCustomCriteriaWhereClause(row);
@@ -295,12 +303,14 @@ export async function queryRecordsForRow(
     if (!windowQuery) {
       return { records: [], customCriteriaRecordIds: new Set() };
     }
-    const { queryResults } = await queryAll<SalesforceRecord>(org, windowQuery);
+    const { queryResults } = await queryAll<SalesforceRecord>(org, windowQuery, false, false, undefined, signal);
     const records = queryResults.records;
     return {
       records,
       customCriteriaRecordIds:
-        resolveCustomCriteria && customWhereClause ? await queryCustomCriteriaRecordIds(row, records, customWhereClause, org) : new Set(),
+        resolveCustomCriteria && customWhereClause
+          ? await queryCustomCriteriaRecordIds(row, records, customWhereClause, org, signal)
+          : new Set(),
     };
   }
 
@@ -311,7 +321,7 @@ export async function queryRecordsForRow(
   const customCriteriaRecordIds = new Set<string>();
 
   if (standardQuery) {
-    await queryAll<SalesforceRecord>(org, standardQuery).then((res) =>
+    await queryAll<SalesforceRecord>(org, standardQuery, false, false, undefined, signal).then((res) =>
       res.queryResults.records.forEach((record) => {
         recordsById[record.Id] = record;
       }),
@@ -319,7 +329,7 @@ export async function queryRecordsForRow(
   }
 
   if (customWhereClauseQuery) {
-    await queryAll<SalesforceRecord>(org, customWhereClauseQuery).then((res) =>
+    await queryAll<SalesforceRecord>(org, customWhereClauseQuery, false, false, undefined, signal).then((res) =>
       res.queryResults.records.forEach((record) => {
         recordsById[record.Id] = record;
         customCriteriaRecordIds.add(record.Id);
@@ -330,8 +340,8 @@ export async function queryRecordsForRow(
   return { records: Object.values(recordsById), customCriteriaRecordIds };
 }
 
-export async function queryAndPrepareRecordsForUpdate(row: MetadataRow, fields: string[], org: SalesforceOrgUi) {
-  const { records, customCriteriaRecordIds } = await queryRecordsForRow(row, fields, org);
+export async function queryAndPrepareRecordsForUpdate(row: MetadataRow, fields: string[], org: SalesforceOrgUi, signal?: AbortSignal) {
+  const { records, customCriteriaRecordIds } = await queryRecordsForRow(row, fields, org, { signal });
   return prepareRecords(records, row.configuration, customCriteriaRecordIds);
 }
 
