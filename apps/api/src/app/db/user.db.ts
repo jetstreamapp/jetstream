@@ -3,9 +3,6 @@ import { getPendingEmailChangeForUser } from '@jetstream/auth/server';
 import { UserProfileSession } from '@jetstream/auth/types';
 import { Entitlement, Prisma } from '@jetstream/prisma';
 import {
-  AccessProfileSurfaceKey,
-  getAccessProfileFingerprint,
-  isAccessProfileSurfaceAllowed,
   Maybe,
   SoqlQueryFormatOptions,
   SoqlQueryFormatOptionsSchema,
@@ -215,28 +212,16 @@ export const findIdByUserIdUserFacing = async ({
   });
 };
 
-export const findAccessProfileFingerprint = async ({ userId }: { userId: string }): Promise<string> => {
-  // Matches `/api/me`, which ignores the membership of an inactive team
+/**
+ * The access profile that applies to a user, or null for full access. Matches `/api/me`, which ignores the membership
+ * of an inactive team, so the heartbeat fingerprint and the web surface check agree with the client.
+ */
+export const findActiveTeamAccessProfile = async ({ userId }: { userId: string }) => {
   const teamMembership = await prisma.teamMember.findFirst({
-    select: { accessProfile: { select: { id: true, version: true } } },
+    select: { accessProfile: { select: { id: true, version: true, policy: true } } },
     where: { userId, team: { status: 'ACTIVE' } },
   });
-  return getAccessProfileFingerprint(teamMembership?.accessProfile);
-};
-
-/** Whether a member's team access profile allows a surface, ignoring the membership of an inactive team like `/api/me` */
-export const isAccessProfileSurfaceAllowedForUser = async ({
-  userId,
-  surface,
-}: {
-  userId: string;
-  surface: AccessProfileSurfaceKey;
-}): Promise<boolean> => {
-  const teamMembership = await prisma.teamMember.findFirst({
-    select: { accessProfile: { select: { policy: true } } },
-    where: { userId, team: { status: 'ACTIVE' } },
-  });
-  return isAccessProfileSurfaceAllowed(teamMembership?.accessProfile, surface);
+  return teamMembership?.accessProfile ?? null;
 };
 
 export const getBillingAccount = async (id: string) => {

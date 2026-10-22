@@ -1,5 +1,5 @@
 import { useGoBackShortcut, useIntegerInput, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
-import { ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES, Maybe } from '@jetstream/types';
+import { Maybe } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
@@ -16,7 +16,7 @@ import {
   Tooltip,
 } from '@jetstream/ui';
 import { DeployResults, MassUpdateRecordsDeploymentRow, MetadataRow, SkipDataHistoryCheckbox, useDeployRecords } from '@jetstream/ui-core';
-import { selectedOrgState, useCanPerformOperation } from '@jetstream/ui/app-state';
+import { selectedOrgState, useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { useAtomCallback } from 'jotai/utils';
 import isNumber from 'lodash/isNumber';
@@ -38,7 +38,7 @@ export const MassUpdateRecordsDeployment = () => {
   const navigate = useNavigate();
   const selectedOrg = useAtomValue(selectedOrgState);
   const rows = useAtomValue(fromMassUpdateState.rowsState);
-  const canWriteRecords = useCanPerformOperation('records.write');
+  const writeAccess = useOperationAccess('records.write');
   const [loading, setLoading] = useState(false);
   const [batchSize, setBatchSize] = useState<Maybe<number>>(10000);
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
@@ -79,7 +79,7 @@ export const MassUpdateRecordsDeployment = () => {
     resumePolling(row, getRows);
   }
 
-  const deployDisabled = loading || !!batchSizeError || !canWriteRecords;
+  const deployDisabled = loading || !!batchSizeError || !writeAccess.allowed;
 
   usePrimaryActionShortcut(handleDeploy, { disabled: deployDisabled });
   useGoBackShortcut(() => navigate('..'), { disabled: loading });
@@ -121,12 +121,10 @@ export const MassUpdateRecordsDeployment = () => {
           <Tooltip
             openDelay={500}
             content={
-              canWriteRecords ? (
+              writeAccess.deniedReason ?? (
                 <div className="slds-p-bottom_small">
                   <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
                 </div>
-              ) : (
-                ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['records.write']
               )
             }
           >

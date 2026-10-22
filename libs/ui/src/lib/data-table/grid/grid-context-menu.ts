@@ -57,3 +57,15 @@ export function resolveHeaderContextMenuItems<TRow extends object>(
   }
   return items(actionData).filter((item) => COLUMN_SCOPED_CONTEXT_ACTIONS.has(item.value));
 }
+
+/**
+ * Drops the standard copy actions (`TABLE_CONTEXT_MENU_ITEMS` values) from a table's menu items, keeping
+ * any consumer items that are not copy actions. Used when the grid has copying turned off.
+ */
+export function withoutCopyActions<TRow extends object>(items: ContextMenuItems<TRow>): ContextMenuItems<TRow> {
+  const removeCopyActions = (menuItems: ContextMenuItem[]) => menuItems.filter(({ value }) => !GRID_OWNED_COPY_ACTIONS.has(value));
+  if (typeof items === 'function') {
+    return (data: ContextMenuActionData<TRow>) => removeCopyActions(items(data));
+  }
+  return removeCopyActions(items);
+}

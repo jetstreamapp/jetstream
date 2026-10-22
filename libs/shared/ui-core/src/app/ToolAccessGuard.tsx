@@ -1,5 +1,5 @@
 import { canAccessTool } from '@jetstream/acl';
-import { APP_ROUTES, getAccessProfileToolForPath } from '@jetstream/shared/ui-router';
+import { APP_ROUTES, isPathAllowedByAccessProfile } from '@jetstream/shared/ui-router';
 import { isCanvasApp } from '@jetstream/shared/ui-utils';
 import { EmptyState, NoAccess2Illustration } from '@jetstream/ui';
 import { abilityState } from '@jetstream/ui/app-state';
@@ -13,9 +13,7 @@ import { Link, Outlet, useLocation } from 'react-router';
 export function ToolAccessGuard() {
   const location = useLocation();
   const ability = useAtomValue(abilityState);
-  const tool = getAccessProfileToolForPath(location.pathname);
-
-  if (tool && !canAccessTool(ability, tool)) {
+  if (!isPathAllowedByAccessProfile(location.pathname, (tool) => canAccessTool(ability, tool))) {
     return <ToolNotAvailable />;
   }
 

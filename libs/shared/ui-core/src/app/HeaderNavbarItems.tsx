@@ -1,25 +1,21 @@
 import { AppAbility, canAccessTool } from '@jetstream/acl';
-import { APP_ROUTES, getAccessProfileToolForPath } from '@jetstream/shared/ui-router';
+import { APP_ROUTES, isPathAllowedByAccessProfile } from '@jetstream/shared/ui-router';
 import type { NavbarItemConfig } from '@jetstream/ui';
 import { abilityState, useFeatureFlag } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useMemo } from 'react';
 
-export function isPathAllowedByAccessProfile(ability: AppAbility, path: string | undefined) {
-  const tool = path ? getAccessProfileToolForPath(path) : undefined;
-  return !tool || canAccessTool(ability, tool);
-}
-
 /**
  * Removes tools the member's team access profile does not include, and any menu left empty as a result
  */
 function filterNavbarItemsByAccessProfile(items: NavbarItemConfig[], ability: AppAbility): NavbarItemConfig[] {
+  const isPathAllowed = (path: string | undefined) => !path || isPathAllowedByAccessProfile(path, (tool) => canAccessTool(ability, tool));
   return items.flatMap((item): NavbarItemConfig[] => {
     if (item.type === 'item') {
-      return isPathAllowedByAccessProfile(ability, item.path) ? [item] : [];
+      return isPathAllowed(item.path) ? [item] : [];
     }
     if (item.type === 'menu') {
-      const menuItems = item.items.filter((menuItem) => !('path' in menuItem) || isPathAllowedByAccessProfile(ability, menuItem.path));
+      const menuItems = item.items.filter((menuItem) => !('path' in menuItem) || isPathAllowed(menuItem.path));
       return menuItems.length ? [{ ...item, items: menuItems }] : [];
     }
     return [item];

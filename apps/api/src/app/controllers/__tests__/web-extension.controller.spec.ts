@@ -8,6 +8,7 @@
  *   - a race-loss-none rotation outcome still forces a 401
  */
 import { HTTP } from '@jetstream/shared/constants';
+import { isAccessProfileSurfaceAllowed } from '@jetstream/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { routeDefinition } from '../web-extension.controller';
 
@@ -27,7 +28,7 @@ const mocks = vi.hoisted(() => ({
   verifyToken: vi.fn(),
   issueAccessToken: vi.fn(),
   decodeToken: vi.fn(),
-  getSurfaceForAudience: vi.fn(),
+  isSurfaceAllowedForAudience: vi.fn(),
 }));
 
 vi.mock('@jetstream/api-config', () => ({
@@ -94,7 +95,7 @@ vi.mock('../../services/external-auth.service', () => ({
   AUDIENCE_DESKTOP: 'https://getjetstream.app/desktop-app',
   isTokenWithinRefreshWindow: mocks.isTokenWithinRefreshWindow,
   rotateToken: mocks.rotateToken,
-  getSurfaceForAudience: mocks.getSurfaceForAudience,
+  isSurfaceAllowedForAudience: mocks.isSurfaceAllowedForAudience,
   verifyToken: mocks.verifyToken,
   issueAccessToken: mocks.issueAccessToken,
   decodeToken: mocks.decodeToken,
@@ -250,6 +251,7 @@ describe('web-extension.controller initSession stored token reuse', () => {
     vi.clearAllMocks();
     mocks.findIdByUserIdUserFacing.mockResolvedValue(userProfile);
     mocks.checkUserEntitlement.mockResolvedValue(true);
+    mocks.isSurfaceAllowedForAudience.mockReturnValue(true);
     mocks.findByUserIdAndDeviceId.mockResolvedValue({ token: 'gcm!stored-token' });
     mocks.issueAccessToken.mockResolvedValue('new-token');
     mocks.decodeToken.mockReturnValue({ exp: 1_900_000_000 });
@@ -314,7 +316,10 @@ describe('web-extension.controller initSession access profile surface gate', () 
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.checkUserEntitlement.mockResolvedValue(true);
-    mocks.getSurfaceForAudience.mockReturnValue('browser-extension');
+    // The real surface rule, so these tests exercise the profiles they set up
+    mocks.isSurfaceAllowedForAudience.mockImplementation((accessProfile) =>
+      isAccessProfileSurfaceAllowed(accessProfile, 'browser-extension'),
+    );
     mocks.findByUserIdAndDeviceId.mockResolvedValue(null);
     mocks.issueAccessToken.mockResolvedValue('new-token');
     mocks.decodeToken.mockReturnValue({ exp: 2_000_000_000 });
@@ -329,7 +334,10 @@ describe('web-extension.controller initSession access profile surface gate', () 
 
     const { next } = await invokeInitSession();
 
-    expect(mocks.getSurfaceForAudience).toHaveBeenCalledWith('https://getjetstream.app/web-extension');
+    expect(mocks.isSurfaceAllowedForAudience).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'profile-1' }),
+      'https://getjetstream.app/web-extension',
+    );
     expect(next).toHaveBeenCalledTimes(1);
     expect((next.mock.calls[0][0] as Error).name).toBe('SurfaceNotAllowed');
     expect(mocks.findByUserIdAndDeviceId).not.toHaveBeenCalled();

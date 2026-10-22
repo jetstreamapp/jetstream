@@ -4,7 +4,6 @@ import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
 import { saveFile, tracker, useGoBackShortcut, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, groupByFlat } from '@jetstream/shared/utils';
 import {
-  ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES,
   AsyncJobNew,
   DirtyRow,
   FieldPermissionDefinitionMap,
@@ -51,7 +50,7 @@ import {
   getModifierKey,
 } from '@jetstream/ui';
 import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState, useAnalytics } from '@jetstream/ui-core';
-import { applicationCookieState, googleDriveAccessState, selectedOrgState, useCanPerformOperation } from '@jetstream/ui/app-state';
+import { applicationCookieState, googleDriveAccessState, selectedOrgState, useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -136,7 +135,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const managePermissionsEditorFieldTableRef = useRef<ManagePermissionsEditorTableRef>(null);
   const managePermissionsEditorSystemPermissionTableRef = useRef<ManagePermissionsEditorTableRef>(null);
   const selectedOrg = useAtomValue(selectedOrgState);
-  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
+  const deployAccess = useOperationAccess('metadata.deploy');
 
   const [loading, setLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -830,7 +829,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   }
 
   const saveDisabled =
-    loading || !canDeployMetadata || (!dirtyObjectCount && !dirtyFieldCount && !dirtyTabVisibilityCount && !dirtySystemPermissionCount);
+    loading || !deployAccess.allowed || (!dirtyObjectCount && !dirtyFieldCount && !dirtyTabVisibilityCount && !dirtySystemPermissionCount);
 
   usePrimaryActionShortcut(saveChanges, { disabled: saveDisabled });
 
@@ -923,12 +922,10 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           <Tooltip
             openDelay={500}
             content={
-              canDeployMetadata ? (
+              deployAccess.deniedReason ?? (
                 <div className="slds-p-bottom_small">
                   <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
                 </div>
-              ) : (
-                ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['metadata.deploy']
               )
             }
           >

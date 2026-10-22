@@ -33,8 +33,13 @@ const SECONDS_PER_DAY = 60 * 60 * 24;
 
 export type Audience = typeof AUDIENCE_WEB_EXT | typeof AUDIENCE_DESKTOP;
 
-export function getSurfaceForAudience(audience: Audience): AccessProfileSurfaceKey {
+function getSurfaceForAudience(audience: Audience): AccessProfileSurfaceKey {
   return audience === AUDIENCE_DESKTOP ? 'desktop' : 'browser-extension';
+}
+
+/** Whether a member's access profile lets them sign in to the application a token is issued for */
+export function isSurfaceAllowedForAudience(accessProfile: { policy: unknown } | null | undefined, audience: Audience): boolean {
+  return isAccessProfileSurfaceAllowed(accessProfile, getSurfaceForAudience(audience));
 }
 
 /**
@@ -292,9 +297,7 @@ export async function verifyToken(
     throw new InvalidAccessToken('Browser extension is not enabled');
   } else if (audience === AUDIENCE_DESKTOP && !entitlements?.desktop) {
     throw new InvalidAccessToken('Desktop application is not enabled');
-  } else if (
-    !isAccessProfileSurfaceAllowed(getActiveTeamAccessProfile(userAccessToken.user.teamMembership), getSurfaceForAudience(audience))
-  ) {
+  } else if (!isSurfaceAllowedForAudience(getActiveTeamAccessProfile(userAccessToken.user.teamMembership), audience)) {
     throw new InvalidAccessToken('Team access profile does not allow this application');
   }
 

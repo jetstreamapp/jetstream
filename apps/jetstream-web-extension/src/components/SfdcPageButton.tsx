@@ -4,7 +4,7 @@
 import { css } from '@emotion/react';
 import { canAccessTool, canPerformOperation, getUserAbility } from '@jetstream/acl';
 import { logger } from '@jetstream/shared/client-logger';
-import { APP_ROUTES, getAccessProfileToolForPath } from '@jetstream/shared/ui-router';
+import { APP_ROUTES, isPathAllowedByAccessProfile } from '@jetstream/shared/ui-router';
 import type { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, OutsideClickHandler, Tabs } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
@@ -129,11 +129,7 @@ export function SfdcPageButton() {
   // Viewing and searching records is part of the Query tool, matching the web app where record and user search follow it
   const canQueryRecords = canAccessTool(ability, 'query');
   const pageLinks = useMemo(
-    () =>
-      PAGE_LINKS.filter(({ link }) => {
-        const tool = getAccessProfileToolForPath(link);
-        return !tool || canAccessTool(ability, tool);
-      }),
+    () => PAGE_LINKS.filter(({ link }) => isPathAllowedByAccessProfile(link, (tool) => canAccessTool(ability, tool))),
     [ability],
   );
 

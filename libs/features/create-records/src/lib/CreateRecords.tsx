@@ -8,7 +8,6 @@ import { filterCreateSobjects, isErrorResponse, tracker, useNonInitialEffect } f
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import {
-  ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES,
   DescribeGlobalSObjectResult,
   DescribeSObjectResult,
   ListItem,
@@ -31,7 +30,7 @@ import {
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, useAnalytics } from '@jetstream/ui-core';
 import { EditFromErrors, handleEditFormErrorResponse, transformEditForm, validateEditForm } from '@jetstream/ui-core/shared';
-import { applicationCookieState, selectedOrgState, useCanPerformOperation } from '@jetstream/ui/app-state';
+import { applicationCookieState, selectedOrgState, useOperationAccess } from '@jetstream/ui/app-state';
 import { recordSingleRecordAction, SingleRecordActionContext } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
@@ -45,7 +44,7 @@ export const CreateRecords = () => {
 
   const { defaultApiVersion } = useAtomValue(applicationCookieState);
   const selectedOrg = useAtomValue(selectedOrgState);
-  const canWriteRecords = useCanPerformOperation('records.write');
+  const writeAccess = useOperationAccess('records.write');
   const [formKey, setFormKey] = useState(0);
 
   const [loading, setLoading] = useState<boolean>(false);
@@ -322,8 +321,8 @@ export const CreateRecords = () => {
             )}
             <button
               className="slds-button slds-button_brand"
-              disabled={!selectedObject || !canWriteRecords}
-              title={canWriteRecords ? undefined : ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['records.write']}
+              disabled={!selectedObject || !writeAccess.allowed}
+              title={writeAccess.deniedReason}
               onClick={() => handleSave()}
             >
               Save

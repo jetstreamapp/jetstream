@@ -4,7 +4,7 @@ import { setItemInLocalStorage } from '@jetstream/shared/ui-utils';
 import { orderValues } from '@jetstream/shared/utils';
 import { ContextMenuItem } from '@jetstream/types';
 import type { RenderCellProps, RowHeightArgs, SortColumn } from '@jetstream/ui';
-import { AutoFullHeightContainer, ColumnWithFilter, ContextMenuActionData, DataTree, NO_TABLE_CONTEXT_MENU_ITEMS } from '@jetstream/ui';
+import { AutoFullHeightContainer, ColumnWithFilter, ContextMenuActionData, DataTree } from '@jetstream/ui';
 import { STORAGE_KEYS, useCanPerformOperation } from '@jetstream/ui/app-state';
 import copyToClipboard from 'copy-to-clipboard';
 import groupBy from 'lodash/groupBy';
@@ -162,7 +162,8 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
         onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
         rowHeight={getRowHeight}
         initialSortColumns={initialSortColumns}
-        contextMenuItems={canExportRecords ? TABLE_CONTEXT_MENU_ITEMS : NO_TABLE_CONTEXT_MENU_ITEMS}
+        contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
+        allowCopy={canExportRecords}
         contextMenuAction={(item, data) => handleContextMenuAction(item as ContextMenuItem<ContextEventAction>, data)}
         onSortColumnsChange={(order) => setItemInLocalStorage(STORAGE_KEYS.PLATFORM_EVENT_SORT_COLUMNS, JSON.stringify(order))}
       />

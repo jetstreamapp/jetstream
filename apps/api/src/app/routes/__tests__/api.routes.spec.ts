@@ -6,14 +6,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import routes from '../api.routes';
 
 const mocks = vi.hoisted(() => ({
-  findAccessProfileFingerprint: vi.fn(),
+  findActiveTeamAccessProfile: vi.fn(),
   getAnnouncements: vi.fn(),
   sendJson: vi.fn(),
 }));
 
 vi.mock('../../db/user.db', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../db/user.db')>()),
-  findAccessProfileFingerprint: mocks.findAccessProfileFingerprint,
+  findActiveTeamAccessProfile: mocks.findActiveTeamAccessProfile,
 }));
 vi.mock('../../announcements', () => ({ getAnnouncements: mocks.getAnnouncements }));
 vi.mock('../../utils/response.handlers', async (importOriginal) => ({
@@ -40,16 +40,16 @@ describe('GET /heartbeat', () => {
   });
 
   it("includes the signed-in user's access profile fingerprint", async () => {
-    mocks.findAccessProfileFingerprint.mockResolvedValue('profile-1:3');
+    mocks.findActiveTeamAccessProfile.mockResolvedValue({ id: 'profile-1', version: 3, policy: {} });
 
     const { res } = await invokeHeartbeat({ id: 'user-1' });
 
-    expect(mocks.findAccessProfileFingerprint).toHaveBeenCalledWith({ userId: 'user-1' });
+    expect(mocks.findActiveTeamAccessProfile).toHaveBeenCalledWith({ userId: 'user-1' });
     expect(mocks.sendJson).toHaveBeenCalledWith(res, expect.objectContaining({ accessProfileFingerprint: 'profile-1:3' }));
   });
 
   it('reports full access for a user without a profile', async () => {
-    mocks.findAccessProfileFingerprint.mockResolvedValue('FULL_ACCESS');
+    mocks.findActiveTeamAccessProfile.mockResolvedValue(null);
 
     const { res } = await invokeHeartbeat({ id: 'user-1' });
 
@@ -59,14 +59,14 @@ describe('GET /heartbeat', () => {
   it('omits the fingerprint when there is no signed-in user', async () => {
     const { res } = await invokeHeartbeat();
 
-    expect(mocks.findAccessProfileFingerprint).not.toHaveBeenCalled();
+    expect(mocks.findActiveTeamAccessProfile).not.toHaveBeenCalled();
     const [sentRes, appInfo] = mocks.sendJson.mock.calls[0];
     expect(sentRes).toBe(res);
     expect(appInfo.accessProfileFingerprint).toBeUndefined();
   });
 
   it('still responds, without a fingerprint, when the lookup fails', async () => {
-    mocks.findAccessProfileFingerprint.mockRejectedValue(new Error('database unavailable'));
+    mocks.findActiveTeamAccessProfile.mockRejectedValue(new Error('database unavailable'));
 
     const { res } = await invokeHeartbeat({ id: 'user-1' });
 

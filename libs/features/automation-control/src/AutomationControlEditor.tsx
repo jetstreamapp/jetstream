@@ -2,14 +2,7 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useGoBackShortcut, usePrimaryActionShortcut, useTitle } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import {
-  ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES,
-  FileExtAllTypes,
-  ListMetadataResult,
-  Maybe,
-  MimeType,
-  RetrievePackageFromListMetadataJob,
-} from '@jetstream/types';
+import { FileExtAllTypes, ListMetadataResult, Maybe, MimeType, RetrievePackageFromListMetadataJob } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Badge,
@@ -34,7 +27,7 @@ import {
   googleDriveAccessState,
   selectSkipFrontdoorAuth,
   selectedOrgState,
-  useCanPerformOperation,
+  useOperationAccess,
 } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
@@ -72,7 +65,7 @@ export const AutomationControlEditor = () => {
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontdoorLogin = useAtomValue(selectSkipFrontdoorAuth);
-  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
+  const deployAccess = useOperationAccess('metadata.deploy');
 
   const selectedSObjects = useAtomValue(fromAutomationControlState.selectedSObjectsState);
   const selectedAutomationTypes = useAtomValue(fromAutomationControlState.selectedAutomationTypes);
@@ -135,7 +128,7 @@ export const AutomationControlEditor = () => {
     trackEvent(ANALYTICS_KEYS.automation_review, { rows: _dirtyRows.length, objects: selectedSObjects.length });
   }
 
-  const reviewChangesDisabled = loading || !dirtyCount || !canDeployMetadata;
+  const reviewChangesDisabled = loading || !dirtyCount || !deployAccess.allowed;
 
   usePrimaryActionShortcut(handleReviewChanges, { disabled: reviewChangesDisabled });
 
@@ -373,12 +366,10 @@ export const AutomationControlEditor = () => {
           <Tooltip
             openDelay={500}
             content={
-              canDeployMetadata ? (
+              deployAccess.deniedReason ?? (
                 <div className="slds-p-bottom_small">
                   <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
                 </div>
-              ) : (
-                ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['metadata.deploy']
               )
             }
           >

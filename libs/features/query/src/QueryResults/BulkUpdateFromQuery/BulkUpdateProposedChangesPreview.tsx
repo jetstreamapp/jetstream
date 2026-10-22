@@ -9,7 +9,6 @@ import {
   FileDownloadModal,
   Grid,
   Icon,
-  NO_TABLE_CONTEXT_MENU_ITEMS,
   RowWithKey,
   setColumnFromType,
 } from '@jetstream/ui';
@@ -181,8 +180,7 @@ export const BulkUpdateProposedChangesPreview: FunctionComponent<BulkUpdatePropo
             getRowKey={getRowKey}
             rowHeight={25}
             context={{ defaultApiVersion }}
-            // Omitting the items keeps the grid's standard copy menu, an empty list removes it
-            contextMenuItems={canExportRecords ? undefined : NO_TABLE_CONTEXT_MENU_ITEMS}
+            allowCopy={canExportRecords}
           />
         </AutoFullHeightContainer>
       </div>
