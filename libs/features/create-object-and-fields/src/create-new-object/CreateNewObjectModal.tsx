@@ -16,7 +16,13 @@ import {
   TabsRef,
   Tooltip,
 } from '@jetstream/ui';
-import { ConfirmPageChange, DeployMetadataProgressSummary, DeployMetadataResultsTables, useAmplitude } from '@jetstream/ui-core';
+import {
+  ConfirmPageChange,
+  DeployMetadataProgressSummary,
+  DeployMetadataResultsTables,
+  OrgLabelBadge,
+  useAmplitude,
+} from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent, useRef, useState } from 'react';
@@ -118,6 +124,11 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
         closeOnBackdropClick={false}
         closeDisabled={loading}
         header="Create Object"
+        tagline={
+          <>
+            The object will be created or updated in <OrgLabelBadge org={selectedOrg} />
+          </>
+        }
         footer={
           <Grid align="end">
             <div>

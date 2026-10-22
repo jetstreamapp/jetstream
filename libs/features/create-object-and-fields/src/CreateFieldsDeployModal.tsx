@@ -7,6 +7,7 @@ import {
   ConfirmPageChange,
   FieldValues,
   fromJetstreamEvents,
+  OrgLabelBadge,
   prepareDownloadResultsFile,
   useAmplitude,
   useCreateFields,
@@ -136,7 +137,8 @@ export const CreateFieldsDeployModal = ({
           tagline={
             <Fragment>
               <Icon type="utility" icon="info" className="slds-icon slds-icon-text-default slds-icon_xx-small cursor-pointer" />
-              <span className="slds-m-left_xx-small">New fields will be created and existing fields will be updated.</span>
+              <span className="slds-m-left_xx-small">New fields will be created and existing fields will be updated in</span>
+              <OrgLabelBadge org={selectedOrg} />
             </Fragment>
           }
           footer={
