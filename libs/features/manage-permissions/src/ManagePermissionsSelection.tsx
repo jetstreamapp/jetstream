@@ -325,27 +325,28 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
                 </button>
               </Tooltip>
             )}
+            {/* Each button must be a direct child so PageHeaderActions gives it its own control wrapper and spacing */}
             {!isAnalysis && (
-              <>
-                <button
-                  type="button"
-                  className="slds-button slds-button_neutral"
-                  disabled={!permissionListsLoaded}
-                  onClick={() => setCreatePermissionSetStartFrom('blank')}
-                >
-                  <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  New Permission Set
-                </button>
-                <button
-                  type="button"
-                  className="slds-button slds-button_neutral"
-                  disabled={!permissionListsLoaded}
-                  onClick={() => setCreatePermissionSetStartFrom('clone')}
-                >
-                  <Icon type="utility" icon="copy" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  Clone
-                </button>
-              </>
+              <button
+                type="button"
+                className="slds-button slds-button_neutral"
+                disabled={!permissionListsLoaded}
+                onClick={() => setCreatePermissionSetStartFrom('blank')}
+              >
+                <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
+                New Permission Set
+              </button>
+            )}
+            {!isAnalysis && (
+              <button
+                type="button"
+                className="slds-button slds-button_neutral"
+                disabled={!permissionListsLoaded}
+                onClick={() => setCreatePermissionSetStartFrom('clone')}
+              >
+                <Icon type="utility" icon="copy" className="slds-button__icon slds-button__icon_left" omitContainer />
+                Clone
+              </button>
             )}
             {!isAnalysis && analysisToolsEnabled && (
               <Link className="slds-button slds-button_neutral" to={APP_ROUTES.PERMISSION_ANALYSIS.ROUTE}>
