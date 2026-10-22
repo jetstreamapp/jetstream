@@ -5,6 +5,7 @@ import Icon from '../../widgets/Icon';
 export interface FormRowButtonProps {
   title: string;
   icon: IconObj;
+  disabled?: boolean;
   onClick: () => void;
   children?: React.ReactNode;
 }
@@ -13,12 +14,17 @@ export interface FormRowButtonProps {
  * This is used when a button is inline on a form where there needs to be top-margin to align with the inputs
  * (e.x. ExpressionConditionRow)
  */
-export const FormRowButton: FunctionComponent<FormRowButtonProps> = ({ title, icon, onClick }) => {
+export const FormRowButton: FunctionComponent<FormRowButtonProps> = ({ title, icon, disabled, onClick }) => {
   return (
     <div className="slds-form-element">
       <span className="slds-form-element__label" style={{ marginTop: `15px` }} />
       <div className="slds-form-element__control">
-        <button className="slds-button slds-button_icon slds-button_icon-border-filled" title={title} onClick={() => onClick()}>
+        <button
+          className="slds-button slds-button_icon slds-button_icon-border-filled"
+          title={title}
+          disabled={disabled}
+          onClick={() => onClick()}
+        >
           <Icon type={icon.type} icon={icon.icon} description={icon.description || title} className="slds-button__icon" omitContainer />
         </button>
       </div>
