@@ -12,3 +12,12 @@
 .slds-modal {
   app-region: no-drag;
 }
+
+/*
+ * Toasts sit at the top of the window over the header, so the whole toast box (not just its content and
+ * close button) is carved out of the drag region. This only takes effect because AppToast is rendered after
+ * the header in app.tsx - Electron applies drag/no-drag rects in document order, last one wins.
+ */
+.slds-notify_toast {
+  app-region: no-drag;
+}
