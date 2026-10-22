@@ -326,6 +326,15 @@ export interface ExpressionConditionRowSelectedItems<T = any> {
   operator: QueryFilterOperator | null;
   resourceType?: ExpressionRowValueType;
   value: string | string[];
+  /** Set when `function` is FORMULA, the row then compares `resource <formula.operator> formula.resource` to the value */
+  formula?: ExpressionConditionFormulaOperand;
+}
+
+export interface ExpressionConditionFormulaOperand<T = any> {
+  operator: '+' | '-';
+  resource: string | null;
+  resourceMeta?: T;
+  resourceGroup: string | null;
 }
 
 export interface ExpressionConditionHelpText {
@@ -343,6 +352,13 @@ export interface ExpressionGetResourceTypeFns {
   checkSelected?: (selected: ExpressionConditionRowSelectedItems) => ExpressionConditionRowSelectedItems;
   // used if getType returns select, which shows the user a dropdown
   getSelectItems: (selected: ExpressionConditionRowSelectedItems) => ListItem[] | undefined;
+  // used to limit which functions are offered for the selected resource, the function dropdown is hidden when none remain
+  filterFunctions?: (
+    selected: ExpressionConditionRowSelectedItems,
+    functions: ListItem<string, QueryFilterOperator>[],
+  ) => ListItem<string, QueryFilterOperator>[];
+  // used to limit which resources are offered as the second operand of a FORMULA() row, based on the first resource
+  isFormulaOperandAllowed?: (selected: ExpressionConditionRowSelectedItems, item: ListItem) => boolean;
 }
 
 export type QueryFilterOperator =
