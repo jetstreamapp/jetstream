@@ -49,3 +49,14 @@ export function openSettingsWindow(section?: Maybe<string>): BrowserWindow {
   });
   return settingsWindow;
 }
+
+/** Closes the Settings window when it is the only window left, since it has no way back into the rest of the app */
+export function closeSettingsWindowIfAlone() {
+  if (!settingsWindow || settingsWindow.isDestroyed()) {
+    return;
+  }
+  const hasAppWindow = BrowserWindow.getAllWindows().some((window) => window !== settingsWindow && !window.isDestroyed());
+  if (!hasAppWindow) {
+    settingsWindow.close();
+  }
+}
