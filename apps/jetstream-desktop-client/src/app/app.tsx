@@ -34,7 +34,6 @@ export const App = () => {
               <ThemeApplier />
               <ModalContainer />
               <AppStateResetOnOrgChange />
-              <AppToast />
               <LogInitializer />
               <NotificationsRequestModal loadDelay={10000} />
               <DownloadFileStreamDesktop />
@@ -65,6 +64,8 @@ export const App = () => {
                   </Suspense>
                 </div>
               </div>
+              {/* Keep after the header so toast no-drag rects override its drag rect (see main.css) */}
+              <AppToast />
             </AppInitializer>
           )}
         </Login>

@@ -165,7 +165,7 @@ export const UserFeedbackPopover = () => {
       setScreenshots([]);
       claimedScreenshotSlotsRef.current = 0;
       popoverRef.current?.close();
-      fireToast({ message: 'Thanks for the feedback! We read every message.', type: 'success' });
+      fireToast({ message: 'Thanks for the feedback!', type: 'success' });
     } catch (ex) {
       logger.error('[UserFeedbackPopover] Error submitting feedback', ex);
       setErrorMessage('Your feedback could not be sent. Please try again.');
