@@ -55,7 +55,7 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
         if (!searchTerm) {
           records = await queryRecords();
         } else {
-          const idCondition = `Id = '${searchTerm}'`;
+          const idCondition = `Id = '${escapeSoqlString(searchTerm)}'`;
           const nameCondition = `${name} LIKE '%${escapeSoqlString(searchTerm)}%'`;
           if (!isValidSalesforceRecordId(searchTerm)) {
             records = await queryRecords(nameCondition);
