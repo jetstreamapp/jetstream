@@ -24,6 +24,7 @@ import {
   Checkbox,
   ConnectedSobjectListMultiSelect,
   Grid,
+  HiddenProfilesNotice,
   Icon,
   KeyboardShortcut,
   ListWithFilterMultiSelect,
@@ -37,7 +38,6 @@ import {
   Tooltip,
   fireToast,
   getModifierKey,
-  HiddenProfilesNotice,
 } from '@jetstream/ui';
 import {
   PermissionAnalysisHistoryModal,
@@ -53,6 +53,7 @@ import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { CreatePermissionSetModal, CreatePermissionSetStartFrom } from './CreatePermissionSetModal';
 import { usePermissionableSobjects } from './usePermissionableSobjects';
 import { useShowManagedPermissionSets } from './useShowManagedPermissionSets';
 import { getPermissionsSobjectFilter } from './utils/permission-manager-utils';
@@ -140,6 +141,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   const resetSystemPermissionMap = useResetAtom(fromPermissionsState.systemPermissionMap);
 
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [createPermissionSetStartFrom, setCreatePermissionSetStartFrom] = useState<CreatePermissionSetStartFrom | null>(null);
 
   const jobs = useAtomValue(jobsState);
 
@@ -211,6 +213,18 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
     resetSystemPermissionMap();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProfiles, selectedPermissionSets, selectedSObjects]);
+
+  /** Cloning starts from the current selection when exactly one profile or permission set is selected */
+  const singleSelectedCloneSourceId =
+    selectedProfiles.length + selectedPermissionSets.length === 1 ? selectedProfiles[0] || selectedPermissionSets[0] : null;
+
+  function handleCreatePermissionSetClose(createdPermissionSetId?: string) {
+    setCreatePermissionSetStartFrom(null);
+    if (createdPermissionSetId) {
+      setSelectedPermissionSets((previouslySelected) => [...previouslySelected, createdPermissionSetId]);
+      profilesAndPermSetsData.fetchMetadata(true);
+    }
+  }
 
   function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[] | null) {
     setSobjects(sobjects);
@@ -311,6 +325,28 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
                 </button>
               </Tooltip>
             )}
+            {!isAnalysis && (
+              <>
+                <button
+                  type="button"
+                  className="slds-button slds-button_neutral"
+                  disabled={!permissionListsLoaded}
+                  onClick={() => setCreatePermissionSetStartFrom('blank')}
+                >
+                  <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  New Permission Set
+                </button>
+                <button
+                  type="button"
+                  className="slds-button slds-button_neutral"
+                  disabled={!permissionListsLoaded}
+                  onClick={() => setCreatePermissionSetStartFrom('clone')}
+                >
+                  <Icon type="utility" icon="copy" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Clone
+                </button>
+              </>
+            )}
             {!isAnalysis && analysisToolsEnabled && (
               <Link className="slds-button slds-button_neutral" to={APP_ROUTES.PERMISSION_ANALYSIS.ROUTE}>
                 Open in Permission Analysis
@@ -393,6 +429,16 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
             setIsHistoryOpen(false);
             navigate(`analysis?job=${encodeURIComponent(nextJobId)}`);
           }}
+        />
+      )}
+      {createPermissionSetStartFrom && selectedOrg && (
+        <CreatePermissionSetModal
+          selectedOrg={selectedOrg}
+          profiles={profiles || []}
+          permissionSets={(permissionSets || []).concat(managedPermissionSets || [])}
+          initialStartFrom={createPermissionSetStartFrom}
+          initialCloneSourceId={createPermissionSetStartFrom === 'clone' ? singleSelectedCloneSourceId : null}
+          onClose={handleCreatePermissionSetClose}
         />
       )}
       <AutoFullHeightContainer

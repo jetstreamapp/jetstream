@@ -38,6 +38,28 @@ there with the **Open in Permission Analysis** button on this screen.
 
 :::
 
+## Creating and cloning permission sets
+
+Click **New Permission Set** to create an empty permission set, or **Clone** to create one that starts with every
+permission from an existing profile or permission set. If exactly one profile or permission set is selected when you
+click **Clone**, it is chosen as the starting point.
+
+Cloning copies object permissions, field permissions, tab settings, system permissions, and access to Apex classes,
+Visualforce pages, apps, connected apps and custom permissions. The license and session activation setting default to
+match what you are cloning, and you can change them before you save. Cloning a managed permission set gives you an
+editable copy of it.
+
+When it finishes, the new permission set is selected so you can start editing its permissions straight away.
+
+:::note
+
+Profiles can have permissions that permission sets cannot, and some permissions are only allowed with a specific
+license. Anything Salesforce does not allow is skipped. Jetstream lists each one with the reason Salesforce gave, so you
+can see exactly what was not copied. Profile-only settings like page layout assignments, record type defaults, login
+hours and login IP ranges are not part of a permission set, so they are never copied.
+
+:::
+
 ## Comparing against managed package permission sets
 
 Permission sets installed from a managed package, and the standard permission sets Salesforce provides (such as

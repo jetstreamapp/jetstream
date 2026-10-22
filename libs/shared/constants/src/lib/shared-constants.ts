@@ -244,6 +244,7 @@ export const ANALYTICS_KEYS = {
   permission_manager_assignments_saved: 'permission_manager_assignments_saved',
   permission_manager_field_audit_columns_toggled: 'permission_manager_field_audit_columns_toggled',
   permission_manager_managed_perm_sets_toggled: 'permission_manager_managed_perm_sets_toggled',
+  permission_manager_permission_set_created: 'permission_manager_permission_set_created',
   /** USER SEARCH MODAL */
   user_search_opened: 'user_search_opened',
   user_search_view_user: 'user_search_view_user',
