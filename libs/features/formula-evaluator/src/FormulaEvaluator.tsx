@@ -49,11 +49,18 @@ import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { FormulaEvaluatorDeployModal } from './deploy/FormulaEvaluatorDeployModal';
 
+/**
+ * Salesforce does not allow formula fields on custom metadata types or custom settings,
+ * but formulas can still be tested against their records.
+ */
+function isCustomMetadataOrSetting({ name, customSetting }: DescribeGlobalSObjectResult): boolean {
+  return customSetting || name.endsWith('__mdt');
+}
+
 export function filterSobjectFn(sobject: DescribeGlobalSObjectResult): boolean {
   return (
-    sobject.triggerable &&
+    (sobject.triggerable || isCustomMetadataOrSetting(sobject)) &&
     !sobject.deprecatedAndHidden &&
-    !sobject.customSetting &&
     !sobject.name.endsWith('ChangeEvent') &&
     !sobject.name.endsWith('ChgEvent') &&
     !sobject.name.endsWith('__History') &&
@@ -94,7 +101,8 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
     returnType: fromFormulaState.FormulaReturnTypeWithEmptyState;
   } | null>(null);
 
-  const deployFormulaDisabled = loading || !selectedSObject || !formulaValue;
+  const formulaFieldsNotSupported = !!selectedSObject && isCustomMetadataOrSetting(selectedSObject);
+  const deployFormulaDisabled = loading || !selectedSObject || !formulaValue || formulaFieldsNotSupported;
   const testFormulaDisabled = loading || !selectedSObject || !selectedUserId || !recordId || !formulaValue;
 
   const monaco = useMonaco();
@@ -320,6 +328,11 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                   className="slds-grow"
                   isRequired
                   label="Select an Object"
+                  helpText={
+                    formulaFieldsNotSupported
+                      ? 'Formula fields cannot be deployed to custom metadata types or custom settings, but you can test formulas against their records.'
+                      : undefined
+                  }
                   selectedOrg={selectedOrg}
                   selectedSObject={selectedSObject}
                   disabled={loading}
