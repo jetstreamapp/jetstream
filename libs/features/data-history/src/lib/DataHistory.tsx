@@ -2,7 +2,14 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { isBrowserExtension, isCanvasApp, setItemInLocalStorage, useTitle } from '@jetstream/shared/ui-utils';
+import {
+  isBrowserExtension,
+  isCanvasApp,
+  isDesktop,
+  openDesktopSettings,
+  setItemInLocalStorage,
+  useTitle,
+} from '@jetstream/shared/ui-utils';
 import { DataHistoryItem } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -329,6 +336,11 @@ export const DataHistory: FunctionComponent = () => {
                   <Icon type="utility" icon="settings" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Data History Settings
                 </a>
+              ) : isDesktop() ? (
+                <button className="slds-button slds-button_neutral" onClick={() => openDesktopSettings('data-storage')}>
+                  <Icon type="utility" icon="settings" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Data History Settings
+                </button>
               ) : (
                 <Link className="slds-button slds-button_neutral" to={APP_ROUTES.SETTINGS.ROUTE}>
                   <Icon type="utility" icon="settings" className="slds-button__icon slds-button__icon_left" omitContainer />

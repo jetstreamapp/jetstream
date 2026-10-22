@@ -21,6 +21,7 @@ import { jwtDecode } from 'jwt-decode';
 import { ResponseBodyError } from 'oauth4webapi';
 import { Method } from 'tiny-request-router';
 import { z } from 'zod';
+import { openSettingsWindow } from '../browser/settings-window';
 import { checkForUpdates, getCurrentUpdateStatus, getUpdatePolicy, installUpdate, refreshUpdatePolicy } from '../config/auto-updater';
 import { ENV } from '../config/environment';
 import { initMainErrorTracker } from '../config/error-tracker';
@@ -37,6 +38,7 @@ import {
 import { deepLink } from './deep-link.service';
 import { downloadAndZipFilesToDisk, downloadBulkApiFileAndSaveToDisk } from './file-download.service';
 import * as dataService from './persistence.service';
+import { broadcastPreferencesChanged } from './preferences-broadcast.service';
 import { initConnectionFromOAuthResponse } from './sfdc-oauth.service';
 
 type MainIpcHandler<Key extends keyof ElectronApiRequestResponse> = (
@@ -119,7 +121,7 @@ const handleGetDataHistoryFolder: MainIpcHandler<'getDataHistoryFolder'> = async
   return getDataHistoryFolderPath();
 };
 
-const handlePickDataHistoryFolder: MainIpcHandler<'pickDataHistoryFolder'> = async () => {
+const handlePickDataHistoryFolder: MainIpcHandler<'pickDataHistoryFolder'> = async (event) => {
   // The chosen path deliberately never transits the renderer: the dialog is shown AND applied here
   // in the main process, so a compromised renderer cannot silently redirect all history (existing
   // and future Salesforce data) to a path it chose — only a real user gesture in the OS dialog can.
@@ -131,7 +133,9 @@ const handlePickDataHistoryFolder: MainIpcHandler<'pickDataHistoryFolder'> = asy
   if (result.canceled) {
     return null;
   }
-  return await setDataHistoryFolderPath(result.filePaths[0]);
+  const folderPath = await setDataHistoryFolderPath(result.filePaths[0]);
+  broadcastPreferencesChanged(dataService.getUserPreferences(), { exclude: event.sender });
+  return folderPath;
 };
 
 const handleOpenFile: MainIpcHandler<'openFile'> = async (_event, filePath: string): Promise<void> => {
@@ -167,6 +171,7 @@ export function registerIpc(): void {
   registerHandler('selectFolder', handleSelectFolderEvent);
   registerHandler('getPreferences', handleGetPreferences);
   registerHandler('setPreferences', handleSetPreferences);
+  registerHandler('openSettings', handleOpenSettings);
   registerHandler('configureCrashReporter', handleConfigureCrashReporter);
   // Handle API requests to Salesforce
   registerHandler('request', handleRequestEvent);
@@ -205,7 +210,7 @@ const handleGetPreferences: MainIpcHandler<'getPreferences'> = async () => {
   return dataService.getUserPreferences();
 };
 
-const handleSetPreferences: MainIpcHandler<'setPreferences'> = async (_, payload) => {
+const handleSetPreferences: MainIpcHandler<'setPreferences'> = async (event, payload) => {
   // `dataHistoryFolder` is owned by the main process — only `pickDataHistoryFolder` (an OS folder
   // dialog the user drives) may set it, and the renderer is deliberately never told the path (see
   // that handler). The renderer round-trips its whole preferences snapshot through here on every
@@ -213,10 +218,16 @@ const handleSetPreferences: MainIpcHandler<'setPreferences'> = async (_, payload
   // at the old folder — and any renderer code could aim all history I/O at an arbitrary path.
   const { dataHistoryFolder: _mainProcessOwned, ...rendererPreferences } = payload;
   const updatedPreferences = dataService.updateUserPreferences(rendererPreferences);
+  broadcastPreferencesChanged(updatedPreferences, { exclude: event.sender });
   // Start or stop the background update timers immediately, so the toggle takes effect without a
   // restart. An administrator policy still wins - refreshing re-applies the full precedence chain.
   await refreshUpdatePolicy();
   return updatedPreferences;
+};
+
+const handleOpenSettings: MainIpcHandler<'openSettings'> = async (_, payload) => {
+  // The section only becomes a URL hash on the app's own page, but anything other than a string is ignored
+  openSettingsWindow(typeof payload?.section === 'string' ? payload.section : null);
 };
 
 const handleConfigureCrashReporter: MainIpcHandler<'configureCrashReporter'> = async (_, dsn) => {

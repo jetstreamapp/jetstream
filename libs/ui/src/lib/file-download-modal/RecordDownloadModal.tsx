@@ -68,6 +68,7 @@ import {
   RADIO_SELECTED,
   saveFileFormatToStorage,
 } from './download-modal-utils';
+import { DesktopDownloadLocationNote } from './options/DesktopDownloadLocationNote';
 
 /** All formats the modal can produce - the load template format is only offered when `loadTemplateOption` is provided */
 export type RecordDownloadFileFormat = FileExtCsvXLSXJsonGSheet | typeof RADIO_FORMAT_XLSX_LOAD_TEMPLATE;
@@ -839,6 +840,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 onKeyUp={handleKeyUp}
               />
             </Input>
+            {fileFormat !== RADIO_FORMAT_GDRIVE && <DesktopDownloadLocationNote />}
           </div>
         </Modal>
       )}

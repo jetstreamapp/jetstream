@@ -47,6 +47,7 @@ import {
   RADIO_FORMAT_ZIP,
   saveFileFormatToStorage,
 } from './download-modal-utils';
+import { DesktopDownloadLocationNote } from './options/DesktopDownloadLocationNote';
 import FileDownloadGoogle from './options/FileDownloadGoogle';
 
 type TransformDataParams = TransformDataCsvXlsx | TransformDataJson;
@@ -412,6 +413,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
             onKeyUp={handleKeyUp}
           />
         </Input>
+        {fileFormat !== RADIO_FORMAT_GDRIVE && <DesktopDownloadLocationNote />}
       </div>
     </Modal>
   );

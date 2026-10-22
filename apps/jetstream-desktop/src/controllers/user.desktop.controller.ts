@@ -2,6 +2,7 @@ import { DesktopUserPreferencesSchema } from '@jetstream/desktop/types';
 import { z } from 'zod';
 import { ENV } from '../config/environment';
 import * as dataService from '../services/persistence.service';
+import { broadcastPreferencesChanged } from '../services/preferences-broadcast.service';
 import { getDesktopRequestHeaders } from '../utils/request-headers.utils';
 import { createRoute, handleErrorResponse, handleJsonResponse, RouteValidator } from '../utils/route.utils';
 
@@ -49,7 +50,7 @@ const getUserProfile = createRoute(routeDefinition.getUserProfile.validators, as
 
 const updateProfile = createRoute(routeDefinition.updateProfile.validators, async ({ body }) => {
   try {
-    dataService.updateUserPreferences(body.preferences);
+    broadcastPreferencesChanged(dataService.updateUserPreferences(body.preferences));
     const userProfile = dataService.getFullUserProfile();
 
     return handleJsonResponse(userProfile);

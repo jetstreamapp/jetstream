@@ -19,6 +19,9 @@ import { z } from 'zod';
  * and can be used in the preload script to communicate with the main process.
  */
 
+/** Query param on the client URL that tells the renderer it is the standalone Settings window */
+export const SETTINGS_WINDOW_PARAM = { name: 'window', value: 'settings' } as const;
+
 export const IpcEventChannel = {
   action: 'action',
   authenticate: 'authenticate',
@@ -30,7 +33,7 @@ export const IpcEventChannel = {
   orgAdded: 'org-added',
   toastMessage: 'toast-message',
   updateStatus: 'update-status',
-  openSettings: 'open-settings',
+  preferencesChanged: 'preferences-changed',
   googlePickerResult: 'google-picker-result',
   crashReportingChanged: 'crash-reporting-changed',
 } as const;
@@ -42,7 +45,8 @@ export interface ElectronApiCallback {
   onOrgAdded: (payload: (org: SalesforceOrgUi) => void) => () => void;
   onToastMessage: (callback: (message: { type: InfoSuccessWarningError; message: string; duration?: number }) => void) => () => void;
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
-  onOpenSettings: (callback: () => void) => () => void;
+  /** Fires in every other window when the stored preferences change, with the full saved result */
+  onPreferencesChanged: (callback: (preferences: DesktopUserPreferences) => void) => () => void;
   onGooglePickerResult: (callback: (result: GooglePickerResult) => void) => () => void;
   onCrashReportingChanged: (callback: (enabled: boolean) => void) => () => void;
 }
@@ -84,6 +88,8 @@ export interface ElectronApiRequestResponse {
   getPreferences: () => Promise<DesktopUserPreferences>;
   /** Merges the given preferences into the stored ones and resolves to the full result */
   setPreferences: (preferences: Partial<DesktopUserPreferences>) => Promise<DesktopUserPreferences>;
+  /** Opens the Settings window, or focuses it when it is already open, scrolled to `section` when given */
+  openSettings: (payload?: { section?: Maybe<string> }) => Promise<void>;
   /**
    * Hand the (public, build-time-baked) error-tracking DSN from the renderer to the main process so
    * it can initialize crash reporting for the Node/Electron main process.

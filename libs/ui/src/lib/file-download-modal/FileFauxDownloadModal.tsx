@@ -29,6 +29,7 @@ import {
   RADIO_FORMAT_ZIP,
   saveFileFormatToStorage,
 } from './download-modal-utils';
+import { DesktopDownloadLocationNote } from './options/DesktopDownloadLocationNote';
 import FileDownloadGoogle from './options/FileDownloadGoogle';
 
 export interface FileFauxDownloadModalProps {
@@ -288,6 +289,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
             onKeyUp={handleKeyUp}
           />
         </Input>
+        {fileFormat !== RADIO_FORMAT_GDRIVE && <DesktopDownloadLocationNote />}
       </div>
     </Modal>
   );

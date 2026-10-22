@@ -15,26 +15,44 @@ log.initialize({
 
 const clientUrl = new URL(ENV.CLIENT_URL);
 
+export interface BrowserWindowOptions {
+  /** Defaults to the app's home page */
+  url?: string;
+  /** Overrides for the default window config */
+  windowConfig?: Electron.BrowserWindowConstructorOptions;
+  /** Defaults to true - the main app window opens maximized */
+  maximize?: boolean;
+  /** Defaults to true - in local development the window opens with DevTools docked */
+  openDevTools?: boolean;
+}
+
 export class Browser {
   public static get nativeIcon(): Electron.NativeImage {
     const icon = isMac() ? path.resolve(__dirname, './assets/icons/icon.icns') : path.resolve(__dirname, './assets/icons/icon.png');
     return nativeImage.createFromPath(icon);
   }
 
-  public static create(callback?: () => void): BrowserWindow {
+  public static create(callback?: () => void, options?: BrowserWindowOptions): BrowserWindow {
     const browser = new Browser();
-    const _browser = browser.createBrowserWindow();
+    const _browser = browser.createBrowserWindow(options);
     if (callback) {
       callback();
     }
     return _browser;
   }
 
-  public createBrowserWindow(): BrowserWindow {
+  public createBrowserWindow({
+    url = ENV.CLIENT_URL,
+    windowConfig,
+    maximize = true,
+    openDevTools = true,
+  }: BrowserWindowOptions = {}): BrowserWindow {
     const icon = Browser.nativeIcon;
-    const browserWindow = new BrowserWindow(getWindowConfig(icon));
-    browserWindow.loadURL(ENV.CLIENT_URL);
-    browserWindow.maximize();
+    const browserWindow = new BrowserWindow(getWindowConfig(icon, windowConfig));
+    browserWindow.loadURL(url);
+    if (maximize) {
+      browserWindow.maximize();
+    }
 
     browserWindow.webContents.on('context-menu', this.createContextMenu(browserWindow));
 
@@ -99,7 +117,7 @@ export class Browser {
       // A local-dev convenience only. Docked DevTools claims most of the window width, which
       // collapses the responsive navbar into its "More" overflow menu, and Playwright counts the
       // DevTools view as a second application window - both break the desktop E2E suite.
-      if (ENV.ENVIRONMENT === 'development' && !ENV.AUTOMATED_TESTING) {
+      if (openDevTools && ENV.ENVIRONMENT === 'development' && !ENV.AUTOMATED_TESTING) {
         browserWindow.webContents.openDevTools();
       }
     });

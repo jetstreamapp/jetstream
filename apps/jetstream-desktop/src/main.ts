@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron';
 import logger from 'electron-log';
 import { Browser } from './browser/browser';
+import { closeSettingsWindowIfAlone } from './browser/settings-window';
 import { initializeAutoUpdater } from './config/auto-updater';
 import { ENV } from './config/environment';
 import { initializeSmokeTest } from './config/smoke-test';
@@ -32,6 +33,17 @@ app.on('window-all-closed', () => {
   if (!isMac()) {
     app.quit();
   }
+});
+
+// Windows and Linux quit when the last window closes, so Settings closes with the last app window rather than
+// keeping the app running on its own. macOS keeps it open, like a native Settings window - the dock and
+// File > New Window lead back to the app.
+app.on('browser-window-created', (_, window) => {
+  window.on('closed', () => {
+    if (!isMac()) {
+      closeSettingsWindowIfAlone();
+    }
+  });
 });
 
 logger.info({
