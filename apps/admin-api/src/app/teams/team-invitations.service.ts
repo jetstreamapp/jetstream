@@ -2,7 +2,7 @@ import { AdminSessionUser, SendTeamInvitationRequest, TeamInvitationItem } from 
 import { prisma } from '@jetstream/api-config';
 import { AuditLogAction, AuditLogResource, createAuditLog } from '@jetstream/audit-logs';
 import { sendTeamInviteEmail } from '@jetstream/email';
-import { assertSeatAvailable, isBillableRole, withTeamSeatLock } from '@jetstream/team-seats';
+import { assertSeatAvailable, findDefaultAccessProfileId, isBillableRole, withTeamSeatLock } from '@jetstream/team-seats';
 import { addDays } from 'date-fns';
 import { ConflictError, NotFoundError, RequestMetadata } from '../utils/route.utils';
 
@@ -87,9 +87,11 @@ export async function sendTeamInvitation(
     }
 
     const now = new Date();
+    // Same as invitations sent from the Team Dashboard without an explicit profile
+    const accessProfileId = await findDefaultAccessProfileId(tx, teamId);
     return tx.teamMemberInvitation.create({
       select: INVITATION_SELECT,
-      data: { teamId, email, role, features: ['ALL'], expiresAt: addDays(now, TEAM_INVITE_EXPIRES_DAYS), lastSentAt: now },
+      data: { teamId, email, role, accessProfileId, expiresAt: addDays(now, TEAM_INVITE_EXPIRES_DAYS), lastSentAt: now },
     });
   });
 

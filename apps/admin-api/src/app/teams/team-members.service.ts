@@ -3,7 +3,7 @@ import { prisma } from '@jetstream/api-config';
 import { AuditLogAction, AuditLogResource, createAuditLog } from '@jetstream/audit-logs';
 import { revokeAllUserSessions } from '@jetstream/auth/server';
 import { Prisma } from '@jetstream/prisma';
-import { assertSeatAvailable, isBillableRole, withTeamSeatLock } from '@jetstream/team-seats';
+import { assertSeatAvailable, findDefaultAccessProfileId, isBillableRole, withTeamSeatLock } from '@jetstream/team-seats';
 import { TEAM_MEMBER_STATUS_ACTIVE, TeamMemberRole } from '@jetstream/types';
 import { ConflictError, NotFoundError, RequestMetadata } from '../utils/route.utils';
 
@@ -43,7 +43,9 @@ export async function addMemberInTransaction(
     await assertSeatAvailable(tx, { teamId, kind: 'ADD', role });
   }
   // TeamMember.userId is unique, so a user who joins another team concurrently fails here with a 409
-  await tx.teamMember.create({ data: { teamId, userId, role, status: TEAM_MEMBER_STATUS_ACTIVE } });
+  // Same default profile as domain auto-join and SSO JIT
+  const accessProfileId = await findDefaultAccessProfileId(tx, teamId);
+  await tx.teamMember.create({ data: { teamId, userId, role, status: TEAM_MEMBER_STATUS_ACTIVE, accessProfileId } });
   // No notifySessionsRevoked after commit: its listener lives in the main API's socket server, not this process.
   // Those sockets are push-only and their sessions are gone, so they lose access on the next request or reconnect.
   await revokeAllUserSessions(userId, null, tx);

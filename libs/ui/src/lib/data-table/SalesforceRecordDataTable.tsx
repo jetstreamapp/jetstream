@@ -16,6 +16,7 @@ import {
   pluralizeFromNumber,
 } from '@jetstream/shared/utils';
 import {
+  ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES,
   CloneEditView,
   ContextMenuItem,
   ErrorResult,
@@ -677,6 +678,11 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       if (!rows || isSavingRef.current) {
         return;
       }
+      // Write access can be revoked by a profile refresh after the edits were made; they can still be discarded
+      if (!canWriteRecords) {
+        fireToast({ message: ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['records.write'], type: 'warning' });
+        return;
+      }
       if (!dirtyRows.length) {
         setRecords((records) => (records ? [...records] : records));
         return;
@@ -933,6 +939,8 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
               trackEvent(ANALYTICS_KEYS.query_InlineEditDiscard, { changeCount: dirtyRows.length });
             }}
             onClose={() => setShowPreview(false)}
+            canWriteRecords={canWriteRecords}
+            canExportRecords={canExportRecords}
           />
         )}
         {downloadConfig && (
