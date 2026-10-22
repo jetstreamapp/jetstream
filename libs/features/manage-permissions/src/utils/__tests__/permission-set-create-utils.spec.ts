@@ -1,6 +1,11 @@
-import { RecordResult, SalesforceOrgUi } from '@jetstream/types';
+import { ListItem, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord, RecordResult, SalesforceOrgUi } from '@jetstream/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createPermissionSet, generatePermissionSetApiName, isValidPermissionSetApiName } from '../permission-set-create-utils';
+import {
+  createPermissionSet,
+  generatePermissionSetApiName,
+  getCloneSourceGroups,
+  isValidPermissionSetApiName,
+} from '../permission-set-create-utils';
 
 const { describeSObject, queryAll, sobjectOperation } = vi.hoisted(() => ({
   describeSObject: vi.fn(),
@@ -89,6 +94,43 @@ beforeEach(() => {
   describeSObject.mockReset();
   queryAll.mockReset();
   sobjectOperation.mockReset();
+});
+
+describe('getCloneSourceGroups', () => {
+  function permissionSetItem(label: string, record: Partial<PermissionSetNoProfileRecord>): ListItem<string, PermissionSetNoProfileRecord> {
+    // the selection lists put extra detail beside the label, which the clone picker replaces
+    return { id: label, label, value: label, secondaryLabel: `${record.Name} • extra`, meta: record as PermissionSetNoProfileRecord };
+  }
+
+  function profileItem(label: string): ListItem<string, PermissionSetWithProfileRecord> {
+    return { id: label, label, value: label, secondaryLabel: 'Standard Profile', meta: {} as PermissionSetWithProfileRecord };
+  }
+
+  it('groups permission sets, managed permission sets and profiles, each sorted by label', () => {
+    const groups = getCloneSourceGroups(
+      [profileItem('Standard User'), profileItem('Contract Manager')],
+      [permissionSetItem('Sales Ops', { Name: 'Sales_Ops' }), permissionSetItem('admin tools', { Name: 'Admin_Tools' })],
+      [
+        permissionSetItem('Sales Cloud User', { Name: 'SalesCloudUser', Type: 'Standard', NamespacePrefix: null }),
+        permissionSetItem('CPQ Admin', { Name: 'SteelBrickCPQAdmin', Type: 'Regular', NamespacePrefix: 'SBQQ' }),
+      ],
+    );
+
+    expect(groups.map(({ label, items }) => ({ label, items: items.map((item) => item.label) }))).toEqual([
+      { label: 'Permission Sets', items: ['admin tools', 'Sales Ops'] },
+      { label: 'Managed Permission Sets', items: ['CPQ Admin', 'Sales Cloud User'] },
+      { label: 'Profiles', items: ['Contract Manager', 'Standard User'] },
+    ]);
+    expect(groups[0].items[0]).toMatchObject({ secondaryLabel: 'Admin_Tools', secondaryLabelOnNewLine: true });
+    expect(groups[0].items[0].tertiaryLabel).toBeUndefined();
+    expect(groups[1].items[0]).toMatchObject({ secondaryLabel: 'SteelBrickCPQAdmin', tertiaryLabel: 'Managed package: SBQQ' });
+    expect(groups[1].items[1]).toMatchObject({ secondaryLabel: 'SalesCloudUser', tertiaryLabel: 'Provided by Salesforce' });
+    expect(groups[2].items[0]).toMatchObject({ secondaryLabel: 'Standard Profile', secondaryLabelOnNewLine: true });
+  });
+
+  it('leaves out empty groups', () => {
+    expect(getCloneSourceGroups([profileItem('Standard User')], [], []).map(({ id }) => id)).toEqual(['Profile']);
+  });
 });
 
 describe('generatePermissionSetApiName', () => {

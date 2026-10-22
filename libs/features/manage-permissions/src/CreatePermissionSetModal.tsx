@@ -1,8 +1,8 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { getErrorMessage } from '@jetstream/shared/utils';
-import { ListItem, ListItemGroup, SalesforceOrgUi } from '@jetstream/types';
+import { getErrorMessage, multiWordObjectFilter } from '@jetstream/shared/utils';
+import { ListItem, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord, SalesforceOrgUi } from '@jetstream/types';
 import {
   Checkbox,
   ComboboxWithGroupedItems,
@@ -29,17 +29,25 @@ import {
   fetchCloneSourceDetails,
   fetchPermissionSetLicenses,
   generatePermissionSetApiName,
+  getCloneSourceGroups,
   isValidPermissionSetApiName,
 } from './utils/permission-set-create-utils';
 
 const NO_LICENSE_ID = '__none__';
 
+/** Search the API Name and package as well as the label */
+const cloneSourceFilterFn = (filter: string) => {
+  const matchesFilter = multiWordObjectFilter<ListItem>(['label', 'secondaryLabel', 'tertiaryLabel'], filter);
+  return (item: unknown) => matchesFilter(item as ListItem);
+};
+
 export type CreatePermissionSetStartFrom = 'blank' | 'clone';
 
 export interface CreatePermissionSetModalProps {
   selectedOrg: SalesforceOrgUi;
-  profiles: ListItem[];
-  permissionSets: ListItem[];
+  profiles: ListItem<string, PermissionSetWithProfileRecord>[];
+  permissionSets: ListItem<string, PermissionSetNoProfileRecord>[];
+  managedPermissionSets: ListItem<string, PermissionSetNoProfileRecord>[];
   initialStartFrom?: CreatePermissionSetStartFrom;
   /** Pre-selected profile or permission set to clone */
   initialCloneSourceId?: string | null;
@@ -51,6 +59,7 @@ export const CreatePermissionSetModal: FunctionComponent<CreatePermissionSetModa
   selectedOrg,
   profiles,
   permissionSets,
+  managedPermissionSets,
   initialStartFrom = 'blank',
   initialCloneSourceId,
   onClose,
@@ -78,16 +87,14 @@ export const CreatePermissionSetModal: FunctionComponent<CreatePermissionSetModa
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [result, setResult] = useState<PermissionSetCreateResult | null>(null);
 
-  const cloneSourceGroups = useMemo((): ListItemGroup[] => {
-    return [
-      { id: 'PermissionSet', label: 'Permission Sets', items: permissionSets },
-      { id: 'Profile', label: 'Profiles', items: profiles },
-    ].filter(({ items }) => items.length > 0);
-  }, [permissionSets, profiles]);
+  const cloneSourceGroups = useMemo(
+    () => getCloneSourceGroups(profiles, permissionSets, managedPermissionSets),
+    [profiles, permissionSets, managedPermissionSets],
+  );
 
   const cloneSource = useMemo(
-    () => (cloneSourceId ? [...permissionSets, ...profiles].find(({ id }) => id === cloneSourceId) : undefined),
-    [cloneSourceId, permissionSets, profiles],
+    () => (cloneSourceId ? cloneSourceGroups.flatMap(({ items }) => items).find(({ id }) => id === cloneSourceId) : undefined),
+    [cloneSourceId, cloneSourceGroups],
   );
   const cloneSourceIsProfile = !!cloneSource && profiles.some(({ id }) => id === cloneSource.id);
 
@@ -279,6 +286,7 @@ export const CreatePermissionSetModal: FunctionComponent<CreatePermissionSetModa
                         : undefined,
                     }}
                     groups={cloneSourceGroups}
+                    filterFn={cloneSourceFilterFn}
                     selectedItemId={cloneSourceId}
                     onSelected={(item) => setCloneSourceId(item.id)}
                   />

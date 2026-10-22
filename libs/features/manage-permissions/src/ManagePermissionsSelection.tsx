@@ -436,7 +436,8 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
         <CreatePermissionSetModal
           selectedOrg={selectedOrg}
           profiles={profiles || []}
-          permissionSets={(permissionSets || []).concat(managedPermissionSets || [])}
+          permissionSets={permissionSets || []}
+          managedPermissionSets={managedPermissionSets || []}
           initialStartFrom={createPermissionSetStartFrom}
           initialCloneSourceId={createPermissionSetStartFrom === 'clone' ? singleSelectedCloneSourceId : null}
           onClose={handleCreatePermissionSetClose}

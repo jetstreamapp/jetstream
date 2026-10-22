@@ -1,7 +1,16 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject, queryAll, sobjectOperation } from '@jetstream/shared/data';
+import { isSalesforceProvidedPermissionSet } from '@jetstream/shared/ui-utils';
 import { REGEX, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { ErrorResult, RecordResult, SalesforceOrgUi } from '@jetstream/types';
+import {
+  ErrorResult,
+  ListItem,
+  ListItemGroup,
+  PermissionSetNoProfileRecord,
+  PermissionSetWithProfileRecord,
+  RecordResult,
+  SalesforceOrgUi,
+} from '@jetstream/types';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { getQuerySystemPermissions, getSystemPermissionFieldsFromDescribe } from './permission-manager-utils';
 
@@ -85,6 +94,46 @@ const OBJECT_PERMISSION_FIELDS = [
 const FIELD_PERMISSION_FIELDS = ['SobjectType', 'Field', 'PermissionsRead', 'PermissionsEdit'];
 const SETUP_ENTITY_ACCESS_FIELDS = ['SetupEntityId'];
 const TAB_SETTING_FIELDS = ['Name', 'Visibility'];
+
+/**
+ * Options for the clone source picker, grouped and sorted by label. Unlike the selection lists, the API Name gets its own
+ * line and a managed permission set's source goes on a third line, so neither is crammed beside the label.
+ */
+export function getCloneSourceGroups(
+  profiles: ListItem<string, PermissionSetWithProfileRecord>[],
+  permissionSets: ListItem<string, PermissionSetNoProfileRecord>[],
+  managedPermissionSets: ListItem<string, PermissionSetNoProfileRecord>[],
+): ListItemGroup[] {
+  const sortByLabel = (items: ListItem[]) => [...items].sort((a, b) => a.label.localeCompare(b.label));
+  const toPermissionSetItem = ({ id, label, value, meta }: ListItem<string, PermissionSetNoProfileRecord>): ListItem => ({
+    id,
+    label,
+    value,
+    meta,
+    secondaryLabel: meta?.Name,
+    secondaryLabelOnNewLine: true,
+  });
+  return [
+    { id: 'PermissionSet', label: 'Permission Sets', items: sortByLabel(permissionSets.map(toPermissionSetItem)) },
+    {
+      id: 'ManagedPermissionSet',
+      label: 'Managed Permission Sets',
+      items: sortByLabel(
+        managedPermissionSets.map((item) => ({
+          ...toPermissionSetItem(item),
+          tertiaryLabel: isSalesforceProvidedPermissionSet(item.meta)
+            ? 'Provided by Salesforce'
+            : `Managed package: ${item.meta?.NamespacePrefix}`,
+        })),
+      ),
+    },
+    {
+      id: 'Profile',
+      label: 'Profiles',
+      items: sortByLabel(profiles.map((item) => ({ ...item, secondaryLabelOnNewLine: true }))),
+    },
+  ].filter(({ items }) => items.length > 0);
+}
 
 /**
  * Same rules Salesforce applies to the API Name it suggests in Setup, without the `__c` suffix custom objects use
