@@ -293,6 +293,62 @@ describe('persistence.service', () => {
   });
 
   // ────────────────────────────────────────────────
+  // USER PREFERENCES
+  // ────────────────────────────────────────────────
+
+  describe('updateUserPreferencesFromRenderer', () => {
+    it('ignores a renderer-supplied data history folder and download path, keeping the stored values', async () => {
+      const service = await importService();
+      service.updateUserPreferences({ dataHistoryFolder: '/Users/me/jetstream-history' });
+      service.setDownloadFolderPath('/Users/me/Downloads/jetstream');
+
+      const updated = service.updateUserPreferencesFromRenderer({
+        skipFrontdoorLogin: true,
+        dataHistoryFolder: '/Users/victim/.ssh',
+        fileDownload: { omitPrompt: true, downloadPath: '/Users/victim/Library/LaunchAgents' },
+      });
+
+      expect(updated.skipFrontdoorLogin).toBe(true);
+      expect(updated.dataHistoryFolder).toBe('/Users/me/jetstream-history');
+      expect(updated.fileDownload).toEqual({ omitPrompt: true, downloadPath: '/Users/me/Downloads/jetstream' });
+    });
+
+    it('lets the renderer clear the download path, which only turns the save prompt back on', async () => {
+      const service = await importService();
+      service.setDownloadFolderPath('/Users/me/Downloads/jetstream');
+
+      const updated = service.updateUserPreferencesFromRenderer({ fileDownload: { omitPrompt: false, downloadPath: '' } });
+
+      expect(updated.fileDownload).toEqual({ omitPrompt: false, downloadPath: '' });
+    });
+
+    it('cannot set a download path when none is stored', async () => {
+      const service = await importService();
+
+      const updated = service.updateUserPreferencesFromRenderer({ fileDownload: { omitPrompt: true, downloadPath: '/tmp/anywhere' } });
+
+      expect(updated.fileDownload).toEqual({ omitPrompt: true, downloadPath: '' });
+    });
+
+    it('saves updates without folder preferences unchanged', async () => {
+      const service = await importService();
+      expect(service.updateUserPreferencesFromRenderer({ recordSyncEnabled: true }).recordSyncEnabled).toBe(true);
+    });
+  });
+
+  describe('setDownloadFolderPath', () => {
+    it('stores the folder and turns auto-save on', async () => {
+      const service = await importService();
+      service.updateUserPreferences({ fileDownload: { omitPrompt: false, downloadPath: '' } });
+
+      const updated = service.setDownloadFolderPath('/Users/me/Downloads/jetstream');
+
+      expect(updated.fileDownload).toEqual({ omitPrompt: true, downloadPath: '/Users/me/Downloads/jetstream' });
+      expect(service.getUserPreferences().fileDownload?.downloadPath).toBe('/Users/me/Downloads/jetstream');
+    });
+  });
+
+  // ────────────────────────────────────────────────
   // ORG DATA
   // ────────────────────────────────────────────────
 

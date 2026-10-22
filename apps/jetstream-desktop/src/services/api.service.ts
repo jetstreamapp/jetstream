@@ -43,6 +43,16 @@ export async function verifyAuthToken({ accessToken, deviceId }: { deviceId: str
 }
 
 /**
+ * What an auth endpoint's body looks like, for logging, without any of its values. Never log the payload
+ * itself: a successful verify response carries the rotated session token and the org-file encryption key,
+ * and the log file is far less protected than the files those secure. Which keys arrived (plus where
+ * validation failed) is enough to diagnose skew between the server and an older desktop build.
+ */
+function describePayloadShape(payload: unknown): string[] | string {
+  return payload && typeof payload === 'object' ? Object.keys(payload) : typeof payload;
+}
+
+/**
  * Shared JSON-response handler for desktop auth endpoints.
  * Differentiates between transport-level failures (non-401 error statuses, non-JSON, malformed JSON,
  * schema mismatch) and deliberate `{success:false}` responses from the server so callers
@@ -85,7 +95,12 @@ async function parseAuthResponse<T extends z.ZodTypeAny>(
   }
 
   if (!response.ok) {
-    logger.warn(`${label}: non-2xx response`, { requestId, status, url: response.url, payload });
+    logger.warn(`${label}: non-2xx response`, {
+      requestId,
+      status,
+      url: response.url,
+      payloadKeys: describePayloadShape(payload),
+    });
     // Only a 401 means the server rejected the session. Any other failure (a 5xx during an outage, a 429 from the
     // rate limiter) is temporary, so callers keep the cached session instead of signing the user out.
     if (status !== 401) {
@@ -100,7 +115,13 @@ async function parseAuthResponse<T extends z.ZodTypeAny>(
 
   const results = schema.safeParse(payload);
   if (!results.success) {
-    logger.warn(`${label}: schema mismatch`, { requestId, status, payload, zodError: results.error });
+    logger.warn(`${label}: schema mismatch`, {
+      requestId,
+      status,
+      url: response.url,
+      payloadKeys: describePayloadShape(payload),
+      zodIssues: results.error.issues.map(({ path, code, message }) => ({ path: path.join('.'), code, message })),
+    });
     return {
       success: false,
       error:

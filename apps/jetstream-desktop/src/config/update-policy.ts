@@ -2,10 +2,11 @@ import type { UpdatePolicy, UpdatePolicySource } from '@jetstream/desktop/types'
 import logger from 'electron-log';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { isWindowsPolicyFileLocationTrusted, readWindowsPolicyFile } from './windows-file-trust';
 
 const execFileAsync = promisify(execFile);
 
@@ -135,9 +136,35 @@ export function parseManagedPolicyFile(contents: unknown): boolean | null {
   return typeof value === 'undefined' ? null : toBoolean(value);
 }
 
+/**
+ * On Windows the file is only honored when an administrator put it there. The default ACL on
+ * %ProgramData% lets any standard user create a `Jetstream` subfolder and a `policy.json` inside it,
+ * which would otherwise let one unprivileged user of a shared machine switch updates off (or on) for
+ * everyone else - the documentation promises that users cannot mark their own install as managed.
+ * macOS and Linux need no check: the directories the file lives in are root-owned and not writable
+ * without administrator rights.
+ */
 async function readManagedPolicyFile(): Promise<boolean | null> {
+  const filePath = managedPolicyFilePath();
   try {
-    return parseManagedPolicyFile(JSON.parse(await readFile(managedPolicyFilePath(), 'utf-8')));
+    if (process.platform !== 'win32') {
+      return parseManagedPolicyFile(JSON.parse(await readFile(filePath, 'utf-8')));
+    }
+    // A missing file is the normal case on an unmanaged machine; only spawn PowerShell when it exists.
+    // Nothing is read here - the file is untrusted until its location has been checked.
+    await stat(filePath);
+    const policyFile = await readWindowsPolicyFile(filePath);
+    if (!policyFile) {
+      logger.warn(`Ignoring update policy file ${filePath}: its contents or ownership could not be read`);
+      return null;
+    }
+    if (!isWindowsPolicyFileLocationTrusted(policyFile)) {
+      logger.warn(
+        `Ignoring update policy file ${filePath}: the file and its folder must both be owned by an administrator or SYSTEM and not grant every user write access (file owner ${policyFile.fileOwner}, folder owner ${policyFile.dirOwner})`,
+      );
+      return null;
+    }
+    return parseManagedPolicyFile(JSON.parse(policyFile.contents));
   } catch {
     return null;
   }
