@@ -38,19 +38,9 @@ function startMockOidcServer(): Server {
 
 test.describe('OIDC SSO configuration save', () => {
   let mockServer: Server;
-  let createdLoginConfigId: string | undefined;
 
   test.beforeAll(() => {
     mockServer = startMockOidcServer();
-  });
-
-  test.afterEach(async () => {
-    // The OIDC config hangs off the team's login config, which the fixture's team-only cleanup does
-    // not delete, so remove it explicitly to avoid leaking rows between runs.
-    if (createdLoginConfigId) {
-      await prisma.oidcConfiguration.deleteMany({ where: { loginConfigId: createdLoginConfigId } }).catch(() => undefined);
-      createdLoginConfigId = undefined;
-    }
   });
 
   test.afterAll(() => {
@@ -59,8 +49,6 @@ test.describe('OIDC SSO configuration save', () => {
 
   test('derives OIDC endpoints from the issuer when the client omits them', async ({ page, teamCreationUtils1User: teamCreationUtils }) => {
     const { team } = teamCreationUtils;
-    const loginConfigId = team.loginConfig.id;
-    createdLoginConfigId = loginConfigId;
 
     await test.step('Seed a verified domain (configuring SSO requires one)', async () => {
       await prisma.domainVerification.create({
@@ -103,7 +91,7 @@ test.describe('OIDC SSO configuration save', () => {
     });
 
     await test.step('Server discovered and persisted the endpoints from the issuer', async () => {
-      const stored = await prisma.oidcConfiguration.findFirstOrThrow({ where: { loginConfigId } });
+      const stored = await prisma.oidcConfiguration.findFirstOrThrow({ where: { loginConfiguration: { teamId: team.id } } });
       expect(stored.authorizationEndpoint).toBe(`${ISSUER}/auth`);
       expect(stored.tokenEndpoint).toBe(`${ISSUER}/token`);
       expect(stored.jwksUri).toBe(`${ISSUER}/jwks`);

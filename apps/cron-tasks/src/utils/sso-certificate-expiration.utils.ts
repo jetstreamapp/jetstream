@@ -101,10 +101,8 @@ export async function manageSsoCertificateExpiration(
     const { idpCertificateExpiresAt, idpEntityId, id: samlConfigId } = config;
     const team = config.loginConfiguration.team;
 
-    // A SamlConfiguration always hangs off a LoginConfiguration, but the team relation is optional in
-    // the schema — skip rather than crash the whole run on an orphaned configuration.
-    if (!team || !idpCertificateExpiresAt) {
-      logger.warn({ samlConfigId }, 'Skipping SAML configuration with no team or expiration date');
+    if (!idpCertificateExpiresAt) {
+      logger.warn({ samlConfigId }, 'Skipping SAML configuration with no expiration date');
       continue;
     }
 

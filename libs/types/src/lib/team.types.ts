@@ -192,7 +192,6 @@ export const TeamUserFacingSchema = z.object({
   name: z.string().max(255).min(1),
   status: TeamStatusSchema,
   billingStatus: TeamBillingStatusSchema,
-  loginConfigId: z.string().nullable(),
   sharedOrgs: TeamOrgSchema.array(),
   members: TeamMemberSchema.array(),
   invitations: TeamInviteUserFacingSchema.array(),

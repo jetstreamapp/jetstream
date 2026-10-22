@@ -118,7 +118,6 @@ function selectTeamWithRelated() {
   return {
     id: true,
     name: true,
-    loginConfigId: true,
     status: true,
     billingStatus: true,
     sharedOrgs: {
@@ -546,27 +545,20 @@ export const updateLoginConfiguration = async ({
   runningUserId: string;
   loginConfiguration: TeamLoginConfigRequest;
 }) => {
-  const team = await prisma.team.findFirstOrThrow({
-    select: { id: true, loginConfigId: true },
-    where: { id: teamId },
-  });
-
   // Capture previous config values for audit log diff
-  const previousLoginConfig = team.loginConfigId
-    ? await prisma.loginConfiguration.findUnique({
-        where: { id: team.loginConfigId },
-        select: {
-          requireMfa: true,
-          allowIdentityLinking: true,
-          autoAddToTeam: true,
-          allowedMfaMethods: true,
-          allowedProviders: true,
-          ssoRequireMfa: true,
-          ssoEnabled: true,
-          ssoProvider: true,
-        },
-      })
-    : null;
+  const previousLoginConfig = await prisma.loginConfiguration.findUnique({
+    where: { teamId },
+    select: {
+      requireMfa: true,
+      allowIdentityLinking: true,
+      autoAddToTeam: true,
+      allowedMfaMethods: true,
+      allowedProviders: true,
+      ssoRequireMfa: true,
+      ssoEnabled: true,
+      ssoProvider: true,
+    },
+  });
 
   // SSO counts as a login provider, so an empty provider list is only valid when SSO is active
   if (loginConfiguration.allowedProviders.length === 0) {
@@ -576,39 +568,25 @@ export const updateLoginConfiguration = async ({
     }
   }
 
-  if (!team.loginConfigId) {
-    await prisma.loginConfiguration.create({
-      data: {
-        allowedMfaMethods: loginConfiguration.allowedMfaMethods,
-        allowedProviders: loginConfiguration.allowedProviders,
-        allowIdentityLinking: loginConfiguration.allowIdentityLinking,
-        requireMfa: loginConfiguration.requireMfa,
-        ssoRequireMfa: loginConfiguration.ssoRequireMfa,
-        updatedById: runningUserId,
-        createdById: runningUserId,
-        team: {
-          connect: { id: team.id },
-        },
-      },
-    });
-  } else {
-    await prisma.loginConfiguration.update({
-      where: { id: team.loginConfigId },
-      data: {
-        allowedMfaMethods: loginConfiguration.allowedMfaMethods,
-        allowedProviders: loginConfiguration.allowedProviders,
-        allowIdentityLinking: loginConfiguration.allowIdentityLinking,
-        requireMfa: loginConfiguration.requireMfa,
-        ssoRequireMfa: loginConfiguration.ssoRequireMfa,
-        updatedById: runningUserId,
-      },
-    });
-  }
+  const data = {
+    allowedMfaMethods: loginConfiguration.allowedMfaMethods,
+    allowedProviders: loginConfiguration.allowedProviders,
+    allowIdentityLinking: loginConfiguration.allowIdentityLinking,
+    requireMfa: loginConfiguration.requireMfa,
+    ssoRequireMfa: loginConfiguration.ssoRequireMfa,
+    updatedById: runningUserId,
+  };
+  const { id: loginConfigId } = await prisma.loginConfiguration.upsert({
+    select: { id: true },
+    where: { teamId },
+    create: { ...data, teamId, createdById: runningUserId },
+    update: data,
+  });
 
-  clearLoginConfigurationCacheItem(team.id);
+  clearLoginConfigurationCacheItem(teamId);
 
-  const updatedTeam = await findById({ teamId: team.id, runningUserId });
-  return { team: updatedTeam, previousLoginConfig };
+  const updatedTeam = await findById({ teamId, runningUserId });
+  return { team: updatedTeam, loginConfigId, previousLoginConfig };
 };
 
 export async function revokeSessionThatViolateLoginConfiguration({
@@ -1175,20 +1153,16 @@ export async function revokeTeamInvitation({
  * configuration, has SSO turned off, or the certificate expiration could not be parsed.
  */
 export async function getSamlCertificateExpiration(teamId: string): Promise<{ configId: string; expiresAt: Date } | null> {
-  const team = await prisma.team.findUnique({
-    where: { id: teamId },
+  const loginConfig = await prisma.loginConfiguration.findUnique({
+    where: { teamId },
     select: {
-      loginConfig: {
-        select: {
-          ssoEnabled: true,
-          samlConfiguration: { select: { id: true, idpCertificateExpiresAt: true } },
-        },
-      },
+      ssoEnabled: true,
+      samlConfiguration: { select: { id: true, idpCertificateExpiresAt: true } },
     },
   });
 
-  const samlConfiguration = team?.loginConfig.samlConfiguration;
-  if (!team?.loginConfig.ssoEnabled || !samlConfiguration?.idpCertificateExpiresAt) {
+  const samlConfiguration = loginConfig?.samlConfiguration;
+  if (!loginConfig?.ssoEnabled || !samlConfiguration?.idpCertificateExpiresAt) {
     return null;
   }
 
@@ -1196,34 +1170,29 @@ export async function getSamlCertificateExpiration(teamId: string): Promise<{ co
 }
 
 export async function getSsoConfiguration(teamId: string): Promise<LoginConfigurationWithCallbacks> {
-  const team = await prisma.team.findUnique({
-    where: { id: teamId },
+  const loginConfig = await prisma.loginConfiguration.findUnique({
+    where: { teamId },
     select: {
       id: true,
-      loginConfig: {
-        select: {
-          id: true,
-          ssoProvider: true,
-          ssoEnabled: true,
-          ssoJitProvisioningEnabled: true,
-          ssoBypassEnabled: true,
-          ssoBypassEnabledRoles: true,
-          ssoRequireMfa: true,
-          samlConfiguration: true,
-          oidcConfiguration: true,
-        },
-      },
+      ssoProvider: true,
+      ssoEnabled: true,
+      ssoJitProvisioningEnabled: true,
+      ssoBypassEnabled: true,
+      ssoBypassEnabledRoles: true,
+      ssoRequireMfa: true,
+      samlConfiguration: true,
+      oidcConfiguration: true,
     },
   });
 
-  if (!team) {
-    throw new NotFoundError('Team not found');
+  if (!loginConfig) {
+    throw new NotFoundError('Login configuration not found');
   }
 
   const { callbackUrls } = resolveSamlIdentifiers(teamId);
 
   return LoginConfigurationWithCallbacksSchema.parse({
-    ...team.loginConfig,
+    ...loginConfig,
     // Add callback URLs for configuration
     callbackUrls,
   });
@@ -1259,23 +1228,19 @@ function resolveCertNotificationSeed(expiresAt: Date, now = new Date()): Date {
 }
 
 export async function createOrUpdateSamlConfiguration(teamId: string, userId: string, data: SamlConfigurationRequest) {
-  const team = await prisma.team.findUnique({
-    where: { id: teamId },
+  const loginConfig = await prisma.loginConfiguration.findUnique({
+    where: { teamId },
     select: {
-      loginConfigId: true,
-      loginConfig: {
-        select: {
-          samlConfiguration: true,
-        },
-      },
+      id: true,
+      samlConfiguration: true,
     },
   });
 
-  if (!team) {
-    throw new NotFoundError('Team not found');
+  if (!loginConfig) {
+    throw new NotFoundError('Login configuration not found');
   }
 
-  const previousSamlConfig = team.loginConfig.samlConfiguration;
+  const previousSamlConfig = loginConfig.samlConfiguration;
   const isNew = !previousSamlConfig;
 
   // Generate SP entity ID and ACS URL
@@ -1325,7 +1290,7 @@ export async function createOrUpdateSamlConfiguration(teamId: string, userId: st
   if (!isNew) {
     // Update existing
     await prisma.samlConfiguration.update({
-      where: { loginConfigId: team.loginConfigId },
+      where: { loginConfigId: loginConfig.id },
       data: { ...samlData, idpCertificateExpiresAt, ...notificationSchedule },
     });
   } else {
@@ -1335,14 +1300,14 @@ export async function createOrUpdateSamlConfiguration(teamId: string, userId: st
         ...samlData,
         idpCertificateExpiresAt,
         ...notificationSchedule,
-        loginConfigId: team.loginConfigId,
+        loginConfigId: loginConfig.id,
       },
     });
   }
 
   // Update LoginConfiguration to set SAML as the provider
   await prisma.loginConfiguration.update({
-    where: { id: team.loginConfigId },
+    where: { id: loginConfig.id },
     data: {
       ssoProvider: 'SAML',
       updatedById: userId,
@@ -1361,23 +1326,19 @@ export async function createOrUpdateOidcConfiguration(
   // discovery by the controller, so they are required here even though they are optional on the wire request.
   data: OidcConfigurationRequest & { authorizationEndpoint: string; tokenEndpoint: string; jwksUri: string },
 ) {
-  const team = await prisma.team.findUnique({
-    where: { id: teamId },
+  const loginConfig = await prisma.loginConfiguration.findUnique({
+    where: { teamId },
     select: {
-      loginConfigId: true,
-      loginConfig: {
-        select: {
-          oidcConfiguration: true,
-        },
-      },
+      id: true,
+      oidcConfiguration: true,
     },
   });
 
-  if (!team) {
-    throw new NotFoundError('Team not found');
+  if (!loginConfig) {
+    throw new NotFoundError('Login configuration not found');
   }
 
-  const previousOidcConfig = team.loginConfig.oidcConfiguration;
+  const previousOidcConfig = loginConfig.oidcConfiguration;
   const isNew = !previousOidcConfig;
 
   const oidcData = {
@@ -1398,7 +1359,7 @@ export async function createOrUpdateOidcConfiguration(
   if (!isNew) {
     // Update existing
     await prisma.oidcConfiguration.update({
-      where: { loginConfigId: team.loginConfigId },
+      where: { loginConfigId: loginConfig.id },
       data: oidcData,
     });
   } else {
@@ -1410,14 +1371,14 @@ export async function createOrUpdateOidcConfiguration(
       data: {
         ...oidcData,
         clientSecret: oidcData.clientSecret,
-        loginConfigId: team.loginConfigId,
+        loginConfigId: loginConfig.id,
       },
     });
   }
 
   // Update LoginConfiguration to set OIDC as the provider
   await prisma.loginConfiguration.update({
-    where: { id: team.loginConfigId },
+    where: { id: loginConfig.id },
     data: {
       ssoProvider: 'OIDC',
       updatedById: userId,
@@ -1439,41 +1400,37 @@ export async function updateSsoSettings(
     ssoBypassEnabledRoles: TeamMemberRole[];
   },
 ) {
-  const team = await prisma.team.findUnique({
-    where: { id: teamId },
+  const loginConfig = await prisma.loginConfiguration.findUnique({
+    where: { teamId },
     select: {
-      loginConfigId: true,
-      loginConfig: {
-        select: {
-          ssoProvider: true,
-          ssoEnabled: true,
-          ssoJitProvisioningEnabled: true,
-          ssoBypassEnabled: true,
-          ssoBypassEnabledRoles: true,
-          ssoRequireMfa: true,
-          allowedProviders: true,
-          samlConfiguration: { select: { id: true } },
-          oidcConfiguration: { select: { id: true } },
-        },
-      },
+      id: true,
+      ssoProvider: true,
+      ssoEnabled: true,
+      ssoJitProvisioningEnabled: true,
+      ssoBypassEnabled: true,
+      ssoBypassEnabledRoles: true,
+      ssoRequireMfa: true,
+      allowedProviders: true,
+      samlConfiguration: { select: { id: true } },
+      oidcConfiguration: { select: { id: true } },
     },
   });
 
-  if (!team) {
-    throw new NotFoundError('Team not found');
+  if (!loginConfig) {
+    throw new NotFoundError('Login configuration not found');
   }
 
   const previousSettings = {
-    ssoEnabled: team.loginConfig.ssoEnabled,
-    ssoJitProvisioningEnabled: team.loginConfig.ssoJitProvisioningEnabled,
-    ssoBypassEnabled: team.loginConfig.ssoBypassEnabled,
-    ssoBypassEnabledRoles: team.loginConfig.ssoBypassEnabledRoles as string[],
-    ssoRequireMfa: team.loginConfig.ssoRequireMfa,
+    ssoEnabled: loginConfig.ssoEnabled,
+    ssoJitProvisioningEnabled: loginConfig.ssoJitProvisioningEnabled,
+    ssoBypassEnabled: loginConfig.ssoBypassEnabled,
+    ssoBypassEnabledRoles: loginConfig.ssoBypassEnabledRoles as string[],
+    ssoRequireMfa: loginConfig.ssoRequireMfa,
   };
 
   // Validate that a provider configuration exists before allowing SSO to be enabled
   if (data.ssoEnabled) {
-    const { ssoProvider, samlConfiguration, oidcConfiguration } = team.loginConfig;
+    const { ssoProvider, samlConfiguration, oidcConfiguration } = loginConfig;
     if (ssoProvider === 'NONE') {
       throw new UserFacingError('Cannot enable SSO without first configuring an SSO provider (SAML or OIDC)');
     }
@@ -1486,12 +1443,12 @@ export async function updateSsoSettings(
   }
 
   // Prevent disabling SSO when it is the only allowed login provider, otherwise the team would be locked out
-  if (!data.ssoEnabled && team.loginConfig.ssoEnabled && team.loginConfig.allowedProviders.length === 0) {
+  if (!data.ssoEnabled && loginConfig.ssoEnabled && loginConfig.allowedProviders.length === 0) {
     throw new UserFacingError('Cannot disable SSO because it is the only allowed login provider. Enable another login provider first.');
   }
 
   await prisma.loginConfiguration.update({
-    where: { id: team.loginConfigId },
+    where: { id: loginConfig.id },
     data: {
       ssoEnabled: data.ssoEnabled,
       ssoJitProvisioningEnabled: data.ssoJitProvisioningEnabled,
@@ -1507,34 +1464,30 @@ export async function updateSsoSettings(
 }
 
 export async function deleteSamlConfiguration(teamId: string, userId: string) {
-  const team = await prisma.team.findUnique({
-    where: { id: teamId },
+  const loginConfig = await prisma.loginConfiguration.findUnique({
+    where: { teamId },
     select: {
-      loginConfigId: true,
-      loginConfig: {
-        select: {
-          ssoEnabled: true,
-          allowedProviders: true,
-          samlConfiguration: {
-            select: { id: true, idpEntityId: true, idpCertificateExpiresAt: true },
-          },
-        },
+      id: true,
+      ssoEnabled: true,
+      allowedProviders: true,
+      samlConfiguration: {
+        select: { id: true, idpEntityId: true, idpCertificateExpiresAt: true },
       },
     },
   });
 
-  if (!team) {
-    throw new NotFoundError('Team not found');
+  if (!loginConfig) {
+    throw new NotFoundError('Login configuration not found');
   }
 
   // Prevent deleting the SSO configuration when it is the only allowed login provider, otherwise the team would be locked out
-  if (team.loginConfig.ssoEnabled && team.loginConfig.allowedProviders.length === 0) {
+  if (loginConfig.ssoEnabled && loginConfig.allowedProviders.length === 0) {
     throw new UserFacingError(
       'Cannot delete the SSO configuration because SSO is the only allowed login provider. Enable another login provider first.',
     );
   }
 
-  const deletedConfig = team.loginConfig.samlConfiguration;
+  const deletedConfig = loginConfig.samlConfiguration;
 
   // Delete AuthIdentity records for this provider type for all users in the team
   // This prevents identity reuse if the team switches to a different SAML provider
@@ -1556,12 +1509,12 @@ export async function deleteSamlConfiguration(teamId: string, userId: string) {
   }
 
   await prisma.samlConfiguration.deleteMany({
-    where: { loginConfigId: team.loginConfigId },
+    where: { loginConfigId: loginConfig.id },
   });
 
   // Reset SSO provider to NONE
   await prisma.loginConfiguration.update({
-    where: { id: team.loginConfigId },
+    where: { id: loginConfig.id },
     data: {
       ssoProvider: 'NONE',
       ssoEnabled: false,
@@ -1575,34 +1528,30 @@ export async function deleteSamlConfiguration(teamId: string, userId: string) {
 }
 
 export async function deleteOidcConfiguration(teamId: string, userId: string) {
-  const team = await prisma.team.findUnique({
-    where: { id: teamId },
+  const loginConfig = await prisma.loginConfiguration.findUnique({
+    where: { teamId },
     select: {
-      loginConfigId: true,
-      loginConfig: {
-        select: {
-          ssoEnabled: true,
-          allowedProviders: true,
-          oidcConfiguration: {
-            select: { id: true, issuer: true, clientId: true },
-          },
-        },
+      id: true,
+      ssoEnabled: true,
+      allowedProviders: true,
+      oidcConfiguration: {
+        select: { id: true, issuer: true, clientId: true },
       },
     },
   });
 
-  if (!team) {
-    throw new NotFoundError('Team not found');
+  if (!loginConfig) {
+    throw new NotFoundError('Login configuration not found');
   }
 
   // Prevent deleting the SSO configuration when it is the only allowed login provider, otherwise the team would be locked out
-  if (team.loginConfig.ssoEnabled && team.loginConfig.allowedProviders.length === 0) {
+  if (loginConfig.ssoEnabled && loginConfig.allowedProviders.length === 0) {
     throw new UserFacingError(
       'Cannot delete the SSO configuration because SSO is the only allowed login provider. Enable another login provider first.',
     );
   }
 
-  const deletedConfig = team.loginConfig.oidcConfiguration;
+  const deletedConfig = loginConfig.oidcConfiguration;
 
   // Delete AuthIdentity records for this provider type for all users in the team
   // This prevents identity reuse if the team switches to a different OIDC provider
@@ -1624,12 +1573,12 @@ export async function deleteOidcConfiguration(teamId: string, userId: string) {
   }
 
   await prisma.oidcConfiguration.deleteMany({
-    where: { loginConfigId: team.loginConfigId },
+    where: { loginConfigId: loginConfig.id },
   });
 
   // Reset SSO provider to NONE
   await prisma.loginConfiguration.update({
-    where: { id: team.loginConfigId },
+    where: { id: loginConfig.id },
     data: {
       ssoProvider: 'NONE',
       ssoEnabled: false,
@@ -1684,8 +1633,7 @@ export const getDomainVerification = async (teamId: string, domainId: string) =>
 export const verifyDomainVerification = async (teamId: string, domainId: string) => {
   return prisma
     .$transaction(async (tx) => {
-      const { loginConfigId } = await tx.team.findUniqueOrThrow({ where: { id: teamId }, select: { loginConfigId: true } });
-      await lockTeamLoginConfiguration(tx, loginConfigId);
+      await lockTeamLoginConfiguration(tx, teamId);
 
       const verification = await tx.domainVerification.update({
         where: { id: domainId, teamId },
@@ -1700,7 +1648,7 @@ export const verifyDomainVerification = async (teamId: string, domainId: string)
         .then((items) => items.map((item) => item.domain));
 
       await tx.loginConfiguration.update({
-        where: { id: loginConfigId },
+        where: { teamId },
         data: { domains },
       });
       return verification;
@@ -1710,8 +1658,7 @@ export const verifyDomainVerification = async (teamId: string, domainId: string)
 
 export const deleteDomainVerification = async (teamId: string, domainId: string) => {
   return prisma.$transaction(async (tx) => {
-    const { loginConfigId } = await tx.team.findUniqueOrThrow({ where: { id: teamId }, select: { loginConfigId: true } });
-    await lockTeamLoginConfiguration(tx, loginConfigId);
+    await lockTeamLoginConfiguration(tx, teamId);
 
     const record = await tx.domainVerification.findUnique({
       where: { id: domainId, teamId },
@@ -1733,7 +1680,7 @@ export const deleteDomainVerification = async (teamId: string, domainId: string)
       .then((items) => items.map((item) => item.domain));
 
     await tx.loginConfiguration.update({
-      where: { id: loginConfigId },
+      where: { teamId },
       data: { domains },
     });
 
