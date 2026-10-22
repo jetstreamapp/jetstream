@@ -4,7 +4,7 @@ import { parseQuery, Query } from '@jetstreamapp/soql-parser-js';
 import { describe, expect, it } from 'vitest';
 import { __TEST_EXPORTS__ } from '../query-restore-utils';
 
-const { processFields, processSubqueryOptions, getFieldWrapperPathForSubquery } = __TEST_EXPORTS__;
+const { processFields, processSubqueryOptions, processUsingScope, getFieldWrapperPathForSubquery } = __TEST_EXPORTS__;
 
 function makeField(overrides: Partial<Field>): Field {
   return {
@@ -390,6 +390,47 @@ describe('processFields — nested subqueries', () => {
 
     expect(stateItems.selectedSubqueryFieldsState['Contacts.Cases']).toBeDefined();
     expect(stateItems.selectedSubqueryFieldsState['contacts.cases']).toBeUndefined();
+    expect(stateItems.missingMisc).toEqual([]);
+  });
+});
+
+describe('processUsingScope', () => {
+  const metadata = {
+    selectedSobjectMetadata: {
+      sobject: {
+        name: 'Account',
+        supportedScopes: [
+          { label: 'All accounts', name: 'everything' },
+          { label: 'My accounts', name: 'mine' },
+        ],
+      },
+    },
+  } as unknown as SoqlFetchMetadataOutput;
+
+  function runProcessUsingScope(soql: string) {
+    const stateItems: any = { missingMisc: [] };
+    processUsingScope(stateItems, parseQuery(soql), metadata);
+    return stateItems;
+  }
+
+  it('restores a supported scope using the casing from the describe', () => {
+    const stateItems = runProcessUsingScope(`SELECT Id FROM Account USING SCOPE MINE`);
+
+    expect(stateItems.queryUsingScopeState).toBe('mine');
+    expect(stateItems.missingMisc).toEqual([]);
+  });
+
+  it('reports a scope the object does not support', () => {
+    const stateItems = runProcessUsingScope(`SELECT Id FROM Account USING SCOPE team`);
+
+    expect(stateItems.queryUsingScopeState).toBeUndefined();
+    expect(stateItems.missingMisc).toEqual(['USING SCOPE team is not supported for Account']);
+  });
+
+  it('leaves the scope unset when the query has no USING SCOPE clause', () => {
+    const stateItems = runProcessUsingScope(`SELECT Id FROM Account`);
+
+    expect(stateItems.queryUsingScopeState).toBeUndefined();
     expect(stateItems.missingMisc).toEqual([]);
   });
 });

@@ -34,6 +34,7 @@ export const Query = () => {
   const resetFieldFilterFunctions = useResetAtom(fromQueryState.fieldFilterFunctions);
   const resetQueryGroupByState = useResetAtom(fromQueryState.queryGroupByState);
   const resetQueryLimitSkip = useResetAtom(fromQueryState.queryLimitSkip);
+  const resetQueryUsingScope = useResetAtom(fromQueryState.queryUsingScopeState);
   const resetQueryOrderByState = useResetAtom(fromQueryState.queryOrderByState);
   const resetQuerySoqlState = useResetAtom(fromQueryState.querySoqlState);
 
@@ -81,6 +82,7 @@ export const Query = () => {
       resetFieldFilterFunctions();
       resetQueryGroupByState();
       resetQueryLimitSkip();
+      resetQueryUsingScope();
       resetQueryOrderByState();
       resetQuerySoqlState();
 

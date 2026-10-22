@@ -7,9 +7,11 @@ import { useEffect } from 'react';
 import QueryFieldFunction from './QueryFieldFunction';
 import QueryFilter from './QueryFilter';
 import QueryGroupByContainer from './QueryGroupBy';
+import QueryUsingScope from './QueryUsingScope';
 import QueryFieldFnsTitleSummary from './accordion-titles/QueryFieldFnsTitleSummary';
 import QueryFilterTitleSummary from './accordion-titles/QueryFilterTitleSummary';
 import QueryGroupByTitleSummary from './accordion-titles/QueryGroupByTitleSummary';
+import QueryUsingScopeTitleSummary from './accordion-titles/QueryUsingScopeTitleSummary';
 
 export interface QueryBuilderAdvancedOptionsProps {
   org: SalesforceOrgUi;
@@ -81,6 +83,12 @@ export const QueryBuilderAdvancedOptions = ({
           ) : (
             <ScopedNotification theme="info">Having can only be combined with Group By</ScopedNotification>
           ),
+        },
+        {
+          id: 'usingScope',
+          title: 'Using Scope',
+          titleSummaryIfCollapsed: <QueryUsingScopeTitleSummary />,
+          content: <QueryUsingScope />,
         },
         ...additionalSections,
       ]}

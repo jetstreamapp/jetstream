@@ -26,6 +26,7 @@ export const QuerySObjects: FunctionComponent<QuerySObjectsProps> = ({
   const resetQueryOrderByState = useResetAtom(fromQueryState.queryOrderByState);
   const resetQueryLimit = useResetAtom(fromQueryState.queryLimit);
   const resetQueryLimitSkip = useResetAtom(fromQueryState.queryLimitSkip);
+  const resetQueryUsingScope = useResetAtom(fromQueryState.queryUsingScopeState);
   const resetQuerySoqlState = useResetAtom(fromQueryState.querySoqlState);
   const resetQueryChildRelationships = useResetAtom(fromQueryState.queryChildRelationships);
   const resetQueryFieldsMapState = useResetAtom(fromQueryState.queryFieldsMapState);
@@ -43,6 +44,7 @@ export const QuerySObjects: FunctionComponent<QuerySObjectsProps> = ({
       resetQueryOrderByState();
       resetQueryLimit();
       resetQueryLimitSkip();
+      resetQueryUsingScope();
       resetQuerySoqlState();
       resetQueryChildRelationships();
       resetQueryIncludeDeletedRecordsState();

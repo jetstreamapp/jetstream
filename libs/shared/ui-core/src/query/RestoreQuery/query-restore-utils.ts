@@ -87,6 +87,7 @@ interface QueryRestoreStateItems extends QueryRestoreErrors {
   queryHavingState: ExpressionType;
   queryLimit: string;
   queryLimitSkip: string;
+  queryUsingScopeState: string;
   queryOrderByState: QueryOrderByClause[];
   querySoqlState: string;
 }
@@ -186,6 +187,7 @@ async function queryRestoreBuildState(org: SalesforceOrgUi, query: Query, data: 
   processHavingClause(outputStateItems, query, fieldWrapperWithParentKey);
   processOrderBy(outputStateItems, query, fieldWrapperWithParentKey);
   processLimit(outputStateItems, query);
+  processUsingScope(outputStateItems, query, data);
   processSubqueryOptions(outputStateItems, query, data);
 
   return outputStateItems as QueryRestoreStateItems;
@@ -560,6 +562,20 @@ function processLimit(stateItems: Partial<QueryRestoreStateItems>, query: Query)
   }
 }
 
+function processUsingScope(stateItems: Partial<QueryRestoreStateItems>, query: Query, data: SoqlFetchMetadataOutput) {
+  if (!query.usingScope) {
+    return;
+  }
+  const { name: sobjectName, supportedScopes = [] } = data.selectedSobjectMetadata.sobject;
+  const usingScope = query.usingScope.toLowerCase();
+  const scope = supportedScopes.find(({ name }) => name.toLowerCase() === usingScope);
+  if (scope) {
+    stateItems.queryUsingScopeState = scope.name;
+  } else {
+    stateItems.missingMisc?.push(`USING SCOPE ${query.usingScope} is not supported for ${sobjectName}`);
+  }
+}
+
 /**
  * Walk every FieldSubquery in the query, including nested ones, and populate per-relationship
  * filter / orderBy / limit state keyed by relationship path.
@@ -874,5 +890,6 @@ function getFieldWrapperPath(queryFields: Record<string, QueryFields>): Record<s
 export const __TEST_EXPORTS__ = {
   processFields,
   processSubqueryOptions,
+  processUsingScope,
   getFieldWrapperPathForSubquery,
 };
