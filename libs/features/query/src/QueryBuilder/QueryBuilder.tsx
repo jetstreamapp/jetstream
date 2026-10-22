@@ -147,6 +147,7 @@ export const QueryBuilder = () => {
   const resetQueryOrderByState = useResetAtom(fromQueryState.queryOrderByState);
   const resetQueryLimit = useResetAtom(fromQueryState.queryLimit);
   const resetQueryLimitSkip = useResetAtom(fromQueryState.queryLimitSkip);
+  const resetQueryUsingScope = useResetAtom(fromQueryState.queryUsingScopeState);
   const resetQuerySoqlState = useResetAtom(fromQueryState.querySoqlState);
   const resetQueryChildRelationships = useResetAtom(fromQueryState.queryChildRelationships);
   const resetQueryIncludeDeletedRecordsState = useResetAtom(fromQueryState.queryIncludeDeletedRecordsState);
@@ -285,6 +286,7 @@ export const QueryBuilder = () => {
       resetQueryOrderByState();
       resetQueryLimit();
       resetQueryLimitSkip();
+      resetQueryUsingScope();
       resetQuerySoqlState();
       resetQueryChildRelationships();
       resetQueryIncludeDeletedRecordsState();
@@ -308,6 +310,7 @@ export const QueryBuilder = () => {
       resetQueryOrderByState,
       resetQueryLimit,
       resetQueryLimitSkip,
+      resetQueryUsingScope,
       resetQuerySoqlState,
       resetQueryChildRelationships,
       resetQueryIncludeDeletedRecordsState,

@@ -79,6 +79,32 @@ describe('useDeployRecords Data History lifecycle', () => {
     expect(await deleteDataHistoryEntry(key)).toEqual({ deleted: true });
   });
 
+  it('aborts the in-flight record query when the host unmounts', async () => {
+    let querySignal: AbortSignal | undefined;
+    queryAndPrepareMock.mockImplementation(
+      (_row, _fields, _org, signal: AbortSignal) =>
+        new Promise((_resolve, reject) => {
+          querySignal = signal;
+          signal.addEventListener('abort', () => reject(new DOMException('The operation was aborted.', 'AbortError')));
+        }),
+    );
+    const onDeployResults = vi.fn();
+
+    const { result, unmount } = renderHook(() => useDeployRecords(org, onDeployResults, 'STAND-ALONE'));
+    const loadPromise = result.current.loadDataForRows([row], { batchSize: 200, serialMode: false });
+
+    await vi.waitFor(() => expect(querySignal).toBeDefined());
+    expect(querySignal?.aborted).toBe(false);
+    onDeployResults.mockClear();
+
+    unmount();
+    await loadPromise;
+
+    expect(querySignal?.aborted).toBe(true);
+    // The abort is not reported back as a failed deployment
+    expect(onDeployResults).not.toHaveBeenCalled();
+  });
+
   /**
    * The multi-object variant: `loadDataForRows` keeps iterating after the host unmounts, so rows
    * that start AFTER the unmount cleanup ran must not begin a capture at all — nothing could ever

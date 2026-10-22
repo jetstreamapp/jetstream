@@ -20,6 +20,7 @@ export const QueryBuilderSoqlUpdater: FunctionComponent = () => {
   const orderByClauses = useAtomValue(fromQueryState.selectQueryOrderBy);
   const queryLimit = useAtomValue(fromQueryState.selectQueryLimit);
   const queryLimitSkip = useAtomValue(fromQueryState.selectQueryLimitSkip);
+  const usingScope = useAtomValue(fromQueryState.queryUsingScopeState);
   const [soql, setSoql] = useAtom(fromQueryState.querySoqlState);
   const setSoqlCount = useSetAtom(fromQueryState.querySoqlCountState);
 
@@ -29,6 +30,7 @@ export const QueryBuilderSoqlUpdater: FunctionComponent = () => {
       const hasGroupBy = !!validGroupByClauses.length;
       const query: Query = {
         sObject: selectedSObject.name,
+        usingScope: usingScope || undefined,
         fields: selectedFields,
         groupBy: hasGroupBy ? validGroupByClauses : undefined,
         orderBy: orderByClauses,
@@ -53,7 +55,7 @@ export const QueryBuilderSoqlUpdater: FunctionComponent = () => {
       setSoqlCount('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSObject, selectedFields, filters, havingClauses, groupByClauses, orderByClauses, queryLimit, queryLimitSkip]);
+  }, [selectedSObject, selectedFields, filters, havingClauses, groupByClauses, orderByClauses, queryLimit, queryLimitSkip, usingScope]);
 
   return null;
 };

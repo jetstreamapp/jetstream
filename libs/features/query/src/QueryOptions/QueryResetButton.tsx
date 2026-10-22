@@ -33,6 +33,7 @@ export const QueryResetButton: FunctionComponent<QueryResetButtonProps> = ({ cla
     useResetAtom(fromQueryState.queryOrderByState),
     useResetAtom(fromQueryState.queryLimit),
     useResetAtom(fromQueryState.queryLimitSkip),
+    useResetAtom(fromQueryState.queryUsingScopeState),
     useResetAtom(fromQueryState.querySoqlState),
   ];
 

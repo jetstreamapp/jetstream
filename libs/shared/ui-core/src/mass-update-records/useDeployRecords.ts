@@ -36,6 +36,8 @@ export function useDeployRecords(
 ) {
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const isMounted = useRef(true);
+  /** Aborted on unmount so leaving the page stops fetching the records an update is about to submit */
+  const unmountAbortController = useRef<AbortController | null>(null);
   const isPolling = useRef(false);
   const { notifyUser } = useBrowserNotifications(serverUrl);
   const { trackEvent } = useAmplitude();
@@ -84,8 +86,11 @@ export function useDeployRecords(
 
   useEffect(() => {
     isMounted.current = true;
+    const abortController = new AbortController();
+    unmountAbortController.current = abortController;
     return () => {
       isMounted.current = false;
+      abortController.abort();
       // Unmounting mid-deployment abandons the run: polling stops and every settle path is gated on
       // isMounted, so nothing would otherwise settle these entries — see `abandonIfUnsettled` for why
       // a stranded entry matters. Taking each context keeps "exactly one path settles it" true, and
@@ -251,7 +256,7 @@ export function useDeployRecords(
         skipHistory,
       });
 
-      const records = await queryAndPrepareRecordsForUpdate(row, fields, org);
+      const records = await queryAndPrepareRecordsForUpdate(row, fields, org, unmountAbortController.current?.signal);
 
       if (!isMounted.current) {
         // The unmount cleanup already took and abandoned this deployment's capture context
@@ -308,6 +313,10 @@ export function useDeployRecords(
         try {
           await loadDataForRow(row, options);
         } catch (ex) {
+          // Unmounting aborts the in-flight query and the unmount cleanup already settled the history entry
+          if (!isMounted.current) {
+            return;
+          }
           const deployResults: DeployResults = {
             ...row.deployResults,
             done: true,

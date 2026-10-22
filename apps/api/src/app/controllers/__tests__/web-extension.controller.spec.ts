@@ -21,6 +21,12 @@ const mocks = vi.hoisted(() => ({
   getApiAddressFromReq: vi.fn(() => '127.0.0.1'),
   getClientInfoFromReq: vi.fn(() => ({ appVersion: '1.2.3' })),
   createUserActivityFromReq: vi.fn(),
+  findByUserIdAndDeviceId: vi.fn(),
+  createToken: vi.fn(),
+  decryptJwtToken: vi.fn(),
+  verifyToken: vi.fn(),
+  issueAccessToken: vi.fn(),
+  decodeToken: vi.fn(),
 }));
 
 vi.mock('@jetstream/api-config', () => ({
@@ -69,8 +75,8 @@ vi.mock('../../db/web-extension.db', () => ({
   TOKEN_TYPE_AUTH: 'AUTH_TOKEN',
   TOKEN_SOURCE_BROWSER_EXTENSION: 'BROWSER_EXTENSION',
   TOKEN_SOURCE_DESKTOP: 'DESKTOP',
-  create: vi.fn(),
-  findByUserIdAndDeviceId: vi.fn(),
+  create: mocks.createToken,
+  findByUserIdAndDeviceId: mocks.findByUserIdAndDeviceId,
   deleteByUserIdAndDeviceId: vi.fn(),
 }));
 vi.mock('../../db/data-sync.db', () => ({ findByUpdatedAt: vi.fn(), syncRecordChanges: vi.fn() }));
@@ -80,12 +86,13 @@ vi.mock('../../services/external-auth.service', () => ({
   AUDIENCE_DESKTOP: 'https://getjetstream.app/desktop-app',
   isTokenWithinRefreshWindow: mocks.isTokenWithinRefreshWindow,
   rotateToken: mocks.rotateToken,
-  issueAccessToken: vi.fn(),
-  decodeToken: vi.fn(),
+  verifyToken: mocks.verifyToken,
+  issueAccessToken: mocks.issueAccessToken,
+  decodeToken: mocks.decodeToken,
   TOKEN_EXPIRATION_SHORT: 1,
   TOKEN_AUTO_REFRESH_DAYS: 2,
 }));
-vi.mock('../../services/jwt-token-encryption.service', () => ({ decryptJwtTokenOrPlaintext: vi.fn() }));
+vi.mock('../../services/jwt-token-encryption.service', () => ({ decryptJwtToken: mocks.decryptJwtToken }));
 vi.mock('../../utils/response.handlers', () => ({ sendJson: mocks.sendJson, redirect: mocks.redirect }));
 vi.mock('../data-sync.controller', () => ({
   routeDefinition: { pull: { validators: { hasSourceOrg: false } }, push: { validators: { hasSourceOrg: false } } },
@@ -226,5 +233,55 @@ describe('web-extension.controller initSession pending-verification gate', () =>
     expect(mocks.checkUserEntitlement).toHaveBeenCalledWith({ userId: 'user-1', entitlement: 'chromeExtension' });
     expect(next).toHaveBeenCalledTimes(1);
     expect((next.mock.calls[0][0] as Error).name).toBe('MissingEntitlement');
+  });
+});
+
+describe('web-extension.controller initSession stored token reuse', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.findIdByUserIdUserFacing.mockResolvedValue(userProfile);
+    mocks.checkUserEntitlement.mockResolvedValue(true);
+    mocks.findByUserIdAndDeviceId.mockResolvedValue({ token: 'gcm!stored-token' });
+    mocks.issueAccessToken.mockResolvedValue('new-token');
+    mocks.decodeToken.mockReturnValue({ exp: 1_900_000_000 });
+  });
+
+  async function invokeInitSession() {
+    const req = makeReq({});
+    const res = makeRes();
+    await routeDefinition.initSession.controllerFn()(req as never, res as never, vi.fn());
+    return { res };
+  }
+
+  it('reuses the stored token when it decrypts and verifies', async () => {
+    mocks.decryptJwtToken.mockReturnValue('stored-token');
+    mocks.verifyToken.mockResolvedValue(undefined);
+
+    const { res } = await invokeInitSession();
+
+    expect(mocks.sendJson).toHaveBeenCalledWith(res, { accessToken: 'stored-token' });
+    expect(mocks.issueAccessToken).not.toHaveBeenCalled();
+  });
+
+  it('issues a new token when the stored token can no longer be decrypted', async () => {
+    mocks.decryptJwtToken.mockImplementation(() => {
+      throw new Error('Failed to decrypt token');
+    });
+
+    const { res } = await invokeInitSession();
+
+    expect(mocks.verifyToken).not.toHaveBeenCalled();
+    expect(mocks.createToken).toHaveBeenCalledWith('user-1', expect.objectContaining({ token: 'new-token' }));
+    expect(mocks.sendJson).toHaveBeenCalledWith(res, { accessToken: 'new-token' });
+  });
+
+  it('issues a new token when the stored token no longer verifies', async () => {
+    mocks.decryptJwtToken.mockReturnValue('stored-token');
+    mocks.verifyToken.mockRejectedValue(new Error('invalid signature'));
+
+    const { res } = await invokeInitSession();
+
+    expect(mocks.createToken).toHaveBeenCalledWith('user-1', expect.objectContaining({ token: 'new-token' }));
+    expect(mocks.sendJson).toHaveBeenCalledWith(res, { accessToken: 'new-token' });
   });
 });

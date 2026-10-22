@@ -20,7 +20,7 @@ import { checkUserEntitlement } from '../db/user.db';
 import * as webExtDb from '../db/web-extension.db';
 import { emitRecordSyncEventsToOtherClients, SyncEvent } from '../services/data-sync-broadcast.service';
 import * as externalAuthService from '../services/external-auth.service';
-import { decryptJwtTokenOrPlaintext } from '../services/jwt-token-encryption.service';
+import { decryptJwtToken } from '../services/jwt-token-encryption.service';
 import { getPendingSessionRedirectPath } from '../utils/pending-session.utils';
 import { redirect, sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
@@ -182,27 +182,27 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
   });
 
   if (existingTokenRecord) {
-    // Decrypt the stored token (supports both encrypted and legacy plaintext)
-    const decryptedToken = decryptJwtTokenOrPlaintext(existingTokenRecord.token);
-
-    // Only reuse the stored token if it still verifies. A signing-secret rotation (or any change
+    // Only reuse the stored token if it still decrypts and verifies. A signing-secret rotation (or any change
     // that invalidates an old signature) can leave a non-expired token in the DB whose signature
     // no longer validates — /auth/verify would then reject it immediately, leaving the user stuck
     // in a login loop with no way out short of clearing local app data. When the stored token no
     // longer verifies, fall through and issue a fresh one (the issue path upserts, replacing the
     // stale row) so login self-heals.
-    const storedTokenIsValid = await externalAuthService
-      .verifyToken({ token: decryptedToken, deviceId }, externalAuthService.AUDIENCE_DESKTOP)
-      .then(() => true)
+    const decryptedToken = await Promise.resolve()
+      .then(async () => {
+        const token = decryptJwtToken(existingTokenRecord.token);
+        await externalAuthService.verifyToken({ token, deviceId }, externalAuthService.AUDIENCE_DESKTOP);
+        return token;
+      })
       .catch((ex) => {
         getLogger().warn(
           { userId: user.id, deviceId, ...getErrorMessageAndStackObj(ex) },
           'Stored desktop token failed verification; issuing a new token',
         );
-        return false;
+        return null;
       });
 
-    if (storedTokenIsValid) {
+    if (decryptedToken) {
       const decoded = externalAuthService.decodeToken(decryptedToken);
       const expiresAt = fromUnixTime(decoded.exp);
 

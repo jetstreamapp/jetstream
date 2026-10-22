@@ -33,6 +33,7 @@ export const AppStateResetOnOrgChange = () => {
     useResetAtom(fromQueryState.queryFiltersState),
     useResetAtom(fromQueryState.queryLimit),
     useResetAtom(fromQueryState.queryLimitSkip),
+    useResetAtom(fromQueryState.queryUsingScopeState),
     useResetAtom(fromQueryState.queryOrderByState),
     useResetAtom(fromQueryState.querySoqlState),
     // LOAD

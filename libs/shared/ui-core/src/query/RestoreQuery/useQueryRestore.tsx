@@ -61,6 +61,7 @@ export const useQueryRestore = (
   const setQueryOrderByState = useSetAtom(fromQueryState.queryOrderByState);
   const setQueryLimit = useSetAtom(fromQueryState.queryLimit);
   const setQueryLimitSkip = useSetAtom(fromQueryState.queryLimitSkip);
+  const setQueryUsingScope = useSetAtom(fromQueryState.queryUsingScopeState);
 
   const resetSelectedSObjectState = useResetAtom(fromQueryState.selectedSObjectState);
 
@@ -74,6 +75,7 @@ export const useQueryRestore = (
   const resetQueryOrderByState = useResetAtom(fromQueryState.queryOrderByState);
   const resetQueryLimit = useResetAtom(fromQueryState.queryLimit);
   const resetQueryLimitSkip = useResetAtom(fromQueryState.queryLimitSkip);
+  const resetQueryUsingScope = useResetAtom(fromQueryState.queryUsingScopeState);
 
   useEffect(() => {
     isMounted.current = true;
@@ -119,6 +121,7 @@ export const useQueryRestore = (
         results.queryOrderByState ? setQueryOrderByState(results.queryOrderByState) : resetQueryOrderByState();
         results.queryLimit ? setQueryLimit(results.queryLimit) : resetQueryLimit();
         results.queryLimitSkip ? setQueryLimitSkip(results.queryLimitSkip) : resetQueryLimitSkip();
+        results.queryUsingScopeState ? setQueryUsingScope(results.queryUsingScopeState) : resetQueryUsingScope();
 
         // The order of these are critical to QueryFields.tsx to ensure no bad init
         setQueryFieldsMapState(results.queryFieldsMapState);

@@ -16,7 +16,7 @@ import {
   rotateToken,
   type Audience,
 } from '../external-auth.service';
-import { decryptJwtTokenOrPlaintext, hashToken } from '../jwt-token-encryption.service';
+import { decryptJwtToken, hashToken } from '../jwt-token-encryption.service';
 
 const SECONDS_PER_DAY = 60 * 60 * 24;
 
@@ -44,7 +44,7 @@ vi.mock('../jwt-token-encryption.service', async () => {
   const actual = await vi.importActual<typeof import('../jwt-token-encryption.service')>('../jwt-token-encryption.service');
   return {
     ...actual,
-    decryptJwtTokenOrPlaintext: vi.fn(),
+    decryptJwtToken: vi.fn(),
     hashToken: vi.fn((token: string) => `hash(${token})`),
   };
 });
@@ -143,7 +143,7 @@ describe('external-auth.service', () => {
         token: 'encrypted-winner-token-T1',
         source: baseArgs.source,
       } as unknown as Awaited<ReturnType<typeof webExtDb.findByUserIdAndDeviceId>>);
-      (decryptJwtTokenOrPlaintext as Mock).mockReturnValue('winner-token-T1');
+      (decryptJwtToken as Mock).mockReturnValue('winner-token-T1');
 
       const result = await rotateToken(baseArgs);
 
@@ -153,7 +153,7 @@ describe('external-auth.service', () => {
         deviceId: baseArgs.deviceId,
         type: webExtDb.TOKEN_TYPE_AUTH,
       });
-      expect(decryptJwtTokenOrPlaintext).toHaveBeenCalledWith('encrypted-winner-token-T1');
+      expect(decryptJwtToken).toHaveBeenCalledWith('encrypted-winner-token-T1');
     });
 
     it('returns outcome=race-loss-none with undefined token when race is lost and no current token exists in DB', async () => {
@@ -163,7 +163,7 @@ describe('external-auth.service', () => {
       const result = await rotateToken(baseArgs);
 
       expect(result).toEqual({ token: undefined, outcome: 'race-loss-none' });
-      expect(decryptJwtTokenOrPlaintext).not.toHaveBeenCalled();
+      expect(decryptJwtToken).not.toHaveBeenCalled();
     });
 
     it('returns outcome=race-loss-none when race is lost and the current DB token has a different source', async () => {
@@ -179,7 +179,7 @@ describe('external-auth.service', () => {
       const result = await rotateToken(baseArgs);
 
       expect(result).toEqual({ token: undefined, outcome: 'race-loss-none' });
-      expect(decryptJwtTokenOrPlaintext).not.toHaveBeenCalled();
+      expect(decryptJwtToken).not.toHaveBeenCalled();
     });
   });
 

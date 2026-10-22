@@ -685,6 +685,10 @@ describe('mass-update-records.utils#record limit', () => {
     expect(clientData.queryAll).toHaveBeenCalledWith(
       selectedOrg,
       `SELECT Id, Industry, Rating FROM Account WHERE (Industry = NULL) OR (Id = '12345') LIMIT 3`,
+      false,
+      false,
+      undefined,
+      undefined,
     );
     expect(records.map(({ Id }) => Id)).toEqual(['001a', '001b', '001d']);
   });
@@ -701,14 +705,39 @@ describe('mass-update-records.utils#record limit', () => {
 
     const records = await queryAndPrepareRecordsForUpdate(row, ['Id', 'Industry', 'Rating'], selectedOrg);
 
-    expect(clientData.queryAllFromList).toHaveBeenCalledWith(selectedOrg, [
-      `SELECT Id FROM Account WHERE Id IN ('001a','001d') AND ((Id = '12345'))`,
-    ]);
+    expect(clientData.queryAllFromList).toHaveBeenCalledWith(
+      selectedOrg,
+      [`SELECT Id FROM Account WHERE Id IN ('001a','001d') AND ((Id = '12345'))`],
+      false,
+      false,
+      undefined,
+      undefined,
+    );
     // Only the record matching the custom criteria gets the custom field's value; the other is left untouched
     expect(records).toEqual([
       { Id: '001a', Industry: 'Tech', Rating: null },
       { Id: '001d', Industry: 'Tech', Rating: 'Hot' },
     ]);
+  });
+
+  it('Should pass the abort signal to every query for a row', async () => {
+    const signal = new AbortController().signal;
+
+    vi.mocked(clientData.queryAll).mockResolvedValueOnce({
+      queryResults: { records: [{ Id: '001a' }, { Id: '001d' }], totalSize: 2, done: true },
+    } as any);
+    vi.mocked(clientData.queryAllFromList).mockResolvedValueOnce({
+      queryResults: { records: [{ Id: '001d' }], totalSize: 1, done: true },
+    } as any);
+    await queryAndPrepareRecordsForUpdate(buildMixedCriteriaRow({ limit: 3 }), ['Id', 'Industry', 'Rating'], selectedOrg, signal);
+
+    const emptyResults = { queryResults: { records: [], totalSize: 0, done: true } } as any;
+    vi.mocked(clientData.queryAll).mockResolvedValueOnce(emptyResults).mockResolvedValueOnce(emptyResults);
+    await queryAndPrepareRecordsForUpdate(buildMixedCriteriaRow({}), ['Id', 'Industry', 'Rating'], selectedOrg, signal);
+
+    expect(vi.mocked(clientData.queryAll).mock.calls).toHaveLength(3);
+    vi.mocked(clientData.queryAll).mock.calls.forEach((call) => expect(call[5]).toBe(signal));
+    expect(vi.mocked(clientData.queryAllFromList).mock.calls[0][5]).toBe(signal);
   });
 
   it('Should merge both criteria queries without an extra membership query when the row has no limit', async () => {

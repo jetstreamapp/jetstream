@@ -16,9 +16,10 @@ import {
   QueryFields,
   QueryGroupByClause,
   QueryOrderByClause,
+  ScopeInfo,
 } from '@jetstream/types';
 import { isExpressionConditionType } from '@jetstream/ui';
-import { getSubqueryPathFromFieldKey } from '@jetstream/ui-core/shared';
+import { getQueryFieldBaseKey, getSubqueryPathFromFieldKey } from '@jetstream/ui-core/shared';
 import {
   FieldType,
   GroupByFieldClause,
@@ -366,6 +367,18 @@ export const selectQueryOrderBy = atom<OrderByClause[]>((get) =>
     })),
 );
 
+export const queryUsingScopeState = atomWithReset<string>('');
+
+/** Scopes the selected object accepts in a USING SCOPE clause, or null until its describe has loaded */
+export const selectSupportedScopes = atom<ScopeInfo[] | null>((get) => {
+  const selectedSObject = get(selectedSObjectState);
+  if (!selectedSObject) {
+    return null;
+  }
+  const metadata = get(queryFieldsMapState)[getQueryFieldBaseKey(selectedSObject.name)]?.metadata;
+  return metadata ? metadata.supportedScopes || [] : null;
+});
+
 export const querySoqlState = atomWithReset<string>('');
 
 // SOQL query with count() function
@@ -395,6 +408,8 @@ export const hasOrderByConfigured = atom<boolean>((get) => get(queryOrderByState
 
 export const hasLimitConfigured = atom<boolean>((get) => !!get(queryLimit).trim() || !!get(queryLimitSkip).trim());
 
+export const hasUsingScopeConfigured = atom<boolean>((get) => !!get(queryUsingScopeState));
+
 export const hasFieldFunctionsConfigured = atom<boolean>((get) =>
   get(fieldFilterFunctions).some((fn) => !!fn.selectedField && !!fn.selectedFunction),
 );
@@ -402,6 +417,8 @@ export const hasFieldFunctionsConfigured = atom<boolean>((get) =>
 export const hasQueryOptionsConfigured = atom<{ standard: number; advanced: number }>((get) => {
   return {
     standard: [get(hasFiltersConfigured), get(hasOrderByConfigured), get(hasLimitConfigured)].filter(Boolean).length,
-    advanced: [get(hasFieldFunctionsConfigured), get(hasGroupByConfigured), get(hasHavingConfigured)].filter(Boolean).length,
+    advanced: [get(hasFieldFunctionsConfigured), get(hasGroupByConfigured), get(hasHavingConfigured), get(hasUsingScopeConfigured)].filter(
+      Boolean,
+    ).length,
   };
 });

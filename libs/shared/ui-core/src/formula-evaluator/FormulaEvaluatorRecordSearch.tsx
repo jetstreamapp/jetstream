@@ -2,7 +2,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { describeSObject, query } from '@jetstream/shared/data';
-import { appActionObservable } from '@jetstream/shared/ui-utils';
+import { appActionObservable, escapeSoqlString, isValidSalesforceRecordId } from '@jetstream/shared/ui-utils';
 import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItemsTypeAhead, Grid, Icon, Tooltip } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useRef, useState } from 'react';
@@ -46,18 +46,31 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
           };
         }
         const name = nameField.current.nameField;
+        const queryRecords = async (whereClause?: string) => {
+          const soql = `SELECT Id, ${name} FROM ${selectedSObject}${whereClause ? ` WHERE ${whereClause}` : ''} ORDER BY ${name} LIMIT 50`;
+          return (await query(selectedOrg, soql)).queryResults.records;
+        };
 
-        let soql = `SELECT Id, ${name} FROM ${selectedSObject} ORDER BY ${name} LIMIT 50`;
-        if (searchTerm) {
-          if (searchTerm.length === 15 || searchTerm.length === 18) {
-            soql = `SELECT Id, ${name} FROM ${selectedSObject} WHERE Id = '${searchTerm}' OR ${name} LIKE '%${searchTerm}%' ORDER BY ${name} LIMIT 50`;
+        let records: any[];
+        if (!searchTerm) {
+          records = await queryRecords();
+        } else {
+          const idCondition = `Id = '${escapeSoqlString(searchTerm)}'`;
+          const nameCondition = `${name} LIKE '%${escapeSoqlString(searchTerm)}%'`;
+          if (!isValidSalesforceRecordId(searchTerm)) {
+            records = await queryRecords(nameCondition);
+          } else if (selectedSObject.endsWith('__mdt')) {
+            // Custom metadata queries do not support OR, so fall back to a name search if the term is not an Id
+            records = await queryRecords(idCondition);
+            if (!records.length) {
+              records = await queryRecords(nameCondition);
+            }
           } else {
-            soql = `SELECT Id, ${name} FROM ${selectedSObject} WHERE ${name} LIKE '%${searchTerm}%' ORDER BY ${name} LIMIT 50`;
+            records = await queryRecords(`${idCondition} OR ${nameCondition}`);
           }
         }
-        const { queryResults } = await query(selectedOrg, soql);
         setRecords(
-          queryResults.records.map((record) => ({
+          records.map((record) => ({
             id: record.Id,
             label: record[name],
             title: record.Id,

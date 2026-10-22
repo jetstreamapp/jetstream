@@ -14,8 +14,6 @@ import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
  *    `salesforce-org-encryption.service` stores `v2:<salt>:<encryptString output>` and reconstructs
  *    the inner blob via `string.split(':')[2]`. A `:` inside our blob (or a `v2:` prefix) would be
  *    truncated/ambiguous in that envelope, so the GCM blob must contain NO `:` and must not reuse `v2:`.
- *  - `jwt-token-encryption.service#isTokenEncrypted` distinguishes ciphertext from plaintext JWTs by the
- *    presence of `!`. Keeping `!` in the GCM format preserves that detection.
  *  - The legacy CBC format always begins with a 24-character base64-encoded 16-byte IV before its `!`
  *    separator, so the 3-character `gcm` prefix can never be mistaken for a legacy blob and vice-versa.
  */
