@@ -1,17 +1,38 @@
-import { DesktopUserPreferences } from '@jetstream/desktop/types';
+import { DesktopUserPreferences, DesktopUserPreferencesSchema, ElectronAPI } from '@jetstream/desktop/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { getDesktopAutoSaveDownloadFolder } from '../shared-desktop-helpers';
+import { getAutoSaveDownloadFolder, getDesktopPreferences, onDesktopPreferencesChanged } from '../shared-desktop-helpers';
 
-const windowWithElectron = window as Window & { electronAPI?: { getPreferences: () => Promise<Partial<DesktopUserPreferences>> } };
+type PartialElectronApi = Pick<ElectronAPI, 'getPreferences' | 'onPreferencesChanged'>;
+const windowWithElectron = window as unknown as { electronAPI?: PartialElectronApi };
 
-function mockPreferences(fileDownload: DesktopUserPreferences['fileDownload']) {
-  const getPreferences = vi.fn().mockResolvedValue({ fileDownload });
-  windowWithElectron.electronAPI = { getPreferences };
-  return getPreferences;
+function getPreferences(fileDownload: DesktopUserPreferences['fileDownload']): DesktopUserPreferences {
+  return DesktopUserPreferencesSchema.parse({ fileDownload });
 }
 
-describe('getDesktopAutoSaveDownloadFolder', () => {
+describe('getAutoSaveDownloadFolder', () => {
+  test('returns the folder when downloads are saved without prompting', () => {
+    expect(getAutoSaveDownloadFolder(getPreferences({ omitPrompt: true, downloadPath: '/Users/me/Downloads' }))).toBe(
+      '/Users/me/Downloads',
+    );
+  });
+
+  test('returns null when the user is asked where to save each download', () => {
+    expect(getAutoSaveDownloadFolder(getPreferences({ omitPrompt: false, downloadPath: '/Users/me/Downloads' }))).toBeNull();
+  });
+
+  test('returns null when no folder has been chosen', () => {
+    expect(getAutoSaveDownloadFolder(getPreferences({ omitPrompt: true, downloadPath: '' }))).toBeNull();
+    expect(getAutoSaveDownloadFolder(getPreferences(undefined))).toBeNull();
+  });
+});
+
+describe('desktop preference access', () => {
+  const preferences = getPreferences({ omitPrompt: true, downloadPath: '/Users/me/Downloads' });
+  let electronApi: { getPreferences: ReturnType<typeof vi.fn>; onPreferencesChanged: ReturnType<typeof vi.fn> };
+
   beforeEach(() => {
+    electronApi = { getPreferences: vi.fn().mockResolvedValue(preferences), onPreferencesChanged: vi.fn().mockReturnValue(vi.fn()) };
+    windowWithElectron.electronAPI = electronApi as unknown as PartialElectronApi;
     globalThis.__IS_DESKTOP__ = true;
   });
 
@@ -20,25 +41,18 @@ describe('getDesktopAutoSaveDownloadFolder', () => {
     delete windowWithElectron.electronAPI;
   });
 
-  test('returns the folder when downloads are saved without prompting', async () => {
-    mockPreferences({ omitPrompt: true, downloadPath: '/Users/me/Downloads' });
-    await expect(getDesktopAutoSaveDownloadFolder()).resolves.toBe('/Users/me/Downloads');
+  test('reads and subscribes to preferences on desktop', async () => {
+    const callback = vi.fn();
+    await expect(getDesktopPreferences()).resolves.toBe(preferences);
+    onDesktopPreferencesChanged(callback);
+    expect(electronApi.onPreferencesChanged).toHaveBeenCalledWith(callback);
   });
 
-  test('returns null when the user is asked where to save each download', async () => {
-    mockPreferences({ omitPrompt: false, downloadPath: '/Users/me/Downloads' });
-    await expect(getDesktopAutoSaveDownloadFolder()).resolves.toBeNull();
-  });
-
-  test('returns null when no folder has been chosen', async () => {
-    mockPreferences({ omitPrompt: true, downloadPath: '' });
-    await expect(getDesktopAutoSaveDownloadFolder()).resolves.toBeNull();
-  });
-
-  test('does not read preferences outside the desktop app', async () => {
+  test('does not touch the IPC bridge outside the desktop app', async () => {
     globalThis.__IS_DESKTOP__ = false;
-    const getPreferences = mockPreferences({ omitPrompt: true, downloadPath: '/Users/me/Downloads' });
-    await expect(getDesktopAutoSaveDownloadFolder()).resolves.toBeNull();
-    expect(getPreferences).not.toHaveBeenCalled();
+    await expect(getDesktopPreferences()).resolves.toBeNull();
+    expect(onDesktopPreferencesChanged(vi.fn())).toBeTypeOf('function');
+    expect(electronApi.getPreferences).not.toHaveBeenCalled();
+    expect(electronApi.onPreferencesChanged).not.toHaveBeenCalled();
   });
 });

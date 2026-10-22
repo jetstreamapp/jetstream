@@ -35,6 +35,7 @@ import {
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { atomWithLazy, unwrap } from 'jotai/utils';
 import isString from 'lodash/isString';
+import { useEffect } from 'react';
 import z from 'zod';
 
 // FIXME: browser extension should be able to obtain all of this information after logging in
@@ -524,7 +525,38 @@ export const useUserPreferenceState = (): [UserProfilePreferences | undefined, (
       // could not save to localstorage
       logger.warn('could not save to localstorage');
     }
+    postUserPreferencesToOtherWindows(_userPreference);
   }
 
   return [userPreference, setUserPreferences];
 };
+
+const USER_PREFERENCES_CHANNEL = 'jetstream-user-preferences';
+
+function postUserPreferencesToOtherWindows(userPreference: UserProfilePreferences) {
+  if (typeof BroadcastChannel === 'undefined') {
+    return;
+  }
+  // A short-lived channel, so nothing stays open in an app (or test) that never listens
+  const channel = new BroadcastChannel(USER_PREFERENCES_CHANNEL);
+  channel.postMessage(userPreference);
+  channel.close();
+}
+
+/**
+ * Each window reads the preferences (e.g. the color scheme) from storage once, so a change made in one window
+ * is applied in the others as it is posted. Used by the desktop app, where Settings is a window of its own.
+ */
+export function useSyncUserPreferencesAcrossWindows() {
+  const setUserPreferenceState = useSetAtom(userPreferenceState);
+
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') {
+      return;
+    }
+    const channel = new BroadcastChannel(USER_PREFERENCES_CHANNEL);
+    // Only this window's state is updated - the window that made the change already saved it
+    channel.onmessage = ({ data }: MessageEvent<UserProfilePreferences>) => setUserPreferenceState(data);
+    return () => channel.close();
+  }, [setUserPreferenceState]);
+}

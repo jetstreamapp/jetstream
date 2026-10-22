@@ -16,11 +16,15 @@ import { AppRoutes } from './AppRoutes';
 import { AnnouncementAlerts } from './components/core/AnnouncementAlerts';
 import AppInitializer from './components/core/AppInitializer';
 import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange';
+import { DesktopPreferencesSync } from './components/core/DesktopPreferencesSync';
 import { DownloadFileStreamDesktop } from './components/core/DownloadFileStreamDesktop';
+import lazy from './components/core/LazyLoad';
 import { Login } from './components/core/Login';
 import LogInitializer from './components/core/LogInitializer';
 import './components/core/monaco-loader';
-import { addDesktopOrg } from './utils/utils';
+import { addDesktopOrg, isSettingsWindow } from './utils/utils';
+
+const Settings = lazy(() => import('./components/settings/Settings'));
 
 export const App = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -33,37 +37,51 @@ export const App = () => {
             <AppInitializer authInfo={authInfo} onAnnouncements={setAnnouncements}>
               <ThemeApplier />
               <ModalContainer />
-              <AppStateResetOnOrgChange />
               <LogInitializer />
-              <NotificationsRequestModal loadDelay={10000} />
-              <DownloadFileStreamDesktop />
-              <ViewEditCloneRecordWrapper />
-              <div>
-                <div
-                  css={css`
-                    app-region: drag;
-                  `}
-                  data-testid="header"
-                >
-                  <HeaderNavbar
-                    logoCss={css`
-                      background-image: none !important;
-                    `}
-                    isDesktop
-                    isBillingEnabled={false}
-                    onAddOrgHandlerFn={addDesktopOrg}
-                    onLogoutHandlerFn={onLogout}
-                  />
-                </div>
+              <DesktopPreferencesSync />
+              {isSettingsWindow() ? (
+                // The Settings window has a native title bar and only ever shows the Settings page
                 <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
-                  <AnnouncementAlerts announcements={announcements} />
                   <Suspense fallback={<AppLoading />}>
                     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-                      <AppRoutes />
+                      <Settings />
                     </ErrorBoundary>
                   </Suspense>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <AppStateResetOnOrgChange />
+                  <NotificationsRequestModal loadDelay={10000} />
+                  <DownloadFileStreamDesktop />
+                  <ViewEditCloneRecordWrapper />
+                  <div>
+                    <div
+                      css={css`
+                        app-region: drag;
+                      `}
+                      data-testid="header"
+                    >
+                      <HeaderNavbar
+                        logoCss={css`
+                          background-image: none !important;
+                        `}
+                        isDesktop
+                        isBillingEnabled={false}
+                        onAddOrgHandlerFn={addDesktopOrg}
+                        onLogoutHandlerFn={onLogout}
+                      />
+                    </div>
+                    <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
+                      <AnnouncementAlerts announcements={announcements} />
+                      <Suspense fallback={<AppLoading />}>
+                        <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+                          <AppRoutes />
+                        </ErrorBoundary>
+                      </Suspense>
+                    </div>
+                  </div>
+                </>
+              )}
               {/* Keep after the header so toast no-drag rects override its drag rect (see main.css) */}
               <AppToast />
             </AppInitializer>

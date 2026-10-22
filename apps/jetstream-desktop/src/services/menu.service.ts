@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { truncateMiddle } from '@jetstream/shared/utils';
-import { app, BrowserWindow, Menu, shell } from 'electron';
+import { app, Menu, shell } from 'electron';
 import logger from 'electron-log';
 import path from 'node:path';
 import { Browser } from '../browser/browser';
+import { openSettingsWindow } from '../browser/settings-window';
 import { checkForUpdates, getUpdatePolicy } from '../config/auto-updater';
 import { openExternalSafe } from '../utils/url.utils';
 import { isMac } from '../utils/utils';
@@ -50,7 +51,8 @@ export function initAppMenu() {
               { type: 'separator' },
               {
                 label: 'Settings',
-                click: (_, window) => (window as BrowserWindow | undefined)?.webContents.send('open-settings'),
+                accelerator: 'CmdOrCtrl+,',
+                click: () => openSettingsWindow(),
               },
               { type: 'separator' },
               { role: 'services' },
@@ -78,7 +80,8 @@ export function initAppMenu() {
               { type: 'separator' },
               {
                 label: 'Settings',
-                click: (_, window) => (window as BrowserWindow | undefined)?.webContents.send('open-settings'),
+                accelerator: 'CmdOrCtrl+,',
+                click: () => openSettingsWindow(),
               },
               { type: 'separator' },
               checkForUpdatesMenuItem(),

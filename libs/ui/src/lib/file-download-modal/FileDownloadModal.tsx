@@ -413,7 +413,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
             onKeyUp={handleKeyUp}
           />
         </Input>
-        {fileFormat !== RADIO_FORMAT_GDRIVE && <DesktopDownloadLocationNote onNavigateToSettings={() => onModalClose(true)} />}
+        {fileFormat !== RADIO_FORMAT_GDRIVE && <DesktopDownloadLocationNote />}
       </div>
     </Modal>
   );

@@ -33,10 +33,10 @@ const API: ElectronAPI = {
     ipcRenderer.on(IpcEventChannel.toastMessage, handler);
     return () => ipcRenderer.removeListener(IpcEventChannel.toastMessage, handler);
   },
-  onOpenSettings: (callback) => {
-    const handler = (_event) => callback();
-    ipcRenderer.on(IpcEventChannel.openSettings, handler);
-    return () => ipcRenderer.removeListener(IpcEventChannel.openSettings, handler);
+  onPreferencesChanged: (callback) => {
+    const handler = (_event, preferences) => callback(preferences);
+    ipcRenderer.on(IpcEventChannel.preferencesChanged, handler);
+    return () => ipcRenderer.removeListener(IpcEventChannel.preferencesChanged, handler);
   },
   onGooglePickerResult: (callback) => {
     const handler = (_event, payload) => callback(payload);
@@ -57,6 +57,7 @@ const API: ElectronAPI = {
   selectFolder: () => ipcRenderer.invoke('selectFolder'),
   getPreferences: () => ipcRenderer.invoke('getPreferences'),
   setPreferences: (payload) => ipcRenderer.invoke('setPreferences', payload),
+  openSettings: (payload) => ipcRenderer.invoke('openSettings', payload),
   configureCrashReporter: (dsn) => ipcRenderer.invoke('configureCrashReporter', dsn),
   request: (payload) => ipcRenderer.invoke('request', payload),
   downloadZipToFile: (payload) => ipcRenderer.invoke('downloadZipToFile', payload),

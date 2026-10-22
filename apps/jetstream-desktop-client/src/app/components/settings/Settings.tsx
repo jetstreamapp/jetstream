@@ -28,7 +28,6 @@ import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { useAtomCallback } from 'jotai/utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
 import { desktopUserPreferences, desktopUserPreferencesSyncState } from '../core/AppDesktopState';
 
 const HEIGHT_BUFFER = 170;
@@ -41,20 +40,6 @@ const SECTIONS: SettingsNavItem[] = [
   { id: 'diagnostics', label: 'Diagnostics' },
 ];
 
-// The title is centered like a native macOS window title, which keeps it clear of the traffic light
-// buttons that sit over the left of this bar (the mac window has a hidden title bar)
-const titleBarCss = css`
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  min-height: 50px;
-  width: 100%;
-  padding: 0 0.5rem;
-  background-color: var(--slds-g-color-surface-container-1, #fff);
-  border-bottom: 1px solid var(--slds-g-color-border-1, #e5e5e5);
-  app-region: drag;
-`;
-
 const downloadPathCss = css`
   word-break: break-all;
 `;
@@ -63,7 +48,6 @@ export const Settings = () => {
   useTitle(TITLES.SETTINGS);
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
-  const navigate = useNavigate();
   const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
   const { serverUrl } = useAtomValue(fromAppState.applicationCookieState);
   const { version } = useAtomValue(fromAppState.appInfoState);
@@ -100,7 +84,8 @@ export const Settings = () => {
       if (isEscapeKey(event as any)) {
         event.stopPropagation();
         event.preventDefault();
-        navigate(-1);
+        // Settings is the only page in its window
+        window.close();
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -185,149 +170,116 @@ export const Settings = () => {
       'Jetstream is installed for all users on this computer, so installing an update requires administrator approval. Updates are never installed automatically - you will be asked first.';
   }
 
-  // TODO: animate in and out like discord
   return (
-    <div
-      css={css`
-        position: fixed;
-        width: 100%;
-        top: 0;
-        left: 0;
-        z-index: 101;
-      `}
-    >
-      <div css={titleBarCss}>
-        <h1
-          className="slds-text-heading_medium"
-          css={css`
-            grid-column: 2;
-          `}
-        >
-          Settings
-        </h1>
-        <button
-          css={css`
-            justify-self: end;
-            app-region: no-drag;
-          `}
-          className="slds-button slds-button_icon slds-button_icon-large"
-          title="Close"
-          onClick={() => navigate(APP_ROUTES.HOME.ROUTE)}
-        >
-          <Icon type="utility" icon="close" className="slds-button__icon slds-button__icon_large" omitContainer />
-          <span className="slds-assistive-text">Close</span>
-        </button>
-      </div>
-      <Page testId="settings-page">
-        <AutoFullHeightContainer className="slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
-          <SettingsLayout sections={SECTIONS}>
-            <SettingsSection id="account" title="Account">
-              <AccountSummary
-                userProfile={userProfile}
-                actions={
-                  <>
+    <Page testId="settings-page">
+      <AutoFullHeightContainer className="slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
+        <SettingsLayout sections={SECTIONS}>
+          <SettingsSection id="account" title="Account">
+            <AccountSummary
+              userProfile={userProfile}
+              actions={
+                <>
+                  <button
+                    className="slds-button slds-button_neutral"
+                    title="Opens your Jetstream profile in your browser"
+                    onClick={() => openWebAppPage(APP_ROUTES.PROFILE.ROUTE)}
+                  >
+                    Manage Account
+                    <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_right" omitContainer />
+                  </button>
+                  {ability.can('read', 'Team') && (
                     <button
                       className="slds-button slds-button_neutral"
-                      title="Opens your Jetstream profile in your browser"
-                      onClick={() => openWebAppPage(APP_ROUTES.PROFILE.ROUTE)}
+                      title="Opens the Team Dashboard in your browser"
+                      onClick={() => openWebAppPage(APP_ROUTES.TEAM_DASHBOARD.ROUTE)}
                     >
-                      Manage Account
+                      Team Dashboard
                       <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_right" omitContainer />
                     </button>
-                    {ability.can('read', 'Team') && (
-                      <button
-                        className="slds-button slds-button_neutral"
-                        title="Opens the Team Dashboard in your browser"
-                        onClick={() => openWebAppPage(APP_ROUTES.TEAM_DASHBOARD.ROUTE)}
-                      >
-                        Team Dashboard
-                        <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_right" omitContainer />
-                      </button>
-                    )}
-                  </>
-                }
-              />
-            </SettingsSection>
-
-            <SettingsSection id="general" title="General">
-              <SettingsGroup>
-                <AppearanceSetting />
-                <SalesforceAutoLoginSetting
-                  skipFrontdoorLogin={preferences?.skipFrontdoorLogin ?? false}
-                  onChange={(skipFrontdoorLogin) => savePreferences({ skipFrontdoorLogin })}
-                />
-                <SettingsToggleRow
-                  id="auto-update-toggle"
-                  title="Download updates automatically"
-                  description="Jetstream checks for new versions in the background and downloads them. You can always update with File > Check for Updates."
-                  details={updatePolicyNote && <p className="slds-text-body_small">{updatePolicyNote}</p>}
-                  // A managed policy can pin updates on as well as off, so show what it decided rather than the stored preference
-                  checked={updatePolicy?.managed ? updatePolicy.autoUpdateEnabled : (preferences?.autoUpdateEnabled ?? true)}
-                  disabled={updatePolicy?.managed ?? false}
-                  onChange={(autoUpdateEnabled) => savePreferences({ autoUpdateEnabled })}
-                />
-                <SettingsRow
-                  id="setting-download-location"
-                  title="Download location"
-                  description={
-                    downloadPath ? (
-                      <>
-                        Files are saved to <span css={downloadPathCss}>{downloadPath}</span> without asking.
-                      </>
-                    ) : (
-                      'You are asked where to save each download.'
-                    )
-                  }
-                >
-                  <button className="slds-button slds-button_neutral" onClick={handleChooseDownloadFolder}>
-                    {downloadPath ? 'Change Folder…' : 'Choose Folder…'}
-                  </button>
-                  {downloadPath && (
-                    <button
-                      className="slds-button slds-button_neutral"
-                      onClick={() => savePreferences({ fileDownload: { omitPrompt: false, downloadPath: '' } })}
-                    >
-                      Ask Every Time
-                    </button>
                   )}
-                </SettingsRow>
-              </SettingsGroup>
-            </SettingsSection>
+                </>
+              }
+            />
+          </SettingsSection>
 
-            <SettingsSection id="query" title="Query">
-              <SoqlQueryFormatSettings
-                value={preferences?.soqlQueryFormatOptions ?? SoqlQueryFormatOptionsSchema.parse({})}
-                onChange={(soqlQueryFormatOptions) => savePreferences({ soqlQueryFormatOptions })}
+          <SettingsSection id="general" title="General">
+            <SettingsGroup>
+              <AppearanceSetting />
+              <SalesforceAutoLoginSetting
+                skipFrontdoorLogin={preferences?.skipFrontdoorLogin ?? false}
+                onChange={(skipFrontdoorLogin) => savePreferences({ skipFrontdoorLogin })}
               />
-            </SettingsSection>
+              <SettingsToggleRow
+                id="auto-update-toggle"
+                title="Download updates automatically"
+                description="Jetstream checks for new versions in the background and downloads them. You can always update with File > Check for Updates."
+                details={updatePolicyNote && <p className="slds-text-body_small">{updatePolicyNote}</p>}
+                // A managed policy can pin updates on as well as off, so show what it decided rather than the stored preference
+                checked={updatePolicy?.managed ? updatePolicy.autoUpdateEnabled : (preferences?.autoUpdateEnabled ?? true)}
+                disabled={updatePolicy?.managed ?? false}
+                onChange={(autoUpdateEnabled) => savePreferences({ autoUpdateEnabled })}
+              />
+              <SettingsRow
+                id="setting-download-location"
+                title="Download location"
+                description={
+                  downloadPath ? (
+                    <>
+                      Files are saved to <span css={downloadPathCss}>{downloadPath}</span> without asking.
+                    </>
+                  ) : (
+                    'You are asked where to save each download.'
+                  )
+                }
+              >
+                <button className="slds-button slds-button_neutral" onClick={handleChooseDownloadFolder}>
+                  {downloadPath ? 'Change Folder…' : 'Choose Folder…'}
+                </button>
+                {downloadPath && (
+                  <button
+                    className="slds-button slds-button_neutral"
+                    onClick={() => savePreferences({ fileDownload: { omitPrompt: false, downloadPath: '' } })}
+                  >
+                    Ask Every Time
+                  </button>
+                )}
+              </SettingsRow>
+            </SettingsGroup>
+          </SettingsSection>
 
-            <SettingsSection id="data-storage" title="Data & Storage">
-              <DataHistorySettingsSection />
-              {recordSyncEntitled && (
-                <SettingsGroup title="Sync">
-                  <HistorySyncSettings
-                    enabled={preferences?.recordSyncEnabled ?? false}
-                    onChange={(recordSyncEnabled) => savePreferences({ recordSyncEnabled })}
-                  />
-                </SettingsGroup>
-              )}
-              <SettingsGroup>
-                <RecentObjectsSetting />
-              </SettingsGroup>
-            </SettingsSection>
+          <SettingsSection id="query" title="Query">
+            <SoqlQueryFormatSettings
+              value={preferences?.soqlQueryFormatOptions ?? SoqlQueryFormatOptionsSchema.parse({})}
+              onChange={(soqlQueryFormatOptions) => savePreferences({ soqlQueryFormatOptions })}
+            />
+          </SettingsSection>
 
-            <SettingsSection id="diagnostics" title="Diagnostics">
-              <SettingsGroup>
-                <DiagnosticLoggingSetting />
-                <SettingsRow id="setting-app-version" title="App version" description="Include this when contacting Jetstream Support.">
-                  <span className="slds-text-font_monospace">{version}</span>
-                </SettingsRow>
+          <SettingsSection id="data-storage" title="Data & Storage">
+            <DataHistorySettingsSection />
+            {recordSyncEntitled && (
+              <SettingsGroup title="Sync">
+                <HistorySyncSettings
+                  enabled={preferences?.recordSyncEnabled ?? false}
+                  onChange={(recordSyncEnabled) => savePreferences({ recordSyncEnabled })}
+                />
               </SettingsGroup>
-            </SettingsSection>
-          </SettingsLayout>
-        </AutoFullHeightContainer>
-      </Page>
-    </div>
+            )}
+            <SettingsGroup>
+              <RecentObjectsSetting />
+            </SettingsGroup>
+          </SettingsSection>
+
+          <SettingsSection id="diagnostics" title="Diagnostics">
+            <SettingsGroup>
+              <DiagnosticLoggingSetting />
+              <SettingsRow id="setting-app-version" title="App version" description="Include this when contacting Jetstream Support.">
+                <span className="slds-text-font_monospace">{version}</span>
+              </SettingsRow>
+            </SettingsGroup>
+          </SettingsSection>
+        </SettingsLayout>
+      </AutoFullHeightContainer>
+    </Page>
   );
 };
 

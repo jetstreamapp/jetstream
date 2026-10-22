@@ -15,26 +15,37 @@ log.initialize({
 
 const clientUrl = new URL(ENV.CLIENT_URL);
 
+export interface BrowserWindowOptions {
+  /** Defaults to the app's home page */
+  url?: string;
+  /** Overrides for the default window config */
+  windowConfig?: Electron.BrowserWindowConstructorOptions;
+  /** Defaults to true - the main app window opens maximized */
+  maximize?: boolean;
+}
+
 export class Browser {
   public static get nativeIcon(): Electron.NativeImage {
     const icon = isMac() ? path.resolve(__dirname, './assets/icons/icon.icns') : path.resolve(__dirname, './assets/icons/icon.png');
     return nativeImage.createFromPath(icon);
   }
 
-  public static create(callback?: () => void): BrowserWindow {
+  public static create(callback?: () => void, options?: BrowserWindowOptions): BrowserWindow {
     const browser = new Browser();
-    const _browser = browser.createBrowserWindow();
+    const _browser = browser.createBrowserWindow(options);
     if (callback) {
       callback();
     }
     return _browser;
   }
 
-  public createBrowserWindow(): BrowserWindow {
+  public createBrowserWindow({ url = ENV.CLIENT_URL, windowConfig, maximize = true }: BrowserWindowOptions = {}): BrowserWindow {
     const icon = Browser.nativeIcon;
-    const browserWindow = new BrowserWindow(getWindowConfig(icon));
-    browserWindow.loadURL(ENV.CLIENT_URL);
-    browserWindow.maximize();
+    const browserWindow = new BrowserWindow(getWindowConfig(icon, windowConfig));
+    browserWindow.loadURL(url);
+    if (maximize) {
+      browserWindow.maximize();
+    }
 
     browserWindow.webContents.on('context-menu', this.createContextMenu(browserWindow));
 

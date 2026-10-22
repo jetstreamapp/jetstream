@@ -840,7 +840,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 onKeyUp={handleKeyUp}
               />
             </Input>
-            {fileFormat !== RADIO_FORMAT_GDRIVE && <DesktopDownloadLocationNote onNavigateToSettings={() => handleModalClose(true)} />}
+            {fileFormat !== RADIO_FORMAT_GDRIVE && <DesktopDownloadLocationNote />}
           </div>
         </Modal>
       )}

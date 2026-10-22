@@ -4,7 +4,7 @@ import type { ReleasePlatform } from '@jetstream/release-notes';
 import { jetstreamLogoProUrl, jetstreamLogoUrl } from '@jetstream/shared/assets';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { isBrowserExtension, isCanvasApp } from '@jetstream/shared/ui-utils';
+import { isBrowserExtension, isCanvasApp, openDesktopSettings } from '@jetstream/shared/ui-utils';
 import { AddOrgHandlerFn, ColorScheme, DropDownItem, UserProfileUi } from '@jetstream/types';
 import { Header, Icon, Navbar, UpgradeToProButton, UserFeedbackPopover } from '@jetstream/ui';
 import {
@@ -204,7 +204,11 @@ export const HeaderNavbar = ({
         navigate(APP_ROUTES.PROFILE.ROUTE);
         break;
       case 'account':
-        navigate({ pathname: APP_ROUTES.SETTINGS.ROUTE, hash: 'account' });
+        if (isDesktop) {
+          openDesktopSettings('account');
+        } else {
+          navigate({ pathname: APP_ROUTES.SETTINGS.ROUTE, hash: 'account' });
+        }
         break;
       case 'team-dashboard': {
         if (isDesktop) {
@@ -218,7 +222,12 @@ export const HeaderNavbar = ({
         navigate(APP_ROUTES.BILLING.ROUTE);
         break;
       case 'settings':
-        navigate(APP_ROUTES.SETTINGS.ROUTE);
+        // Desktop opens Settings in its own window so the current page is kept
+        if (isDesktop) {
+          openDesktopSettings();
+        } else {
+          navigate(APP_ROUTES.SETTINGS.ROUTE);
+        }
         break;
       case 'nav-user-logout':
         onLogoutHandlerFn ? onLogoutHandlerFn() : logout(applicationState.serverUrl);

@@ -289,7 +289,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
             onKeyUp={handleKeyUp}
           />
         </Input>
-        {fileFormat !== RADIO_FORMAT_GDRIVE && <DesktopDownloadLocationNote onNavigateToSettings={() => onCancel()} />}
+        {fileFormat !== RADIO_FORMAT_GDRIVE && <DesktopDownloadLocationNote />}
       </div>
     </Modal>
   );

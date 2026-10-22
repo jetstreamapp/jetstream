@@ -1,4 +1,5 @@
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
+import { openDesktopSettings } from '@jetstream/shared/ui-utils';
 import { AppHome, Feedback, OrgSelectionRequired as OrgSelectionRequiredExternal } from '@jetstream/ui-core';
 import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router';
@@ -107,30 +108,35 @@ const PlatformEventMonitor = lazy(() =>
   import('@jetstream/feature/platform-event-monitor').then((module) => ({ default: module.PlatformEventMonitor })),
 );
 
-const Settings = lazy(() => import('./components/settings/Settings'));
-
 // Wrapper to avoid having to define this everywhere
 const OrgSelectionRequired = ({ children }: { children: React.ReactNode }) => (
   <OrgSelectionRequiredExternal onAddOrgHandlerFn={addDesktopOrg}>{children}</OrgSelectionRequiredExternal>
 );
 
-export const AppRoutes = () => {
+/**
+ * Settings lives in a window of its own. Anything that still links to the route here (shared components
+ * written for web) opens that window instead and steps back, so this window keeps its page.
+ */
+const OpenSettingsWindow = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (window.electronAPI?.onOpenSettings) {
-      const handle = () => {
-        navigate(APP_ROUTES.SETTINGS.ROUTE);
-      };
-      const unsubscribe = window.electronAPI.onOpenSettings(handle);
-      return () => {
-        if (typeof unsubscribe === 'function') {
-          unsubscribe();
-        }
-      };
+    openDesktopSettings(location.hash.replace(/^#/, '') || undefined);
+    // `default` is the key of the first entry in the history stack, so there is nothing to step back to
+    if (location.key === 'default') {
+      navigate(APP_ROUTES.HOME.ROUTE, { replace: true });
+    } else {
+      navigate(-1);
     }
-  }, [navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return null;
+};
+
+export const AppRoutes = () => {
+  const location = useLocation();
 
   // Preload sub-pages if user is on parent page
   useEffect(() => {
@@ -348,7 +354,7 @@ export const AppRoutes = () => {
         }
       />
       <Route path={APP_ROUTES.FEEDBACK_SUPPORT.ROUTE} element={<Feedback />} />
-      <Route path={APP_ROUTES.SETTINGS.ROUTE} element={<Settings />} />
+      <Route path={APP_ROUTES.SETTINGS.ROUTE} element={<OpenSettingsWindow />} />
       <Route path="*" element={<Navigate to={APP_ROUTES.HOME.ROUTE} />} />
     </Routes>
   );
