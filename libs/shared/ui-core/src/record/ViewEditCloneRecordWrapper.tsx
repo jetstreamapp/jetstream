@@ -135,6 +135,21 @@ export const ViewEditCloneRecordWrapper: FunctionComponent = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appActionEvents]);
 
+  // Write access can be revoked while a modal is open (a profile refresh on focus or heartbeat). Drop back to the
+  // read-only view so the open form cannot save, and close a create form since there is no record to view.
+  useEffect(() => {
+    if (canWriteRecords || !modalOpen || action === 'view') {
+      return;
+    }
+    fireWriteNotAllowedToast();
+    if (action === 'create') {
+      onModalClose();
+    } else {
+      setAction('view');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canWriteRecords]);
+
   function onActionChange(action: CloneEditView) {
     setAction(action);
   }

@@ -78,6 +78,8 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
   const [openModal, setOpenModal] = useState<false | 'bulk-update' | 'apex'>(false);
   const canWriteRecords = useCanPerformOperation('records.write');
   const canDeleteRecords = useCanPerformOperation('records.delete');
+  // The Apex modal copies the selected record values, so it is an export
+  const canExportRecords = useCanPerformOperation('records.export');
 
   function handleAction(id: 'bulk-delete' | 'bulk-undelete' | 'get-as-apex' | 'open-in-new-tab' | 'bulk-update' | 'new-record') {
     logger.log({ id, selectedRows });
@@ -282,19 +284,24 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
                 },
               ]
             : []),
-          {
-            id: 'get-as-apex',
-            // Heads the section when the delete actions above it are hidden
-            subheader: canDeleteRecords ? undefined : 'Selected Record Actions',
-            value: 'Convert selected records to Apex',
-            disabled: disabled || selectedRows.length === 0,
-            icon: {
-              icon: 'apex',
-              type: 'utility',
-            },
-          },
+          ...(canExportRecords
+            ? [
+                {
+                  id: 'get-as-apex',
+                  // Heads the section when the delete actions above it are hidden
+                  subheader: canDeleteRecords ? undefined : 'Selected Record Actions',
+                  value: 'Convert selected records to Apex',
+                  disabled: disabled || selectedRows.length === 0,
+                  icon: {
+                    icon: 'apex',
+                    type: 'utility',
+                  },
+                },
+              ]
+            : []),
           {
             id: 'open-in-new-tab',
+            subheader: canDeleteRecords || canExportRecords ? undefined : 'Selected Record Actions',
             value: 'Open selected records in Salesforce',
             disabled: disabled || selectedRows.length === 0,
             icon: {
@@ -321,7 +328,7 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
         />
       )}
 
-      {openModal === 'apex' && sObject && (
+      {openModal === 'apex' && sObject && canExportRecords && (
         <QueryResultsGetRecAsApexModal org={selectedOrg} records={selectedRows} sobjectName={sObject} onClose={() => setOpenModal(false)} />
       )}
     </Fragment>
