@@ -52,7 +52,6 @@ import {
 } from './data-table-types';
 import {
   NON_DATA_COLUMN_KEYS,
-  NO_TABLE_CONTEXT_MENU_ITEMS,
   TABLE_CONTEXT_MENU_ITEMS,
   addFieldLabelToColumn,
   copySalesforceRecordTableDataToClipboard,
@@ -1001,7 +1000,8 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
               onRevertCells={handleRevertCells}
               isCellDirty={isCellDirty}
               context={tableContext}
-              contextMenuItems={canExportRecords ? TABLE_CONTEXT_MENU_ITEMS : NO_TABLE_CONTEXT_MENU_ITEMS}
+              contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
+              allowCopy={canExportRecords}
               contextMenuAction={handleContextMenuAction}
               getColumnHeaderMenuItems={getColumnHeaderMenuItems}
             />

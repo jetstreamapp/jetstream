@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import { DataTable, DataTableProps } from '../../DataTable';
 import { DataTree } from '../../DataTree';
-import { SELECT_COLUMN_KEY } from '../grid-constants';
+import { SELECT_COLUMN_KEY, TABLE_CONTEXT_MENU_ITEMS } from '../grid-constants';
 import { ColumnWithFilter, ContextMenuActionData } from '../grid-types';
 import { SelectColumn } from '../renderers/CellRenderers';
 
@@ -172,21 +172,50 @@ describe('context menu — group header rows', () => {
       { c0: 'Alpha', c1: 'Three' },
     ]);
   });
+});
 
-  test('an explicit empty list opts out of the range copy actions too', async () => {
-    renderTable({ contextMenuItems: [] });
-    // Drag-select a 2x2 range, which would otherwise inject "Copy selected cells" into the menu
+describe('context menu — copying turned off', () => {
+  beforeEach(() => copyRecordsToClipboard.mockClear());
+
+  function selectRange() {
     fireEvent.mouseDown(getCell('1', 'Type'), { button: 0 });
     fireEvent.mouseEnter(getCell('2', 'Name'));
     fireEvent.mouseUp(getCell('2', 'Name'));
+  }
+
+  test('an explicit empty list still offers the range copy actions', async () => {
+    renderTable({ contextMenuItems: [] });
+    selectRange();
+
+    expect(await openMenu(getCell('2', 'Name'))).toEqual(['Copy selected cells', 'Copy selected cells with header']);
+  });
+
+  test('allowCopy={false} removes the grid-owned copy actions', async () => {
+    renderTable({ allowCopy: false });
+
+    expect(await openMenu(getCell('1', 'Name'))).toEqual([]);
+    expect(await openMenu(getCell('__jgrid_header__', 'Name'))).toEqual([]);
+  });
+
+  test('allowCopy={false} removes the standard copy actions but keeps other consumer items', async () => {
+    renderTable({
+      contextMenuItems: [...TABLE_CONTEXT_MENU_ITEMS, { label: 'Do a thing', value: 'CUSTOM' }],
+      contextMenuAction: vi.fn(),
+      allowCopy: false,
+    });
+
+    expect(await openMenu(getCell('1', 'Name'))).toEqual(['Do a thing']);
+  });
+
+  test('allowCopy={false} removes the range copy actions', async () => {
+    renderTable({ allowCopy: false });
+    selectRange();
 
     expect(await openMenu(getCell('2', 'Name'))).toEqual([]);
   });
 
-  test('an explicit empty list opts out of the group copy actions too', async () => {
-    render(
-      <DataTree columns={columns} data={data} getRowKey={(row) => row._key} groupBy={['Type']} defaultExpanded contextMenuItems={[]} />,
-    );
+  test('allowCopy={false} removes the group copy actions', async () => {
+    render(<DataTree columns={columns} data={data} getRowKey={(row) => row._key} groupBy={['Type']} defaultExpanded allowCopy={false} />);
     const groupCell = document.querySelector('.jgrid-group-cell') as HTMLElement;
 
     expect(await openMenu(groupCell)).toEqual([]);

@@ -1,7 +1,7 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber, useGoBackShortcut, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { groupByFlat, pluralizeIfMultiple } from '@jetstream/shared/utils';
-import { ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES, ListItem } from '@jetstream/types';
+import { ListItem } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   BadgePopover,
@@ -17,7 +17,7 @@ import {
   getModifierKey,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
-import { selectedOrgState, useCanPerformOperation } from '@jetstream/ui/app-state';
+import { selectedOrgState, useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { FunctionComponent, ReactNode, useCallback, useState } from 'react';
@@ -74,7 +74,7 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
   const selectedOrg = useAtomValue(selectedOrgState);
-  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
+  const deployAccess = useOperationAccess('metadata.deploy');
 
   const profiles = useAtomValue(fromCreateFieldsState.profilesState);
   const permissionSets = useAtomValue(fromCreateFieldsState.permissionSetsState);
@@ -153,12 +153,12 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
     setDeployModalOpen(false);
   }
 
-  usePrimaryActionShortcut(handleSubmit, { disabled: !allValid || !canDeployMetadata });
+  usePrimaryActionShortcut(handleSubmit, { disabled: !allValid || !deployAccess.allowed });
   useGoBackShortcut(() => navigate('..'), {});
 
   let submitTooltip: ReactNode = 'All fields must be fully configured';
-  if (!canDeployMetadata) {
-    submitTooltip = ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['metadata.deploy'];
+  if (!deployAccess.allowed) {
+    submitTooltip = deployAccess.deniedReason;
   } else if (allValid) {
     submitTooltip = (
       <div className="slds-p-bottom_small">
@@ -233,7 +233,7 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
             <span>Reset Fields</span>
           </button>
           <Tooltip openDelay={500} content={submitTooltip}>
-            <button className="slds-button slds-button_brand" onClick={() => handleSubmit()} disabled={!allValid || !canDeployMetadata}>
+            <button className="slds-button slds-button_brand" onClick={() => handleSubmit()} disabled={!allValid || !deployAccess.allowed}>
               <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
               Upsert Fields
             </button>

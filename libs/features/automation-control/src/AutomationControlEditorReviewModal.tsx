@@ -1,11 +1,11 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES, SalesforceOrgUi } from '@jetstream/types';
+import { SalesforceOrgUi } from '@jetstream/types';
 import type { Column } from '@jetstream/ui';
 import { AutoFullHeightContainer, DataTable, Icon, Modal, Spinner } from '@jetstream/ui';
 import { ConfirmPageChange, useAmplitude } from '@jetstream/ui-core';
-import { useCanPerformOperation } from '@jetstream/ui/app-state';
+import { useOperationAccess } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { deployMetadata, getAutomationTypeLabel, preparePayloads } from './automation-control-data-utils';
 import { AutomationDeployStatusRenderer, BooleanAndVersionRenderer } from './automation-control-table-renderers';
@@ -99,7 +99,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   onClose,
 }) => {
   const { trackEvent } = useAmplitude();
-  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
+  const deployAccess = useOperationAccess('metadata.deploy');
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [deploymentItemMap, setDeploymentItemMap] = useState<DeploymentItemMap>(() => getDeploymentItemMap(rows));
   const [deploymentItems, setDeploymentItems] = useState<DeploymentItem[]>([]);
@@ -309,12 +309,8 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
               <button
                 className="slds-button slds-button_neutral"
                 onClick={() => handleRollbackMetadata()}
-                title={
-                  canDeployMetadata
-                    ? 'Revert all successfully deployed items'
-                    : ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['metadata.deploy']
-                }
-                disabled={inProgress || !canDeployMetadata}
+                title={deployAccess.deniedReason ?? 'Revert all successfully deployed items'}
+                disabled={inProgress || !deployAccess.allowed}
               >
                 <Icon type="utility" icon="undo" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Rollback
@@ -324,8 +320,8 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
             <button
               className="slds-button slds-button_brand"
               onClick={() => setCurrentStep(currentStep + 1)}
-              disabled={inProgress || (currentStep === 0 && !canDeployMetadata)}
-              title={currentStep === 0 && !canDeployMetadata ? ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['metadata.deploy'] : undefined}
+              disabled={inProgress || (currentStep === 0 && !deployAccess.allowed)}
+              title={currentStep === 0 ? deployAccess.deniedReason : undefined}
             >
               {nextButtonLabel}
             </button>

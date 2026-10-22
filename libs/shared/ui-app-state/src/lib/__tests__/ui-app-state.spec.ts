@@ -1,5 +1,5 @@
 import { ApiRequestError } from '@jetstream/shared/data';
-import type { UserProfileUi } from '@jetstream/types';
+import { ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES, type AccessProfileOperationKey, type UserProfileUi } from '@jetstream/types';
 import { act, renderHook } from '@testing-library/react';
 import { createStore, Provider } from 'jotai';
 import { createElement, ReactNode, Suspense } from 'react';
@@ -146,5 +146,38 @@ describe('useUserPreferenceState', () => {
 
     expect(result.current[0]).toEqual({ colorScheme: 'light', deniedNotifications: true });
     expect(fallbackRenders).toBe(fallbackRendersAfterLoad);
+  });
+});
+
+describe('useOperationAccess', () => {
+  // Canvas reads its policy from an atom instead of the server profile, which keeps the setup to a store write
+  async function renderOperationAccess(operations: AccessProfileOperationKey[]) {
+    mockedIsCanvasApp.mockReturnValue(true);
+    const { useOperationAccess, canvasAccessPolicyState } = await loadAppState();
+    const store = createStore();
+    store.set(canvasAccessPolicyState, { tools: [], operations });
+    const wrapper = ({ children }: { children: ReactNode }) => createElement(Provider, { store }, children);
+    return renderHook(() => useOperationAccess('metadata.deploy'), { wrapper });
+  }
+
+  it('omits the denial reason when the operation is allowed', async () => {
+    const { result } = await renderOperationAccess(['metadata.deploy']);
+
+    expect(result.current).toEqual({ allowed: true, deniedReason: undefined });
+  });
+
+  it('explains the denial with the message for the same operation', async () => {
+    const { result } = await renderOperationAccess(['records.write']);
+
+    expect(result.current).toEqual({ allowed: false, deniedReason: ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['metadata.deploy'] });
+  });
+
+  it('keeps the same object between renders so it is safe in dependency arrays', async () => {
+    const { result, rerender } = await renderOperationAccess([]);
+    const firstResult = result.current;
+
+    rerender();
+
+    expect(result.current).toBe(firstResult);
   });
 });

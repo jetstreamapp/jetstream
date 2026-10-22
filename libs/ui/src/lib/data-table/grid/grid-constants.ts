@@ -46,9 +46,6 @@ export const TABLE_CONTEXT_MENU_ITEMS: ContextMenuItem<ContextAction>[] = [
   { label: 'Copy table to clipboard (JSON)', value: 'COPY_TABLE_JSON' },
 ];
 
-/** Opts a table out of the copy actions. Shared so the grid's menu handlers keep a stable identity across renders. */
-export const NO_TABLE_CONTEXT_MENU_ITEMS: ContextMenuItem<ContextAction>[] = [];
-
 /** Default fixed row height (px) for non-wrapped rows; also the virtualizer seed estimate. */
 export const DEFAULT_ROW_HEIGHT = 28.5;
 export const DEFAULT_HEADER_ROW_HEIGHT = 35;

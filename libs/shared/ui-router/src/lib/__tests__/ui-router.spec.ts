@@ -1,5 +1,5 @@
 import { ACCESS_PROFILE_TOOL_KEYS } from '@jetstream/types';
-import { APP_ROUTES, getAccessProfileToolForPath } from '../ui-router';
+import { APP_ROUTES, getAccessProfileToolForPath, isPathAllowedByAccessProfile } from '../ui-router';
 
 describe('getAccessProfileToolForPath', () => {
   it('returns the tool for a route and its child routes', () => {
@@ -35,5 +35,19 @@ describe('getAccessProfileToolForPath', () => {
   it('maps every tool in the access profile catalog to at least one route', () => {
     const routedTools = new Set(Object.values(APP_ROUTES).map(({ TOOL }) => TOOL));
     expect(ACCESS_PROFILE_TOOL_KEYS.filter((tool) => !routedTools.has(tool))).toEqual([]);
+  });
+});
+
+describe('isPathAllowedByAccessProfile', () => {
+  it('always allows a route that no tool grants', () => {
+    expect(isPathAllowedByAccessProfile('/settings', () => false)).toBe(true);
+  });
+
+  it('asks about the tool that grants the route', () => {
+    const canAccessTool = vi.fn((tool: string) => tool === 'query');
+
+    expect(isPathAllowedByAccessProfile('/query/results', canAccessTool)).toBe(true);
+    expect(isPathAllowedByAccessProfile('/load', canAccessTool)).toBe(false);
+    expect(canAccessTool).toHaveBeenCalledWith('load');
   });
 });

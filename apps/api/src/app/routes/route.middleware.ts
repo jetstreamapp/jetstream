@@ -20,6 +20,7 @@ import { CSRF_TOKEN_INVALID_ERROR_TYPE, StepUpPurpose, UserProfileSession } from
 import { ApiConnection, exchangeRefreshToken, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, getErrorMessageAndStackObj, ORG_INACTIVITY_EXPIRATION_DAYS } from '@jetstream/shared/utils';
+import { isAccessProfileSurfaceAllowed } from '@jetstream/types';
 import { parseCookie } from 'cookie';
 import { addDays, getUnixTime, isBefore } from 'date-fns';
 import express, { Request } from 'express';
@@ -28,7 +29,7 @@ import { randomBytes } from 'node:crypto';
 import os from 'node:os';
 import { v4 as uuid } from 'uuid';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
-import { checkUserEntitlement, isAccessProfileSurfaceAllowedForUser } from '../db/user.db';
+import { checkUserEntitlement, findActiveTeamAccessProfile } from '../db/user.db';
 import * as sfdcEncService from '../services/salesforce-org-encryption.service';
 import { AuthenticationError, NotAllowedError, NotFoundError, UserFacingError } from '../utils/error-handler';
 import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
@@ -285,7 +286,7 @@ export const WEB_APP_NOT_ALLOWED_MESSAGE = 'Your team access profile does not in
  * Desktop and extension requests authenticate with their own tokens and never reach this.
  */
 async function assertWebAppAllowed(userId: string) {
-  if (!(await isAccessProfileSurfaceAllowedForUser({ userId, surface: 'web' }))) {
+  if (!isAccessProfileSurfaceAllowed(await findActiveTeamAccessProfile({ userId }), 'web')) {
     throw new NotAllowedError(WEB_APP_NOT_ALLOWED_MESSAGE);
   }
 }
@@ -370,9 +371,13 @@ export async function getOrgFromHeaderOrQuery(
     return;
   }
 
+  // `addOrgsToLocal` resolves both a source and a target org, so share one access check across the request
+  res.locals.webAppAccessCheck ??= assertWebAppAllowed(user.id);
+
   return getOrgForRequest(user, uniqueId, apiVersion, includeCallOptions, requestId, {
     ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
     userAgent: req.get('user-agent'),
+    webAppAccessCheck: res.locals.webAppAccessCheck,
   });
 }
 
@@ -382,9 +387,9 @@ export async function getOrgForRequest(
   apiVersion?: string,
   includeCallOptions?: boolean,
   requestId?: string,
-  requestContext?: { ipAddress?: string; userAgent?: string },
+  requestContext?: { ipAddress?: string; userAgent?: string; webAppAccessCheck?: Promise<void> },
 ) {
-  await assertWebAppAllowed(user.id);
+  await (requestContext?.webAppAccessCheck ?? assertWebAppAllowed(user.id));
 
   const org = await salesforceOrgsDb.findByUniqueId_UNSAFE(user.id, uniqueId);
   if (!org || org.jetstreamUserId2 !== user.id) {

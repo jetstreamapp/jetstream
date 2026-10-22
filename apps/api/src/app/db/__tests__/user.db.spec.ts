@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { findAccessProfileFingerprint, findIdByUserIdUserFacing, updateUser } from '../user.db';
+import { findActiveTeamAccessProfile, findIdByUserIdUserFacing, updateUser } from '../user.db';
 
 const prismaMock = vi.hoisted(() => ({
   user: {
@@ -95,31 +95,32 @@ describe('updateUser preferences', () => {
   });
 });
 
-describe('findAccessProfileFingerprint', () => {
+describe('findActiveTeamAccessProfile', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('returns the id and version of the profile the user is assigned in an active team', async () => {
-    prismaMock.teamMember.findFirst.mockResolvedValue({ accessProfile: { id: 'profile-1', version: 3 } });
+  it('returns the profile the user is assigned in an active team', async () => {
+    const accessProfile = { id: 'profile-1', version: 3, policy: { v: 1, tools: [], operations: [], surfaces: ['desktop'] } };
+    prismaMock.teamMember.findFirst.mockResolvedValue({ accessProfile });
 
-    await expect(findAccessProfileFingerprint({ userId: sessionUser.id })).resolves.toBe('profile-1:3');
+    await expect(findActiveTeamAccessProfile({ userId: sessionUser.id })).resolves.toEqual(accessProfile);
     // A membership of an inactive team is ignored, matching /api/me
     expect(prismaMock.teamMember.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: { userId: sessionUser.id, team: { status: 'ACTIVE' } } }),
     );
   });
 
-  it('returns FULL_ACCESS for a member without a profile', async () => {
+  it('returns null for a member without a profile', async () => {
     prismaMock.teamMember.findFirst.mockResolvedValue({ accessProfile: null });
 
-    await expect(findAccessProfileFingerprint({ userId: sessionUser.id })).resolves.toBe('FULL_ACCESS');
+    await expect(findActiveTeamAccessProfile({ userId: sessionUser.id })).resolves.toBeNull();
   });
 
-  it('returns FULL_ACCESS for a user without a membership in an active team', async () => {
+  it('returns null for a user without a membership in an active team', async () => {
     prismaMock.teamMember.findFirst.mockResolvedValue(null);
 
-    await expect(findAccessProfileFingerprint({ userId: sessionUser.id })).resolves.toBe('FULL_ACCESS');
+    await expect(findActiveTeamAccessProfile({ userId: sessionUser.id })).resolves.toBeNull();
   });
 });
 

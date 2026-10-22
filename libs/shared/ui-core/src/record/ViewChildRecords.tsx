@@ -11,7 +11,6 @@ import {
   DataTree,
   Grid,
   Icon,
-  NO_TABLE_CONTEXT_MENU_ITEMS,
   PopoverErrorButton,
   SalesforceLogin,
   ScopedNotification,
@@ -369,8 +368,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
           rowGrouper={groupBy}
           expandedGroupIds={expandedGroupIds}
           onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
-          // Omitting the items keeps the grid's standard copy menu, an empty list removes it
-          contextMenuItems={canExportRecords ? undefined : NO_TABLE_CONTEXT_MENU_ITEMS}
+          allowCopy={canExportRecords}
         />
       </AutoFullHeightContainer>
     </>

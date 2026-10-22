@@ -13,7 +13,6 @@ export * from './lib/data-table/data-table-formatters';
 export * from './lib/data-table/data-table-history-export';
 export type { ColumnWithFilter, ContextAction, ContextMenuActionData, DataTableRef, RowWithKey } from './lib/data-table/data-table-types';
 export {
-  NO_TABLE_CONTEXT_MENU_ITEMS,
   TABLE_CONTEXT_MENU_ITEMS,
   computeFilterSetValues,
   copyGenericTableDataToClipboard,
@@ -172,8 +171,8 @@ export * from './lib/widgets/CopyToClipboard';
 export * from './lib/widgets/CopyToClipboardWithToolTip';
 export * from './lib/widgets/FeedbackLink';
 export * from './lib/widgets/HelpText';
-export * from './lib/widgets/Icon';
 export * from './lib/widgets/HiddenProfilesNotice';
+export * from './lib/widgets/Icon';
 export * from './lib/widgets/ItemSelectionSummary';
 export * from './lib/widgets/KeyboardShortcut';
 export * from './lib/widgets/ManagePermissionSetAssignmentsModal';

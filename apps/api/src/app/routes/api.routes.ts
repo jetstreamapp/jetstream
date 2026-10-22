@@ -1,6 +1,6 @@
 import { ENV, logger } from '@jetstream/api-config';
 import { getDefaultAppState, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
-import { AppInfo } from '@jetstream/types';
+import { AppInfo, getAccessProfileFingerprint } from '@jetstream/types';
 import express, { Router } from 'express';
 import { getAnnouncements } from '../announcements';
 import { routeDefinition as canvasOrgController } from '../controllers/canvas-org.controller';
@@ -19,7 +19,7 @@ import { routeDefinition as stepUpAuthController } from '../controllers/step-up-
 import { routeDefinition as testController } from '../controllers/test.controller';
 import * as userFeedbackController from '../controllers/user-feedback.controller';
 import { routeDefinition as userController } from '../controllers/user.controller';
-import { findAccessProfileFingerprint } from '../db/user.db';
+import { findActiveTeamAccessProfile } from '../db/user.db';
 import { deferredResponseMiddleware as dfr } from '../utils/deferred-response.middleware';
 import { sendJson } from '../utils/response.handlers';
 import {
@@ -53,7 +53,7 @@ routes.use(addOrgsToLocal);
  */
 async function findAccessProfileFingerprintSafe(userId: string): Promise<string | undefined> {
   try {
-    return await findAccessProfileFingerprint({ userId });
+    return getAccessProfileFingerprint(await findActiveTeamAccessProfile({ userId }));
   } catch (ex) {
     logger.error({ userId, ...getErrorMessageAndStackObj(ex) }, 'Failed to get the access profile fingerprint for the heartbeat');
     return undefined;

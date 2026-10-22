@@ -14,6 +14,7 @@
  *   - a device environment change is checked for before rotation overwrites the stored environment
  */
 import { HTTP } from '@jetstream/shared/constants';
+import { isAccessProfileSurfaceAllowed } from '@jetstream/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { routeDefinition } from '../desktop-app.controller';
 
@@ -33,7 +34,7 @@ const mocks = vi.hoisted(() => ({
   verifyToken: vi.fn(),
   issueAccessToken: vi.fn(),
   decodeToken: vi.fn(),
-  getSurfaceForAudience: vi.fn(),
+  isSurfaceAllowedForAudience: vi.fn(),
 }));
 
 vi.mock('@jetstream/api-config', () => ({
@@ -102,7 +103,7 @@ vi.mock('../../services/external-auth.service', () => ({
   AUDIENCE_DESKTOP: 'https://getjetstream.app/desktop-app',
   rotateToken: mocks.rotateToken,
   logDeviceEnvironmentChange: mocks.logDeviceEnvironmentChange,
-  getSurfaceForAudience: mocks.getSurfaceForAudience,
+  isSurfaceAllowedForAudience: mocks.isSurfaceAllowedForAudience,
   verifyToken: mocks.verifyToken,
   issueAccessToken: mocks.issueAccessToken,
   decodeToken: mocks.decodeToken,
@@ -302,7 +303,8 @@ describe('desktop-app.controller initSession access profile surface gate', () =>
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.checkUserEntitlement.mockResolvedValue(true);
-    mocks.getSurfaceForAudience.mockReturnValue('desktop');
+    // The real surface rule, so these tests exercise the profiles they set up
+    mocks.isSurfaceAllowedForAudience.mockImplementation((accessProfile) => isAccessProfileSurfaceAllowed(accessProfile, 'desktop'));
     mocks.findByUserIdAndDeviceId.mockResolvedValue(null);
     mocks.issueAccessToken.mockResolvedValue('new-token');
     mocks.decodeToken.mockReturnValue({ exp: 2_000_000_000 });
@@ -317,7 +319,10 @@ describe('desktop-app.controller initSession access profile surface gate', () =>
 
     const { next } = await invokeInitSession();
 
-    expect(mocks.getSurfaceForAudience).toHaveBeenCalledWith('https://getjetstream.app/desktop-app');
+    expect(mocks.isSurfaceAllowedForAudience).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'profile-1' }),
+      'https://getjetstream.app/desktop-app',
+    );
     expect(next).toHaveBeenCalledTimes(1);
     expect((next.mock.calls[0][0] as Error).name).toBe('SurfaceNotAllowed');
     expect(mocks.findByUserIdAndDeviceId).not.toHaveBeenCalled();

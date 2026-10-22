@@ -288,3 +288,12 @@ export function getAccessProfileToolForPath(pathname: string): AccessProfileTool
     return normalizedPathname === normalizedRoute || normalizedPathname.startsWith(`${normalizedRoute}/`);
   })?.TOOL;
 }
+
+/**
+ * Whether a member can open a pathname. Routes that no tool grants are always available. Takes the tool check as a
+ * callback so this library stays free of the ability.
+ */
+export function isPathAllowedByAccessProfile(pathname: string, canAccessTool: (tool: AccessProfileToolKey) => boolean): boolean {
+  const tool = getAccessProfileToolForPath(pathname);
+  return !tool || canAccessTool(tool);
+}

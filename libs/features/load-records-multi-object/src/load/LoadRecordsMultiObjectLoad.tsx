@@ -2,10 +2,10 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import { ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
+import { Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, ConfirmationModalPromise, DropDown, Grid, Icon, ScopedNotification } from '@jetstream/ui';
 import { ConfirmPageChange, useAmplitude } from '@jetstream/ui-core';
-import { useCanPerformOperation } from '@jetstream/ui/app-state';
+import { useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useMemo } from 'react';
 import { LoadMultiObjectRun } from '../load-records-multi-object-types';
@@ -33,7 +33,7 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
   apiVersion,
 }) => {
   const { trackEvent } = useAmplitude();
-  const canWriteRecords = useCanPerformOperation('records.write');
+  const writeAccess = useOperationAccess('records.write');
   const { downloadRequests, downloadResults, handleCloseDownloadModal, downloadModalData } = useDownloadResults();
 
   const requests = useAtomValue(requestsState);
@@ -135,8 +135,8 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
         {!loading && totalRecordCount > 0 && (
           <button
             className="slds-button slds-button_brand"
-            disabled={!canWriteRecords}
-            title={canWriteRecords ? undefined : ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['records.write']}
+            disabled={!writeAccess.allowed}
+            title={writeAccess.deniedReason}
             onClick={handleLoadStarted}
           >
             Load <strong className="slds-m-horizontal_xx-small">{formatNumber(totalRecordCount)}</strong>
@@ -151,7 +151,7 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
             Cancel Remaining Requests
           </button>
         )}
-        {loadFinished && failedGroupCount > 0 && canWriteRecords && (
+        {loadFinished && failedGroupCount > 0 && writeAccess.allowed && (
           <button className="slds-button slds-button_neutral slds-m-left_small" onClick={handleRetryFailed}>
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
             Retry Failed {pluralizeFromNumber('Group', failedGroupCount)} ({formatNumber(failedGroupCount)})

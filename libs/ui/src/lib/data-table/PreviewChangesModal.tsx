@@ -25,12 +25,7 @@ import {
   RowSalesforceRecordWithKey,
   RowWithKey,
 } from './data-table-types';
-import {
-  copyGenericTableDataToClipboard,
-  getColumnsForGenericTable,
-  NO_TABLE_CONTEXT_MENU_ITEMS,
-  TABLE_CONTEXT_MENU_ITEMS,
-} from './data-table-utils';
+import { copyGenericTableDataToClipboard, getColumnsForGenericTable, TABLE_CONTEXT_MENU_ITEMS } from './data-table-utils';
 
 /** Salesforce's sObject Collections API accepts at most 200 records per call. */
 export const MAX_SAVE_BATCH_SIZE = 200;
@@ -718,7 +713,8 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
               rowHeight={getRowHeight}
               includeQuickFilter
               quickFilterText={globalFilter}
-              contextMenuItems={canExportRecords ? TABLE_CONTEXT_MENU_ITEMS : NO_TABLE_CONTEXT_MENU_ITEMS}
+              contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
+              allowCopy={canExportRecords}
               contextMenuAction={handleContextMenuAction}
             />
           </AutoFullHeightContainer>

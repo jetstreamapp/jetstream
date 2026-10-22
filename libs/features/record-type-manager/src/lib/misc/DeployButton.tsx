@@ -1,7 +1,7 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES, Maybe } from '@jetstream/types';
+import { Maybe } from '@jetstream/types';
 import { Tooltip } from '@jetstream/ui';
-import { useCanPerformOperation } from '@jetstream/ui/app-state';
+import { useOperationAccess } from '@jetstream/ui/app-state';
 import { Fragment } from 'react';
 import { RecordTypePicklistSummary } from '../types/record-types.types';
 
@@ -12,7 +12,7 @@ interface DeployButtonProps {
 }
 
 export function DeployButton({ modifiedValues, configurationErrors, handleDeploy }: DeployButtonProps) {
-  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
+  const deployAccess = useOperationAccess('metadata.deploy');
   const hasModifiedValue = modifiedValues.length !== 0;
 
   const buttonLabel = hasModifiedValue ? `Deploy Changes (${formatNumber(modifiedValues.length)})` : 'Deploy Changes';
@@ -20,7 +20,7 @@ export function DeployButton({ modifiedValues, configurationErrors, handleDeploy
   const deployButton = (
     <button
       className="slds-button slds-button_brand"
-      disabled={!!configurationErrors || modifiedValues.length === 0 || !canDeployMetadata}
+      disabled={!!configurationErrors || modifiedValues.length === 0 || !deployAccess.allowed}
       onClick={handleDeploy}
     >
       {buttonLabel}
@@ -31,8 +31,8 @@ export function DeployButton({ modifiedValues, configurationErrors, handleDeploy
     <Tooltip content="Change one or more values to enable deployment.">{deployButton}</Tooltip>;
   }
 
-  if (!canDeployMetadata) {
-    return <Tooltip content={ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['metadata.deploy']}>{deployButton}</Tooltip>;
+  if (!deployAccess.allowed) {
+    return <Tooltip content={deployAccess.deniedReason}>{deployButton}</Tooltip>;
   }
 
   if (!configurationErrors) {

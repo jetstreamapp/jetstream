@@ -21,6 +21,7 @@ import {
   PASTE_RANGE_ACTION,
   resolveHeaderContextMenuItems,
   REVERT_RANGE_ACTION,
+  withoutCopyActions,
 } from '../grid-context-menu';
 import { computePasteTargets, flashPastedCells, isClipboardReadAllowedByPolicy, parsePastedText } from '../grid-paste';
 import { getSortedFilteredLeafRows } from '../grid-row-utils';
@@ -91,10 +92,13 @@ export interface GridContainerProps<TRow extends object> {
   /** Fixed height (px) for each pinned summary row; content-sized when omitted. */
   summaryRowHeight?: number;
   /** Right-click context menu items — a static list or a per-cell builder (must be stable). Omit to get
-   * the standard copy actions dispatched by the grid itself; pass `[]` to opt out of every copy action,
-   * including the selection-aware copy range / copy group items and Ctrl/Cmd+C. Paste and revert stay
-   * available regardless. */
+   * the standard copy actions dispatched by the grid itself; pass `[]` to opt out of them. (The
+   * selection-aware items — copy range / paste / revert / copy group — are always available, apart from
+   * the copy ones when `allowCopy` is false.) */
   contextMenuItems?: ContextMenuItems<TRow>;
+  /** Set to false to turn off Ctrl/Cmd+C and every copy menu item (e.g. for members without export access).
+   * Defaults to true. Paste and revert stay available regardless. */
+  allowCopy?: boolean;
   /** Right-click context menu action handler (must be stable). */
   contextMenuAction?: (item: ContextMenuItem, data: ContextMenuActionData<TRow>) => void;
   /** Consumer-supplied builder for extra per-column header menu items, appended to the static header
@@ -128,6 +132,7 @@ export function GridContainer<TRow extends object = RowWithKey>({
   summaryRows,
   summaryRowHeight,
   contextMenuItems,
+  allowCopy = true,
   contextMenuAction,
   getColumnHeaderMenuItems,
   children,
@@ -270,11 +275,6 @@ export function GridContainer<TRow extends object = RowWithKey>({
   const clearSelectionRef = useRef<() => void>(() => undefined);
   const stableClearSelection = useCallback(() => clearSelectionRef.current(), []);
 
-  // An explicit `[]` for `contextMenuItems` opts the table out of every copy action: the consumer-level
-  // items, the group header copy, the grid's own range copy items and Ctrl/Cmd+C. Used when the member's
-  // access profile does not allow exporting records.
-  const hasOptedOutOfCopyActions = Array.isArray(contextMenuItems) && contextMenuItems.length === 0;
-
   const keyboardNav = useGridKeyboardNavigation({
     table,
     getRootElement: () => gridRef.current,
@@ -286,7 +286,7 @@ export function GridContainer<TRow extends object = RowWithKey>({
     onUndo,
     onRedo,
     onClearSelection: onPaste ? stableClearSelection : undefined,
-    allowCopy: !hasOptedOutOfCopyActions,
+    allowCopy,
   });
 
   // Announce the matching row count after the filter set changes (the filtered model is pre-grouping, so
@@ -670,8 +670,12 @@ export function GridContainer<TRow extends object = RowWithKey>({
 
   // A table that supplies no `contextMenuItems` gets the standard copy actions for free, dispatched by
   // the grid (`copyGridDataToClipboard`) rather than a consumer handler. An explicit `[]` opts out.
+  // With copying turned off, the standard copy actions are dropped from whichever list applies.
   const usesGridOwnedMenu = contextMenuItems === undefined;
-  const resolvedContextMenuItems: ContextMenuItems<TRow> = contextMenuItems ?? TABLE_CONTEXT_MENU_ITEMS;
+  const resolvedContextMenuItems = useMemo<ContextMenuItems<TRow>>(() => {
+    const items = contextMenuItems ?? TABLE_CONTEXT_MENU_ITEMS;
+    return allowCopy ? items : withoutCopyActions(items);
+  }, [contextMenuItems, allowCopy]);
   const canDispatchMenuItems = usesGridOwnedMenu || !!contextMenuAction;
 
   // A static list, or a per-cell builder evaluated against the right-clicked cell (e.g. group-aware
@@ -696,7 +700,7 @@ export function GridContainer<TRow extends object = RowWithKey>({
       // paste affordance (the rectangular copy + paste items are injected when the menu renders). Paste
       // requires an active cell to anchor the target, so match the renderer's paste gate — otherwise
       // right-clicking before a cell is focused suppresses the native menu for an empty custom one.
-      const hasCopyableRange = hasRangeSelection && !hasOptedOutOfCopyActions;
+      const hasCopyableRange = hasRangeSelection && allowCopy;
       if (!items.length && !hasCopyableRange && !(onPaste && activeCell && isClipboardReadAllowedByPolicy())) {
         return;
       }
@@ -713,18 +717,18 @@ export function GridContainer<TRow extends object = RowWithKey>({
       buildCellActionData,
       resolveCellMenuItems,
       hasRangeSelection,
-      hasOptedOutOfCopyActions,
+      allowCopy,
       onPaste,
       activeCell,
     ],
   );
 
   // Right-clicking a GROUP header row copies that group's data rows. Always grid-owned: a consumer's
-  // items are built from (and act on) a single leaf row, which a group header doesn't have. A table that
-  // opted out of the copy actions with an explicit `[]` opts out of these too.
+  // items are built from (and act on) a single leaf row, which a group header doesn't have. The menu is
+  // nothing but copy actions, so a grid with copying turned off keeps the native menu instead.
   const handleGroupContextMenu = useCallback(
     (event: React.MouseEvent, rowId: string, columnId: string) => {
-      if (event.ctrlKey || event.metaKey || hasOptedOutOfCopyActions) {
+      if (event.ctrlKey || event.metaKey || !allowCopy) {
         return;
       }
       event.preventDefault();
@@ -732,7 +736,7 @@ export function GridContainer<TRow extends object = RowWithKey>({
       setContextMenu(null);
       setTimeout(() => setContextMenu({ area: 'group', rowId, columnId, element, items: GROUP_CONTEXT_MENU_ITEMS, actionData: null }));
     },
-    [hasOptedOutOfCopyActions],
+    [allowCopy],
   );
 
   // Right-clicking a column HEADER offers the column/table-scoped copy actions (see
@@ -953,7 +957,7 @@ export function GridContainer<TRow extends object = RowWithKey>({
             const revertableCount = contextMenu.area !== 'header' ? countRevertableSelectionCells(2) : 0;
             // Grid-injected, selection-aware actions (copy/paste/revert), shown above the consumer's items.
             const gridItems: ContextMenuItem[] = [
-              ...(hasRangeSelection && !hasOptedOutOfCopyActions
+              ...(hasRangeSelection && allowCopy
                 ? [
                     { label: 'Copy selected cells', value: COPY_RANGE_ACTION } as ContextMenuItem,
                     { label: 'Copy selected cells with header', value: COPY_RANGE_WITH_HEADER_ACTION } as ContextMenuItem,

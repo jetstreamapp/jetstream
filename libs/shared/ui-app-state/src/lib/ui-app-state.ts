@@ -14,6 +14,7 @@ import {
 } from '@jetstream/shared/ui-utils';
 import { getDefaultAppState, groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
 import {
+  ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES,
   AppInfo,
   DEFAULT_FEATURE_FLAGS,
   SoqlQueryFormatOptions,
@@ -38,6 +39,7 @@ import {
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { atomWithLazy, unwrap } from 'jotai/utils';
 import isString from 'lodash/isString';
+import { useMemo } from 'react';
 import z from 'zod';
 
 // FIXME: browser extension should be able to obtain all of this information after logging in
@@ -366,6 +368,15 @@ export function useCanAccessTool(key: AccessProfileToolKey): boolean {
 export function useCanPerformOperation(key: AccessProfileOperationKey): boolean {
   const ability = useAtomValue(abilityState);
   return canPerformOperation(ability, key);
+}
+
+/** Whether the member's access includes an operation, and the explanation to show on a control it disables */
+export function useOperationAccess(key: AccessProfileOperationKey): { allowed: boolean; deniedReason?: string } {
+  const allowed = useCanPerformOperation(key);
+  return useMemo(
+    () => ({ allowed, deniedReason: allowed ? undefined : ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES[key] }),
+    [allowed, key],
+  );
 }
 
 export const hasPaidPlanState = atom((get) => {
