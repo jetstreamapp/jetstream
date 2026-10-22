@@ -26,6 +26,11 @@ import { addDesktopOrg, isSettingsWindow } from './utils/utils';
 
 const Settings = lazy(() => import('./components/settings/Settings'));
 
+// Settings is the only page in the Settings window, so its code loads alongside sign-in instead of after it
+if (isSettingsWindow()) {
+  Settings.preload();
+}
+
 export const App = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
@@ -40,8 +45,9 @@ export const App = () => {
               <LogInitializer />
               <DesktopPreferencesSync />
               {isSettingsWindow() ? (
-                // The Settings window has a native title bar and only ever shows the Settings page
-                <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
+                // The Settings window has a native title bar and only ever shows the Settings page. It does not use
+                // `app-container`, whose top margin makes room for the main window's fixed header.
+                <div className="slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
                   <Suspense fallback={<AppLoading />}>
                     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
                       <Settings />

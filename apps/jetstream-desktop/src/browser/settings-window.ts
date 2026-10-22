@@ -31,6 +31,8 @@ export function openSettingsWindow(section?: Maybe<string>): BrowserWindow {
   settingsWindow = Browser.create(undefined, {
     url: getSettingsUrl(section),
     maximize: false,
+    // It slows down opening the window, and DevTools can still be opened from the View menu
+    openDevTools: false,
     windowConfig: {
       title: 'Settings',
       width: 1000,

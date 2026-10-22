@@ -22,6 +22,8 @@ export interface BrowserWindowOptions {
   windowConfig?: Electron.BrowserWindowConstructorOptions;
   /** Defaults to true - the main app window opens maximized */
   maximize?: boolean;
+  /** Defaults to true - in local development the window opens with DevTools docked */
+  openDevTools?: boolean;
 }
 
 export class Browser {
@@ -39,7 +41,12 @@ export class Browser {
     return _browser;
   }
 
-  public createBrowserWindow({ url = ENV.CLIENT_URL, windowConfig, maximize = true }: BrowserWindowOptions = {}): BrowserWindow {
+  public createBrowserWindow({
+    url = ENV.CLIENT_URL,
+    windowConfig,
+    maximize = true,
+    openDevTools = true,
+  }: BrowserWindowOptions = {}): BrowserWindow {
     const icon = Browser.nativeIcon;
     const browserWindow = new BrowserWindow(getWindowConfig(icon, windowConfig));
     browserWindow.loadURL(url);
@@ -110,7 +117,7 @@ export class Browser {
       // A local-dev convenience only. Docked DevTools claims most of the window width, which
       // collapses the responsive navbar into its "More" overflow menu, and Playwright counts the
       // DevTools view as a second application window - both break the desktop E2E suite.
-      if (ENV.ENVIRONMENT === 'development' && !ENV.AUTOMATED_TESTING) {
+      if (openDevTools && ENV.ENVIRONMENT === 'development' && !ENV.AUTOMATED_TESTING) {
         browserWindow.webContents.openDevTools();
       }
     });
