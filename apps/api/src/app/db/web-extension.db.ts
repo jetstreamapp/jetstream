@@ -1,10 +1,9 @@
-import { logger, prisma } from '@jetstream/api-config';
+import { prisma } from '@jetstream/api-config';
 import { ClientInfo } from '@jetstream/auth/server';
 import { OauthProviderType, SsoProviderType, TokenSource, TokenSourceBrowserExtensions, TokenSourceDesktop } from '@jetstream/auth/types';
 import { Prisma } from '@jetstream/prisma';
-import { getErrorMessage } from '@jetstream/shared/utils';
 import { addDays } from 'date-fns';
-import { encryptJwtToken, hashToken, isTokenEncrypted } from '../services/jwt-token-encryption.service';
+import { encryptJwtToken, hashToken } from '../services/jwt-token-encryption.service';
 
 export type TokenTypeAuthToken = 'AUTH_TOKEN';
 export type TokenType = TokenTypeAuthToken;
@@ -76,49 +75,14 @@ export const findByUserIdAndDeviceId = async ({
   });
 };
 
-/**
- * Upgrade a legacy token (plaintext) to encrypted format
- * This is called automatically when we encounter an old token during migration
- */
-async function upgradeLegacyToken(recordId: string, plaintextToken: string): Promise<void> {
-  try {
-    const encryptedToken = encryptJwtToken(plaintextToken);
-    const tokenHash = hashToken(plaintextToken);
-
-    await prisma.webExtensionToken.update({
-      where: { id: recordId },
-      data: {
-        token: encryptedToken,
-        tokenHash,
-      },
-    });
-  } catch (error) {
-    logger.error({ error: getErrorMessage(error) }, 'Failed to upgrade legacy token');
-  }
-}
-
 export const findByAccessTokenAndDeviceId = async ({ token, deviceId, type }: { token: string; deviceId: string; type: TokenType }) => {
-  const tokenHashValue = hashToken(token);
-
-  const record = await prisma.webExtensionToken.findUnique({
+  return await prisma.webExtensionToken.findUnique({
     where: {
-      type_tokenHash_deviceId: { type, deviceId, tokenHash: tokenHashValue },
+      type_tokenHash_deviceId: { type, deviceId, tokenHash: hashToken(token) },
       expiresAt: { gt: new Date() },
     },
     select: SELECT,
   });
-
-  // TEMPORARY: This is here to prevent breaking changes during migration
-  // Ticket to resolve: #1494
-  // After all tokens have been encrypted, we can remove this block
-  // Auto-upgrade legacy tokens to encrypted format
-  if (record && !isTokenEncrypted(record.token)) {
-    await upgradeLegacyToken(record.id, token).catch((err) => {
-      logger.error({ error: getErrorMessage(err) }, 'Failed to upgrade legacy token');
-    });
-  }
-
-  return record;
 };
 
 export const create = async (

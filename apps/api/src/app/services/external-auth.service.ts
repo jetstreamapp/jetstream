@@ -11,7 +11,7 @@ import jwt from 'fast-jwt';
 import isString from 'lodash/isString';
 import { LRUCache } from 'lru-cache';
 import * as webExtDb from '../db/web-extension.db';
-import { decryptJwtTokenOrPlaintext, hashToken } from '../services/jwt-token-encryption.service';
+import { decryptJwtToken, hashToken } from '../services/jwt-token-encryption.service';
 import { AuthenticationError, ServiceUnavailableError } from '../utils/error-handler';
 
 // Short TTL so a token revoked/rotated in the DB stops being served from a stale in-process cache
@@ -241,7 +241,7 @@ export async function rotateToken({
     });
     if (currentTokenRecord && currentTokenRecord.source === source) {
       getLogger().warn({ userId: userProfile.id, deviceId, audience }, 'rotateToken: race lost — returning current DB token to caller');
-      return { token: decryptJwtTokenOrPlaintext(currentTokenRecord.token), outcome: 'race-loss-current' };
+      return { token: decryptJwtToken(currentTokenRecord.token), outcome: 'race-loss-current' };
     }
     if (currentTokenRecord) {
       getLogger().warn(
