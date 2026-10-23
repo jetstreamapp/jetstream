@@ -13,7 +13,7 @@
     "tag": true,
     "tagName": "web-ext-v${version}",
     "pushArgs": ["--follow-tags", "--atomic"],
-    "requireBranch": ["main", "hotfix/*"]
+    "requireBranch": ["main", "hotfix/**"]
   },
   "npm": false,
   "github": {
