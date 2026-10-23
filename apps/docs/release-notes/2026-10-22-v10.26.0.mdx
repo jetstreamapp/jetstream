@@ -1,0 +1,73 @@
+---
+slug: v10.26.0
+title: 10.26.0 - Create and clone permission sets
+date: '2026-10-22'
+tags: [web, desktop, extension]
+versions:
+  web: 10.26.0
+  desktop: 4.20.0
+  extension: 3.24.0
+summary: Manage Permissions can now create permission sets and clone them from any profile or permission set. The query builder adds Using Scope and reorderable Order By clauses.
+highlights:
+  - title: Create and clone permission sets
+    description: New Permission Set and Clone buttons on the Manage Permissions selection page create a permission set from scratch or from an existing profile or permission set.
+    docLink: /permissions
+  - title: Reorder Order By clauses
+    description: Move Up and Move Down buttons on each Order By row change the sort priority without re-entering fields.
+    docLink: /query
+  - title: Using Scope in the query builder
+    description: A new Using Scope section under Advanced Options limits results to a subset of records, such as only the records you own.
+    docLink: /query
+  - title: Custom metadata and custom settings in the Formula Evaluator
+    description: Custom metadata types and custom settings can be selected as the object, and formulas can be tested against their records.
+    docLink: /deploy/formula-evaluator
+  - title: Settings opens in its own window
+    description: In the desktop app, Settings opens in a separate window instead of replacing the page you are on.
+    platforms: [desktop]
+  - title: Download folder shown on download modals
+    description: When a download folder is set in Settings, desktop download modals show where the file will be saved.
+    platforms: [desktop]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Create and clone permission sets
+
+The Manage Permissions selection page has two new buttons:
+
+- **New Permission Set** creates an empty permission set with a label, API name, description, license and session activation.
+- **Clone** copies object, field, tab and system permissions, plus access to Apex classes, Visualforce pages, apps, connected apps and custom permissions, from any profile or permission set, including managed ones. If exactly one item is selected, it is preselected as the source, and the license and session activation default to the source's values.
+- When it finishes, the new permission set is selected in the list. A results table shows how many permissions were copied in each category and lists any that Salesforce rejected, with the reason for each (usually a profile-only permission or a license restriction).
+
+See the [Manage Permissions docs](/permissions) for details.
+
+### Reorder Order By clauses
+
+Each Order By row now has **Move Up** and **Move Down** buttons for changing the sort priority. A row keeps its sort direction and nulls setting when it moves, and the buttons work in subqueries too.
+
+### Using Scope in the query builder
+
+Advanced Options has a new **Using Scope** section that adds a `USING SCOPE` clause to the query, listing only the scopes the selected object supports. For example, choosing "My accounts" generates `USING SCOPE mine`. Restoring a query from history keeps its scope, or tells you when the object does not support it.
+
+### Custom metadata and custom settings in the Formula Evaluator
+
+The Formula Evaluator now lists custom metadata types and custom settings as objects and can evaluate a formula against one of their records. Deploy stays disabled for them because Salesforce does not allow formula fields on either.
+
+### Settings opens in its own window
+
+In the desktop app, Settings now opens in a separate window, and the main window stays on the page you were using. Opening Settings again focuses the existing window, Escape closes it, and `Cmd+,` (`Ctrl+,` on Windows) opens it. Changes made in Settings, such as the color theme, apply to every open window right away.
+
+### Download folder shown on download modals
+
+When a folder is set under **Settings → General → Download location**, the desktop app saves files there without asking. Download modals now show that folder, with a **Change in Settings** button that opens Settings and leaves the modal open.
+
+### Other fixes
+
+- Trial Run in Load Records is now disabled for files with fewer than two records, where it previously kept the load from starting.
+- The Create Fields and Create Object confirmation modals now show the target org, in yellow for production orgs.
+- Leaving Update Records while it is still fetching the records to update now stops the fetch instead of letting it continue in the background.
+- The Formula Evaluator record search no longer fails when the search term contains an apostrophe.
+- The close button on notifications in the desktop app now works.
+- A new [Deploying the Desktop App on Windows](/desktop-app-windows-deployment) page explains silent installs and upgrades with Intune, SCCM and similar tools.

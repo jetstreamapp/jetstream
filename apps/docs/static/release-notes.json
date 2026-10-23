@@ -1,5 +1,45 @@
 [
   {
+    "slug": "v10.26.0",
+    "title": "10.26.0 - Create and clone permission sets",
+    "date": "2026-10-22",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.26.0", "desktop": "4.20.0", "extension": "3.24.0" },
+    "summary": "Manage Permissions can now create permission sets and clone them from any profile or permission set. The query builder adds Using Scope and reorderable Order By clauses.",
+    "highlights": [
+      {
+        "title": "Create and clone permission sets",
+        "description": "New Permission Set and Clone buttons on the Manage Permissions selection page create a permission set from scratch or from an existing profile or permission set.",
+        "docLink": "/permissions"
+      },
+      {
+        "title": "Reorder Order By clauses",
+        "description": "Move Up and Move Down buttons on each Order By row change the sort priority without re-entering fields.",
+        "docLink": "/query"
+      },
+      {
+        "title": "Using Scope in the query builder",
+        "description": "A new Using Scope section under Advanced Options limits results to a subset of records, such as only the records you own.",
+        "docLink": "/query"
+      },
+      {
+        "title": "Custom metadata and custom settings in the Formula Evaluator",
+        "description": "Custom metadata types and custom settings can be selected as the object, and formulas can be tested against their records.",
+        "docLink": "/deploy/formula-evaluator"
+      },
+      {
+        "title": "Settings opens in its own window",
+        "description": "In the desktop app, Settings opens in a separate window instead of replacing the page you are on.",
+        "platforms": ["desktop"]
+      },
+      {
+        "title": "Download folder shown on download modals",
+        "description": "When a download folder is set in Settings, desktop download modals show where the file will be saved.",
+        "platforms": ["desktop"]
+      }
+    ]
+  },
+  {
     "slug": "v10.25.0",
     "title": "10.25.0 - Managed permission sets in Manage Permissions",
     "date": "2026-10-21",
