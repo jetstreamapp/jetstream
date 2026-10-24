@@ -13,7 +13,7 @@ const webhookRateLimit = createRateLimit('webhook', {
   keyGenerator: rateLimitGetKeyGenerator(),
 });
 
-routes.use(raw({ type: 'application/json' }));
+routes.use(raw({ type: 'application/json', inflate: false }));
 
 routes.post('/stripe', webhookRateLimit, billingController.webhook.controllerFn());
 routes.post('/mailgun', webhookRateLimit, mailgunWebhookController.webhook.controllerFn());

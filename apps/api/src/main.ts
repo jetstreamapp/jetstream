@@ -319,10 +319,12 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   // handles the report payload instead of the 20mb global JSON parser, and responds 204.
   app.use('/api/csp-report', cspReportRoutes);
 
-  app.use(raw({ limit: '30mb', type: ['text/csv'] }));
-  app.use(raw({ limit: '30mb', type: ['application/zip'] }));
-  app.use(json({ limit: '20mb', type: ['json'] }));
-  app.use(urlencoded({ extended: true }));
+  // inflate: false - no client sends compressed request bodies; rejecting Content-Encoding (415) keeps
+  // untrusted input away from zlib/brotli decoders (e.g. CVE-2026-111497)
+  app.use(raw({ limit: '30mb', type: ['text/csv'], inflate: false }));
+  app.use(raw({ limit: '30mb', type: ['application/zip'], inflate: false }));
+  app.use(json({ limit: '20mb', type: ['json'], inflate: false }));
+  app.use(urlencoded({ extended: true, inflate: false }));
 
   // Must run after sessionMiddleware (which loads req.session) and before any route handler,
   // so an expired pending-verification session is destroyed before a route can observe it.
