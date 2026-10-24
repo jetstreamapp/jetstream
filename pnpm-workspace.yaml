@@ -68,7 +68,9 @@ overrides:
   "@docusaurus/core>tinypool": "^2.1.2"
   # @react-email/ui (the `email:dev` preview server) pins next to exactly 16.3.3, which has an RCE
   # in next/og ImageResponse (GHSA-vcvr-r3jv-pc5j) and an image-optimizer SSRF (GHSA-cjq9-62q9-8jv4).
-  "@react-email/ui>next": "^16.3.8"
+  # Keep this matching the root next (16.4.1 fixes two RCEs, GHSA-2464-fhr4-w9xw / GHSA-673q-mjm6-r5xr) so the
+  # tree dedupes to one version.
+  "@react-email/ui>next": "^16.4.2"
   # release-it 21.1.0 pins undici 7.29.0, which can skip TLS certificate validation on a dropped
   # connection (GHSA-w293-vg96-wgc3). release-it calls the GitHub API with a token in CI.
   # release-it 21.1.1 ships the patched pin: remove this after upgrading release-it.
@@ -82,7 +84,9 @@ overrides:
   serialize-javascript: "^7.0.5"
   axios: "^1.16.1"
   "connect-pg-simple>@types/express-session": "^1.18.2"
-  dompurify: "^3.3.2"
+  # monaco-editor pins dompurify exactly (0.57 still pins 3.4.15). <3.4.17 lets split template
+  # expressions survive SAFE_FOR_TEMPLATES in shadow-root content (GHSA-cg2g-xh64-v4q7).
+  dompurify: "^3.4.17"
   handlebars: "4.7.9"
   # <1.9.0 has a quadratic-complexity DoS in parse(), and <1.11.0 has a quote() command injection
   # via a line terminator (GHSA-pqg4-j6r4-53mv). Dev tooling only: npm-run-all, web-ext, docusaurus
