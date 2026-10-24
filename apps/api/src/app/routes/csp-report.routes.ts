@@ -42,7 +42,7 @@ function toOriginAndPath(value: unknown): string | undefined {
 routes.post(
   '/',
   cspReportRateLimit,
-  json({ type: ['application/csp-report', 'application/reports+json', 'application/json'], limit: '100kb' }),
+  json({ type: ['application/csp-report', 'application/reports+json', 'application/json'], limit: '100kb', inflate: false }),
   (req: express.Request, res: express.Response) => {
     try {
       const body = req.body;

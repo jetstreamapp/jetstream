@@ -62,7 +62,7 @@ if (cloudflareAccessMiddleware) {
 app.use(httpLogger);
 app.use(requestContextMiddleware);
 app.use(cookieParser());
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '1mb', inflate: false }));
 
 app.use('/auth', authRoutes);
 app.use('/api', apiRoutes);

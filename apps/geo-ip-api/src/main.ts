@@ -26,8 +26,8 @@ if (ENV.ENVIRONMENT !== 'development' && (!ENV.GEO_IP_API_USERNAME || !ENV.GEO_I
 
 const app = express();
 
-app.use(json({ limit: '20mb' }));
-app.use(urlencoded({ extended: true }));
+app.use(json({ limit: '20mb', inflate: false }));
+app.use(urlencoded({ extended: true, inflate: false }));
 app.use(httpLogger);
 app.use(requestContextMiddleware);
 
