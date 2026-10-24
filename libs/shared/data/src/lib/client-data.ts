@@ -23,6 +23,7 @@ import type {
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
 import {
+  gzipEncodeText,
   hasIncompleteSubqueries,
   isIncompleteSubqueryResult,
   isSubqueryResult,
@@ -99,7 +100,7 @@ import { parseISO } from 'date-fns/parseISO';
 import isFunction from 'lodash/isFunction';
 import isNil from 'lodash/isNil';
 import orderBy from 'lodash/orderBy';
-import { handleExternalRequest, handleRequest, transformListMetadataResponse } from './client-data-data-helper';
+import { AxiosAdapterConfig, handleExternalRequest, handleRequest, transformListMetadataResponse } from './client-data-data-helper';
 import { getStandardValueSetTypes } from './standardValueSet';
 
 export interface PaginationCursorParams {
@@ -1327,19 +1328,42 @@ export async function bulkApiAbortJob(org: SalesforceOrgUi, jobId: string): Prom
   return handleRequest({ method: 'DELETE', url: `/api/bulk/${jobId}/abort` }, { org }).then(unwrapResponseIgnoreCache);
 }
 
+const BULK_BATCH_GZIP_MIN_LENGTH = 64 * 1024;
+
+/**
+ * Gzip large batches when they travel over the network to the Jetstream server, which forwards the compressed
+ * bytes to Salesforce untouched. Desktop, extension and canvas set a custom adapter and call Salesforce
+ * in-process, so their batches are left as plain text.
+ */
+async function getBulkBatchRequestBody(csv: string): Promise<{ data: string | Uint8Array; contentEncoding?: 'gzip' }> {
+  if (AxiosAdapterConfig.adapter || csv.length < BULK_BATCH_GZIP_MIN_LENGTH || typeof CompressionStream === 'undefined') {
+    return { data: csv };
+  }
+  try {
+    return { data: await gzipEncodeText(csv), contentEncoding: 'gzip' };
+  } catch (ex) {
+    logger.warn('[BULK] Failed to gzip batch, sending uncompressed', ex);
+    return { data: csv };
+  }
+}
+
 export async function bulkApiAddBatchToJob(
   org: SalesforceOrgUi,
   jobId: string,
   csv: string,
   closeJob?: boolean,
 ): Promise<BulkJobBatchInfo> {
+  const { data, contentEncoding } = await getBulkBatchRequestBody(csv);
   return handleRequest<BulkJobBatchInfo>(
     {
       method: 'POST',
       url: `/api/bulk/${jobId}`,
-      data: csv,
+      data,
       params: { closeJob },
-      headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.CSV },
+      headers: {
+        [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.CSV,
+        ...(contentEncoding && { [HTTP.HEADERS.CONTENT_ENCODING]: contentEncoding }),
+      },
     },
     { org },
   )

@@ -102,6 +102,7 @@ export const HTTP = {
     X_CLIENT_RUNTIME: 'X-Client-Runtime',
     X_CLIENT_INSTALL: 'X-Client-Install',
     CONTENT_TYPE: 'Content-Type',
+    CONTENT_ENCODING: 'Content-Encoding',
     X_MOCK_KEY: 'X-MOCK-KEY',
     X_FORWARDED_FOR: 'X-FORWARDED-FOR',
     CONTENT_DISPOSITION: 'Content-Disposition',

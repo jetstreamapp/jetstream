@@ -1,5 +1,6 @@
 import { CreateJobRequest } from '@jetstream/api-types';
 import { BulkJob, BulkJobBatchInfo, BulkJobWithBatches } from '@jetstream/types';
+import { gzipSync } from 'node:zlib';
 import { expect, test } from '../../fixtures/fixtures';
 
 test.describe.configure({ mode: 'parallel' });
@@ -52,6 +53,43 @@ test.describe('API - Bulk', () => {
 
     expect(getJobResponse2.id).toBeTruthy();
     expect(getJobResponse2.state).toEqual('Closed');
+  });
+
+  test('Bulk Job - Add gzipped Batch', async ({ apiRequestUtils }) => {
+    const createJobResponse = await apiRequestUtils.makeRequest<BulkJob>('POST', `/api/bulk`, {
+      externalId: null,
+      serialMode: false,
+      sObject: 'LEAD',
+      type: 'INSERT',
+    } as CreateJobRequest);
+
+    const timestamp = new Date().getTime();
+    // The job uses Salesforce's default comma delimiter
+    const csv = [
+      `LastName,FirstName,Company,Email,Status`,
+      `Gzip-${timestamp},Kathy,TNR Corp. ${timestamp},ksynder@tnr.${timestamp}.net,Working - Contacted`,
+    ].join('\n');
+
+    const addBatchToJobResponse = await apiRequestUtils.makeRequest<BulkJobBatchInfo>(
+      'POST',
+      `/api/bulk/${createJobResponse.id}?${new URLSearchParams({ closeJob: 'true' })}`,
+      gzipSync(csv),
+      { 'Content-Type': 'text/csv; charset=UTF-8', 'Content-Encoding': 'gzip' },
+    );
+
+    expect(addBatchToJobResponse.id).toBeTruthy();
+
+    // Salesforce decodes the batch itself - a successful insert proves the bytes arrived intact
+    await expect
+      .poll(
+        async () => {
+          const { batches } = await apiRequestUtils.makeRequest<BulkJobWithBatches>('GET', `/api/bulk/${createJobResponse.id}`);
+          const [{ state, stateMessage, numberRecordsProcessed, numberRecordsFailed }] = batches;
+          return { state, stateMessage, numberRecordsProcessed, numberRecordsFailed };
+        },
+        { timeout: 90_000 },
+      )
+      .toMatchObject({ state: 'Completed', numberRecordsProcessed: 1, numberRecordsFailed: 0 });
   });
 
   test('Bulk Job - Errors', async ({ apiRequestUtils }) => {

@@ -64,6 +64,7 @@ import {
   setCacheControlForApiRoutes,
   setPermissionPolicy,
 } from './app/routes/route.middleware';
+import { gzipBodyPassthrough } from './app/utils/gzip-body-passthrough.middleware';
 import { healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
 import { buildAppCspDirectives, buildCspDirectives, buildHstsConfig } from './app/utils/security-headers';
 import { handleWorkerExit, primaryClusterInitSideEffects, shutdownPrimaryGracefully } from './app/utils/server-process.utils';
@@ -319,8 +320,11 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   // handles the report payload instead of the 20mb global JSON parser, and responds 204.
   app.use('/api/csp-report', cspReportRoutes);
 
-  // inflate: false - no client sends compressed request bodies; rejecting Content-Encoding (415) keeps
-  // untrusted input away from zlib/brotli decoders (e.g. CVE-2026-111497)
+  // Gzipped bulk batches are read as raw bytes and forwarded to Salesforce, which decodes them
+  app.post('/api/bulk/:jobId', gzipBodyPassthrough({ limitBytes: 30 * 1024 * 1024 }));
+
+  // inflate: false - rejecting Content-Encoding (415) keeps untrusted input away from zlib/brotli decoders
+  // (e.g. CVE-2026-111497); the one compressed body we accept is passed through above, never decoded
   app.use(raw({ limit: '30mb', type: ['text/csv'], inflate: false }));
   app.use(raw({ limit: '30mb', type: ['application/zip'], inflate: false }));
   app.use(json({ limit: '20mb', type: ['json'], inflate: false }));
