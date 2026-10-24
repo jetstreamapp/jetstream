@@ -40,6 +40,12 @@ const nextConfig = {
       },
     ],
   }),
+  experimental: {
+    // Next 16.4 defaults this to true, which inlines a per-route bootstrap <script> into every exported page. The API
+    // serves these static pages under a nonce-based script-src, and a static export cannot carry a per-request nonce,
+    // so the inline script is blocked and the page never hydrates. false keeps the bootstrap in an external chunk.
+    turbopackSharedRuntime: false,
+  },
   trailingSlash: true,
   output: 'export',
   distDir: '../../dist/apps/landing',
