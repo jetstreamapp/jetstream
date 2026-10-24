@@ -16,8 +16,6 @@ function getWorker(_workerId: string, label: string) {
     workerName = 'css';
   } else if (label === 'html' || label === 'handlebars' || label === 'razor') {
     workerName = 'html';
-  } else if (label === 'typescript' || label === 'javascript') {
-    workerName = 'ts';
   }
   return new Worker(`${MONACO_VS_PATH}/assets/${workerName}.worker.js`, { name: label });
 }
@@ -26,12 +24,17 @@ loader.config({ paths: { vs: MONACO_VS_PATH } });
 
 loader
   .init()
-  .then(async (monaco) => {
+  .then(async (loadedMonaco) => {
+    const monaco = loadedMonaco as unknown as typeof import('monaco-editor');
     // Loading the editor sets its own MonacoEnvironment, so this has to replace it afterwards, before an editor mounts
     globalThis.MonacoEnvironment = { getWorker };
+    // The TypeScript worker is not packaged (it exceeds the addons.mozilla.org file size limit), so JavaScript and
+    // TypeScript editors keep syntax highlighting but skip the language features that would start that worker
+    monaco.typescript.javascriptDefaults.setModeConfiguration({});
+    monaco.typescript.typescriptDefaults.setModeConfiguration({});
     // Load all custom configuration
     const jetstreamMonaco = await import('@jetstream/monaco');
-    jetstreamMonaco.configure(monaco as unknown as typeof import('monaco-editor'));
+    jetstreamMonaco.configure(monaco);
   })
   .catch((ex) => {
     console.error('[ERROR] Failed to load monaco editor', ex);
