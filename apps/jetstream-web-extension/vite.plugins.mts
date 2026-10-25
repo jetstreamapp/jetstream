@@ -101,7 +101,8 @@ export function extensionScriptsBuildPlugin(mode: string): PluginOption {
         // in Firefox MV3 content scripts, so the content script crashed before rendering anything.
         global: 'globalThis',
         'globalThis.__IS_BROWSER_EXTENSION__': 'true',
-        'import.meta.env.NX_PUBLIC_AMPLITUDE_KEY': JSON.stringify(process.env.NX_PUBLIC_AMPLITUDE_KEY || ''),
+        // Analytics are not sent from the extension; keep the shared analytics module a no-op even if the key is set locally
+        'import.meta.env.NX_PUBLIC_AMPLITUDE_KEY': JSON.stringify(''),
         'import.meta.env.NX_PUBLIC_SERVER_URL': JSON.stringify(getServerUrlForMode(mode)),
         'process.env.NODE_ENV': JSON.stringify(mode === 'development' ? 'development' : 'production'),
       };
