@@ -1,6 +1,8 @@
 import { css } from '@emotion/react';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DropDownItem } from '@jetstream/types';
 import { Card, DropDown, Grid, ScopedNotification, Spinner } from '@jetstream/ui';
+import { useAnalytics } from '@jetstream/ui-core';
 import partition from 'lodash/partition';
 import { useMemo } from 'react';
 import { useSessionData } from '../useSessionData';
@@ -15,6 +17,7 @@ const items: DropDownItem[] = [
 ];
 
 export const ProfileSessions = ({ sessionData }: { sessionData: ReturnType<typeof useSessionData> }) => {
+  const { trackEvent } = useAnalytics();
   const { errorMessage, isLoading, revokeAllSessions, revokeSession } = sessionData;
   const { currentSessionId, sessions, webTokenSessions } = sessionData.sessions;
 
@@ -24,8 +27,14 @@ export const ProfileSessions = ({ sessionData }: { sessionData: ReturnType<typeo
 
   async function handleMenuAction(action: string) {
     if (action === 'revoke-all') {
+      trackEvent(ANALYTICS_KEYS.settings_revoke_session, { scope: 'all' });
       revokeAllSessions();
     }
+  }
+
+  function handleRevokeSession(sessionId: string, type: 'SESSION' | 'EXTERNAL_SESSION') {
+    trackEvent(ANALYTICS_KEYS.settings_revoke_session, { scope: 'single', type });
+    revokeSession(sessionId, type);
   }
 
   return (
@@ -71,7 +80,7 @@ export const ProfileSessions = ({ sessionData }: { sessionData: ReturnType<typeo
           userAgent={session.userAgent}
           location={session.location}
           isCurrentSession={session.sessionId === currentSessionId}
-          onRevokeSession={revokeSession}
+          onRevokeSession={handleRevokeSession}
         />
       ))}
       {otherSessions.map((session) => (
@@ -86,7 +95,7 @@ export const ProfileSessions = ({ sessionData }: { sessionData: ReturnType<typeo
           userAgent={session.userAgent}
           location={session.location}
           isCurrentSession={session.sessionId === currentSessionId}
-          onRevokeSession={revokeSession}
+          onRevokeSession={handleRevokeSession}
         />
       ))}
       {webTokenSessions.map((session) => (
@@ -100,7 +109,7 @@ export const ProfileSessions = ({ sessionData }: { sessionData: ReturnType<typeo
           source={session.source}
           userAgent={session.userAgent}
           location={session.location}
-          onRevokeSession={revokeSession}
+          onRevokeSession={handleRevokeSession}
         />
       ))}
     </Card>

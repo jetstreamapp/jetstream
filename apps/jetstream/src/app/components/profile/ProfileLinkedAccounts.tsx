@@ -78,6 +78,7 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
               `}
               action={`${providers.google.signinUrl}?${searchParams}`}
               method="POST"
+              onSubmit={() => trackEvent(ANALYTICS_KEYS.settings_link_account, { provider: 'google' })}
             >
               <input type="hidden" name="csrfToken" value={csrfToken} />
               <input type="hidden" name="callbackUrl" value={providers.google.callbackUrl} />
@@ -103,6 +104,7 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
               `}
               action={`${providers.salesforce.signinUrl}?${searchParams}`}
               method="POST"
+              onSubmit={() => trackEvent(ANALYTICS_KEYS.settings_link_account, { provider: 'salesforce' })}
             >
               <input type="hidden" name="csrfToken" value={csrfToken} />
               <input type="hidden" name="callbackUrl" value={providers.salesforce.callbackUrl} />
