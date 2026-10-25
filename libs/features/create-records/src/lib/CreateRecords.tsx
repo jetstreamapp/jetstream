@@ -28,7 +28,7 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
+import { RequireMetadataApiBanner, useAnalytics } from '@jetstream/ui-core';
 import { EditFromErrors, handleEditFormErrorResponse, transformEditForm, validateEditForm } from '@jetstream/ui-core/shared';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import { recordSingleRecordAction, SingleRecordActionContext } from '@jetstream/ui/data-history';
@@ -40,7 +40,7 @@ const HEIGHT_BUFFER = 160;
 
 export const CreateRecords = () => {
   const isMounted = useRef(true);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
 
   const { defaultApiVersion } = useAtomValue(applicationCookieState);
   const selectedOrg = useAtomValue(selectedOrgState);

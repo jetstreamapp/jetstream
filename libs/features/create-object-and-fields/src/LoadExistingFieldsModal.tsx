@@ -11,9 +11,9 @@ import {
   Icon,
   Modal,
   NotSeeingRecentMetadataPopover,
+  SELECT_COLUMN_KEY,
   ScopedNotification,
   SearchInput,
-  SELECT_COLUMN_KEY,
   SelectColumn,
   SelectFormatter,
   Spinner,
@@ -28,7 +28,7 @@ import {
   getDeveloperNameFromFieldApiName,
   getExistingFieldRows,
   mapFieldToFieldValues,
-  useAmplitude,
+  useAnalytics,
 } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -99,7 +99,7 @@ export const LoadExistingFieldsModal: FunctionComponent<LoadExistingFieldsModalP
   onLoadFields,
   onClose,
 }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [sourceObject, setSourceObject] = useState<string>(selectedSObjects.length === 1 ? selectedSObjects[0] : '');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);

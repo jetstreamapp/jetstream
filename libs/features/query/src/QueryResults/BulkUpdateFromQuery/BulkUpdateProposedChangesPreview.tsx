@@ -12,7 +12,7 @@ import {
   RowWithKey,
   setColumnFromType,
 } from '@jetstream/ui';
-import { fromJetstreamEvents, MetadataRowConfiguration, useAmplitude } from '@jetstream/ui-core';
+import { fromJetstreamEvents, MetadataRowConfiguration, useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useMemo, useState } from 'react';
@@ -45,7 +45,7 @@ export const BulkUpdateProposedChangesPreview: FunctionComponent<BulkUpdatePropo
   configuration,
   totalFetched,
 }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontdoorLogin = useAtomValue(selectSkipFrontdoorAuth);

@@ -18,7 +18,7 @@ import {
   Textarea,
   getProfileOrPermSetSetupUrl,
 } from '@jetstream/ui';
-import { ConfirmPageChange, useAmplitude } from '@jetstream/ui-core';
+import { ConfirmPageChange, useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FormEvent, FunctionComponent, useEffect, useMemo, useState } from 'react';
@@ -64,7 +64,7 @@ export const CreatePermissionSetModal: FunctionComponent<CreatePermissionSetModa
   initialCloneSourceId,
   onClose,
 }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { serverUrl } = useAtomValue(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
 

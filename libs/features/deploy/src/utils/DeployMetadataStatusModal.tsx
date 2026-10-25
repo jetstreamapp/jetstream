@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS, DATE_FORMATS } from '@jetstream/shared/constants';
 import { DeployMetadataStatus, DeployResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal, TabsRef } from '@jetstream/ui';
-import { ConfirmPageChange, DeployMetadataProgressSummary, OrgLabelBadge, useAmplitude } from '@jetstream/ui-core';
+import { ConfirmPageChange, DeployMetadataProgressSummary, OrgLabelBadge, useAnalytics } from '@jetstream/ui-core';
 import { formatDate } from 'date-fns/format';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import DeployMetadataResultsTables from './DeployMetadataResultsTables';
@@ -70,7 +70,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
   onDownload,
 }) => {
   const isDone = results?.done;
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [hasErrors, setHasErrors] = useState(false);
   const tabsRef = useRef<TabsRef>(null);
   // when errors are encountered for the first time, focus the errors tab

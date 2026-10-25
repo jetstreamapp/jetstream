@@ -14,7 +14,6 @@ export const environment = {
   // sentryDsn: import.meta.env.NX_PUBLIC_SENTRY_DSN_DESKTOP,
   sentryDsn: null,
   // FIXME: we do want this in
-  amplitudeToken: undefined,
   STRIPE_PUBLIC_KEY: '',
   BILLING_ENABLED: false,
   isWebExtension: false,

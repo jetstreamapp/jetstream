@@ -13,7 +13,7 @@ import {
   SearchInput,
   Spinner,
 } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 import { validateTestSuiteName } from '../apex-test-runner-data.utils';
 import type { TestClassListItem } from '../apex-test-runner-types';
@@ -26,7 +26,7 @@ export interface TestSuiteManagerModalProps {
 }
 
 export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps> = ({ suitesState, testClasses, onClose }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { suites, membershipsBySuiteId, loading, errorMessage, createSuite, renameSuite, removeSuite, saveSuiteMembership } = suitesState;
   const [selectedSuiteId, setSelectedSuiteId] = useState<string | null>(null);
   const [newSuiteName, setNewSuiteName] = useState('');

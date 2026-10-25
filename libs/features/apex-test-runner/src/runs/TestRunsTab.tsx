@@ -1,7 +1,7 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import type { SalesforceOrgUi } from '@jetstream/types';
 import { Grid, Icon, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { formatDate } from 'date-fns/format';
 import { FunctionComponent, useCallback } from 'react';
 import { SelectedTestRun, useApexTestRun } from '../useApexTestRun';
@@ -24,7 +24,7 @@ export const TestRunsTab: FunctionComponent<TestRunsTabProps> = ({
   selectedRun,
   onSelectedRunChange,
 }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { runs, loading, errorMessage, lastChecked, isPaused, togglePause, fetchRuns } = runsList;
   const runDetail = useApexTestRun(selectedOrg, apiVersion, selectedRun);
 

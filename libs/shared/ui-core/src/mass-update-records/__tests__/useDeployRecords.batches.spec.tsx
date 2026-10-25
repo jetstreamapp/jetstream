@@ -22,7 +22,7 @@ vi.mock('@jetstream/shared/ui-utils', async (importOriginal) => ({
   useBrowserNotifications: () => ({ notifyUser: vi.fn() }),
   tracker: { error: trackerErrorMock },
 }));
-vi.mock('../../analytics', () => ({ useAmplitude: () => ({ trackEvent: vi.fn() }) }));
+vi.mock('../../analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 // History capture is orthogonal to batch submission and needs Dexie + a file store to run for real
 vi.mock('../data-history-capture', () => ({
   startMassUpdateHistory: () => ({

@@ -35,7 +35,7 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { SalesforceCanvasOrgs, useAmplitude } from '@jetstream/ui-core';
+import { SalesforceCanvasOrgs, useAnalytics } from '@jetstream/ui-core';
 import { abilityState, fromAppState, useFeatureFlag } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -64,7 +64,7 @@ const HEIGHT_BUFFER = 170;
 
 export function TeamDashboard() {
   useTitle(TITLES.TEAM);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const ability = useAtomValue(abilityState);
   const [loading, setLoading] = useState(true);
   const [team, setTeam] = useState<TeamUserFacing>();

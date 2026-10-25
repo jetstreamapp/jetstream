@@ -4,7 +4,7 @@ import { formatSeatDate, formatUsd, getIntervalLabel, hasPendingSeatDecrease } f
 import { classifySeatChange, getErrorMessage, getMinimumSeats, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MAX_TEAM_SEATS, TeamSeatChangePreview, TeamSeatChangeResult, TeamSeatSummary, TeamUserFacing } from '@jetstream/types';
 import { fireToast, Modal, NumberStepperInput, ScopedNotification, Spinner } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { useState } from 'react';
 
 /** Rejections that a fresh preview actually resolves; every other failure carries its own remedy. */
@@ -46,7 +46,7 @@ function getSuccessMessage({ changeType, seats, effectiveAt }: TeamSeatChangeRes
  * reject a commit made against stale numbers.
  */
 export function TeamSeatsManageModal({ teamId, seats, onClose }: TeamSeatsManageModalProps) {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const purchasedSeats = seats.purchased ?? 0;
   // The same floor the server enforces: usage, plus whatever a legacy flat-first-tier price includes
   const minSeats = getMinimumSeats(seats);

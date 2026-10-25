@@ -4,7 +4,7 @@ import { checkHeartbeat, disconnectSocket, initSocket, registerMiddleware, updat
 import { initErrorTracker, setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/ui-utils';
 import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
-import { fromJetstreamEvents, useAmplitude, useInitDataHistory } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useAnalytics, useInitDataHistory } from '@jetstream/ui-core';
 import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
 import { CookieConsentBanner, useConditionalGoogleAnalytics } from '@jetstream/ui/cookie-consent-banner';
 import { ensureLocalStorageReady, initDexieDb, pruneAnalysisJobHistory } from '@jetstream/ui/db';
@@ -149,7 +149,7 @@ APP VERSION ${version}
     setErrorTrackerUser(userProfile);
   }, [userProfile]);
 
-  useAmplitude(analytics !== 'accepted');
+  useAnalytics(analytics !== 'accepted');
 
   useEffect(() => {
     if (onSaveSoqlQueryFormatOptions?.value) {

@@ -26,7 +26,7 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtom } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
@@ -55,7 +55,7 @@ function isTeamPriceKey(priceKey: StripePriceKey): priceKey is 'TEAM_MONTHLY' | 
 
 export const Billing = () => {
   useTitle(TITLES.BILLING);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);

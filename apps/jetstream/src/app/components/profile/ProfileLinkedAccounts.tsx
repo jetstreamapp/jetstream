@@ -4,7 +4,7 @@ import type { UserProfileIdentity, UserProfileUiWithIdentities } from '@jetstrea
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { tracker, useCsrfToken } from '@jetstream/shared/ui-utils';
 import { fireToast, Grid } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { FunctionComponent } from 'react';
 import { ProfileIdentityCard } from './ProfileIdentityCard';
 import { useLinkAccount } from './useLinkAccount';
@@ -25,7 +25,7 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
   loginConfigAbility,
   onUserProfilesChange,
 }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { unlinkAccount, providers } = useLinkAccount();
   const { csrfToken } = useCsrfToken();
 

@@ -22,7 +22,7 @@ import {
   fieldTypeToReturnType,
   getFormulaData,
   registerCompletions,
-  useAmplitude,
+  useAnalytics,
 } from '@jetstream/ui-core';
 import type { FieldSchema, FormulaContext, FormulaValue } from '@jetstreamapp/sf-formula-parser';
 import { evaluateFormula, extractFields, extractFieldsByCategory } from '@jetstreamapp/sf-formula-parser';
@@ -50,7 +50,7 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
     const isMounted = useRef(true);
     const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
     const { addDisposable } = useDisposables();
-    const { trackEvent } = useAmplitude();
+    const { trackEvent } = useAnalytics();
 
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);

@@ -16,7 +16,7 @@ import {
   Tooltip,
   getModifierKey,
 } from '@jetstream/ui';
-import { RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
+import { RequireMetadataApiBanner, useAnalytics } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
@@ -72,7 +72,7 @@ export interface CreateFieldsProps {}
 
 export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
   const navigate = useNavigate();
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const selectedOrg = useAtomValue(selectedOrgState);
 
   const profiles = useAtomValue(fromCreateFieldsState.profilesState);

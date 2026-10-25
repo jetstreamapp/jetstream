@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { setItemInLocalStorage } from '@jetstream/shared/ui-utils';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { STORAGE_KEYS } from '@jetstream/ui/app-state';
 import { useCallback, useState } from 'react';
 
@@ -22,7 +22,7 @@ function getStoredShowManagedPermissionSets(): boolean {
  * flag, its persistence to local storage, and the analytics event fired on every change.
  */
 export function useShowManagedPermissionSets() {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [showManagedPermissionSets, setShowManagedPermissionSets] = useState<boolean>(getStoredShowManagedPermissionSets);
 
   const toggleShowManagedPermissionSets = useCallback(

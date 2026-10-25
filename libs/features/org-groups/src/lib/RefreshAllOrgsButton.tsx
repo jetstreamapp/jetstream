@@ -4,7 +4,7 @@ import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
 import { ORG_INACTIVITY_EXPIRATION_DAYS, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Spinner, Tooltip, fireToast } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useSetAtom } from 'jotai';
@@ -24,7 +24,7 @@ interface RefreshAllOrgsButtonProps {
  * Salesforce's inactivity clock (the server treats any org access as activity).
  */
 export const RefreshAllOrgsButton = ({ className, orgs }: RefreshAllOrgsButtonProps) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const setOrgs = useSetAtom(fromAppState.salesforceOrgsAsyncState);
   const [completedCount, setCompletedCount] = useState<number | null>(null);
   const isRefreshing = completedCount !== null;

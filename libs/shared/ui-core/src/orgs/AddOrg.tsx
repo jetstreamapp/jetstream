@@ -7,7 +7,7 @@ import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useMemo, useRef, useState } from 'react';
-import { useAmplitude } from '..';
+import { useAnalytics } from '..';
 import { parseSalesforceLoginUrl } from './salesforce-login-url.utils';
 
 type OrgType = 'prod' | 'sandbox' | 'pre-release' | 'custom';
@@ -63,7 +63,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
   onAddOrgHandlerFn = addOrg,
 }) => {
   const popoverRef = useRef<PopoverRef>(null);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [orgType, setOrgType] = useState<OrgType>(() => (getExistingOrgDomain(existingOrg) ? 'custom' : 'prod'));
   const [customUrl, setCustomUrl] = useState<string>(() => getExistingOrgDomain(existingOrg) || '');
   const [advancedOptionsEnabled, setAdvancedOptionsEnabled] = useState(false);

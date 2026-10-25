@@ -7,7 +7,7 @@ import { getErrorMessage } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ManualRequestPayload, ManualRequestResponse, Maybe, SalesforceApiHistoryRequest } from '@jetstream/types';
 import { AutoFullHeightContainer } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import { apiRequestHistoryDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
@@ -21,7 +21,7 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
   useTitle(TITLES.API_EXPLORER);
   const isMounted = useRef(true);
   const [{ defaultApiVersion }] = useAtom(applicationCookieState);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const selectedOrg = useAtomValue(selectedOrgState);
   const [request, setRequest] = useState<Maybe<SalesforceApiHistoryRequest>>();
   const [results, setResults] = useState<Maybe<ManualRequestResponse>>(null);

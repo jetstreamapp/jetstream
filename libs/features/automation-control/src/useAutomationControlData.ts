@@ -3,7 +3,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { tracker } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import {
   fetchAutomationData,
@@ -668,7 +668,7 @@ export function useAutomationControlData({
   selectedAutomationTypes: AutomationMetadataType[];
 }) {
   const isMounted = useRef(true);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
 
   const [{ loading, hasError, errorMessage, data, rows, rowsByKey, dirtyCount }, dispatch] = useReducer(reducer, {
     loading: false,

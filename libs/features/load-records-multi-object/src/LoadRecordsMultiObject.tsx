@@ -27,7 +27,7 @@ import {
   Spinner,
   fireToast,
 } from '@jetstream/ui';
-import { SkipDataHistoryCheckbox, useAmplitude } from '@jetstream/ui-core';
+import { SkipDataHistoryCheckbox, useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useEffect, useMemo, useRef } from 'react';
@@ -60,7 +60,7 @@ const STEP_COUNT = 2;
 
 export const LoadRecordsMultiObject = () => {
   useTitle(TITLES.LOAD);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const selectedOrg = useAtomValue(selectedOrgState);
   const orgType = useAtomValue(selectedOrgType);
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);

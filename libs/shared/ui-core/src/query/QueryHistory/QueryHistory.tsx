@@ -9,7 +9,7 @@ import { forwardRef, Fragment, useCallback, useEffect, useImperativeHandle, useS
 import { ErrorBoundary } from 'react-error-boundary';
 import { useLocation } from 'react-router';
 import { ErrorBoundaryFallback, fromQueryHistoryState } from '../..';
-import { useAmplitude } from '../../analytics';
+import { useAnalytics } from '../../analytics';
 import { QueryHistoryModal, QueryHistoryType } from './QueryHistoryModal';
 
 export interface QueryHistoryRef {
@@ -31,7 +31,7 @@ export interface QueryHistoryProps {
 
 export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, selectedOrg, embedded = false, onRestore }, ref) => {
   const location = useLocation();
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [whichType, setWhichType] = useState<QueryHistoryType>('HISTORY');
 
   const [isOpen, setIsOpen] = useState(false);

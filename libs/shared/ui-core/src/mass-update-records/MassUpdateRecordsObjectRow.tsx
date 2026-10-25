@@ -8,7 +8,7 @@ import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/ap
 import { useAtomValue } from 'jotai';
 import isNumber from 'lodash/isNumber';
 import { Fragment, FunctionComponent, ReactNode, useState } from 'react';
-import { useAmplitude } from '../analytics';
+import { useAnalytics } from '../analytics';
 import { fromJetstreamEvents } from '../jetstream-events';
 import MassUpdateRecordTransformationText from './MassUpdateRecordTransformationText';
 import MassUpdateRecordsObjectRowCriteria from './MassUpdateRecordsObjectRowCriteria';
@@ -64,7 +64,7 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
   onRemoveField,
   children,
 }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
 

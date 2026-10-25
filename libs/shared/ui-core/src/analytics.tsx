@@ -37,7 +37,7 @@ function init(appState: ApplicationState, version: string) {
   });
 }
 
-export function useAmplitude(optOut?: boolean) {
+export function useAnalytics(optOut?: boolean) {
   const { appInfo, version } = useAtomValue(fromAppState.appInfoState);
   const userProfile = useAtomValue(fromAppState.userProfileState);
   const userPreferences = useAtomValue(fromAppState.selectUserPreferenceState);
@@ -82,7 +82,6 @@ export function useAmplitude(optOut?: boolean) {
 
   return {
     trackEvent: track,
-    project: amplitude,
   };
 }
 

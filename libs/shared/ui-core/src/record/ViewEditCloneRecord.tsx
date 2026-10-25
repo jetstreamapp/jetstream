@@ -51,7 +51,7 @@ import { useAtomValue } from 'jotai';
 import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useAmplitude } from '../analytics';
+import { useAnalytics } from '../analytics';
 import { MonacoEditor } from '../app/MonacoEditor';
 import { fromJetstreamEvents } from '../jetstream-events';
 import { ViewChildRecords } from './ViewChildRecords';
@@ -141,7 +141,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   onFetch,
   onFetchError,
 }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const isMounted = useRef(true);
   const modalBodyRef = useRef<HTMLDivElement>(null);
   // If user was ever in view mode, clicking cancel will take back to view instead of close

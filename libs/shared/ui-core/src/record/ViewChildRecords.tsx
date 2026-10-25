@@ -23,7 +23,7 @@ import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { useAtomValue } from 'jotai';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useAmplitude } from '../analytics';
+import { useAnalytics } from '../analytics';
 
 function getRowId(row: SalesforceRecord<ChildRecordRow>): string {
   return `${row.Id}-${row._idx}`;
@@ -85,7 +85,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
   childRelationships,
   onChildrenData,
 }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const isMounted = useRef(true);
   const { serverUrl } = useAtomValue(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);

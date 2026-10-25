@@ -2,7 +2,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { ColorScheme } from '@jetstream/types';
 import { RadioButton, RadioGroup } from '@jetstream/ui';
 import { useUserPreferenceState } from '@jetstream/ui/app-state';
-import { useAmplitude } from '../analytics';
+import { useAnalytics } from '../analytics';
 import { getSettingsRowIds, SettingsRow } from './layout/SettingsSection';
 
 const ROW_ID = 'setting-theme';
@@ -15,7 +15,7 @@ const COLOR_SCHEME_OPTIONS: { value: ColorScheme; label: string }[] = [
 
 /** Same preference as the theme options in the user menu */
 export const AppearanceSetting = () => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [userPreferences, setUserPreferences] = useUserPreferenceState();
   const colorScheme = userPreferences?.colorScheme ?? 'light';
 
