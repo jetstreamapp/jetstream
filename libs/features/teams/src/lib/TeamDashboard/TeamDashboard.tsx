@@ -360,7 +360,7 @@ export function TeamDashboard() {
         <TeamMemberInviteModal
           teamId={team.id}
           accessProfiles={team.accessProfiles}
-          canAssignAccessProfile={canUpdateAccessProfiles}
+          canAssignAccessProfile={canUpdateAccessProfiles && showAccessProfiles}
           userRole={userProfile.teamMembership?.role || TeamMemberRoleSchema.enum.MEMBER}
           ssoConfig={ssoConfig}
           verifiedDomains={verifiedDomains}
@@ -395,7 +395,7 @@ export function TeamDashboard() {
           teamId={team.id}
           teamMember={teamMemberUpdateState.teamMember}
           accessProfiles={team.accessProfiles}
-          canAssignAccessProfile={canUpdateAccessProfiles}
+          canAssignAccessProfile={canUpdateAccessProfiles && showAccessProfiles}
           currentUserRole={userProfile.teamMembership?.role}
           seatGate={seatGate}
           onClose={(teamData) => {
