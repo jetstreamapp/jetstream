@@ -11,8 +11,9 @@ import { clearLocalStorageScope, isDifferentUserThanPageSession } from '@jetstre
 import { useAtom, useSetAtom } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
 
-// 12 hours in milliseconds
-const CHECK_AUTH_TIMER_INTERVAL = 12 * 60 * 60 * 1000;
+// The main process only calls the server when its last verification is over 3 hours old, so polling hourly is
+// cheap and bounds how long a revoked session (e.g. a team access profile that no longer allows the desktop app) stays signed in
+const CHECK_AUTH_TIMER_INTERVAL = 60 * 60 * 1000;
 
 interface LoginProps {
   children: (props: { onLogout: () => void; authInfo: DesktopAuthInfo }) => React.ReactNode;

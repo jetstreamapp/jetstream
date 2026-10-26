@@ -316,7 +316,7 @@ describe('acl', () => {
         policy: AccessProfilePolicySchema.parse({
           v: 1,
           tools: ['query', 'data-analysis'],
-          operations: ['records.export'],
+          operations: ['records.write'],
           surfaces: ['web'],
         }),
       };
@@ -339,9 +339,9 @@ describe('acl', () => {
         expect(canAccessTool(ability, 'data-analysis')).toBe(true);
         expect(canAccessTool(ability, 'load')).toBe(false);
         expect(canAccessTool(ability, 'anonymous-apex')).toBe(false);
-        expect(canPerformOperation(ability, 'records.export')).toBe(true);
-        expect(canPerformOperation(ability, 'records.write')).toBe(false);
+        expect(canPerformOperation(ability, 'records.write')).toBe(true);
         expect(canPerformOperation(ability, 'records.delete')).toBe(false);
+        expect(canPerformOperation(ability, 'metadata.deploy')).toBe(false);
       });
 
       it('should apply the profile on desktop and in the browser extension', () => {
@@ -402,14 +402,14 @@ describe('acl', () => {
           const ability = getUserAbility({ user: getUser('MEMBER', desktopOnlyProfile), isDesktop: true });
           expect(ability.can('read', 'CoreFunctionality')).toBe(true);
           expect(canAccessTool(ability, 'query')).toBe(true);
-          expect(canPerformOperation(ability, 'records.export')).toBe(true);
+          expect(canPerformOperation(ability, 'records.write')).toBe(true);
         });
       });
 
       it('should grant no tools or operations to the billing role', () => {
         const ability = getUserAbility({ user: getUser('BILLING') });
         expect(canAccessTool(ability, 'query')).toBe(false);
-        expect(canPerformOperation(ability, 'records.export')).toBe(false);
+        expect(canPerformOperation(ability, 'records.write')).toBe(false);
       });
 
       describe('canvas app', () => {
@@ -423,13 +423,13 @@ describe('acl', () => {
           const ability = getUserAbility({
             user: { entitlements },
             isCanvasApp: true,
-            canvasAccessPolicy: { tools: ['query', 'data-analysis'], operations: ['records.export'] },
+            canvasAccessPolicy: { tools: ['query', 'data-analysis'], operations: ['records.write'] },
           });
           expect(canAccessTool(ability, 'query')).toBe(true);
           expect(canAccessTool(ability, 'data-analysis')).toBe(true);
           expect(canAccessTool(ability, 'load')).toBe(false);
-          expect(canPerformOperation(ability, 'records.export')).toBe(true);
-          expect(canPerformOperation(ability, 'records.write')).toBe(false);
+          expect(canPerformOperation(ability, 'records.write')).toBe(true);
+          expect(canPerformOperation(ability, 'records.delete')).toBe(false);
         });
 
         it('should grant nothing with an empty canvas policy', () => {

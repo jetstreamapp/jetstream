@@ -37,13 +37,7 @@ export const ACCESS_PROFILE_TOOL_KEYS = [
   'platform-events',
 ] as const;
 
-export const ACCESS_PROFILE_OPERATION_KEYS = [
-  'records.write',
-  'records.delete',
-  'records.export',
-  'metadata.deploy',
-  'orgs.connect',
-] as const;
+export const ACCESS_PROFILE_OPERATION_KEYS = ['records.write', 'records.delete', 'metadata.deploy', 'orgs.connect'] as const;
 
 /**
  * Without `web` a member can still sign in to the web application, because their profile, settings and the team
@@ -242,12 +236,6 @@ export const ACCESS_PROFILE_OPERATIONS: AccessProfileOperationDefinition[] = [
     description: 'Delete and undelete from query results, delete loads and purging debug logs',
   },
   {
-    key: 'records.export',
-    label: 'Export and download data',
-    description:
-      'Download or copy Salesforce record data from query results, records, Update Records, Data History and Platform Events, including uploads to Google Drive',
-  },
-  {
     key: 'metadata.deploy',
     label: 'Deploy metadata and change configuration',
     description:
@@ -267,7 +255,6 @@ export const ACCESS_PROFILE_OPERATIONS: AccessProfileOperationDefinition[] = [
 export const ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES: Record<AccessProfileOperationKey, string> = {
   'records.write': `Your Jetstream access does not include creating or updating records.`,
   'records.delete': `Your Jetstream access does not include deleting records.`,
-  'records.export': `Your Jetstream access does not include exporting data.`,
   'metadata.deploy': `Your Jetstream access does not include deploying metadata or changing configuration.`,
   'orgs.connect': `Your Jetstream access does not include connecting Salesforce orgs.`,
 };

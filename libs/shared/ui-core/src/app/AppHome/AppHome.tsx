@@ -158,6 +158,17 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
           )}
         </div>
         <AppHomeOrganizations />
+        {visibleHomeItems.length === 0 && (
+          <div
+            css={css`
+              grid-column: 1 / -1;
+            `}
+          >
+            <ScopedNotification theme="info">
+              No tools are available to you. Contact your Jetstream administrator to request access.
+            </ScopedNotification>
+          </div>
+        )}
         {visibleHomeItems.map((card) => {
           const locked = !!card.requiresPro && !hasAnalysisToolsAccess;
           return (

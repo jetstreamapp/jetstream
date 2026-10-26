@@ -33,6 +33,15 @@ async function waitForAuditLog(query: () => ReturnType<typeof prisma.auditLog.fi
   return null;
 }
 
+/** Creating profiles is behind the `team-access-profiles` flag, which is off by default */
+async function enableAccessProfiles(teamId: string) {
+  await prisma.featureFlagOverride.upsert({
+    where: { uniqueFeatureFlagTeam: { key: 'team-access-profiles', teamId } },
+    create: { key: 'team-access-profiles', teamId, enabled: true },
+    update: { enabled: true },
+  });
+}
+
 test.describe('Team Access Profiles', () => {
   // Each fixture creates its own users so we start from a clean, unauthenticated state
   test.use({ storageState: { cookies: [], origins: [] } });
@@ -45,6 +54,7 @@ test.describe('Team Access Profiles', () => {
   test('admin limits a member to read only tools', async ({ teamCreationUtils3Users: tc, page, teamDashboardPage }) => {
     const { team, member1, member3: billingMember } = tc;
     const teamId = team.id;
+    await enableAccessProfiles(teamId);
     const request = await csrfRequest(page);
     const accessProfileName = 'Read only E2E';
 
@@ -163,6 +173,7 @@ test.describe('Team Access Profiles', () => {
   test('a member limited to the desktop application has restricted web access', async ({ teamCreationUtils3Users: tc, page }) => {
     const { team, member1 } = tc;
     const teamId = team.id;
+    await enableAccessProfiles(teamId);
     const request = await csrfRequest(page);
 
     await test.step('Admin assigns a profile without the web application', async () => {
@@ -206,6 +217,7 @@ test.describe('Team Access Profiles', () => {
 
   test('new invitations receive the team default profile', async ({ teamCreationUtils1User: tc, page }) => {
     const teamId = tc.team.id;
+    await enableAccessProfiles(teamId);
     const request = await csrfRequest(page);
 
     const createResponse = await request.post(`/api/teams/${teamId}/access-profiles`, {

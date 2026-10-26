@@ -1,7 +1,6 @@
 import { css } from '@emotion/react';
 import { DataHistoryFileKind, DataHistoryItem, UiTabSection } from '@jetstream/types';
 import { Badge, DropDown, Grid, Icon, Modal, ScopedNotification, Tabs, TabsRef } from '@jetstream/ui';
-import { useCanPerformOperation } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useMemo, useRef, useState } from 'react';
 import { DataHistoryErrorInfo } from './data-history-download';
 import {
@@ -57,7 +56,6 @@ export const DataHistoryDetailModal: FunctionComponent<DataHistoryDetailModalPro
   const [downloadTarget, setDownloadTarget] = useState<DataHistoryExportTarget | null>(null);
   // Download errors surface here — a toast would render behind the modal's overlay
   const [fileError, setFileError] = useState<DataHistoryErrorInfo | null>(null);
-  const canExportRecords = useCanPerformOperation('records.export');
 
   const availableFiles = useMemo(() => getAvailableFileKinds(item), [item]);
   const exportTargets = useMemo(() => getDataHistoryExportTargets(item), [item]);
@@ -72,7 +70,7 @@ export const DataHistoryDetailModal: FunctionComponent<DataHistoryDetailModalPro
 
   function renderDownloadControl(kind: DataHistoryFileKind) {
     const targets = exportTargets.filter((target) => target.kind === kind);
-    if (!canExportRecords || targets.length === 0) {
+    if (targets.length === 0) {
       return null;
     }
     if (targets.length === 1) {
@@ -206,7 +204,6 @@ export const DataHistoryDetailModal: FunctionComponent<DataHistoryDetailModalPro
           cache={payloadCache}
           viewStateCache={viewStateCache}
           onRequestDownload={openDownload}
-          canExportRecords={canExportRecords}
         />
       ),
     })),

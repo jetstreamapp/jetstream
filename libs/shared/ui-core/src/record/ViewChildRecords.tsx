@@ -18,7 +18,7 @@ import {
   Tooltip,
   setColumnFromType,
 } from '@jetstream/ui';
-import { applicationCookieState, selectSkipFrontdoorAuth, useCanPerformOperation } from '@jetstream/ui/app-state';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { useAtomValue } from 'jotai';
 import groupBy from 'lodash/groupBy';
@@ -89,7 +89,6 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
   const isMounted = useRef(true);
   const { serverUrl } = useAtomValue(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
-  const canExportRecords = useCanPerformOperation('records.export');
   const [loading, setLoading] = useState<boolean>(true);
   const [rows, setRows] = useState<SalesforceRecord<ChildRecordRow>[]>([]);
   const [expandedGroupIds, setExpandedGroupIds] = useState(new Set<any>());
@@ -368,7 +367,6 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
           rowGrouper={groupBy}
           expandedGroupIds={expandedGroupIds}
           onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
-          allowCopy={canExportRecords}
         />
       </AutoFullHeightContainer>
     </>

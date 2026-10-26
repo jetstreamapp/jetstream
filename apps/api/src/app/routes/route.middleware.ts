@@ -24,6 +24,7 @@ import { isAccessProfileSurfaceAllowed } from '@jetstream/types';
 import { parseCookie } from 'cookie';
 import { addDays, getUnixTime, isBefore } from 'date-fns';
 import express, { Request } from 'express';
+import { LRUCache } from 'lru-cache';
 import multer from 'multer';
 import { randomBytes } from 'node:crypto';
 import os from 'node:os';
@@ -280,15 +281,30 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
 
 export const WEB_APP_NOT_ALLOWED_MESSAGE = 'Your team access profile does not include the Jetstream web application.';
 
+// Every Salesforce request from a web session checks this, so a short TTL keeps it off the hot path. Each process has
+// its own cache, so a profile edit reaches a member's in-flight sessions within the TTL; the org management routes
+// below check the database directly.
+const WEB_APP_ACCESS_CACHE_TTL_MS = 15_000;
+const webAppAccessCache = new LRUCache<string, true>({ max: 1000, ttl: WEB_APP_ACCESS_CACHE_TTL_MS });
+
+export function clearWebAppAccessCache() {
+  webAppAccessCache.clear();
+}
+
 /**
  * Every Salesforce connection from a web session resolves its org through `getOrgForRequest`, so refusing there
  * keeps Salesforce data off the server for members limited to the desktop application or browser extension.
  * Desktop and extension requests authenticate with their own tokens and never reach this.
  */
-async function assertWebAppAllowed(userId: string) {
+async function assertWebAppAllowed(userId: string, { useCache = false }: { useCache?: boolean } = {}) {
+  if (useCache && webAppAccessCache.has(userId)) {
+    return;
+  }
   if (!isAccessProfileSurfaceAllowed(await findActiveTeamAccessProfile({ userId }), 'web')) {
+    webAppAccessCache.delete(userId);
     throw new NotAllowedError(WEB_APP_NOT_ALLOWED_MESSAGE);
   }
+  webAppAccessCache.set(userId, true);
 }
 
 /** For routes that manage orgs without connecting to one, such as listing orgs or adding a new one */
@@ -372,7 +388,7 @@ export async function getOrgFromHeaderOrQuery(
   }
 
   // `addOrgsToLocal` resolves both a source and a target org, so share one access check across the request
-  res.locals.webAppAccessCheck ??= assertWebAppAllowed(user.id);
+  res.locals.webAppAccessCheck ??= assertWebAppAllowed(user.id, { useCache: true });
 
   return getOrgForRequest(user, uniqueId, apiVersion, includeCallOptions, requestId, {
     ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
@@ -389,7 +405,7 @@ export async function getOrgForRequest(
   requestId?: string,
   requestContext?: { ipAddress?: string; userAgent?: string; webAppAccessCheck?: Promise<void> },
 ) {
-  await (requestContext?.webAppAccessCheck ?? assertWebAppAllowed(user.id));
+  await (requestContext?.webAppAccessCheck ?? assertWebAppAllowed(user.id, { useCache: true }));
 
   const org = await salesforceOrgsDb.findByUniqueId_UNSAFE(user.id, uniqueId);
   if (!org || org.jetstreamUserId2 !== user.id) {

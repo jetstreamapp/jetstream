@@ -7,7 +7,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { APP_ROUTES, isPathAllowedByAccessProfile } from '@jetstream/shared/ui-router';
 import type { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, OutsideClickHandler, Tabs } from '@jetstream/ui';
-import { fromAppState } from '@jetstream/ui/app-state';
+import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { useEffect, useMemo, useState } from 'react';
 import browser from 'webextension-polyfill';
@@ -123,8 +123,9 @@ export function SfdcPageButton() {
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
   const setSalesforceOrgs = useSetAtom(fromAppState.salesforceOrgsState);
 
-  // This runs on Salesforce pages outside of the Jetstream app state, so the ability is built from the profile in extension storage
-  const ability = useMemo(() => getUserAbility({ user: userProfile, isBrowserExtension: true }), [userProfile]);
+  // This runs on Salesforce pages outside of the Jetstream app state, so the ability is built from the profile in extension storage.
+  // A missing profile means no restrictions are known, which is full access, not an ability with no rules.
+  const ability = useMemo(() => getUserAbility({ user: userProfile ?? DEFAULT_PROFILE, isBrowserExtension: true }), [userProfile]);
   const canWriteRecords = canPerformOperation(ability, 'records.write');
   // Viewing and searching records is part of the Query tool, matching the web app where record and user search follow it
   const canQueryRecords = canAccessTool(ability, 'query');

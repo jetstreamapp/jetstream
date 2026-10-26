@@ -171,8 +171,6 @@ export interface SalesforceRecordDataTableProps {
   canWriteRecords?: boolean;
   /** Delete and restore row actions. Defaults to true. */
   canDeleteRecords?: boolean;
-  /** Copy to clipboard from the context menu and subquery modal, and subquery downloads. Defaults to true. */
-  canExportRecords?: boolean;
 }
 
 export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
@@ -208,7 +206,6 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     trackEvent = () => undefined,
     canWriteRecords = true,
     canDeleteRecords = true,
-    canExportRecords = true,
   }: SalesforceRecordDataTableProps) => {
     const isMounted = useRef(true);
     const [columns, setColumns] = useState<ColumnWithFilter<RowSalesforceRecordWithKey>[]>();
@@ -372,13 +369,12 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
               {
                 label: 'View field metadata',
                 value: 'VIEW_FIELD_METADATA',
-                // Separates this from the copy actions, which are hidden without export
-                leadingDivider: canExportRecords,
+                leadingDivider: true,
               },
             ]
           : [];
       },
-      [columns, canExportRecords],
+      [columns],
     );
 
     useEffect(() => {
@@ -939,7 +935,6 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
             }}
             onClose={() => setShowPreview(false)}
             canWriteRecords={canWriteRecords}
-            canExportRecords={canExportRecords}
           />
         )}
         {downloadConfig && (
@@ -970,7 +965,6 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
               onSubqueryFieldReorder: handleSubqueryFieldsChanged,
               onSubqueryRecordsLoaded: handleSubqueryRecordsLoaded,
               confirmReplaceRecords: confirmDiscardUnsavedChanges,
-              canExportRecords,
               hasGoogleDriveAccess,
               googleShowUpgradeToPro,
               google_apiKey,
@@ -1001,7 +995,6 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
               isCellDirty={isCellDirty}
               context={tableContext}
               contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
-              allowCopy={canExportRecords}
               contextMenuAction={handleContextMenuAction}
               getColumnHeaderMenuItems={getColumnHeaderMenuItems}
             />

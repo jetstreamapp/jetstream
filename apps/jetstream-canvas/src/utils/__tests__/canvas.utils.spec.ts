@@ -72,9 +72,9 @@ describe('parseCanvasAccessPolicy', () => {
   });
 
   it('only allows the tools and operations Salesforce granted, plus connecting orgs', () => {
-    expect(parseCanvasAccessPolicy({ tools: ['query', 'data-analysis'], operations: ['records.export'] })).toEqual({
+    expect(parseCanvasAccessPolicy({ tools: ['query', 'data-analysis'], operations: ['records.write'] })).toEqual({
       tools: ['query', 'data-analysis'],
-      operations: ['records.export', 'orgs.connect'],
+      operations: ['records.write', 'orgs.connect'],
     });
   });
 

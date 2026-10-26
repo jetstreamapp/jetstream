@@ -35,8 +35,6 @@ export interface DataTableProps<T extends object = RowWithKey, TContext = Record
   /** Omit to get the standard copy cell/row/column/table actions, which the grid resolves and dispatches
    * itself; supply a list/builder (plus `contextMenuAction`) to replace them, or `[]` to opt out. */
   contextMenuItems?: ContextMenuItems<T>;
-  /** Set to false to turn off Ctrl/Cmd+C and every copy menu item (e.g. for members without export access). Defaults to true. */
-  allowCopy?: boolean;
   // `any` so call sites may type their handler against a narrower row type without variance errors.
   contextMenuAction?: (item: ContextMenuItem, data: ContextMenuActionData<any>) => void;
   /** Consumer-supplied builder for extra per-column header menu items (must be stable). Items dispatch

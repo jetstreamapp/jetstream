@@ -41,7 +41,6 @@ public with sharing class JetstreamPageController {
   private static final Map<String, String> OPERATION_PERMISSIONS = new Map<String, String>{
     'records.write' => 'Action_Records_Write',
     'records.delete' => 'Action_Records_Delete',
-    'records.export' => 'Action_Records_Export',
     'metadata.deploy' => 'Action_Metadata_Deploy'
   };
 

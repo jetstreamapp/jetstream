@@ -232,7 +232,6 @@ function SubqueryModal({
   onSubqueryFieldReorder,
   onSubqueryRecordsLoaded,
   confirmReplaceRecords,
-  canExportRecords = true,
   onClose,
 }: SubqueryModalProps) {
   const isMounted = useRef(true);
@@ -422,7 +421,6 @@ function SubqueryModal({
     onSubqueryRecordsLoaded: handleNestedSubqueryRecordsLoaded,
     // Records loaded here are folded back into the record the table owns, so the same warning about unsaved edits applies
     confirmReplaceRecords,
-    canExportRecords,
     nestedRender: { relationshipPath: currentLevel.relationshipPath, onDrillDown: handleDrillDown },
   };
 
@@ -477,21 +475,19 @@ function SubqueryModal({
                   </>
                 )}
               </Grid>
-              {canExportRecords && (
-                <Grid verticalAlign="end">
-                  <CopyRecordsToClipboardButton
-                    containerClassName="slds-m-right_xx-small"
-                    fields={fields}
-                    records={records}
-                    filteredRecords={filteredRecords}
-                    selectedRecords={selectedRecords}
-                  />
-                  <button className="slds-button slds-button_brand" onClick={() => setDownloadModalIsActive(true)}>
-                    <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                    Download Records
-                  </button>
-                </Grid>
-              )}
+              <Grid verticalAlign="end">
+                <CopyRecordsToClipboardButton
+                  containerClassName="slds-m-right_xx-small"
+                  fields={fields}
+                  records={records}
+                  filteredRecords={filteredRecords}
+                  selectedRecords={selectedRecords}
+                />
+                <button className="slds-button slds-button_brand" onClick={() => setDownloadModalIsActive(true)}>
+                  <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Download Records
+                </button>
+              </Grid>
             </Grid>
           }
         >
@@ -510,7 +506,6 @@ function SubqueryModal({
                   rowSelection={rowSelection}
                   onRowSelectionChange={setRowSelection}
                   contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
-                  allowCopy={canExportRecords}
                   contextMenuAction={handleContextMenuAction}
                   onReorderColumns={handleColumnReorder}
                   onSortedAndFilteredRowsChange={handleSortedAndFilteredRowsChange}

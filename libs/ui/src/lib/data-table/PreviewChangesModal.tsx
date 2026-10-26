@@ -304,8 +304,6 @@ export interface PreviewChangesModalProps {
   onClose: () => void;
   /** Turns off saving, for a member whose write access was revoked after editing. Discard stays available. */
   canWriteRecords?: boolean;
-  /** Turns off the downloads and the copy menu, for a member without export access */
-  canExportRecords?: boolean;
 }
 
 /**
@@ -335,7 +333,6 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
   onDiscard,
   onClose,
   canWriteRecords = true,
-  canExportRecords = true,
 }) => {
   const [globalFilter, setGlobalFilter] = useState<string | null>(null);
   // Once the user saves, switch the banner from "review" to a success/error summary.
@@ -607,7 +604,7 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
             )}
           </div>
           <div className="slds-grid slds-grid_vertical-align-center">
-            {canExportRecords && editedExport.data.length > 0 && (
+            {editedExport.data.length > 0 && (
               <button className="slds-button slds-button_neutral" onClick={handleDownloadChanges} disabled={isSaving}>
                 <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Download Changes
@@ -664,7 +661,7 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
                 Save Options
               </Popover>
             )}
-            {canExportRecords && canDownloadResults && (
+            {canDownloadResults && (
               <button className="slds-button slds-button_neutral" onClick={handleDownloadResults}>
                 <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Download Results
@@ -714,7 +711,6 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
               includeQuickFilter
               quickFilterText={globalFilter}
               contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
-              allowCopy={canExportRecords}
               contextMenuAction={handleContextMenuAction}
             />
           </AutoFullHeightContainer>

@@ -70,7 +70,7 @@ private class JetstreamPageControllerTest {
   @IsTest
   static void testGetCanvasParameters_limitedAccessOnlyIncludesGrantedPermissions() {
     User testUser = createUserWithCustomPermissions(
-      new List<String>{ 'Limited_Access', 'Tool_Query', 'Tool_Data_Analysis', 'Action_Records_Export' }
+      new List<String>{ 'Limited_Access', 'Tool_Query', 'Tool_Data_Analysis', 'Action_Records_Write' }
     );
 
     System.runAs(testUser) {
@@ -81,7 +81,7 @@ private class JetstreamPageControllerTest {
 
       System.assertNotEquals(null, accessProfile, 'Limited Access should send an access profile');
       System.assertEquals(new Set<String>{ 'query', 'data-analysis' }, toStringSet(accessProfile.get('tools')), 'Unexpected tools');
-      System.assertEquals(new Set<String>{ 'records.export' }, toStringSet(accessProfile.get('operations')), 'Unexpected operations');
+      System.assertEquals(new Set<String>{ 'records.write' }, toStringSet(accessProfile.get('operations')), 'Unexpected operations');
     }
   }
 

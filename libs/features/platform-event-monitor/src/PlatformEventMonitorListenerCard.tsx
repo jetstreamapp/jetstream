@@ -1,6 +1,5 @@
 import { ListItem, ListItemGroup, Maybe } from '@jetstream/types';
 import { Card, Grid, Icon, Pill, Spinner, Tooltip, ViewDocsLink } from '@jetstream/ui';
-import { useCanPerformOperation } from '@jetstream/ui/app-state';
 import PlatformEventMonitorEvents from './PlatformEventMonitorEvents';
 import PlatformEventMonitorSubscribe from './PlatformEventMonitorSubscribe';
 import { PlatformEventObject } from './platform-event-monitor.types';
@@ -39,7 +38,6 @@ export const PlatformEventMonitorListenerCard = ({
 }: PlatformEventMonitorListenerCardListenerCardProps) => {
   const hasSubscriptions = Object.keys(messagesByChannel).length > 0;
   const hasEvents = hasSubscriptions && Object.values(messagesByChannel).some((channel) => channel.messages.length > 0);
-  const canExportRecords = useCanPerformOperation('records.export');
 
   return (
     <Card
@@ -75,12 +73,10 @@ export const PlatformEventMonitorListenerCard = ({
               <Icon type="utility" icon="refresh" className="slds-button__icon" omitContainer />
             </button>
           </Tooltip>
-          {canExportRecords && (
-            <button className="slds-button slds-button_neutral" disabled={!hasEvents} onClick={() => onDownload()}>
-              <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Download
-            </button>
-          )}
+          <button className="slds-button slds-button_neutral" disabled={!hasEvents} onClick={() => onDownload()}>
+            <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+            Download
+          </button>
         </>
       }
     >

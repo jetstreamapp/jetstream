@@ -373,8 +373,6 @@ export interface SubqueryContext<TRow extends object = any> {
    * when it resolves true. Treated as allowed when not provided.
    */
   confirmReplaceRecords?: () => Promise<boolean>;
-  /** Copy and download of the subquery records, allowed unless set to false */
-  canExportRecords?: boolean;
   hasGoogleDriveAccess: boolean;
   googleShowUpgradeToPro: boolean;
   google_apiKey: string;

@@ -80,8 +80,6 @@ export interface DataTableV2Props<TRow extends object = RowWithKey, TContext = R
    * the standard copy cell/row/column/table actions, which the grid resolves and dispatches itself;
    * pass `[]` to opt out of them. */
   contextMenuItems?: ContextMenuItems<TRow>;
-  /** Set to false to turn off Ctrl/Cmd+C and every copy menu item (e.g. for members without export access). Defaults to true. */
-  allowCopy?: boolean;
   /** Right-click context menu action handler (must be stable). Required whenever consumer-supplied items
    * can be selected — alongside `contextMenuItems` and/or `getColumnHeaderMenuItems`. */
   contextMenuAction?: (item: ContextMenuItem, data: ContextMenuActionData<TRow>) => void;
@@ -135,7 +133,6 @@ function DataTableV2Inner<TRow extends object = RowWithKey>(props: DataTableV2Pr
     summaryRows,
     summaryRowHeight,
     contextMenuItems,
-    allowCopy,
     contextMenuAction,
     getColumnHeaderMenuItems,
     autoRowHeight,
@@ -235,7 +232,6 @@ function DataTableV2Inner<TRow extends object = RowWithKey>(props: DataTableV2Pr
             summaryRows={summaryRows}
             summaryRowHeight={summaryRowHeight}
             contextMenuItems={contextMenuItems}
-            allowCopy={allowCopy}
             contextMenuAction={contextMenuAction}
             getColumnHeaderMenuItems={getColumnHeaderMenuItems}
             autoRowHeight={autoRowHeight}

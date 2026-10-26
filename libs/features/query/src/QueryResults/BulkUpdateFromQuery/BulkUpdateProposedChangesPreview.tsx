@@ -13,7 +13,7 @@ import {
   setColumnFromType,
 } from '@jetstream/ui';
 import { fromJetstreamEvents, MetadataRowConfiguration, useAnalytics } from '@jetstream/ui-core';
-import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth, useCanPerformOperation } from '@jetstream/ui/app-state';
+import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useMemo, useState } from 'react';
 import { formatProposedValue, ProposedChangesResult } from './bulk-update-preview.utils';
@@ -49,7 +49,6 @@ export const BulkUpdateProposedChangesPreview: FunctionComponent<BulkUpdatePropo
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontdoorLogin = useAtomValue(selectSkipFrontdoorAuth);
-  const canExportRecords = useCanPerformOperation('records.export');
   const [downloadModal, setDownloadModal] = useState<DownloadModalState>({ open: false, data: [], header: [], fileNameParts: [] });
 
   const { fields, records, impactedRecordIds } = proposedChanges;
@@ -155,18 +154,16 @@ export const BulkUpdateProposedChangesPreview: FunctionComponent<BulkUpdatePropo
           <strong>{formatNumber(impactedRecordIds.length)}</strong> of {formatNumber(totalFetched)}{' '}
           {pluralizeFromNumber('record', totalFetched)} will be updated. Review the proposed changes before saving.
         </p>
-        {canExportRecords && (
-          <div>
-            <button className="slds-button slds-button_neutral" onClick={() => handleDownloadBackup('before')}>
-              <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Download current values
-            </button>
-            <button className="slds-button slds-button_neutral" onClick={() => handleDownloadBackup('after')}>
-              <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Download proposed values
-            </button>
-          </div>
-        )}
+        <div>
+          <button className="slds-button slds-button_neutral" onClick={() => handleDownloadBackup('before')}>
+            <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+            Download current values
+          </button>
+          <button className="slds-button slds-button_neutral" onClick={() => handleDownloadBackup('after')}>
+            <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+            Download proposed values
+          </button>
+        </div>
       </Grid>
 
       <div className="slds-is-relative slds-scrollable_x">
@@ -180,7 +177,6 @@ export const BulkUpdateProposedChangesPreview: FunctionComponent<BulkUpdatePropo
             getRowKey={getRowKey}
             rowHeight={25}
             context={{ defaultApiVersion }}
-            allowCopy={canExportRecords}
           />
         </AutoFullHeightContainer>
       </div>

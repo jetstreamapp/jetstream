@@ -2,7 +2,6 @@ import { Blob as NodeBlob } from 'node:buffer';
 
 import { DataHistoryItem } from '@jetstream/types';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DataHistoryPayloadTab } from '../DataHistoryPayloadTab';
 
@@ -46,16 +45,9 @@ const item = {
   updatedAt: new Date(),
 } as unknown as DataHistoryItem;
 
-function renderTab(props: Partial<ComponentProps<typeof DataHistoryPayloadTab>> = {}) {
+function renderTab() {
   return render(
-    <DataHistoryPayloadTab
-      item={item}
-      kind="request"
-      cache={new Map()}
-      viewStateCache={new Map()}
-      onRequestDownload={vi.fn()}
-      {...props}
-    />,
+    <DataHistoryPayloadTab item={item} kind="request" cache={new Map()} viewStateCache={new Map()} onRequestDownload={vi.fn()} />,
   );
 }
 
@@ -111,30 +103,5 @@ describe('DataHistoryPayloadTab copy failures', () => {
 
     await waitFor(() => expect(screen.getByText(/no longer available on this device/)).toBeTruthy());
     expect(screen.getByRole('button', { name: /Download/ })).toHaveProperty('disabled', true);
-  });
-});
-
-describe('DataHistoryPayloadTab export access', () => {
-  beforeEach(() => {
-    readDataHistoryFileMock.mockReset();
-    readDataHistoryFileMock.mockResolvedValue({
-      blob: new Blob([NON_TABULAR_JSON], { type: 'application/json' }),
-      contentType: 'application/json',
-    });
-  });
-
-  it('hides Download and Copy when the member cannot export records', async () => {
-    renderTab({ canExportRecords: false });
-    await waitFor(() => expect(readDataHistoryFileMock).toHaveBeenCalled());
-
-    expect(screen.queryByRole('button', { name: /download/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: /copy to clipboard/i })).toBeNull();
-  });
-
-  it('shows Download and Copy by default', async () => {
-    renderTab();
-
-    expect(await screen.findByRole('button', { name: /copy to clipboard/i })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /download/i })).toBeTruthy();
   });
 });

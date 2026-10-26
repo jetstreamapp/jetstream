@@ -80,7 +80,7 @@ describe('AccessProfilePolicySchema', () => {
 });
 
 describe('AccessProfilePolicyRequestSchema', () => {
-  const validRequest = { tools: ['query'], operations: ['records.export'], surfaces: ['desktop'] };
+  const validRequest = { tools: ['query'], operations: ['orgs.connect'], surfaces: ['desktop'] };
 
   it('accepts a request made of known keys', () => {
     expect(AccessProfilePolicyRequestSchema.parse(validRequest)).toEqual(validRequest);
@@ -89,7 +89,7 @@ describe('AccessProfilePolicyRequestSchema', () => {
   it('removes duplicate keys', () => {
     const result = AccessProfilePolicyRequestSchema.parse({
       tools: ['query', 'query'],
-      operations: ['records.export', 'records.export'],
+      operations: ['orgs.connect', 'orgs.connect'],
       surfaces: ['desktop', 'desktop'],
     });
 
@@ -157,7 +157,7 @@ describe('getAccessProfilePolicyWarnings', () => {
   });
 
   it('flags an enabled tool whose required operation is off', () => {
-    const warnings = getAccessProfilePolicyWarnings({ tools: ['query', 'load'], operations: ['records.export'], surfaces });
+    const warnings = getAccessProfilePolicyWarnings({ tools: ['query', 'load'], operations: ['orgs.connect'], surfaces });
 
     expect(warnings).toEqual([
       {

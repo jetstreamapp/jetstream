@@ -5,7 +5,7 @@ import { orderValues } from '@jetstream/shared/utils';
 import { ContextMenuItem } from '@jetstream/types';
 import type { RenderCellProps, RowHeightArgs, SortColumn } from '@jetstream/ui';
 import { AutoFullHeightContainer, ColumnWithFilter, ContextMenuActionData, DataTree } from '@jetstream/ui';
-import { STORAGE_KEYS, useCanPerformOperation } from '@jetstream/ui/app-state';
+import { STORAGE_KEYS } from '@jetstream/ui/app-state';
 import copyToClipboard from 'copy-to-clipboard';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, ReactNode, useCallback, useEffect, useState } from 'react';
@@ -96,7 +96,6 @@ export interface PlatformEventMonitorEventsProps {
 }
 
 export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorEventsProps> = ({ messagesByChannel }) => {
-  const canExportRecords = useCanPerformOperation('records.export');
   const [rows, setRows] = useState<PlatformEventRow[]>([]);
   const [expandedGroupIds, setExpandedGroupIds] = useState(new Set<any>());
   const [initialSortColumns] = useState<SortColumn[]>(() => {
@@ -163,7 +162,6 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
         rowHeight={getRowHeight}
         initialSortColumns={initialSortColumns}
         contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
-        allowCopy={canExportRecords}
         contextMenuAction={(item, data) => handleContextMenuAction(item as ContextMenuItem<ContextEventAction>, data)}
         onSortColumnsChange={(order) => setItemInLocalStorage(STORAGE_KEYS.PLATFORM_EVENT_SORT_COLUMNS, JSON.stringify(order))}
       />

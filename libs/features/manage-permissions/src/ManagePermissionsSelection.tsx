@@ -335,7 +335,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
               </Tooltip>
             )}
             {/* Each button must be a direct child so PageHeaderActions gives it its own control wrapper and spacing */}
-            {!isAnalysis && (
+            {!isAnalysis && canDeployMetadata && (
               <button
                 type="button"
                 className="slds-button slds-button_neutral"
@@ -346,7 +346,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
                 New Permission Set
               </button>
             )}
-            {!isAnalysis && (
+            {!isAnalysis && canDeployMetadata && (
               <button
                 type="button"
                 className="slds-button slds-button_neutral"

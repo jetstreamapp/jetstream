@@ -5,7 +5,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as salesforceOrgsDb from '../../db/salesforce-org.db';
 import * as userDb from '../../db/user.db';
 import { NotAllowedError } from '../../utils/error-handler';
-import { getOrgForRequest, getOrgFromHeaderOrQuery, verifyWebAppAllowed, WEB_APP_NOT_ALLOWED_MESSAGE } from '../route.middleware';
+import {
+  clearWebAppAccessCache,
+  getOrgForRequest,
+  getOrgFromHeaderOrQuery,
+  verifyWebAppAllowed,
+  WEB_APP_NOT_ALLOWED_MESSAGE,
+} from '../route.middleware';
 
 vi.mock('../../db/user.db', () => ({
   checkUserEntitlement: vi.fn(),
@@ -33,6 +39,7 @@ function runVerifyWebAppAllowed(sessionUser: UserProfileSession | undefined) {
 describe('web application access', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearWebAppAccessCache();
   });
 
   describe('verifyWebAppAllowed', () => {
@@ -81,6 +88,21 @@ describe('web application access', () => {
       // No org on record, so the lookup itself fails after the access check passes
       await expect(getOrgForRequest(user, 'org-1')).rejects.toThrow('An org with the provided id does not exist');
       expect(mockFindOrg).toHaveBeenCalledWith(user.id, 'org-1');
+    });
+
+    it('reuses a recent allowed result across requests, but never serves a denial from the cache', async () => {
+      mockFindAccessProfile.mockResolvedValue(webProfile);
+      mockFindOrg.mockResolvedValue(null);
+
+      await expect(getOrgForRequest(user, 'org-1')).rejects.toThrow('An org with the provided id does not exist');
+      await expect(getOrgForRequest(user, 'org-1')).rejects.toThrow('An org with the provided id does not exist');
+      expect(mockFindAccessProfile).toHaveBeenCalledTimes(1);
+
+      clearWebAppAccessCache();
+      mockFindAccessProfile.mockResolvedValue(desktopOnlyProfile);
+      await expect(getOrgForRequest(user, 'org-1')).rejects.toThrow(WEB_APP_NOT_ALLOWED_MESSAGE);
+      await expect(getOrgForRequest(user, 'org-1')).rejects.toThrow(WEB_APP_NOT_ALLOWED_MESSAGE);
+      expect(mockFindAccessProfile).toHaveBeenCalledTimes(3);
     });
   });
 

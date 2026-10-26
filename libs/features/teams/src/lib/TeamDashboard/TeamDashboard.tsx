@@ -93,6 +93,7 @@ export function TeamDashboard() {
   const [accessProfileDeleteState, setAccessProfileDeleteState] = useState<AccessProfileDeleteModalState>({ open: false });
 
   const canvasEnabled = useFeatureFlag('salesforce-canvas');
+  const accessProfilesEnabled = useFeatureFlag('team-access-profiles');
   // Team members' Canvas access is gated by the team entitlement (resolved onto the profile), and only
   // team admins may manage the authorized-orgs list.
   const showCanvasOrgs = canvasEnabled && userProfile.entitlements.salesforceCanvas;
@@ -105,6 +106,8 @@ export function TeamDashboard() {
   const canReadAuditLog = ability.can('read', 'AuditLog');
   const canReadAccessProfiles = ability.can('read', 'TeamAccessProfile');
   const canUpdateAccessProfiles = ability.can('update', 'TeamAccessProfile');
+  // Teams that already have profiles keep seeing them when the flag is off, so they can still edit or remove them
+  const showAccessProfiles = canReadAccessProfiles && (accessProfilesEnabled || !!team?.accessProfiles.length);
 
   const hasManualBilling = !!team?.billingAccount?.manualBilling;
   // Manual-billing seat limits are set by agreement, so only self-serve teams get the Manage Seats flow.
@@ -487,7 +490,7 @@ export function TeamDashboard() {
             </div>
           )}
 
-          {team && canReadAccessProfiles && (
+          {team && showAccessProfiles && (
             <TeamAccessProfiles
               accessProfiles={team.accessProfiles}
               canUpdate={canUpdateAccessProfiles}
@@ -510,7 +513,7 @@ export function TeamDashboard() {
                 manageSeatsDisabledReason={manageSeatsDisabledReason}
                 teamMembers={team.members}
                 invitations={team.invitations}
-                accessProfiles={canReadAccessProfiles ? team.accessProfiles : null}
+                accessProfiles={showAccessProfiles ? team.accessProfiles : null}
                 userProfile={userProfile}
                 configuredSsoProvider={configuredSsoProvider}
                 onGlobalAction={handleTeamGlobalAction}

@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<CustomPermission xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Allows downloading or copying Salesforce record data from query results, records, Update Records, Data History and Platform Events. Only applies to users with Jetstream: Limited Access.</description>
-    <isLicensed>false</isLicensed>
-    <label>Jetstream: Action - Export and Download Data</label>
-</CustomPermission>

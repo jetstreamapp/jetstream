@@ -28,10 +28,10 @@ export const ACCESS_PROFILE_PRESETS: AccessProfilePreset[] = [
   {
     id: 'read-only',
     label: 'Read only',
-    description: 'Query and export data and run analyses, no changes',
+    description: 'Query data and run analyses, no changes',
     policy: {
       tools: ['query', 'data-analysis', 'permission-analysis', 'object-export'],
-      operations: ['records.export', 'orgs.connect'],
+      operations: ['orgs.connect'],
       surfaces: ALL_SURFACES,
     },
   },
@@ -41,7 +41,7 @@ export const ACCESS_PROFILE_PRESETS: AccessProfilePreset[] = [
     description: 'Query, load and update records without deleting them',
     policy: {
       tools: ['query', 'load', 'update-records', 'create-record', 'data-history', 'data-analysis'],
-      operations: ['records.write', 'records.export', 'orgs.connect'],
+      operations: ['records.write', 'orgs.connect'],
       surfaces: ALL_SURFACES,
     },
   },
@@ -62,7 +62,7 @@ export const ACCESS_PROFILE_PRESETS: AccessProfilePreset[] = [
         'formula-evaluator',
         'object-export',
       ],
-      operations: ['metadata.deploy', 'records.export', 'orgs.connect'],
+      operations: ['metadata.deploy', 'orgs.connect'],
       surfaces: ALL_SURFACES,
     },
   },

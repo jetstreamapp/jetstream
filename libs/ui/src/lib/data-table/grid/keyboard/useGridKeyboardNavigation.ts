@@ -142,9 +142,6 @@ export interface UseGridKeyboardNavigationOptions<TRow extends object> {
   onRedo?: () => void;
   /** Clear the editable cells in the current selection (Delete/Backspace). */
   onClearSelection?: () => void;
-  /** Set false to turn off copying (Ctrl/Cmd+C and the context menu's range copy) for tables whose record
-   * data must not leave the grid, e.g. a member whose access profile does not allow exporting records. */
-  allowCopy?: boolean;
 }
 
 export interface GridKeyboardNavigation {
@@ -198,7 +195,6 @@ export function useGridKeyboardNavigation<TRow extends object>({
   onUndo,
   onRedo,
   onClearSelection,
-  allowCopy = true,
 }: UseGridKeyboardNavigationOptions<TRow>): GridKeyboardNavigation {
   const [activeCell, setActiveCellState] = useState<ActiveCell | null>(null);
   const [mode, setMode] = useState<GridMode>('navigation');
@@ -656,9 +652,6 @@ export function useGridKeyboardNavigation<TRow extends object>({
 
   const copySelection = useCallback(
     (includeHeader = false) => {
-      if (!allowCopy) {
-        return;
-      }
       const rows = table.getRowModel().rows;
       const columns = table.getVisibleLeafColumns();
       if (!rows.length || !columns.length) {
@@ -744,7 +737,7 @@ export function useGridKeyboardNavigation<TRow extends object>({
         onAnnounce?.(copied ? `Copied ${copiedCellCount} cells across ${boundsList.length} ranges` : COPY_FAILED_ANNOUNCEMENT),
       );
     },
-    [table, getRootElement, onAnnounce, allowCopy],
+    [table, getRootElement, onAnnounce],
   );
 
   const handleKeyDown = useCallback(

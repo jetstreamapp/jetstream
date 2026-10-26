@@ -136,7 +136,6 @@ export const QueryResults = React.memo(() => {
   const skipFrontdoorLogin = useAtomValue(fromAppState.selectSkipFrontdoorAuth);
   const canWriteRecords = useCanPerformOperation('records.write');
   const canDeleteRecords = useCanPerformOperation('records.delete');
-  const canExportRecords = useCanPerformOperation('records.export');
   const [totalRecordCount, setTotalRecordCount] = useState<number | null>(null);
   const bulkDeleteJob = useObservable(
     fromJetstreamEvents
@@ -766,34 +765,30 @@ export const QueryResults = React.memo(() => {
               onCreateNewRecord={handleCreateNewRecord}
             />
           )}
-          {canExportRecords && (
-            <>
-              <QueryResultsCopyToClipboard
-                className="collapsible-button collapsible-button-md"
-                hasRecords={hasRecords()}
-                fields={fields || []}
-                records={records || []}
-                filteredRows={filteredRows}
-                selectedRows={selectedRows}
-                isTooling={isTooling}
-              />
-              <QueryResultsDownloadButton
-                selectedOrg={selectedOrg}
-                sObject={sobject}
-                soql={soql}
-                columns={queryResults?.columns?.columns || []}
-                disabled={!hasRecords()}
-                isTooling={isTooling}
-                nextRecordsUrl={nextRecordsUrl}
-                fields={fields || []}
-                subqueryFields={subqueryFields}
-                records={records || []}
-                filteredRows={filteredRows}
-                selectedRows={selectedRows}
-                totalRecordCount={totalRecordCount || 0}
-              />
-            </>
-          )}
+          <QueryResultsCopyToClipboard
+            className="collapsible-button collapsible-button-md"
+            hasRecords={hasRecords()}
+            fields={fields || []}
+            records={records || []}
+            filteredRows={filteredRows}
+            selectedRows={selectedRows}
+            isTooling={isTooling}
+          />
+          <QueryResultsDownloadButton
+            selectedOrg={selectedOrg}
+            sObject={sobject}
+            soql={soql}
+            columns={queryResults?.columns?.columns || []}
+            disabled={!hasRecords()}
+            isTooling={isTooling}
+            nextRecordsUrl={nextRecordsUrl}
+            fields={fields || []}
+            subqueryFields={subqueryFields}
+            records={records || []}
+            filteredRows={filteredRows}
+            selectedRows={selectedRows}
+            totalRecordCount={totalRecordCount || 0}
+          />
         </ToolbarItemActions>
       </Toolbar>
       <div className="slds-grid">
@@ -818,18 +813,16 @@ export const QueryResults = React.memo(() => {
         >
           {loading && <Spinner />}
           {/* this only shows content if allowContentDownload.enabled is true  */}
-          {canExportRecords && (
-            <Grid className="slds-m-left_small">
-              <QueryResultsAttachmentDownload
-                selectedOrg={selectedOrg}
-                enabled={allowContentDownload.enabled}
-                sobjectName={allowContentDownload.sobjectName}
-                selectedRecords={selectedRows}
-                hasRecords={!loading && !errorMessage && !!records?.length && !!recordCount}
-                hasPaidPlan={hasPaidPlan}
-              />
-            </Grid>
-          )}
+          <Grid className="slds-m-left_small">
+            <QueryResultsAttachmentDownload
+              selectedOrg={selectedOrg}
+              enabled={allowContentDownload.enabled}
+              sobjectName={allowContentDownload.sobjectName}
+              selectedRecords={selectedRows}
+              hasRecords={!loading && !errorMessage && !!records?.length && !!recordCount}
+              hasPaidPlan={hasPaidPlan}
+            />
+          </Grid>
           {errorMessage && (
             <div className="slds-m-around_medium slds-box slds-text-color_error">
               <div className="slds-inline_icon_text slds-grid">
@@ -931,7 +924,6 @@ export const QueryResults = React.memo(() => {
               onReloadQuery={() => executeQuery(soql, RECORD_BULK_ACTION, { isTooling })}
               canWriteRecords={canWriteRecords}
               canDeleteRecords={canDeleteRecords}
-              canExportRecords={canExportRecords}
             />
           )}
         </AutoFullHeightContainer>
