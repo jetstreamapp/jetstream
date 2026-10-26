@@ -46,7 +46,8 @@ export default defineConfig(({ command, mode }) => {
 
     define: {
       'globalThis.__IS_BROWSER_EXTENSION__': 'true',
-      'import.meta.env.NX_PUBLIC_AMPLITUDE_KEY': JSON.stringify(process.env.NX_PUBLIC_AMPLITUDE_KEY || ''),
+      // Analytics are not sent from the extension; keep the shared analytics module a no-op even if the key is set locally
+      'import.meta.env.NX_PUBLIC_AMPLITUDE_KEY': JSON.stringify(''),
       'import.meta.env.NX_PUBLIC_SERVER_URL': JSON.stringify(getServerUrlForMode(mode)),
       // Build-only, for the same shared-process reason as the NODE_ENV mutation above: defines are
       // textual rewrites, and under the root vitest config this one would replace the

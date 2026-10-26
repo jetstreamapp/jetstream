@@ -3,6 +3,7 @@ import { ColorScheme } from '@jetstream/types';
 import { useAtomValue } from 'jotai';
 import { useEffect, useState } from 'react';
 import browser from 'webextension-polyfill';
+import { requestSyncDataCollectionConsent } from '../utils/data-collection-consent';
 import { chromeStorageOptions, chromeSyncStorage } from '../utils/extension.store';
 import { sendMessage } from '../utils/web-extension.utils';
 
@@ -38,7 +39,12 @@ export const useExtensionSettings = () => {
 
   const setEnabled = (value: boolean) => updateOptions({ enabled: value });
 
-  const setRecordSyncEnabled = (value: boolean) => updateOptions({ recordSyncEnabled: value });
+  const setRecordSyncEnabled = async (value: boolean) => {
+    if (value && !(await requestSyncDataCollectionConsent())) {
+      return;
+    }
+    await updateOptions({ recordSyncEnabled: value });
+  };
 
   const setColorScheme = (value: ColorScheme) => updateOptions({ colorScheme: value });
 

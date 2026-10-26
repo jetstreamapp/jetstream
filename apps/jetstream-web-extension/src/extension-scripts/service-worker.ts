@@ -15,6 +15,7 @@ import isString from 'lodash/isString';
 import browser from 'webextension-polyfill';
 import { environment } from '../environments/environment';
 import { initApiClientAndOrg } from '../utils/api-client';
+import { registerSyncDataCollectionGuard } from '../utils/data-collection-consent';
 import {
   AUTH_CHECK_INTERVAL_MIN,
   AuthTokensStorage,
@@ -68,6 +69,8 @@ const initStorageSessionCache = browser.storage.session.get().then((data) => {
 browser.runtime.onInstalled.addListener(async () => {
   logger.log('Jetstream Extension successfully installed!');
 });
+
+registerSyncDataCollectionGuard();
 
 browser.tabs.onActivated.addListener(async (_info) => {
   // ensure connections get initialized on activation

@@ -85,6 +85,7 @@ const swMock = vi.hoisted(() => {
 vi.mock('webextension-polyfill', () => ({ default: swMock.browser }));
 vi.mock('../../environments/environment', () => ({ environment: { serverUrl: 'https://server.test', production: false } }));
 vi.mock('../../utils/api-client', () => ({ initApiClientAndOrg: vi.fn() }));
+vi.mock('../../utils/data-collection-consent', () => ({ registerSyncDataCollectionGuard: vi.fn() }));
 vi.mock('@jetstream/shared/client-logger', () => ({
   enableLogger: vi.fn(),
   logger: { log: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
