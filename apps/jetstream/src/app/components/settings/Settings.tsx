@@ -19,7 +19,7 @@ import {
   SettingsNavItem,
   SettingsSection,
   SoqlQueryFormatSettings,
-  useAmplitude,
+  useAnalytics,
 } from '@jetstream/ui-core';
 import { fromAppState, useFeatureFlag, userProfileState, userProfileSyncState } from '@jetstream/ui/app-state';
 import { deleteAllDataHistoryFiles } from '@jetstream/ui/data-history';
@@ -37,7 +37,7 @@ type UserPreferences = UserProfileUi['preferences'];
 
 export const Settings = () => {
   useTitle(TITLES.SETTINGS);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [deletingAccount, setDeletingAccount] = useState(false);
   const userProfile = useAtomValue(userProfileState);
   const ability = useAtomValue(fromAppState.abilityState);

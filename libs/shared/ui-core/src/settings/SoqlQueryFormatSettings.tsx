@@ -4,7 +4,7 @@ import { SoqlQueryFormatOptions, SoqlQueryFormatOptionsSchema } from '@jetstream
 import { formatQuery } from '@jetstreamapp/soql-parser-js';
 import isEqual from 'lodash/isEqual';
 import { useState } from 'react';
-import { useAmplitude } from '../analytics';
+import { useAnalytics } from '../analytics';
 import { getSettingsRowIds, SettingsGroup, SettingsRow, SettingsToggleRow } from './layout/SettingsSection';
 
 const PREVIEW_QUERY =
@@ -83,7 +83,7 @@ export interface SoqlQueryFormatSettingsProps {
  * change is saved immediately like the rest of the settings page, and a preview shows the result.
  */
 export const SoqlQueryFormatSettings = ({ location = 'Settings', value, onChange }: SoqlQueryFormatSettingsProps) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   // What is being typed into a number field (kept as a string so it can be cleared), until it is committed on blur
   const [numericDrafts, setNumericDrafts] = useState<Partial<Record<NumericOption, string>>>({});
   const getNumericInput = (option: NumericOption) => numericDrafts[option] ?? String(value[option]);

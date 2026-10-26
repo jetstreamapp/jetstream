@@ -27,7 +27,7 @@ import isString from 'lodash/isString';
 import startCase from 'lodash/startCase';
 import { Fragment, FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
-import { useAmplitude } from '..';
+import { useAnalytics } from '..';
 
 const EMPTY_COLOR = '_none_';
 
@@ -176,7 +176,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   onRemoveOrg,
   onUpdateOrg,
 }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { serverUrl } = useAtomValue(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const [orgLabel, setOrgLabel] = useState(org.label || org.username);

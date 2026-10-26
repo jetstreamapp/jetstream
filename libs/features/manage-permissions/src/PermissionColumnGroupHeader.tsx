@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { getManagedPermissionSetSource, isManagedPermissionSet } from '@jetstream/shared/ui-utils';
 import { Icon, ProfileOrPermSetPopover, Tooltip } from '@jetstream/ui';
-import { fromPermissionsState, useAmplitude } from '@jetstream/ui-core';
+import { fromPermissionsState, useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, selectedOrgState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 
@@ -25,7 +25,7 @@ export function PermissionColumnGroupHeader({ id, label, type }: PermissionColum
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const profilesById = useAtomValue(fromPermissionsState.profilesByIdSelector);
   const permissionSetsById = useAtomValue(fromPermissionsState.permissionSetsByIdSelector);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
 
   const isPermissionSet = type === 'Permission Set';
   const meta = isPermissionSet ? permissionSetsById[id] : profilesById[id];

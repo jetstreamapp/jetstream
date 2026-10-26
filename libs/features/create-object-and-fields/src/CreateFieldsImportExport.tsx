@@ -21,7 +21,7 @@ import {
   fieldDefinitions,
   fromJetstreamEvents,
   getRowsForExport,
-  useAmplitude,
+  useAnalytics,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
@@ -36,7 +36,7 @@ export interface CreateFieldsImportExportProps {
 }
 
 export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows, onLoadFromOrg }: CreateFieldsImportExportProps) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const popoverRef = useRef<PopoverRef>(null);

@@ -1,7 +1,7 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DeployOptions, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal } from '@jetstream/ui';
-import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useState } from 'react';
@@ -16,7 +16,7 @@ export interface DeleteMetadataModalProps {
 }
 
 export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = ({ selectedOrg, selectedMetadata, onClose }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { google_apiKey, google_appId, google_clientId, defaultApiVersion } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [configModalOpen, setConfigModalOpen] = useState<boolean>(true);

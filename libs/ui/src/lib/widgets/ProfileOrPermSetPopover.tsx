@@ -42,7 +42,7 @@ export interface ProfileOrPermSetPopoverProps {
   buttonTitle?: string;
   /** Opt-in: renders a "Manage Assignments" footer button. Honored only for standalone Permission Sets. */
   allowManageAssignments?: boolean;
-  /** Amplitude tracker (from the host's useAmplitude). Optional — defaults to a no-op. */
+  /** Analytics tracker (from the host's useAnalytics). Optional — defaults to a no-op. */
   trackEvent?: (key: string, value?: Record<string, any>) => void;
 }
 

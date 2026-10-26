@@ -30,7 +30,7 @@ import { useAtom, useAtomValue } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { useAmplitude } from '../analytics';
+import { useAnalytics } from '../analytics';
 import { MonacoEditor } from '../app/MonacoEditor';
 import { fromJetstreamEvents } from '../jetstream-events';
 import { SoqlQueryFormatConfigPopover } from '../settings/SoqlQueryFormatConfigPopover';
@@ -40,7 +40,7 @@ import { useQueryRestore } from './RestoreQuery/useQueryRestore';
 const NUM_HISTORY_ITEMS = 50;
 
 export const QuickQueryPopover = () => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const popoverRef = useRef<PopoverRef>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const { addDisposable } = useDisposables();

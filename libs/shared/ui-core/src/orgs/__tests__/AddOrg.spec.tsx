@@ -14,7 +14,7 @@ vi.doMock('@jetstream/ui/app-state', () => ({
 }));
 
 vi.doMock('../..', () => ({
-  useAmplitude: () => ({ trackEvent: vi.fn() }),
+  useAnalytics: () => ({ trackEvent: vi.fn() }),
 }));
 
 const { AddOrg } = await import('../AddOrg');

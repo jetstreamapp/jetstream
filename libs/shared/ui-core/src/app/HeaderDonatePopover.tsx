@@ -1,10 +1,10 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { Icon, Popover, PopoverRef } from '@jetstream/ui';
 import { useEffect, useRef } from 'react';
-import { useAmplitude } from '../analytics';
+import { useAnalytics } from '../analytics';
 
 export const HeaderDonatePopover = () => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const isMounted = useRef(true);
   const popoverRef = useRef<PopoverRef>(null);
 

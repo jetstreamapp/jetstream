@@ -34,7 +34,7 @@ import {
   XlsxSheetSelectionModalPromise,
   fireToast,
 } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { Fragment } from 'react';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
 
@@ -110,7 +110,7 @@ export const LoadRecordsSelectObjectAndFile = ({
   onExternalIdChange,
   children,
 }: LoadRecordsSelectObjectAndFileProps) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const hasGoogleInputConfigured =
     isDesktop() ||
     isBrowserExtension() ||

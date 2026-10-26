@@ -10,7 +10,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import uniqBy from 'lodash/uniqBy';
 import { createRef, forwardRef, useCallback, useEffect, useState } from 'react';
 import { fromQueryHistoryState } from '../..';
-import { useAmplitude } from '../../analytics';
+import { useAnalytics } from '../../analytics';
 import { QueryRestoreErrors } from '../RestoreQuery/query-restore-utils';
 import QueryHistoryEmptyState from './QueryHistoryEmptyState';
 import { QueryHistoryExportPopover } from './QueryHistoryExportPopover';
@@ -44,7 +44,7 @@ export interface QueryHistoryProps {
 }
 
 export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ selectedOrg, initialType, onRestore, onclose }, _ref) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [whichType, setWhichType] = useState<QueryHistoryType>(() => initialType || 'HISTORY');
   const [whichOrg, setWhichOrg] = useState<WhichOrgType>('SELECTED');
   const ulRef = createRef<HTMLUListElement>();

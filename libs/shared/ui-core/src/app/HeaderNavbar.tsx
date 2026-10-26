@@ -20,7 +20,7 @@ import { useAtomValue } from 'jotai';
 import { Fragment, lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useNavigate } from 'react-router';
-import { useAmplitude } from '../analytics';
+import { useAnalytics } from '../analytics';
 import Jobs from '../jobs/Jobs';
 import OrgsDropdown from '../orgs/OrgsDropdown';
 import { SelectedOrgReadOnly } from '../orgs/SelectedOrgReadOnly';
@@ -172,7 +172,7 @@ export const HeaderNavbar = ({
   onColorSchemeChange,
 }: HeaderNavbarProps) => {
   const navigate = useNavigate();
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const ability = useAtomValue(abilityState);
   const userProfile = useAtomValue(userProfileState);
   const isReadOnlyUser = useAtomValue(isReadOnlyUserState);

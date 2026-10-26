@@ -1,7 +1,7 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { DropDown } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { useState } from 'react';
 import { DeleteOrgsModal } from './DeleteOrgsModal';
 
@@ -11,7 +11,7 @@ interface SalesforceOrgsActionsProps {
 }
 
 export const SalesforceOrgsActions = ({ orgs, onOrgsDeleted }: SalesforceOrgsActionsProps) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   function handleAction(action: string) {

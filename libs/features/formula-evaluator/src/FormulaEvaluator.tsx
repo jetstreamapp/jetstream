@@ -38,7 +38,7 @@ import {
   fromFormulaState,
   getFormulaData,
   registerCompletions,
-  useAmplitude,
+  useAnalytics,
 } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import type { FieldSchema, FormulaContext, FormulaValue } from '@jetstreamapp/sf-formula-parser';
@@ -78,7 +78,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const { addDisposable } = useDisposables();
   const sobjectComboRef = useRef<SobjectComboboxRef>(null);
   const fieldsComboRef = useRef<SobjectFieldComboboxRef>(null);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const selectedOrg = useAtomValue(selectedOrgState);
   const [loading, setLoading] = useState(false);
   const [refreshLoading, setRefreshLoading] = useState(false);

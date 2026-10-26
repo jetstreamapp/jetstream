@@ -9,7 +9,7 @@ import {
   fromJetstreamEvents,
   OrgLabelBadge,
   prepareDownloadResultsFile,
-  useAmplitude,
+  useAnalytics,
   useCreateFields,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
@@ -36,7 +36,7 @@ export const CreateFieldsDeployModal = ({
   rows,
   onClose,
 }: CreateFieldsDeployModalProps) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const {

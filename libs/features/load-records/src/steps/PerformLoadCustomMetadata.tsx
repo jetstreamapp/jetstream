@@ -20,7 +20,7 @@ import {
   convertCsvToCustomMetadata,
   fromJetstreamEvents,
   prepareCustomMetadata,
-  useAmplitude,
+  useAnalytics,
   useDeployMetadataPackage,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
@@ -59,7 +59,7 @@ export const PerformLoadCustomMetadata = ({
   onIsLoading,
 }: PerformLoadCustomMetadataProps) => {
   const isProduction = isProductionOrg(selectedOrg);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);

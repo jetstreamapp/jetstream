@@ -33,7 +33,7 @@ import {
   isAdditionalMapping,
   loadFieldMappingFromSavedMapping,
   resetFieldMapping,
-  useAmplitude,
+  useAnalytics,
 } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
@@ -82,7 +82,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     onFieldMappingChange,
     onRefreshFields,
   }) => {
-    const { trackEvent } = useAmplitude();
+    const { trackEvent } = useAnalytics();
     const hasInitialized = useRef(false);
     const [csvFields, setCsvFields] = useState(() => new Set(inputHeader));
     const [objectFields, setObjectFields] = useState(() => new Set(fields.map((field) => field.name)));

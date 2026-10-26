@@ -20,7 +20,7 @@ vi.mock('@jetstream/shared/ui-utils', async (importOriginal) => ({
   useBrowserNotifications: () => ({ notifyUser: notifyUserMock }),
   tracker: { error: trackerErrorMock },
 }));
-vi.mock('../../analytics', () => ({ useAmplitude: () => ({ trackEvent: vi.fn() }) }));
+vi.mock('../../analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 vi.mock('../data-history-capture', () => ({ startMassUpdateHistory: vi.fn(), captureMassUpdateResults: vi.fn() }));
 
 const POLL_INTERVAL_MS = 5000;

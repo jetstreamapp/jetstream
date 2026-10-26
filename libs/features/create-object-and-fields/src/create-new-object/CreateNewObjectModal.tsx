@@ -21,7 +21,7 @@ import {
   DeployMetadataProgressSummary,
   DeployMetadataResultsTables,
   OrgLabelBadge,
-  useAmplitude,
+  useAnalytics,
 } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
@@ -40,7 +40,7 @@ export interface CreateNewObjectModalProps {
 }
 
 export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> = ({ selectedOrg, onClose }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [{ defaultApiVersion, serverUrl }] = useAtom(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
 

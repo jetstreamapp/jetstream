@@ -19,7 +19,7 @@ import {
 import { getErrorMessage, getRecordIdFromAttributes, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJobNew, BinaryDownloadCompatibleObjectsSchema, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import { Icon, Modal, Radio, RadioGroup, ScopedNotification, Tooltip } from '@jetstream/ui';
-import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import z from 'zod';
 
@@ -57,7 +57,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
   hasPaidPlan,
 }) => {
   sobjectName = sobjectName?.toLowerCase() || null;
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [csrfToken] = useState(() => getCsrfTokenFromCookie());
   const [modalOpen, setModalOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);

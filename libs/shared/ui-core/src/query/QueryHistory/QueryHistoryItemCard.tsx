@@ -11,7 +11,7 @@ import { formatDate } from 'date-fns/format';
 import clamp from 'lodash/clamp';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { useAmplitude } from '../..';
+import { useAnalytics } from '../..';
 import { MonacoEditor } from '../../app/MonacoEditor';
 import { QueryRestoreErrors } from '../RestoreQuery/query-restore-utils';
 import { RestoreQuery } from '../RestoreQuery/RestoreQuery';
@@ -45,7 +45,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
 }) => {
   const [currentItem, setCurrentItem] = useState(item);
   const { sObject, customLabel, label, soql, isTooling, runCount, lastRun } = currentItem;
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const isMounted = useRef(true);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const timerRef = useRef<any>(null);

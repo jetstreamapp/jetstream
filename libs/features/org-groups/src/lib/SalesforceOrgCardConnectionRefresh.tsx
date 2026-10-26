@@ -9,7 +9,7 @@ import {
   OrgExpirationStatus,
   getOrgExpirationBadge,
   getOrgExpirationTooltip,
-  useAmplitude,
+  useAnalytics,
   useOrgExpiration,
   useUpdateOrgs,
 } from '@jetstream/ui-core';
@@ -58,7 +58,7 @@ export function SalesforceOrgCardConnectionRefresh({
   onRemoveOrg,
 }: SalesforceOrgCardConnectionRefreshProps) {
   const orgExpiration = useOrgExpiration(org);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const setOrgs = useSetAtom(fromAppState.salesforceOrgsAsyncState);
 

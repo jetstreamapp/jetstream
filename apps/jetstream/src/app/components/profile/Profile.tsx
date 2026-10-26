@@ -25,7 +25,7 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { userProfileState } from '@jetstream/ui/app-state';
 import { useAtom } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
@@ -42,7 +42,7 @@ const HEIGHT_BUFFER = 170;
 export const Profile = () => {
   useTitle(TITLES.PROFILE);
   const isMounted = useRef(true);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
   const [userProfile, setUserProfile] = useAtom(userProfileState);

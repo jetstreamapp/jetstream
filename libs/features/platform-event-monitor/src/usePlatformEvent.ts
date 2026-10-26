@@ -5,7 +5,7 @@ import { tracker, useDebounce } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, orderValues } from '@jetstream/shared/utils';
 import { Maybe, PlatformEventMessage, PlatformEventMessagePayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { CometD } from 'cometd';
 import { useAtom } from 'jotai';
@@ -51,7 +51,7 @@ export function usePlatformEvent({
 }) {
   const isMounted = useRef(true);
   const cometD = useRef<CometD>(null);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [{ serverUrl, defaultApiVersion }] = useAtom(applicationCookieState);
   const [platformEvents, setPlatformEvents] = useState<PlatformEventObject[]>([]);
   const [loadingPlatformEvents, setPlatformLoadingEvents] = useState<boolean>(false);

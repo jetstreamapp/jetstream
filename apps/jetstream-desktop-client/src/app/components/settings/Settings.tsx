@@ -22,7 +22,7 @@ import {
   SettingsSection,
   SettingsToggleRow,
   SoqlQueryFormatSettings,
-  useAmplitude,
+  useAnalytics,
 } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
@@ -47,7 +47,7 @@ const downloadPathCss = css`
 export const Settings = () => {
   useTitle(TITLES.SETTINGS);
   const isMounted = useRef(true);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
   const { serverUrl } = useAtomValue(fromAppState.applicationCookieState);
   const { version } = useAtomValue(fromAppState.appInfoState);

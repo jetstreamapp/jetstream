@@ -3,7 +3,7 @@ import { applicationCookieState, googleDriveAccessState, selectedOrgState } from
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { useMemo, useState } from 'react';
-import { useAmplitude } from '../analytics';
+import { useAnalytics } from '../analytics';
 import { fromJetstreamEvents } from '../jetstream-events';
 
 export interface GridDownloadButtonProps<T extends object = RowWithKey> {
@@ -36,7 +36,7 @@ export function GridDownloadButton<T extends object = RowWithKey>({
   className,
   disabled,
 }: GridDownloadButtonProps<T>) {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const selectedOrg = useAtomValue(selectedOrgState);
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);

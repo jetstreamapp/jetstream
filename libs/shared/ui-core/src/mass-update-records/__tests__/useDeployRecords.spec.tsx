@@ -17,7 +17,7 @@ vi.mock('../mass-update-records.utils', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../mass-update-records.utils')>()),
   queryAndPrepareRecordsForUpdate: queryAndPrepareMock,
 }));
-vi.mock('../../analytics', () => ({ useAmplitude: () => ({ trackEvent: vi.fn() }) }));
+vi.mock('../../analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 vi.mock('@jetstream/shared/ui-utils', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@jetstream/shared/ui-utils')>()),
   useBrowserNotifications: () => ({ notifyUser: vi.fn() }),

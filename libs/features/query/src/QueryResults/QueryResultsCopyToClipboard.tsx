@@ -1,7 +1,7 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { Maybe, SalesforceRecord } from '@jetstream/types';
 import { CopyRecordsToClipboardButton } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { FunctionComponent } from 'react';
 
 export interface QueryResultsCopyToClipboardProps {
@@ -23,7 +23,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
   selectedRows,
   isTooling,
 }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
 
   return (
     <CopyRecordsToClipboardButton

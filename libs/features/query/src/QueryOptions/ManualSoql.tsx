@@ -8,7 +8,7 @@ import {
   RestoreQuery,
   SoqlQueryFormatConfigPopover,
   SoqlValidIndicator,
-  useAmplitude,
+  useAnalytics,
   useSoqlCompletions,
 } from '@jetstream/ui-core';
 import { selectedOrgState, soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
@@ -31,7 +31,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const { addDisposable } = useDisposables();
   const navigate = useNavigate();
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [soql, setSoql] = useState<string>('');
   const [isRestoring, setIsRestoring] = useState(false);
   const [queryIsValid, setQueryIsValid] = useState(false);

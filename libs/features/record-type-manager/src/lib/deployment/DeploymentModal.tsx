@@ -8,7 +8,7 @@ import {
   ConfirmPageChange,
   DeployMetadataProgressSummary,
   DeployMetadataResultsTables,
-  useAmplitude,
+  useAnalytics,
   useDeployMetadataPackage,
 } from '@jetstream/ui-core';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
@@ -26,7 +26,7 @@ interface DeploymentModalProps {
 }
 
 export function DeploymentModal({ modifiedValues, recordTypeMetadataByFullName, viewMode, onClose }: DeploymentModalProps) {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { defaultApiVersion: apiVersion, serverUrl } = useAtomValue(applicationCookieState);
   const selectedOrg = useAtomValue(selectedOrgState);
   const [inProgress, setInProgress] = useState(false);

@@ -49,7 +49,7 @@ import {
   fireToast,
   getModifierKey,
 } from '@jetstream/ui';
-import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState, useAmplitude } from '@jetstream/ui-core';
+import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState, useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
@@ -127,7 +127,7 @@ export interface ManagePermissionsEditorProps {}
 
 export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorProps> = () => {
   const navigate = useNavigate();
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const isMounted = useRef(true);
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);

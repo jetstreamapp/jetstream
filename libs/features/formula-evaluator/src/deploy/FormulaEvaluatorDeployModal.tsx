@@ -10,7 +10,7 @@ import {
   getInitialValues,
   getSecondaryTypeFromType,
   prepareDownloadResultsFile,
-  useAmplitude,
+  useAnalytics,
   useCreateFields,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
@@ -40,7 +40,7 @@ export const FormulaEvaluatorDeployModal = ({
   numberNullBehaviorState,
   onClose,
 }: FormulaEvaluatorDeployModalProps) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [fieldValid, setIsFieldValid] = useState(!!selectedField);

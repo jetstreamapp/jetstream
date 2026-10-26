@@ -3,7 +3,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import type { SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, Grid, Icon, Input, ScopedNotification, Spinner } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback, useMemo, useState } from 'react';
 import { buildRunTestsPayload, runTestsAsync } from '../apex-test-runner-data.utils';
 import { useApexTestClasses } from '../useApexTestClasses';
@@ -19,7 +19,7 @@ export interface RunTestsTabProps {
 }
 
 export const RunTestsTab: FunctionComponent<RunTestsTabProps> = ({ selectedOrg, apiVersion, onRunStarted }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { testClasses, unknownClasses, loading, progressText, errorMessage, refresh } = useApexTestClasses(selectedOrg);
   const suitesState = useApexTestSuites(selectedOrg, apiVersion);
   const [selectedClasses, setSelectedClasses] = useState<Map<string, Set<string> | 'ALL'>>(() => new Map());

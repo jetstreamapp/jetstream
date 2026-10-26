@@ -32,7 +32,7 @@ import {
   ViewDocsLink,
   getModifierKey,
 } from '@jetstream/ui';
-import { MonacoEditor, useAmplitude } from '@jetstream/ui-core';
+import { MonacoEditor, useAnalytics } from '@jetstream/ui-core';
 import { STORAGE_KEYS, applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import { OnMount } from '@monaco-editor/react';
 import { useAtom, useAtomValue } from 'jotai';
@@ -61,7 +61,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const apexRef = useRef<editor.IStandaloneCodeEditor>(null);
   const logRef = useRef<editor.IStandaloneCodeEditor>(null);
   const { addDisposable } = useDisposables();
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { serverUrl } = useAtomValue(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const selectedOrg = useAtomValue(selectedOrgState);

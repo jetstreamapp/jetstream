@@ -63,7 +63,7 @@ import {
   fromQueryHistoryState,
   fromQueryState,
   isAsyncJob,
-  useAmplitude,
+  useAnalytics,
   useQueryRestore,
 } from '@jetstream/ui-core';
 import { getFlattenSubqueryFlattenedFieldMap } from '@jetstream/ui-core/shared';
@@ -101,7 +101,7 @@ const SOURCE_RELOAD: SourceAction = 'RELOAD';
 export const QueryResults = React.memo(() => {
   const isMounted = useRef(true);
   const navigate = useNavigate();
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const queryHistoryRef = useRef<QueryHistoryRef>(null);
   const previousSoql = useAtomValue(fromQueryState.querySoqlState);
   const includeDeletedRecords = useAtomValue(fromQueryState.queryIncludeDeletedRecordsState);
