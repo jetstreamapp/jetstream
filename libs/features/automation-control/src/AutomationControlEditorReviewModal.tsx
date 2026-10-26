@@ -1,20 +1,14 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import {
-  AutomationControlHistoryAction,
-  AutomationControlHistorySource,
-  AutomationControlRestoreAction,
-  SalesforceOrgUi,
-} from '@jetstream/types';
+import { AutomationControlHistorySource, AutomationControlRestoreAction, SalesforceOrgUi } from '@jetstream/types';
 import type { Column } from '@jetstream/ui';
 import { AutoFullHeightContainer, DataTable, Grid, Icon, Modal, Spinner } from '@jetstream/ui';
 import { ConfirmPageChange, useAnalytics } from '@jetstream/ui-core';
-import { automationControlHistoryDb } from '@jetstream/ui/db';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { from, switchMap } from 'rxjs';
 import { deployMetadata, getAutomationTypeLabel, preparePayloads } from './automation-control-data-utils';
-import { buildHistoryEntry, saveHistoryEntry } from './automation-control-history-utils';
+import { createHistoryRecorder } from './automation-control-history-utils';
 import { getPackageItemsFromRows } from './automation-control-package-utils';
 import { AutomationDeployStatusRenderer, BooleanAndVersionRenderer } from './automation-control-table-renderers';
 import {
@@ -224,50 +218,35 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   }, [currentStep]);
 
   /**
-   * Record a deploy to history. The entry is saved before anything is submitted (every item incomplete),
-   * so a deploy interrupted by closing the page is still recorded, then re-saved under the same key as
-   * results arrive. History is best-effort and must never break the deploy, so nothing here throws or rejects.
+   * Starts recording this deploy in history, see {@link createHistoryRecorder}.
    *
-   * @returns the initial save, to await before submitting, and a function that saves the latest results
+   * @returns saves the entry with the results so far, or null when there is nothing to record
    */
-  function startHistoryEntry(submittedItemMap: DeploymentItemMap, isRollback: boolean) {
+  function startHistoryRecording(submittedItemMap: DeploymentItemMap, isRollback: boolean) {
     const submittedItems = Object.values(submittedItemMap);
     // a rollback after a fully failed deploy has nothing to submit
     if (submittedItems.length === 0) {
-      return { initialSave: Promise.resolve(), saveResults: () => undefined };
+      return null;
     }
-    try {
-      const key = automationControlHistoryDb.generateKey();
-      const createdAt = new Date();
-      const action: AutomationControlHistoryAction = isRollback ? 'rollback' : historyRestore?.action || 'deploy';
-      const source = isRollback ? deployHistorySource.current : historyRestore?.source || null;
-      if (!isRollback) {
-        deployHistorySource.current = { key, createdAt };
-      }
-      const saveResults = (deployResultsByKey: Record<string, AutomationControlDeploymentItem>) => {
-        try {
-          const org = selectedOrg.uniqueId;
-          return saveHistoryEntry(
-            buildHistoryEntry({ key, org, action, source, isRollback, submittedItems, deployResultsByKey, createdAt }),
-          );
-        } catch (ex) {
-          logger.warn('[AUTOMATION][HISTORY] Error building history entry', ex);
-          return Promise.resolve();
-        }
-      };
-      return { initialSave: saveResults({}), saveResults };
-    } catch (ex) {
-      logger.warn('[AUTOMATION][HISTORY] Error starting history entry', ex);
-      return { initialSave: Promise.resolve(), saveResults: () => undefined };
+    const { key, createdAt, save } = createHistoryRecorder({
+      org: selectedOrg.uniqueId,
+      action: isRollback ? 'rollback' : historyRestore?.action || 'deploy',
+      source: isRollback ? deployHistorySource.current : historyRestore?.source || null,
+      isRollback,
+      submittedItems,
+    });
+    if (!isRollback) {
+      deployHistorySource.current = { key, createdAt };
     }
+    return save;
   }
 
   function handleDeployMetadata(currDeploymentItemMap: DeploymentItemMap, isRollback?: boolean) {
     trackEvent(ANALYTICS_KEYS.automation_deploy, { type: isRollback ? 'rollback' : 'deploy', items: deploymentItems.length });
     const deployResultsByKey: Record<string, AutomationControlDeploymentItem> = {};
-    const { initialSave, saveResults: saveHistoryResults } = startHistoryEntry(currDeploymentItemMap, !!isRollback);
+    const saveHistory = startHistoryRecording(currDeploymentItemMap, !!isRollback);
     // the entry must be committed before anything changes in Salesforce so an interrupted deploy is still recorded
-    return from(initialSave)
+    return from(saveHistory?.() ?? Promise.resolve())
       .pipe(switchMap(() => deployMetadata(defaultApiVersion, selectedOrg, currDeploymentItemMap)))
       .subscribe({
         next: (items: { key: string; deploymentItem: AutomationControlDeploymentItem }[]) => {
@@ -275,7 +254,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
           items.forEach(({ key, deploymentItem }) => {
             deployResultsByKey[key] = deploymentItem;
           });
-          saveHistoryResults(deployResultsByKey);
+          saveHistory?.(deployResultsByKey);
           const tempDeploymentItemMap = items.reduce((output: DeploymentItemMap, item) => {
             const successStatus = isRollback ? 'Rolled Back' : 'Deployed';
             output[item.key] = {

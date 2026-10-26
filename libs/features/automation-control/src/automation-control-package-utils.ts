@@ -9,16 +9,9 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import JSZip from 'jszip';
-import { getDuplicateRuleFullName } from './automation-control-data-utils';
+import { getAutomationFullName, isFlowAutomationType } from './automation-control-data-utils';
 import { getFlowVersionsQuery } from './automation-control-soql-utils';
-import {
-  DuplicateRuleRecord,
-  FlowViewRecord,
-  TableRowItem,
-  ToolingApexTriggerRecord,
-  ToolingValidationRuleRecord,
-  ToolingWorkflowRuleRecord,
-} from './automation-control-types';
+import { FlowViewRecord, TableRowItem } from './automation-control-types';
 
 /**
  * Builds Metadata API packages that set the active state of automation, for deploying later from
@@ -79,29 +72,6 @@ export function getAutomationMetadataMember(type: AutomationMetadataType, fullNa
     case 'FlowProcessBuilder':
     default:
       return { metadataType: 'FlowDefinition', fullName, fileName: `flowDefinitions/${fullName}.flowDefinition` };
-  }
-}
-
-/**
- * Metadata API fullName for an automation record. A flow in a namespace (including the org's own) is
- * only found by its namespaced name.
- */
-export function getAutomationFullName(type: AutomationMetadataType, record: TableRowItem['record']): string {
-  switch (type) {
-    case 'ApexTrigger':
-      return (record as ToolingApexTriggerRecord).Name;
-    case 'DuplicateRule':
-      return getDuplicateRuleFullName(record as DuplicateRuleRecord);
-    case 'ValidationRule':
-      return (record as ToolingValidationRuleRecord).FullName;
-    case 'WorkflowRule':
-      return (record as ToolingWorkflowRuleRecord).FullName;
-    case 'FlowRecordTriggered':
-    case 'FlowProcessBuilder':
-    default: {
-      const { ApiName, NamespacePrefix } = record as FlowViewRecord;
-      return NamespacePrefix ? `${NamespacePrefix}__${ApiName}` : ApiName;
-    }
   }
 }
 
@@ -181,12 +151,12 @@ function serializeXml(document: Document) {
   return xml.startsWith('<?xml') ? xml : `${XML_DECLARATION}\n${xml}`;
 }
 
-/** A FlowDefinition holds nothing but the active version, so it is generated rather than retrieved */
 /** 0 deactivates the flow */
 function getFlowActiveVersionNumber({ state }: AutomationPackageItem) {
   return state.isActive && state.activeVersionNumber ? state.activeVersionNumber : 0;
 }
 
+/** A FlowDefinition holds nothing but the active version, so it is generated rather than retrieved */
 function getFlowDefinitionXml(item: AutomationPackageItem) {
   const activeVersionNumber = getFlowActiveVersionNumber(item);
   return [
@@ -287,9 +257,18 @@ export async function buildActivationPackage(
     .filter(({ fullName }) => !fullName)
     .map(({ key, label }) => ({ key, label }));
   const packageItems = items.filter(({ fullName }) => !!fullName);
-  const flowItems = packageItems.filter(({ type }) => type === 'FlowRecordTriggered' || type === 'FlowProcessBuilder');
+  const flowItems = packageItems.filter(({ type }) => isFlowAutomationType(type));
   const retrievedItems = packageItems.filter((item) => !flowItems.includes(item));
-  const retrievedPackage = retrievedItems.length > 0 ? await retrieveCurrentMetadata(selectedOrg, retrievedItems) : new JSZip();
+  // the retrieve polls Salesforce for a while, so the flow lookup runs alongside it rather than after
+  const [retrievedPackage, currentFlowVersions] = await Promise.all([
+    retrievedItems.length > 0 ? retrieveCurrentMetadata(selectedOrg, retrievedItems) : new JSZip(),
+    flowItems.length > 0
+      ? getCurrentFlowVersions(
+          selectedOrg,
+          flowItems.map(({ fullName }) => fullName),
+        )
+      : null,
+  ]);
 
   const output = new JSZip();
   const membersByType: Record<string, string[]> = {};
@@ -331,13 +310,6 @@ export async function buildActivationPackage(
   });
 
   // a flow deleted since, or whose target version was, would fail the whole deploy
-  const currentFlowVersions =
-    flowItems.length > 0
-      ? await getCurrentFlowVersions(
-          selectedOrg,
-          flowItems.map(({ fullName }) => fullName),
-        )
-      : null;
   flowItems.forEach((item) => {
     const versionNumbers = currentFlowVersions?.get(item.fullName);
     const activeVersionNumber = getFlowActiveVersionNumber(item);

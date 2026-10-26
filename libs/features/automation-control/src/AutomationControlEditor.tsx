@@ -24,8 +24,8 @@ import {
 import { RequireMetadataApiBanner, fromAutomationControlState, fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
-import { useAtom, useAtomValue } from 'jotai';
-import { useEffect, useState } from 'react';
+import { useAtomValue } from 'jotai';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import AutomationControlEditorReviewModal from './AutomationControlEditorReviewModal';
 import AutomationControlEditorTable from './AutomationControlEditorTable';
@@ -34,6 +34,7 @@ import AutomationControlLastRefreshedPopover from './AutomationControlLastRefres
 import AutomationControlRestoreBanner from './AutomationControlRestoreBanner';
 import {
   getAutomationDeployType,
+  getAutomationFullName,
   getDuplicateRuleFileName,
   isDuplicateRecord,
   isTableRow,
@@ -43,10 +44,9 @@ import {
   isValidationRecord,
   isWorkflowRuleRecord,
 } from './automation-control-data-utils';
-import { getRestoreSnapshot } from './automation-control-history-utils';
-import { getAutomationFullName } from './automation-control-package-utils';
 import { TableRowItem } from './automation-control-types';
 import { useAutomationControlData } from './useAutomationControlData';
+import { useHistoryRestoreStaging } from './useHistoryRestoreStaging';
 
 const HEIGHT_BUFFER = 170;
 
@@ -62,7 +62,6 @@ export const AutomationControlEditor = () => {
 
   const selectedSObjects = useAtomValue(fromAutomationControlState.selectedSObjectsState);
   const selectedAutomationTypes = useAtomValue(fromAutomationControlState.selectedAutomationTypes);
-  const [pendingHistoryRestore, setPendingHistoryRestore] = useAtom(fromAutomationControlState.pendingHistoryRestore);
 
   const [dirtyRows, setDirtyRows] = useState<TableRowItem[]>([]);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
@@ -96,25 +95,14 @@ export const AutomationControlEditor = () => {
     selectedAutomationTypes,
   });
 
-  // Stage a rollback/re-deploy chosen from history, but only against data fetched after it was chosen,
-  // so the pending changes are compared with the current state in Salesforce.
-  useEffect(() => {
-    if (!pendingHistoryRestore || loading || !fetchStartedAt || fetchStartedAt < pendingHistoryRestore.requestedAt) {
-      return;
-    }
-    setPendingHistoryRestore(null);
-    // a failed load is already shown on the page and there is nothing reliable to compare against
-    if (hasError) {
-      return;
-    }
-    const { entry, action } = pendingHistoryRestore;
-    stageHistoryRestore(action, { key: entry.key, createdAt: entry.createdAt }, getRestoreSnapshot(entry, action));
-  }, [fetchStartedAt, hasError, loading, pendingHistoryRestore, setPendingHistoryRestore, stageHistoryRestore]);
-
-  // A restore still waiting for data must not be staged later onto some other selection
-  useEffect(() => {
-    return () => setPendingHistoryRestore(null);
-  }, [setPendingHistoryRestore]);
+  const { pendingHistoryRestore, historyRestore } = useHistoryRestoreStaging({
+    loading,
+    hasError,
+    fetchStartedAt,
+    stageHistoryRestore,
+    stagedRestore,
+    dirtyRows,
+  });
 
   function handleResetChanges() {
     resetChanges();
@@ -135,9 +123,6 @@ export const AutomationControlEditor = () => {
 
   usePrimaryActionShortcut(handleReviewChanges, { disabled: loading || !dirtyCount });
 
-  // Only recorded as the rollback/re-deploy when the deploy contains nothing beyond what was staged from history
-  const historyRestore =
-    stagedRestore && dirtyRows.every(({ key }) => stagedRestore.result.stagedKeys.includes(key)) ? stagedRestore : null;
   useGoBackShortcut(() => navigate('..'), {});
 
   function handleDeployModalClose(refreshData?: boolean) {

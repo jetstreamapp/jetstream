@@ -3,8 +3,7 @@ import { pollRetrieveMetadataResultsUntilDone } from '@jetstream/shared/ui-utils
 import { RetrieveResult, SalesforceOrgUi } from '@jetstream/types';
 import JSZip from 'jszip';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { AutomationPackageItem, buildActivationPackage, getAutomationFullName } from '../automation-control-package-utils';
-import { FlowViewRecord } from '../automation-control-types';
+import { AutomationPackageItem, buildActivationPackage } from '../automation-control-package-utils';
 
 vi.mock('@jetstream/shared/data', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@jetstream/shared/data')>()),
@@ -263,14 +262,5 @@ describe('buildActivationPackage', () => {
         inactive({ key: 'trigger', type: 'ApexTrigger', fullName: 'MyTrigger', label: 'MyTrigger' }),
       ]),
     ).rejects.toThrow('INVALID_SESSION');
-  });
-});
-
-describe('getAutomationFullName', () => {
-  test('qualifies a namespaced flow, which the Metadata API cannot find by its plain api name', () => {
-    expect(getAutomationFullName('FlowRecordTriggered', { ApiName: 'My_Flow', NamespacePrefix: 'test_ns' } as FlowViewRecord)).toBe(
-      'test_ns__My_Flow',
-    );
-    expect(getAutomationFullName('FlowProcessBuilder', { ApiName: 'My_Flow', NamespacePrefix: null } as FlowViewRecord)).toBe('My_Flow');
   });
 });

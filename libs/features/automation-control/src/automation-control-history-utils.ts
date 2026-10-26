@@ -14,8 +14,7 @@ import {
 } from '@jetstream/types';
 import { automationControlHistoryDb } from '@jetstream/ui/db';
 import { format } from 'date-fns/format';
-import { getAutomationTypeLabel, isTableRowItem } from './automation-control-data-utils';
-import { getAutomationFullName } from './automation-control-package-utils';
+import { getAutomationFullName, getAutomationTypeLabel, isFlowAutomationType, isTableRowItem } from './automation-control-data-utils';
 import {
   AutomationControlDeploymentItem,
   DeploymentItem,
@@ -64,10 +63,6 @@ export function getHistoryStatus({ successCount, errorCount, incompleteCount }: 
   return { label: 'Partial success', badgeType: 'warning' };
 }
 
-function isFlowType(type: AutomationMetadataType) {
-  return type === 'FlowRecordTriggered' || type === 'FlowProcessBuilder';
-}
-
 function getDeployErrorMessage(errors: Maybe<MetadataCompositeResponseError[]>): string | null {
   if (!Array.isArray(errors) || errors.length === 0) {
     return null;
@@ -86,6 +81,18 @@ function getPendingActivationState({ isActive, activeVersionNumber }: TableRowIt
   return { isActive, activeVersionNumber: activeVersionNumber ?? null };
 }
 
+interface BuildHistoryEntryParams {
+  key: string;
+  org: string;
+  action: AutomationControlHistoryAction;
+  source: AutomationControlHistorySource | null;
+  /** Rollback deploys each row's initial state, so before and after are swapped */
+  isRollback: boolean;
+  submittedItems: DeploymentItem[];
+  deployResultsByKey: Record<string, AutomationControlDeploymentItem>;
+  createdAt?: Date;
+}
+
 /**
  * Build the history entry for a deployment from the items that were submitted and the per-item results
  * the deploy has emitted so far.
@@ -102,17 +109,7 @@ export function buildHistoryEntry({
   submittedItems,
   deployResultsByKey,
   createdAt = new Date(),
-}: {
-  key: string;
-  org: string;
-  action: AutomationControlHistoryAction;
-  source: AutomationControlHistorySource | null;
-  /** Rollback deploys each row's initial state, so before and after are swapped */
-  isRollback: boolean;
-  submittedItems: DeploymentItem[];
-  deployResultsByKey: Record<string, AutomationControlDeploymentItem>;
-  createdAt?: Date;
-}): AutomationControlHistoryEntry {
+}: BuildHistoryEntryParams): AutomationControlHistoryEntry {
   const items = submittedItems.map(({ metadata, deploy }): AutomationControlHistoryItem => {
     const result = deployResultsByKey[metadata.key];
     // items that failed to prepare are never submitted, so they have an error but no result
@@ -151,14 +148,28 @@ export function buildHistoryEntry({
   };
 }
 
-/** History is best-effort — a failure to save must never surface as a failed deployment */
-export async function saveHistoryEntry(entry: AutomationControlHistoryEntry) {
-  try {
-    await automationControlHistoryDb.saveEntry(entry);
-  } catch (ex) {
-    logger.warn('[AUTOMATION][HISTORY] Error saving history entry', ex);
-    tracker.warn('Automation Control history save failed', ex);
+/**
+ * Records one deployment. Call `save()` before anything is submitted (every item is then incomplete) so a
+ * deploy interrupted by closing the page is still recorded, and again with the latest results as they
+ * arrive — every save replaces the same entry.
+ *
+ * History is best-effort: `save()` never rejects, so a failure to build or store the entry can never
+ * surface as a failed deployment.
+ */
+export function createHistoryRecorder(params: Omit<BuildHistoryEntryParams, 'key' | 'createdAt' | 'deployResultsByKey'>) {
+  const key = automationControlHistoryDb.generateKey();
+  const createdAt = new Date();
+
+  async function save(deployResultsByKey: Record<string, AutomationControlDeploymentItem> = {}) {
+    try {
+      await automationControlHistoryDb.saveEntry(buildHistoryEntry({ ...params, key, createdAt, deployResultsByKey }));
+    } catch (ex) {
+      logger.warn('[AUTOMATION][HISTORY] Error saving history entry', ex);
+      tracker.warn('Automation Control history save failed', ex);
+    }
   }
+
+  return { key, createdAt, save };
 }
 
 /**
@@ -199,7 +210,7 @@ export function stageRestoreSnapshot(
       return;
     }
 
-    if (!isFlowType(row.type)) {
+    if (!isFlowAutomationType(row.type)) {
       if (isActive === row.isActiveInitialState) {
         result.unchangedCount++;
         return;
