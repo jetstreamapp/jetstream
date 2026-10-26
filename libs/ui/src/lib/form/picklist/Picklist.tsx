@@ -57,6 +57,8 @@ export interface PicklistProps {
   allowDeselection?: boolean;
   scrollLength?: DropDownItemLength;
   disabled?: boolean;
+  /** Renders the list in a portal so it is not clipped by, or forced to flip inside, a scrolling container such as a modal */
+  usePortal?: boolean;
   /**
    * Additional props to pass to the internal input element
    * Currently only supports 'autoFocus' - other properties can be added as required
@@ -110,6 +112,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
       scrollLength,
       disabled,
       inputProps,
+      usePortal = false,
       onChange,
       onClose,
       onBlur,
@@ -121,6 +124,8 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
     const [comboboxId] = useState(() => uniqueId(id || 'picklist'));
     const [listboxId] = useState(() => uniqueId('listbox'));
     const [isOpen, setIsOpen] = useState(false);
+    // A portal moves the list outside of this component's DOM, so clicks inside it must not count as outside clicks
+    const [portalContentEl, setPortalContentEl] = useState<HTMLElement | null>(null);
     const [selectedItemsIdsSet, setSelectedItemsIdsSet] = useState<Set<unknown>>(() => {
       let selectedItemIdsSet = new Set();
       if (selectedItems?.length > 0) {
@@ -322,7 +327,11 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
     }
 
     return (
-      <OutsideClickHandler display={containerDisplay} onOutsideClick={() => handleClose()}>
+      <OutsideClickHandler
+        display={containerDisplay}
+        additionalParentRef={usePortal ? portalContentEl : undefined}
+        onOutsideClick={() => handleClose()}
+      >
         <div data-testid={`dropdown-${label || id}`} className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
           <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={comboboxId}>
             {isRequired && (
@@ -375,62 +384,70 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                   isOpen={isOpen}
                   className={classNames('slds-dropdown_fluid', scrollLengthClass)}
                   referenceElement={inputRef.current}
+                  usePortal={usePortal}
+                  // A portal is not constrained by the input's container, so match the input width explicitly
+                  width={usePortal && inputRef.current ? `${inputRef.current.offsetWidth}px` : undefined}
                   role="listbox"
                   onKeyDown={handleKeyDown}
                 >
-                  {Array.isArray(items) && (
-                    <ul className="slds-listbox slds-listbox_vertical" role="presentation">
-                      {items.length === 0 && (
-                        <PicklistItem
-                          id={noItemsPlaceholder}
-                          label={noItemsPlaceholder}
-                          title={noItemsPlaceholder}
-                          value={noItemsPlaceholder}
-                          isSelected={false}
-                          onClick={() => NOOP}
-                        />
-                      )}
-                      {items.map((item, i) => (
-                        <PicklistItem
-                          ref={elRefs.current[i]}
-                          key={item.id}
-                          id={item.id}
-                          label={item.label}
-                          secondaryLabel={item.secondaryLabel}
-                          secondaryLabelOnNewLine={item.secondaryLabelOnNewLine}
-                          title={item.title}
-                          value={item.value}
-                          isSelected={selectedItemsIdsSet.has(item.id)}
-                          onClick={() => handleSelection(item)}
-                        />
-                      ))}
-                    </ul>
-                  )}
-                  {Array.isArray(groups) &&
-                    groups.map((group) => (
-                      <ul key={group.id} className="slds-listbox slds-listbox_vertical" role="group" aria-label={group.label}>
-                        <li role="presentation" className="slds-listbox__item slds-item">
-                          <div className="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small" role="presentation">
-                            <h3 className="slds-listbox__option-header" role="presentation">
-                              {group.label}
-                            </h3>
-                          </div>
-                        </li>
-                        {group.items.map((item, i) => (
+                  <div ref={setPortalContentEl} style={{ display: 'contents' }}>
+                    {Array.isArray(items) && (
+                      <ul className="slds-listbox slds-listbox_vertical" role="presentation">
+                        {items.length === 0 && (
+                          <PicklistItem
+                            id={noItemsPlaceholder}
+                            label={noItemsPlaceholder}
+                            title={noItemsPlaceholder}
+                            value={noItemsPlaceholder}
+                            isSelected={false}
+                            onClick={() => NOOP}
+                          />
+                        )}
+                        {items.map((item, i) => (
                           <PicklistItem
                             ref={elRefs.current[i]}
                             key={item.id}
                             id={item.id}
                             label={item.label}
-                            value={item.value}
                             secondaryLabel={item.secondaryLabel}
                             secondaryLabelOnNewLine={item.secondaryLabelOnNewLine}
+                            title={item.title}
+                            value={item.value}
                             isSelected={selectedItemsIdsSet.has(item.id)}
                             onClick={() => handleSelection(item)}
                           />
                         ))}
                       </ul>
-                    ))}
+                    )}
+                    {Array.isArray(groups) &&
+                      groups.map((group) => (
+                        <ul key={group.id} className="slds-listbox slds-listbox_vertical" role="group" aria-label={group.label}>
+                          <li role="presentation" className="slds-listbox__item slds-item">
+                            <div
+                              className="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small"
+                              role="presentation"
+                            >
+                              <h3 className="slds-listbox__option-header" role="presentation">
+                                {group.label}
+                              </h3>
+                            </div>
+                          </li>
+                          {group.items.map((item, i) => (
+                            <PicklistItem
+                              ref={elRefs.current[i]}
+                              key={item.id}
+                              id={item.id}
+                              label={item.label}
+                              value={item.value}
+                              secondaryLabel={item.secondaryLabel}
+                              secondaryLabelOnNewLine={item.secondaryLabelOnNewLine}
+                              isSelected={selectedItemsIdsSet.has(item.id)}
+                              onClick={() => handleSelection(item)}
+                            />
+                          ))}
+                        </ul>
+                      ))}
+                  </div>
                 </PopoverContainer>
               </div>
             </div>

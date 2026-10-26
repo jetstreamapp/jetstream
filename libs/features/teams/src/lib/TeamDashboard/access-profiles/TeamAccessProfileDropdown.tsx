@@ -40,6 +40,7 @@ export function TeamAccessProfileDropdown({
 
   return (
     <Picklist
+      usePortal
       allowDeselection={false}
       label={label}
       labelHelp="Controls which Jetstream tools and actions this person sees. Your team administrators manage access profiles."
