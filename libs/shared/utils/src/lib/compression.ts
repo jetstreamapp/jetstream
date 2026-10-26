@@ -2,8 +2,11 @@ const TEXT_ENCODER = new TextEncoder();
 const TEXT_DECODER = new TextDecoder();
 
 export async function gzipEncode(value: unknown): Promise<Uint8Array<ArrayBuffer>> {
-  const json = JSON.stringify(value);
-  const stream = new Blob([TEXT_ENCODER.encode(json) as BlobPart]).stream().pipeThrough(new CompressionStream('gzip'));
+  return gzipEncodeText(JSON.stringify(value));
+}
+
+export async function gzipEncodeText(value: string): Promise<Uint8Array<ArrayBuffer>> {
+  const stream = new Blob([TEXT_ENCODER.encode(value) as BlobPart]).stream().pipeThrough(new CompressionStream('gzip'));
   const buffer = await new Response(stream).arrayBuffer();
   return new Uint8Array(buffer);
 }

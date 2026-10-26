@@ -142,13 +142,15 @@ const closeOrAbortJob = createRoute(routeDefinition.closeOrAbortJob.validators, 
 
 const addBatchToJob = createRoute(
   routeDefinition.addBatchToJob.validators,
-  async ({ body, params, query, jetstreamConn }, _, res, next) => {
+  async ({ body, params, query, jetstreamConn }, req, res, next) => {
     try {
       const jobId = params.jobId;
       const csv = body;
       const closeJob = query.closeJob;
+      // gzipBodyPassthrough left the body compressed - Salesforce decodes it, this server never does
+      const contentEncoding = req.get(HTTP.HEADERS.CONTENT_ENCODING)?.toLowerCase() === 'gzip' ? 'gzip' : undefined;
 
-      const results = await jetstreamConn.bulk.addBatchToJob(csv, jobId, closeJob);
+      const results = await jetstreamConn.bulk.addBatchToJob(csv, jobId, closeJob, HTTP.CONTENT_TYPE.CSV, contentEncoding);
 
       sendJson(res, results);
     } catch (ex) {

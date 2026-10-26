@@ -68,13 +68,19 @@ export class ApiBulk extends SalesforceApi {
     jobId: string,
     closeJob = false,
     contentType: typeof HTTP.CONTENT_TYPE.CSV | typeof HTTP.CONTENT_TYPE.ZIP_CSV = HTTP.CONTENT_TYPE.CSV,
+    /** Set when `body` is already gzip-compressed - Salesforce decodes it */
+    contentEncoding?: 'gzip',
   ) {
     const result = await this.apiRequest<{ batchInfo: BulkJobBatchInfoUntyped }>({
       sessionInfo: this.sessionInfo,
       url: this.getBulkApiUrl(`/job/${jobId}/batch`),
       method: 'POST',
       body,
-      headers: { [HTTP.HEADERS.CONTENT_TYPE]: contentType, Accept: HTTP.CONTENT_TYPE.XML },
+      headers: {
+        [HTTP.HEADERS.CONTENT_TYPE]: contentType,
+        Accept: HTTP.CONTENT_TYPE.XML,
+        ...(contentEncoding && { [HTTP.HEADERS.CONTENT_ENCODING]: contentEncoding }),
+      },
       outputType: 'xml',
       rawBody: true,
     }).then(({ batchInfo }) => bulkApiEnsureTyped(batchInfo));
