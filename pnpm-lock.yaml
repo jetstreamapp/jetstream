@@ -526,9 +526,6 @@ importers:
       '@types/gapi.auth2':
         specifier: ^0.0.61
         version: 0.0.61
-      '@types/gapi.client.drive-v3':
-        specifier: ^0.0.5
-        version: 0.0.5
       '@types/google.accounts':
         specifier: ^0.0.18
         version: 0.0.18
@@ -3959,9 +3956,6 @@ packages:
   '@maxim_mazurok/gapi.client.drive-v3@0.3.20260904':
     resolution: {integrity: sha512-DluDUwHSulA3IFiRBty4rlxQt4oNrJEhHhNu7gvB6+Jhc61oWb/ga6r4OlU8ITFjhiN1MBfLdkPphO1/HMyLVQ==}
 
-  '@maxim_mazurok/gapi.client.drive-v3@0.3.20261020':
-    resolution: {integrity: sha512-j8ZEjp03eOCHWV9Mevpb/TWUqhVW96HntTJ1cx+rXxd1zqh3H+zA69aOyh9r0cOQXZDznK8QMHitpVmMRVghCQ==}
-
   '@mdn/browser-compat-data@8.1.0':
     resolution: {integrity: sha512-BNlUjp+9O6gtIHPVZEGFb5rgtuWW8weR+mSKfLOevxbfoZv5DRe3N4ZTEpXiIm5wfR7+kqHu8malCCgP6USrlg==}
 
@@ -6716,9 +6710,6 @@ packages:
 
   '@types/gapi.client.discovery-v1@0.0.4':
     resolution: {integrity: sha512-uevhRumNE65F5mf2gABLaReOmbFSXONuzFZjNR3dYv6BmkHg+wciubHrfBAsp3554zNo3Dcg6dUAlwMqQfpwjQ==}
-
-  '@types/gapi.client.drive-v3@0.0.5':
-    resolution: {integrity: sha512-yYBxiqMqJVBg4bns4Q28+f2XdJnd3tVA9dxQX1lXMVmzT2B+pZdyCi1u9HLwGveVlookSsAXuqfLfS9KO6MF6w==}
 
   '@types/gapi.client@1.0.8':
     resolution: {integrity: sha512-qJQUmmumbYym3Amax0S8CVzuSngcXsC1fJdwRS2zeW5lM63zXkw4wJFP+bG0jzgi0R6EsJKoHnGNVTDbOyG1ng==}
@@ -21406,11 +21397,6 @@ snapshots:
       '@types/gapi.client': 1.0.8
       '@types/gapi.client.discovery-v1': 0.0.4
 
-  '@maxim_mazurok/gapi.client.drive-v3@0.3.20261020':
-    dependencies:
-      '@types/gapi.client': 1.0.8
-      '@types/gapi.client.discovery-v1': 0.0.4
-
   '@mdn/browser-compat-data@8.1.0': {}
 
   '@mdx-js/mdx@3.1.1(supports-color@8.1.1)':
@@ -24119,10 +24105,6 @@ snapshots:
   '@types/gapi.client.discovery-v1@0.0.4':
     dependencies:
       '@maxim_mazurok/gapi.client.discovery-v1': 0.6.20200806
-
-  '@types/gapi.client.drive-v3@0.0.5':
-    dependencies:
-      '@maxim_mazurok/gapi.client.drive-v3': 0.3.20261020
 
   '@types/gapi.client@1.0.8': {}
 

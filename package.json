@@ -196,7 +196,6 @@
     "@types/file-saver": "^2.0.7",
     "@types/fs-extra": "^11.0.4",
     "@types/gapi.auth2": "^0.0.61",
-    "@types/gapi.client.drive-v3": "^0.0.5",
     "@types/google.accounts": "^0.0.18",
     "@types/google.picker": "^0.0.52",
     "@types/lodash": "^4.17.25",
