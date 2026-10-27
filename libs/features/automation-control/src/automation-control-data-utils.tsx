@@ -105,8 +105,31 @@ export function isWorkflowRuleRecord(type: AutomationMetadataType, _record: any)
   return type === 'WorkflowRule';
 }
 
-export function isFlowRecord(type: AutomationMetadataType, _record: any): _record is FlowViewRecord {
+/** For callers that only have the type, e.g. history items and package items, which carry no record */
+export function isFlowAutomationType(type: AutomationMetadataType) {
   return type === 'FlowRecordTriggered' || type === 'FlowProcessBuilder';
+}
+
+export function isFlowRecord(type: AutomationMetadataType, _record: any): _record is FlowViewRecord {
+  return isFlowAutomationType(type);
+}
+
+/**
+ * Metadata API fullName for an automation record. A flow in a namespace (including the org's own) is
+ * only found by its namespaced name.
+ */
+export function getAutomationFullName(type: AutomationMetadataType, record: TableRowItem['record']): string {
+  if (isToolingApexRecord(type, record)) {
+    return record.Name;
+  }
+  if (isDuplicateRecord(type, record)) {
+    return getDuplicateRuleFullName(record);
+  }
+  if (isValidationRecord(type, record) || isWorkflowRuleRecord(type, record)) {
+    return record.FullName;
+  }
+  const { ApiName, NamespacePrefix } = record;
+  return NamespacePrefix ? `${NamespacePrefix}__${ApiName}` : ApiName;
 }
 
 export function getAutomationTypeLabel(type: AutomationMetadataType) {

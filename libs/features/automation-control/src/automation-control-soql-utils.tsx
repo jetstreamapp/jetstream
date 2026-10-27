@@ -270,6 +270,24 @@ export function getFlowsQuery(sobjects: string[]) {
   return soql;
 }
 
+/** Every version of the given flows (any type), to check which still exist before building a package */
+export function getFlowVersionsQuery(apiNames: string[]) {
+  const soql = composeQuery({
+    fields: [getField('ApiName'), getField('NamespacePrefix'), getField('(SELECT VersionNumber FROM Versions)')],
+    sObject: 'FlowDefinitionView',
+    where: {
+      left: {
+        field: 'ApiName',
+        operator: 'IN',
+        value: apiNames,
+        literalType: 'STRING',
+      },
+    },
+  });
+  logger.info('getFlowVersionsQuery()', { soql });
+  return soql;
+}
+
 export function getProcessBuildersQuery(orgNamespacePrefix: Maybe<string>) {
   const soql = composeQuery({
     fields: [
@@ -283,6 +301,7 @@ export function getProcessBuildersQuery(orgNamespacePrefix: Maybe<string>) {
       getField('LastModifiedBy'),
       getField('FORMAT(LastModifiedDate)'),
       getField('LatestVersionId'),
+      getField('NamespacePrefix'),
       getField('ProcessType'),
       getField('TriggerObjectOrEventId'),
       getField('TriggerObjectOrEvent.QualifiedApiName'),

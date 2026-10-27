@@ -1,12 +1,15 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { AutomationControlHistorySource, AutomationControlRestoreAction, SalesforceOrgUi } from '@jetstream/types';
 import type { Column } from '@jetstream/ui';
-import { AutoFullHeightContainer, DataTable, Icon, Modal, Spinner } from '@jetstream/ui';
+import { AutoFullHeightContainer, DataTable, Grid, Icon, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { ConfirmPageChange, useAnalytics } from '@jetstream/ui-core';
-import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { from, switchMap } from 'rxjs';
 import { deployMetadata, getAutomationTypeLabel, preparePayloads } from './automation-control-data-utils';
+import { createHistoryRecorder } from './automation-control-history-utils';
+import { getPackageItemsFromRows } from './automation-control-package-utils';
 import { AutomationDeployStatusRenderer, BooleanAndVersionRenderer } from './automation-control-table-renderers';
 import {
   AutomationControlDeploymentItem,
@@ -17,6 +20,8 @@ import {
   FlowViewRecord,
   TableRowItem,
 } from './automation-control-types';
+import { AutomationPackageDownloadModal, AutomationPackageDropDown } from './AutomationControlPackageDownload';
+import { useAutomationPackageDownload } from './useAutomationPackageDownload';
 
 const REQUIRE_METADATA_API = new Set<AutomationMetadataType>(['ApexTrigger', 'DuplicateRule']);
 
@@ -88,6 +93,8 @@ export interface AutomationControlEditorReviewModalProps {
   defaultApiVersion: string;
   selectedOrg: SalesforceOrgUi;
   rows: TableRowItem[];
+  /** Set when these changes were staged from history, so the deployment is recorded as that rollback/re-deploy */
+  historyRestore?: { action: AutomationControlRestoreAction; source: AutomationControlHistorySource } | null;
   onClose: (refreshData?: boolean) => void;
 }
 
@@ -95,9 +102,17 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   selectedOrg,
   defaultApiVersion,
   rows,
+  historyRestore,
   onClose,
 }) => {
   const { trackEvent } = useAnalytics();
+  /** History entry of this modal's deploy, referenced by the rollback entry if Rollback is clicked */
+  const deployHistorySource = useRef<AutomationControlHistorySource | null>(null);
+  const { preparingVariant, packageDownload, packageError, preparePackage, closePackageDownload } = useAutomationPackageDownload(
+    selectedOrg,
+    defaultApiVersion,
+    'review',
+  );
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [deploymentItemMap, setDeploymentItemMap] = useState<DeploymentItemMap>(() => getDeploymentItemMap(rows));
   const [deploymentItems, setDeploymentItems] = useState<DeploymentItem[]>([]);
@@ -202,57 +217,90 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep]);
 
+  /**
+   * Starts recording this deploy in history, see {@link createHistoryRecorder}.
+   *
+   * @returns saves the entry with the results so far, or null when there is nothing to record
+   */
+  function startHistoryRecording(submittedItemMap: DeploymentItemMap, isRollback: boolean) {
+    const submittedItems = Object.values(submittedItemMap);
+    // a rollback after a fully failed deploy has nothing to submit
+    if (submittedItems.length === 0) {
+      return null;
+    }
+    const { key, createdAt, save } = createHistoryRecorder({
+      org: selectedOrg.uniqueId,
+      action: isRollback ? 'rollback' : historyRestore?.action || 'deploy',
+      source: isRollback ? deployHistorySource.current : historyRestore?.source || null,
+      isRollback,
+      submittedItems,
+    });
+    if (!isRollback) {
+      deployHistorySource.current = { key, createdAt };
+    }
+    return save;
+  }
+
   function handleDeployMetadata(currDeploymentItemMap: DeploymentItemMap, isRollback?: boolean) {
     trackEvent(ANALYTICS_KEYS.automation_deploy, { type: isRollback ? 'rollback' : 'deploy', items: deploymentItems.length });
-    return deployMetadata(defaultApiVersion, selectedOrg, currDeploymentItemMap).subscribe({
-      next: (items: { key: string; deploymentItem: AutomationControlDeploymentItem }[]) => {
-        logger.log('handleDeployMetadata - emitted()', items);
-        const tempDeploymentItemMap = items.reduce((output: DeploymentItemMap, item) => {
-          const successStatus = isRollback ? 'Rolled Back' : 'Deployed';
-          output[item.key] = {
-            ...deploymentItemMap[item.key],
-            status: item.deploymentItem.deployError ? 'Error' : successStatus,
-            deploy: item.deploymentItem,
-          };
-          return output;
-        }, {});
-        // use callback notation to ensure that we have the correct previous state variable
-        setDeploymentItemMap((prevState) => ({ ...prevState, ...tempDeploymentItemMap }));
-      },
-      error: (err) => {
-        logger.warn('handleDeployMetadata - error()', err);
-        // Set all items not already prepared as error since observable is canceled on error
-        setDeploymentItemMap((prevState) => ({
-          ...prevState,
-          ...Object.keys(deploymentItemMap).reduce((output: DeploymentItemMap, key) => {
-            output[key] = { ...deploymentItemMap[key], status: 'Error' };
+    const deployResultsByKey: Record<string, AutomationControlDeploymentItem> = {};
+    const saveHistory = startHistoryRecording(currDeploymentItemMap, !!isRollback);
+    // the entry must be committed before anything changes in Salesforce so an interrupted deploy is still recorded
+    return from(saveHistory?.() ?? Promise.resolve())
+      .pipe(switchMap(() => deployMetadata(defaultApiVersion, selectedOrg, currDeploymentItemMap)))
+      .subscribe({
+        next: (items: { key: string; deploymentItem: AutomationControlDeploymentItem }[]) => {
+          logger.log('handleDeployMetadata - emitted()', items);
+          items.forEach(({ key, deploymentItem }) => {
+            deployResultsByKey[key] = deploymentItem;
+          });
+          saveHistory?.(deployResultsByKey);
+          const tempDeploymentItemMap = items.reduce((output: DeploymentItemMap, item) => {
+            const successStatus = isRollback ? 'Rolled Back' : 'Deployed';
+            output[item.key] = {
+              ...deploymentItemMap[item.key],
+              status: item.deploymentItem.deployError ? 'Error' : successStatus,
+              deploy: item.deploymentItem,
+            };
             return output;
-          }, {}),
-        }));
-        setInProgress(false);
-        setNextButtonLabel('Close');
-        setDidDeploy(true);
-        if (isRollback) {
-          setModalLabel('Rollback Complete');
-          setDidRollback(true);
-        } else {
-          setModalLabel('Deploy Complete');
-        }
-      },
-      complete: () => {
-        logger.log('handleDeployMetadata - complete()');
-        setInProgress(false);
-        setDidDeployMetadata(true);
-        setNextButtonLabel('Close');
-        setDidDeploy(true);
-        if (isRollback) {
-          setModalLabel('Rollback Complete');
-          setDidRollback(true);
-        } else {
-          setModalLabel('Deploy Complete');
-        }
-      },
-    });
+          }, {});
+          // use callback notation to ensure that we have the correct previous state variable
+          setDeploymentItemMap((prevState) => ({ ...prevState, ...tempDeploymentItemMap }));
+        },
+        error: (err) => {
+          logger.warn('handleDeployMetadata - error()', err);
+          // Set all items not already prepared as error since observable is canceled on error
+          setDeploymentItemMap((prevState) => ({
+            ...prevState,
+            ...Object.keys(deploymentItemMap).reduce((output: DeploymentItemMap, key) => {
+              output[key] = { ...deploymentItemMap[key], status: 'Error' };
+              return output;
+            }, {}),
+          }));
+          setInProgress(false);
+          setNextButtonLabel('Close');
+          setDidDeploy(true);
+          if (isRollback) {
+            setModalLabel('Rollback Complete');
+            setDidRollback(true);
+          } else {
+            setModalLabel('Deploy Complete');
+          }
+        },
+        complete: () => {
+          logger.log('handleDeployMetadata - complete()');
+          setInProgress(false);
+          setDidDeployMetadata(true);
+          setNextButtonLabel('Close');
+          setDidDeploy(true);
+          if (isRollback) {
+            setModalLabel('Rollback Complete');
+            setDidRollback(true);
+          } else {
+            setModalLabel('Deploy Complete');
+          }
+        },
+      });
   }
 
   function handleRollbackMetadata() {
@@ -295,31 +343,44 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
         header={modalLabel}
         closeOnBackdropClick={false}
         closeOnEsc={false}
+        hide={!!packageDownload}
         onClose={() => handleCloseModal()}
         footer={
-          <Fragment>
-            {!didDeploy && (
-              <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={inProgress}>
-                Cancel
+          <Grid align="spread" verticalAlign="center">
+            <AutomationPackageDropDown
+              disabled={inProgress}
+              isPreparing={!!preparingVariant}
+              onSelected={(variant) => preparePackage(getPackageItemsFromRows(rows, variant), variant)}
+            />
+            <div>
+              {!didDeploy && (
+                <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={inProgress}>
+                  Cancel
+                </button>
+              )}
+              {didDeploy && !didRollback && (
+                <button
+                  className="slds-button slds-button_neutral"
+                  onClick={() => handleRollbackMetadata()}
+                  title="Revert all successfully deployed items"
+                  disabled={inProgress}
+                >
+                  <Icon type="utility" icon="undo" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Rollback
+                </button>
+              )}
+              <button className="slds-button slds-button_brand" onClick={() => setCurrentStep(currentStep + 1)} disabled={inProgress}>
+                {nextButtonLabel}
               </button>
-            )}
-            {didDeploy && !didRollback && (
-              <button
-                className="slds-button slds-button_neutral"
-                onClick={() => handleRollbackMetadata()}
-                title="Revert all successfully deployed items"
-                disabled={inProgress}
-              >
-                <Icon type="utility" icon="undo" className="slds-button__icon slds-button__icon_left" omitContainer />
-                Rollback
-              </button>
-            )}
-            <button className="slds-button slds-button_brand" onClick={() => setCurrentStep(currentStep + 1)} disabled={inProgress}>
-              {nextButtonLabel}
-            </button>
-          </Fragment>
+            </div>
+          </Grid>
         }
       >
+        {packageError && (
+          <ScopedNotification theme="error" className="slds-m-bottom_x-small" allowClose dismissResetKey={packageError}>
+            {packageError}
+          </ScopedNotification>
+        )}
         <div
           className="slds-is-relative"
           css={css`
@@ -332,6 +393,14 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
           </AutoFullHeightContainer>
         </div>
       </Modal>
+      {packageDownload && (
+        <AutomationPackageDownloadModal
+          selectedOrg={selectedOrg}
+          packageDownload={packageDownload}
+          source="automation_control_review"
+          onClose={closePackageDownload}
+        />
+      )}
     </Fragment>
   );
 };

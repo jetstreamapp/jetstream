@@ -1,4 +1,10 @@
-import { AutomationMetadataType, DescribeGlobalSObjectResult, ListItem } from '@jetstream/types';
+import {
+  AutomationControlHistoryEntry,
+  AutomationControlRestoreAction,
+  AutomationMetadataType,
+  DescribeGlobalSObjectResult,
+  ListItem,
+} from '@jetstream/types';
 import { atom } from 'jotai';
 import { atomWithReset } from 'jotai/utils';
 
@@ -40,3 +46,16 @@ export const hasSelectionsMade = atom((get) => {
   }
   return true;
 });
+
+export interface AutomationControlPendingRestore {
+  entry: AutomationControlHistoryEntry;
+  action: AutomationControlRestoreAction;
+  /** Epoch ms — the editor only stages the restore against data it started fetching after this */
+  requestedAt: number;
+}
+
+/**
+ * A rollback or re-deploy chosen from history. The editor holds it until the current state has been
+ * loaded from Salesforce, then stages it as pending changes and clears it.
+ */
+export const pendingHistoryRestore = atomWithReset<AutomationControlPendingRestore | null>(null);

@@ -2,9 +2,10 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { tracker } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { AutomationControlHistorySource, AutomationControlRestoreAction, SalesforceOrgUi } from '@jetstream/types';
 import { useAnalytics } from '@jetstream/ui-core';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import { Subscription } from 'rxjs';
 import {
   fetchAutomationData,
   getAdditionalItemsWorkflowRuleText,
@@ -15,12 +16,14 @@ import {
   isTableRowChild,
   isTableRowItem,
 } from './automation-control-data-utils';
+import { stageRestoreSnapshot } from './automation-control-history-utils';
 import {
   AutomationMetadataType,
   DuplicateRuleRecord,
   FetchErrorPayload,
   FetchSuccessPayload,
   FlowViewRecord,
+  StagedHistoryRestore,
   StateData,
   TableRow,
   TableRowItem,
@@ -33,14 +36,17 @@ import {
 } from './automation-control-types';
 
 type Action =
-  | { type: 'FETCH_START'; payload: { selectedTypes: Set<string> } }
+  | { type: 'FETCH_START'; payload: { selectedTypes: Set<string>; startedAt: number } }
   | { type: 'FETCH_REFRESH'; payload: { selectedTypes: (keyof StateData)[] } }
   | { type: 'FETCH_SUCCESS'; payload: FetchSuccessPayload }
   | { type: 'FETCH_ERROR'; payload: FetchErrorPayload }
   | { type: 'FETCH_FINISH' }
   | { type: 'UPDATE_IS_ACTIVE_FLAG'; payload: { row: TableRowOrItemOrChild; value: boolean } }
   | { type: 'TOGGLE_ALL'; payload: { value: boolean } }
-  | { type: 'RESTORE_SNAPSHOT'; payload: { snapshot: TableRowItemSnapshot[] } }
+  | {
+      type: 'STAGE_HISTORY_RESTORE';
+      payload: { action: AutomationControlRestoreAction; source: AutomationControlHistorySource; snapshot: TableRowItemSnapshot[] };
+    }
   | { type: 'TABLE_ROWS_CHANGED'; payload: { rows: readonly TableRowOrItemOrChild[] } }
   | { type: 'RESET' }
   | { type: 'ERROR'; payload?: { errorMessage: string } };
@@ -61,6 +67,10 @@ interface State {
   /** Used to know order to rebuild rows from rowsByKey */
   keys: string[];
   dirtyCount: number;
+  /** Epoch ms when the latest full fetch started, lets callers tell whether data is newer than a request */
+  fetchStartedAt: number | null;
+  /** A history restore staged onto the current rows; cleared whenever the rows are refetched or reset */
+  stagedRestore: StagedHistoryRestore | null;
 }
 
 function isDirty(row: TableRow | TableRowItem | TableRowItemChild) {
@@ -189,13 +199,15 @@ type MetadataRecordType =
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'FETCH_START': {
-      const { selectedTypes } = action.payload;
+      const { selectedTypes, startedAt } = action.payload;
       const output: State = {
         ...state,
         hasError: false,
         errorMessage: null,
         loading: true,
         data: { ...state.data },
+        fetchStartedAt: startedAt,
+        stagedRestore: null,
       };
       (
         [
@@ -230,6 +242,8 @@ function reducer(state: State, action: Action): State {
         errorMessage: null,
         loading: true,
         data: { ...state.data },
+        // every row is rebuilt below, which discards the staged changes
+        stagedRestore: null,
       };
       selectedTypes.forEach((type) => {
         output.data[type] = {
@@ -378,21 +392,15 @@ function reducer(state: State, action: Action): State {
       output.dirtyCount = output.rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
-    case 'RESTORE_SNAPSHOT': {
-      const { snapshot } = action.payload;
-      const rowsByKey = { ...state.rowsByKey };
-
-      snapshot.forEach(({ key, isActive, activeVersionNumber }) => {
-        if (rowsByKey[key]) {
-          (rowsByKey[key] as TableRowItem).isActive = isActive;
-          (rowsByKey[key] as TableRowItem).activeVersionNumber = activeVersionNumber;
-        }
-      });
-
+    case 'STAGE_HISTORY_RESTORE': {
+      const { action: restoreAction, source, snapshot } = action.payload;
+      const unavailableTypes = new Set((Object.keys(state.data) as (keyof StateData)[]).filter((type) => state.data[type].error));
+      const { rowsByKey, result } = stageRestoreSnapshot(state.rowsByKey, snapshot, unavailableTypes);
       const output: State = {
         ...state,
         rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
         rowsByKey,
+        stagedRestore: { action: restoreAction, source, result },
       };
       output.dirtyCount = output.rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
@@ -423,6 +431,7 @@ function reducer(state: State, action: Action): State {
         rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
         rowsByKey,
         dirtyCount: 0,
+        stagedRestore: null,
       };
       output.dirtyCount = output.rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
@@ -668,9 +677,10 @@ export function useAutomationControlData({
   selectedAutomationTypes: AutomationMetadataType[];
 }) {
   const isMounted = useRef(true);
+  const fetchSubscription = useRef<Subscription | null>(null);
   const { trackEvent } = useAnalytics();
 
-  const [{ loading, hasError, errorMessage, data, rows, rowsByKey, dirtyCount }, dispatch] = useReducer(reducer, {
+  const [state, dispatch] = useReducer(reducer, {
     loading: false,
     hasError: false,
     data: {
@@ -706,7 +716,10 @@ export function useAutomationControlData({
     rowsByKey: {},
     keys: [],
     dirtyCount: 0,
+    fetchStartedAt: null,
+    stagedRestore: null,
   });
+  const { loading, hasError, errorMessage, data, rows, rowsByKey, dirtyCount, fetchStartedAt, stagedRestore } = state;
 
   useEffect(() => {
     isMounted.current = true;
@@ -715,6 +728,12 @@ export function useAutomationControlData({
       isMounted.current = false;
     };
   }, [selectedAutomationTypes, selectedSObjects.length, trackEvent]);
+
+  useEffect(() => {
+    return () => {
+      fetchSubscription.current?.unsubscribe();
+    };
+  }, []);
 
   const updateIsActiveFlag = useCallback((row: TableRowOrItemOrChild, value: boolean) => {
     dispatch({ type: 'UPDATE_IS_ACTIVE_FLAG', payload: { row, value } });
@@ -739,10 +758,12 @@ export function useAutomationControlData({
 
   const fetchData = useCallback(async () => {
     try {
+      // A superseded fetch (e.g. the selection changed mid-load) must not merge its results into the new one
+      fetchSubscription.current?.unsubscribe();
       const selectedTypes = new Set(selectedAutomationTypes);
-      dispatch({ type: 'FETCH_START', payload: { selectedTypes } });
+      dispatch({ type: 'FETCH_START', payload: { selectedTypes, startedAt: Date.now() } });
 
-      const obs = fetchAutomationData(selectedOrg, defaultApiVersion, selectedAutomationTypes, selectedSObjects).subscribe({
+      fetchSubscription.current = fetchAutomationData(selectedOrg, defaultApiVersion, selectedAutomationTypes, selectedSObjects).subscribe({
         next: (item) => {
           if (isFetchSuccess(item)) {
             dispatch({ type: 'FETCH_SUCCESS', payload: item });
@@ -763,9 +784,6 @@ export function useAutomationControlData({
           logger.info('[AUTOMATION][FETCH][FINISH]');
         },
       });
-      return () => {
-        obs.unsubscribe();
-      };
     } catch (ex) {
       dispatch({ type: 'ERROR', payload: { errorMessage: getErrorMessage(ex) } });
     }
@@ -784,9 +802,12 @@ export function useAutomationControlData({
     }
   }, [defaultApiVersion, selectedOrg, selectedSObjects, trackEvent]);
 
-  // const restoreSnapshot = useCallback((snapshot: TableRowItemSnapshot[]) => {
-  //   dispatch({ type: 'RESTORE_SNAPSHOT', payload: { snapshot } });
-  // }, []);
+  const stageHistoryRestore = useCallback(
+    (action: AutomationControlRestoreAction, source: AutomationControlHistorySource, snapshot: TableRowItemSnapshot[]) => {
+      dispatch({ type: 'STAGE_HISTORY_RESTORE', payload: { action, source, snapshot } });
+    },
+    [],
+  );
 
   useEffect(() => {
     fetchData();
@@ -822,7 +843,9 @@ export function useAutomationControlData({
     toggleAll,
     resetChanges,
     tableRowsChange,
-    // restoreSnapshot,
+    stageHistoryRestore,
+    stagedRestore,
+    fetchStartedAt,
     dirtyCount,
   };
 }
