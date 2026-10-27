@@ -99,12 +99,6 @@ export const AutomationControlHistoryEntryDetail: FunctionComponent<AutomationCo
             isPreparing={isPreparingPackage}
             onSelected={(variant) => onDownloadPackage(entry, variant)}
           />
-          <Tooltip content="Apply these changes again. Items that failed are retried.">
-            <button className="slds-button slds-button_neutral" onClick={() => onRestore(entry, 'redeploy')}>
-              <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Re-deploy
-            </button>
-          </Tooltip>
           <Tooltip
             content={
               canRollBack
@@ -112,13 +106,15 @@ export const AutomationControlHistoryEntryDetail: FunctionComponent<AutomationCo
                 : 'Nothing was deployed successfully, so there is nothing to roll back.'
             }
           >
-            <button
-              className="slds-button slds-button_brand slds-m-left_x-small"
-              disabled={!canRollBack}
-              onClick={() => onRestore(entry, 'rollback')}
-            >
+            <button className="slds-button slds-button_brand" disabled={!canRollBack} onClick={() => onRestore(entry, 'rollback')}>
               <Icon type="utility" icon="undo" className="slds-button__icon slds-button__icon_left" omitContainer />
               Roll Back
+            </button>
+          </Tooltip>
+          <Tooltip content="Apply these changes again. Items that failed are retried.">
+            <button className="slds-button slds-button_neutral slds-m-left_x-small" onClick={() => onRestore(entry, 'redeploy')}>
+              <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Re-deploy
             </button>
           </Tooltip>
         </Grid>

@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { AutomationControlHistorySource, AutomationControlRestoreAction, SalesforceOrgUi } from '@jetstream/types';
 import type { Column } from '@jetstream/ui';
-import { AutoFullHeightContainer, DataTable, Grid, Icon, Modal, Spinner } from '@jetstream/ui';
+import { AutoFullHeightContainer, DataTable, Grid, Icon, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { ConfirmPageChange, useAnalytics } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { from, switchMap } from 'rxjs';
@@ -108,7 +108,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   const { trackEvent } = useAnalytics();
   /** History entry of this modal's deploy, referenced by the rollback entry if Rollback is clicked */
   const deployHistorySource = useRef<AutomationControlHistorySource | null>(null);
-  const { preparingVariant, packageDownload, preparePackage, closePackageDownload } = useAutomationPackageDownload(
+  const { preparingVariant, packageDownload, packageError, preparePackage, closePackageDownload } = useAutomationPackageDownload(
     selectedOrg,
     defaultApiVersion,
     'review',
@@ -376,6 +376,11 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
           </Grid>
         }
       >
+        {packageError && (
+          <ScopedNotification theme="error" className="slds-m-bottom_x-small" allowClose dismissResetKey={packageError}>
+            {packageError}
+          </ScopedNotification>
+        )}
         <div
           className="slds-is-relative"
           css={css`

@@ -2,7 +2,18 @@ import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { AutomationControlHistoryEntry, AutomationControlRestoreAction, SalesforceOrgUi } from '@jetstream/types';
-import { Badge, EmptyState, Grid, GridCol, List, Modal, OpenRoadIllustration, SearchInput, Spinner } from '@jetstream/ui';
+import {
+  Badge,
+  EmptyState,
+  Grid,
+  GridCol,
+  List,
+  Modal,
+  OpenRoadIllustration,
+  ScopedNotification,
+  SearchInput,
+  Spinner,
+} from '@jetstream/ui';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { AUTOMATION_CONTROL_HISTORY_MAX_ENTRIES_PER_ORG, automationControlHistoryDb } from '@jetstream/ui/db';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -50,7 +61,7 @@ export const AutomationControlHistoryModal: FunctionComponent<AutomationControlH
   const { defaultApiVersion } = useAtomValue(applicationCookieState);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [filterValue, setFilterValue] = useState('');
-  const { preparingVariant, packageDownload, preparePackage, closePackageDownload } = useAutomationPackageDownload(
+  const { preparingVariant, packageDownload, packageError, preparePackage, closePackageDownload } = useAutomationPackageDownload(
     selectedOrg,
     defaultApiVersion,
     'history',
@@ -85,6 +96,11 @@ export const AutomationControlHistoryModal: FunctionComponent<AutomationControlH
         }
         onClose={onClose}
       >
+        {packageError && (
+          <ScopedNotification theme="error" className="slds-m-bottom_x-small" allowClose dismissResetKey={packageError}>
+            {packageError}
+          </ScopedNotification>
+        )}
         {loading && <Spinner />}
         {!loading && listRows.length === 0 && (
           <EmptyState

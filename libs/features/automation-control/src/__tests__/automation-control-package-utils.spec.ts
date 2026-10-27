@@ -131,7 +131,9 @@ describe('buildActivationPackage', () => {
     ]);
 
     expect(includedCount).toBe(6);
-    expect(missingItems).toEqual([{ key: 'vr-missing', label: 'Deleted Rule' }]);
+    expect(missingItems).toEqual([
+      { key: 'vr-missing', label: 'Deleted Rule', reason: 'It was not in the metadata retrieved from Salesforce.' },
+    ]);
 
     const output = await JSZip.loadAsync(data);
     const fileNames = Object.values(output.files)
@@ -240,8 +242,8 @@ describe('buildActivationPackage', () => {
     expect(vi.mocked(queryAll).mock.calls[0][1]).toContain("ApiName IN ('Kept_Flow', 'Version_Gone', 'Deleted_Process', 'Deactivated')");
     expect(includedCount).toBe(2);
     expect(missingItems).toEqual([
-      { key: 'version-gone', label: 'Version Gone' },
-      { key: 'deleted', label: 'Deleted' },
+      { key: 'version-gone', label: 'Version Gone', reason: 'Version 5 no longer exists.' },
+      { key: 'deleted', label: 'Deleted', reason: 'The flow was not found in Salesforce.' },
     ]);
     const packageXml = await (await JSZip.loadAsync(data)).file('package.xml')!.async('string');
     expect(packageXml).toContain('<members>Kept_Flow</members>');

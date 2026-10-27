@@ -36,7 +36,7 @@ export interface AutomationPackageItem {
 export interface AutomationPackage {
   data: ArrayBuffer;
   includedCount: number;
-  missingItems: { key: string; label: string }[];
+  missingItems: { key: string; label: string; reason: string }[];
 }
 
 interface AutomationMetadataMember {
@@ -255,7 +255,7 @@ export async function buildActivationPackage(
 ): Promise<AutomationPackage> {
   const missingItems: AutomationPackage['missingItems'] = items
     .filter(({ fullName }) => !fullName)
-    .map(({ key, label }) => ({ key, label }));
+    .map(({ key, label }) => ({ key, label, reason: 'No Salesforce name was saved for this item.' }));
   const packageItems = items.filter(({ fullName }) => !!fullName);
   const flowItems = packageItems.filter(({ type }) => isFlowAutomationType(type));
   const retrievedItems = packageItems.filter((item) => !flowItems.includes(item));
@@ -289,7 +289,7 @@ export async function buildActivationPackage(
     }
     const document = documentsByFileName.get(member.fileName);
     if (!document?.documentElement || !setActiveStateInDocument(document.documentElement, item)) {
-      missingItems.push({ key: item.key, label: item.label });
+      missingItems.push({ key: item.key, label: item.label, reason: 'It was not in the metadata retrieved from Salesforce.' });
       continue;
     }
     appliedFileNames.add(member.fileName);
@@ -314,7 +314,11 @@ export async function buildActivationPackage(
     const versionNumbers = currentFlowVersions?.get(item.fullName);
     const activeVersionNumber = getFlowActiveVersionNumber(item);
     if (!versionNumbers || (activeVersionNumber > 0 && !versionNumbers.has(activeVersionNumber))) {
-      missingItems.push({ key: item.key, label: item.label });
+      missingItems.push({
+        key: item.key,
+        label: item.label,
+        reason: versionNumbers ? `Version ${activeVersionNumber} no longer exists.` : 'The flow was not found in Salesforce.',
+      });
       return;
     }
     const member = getAutomationMetadataMember(item.type, item.fullName);

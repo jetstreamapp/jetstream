@@ -2,7 +2,6 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { fireToast } from '@jetstream/ui';
 import { useAnalytics } from '@jetstream/ui-core';
 import { useCallback, useState } from 'react';
 import {
@@ -11,6 +10,8 @@ import {
   AutomationPackageVariant,
   buildActivationPackage,
 } from './automation-control-package-utils';
+
+const MAX_MISSING_REASONS_SHOWN = 3;
 
 export type AutomationPackageDownload = AutomationPackage & { variant: AutomationPackageVariant };
 
@@ -22,21 +23,27 @@ export function useAutomationPackageDownload(selectedOrg: SalesforceOrgUi, apiVe
   const { trackEvent } = useAnalytics();
   const [preparingVariant, setPreparingVariant] = useState<AutomationPackageVariant | null>(null);
   const [packageDownload, setPackageDownload] = useState<AutomationPackageDownload | null>(null);
+  /** Shown inside the caller's modal, a toast would render behind it */
+  const [packageError, setPackageError] = useState<string | null>(null);
 
   const preparePackage = useCallback(
     async (items: AutomationPackageItem[], variant: AutomationPackageVariant) => {
       setPreparingVariant(variant);
+      setPackageError(null);
       try {
         const automationPackage = await buildActivationPackage(selectedOrg, apiVersion, items);
         if (automationPackage.includedCount === 0) {
-          fireToast({ type: 'error', message: 'None of these items could be found in Salesforce, so there is nothing to download.' });
+          const reasons = automationPackage.missingItems
+            .slice(0, MAX_MISSING_REASONS_SHOWN)
+            .map(({ label, reason }) => `${label} - ${reason}`);
+          setPackageError(`None of these items could be found in Salesforce, so there is nothing to download. ${reasons.join(' ')}`);
           return;
         }
         setPackageDownload({ ...automationPackage, variant });
         trackEvent(ANALYTICS_KEYS.automation_export, { type: 'activation-package', variant, source, items: items.length });
       } catch (ex) {
         logger.warn('[AUTOMATION][PACKAGE] Error building package', ex);
-        fireToast({ type: 'error', message: `There was a problem building the package. ${getErrorMessage(ex)}` });
+        setPackageError(`There was a problem building the package. ${getErrorMessage(ex)}`);
       } finally {
         setPreparingVariant(null);
       }
@@ -46,5 +53,5 @@ export function useAutomationPackageDownload(selectedOrg: SalesforceOrgUi, apiVe
 
   const closePackageDownload = useCallback(() => setPackageDownload(null), []);
 
-  return { preparingVariant, packageDownload, preparePackage, closePackageDownload };
+  return { preparingVariant, packageDownload, packageError, preparePackage, closePackageDownload };
 }
