@@ -1,0 +1,58 @@
+---
+slug: v10.27.0
+title: 10.27.0 - Automation Control history and package downloads
+date: '2026-10-27'
+tags: [web, desktop, extension]
+versions:
+  web: 10.27.0
+  desktop: 4.20.0
+  extension: 3.25.0
+summary: Automation Control now keeps a deployment history you can roll back or re-deploy from, and can download before and after metadata packages. Large bulk load batches are compressed before upload on web.
+highlights:
+  - title: Automation Control deployment history
+    description: Every deployment from Review Changes is saved on your device, and you can roll back or re-deploy any of them from the new History button.
+    docLink: /automation-control
+  - title: Download before and after packages
+    description: Download Package in Review Changes and in each history entry retrieves a metadata package with the state before or after a deployment.
+    docLink: /automation-control
+  - title: Compressed bulk load batches
+    description: Large Bulk API batches are compressed in the browser before upload, which reduces upload time on slow connections.
+    docLink: /load
+    platforms: [web]
+  - title: Firefox History Sync permission
+    description: Turning on History Sync in Firefox now asks for permission to send your history to Jetstream, and sync stays off if you decline.
+    platforms: [extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Automation Control deployment history
+
+Every deployment from Review Changes, and every Rollback from the deployment results, is saved locally on your device. A History button on the selection page and in the editor opens a list of past deployments for the current org, with a detail view showing the before and after state of each item.
+
+- **Roll Back** and **Re-deploy** load the current state from Salesforce and stage only the items that differ in the editor. A banner lists items that already match or could not be found.
+- Staged changes still go through Review Changes before anything is deployed.
+- If the page was closed during a deployment, the entry is still recorded and its items are marked "Not confirmed".
+- The last 100 deployments per org are kept. History is separate from Data History and is not synced to other devices.
+
+### Download before and after packages
+
+Review Changes and each history entry now have a Download Package menu with Before and After options. The package contains the current metadata with only the active state changed, so it can be deployed with another tool. Items that no longer exist in the org are left out of `package.xml` and listed in the download dialog.
+
+### Compressed bulk load batches
+
+On web, Bulk API batches larger than 64 KB are compressed in the browser before they are uploaded. Salesforce decompresses them on receipt, and batch size limits are unchanged. The desktop app and browser extension send batches directly to Salesforce and are not affected.
+
+### Firefox History Sync permission
+
+Firefox now shows the extension's data collection permissions. Turning on History Sync asks for permission to upload query history, load mappings, recent items and API explorer history to Jetstream, and sync stays off if you decline. Sync turns off if the permission is later removed in `about:addons`. The extension now requires Firefox 140 or later (Firefox for Android 142), and its build no longer includes usage analytics.
+
+### Other fixes
+
+- Namespaced flows are now included when you use Export as Zip in Automation Control.
+- Automation Control no longer shows results from an earlier selection when you change the selection while a fetch is still running.
+- In the browser extension, JavaScript files in the metadata viewer keep syntax highlighting but no longer offer completions, hovers or diagnostics.
+- In the desktop app, the download and Data History folders can only be changed through the folder picker in Settings.
+- In the desktop app on Windows, an update policy file in `C:\ProgramData\Jetstream\policy.json` is ignored unless it is owned by SYSTEM or the Administrators group.
