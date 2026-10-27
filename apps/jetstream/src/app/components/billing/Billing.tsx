@@ -231,7 +231,7 @@ export const Billing = () => {
           <PageHeaderTitle icon={{ type: 'standard', icon: 'billing' }} label="Billing" docsPath={APP_ROUTES.BILLING.DOCS} />
           {customerWithSubscriptions && (
             <PageHeaderActions colType="actions" buttonType="separate">
-              <form method="POST" action="/api/billing/portal" target="_blank">
+              <form method="POST" action="/api/billing/portal" target="_blank" onSubmit={() => trackEvent(ANALYTICS_KEYS.billing_portal)}>
                 {csrfToken && <input type="hidden" name={HTTP.BODY.CSRF_TOKEN} value={csrfToken} />}
                 <button className="slds-button slds-button_brand">
                   Billing Portal
