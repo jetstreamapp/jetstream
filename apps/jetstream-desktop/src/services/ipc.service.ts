@@ -168,7 +168,7 @@ export function registerIpc(): void {
   registerHandler('logout', handleLogoutEvent);
   registerHandler('addOrg', handleAddOrgEvent);
   registerHandler('checkAuth', handleCheckAuthEvent);
-  registerHandler('selectFolder', handleSelectFolderEvent);
+  registerHandler('pickDownloadFolder', handlePickDownloadFolder);
   registerHandler('getPreferences', handleGetPreferences);
   registerHandler('setPreferences', handleSetPreferences);
   registerHandler('openSettings', handleOpenSettings);
@@ -194,16 +194,21 @@ export function registerIpc(): void {
   registerHandler('openGooglePicker', handleOpenGooglePickerEvent);
 }
 
-const handleSelectFolderEvent: MainIpcHandler<'selectFolder'> = async () => {
+const handlePickDownloadFolder: MainIpcHandler<'pickDownloadFolder'> = async (event) => {
+  // Same shape as `pickDataHistoryFolder`: the dialog is shown AND the chosen path applied here in the
+  // main process. Every download is silently written under this folder once set, so a renderer that
+  // could pick the path itself could drop arbitrary content into e.g. a startup folder without a prompt.
   const result = await dialog.showOpenDialog({
     buttonLabel: 'Select Folder',
-    defaultPath: app.getPath('downloads'),
+    defaultPath: dataService.getUserPreferences().fileDownload?.downloadPath || app.getPath('downloads'),
     properties: ['openDirectory', 'createDirectory'],
   });
   if (result.canceled) {
     return null;
   }
-  return result.filePaths[0];
+  const updatedPreferences = dataService.setDownloadFolderPath(result.filePaths[0]);
+  broadcastPreferencesChanged(updatedPreferences, { exclude: event.sender });
+  return updatedPreferences;
 };
 
 const handleGetPreferences: MainIpcHandler<'getPreferences'> = async () => {
@@ -211,13 +216,12 @@ const handleGetPreferences: MainIpcHandler<'getPreferences'> = async () => {
 };
 
 const handleSetPreferences: MainIpcHandler<'setPreferences'> = async (event, payload) => {
-  // `dataHistoryFolder` is owned by the main process — only `pickDataHistoryFolder` (an OS folder
-  // dialog the user drives) may set it, and the renderer is deliberately never told the path (see
-  // that handler). The renderer round-trips its whole preferences snapshot through here on every
-  // toggle, so without this a snapshot taken before a relocation would silently point history back
-  // at the old folder — and any renderer code could aim all history I/O at an arbitrary path.
-  const { dataHistoryFolder: _mainProcessOwned, ...rendererPreferences } = payload;
-  const updatedPreferences = dataService.updateUserPreferences(rendererPreferences);
+  // The folder paths in the preferences are owned by the main process — only the OS folder dialogs
+  // the user drives (`pickDataHistoryFolder`, `pickDownloadFolder`) may set them. The renderer
+  // round-trips its whole preferences snapshot through here on every toggle, so without this a
+  // snapshot taken before a relocation would silently point history back at the old folder — and
+  // any renderer code could aim all history I/O, or every download, at an arbitrary path.
+  const updatedPreferences = dataService.updateUserPreferencesFromRenderer(payload);
   broadcastPreferencesChanged(updatedPreferences, { exclude: event.sender });
   // Start or stop the background update timers immediately, so the toggle takes effect without a
   // restart. An administrator policy still wins - refreshing re-applies the full precedence chain.
