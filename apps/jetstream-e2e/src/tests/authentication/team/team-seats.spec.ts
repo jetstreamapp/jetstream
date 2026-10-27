@@ -295,7 +295,8 @@ test.describe('Team seats', () => {
       // Scoped to the role picklist: the modal also renders an access profile picklist once the role is not Billing
       const rolePicklist = teamDashboardPage.teamMemberUpdateModal.getByTestId('dropdown-Role');
       await rolePicklist.getByPlaceholder('Select an Option').click();
-      await rolePicklist.getByRole('option', { name: 'Member' }).click();
+      // The picklist renders its list in a portal, so the option is outside of the modal
+      await page.getByRole('option', { name: 'Member' }).click();
       await expect(teamDashboardPage.seatsUnavailableNotice).toBeVisible();
       await expect(teamDashboardPage.teamMemberUpdateModal.getByRole('button', { name: 'Save' })).toBeDisabled();
       await teamDashboardPage.teamMemberUpdateModal.getByRole('button', { name: 'Cancel' }).click();

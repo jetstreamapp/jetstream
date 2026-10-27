@@ -240,13 +240,15 @@ export class TeamDashboardPage {
   async selectAccessProfile(modal: Locator, accessProfileName: string) {
     const picklist = modal.getByTestId('dropdown-Access Profile');
     await picklist.getByPlaceholder('Select an Option').click();
-    await picklist.getByRole('option', { name: accessProfileName }).click();
+    // The picklist renders its list in a portal, so the options are not inside the modal or the picklist
+    await this.page.getByRole('option', { name: accessProfileName }).click();
   }
 
   private async selectRole(modal: Locator, role: TeamMemberRoleLabel) {
     // Scoped to the role picklist because the member modals also have an access profile picklist
     const picklist = modal.getByTestId(/^dropdown-(New )?Role$/);
     await picklist.getByPlaceholder('Select an Option').click();
-    await picklist.getByRole('option', { name: role }).click();
+    // The picklist renders its list in a portal, so the options are not inside the modal or the picklist
+    await this.page.getByRole('option', { name: role }).click();
   }
 }

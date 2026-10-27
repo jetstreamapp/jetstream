@@ -721,7 +721,8 @@ test.describe('Team Dashboard', () => {
       await expect(page.getByRole('option', { name: 'Billing' })).toBeVisible();
       await expect(page.getByRole('option', { name: 'Member' })).toBeVisible();
 
-      const options = await teamDashboardPage.teamMemberInviteModal.getByRole('option').all();
+      // The role picklist renders its list in a portal, outside of the modal
+      const options = await page.getByRole('option').all();
       expect(options.length).toBe(2);
 
       // close menu
