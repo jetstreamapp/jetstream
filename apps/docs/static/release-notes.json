@@ -1,5 +1,36 @@
 [
   {
+    "slug": "v10.27.0",
+    "title": "10.27.0 - Automation Control history and package downloads",
+    "date": "2026-10-27",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.27.0", "desktop": "4.20.0", "extension": "3.25.0" },
+    "summary": "Automation Control now keeps a deployment history you can roll back or re-deploy from, and can download before and after metadata packages. Large bulk load batches are compressed before upload on web.",
+    "highlights": [
+      {
+        "title": "Automation Control deployment history",
+        "description": "Every deployment from Review Changes is saved on your device, and you can roll back or re-deploy any of them from the new History button.",
+        "docLink": "/automation-control"
+      },
+      {
+        "title": "Download before and after packages",
+        "description": "Download Package in Review Changes and in each history entry retrieves a metadata package with the state before or after a deployment.",
+        "docLink": "/automation-control"
+      },
+      {
+        "title": "Compressed bulk load batches",
+        "description": "Large Bulk API batches are compressed in the browser before upload, which reduces upload time on slow connections.",
+        "platforms": ["web"],
+        "docLink": "/load"
+      },
+      {
+        "title": "Firefox History Sync permission",
+        "description": "Turning on History Sync in Firefox now asks for permission to send your history to Jetstream, and sync stays off if you decline.",
+        "platforms": ["extension"]
+      }
+    ]
+  },
+  {
     "slug": "v10.26.0",
     "title": "10.26.0 - Create and clone permission sets",
     "date": "2026-10-22",
