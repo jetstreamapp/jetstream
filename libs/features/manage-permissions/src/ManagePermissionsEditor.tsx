@@ -67,12 +67,13 @@ import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectT
 import ManagePermissionsEditorSetupEntityAccessTable from './ManagePermissionsEditorSetupEntityAccessTable';
 import ManagePermissionsEditorSystemPermissionTable from './ManagePermissionsEditorSystemPermissionTable';
 import ManagePermissionsEditorTabVisibilityTable from './ManagePermissionsEditorTabVisibilityTable';
+import { PermissionChangeSummary } from './PermissionChangeSummary';
 import { usePermissionRecords } from './usePermissionRecords';
 import { useVisibleFieldAuditColumns } from './useVisibleFieldAuditColumns';
+import { getPermissionChangeSections } from './utils/permission-change-summary';
 import { generateCsvFilesFromTable, generateExcelWorkbookFromTable } from './utils/permission-manager-export-utils';
 import {
   applySystemPermissionDependencies,
-  getConfirmationModalContent,
   getDirtyFieldPermissions,
   getDirtyObjectPermissions,
   getDirtySetupEntityAccessPermissions,
@@ -809,11 +810,24 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   async function saveChanges() {
     if (
       await ConfirmationModalPromise({
-        header: 'Confirmation',
+        header: 'Confirm Changes',
         confirm: 'Save Changes',
-        content: getConfirmationModalContent(dirtyObjectCount, dirtyFieldCount, dirtyTabVisibilityCount, dirtySystemPermissionCount, [
-          { label: CUSTOM_PERMISSION_LABEL, count: dirtyCustomPermissionCount },
-        ]),
+        size: 'md',
+        content: (
+          <PermissionChangeSummary
+            sections={getPermissionChangeSections({
+              dirtyObjectRows,
+              dirtyFieldRows,
+              dirtyTabVisibilityRows,
+              dirtySystemPermissionRows,
+              dirtySetupEntityAccessRows: [
+                { title: CUSTOM_PERMISSIONS_LABEL, itemHeader: CUSTOM_PERMISSION_LABEL, dirtyRows: dirtyCustomPermissionRows },
+              ],
+              profilesById,
+              permissionSetsById,
+            })}
+          />
+        ),
       })
     ) {
       setLoading(true);

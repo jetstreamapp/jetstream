@@ -260,7 +260,15 @@ async function fetchUserProfile(): Promise<UserProfileUi> {
  */
 const userPreferenceState = atomWithLazy<Promise<UserProfilePreferences> | UserProfilePreferences>(getUserPreferences);
 
-export const actionInProgressState = atom<boolean>(false);
+/**
+ * Number of mounted `ConfirmPageChange` instances whose action is in progress. A count rather than a boolean
+ * because more than one can be mounted at once (a page plus a modal on it), and two instances reconciling a
+ * single boolean against their own prop fight each other in an endless render loop.
+ */
+export const actionInProgressCountState = atom<number>(0);
+
+/** True while any action that should block navigation / org switching is in progress */
+export const actionInProgressState = atom<boolean>((get) => get(actionInProgressCountState) > 0);
 
 /**
  * Whether local Data History capture is currently active. Seeded once during app init (each
