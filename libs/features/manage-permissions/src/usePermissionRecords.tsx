@@ -11,6 +11,9 @@ import {
   ObjectPermissionDefinitionMap,
   ObjectPermissionRecord,
   SalesforceOrgUi,
+  SetupEntityAccessDefinitionMap,
+  SetupEntityAccessRecord,
+  SetupEntityAccessType,
   SystemPermissionDefinitionMap,
   TabDefinitionRecord,
   TabVisibilityPermissionDefinitionMap,
@@ -32,6 +35,12 @@ import {
   getQueryTabVisibilityPermissions,
   getSystemPermissionFieldsFromDescribe,
 } from './utils/permission-manager-utils';
+import {
+  SETUP_ENTITY_ACCESS_CATALOGS,
+  SETUP_ENTITY_ACCESS_TYPES,
+  getQuerySetupEntityAccess,
+  getSetupEntityAccessMap,
+} from './utils/setup-entity-access-utils';
 
 /** PermissionSet query result carrying the dynamic `Permissions*` boolean columns. */
 type SystemPermissionSetRecord = { Id: string } & Record<string, boolean | string>;
@@ -56,6 +65,11 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
   const [systemPermissionMap, setSystemPermissionMap] = useState<Record<string, SystemPermissionDefinitionMap> | null>(null);
   const [systemPermissionsUnavailable, setSystemPermissionsUnavailable] = useState(false);
   const [fieldAuditUnavailable, setFieldAuditUnavailable] = useState(false);
+  const [setupEntityAccessPermissionMap, setSetupEntityAccessPermissionMap] = useState<Record<
+    SetupEntityAccessType,
+    Record<string, SetupEntityAccessDefinitionMap>
+  > | null>(null);
+  const [setupEntityAccessUnavailable, setSetupEntityAccessUnavailable] = useState<Partial<Record<SetupEntityAccessType, boolean>>>({});
 
   useEffect(() => {
     isMounted.current = true;
@@ -80,6 +94,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
       setHasError(false);
       setSystemPermissionsUnavailable(false);
       setFieldAuditUnavailable(false);
+      setSetupEntityAccessUnavailable({});
       // Every request below shares this limiter so that a large selection cannot flood Salesforce
       const limit = createConcurrencyLimiter(QUERY_CONCURRENCY);
       // query all data and transform into state maps
@@ -108,6 +123,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
         ),
         querySystemPermissions(limit, selectedOrg, profilePermSetIds, permSetIds, readOnlyPermissionSetIds),
         queryFieldAuditMetadata(limit, selectedOrg, sobjects),
+        querySetupEntityAccess(limit, selectedOrg, profilePermSetIds, permSetIds, readOnlyPermissionSetIds),
       ]).then(
         ([
           fieldPermissionMetadata,
@@ -119,6 +135,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
           tabDefinitions,
           systemPermissions,
           fieldAudit,
+          setupEntityAccess,
         ]) => {
           // Exclude any fields which are not available in the FieldPermissions.Field picklist (meaning that permissions cannot be set on them)
           // They show up as "permissionable" but are not supported for permissioning :shrug:
@@ -165,6 +182,8 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
             systemPermissionMap: systemPermissions.permissionMap,
             systemPermissionsUnavailable: systemPermissions.loadFailed,
             fieldAuditUnavailable: fieldAudit.loadFailed,
+            setupEntityAccessPermissionMap: setupEntityAccess.permissionMaps,
+            setupEntityAccessUnavailable: setupEntityAccess.loadFailed,
           };
         },
       );
@@ -177,6 +196,8 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
         setSystemPermissionMap(output.systemPermissionMap);
         setSystemPermissionsUnavailable(output.systemPermissionsUnavailable);
         setFieldAuditUnavailable(output.fieldAuditUnavailable);
+        setSetupEntityAccessPermissionMap(output.setupEntityAccessPermissionMap);
+        setSetupEntityAccessUnavailable(output.setupEntityAccessUnavailable);
       }
     } catch (ex) {
       logger.warn('[usePermissionRecords][ERROR]', getErrorMessage(ex));
@@ -202,11 +223,14 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
     fieldPermissionMap,
     tabVisibilityPermissionMap,
     systemPermissionMap,
+    setupEntityAccessPermissionMap,
     hasError,
     /** Every other tab loaded, but system permissions could not be read from Salesforce */
     systemPermissionsUnavailable,
     /** Everything else loaded, but the field audit columns have no data because the query failed */
     fieldAuditUnavailable,
+    /** Keyed by setup entity type; true when that type (e.g. custom permissions) could not be read from Salesforce */
+    setupEntityAccessUnavailable,
   };
 }
 
@@ -346,6 +370,62 @@ async function querySystemPermissions(
     tracker.error('[usePermissionRecords][SYSTEM PERMISSIONS][ERROR]', ex, { errorDetail: getTrackableErrorDetail(ex) });
     return { permissionMap: {}, loadFailed: true };
   }
+}
+
+interface SetupEntityAccessResult {
+  permissionMaps: Record<SetupEntityAccessType, Record<string, SetupEntityAccessDefinitionMap>>;
+  loadFailed: Partial<Record<SetupEntityAccessType, boolean>>;
+}
+
+/**
+ * Setup entity access (custom permissions, ...) loads per entity type: the catalog of entities in the org plus the
+ * `SetupEntityAccess` rows for the selected profiles and permission sets. Each type degrades on its own - a user who
+ * cannot read one catalog still gets every other tab - so failures are reported rather than thrown.
+ */
+async function querySetupEntityAccess(
+  limit: ConcurrencyLimiter,
+  selectedOrg: SalesforceOrgUi,
+  profilePermSetIds: string[],
+  permSetIds: string[],
+  readOnlyPermissionSetIds: ReadonlySet<string>,
+): Promise<SetupEntityAccessResult> {
+  const output: SetupEntityAccessResult = {
+    permissionMaps: {} as SetupEntityAccessResult['permissionMaps'],
+    loadFailed: {},
+  };
+  await Promise.all(
+    SETUP_ENTITY_ACCESS_TYPES.map(async (setupEntityType) => {
+      const catalog = SETUP_ENTITY_ACCESS_CATALOGS[setupEntityType];
+      try {
+        const [catalogRecords, accessRecords] = await Promise.all([
+          queryAndCombineResults<unknown>(limit, selectedOrg, [catalog.getCatalogQuery()], catalog.isTooling),
+          queryAndCombineResults<SetupEntityAccessRecord>(
+            limit,
+            selectedOrg,
+            getQuerySetupEntityAccess(setupEntityType, profilePermSetIds, permSetIds),
+          ),
+        ]);
+        output.permissionMaps[setupEntityType] = getSetupEntityAccessMap(
+          setupEntityType,
+          catalogRecords.map(catalog.toCatalogItem),
+          profilePermSetIds,
+          permSetIds,
+          accessRecords,
+          readOnlyPermissionSetIds,
+        );
+      } catch (ex) {
+        // Nothing else fails when this does, so this is the only chance to report it
+        logger.warn(`[usePermissionRecords][${setupEntityType}][ERROR]`, getErrorMessage(ex));
+        tracker.error(`[usePermissionRecords][SETUP ENTITY ACCESS][ERROR]`, ex, {
+          setupEntityType,
+          errorDetail: getTrackableErrorDetail(ex),
+        });
+        output.permissionMaps[setupEntityType] = {};
+        output.loadFailed[setupEntityType] = true;
+      }
+    }),
+  );
+  return output;
 }
 
 /** Audit data is supplemental, so report whether it made it rather than failing the whole load. */

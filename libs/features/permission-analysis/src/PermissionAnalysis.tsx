@@ -30,6 +30,8 @@ export const PermissionAnalysis: FunctionComponent = () => {
   const resetObjectPermissionMap = useResetAtom(fromPermissionsState.objectPermissionMap);
   const resetFieldPermissionMap = useResetAtom(fromPermissionsState.fieldPermissionMap);
   const resetTabVisibilityPermissionMap = useResetAtom(fromPermissionsState.tabVisibilityPermissionMap);
+  const resetSystemPermissionMap = useResetAtom(fromPermissionsState.systemPermissionMap);
+  const resetSetupEntityAccessPermissionMap = useResetAtom(fromPermissionsState.setupEntityAccessPermissionMap);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 
   const selectedProfiles = useAtomValue(fromPermissionsState.selectedProfilesPermSetState);
@@ -54,6 +56,8 @@ export const PermissionAnalysis: FunctionComponent = () => {
       resetObjectPermissionMap();
       resetFieldPermissionMap();
       resetTabVisibilityPermissionMap();
+      resetSystemPermissionMap();
+      resetSetupEntityAccessPermissionMap();
     } else if (!selectedOrg?.uniqueId) {
       resetProfilesState();
       resetSelectedProfilesPermSetState();
@@ -67,6 +71,8 @@ export const PermissionAnalysis: FunctionComponent = () => {
       resetObjectPermissionMap();
       resetFieldPermissionMap();
       resetTabVisibilityPermissionMap();
+      resetSystemPermissionMap();
+      resetSetupEntityAccessPermissionMap();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg, priorSelectedOrg]);

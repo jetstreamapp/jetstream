@@ -4,6 +4,7 @@ import {
   Maybe,
   PermissionTableFieldCell,
   PermissionTableObjectCell,
+  PermissionTableSetupEntityAccessCell,
   PermissionTableSummaryRow,
   PermissionTableSystemPermissionCell,
   PermissionTableTabVisibilityCell,
@@ -43,7 +44,20 @@ type PermissionExportColumn =
   | ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>
   | ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>
   | ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>
-  | ColumnWithFilter<PermissionTableSystemPermissionCell, PermissionTableSummaryRow>;
+  | ColumnWithFilter<PermissionTableSystemPermissionCell, PermissionTableSummaryRow>
+  | ColumnWithFilter<PermissionTableSetupEntityAccessCell, PermissionTableSummaryRow>;
+
+/** One sheet / csv per setup entity type (custom permissions, ...) */
+export interface SetupEntityAccessExportData {
+  /** Sheet name, e.g. "Custom Permissions" */
+  sheetName: string;
+  /** csv file name without extension, e.g. "custom-permissions" */
+  fileName: string;
+  /** Header of the label column, e.g. "Custom Permission" */
+  rowLabel: string;
+  columns: PermissionExportColumn[];
+  rows: PermissionTableSetupEntityAccessCell[];
+}
 
 /**
  * Leading columns of the field permissions export, before the per profile / permission set groups.
@@ -106,6 +120,7 @@ export function generateExcelWorkbookFromTable(
   tabVisibilityData: { columns: PermissionExportColumn[]; rows: PermissionTableTabVisibilityCell[] },
   fieldData: { columns: PermissionExportColumn[]; rows: PermissionTableFieldCell[] },
   systemPermissionData: { columns: PermissionExportColumn[]; rows: PermissionTableSystemPermissionCell[] },
+  setupEntityAccessData: SetupEntityAccessExportData[] = [],
 ) {
   ensureXlsxCodepageTable();
   const workbook = XLSX.utils.book_new();
@@ -118,6 +133,9 @@ export function generateExcelWorkbookFromTable(
   XLSX.utils.book_append_sheet(workbook, tabVisibilityWorksheet, 'Tab Visibility');
   XLSX.utils.book_append_sheet(workbook, fieldWorksheet, 'Field Permissions');
   XLSX.utils.book_append_sheet(workbook, systemPermissionWorksheet, 'System Permissions');
+  setupEntityAccessData.forEach(({ sheetName, rowLabel, columns, rows }) => {
+    XLSX.utils.book_append_sheet(workbook, generateSetupEntityAccessWorksheet(rowLabel, columns, rows), sheetName);
+  });
 
   return excelWorkbookToArrayBuffer(workbook, { bookSST: true, compression: true });
 }
@@ -127,6 +145,7 @@ export async function generateCsvFilesFromTable(
   tabVisibilityData: { columns: PermissionExportColumn[]; rows: PermissionTableTabVisibilityCell[] },
   fieldData: { columns: PermissionExportColumn[]; rows: PermissionTableFieldCell[] },
   systemPermissionData: { columns: PermissionExportColumn[]; rows: PermissionTableSystemPermissionCell[] },
+  setupEntityAccessData: SetupEntityAccessExportData[] = [],
 ) {
   const objectCsv = generateObjectCsv(objectData.columns, objectData.rows);
   const tabVisibilityCsv = generateTabVisibilityCsv(tabVisibilityData.columns, tabVisibilityData.rows);
@@ -139,6 +158,9 @@ export async function generateCsvFilesFromTable(
   csvExports.file('tab-visibility.csv', tabVisibilityCsv);
   csvExports.file('field-permissions.csv', fieldCsv);
   csvExports.file('system-permissions.csv', systemPermissionCsv);
+  setupEntityAccessData.forEach(({ fileName, rowLabel, columns, rows }) => {
+    csvExports.file(`${fileName}.csv`, generateSetupEntityAccessCsv(rowLabel, columns, rows));
+  });
 
   const zipFile = await csvExports.generateAsync({
     type: 'arraybuffer',
@@ -462,4 +484,52 @@ function generateSystemPermissionCsv(columns: PermissionExportColumn[], rows: Pe
   });
 
   return unparse(csvRows, CSV_UNPARSE_OPTIONS);
+}
+
+/**
+ * Setup entity access (custom permissions, ...) has a single value per profile/permission set, so this uses the same
+ * flat shape as the system permission sheet.
+ */
+function getSetupEntityAccessExportRows(rowLabel: string, columns: PermissionExportColumn[], rows: PermissionTableSetupEntityAccessCell[]) {
+  const header: string[] = [rowLabel, 'API Name', 'Namespace', 'Description'];
+  const exportRows = [header];
+
+  const permissionKeys: string[] = [];
+
+  columns
+    .filter((col) => col.key?.endsWith('-enabled'))
+    .forEach((col) => {
+      header.push(col.name as string);
+      permissionKeys.push(col.key.split('-')[0]);
+    });
+
+  rows.forEach((row) => {
+    const currRow = [row.label, row.apiName, row.namespacePrefix || '', row.description || ''];
+    permissionKeys.forEach((key) => {
+      const permission = row.permissions[key];
+      currRow.push(permission.enabled ? 'TRUE' : 'FALSE');
+    });
+    exportRows.push(currRow);
+  });
+
+  return exportRows;
+}
+
+export function generateSetupEntityAccessWorksheet(
+  rowLabel: string,
+  columns: PermissionExportColumn[],
+  rows: PermissionTableSetupEntityAccessCell[],
+) {
+  const excelRows = getSetupEntityAccessExportRows(rowLabel, columns, rows);
+  const worksheet = XLSX.utils.aoa_to_sheet(excelRows, WORKSHEET_OPTIONS);
+  worksheet['!cols'] = getMaxWidthFromColumnContent(excelRows, new Set([0, 1, 2, 3]));
+  return worksheet;
+}
+
+export function generateSetupEntityAccessCsv(
+  rowLabel: string,
+  columns: PermissionExportColumn[],
+  rows: PermissionTableSetupEntityAccessCell[],
+) {
+  return unparse(getSetupEntityAccessExportRows(rowLabel, columns, rows), CSV_UNPARSE_OPTIONS);
 }

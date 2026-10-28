@@ -29,9 +29,9 @@ describe('getQueryForCustomFieldAudit', () => {
     });
   });
 
-  // Unreachable from the editor, which always has at least one object selected. Asserted only to pin the
-  // shape to the sibling query builders, which all emit a single query for an empty selection.
-  it('should not throw on an empty selection', () => {
-    expect(getQueryForCustomFieldAudit([])).toHaveLength(1);
+  // Objects are optional in the editor, so an empty selection must produce no queries rather than one with an
+  // empty IN list (which Salesforce rejects)
+  it('should produce no queries for an empty selection', () => {
+    expect(getQueryForCustomFieldAudit([])).toEqual([]);
   });
 });
