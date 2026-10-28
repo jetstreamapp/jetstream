@@ -19,6 +19,8 @@ import {
   PermissionTableFieldCellPermission,
   PermissionTableObjectCell,
   PermissionTableObjectCellPermission,
+  PermissionTableSetupEntityAccessCell,
+  PermissionTableSetupEntityAccessCellPermission,
   PermissionTableSummaryRow,
   PermissionTableSystemPermissionCell,
   PermissionTableSystemPermissionCellPermission,
@@ -26,6 +28,9 @@ import {
   PermissionTableTabVisibilityCellPermission,
   PermissionType,
   PermissionTypes,
+  SetupEntityAccessDefinitionMap,
+  SetupEntityAccessItem,
+  SetupEntityAccessPermissionTypes,
   SystemPermissionDefinitionMap,
   SystemPermissionItem,
   SystemPermissionTypes,
@@ -76,7 +81,9 @@ type PermissionTypeColumn<T> = T extends 'object'
       ? ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>
       : T extends 'systemPermission'
         ? ColumnWithFilter<PermissionTableSystemPermissionCell, PermissionTableSummaryRow>
-        : never;
+        : T extends 'setupEntityAccess'
+          ? ColumnWithFilter<PermissionTableSetupEntityAccessCell, PermissionTableSummaryRow>
+          : never;
 
 type PermissionActionType<T> = T extends 'object'
   ? 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll' | 'ViewAllFields'
@@ -86,7 +93,9 @@ type PermissionActionType<T> = T extends 'object'
       ? 'Available' | 'Visible'
       : T extends 'systemPermission'
         ? 'Enabled'
-        : never;
+        : T extends 'setupEntityAccess'
+          ? 'Enabled'
+          : never;
 
 type PermissionActionAction<T> = T extends 'object'
   ? ObjectPermissionTypes
@@ -96,7 +105,9 @@ type PermissionActionAction<T> = T extends 'object'
       ? TabVisibilityPermissionTypes
       : T extends 'systemPermission'
         ? SystemPermissionTypes
-        : never;
+        : T extends 'setupEntityAccess'
+          ? SetupEntityAccessPermissionTypes
+          : never;
 
 /**
  * True when the permission is View All / Modify All on an object that does not support it. Every path
@@ -214,6 +225,24 @@ function setSystemPermissionValue(
   return newRow;
 }
 
+function setSetupEntityAccessValue(
+  which: SetupEntityAccessPermissionTypes,
+  row: PermissionTableSetupEntityAccessCell,
+  permissionId: string,
+  value: boolean,
+) {
+  if (isReadOnlyPermission(row, permissionId)) {
+    return row;
+  }
+  const newRow = { ...row, permissions: { ...row.permissions, [permissionId]: { ...row.permissions[permissionId] } } };
+  const permission = newRow.permissions[permissionId];
+  if (which === 'enabled') {
+    permission.enabled = value;
+    setSetupEntityAccessDependencies(permission);
+  }
+  return newRow;
+}
+
 /**
  * Set dependent fields based on what selections are made
  */
@@ -276,6 +305,11 @@ function setSystemPermissionDependencies(permission: PermissionTableSystemPermis
   permission.enabledIsDirty = permission.enabled !== permission.record.enabled;
 }
 
+// Access to a setup entity is a single on/off value with no dependencies between rows or cells
+function setSetupEntityAccessDependencies(permission: PermissionTableSetupEntityAccessCellPermission) {
+  permission.enabledIsDirty = permission.enabled !== permission.record.enabled;
+}
+
 // export function resetGridChanges(options: {
 //   rows: PermissionTableFieldCell[] | PermissionTableObjectCell[] | PermissionTableTabVisibilityCell[];
 //   type: PermissionType;
@@ -288,7 +322,8 @@ export function resetGridChanges({
   | { rows: PermissionTableObjectCell[]; type: 'object' }
   | { rows: PermissionTableFieldCell[]; type: 'field' }
   | { rows: PermissionTableTabVisibilityCell[]; type: 'tabVisibility' }
-  | { rows: PermissionTableSystemPermissionCell[]; type: 'systemPermission' }) {
+  | { rows: PermissionTableSystemPermissionCell[]; type: 'systemPermission' }
+  | { rows: PermissionTableSetupEntityAccessCell[]; type: 'setupEntityAccess' }) {
   if (type === 'object') {
     return rows.map((row) => {
       row = { ...row };
@@ -351,7 +386,7 @@ export function resetGridChanges({
       });
       return row;
     });
-  } else if (type === 'systemPermission') {
+  } else if (type === 'systemPermission' || type === 'setupEntityAccess') {
     return rows.map((row) => {
       Object.keys(row.permissions).forEach((permissionKey) => {
         let permission = row.permissions[permissionKey];
@@ -402,6 +437,12 @@ export function getDirtyTabVisibilityPermissions(dirtyRows: Record<string, Dirty
 }
 
 export function getDirtySystemPermissions(dirtyRows: Record<string, DirtyRow<PermissionTableSystemPermissionCell>>) {
+  return Object.values(dirtyRows).flatMap(({ row }) =>
+    Object.values(row.permissions).filter((permission) => !permission.isReadOnly && permission.enabledIsDirty),
+  );
+}
+
+export function getDirtySetupEntityAccessPermissions(dirtyRows: Record<string, DirtyRow<PermissionTableSetupEntityAccessCell>>) {
   return Object.values(dirtyRows).flatMap(({ row }) =>
     Object.values(row.permissions).filter((permission) => !permission.isReadOnly && permission.enabledIsDirty),
   );
@@ -728,7 +769,8 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
   /** Managed-package permission set - the whole column group is read-only. */
   isReadOnly: boolean;
 }): PermissionTypeColumn<T> {
-  const numItems = permissionType === 'object' ? 7 : permissionType === 'systemPermission' ? 1 : 2;
+  const numItems =
+    permissionType === 'object' ? 7 : permissionType === 'systemPermission' || permissionType === 'setupEntityAccess' ? 1 : 2;
   const maxLabelWidth = Math.max((actionType.length + 3) * 7.5, 116);
   const profileOrPermSetWidth = (`${label} (${type})`.length * 7.5) / numItems;
   const colWidth = Math.max(maxLabelWidth, profileOrPermSetWidth);
@@ -802,8 +844,10 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
         if ((actionKey === 'available' && permission.availableIsDirty) || (actionKey === 'visible' && permission.visibleIsDirty)) {
           return 'active-item-yellow-bg';
         }
-      } else if (permissionType === 'systemPermission') {
-        const permission = row.permissions[id] as PermissionTableSystemPermissionCellPermission;
+      } else if (permissionType === 'systemPermission' || permissionType === 'setupEntityAccess') {
+        const permission = row.permissions[id] as
+          | PermissionTableSystemPermissionCellPermission
+          | PermissionTableSetupEntityAccessCellPermission;
         if (permission.enabledIsDirty) {
           return 'active-item-yellow-bg';
         }
@@ -857,6 +901,14 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
           const newRow = setSystemPermissionValue(
             actionKey as PermissionActionAction<'systemPermission'>,
             row as PermissionTableSystemPermissionCell,
+            id,
+            value,
+          );
+          commitEdit(newRow);
+        } else if (permissionType === 'setupEntityAccess') {
+          const newRow = setSetupEntityAccessValue(
+            actionKey as PermissionActionAction<'setupEntityAccess'>,
+            row as PermissionTableSetupEntityAccessCell,
             id,
             value,
           );
@@ -1410,6 +1462,170 @@ export function updateSystemPermissionRowsAfterSave(
   });
 }
 
+export function getSetupEntityAccessColumns(
+  rowLabel: string,
+  selectedProfiles: string[],
+  selectedPermissionSets: string[],
+  profilesById: Record<string, PermissionSetWithProfileRecord>,
+  permissionSetsById: Record<string, PermissionSetNoProfileRecord>,
+  readOnlyPermissionSetIds: ReadonlySet<string>,
+) {
+  const newColumns: ColumnWithFilter<PermissionTableSetupEntityAccessCell, PermissionTableSummaryRow>[] = [
+    {
+      ...(setColumnFromType('tableLabel', 'text') as any),
+      name: rowLabel,
+      key: 'tableLabel',
+      frozen: true,
+      width: 300,
+      resizable: true,
+      renderCell: ({ row }) => {
+        return (
+          <div className="slds-grid slds-grid_vertical-align-center slds-truncate" title={row.tableLabel}>
+            <span className="slds-truncate">{row.tableLabel}</span>
+            {row.description && (
+              <Tooltip id={`tooltip-description-${row.key}`} content={row.description}>
+                <Icon type="utility" icon="info" className="slds-icon slds-icon-text-default slds-icon_xx-small slds-m-left_xx-small" />
+              </Tooltip>
+            )}
+          </div>
+        );
+      },
+      summaryCellClass: 'bg-color-gray-dark no-outline',
+      renderSummaryCell: ({ row }) => {
+        if (row.type === 'HEADING') {
+          return <ColumnSearchFilterSummary />;
+        } else if (row.type === 'ACTION') {
+          return <ColumnSearchFilter />;
+        }
+        return undefined;
+      },
+    },
+    {
+      name: '',
+      key: '_ROW_ACTION',
+      width: 100,
+      resizable: false,
+      frozen: true,
+      renderCell: RowActionRenderer as any,
+      summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
+      renderSummaryCell: ({ row }) => {
+        if (row.type === 'ACTION') {
+          return <BulkActionRenderer />;
+        }
+        return undefined;
+      },
+    },
+  ];
+  // one checkbox column per profile, then per permission set
+  selectedProfiles.forEach((profileId) => {
+    const profile = profilesById[profileId];
+    newColumns.push(
+      getColumnForProfileOrPermSet({
+        isFirstItem: true,
+        permissionType: 'setupEntityAccess',
+        id: profileId,
+        type: 'Profile',
+        label: profile?.Profile?.Name || '',
+        actionType: 'Enabled',
+        actionKey: 'enabled',
+        isReadOnly: false,
+      }),
+    );
+  });
+  selectedPermissionSets.forEach((permissionSetId) => {
+    const permissionSet = permissionSetsById[permissionSetId];
+    newColumns.push(
+      getColumnForProfileOrPermSet({
+        isFirstItem: true,
+        permissionType: 'setupEntityAccess',
+        id: permissionSetId,
+        type: 'Permission Set',
+        label: permissionSet?.Name || '',
+        actionType: 'Enabled',
+        actionKey: 'enabled',
+        isReadOnly: readOnlyPermissionSetIds.has(permissionSetId),
+      }),
+    );
+  });
+  return newColumns;
+}
+
+/** Rows are ordered by label, with entities from managed packages after the org's own */
+export function getSetupEntityAccessRows(permissionMap: Record<string, SetupEntityAccessDefinitionMap>) {
+  const rows: PermissionTableSetupEntityAccessCell[] = [];
+  Object.values(permissionMap)
+    .sort((a, b) => {
+      if (!!a.namespacePrefix !== !!b.namespacePrefix) {
+        return a.namespacePrefix ? 1 : -1;
+      }
+      return a.label.localeCompare(b.label) || a.apiName.localeCompare(b.apiName);
+    })
+    .forEach((definition) => {
+      const currRow: PermissionTableSetupEntityAccessCell = {
+        key: definition.setupEntityId,
+        sobject: definition.apiName,
+        apiName: definition.apiName,
+        label: definition.label,
+        tableLabel: `${definition.label} (${definition.apiName})`,
+        setupEntityType: definition.setupEntityType,
+        setupEntityId: definition.setupEntityId,
+        namespacePrefix: definition.namespacePrefix,
+        description: definition.description,
+        permissions: {},
+      };
+
+      definition.permissionKeys.forEach((key) => {
+        const item = definition.permissions[key];
+        currRow.permissions[key] = getRowSetupEntityAccessFromItem(key, definition, item);
+      });
+
+      rows.push(currRow);
+    });
+  return rows;
+}
+
+function getRowSetupEntityAccessFromItem(
+  key: string,
+  definition: Pick<SetupEntityAccessDefinitionMap, 'setupEntityType' | 'setupEntityId' | 'apiName'>,
+  item: SetupEntityAccessItem,
+): PermissionTableSetupEntityAccessCellPermission {
+  return {
+    rowKey: definition.setupEntityId,
+    parentId: key,
+    sobject: definition.apiName,
+    setupEntityType: definition.setupEntityType,
+    setupEntityId: definition.setupEntityId,
+    enabled: item.enabled,
+    enabledIsDirty: false,
+    record: item,
+    errorMessage: item.errorMessage,
+    isReadOnly: item.isReadOnly,
+  };
+}
+
+export function updateSetupEntityAccessRowsAfterSave(
+  rows: PermissionTableSetupEntityAccessCell[],
+  permissionMap: Record<string, SetupEntityAccessDefinitionMap>,
+): PermissionTableSetupEntityAccessCell[] {
+  return rows.map((oldRow) => {
+    const row = { ...oldRow };
+    const definition = permissionMap[row.key];
+    if (!definition) {
+      return row;
+    }
+    row.permissions = { ...row.permissions };
+    definition.permissionKeys.forEach((key) => {
+      const item = definition.permissions[key];
+      if (item.errorMessage) {
+        row.permissions[key] = { ...row.permissions[key], errorMessage: item.errorMessage };
+      } else {
+        row.permissions[key] = getRowSetupEntityAccessFromItem(key, definition, item);
+      }
+    });
+    return row;
+  });
+}
+
 /**
  * Apply Salesforce's system-permission dependency rules across rows within each column
  * (profile/permission set). System permissions live on separate rows but depend on one another, so a
@@ -1489,6 +1705,8 @@ export function getConfirmationModalContent(
   dirtyFieldCount: number,
   dirtyTabVisibilityCount: number,
   dirtySystemPermissionCount: number,
+  /** One entry per setup entity access tab, e.g. `{ label: 'Custom Permission', count: 3 }` */
+  dirtySetupEntityAccessCounts: { label: string; count: number }[] = [],
 ) {
   return (
     <div>
@@ -1527,6 +1745,14 @@ export function getConfirmationModalContent(
               </strong>
             ),
           },
+          ...dirtySetupEntityAccessCounts.map(({ label, count }) => ({
+            dirty: !!count,
+            jsx: (
+              <strong>
+                {count} {label} {pluralizeFromNumber('Assignment', count)}
+              </strong>
+            ),
+          })),
         ]
           .filter(({ dirty }) => dirty)
           .map(({ jsx }, i) => (
@@ -1621,6 +1847,13 @@ export function updateRowsFromColumnAction<TRows extends PermissionTableCellExte
         permission.enabled = newValue;
         setSystemPermissionDependencies(permission);
       }
+    } else if (type === 'setupEntityAccess') {
+      const permission = row.permissions[id] as PermissionTableSetupEntityAccessCellPermission;
+      if (which === 'enabled') {
+        newValue = action === 'reset' ? permission.record.enabled : newValue;
+        permission.enabled = newValue;
+        setSetupEntityAccessDependencies(permission);
+      }
     }
     return row;
   });
@@ -1675,8 +1908,10 @@ export function updateRowsFromRowAction<TRows extends PermissionTableCellExtende
 
         permission.availableIsDirty = permission.available !== permission.record.available;
         permission.visibleIsDirty = permission.visible !== permission.record.visible;
-      } else if (type === 'systemPermission') {
-        const permission = row.permissions[permissionId] as PermissionTableSystemPermissionCellPermission;
+      } else if (type === 'systemPermission' || type === 'setupEntityAccess') {
+        const permission = row.permissions[permissionId] as
+          | PermissionTableSystemPermissionCellPermission
+          | PermissionTableSetupEntityAccessCellPermission;
         permission.enabled = checkboxesById['enabled'].value;
         permission.enabledIsDirty = permission.enabled !== permission.record.enabled;
       }
@@ -1749,8 +1984,10 @@ export function resetRow<TRows extends PermissionTableCellExtended>(type: Permis
 
         permission.availableIsDirty = false;
         permission.visibleIsDirty = false;
-      } else if (type === 'systemPermission') {
-        const permission = row.permissions[permissionId] as PermissionTableSystemPermissionCellPermission;
+      } else if (type === 'systemPermission' || type === 'setupEntityAccess') {
+        const permission = row.permissions[permissionId] as
+          | PermissionTableSystemPermissionCellPermission
+          | PermissionTableSetupEntityAccessCellPermission;
         if (permission.enabledIsDirty) {
           permission.enabled = !permission.enabled;
         }
@@ -1848,6 +2085,8 @@ export function applyPastedPermissionCells<T extends PermissionTableCellExtended
       ) as unknown as T;
     } else if (permissionType === 'systemPermission') {
       updatedRows[rowIndex] = setSystemPermissionValue('enabled', row as any, permissionId, newValue) as unknown as T;
+    } else if (permissionType === 'setupEntityAccess') {
+      updatedRows[rowIndex] = setSetupEntityAccessValue('enabled', row as any, permissionId, newValue) as unknown as T;
     }
   });
   return updatedRows;
@@ -1881,7 +2120,7 @@ function defaultRowActionCheckboxes(type: PermissionType, row?: PermissionTableC
       { id: 'available', label: 'Available', value: false, disabled: false },
       { id: 'visible', label: 'Visible', value: false, disabled: false },
     ];
-  } else if (type === 'systemPermission') {
+  } else if (type === 'systemPermission' || type === 'setupEntityAccess') {
     return [{ id: 'enabled', label: 'Enabled', value: false, disabled: false }];
   } else {
     throw new Error(`Invalid type ${type}`);
@@ -1967,7 +2206,7 @@ export function updateCheckboxDependencies(
         checkboxesById['available'].value = true;
       }
     }
-  } else if (type === 'systemPermission') {
+  } else if (type === 'systemPermission' || type === 'setupEntityAccess') {
     if (which === 'enabled') {
       checkboxesById['enabled'] = { ...checkboxesById['enabled'], value };
     }
@@ -2008,7 +2247,7 @@ export const RowActionRenderer = ({ commitEdit, row }: RenderCellProps<Permissio
       setCheckboxes([checkboxesById['read'], checkboxesById['edit']]);
     } else if (type === 'tabVisibility') {
       setCheckboxes([checkboxesById['available'], checkboxesById['visible']]);
-    } else if (type === 'systemPermission') {
+    } else if (type === 'systemPermission' || type === 'setupEntityAccess') {
       setCheckboxes([checkboxesById['enabled']]);
     }
   }
@@ -2133,14 +2372,29 @@ export const ColumnSearchFilter = () => {
   );
 };
 
+const DEFAULT_ROW_LABELS: Record<PermissionType, { singular: string; plural: string }> = {
+  object: { singular: 'object', plural: 'objects' },
+  field: { singular: 'field', plural: 'fields' },
+  tabVisibility: { singular: 'tab', plural: 'tabs' },
+  systemPermission: { singular: 'system permission', plural: 'system permissions' },
+  setupEntityAccess: { singular: 'item', plural: 'items' },
+};
+
+/** What a row is called in the summary and bulk edit copy, e.g. "Showing 3 of 10 custom permissions" */
+function getRowLabel({ type, rowLabel }: PermissionManagerTableContext, count: number): string {
+  const labels = rowLabel || DEFAULT_ROW_LABELS[type];
+  return count === 1 ? labels.singular : labels.plural;
+}
+
 export const ColumnSearchFilterSummary = () => {
-  const { type, rows, totalCount } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
+  const context = useContext(DataTableGenericContext) as PermissionManagerTableContext;
+  const { rows, totalCount } = context;
   if (!Array.isArray(rows) || !totalCount || rows.length === totalCount) {
     return null;
   }
   return (
     <p className="slds-text-body_small slds-text-color_weak">
-      Showing {formatNumber(rows.length)} of {formatNumber(totalCount)} {pluralizeFromNumber(type, totalCount)}
+      Showing {formatNumber(rows.length)} of {formatNumber(totalCount)} {getRowLabel(context, totalCount)}
     </p>
   );
 };
@@ -2151,7 +2405,8 @@ export const ColumnSearchFilterSummary = () => {
  * This component provides a modal that the user can open to make changes that apply to an entire visible table
  */
 export const BulkActionRenderer = () => {
-  const { type, rows, onBulkAction } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
+  const context = useContext(DataTableGenericContext) as PermissionManagerTableContext;
+  const { type, rows, onBulkAction } = context;
   const [isOpen, setIsOpen] = useState(false);
   const [checkboxes, setCheckboxes] = useState(() => defaultRowActionCheckboxes(type));
 
@@ -2180,7 +2435,7 @@ export const BulkActionRenderer = () => {
       setCheckboxes([checkboxesById['read'], checkboxesById['edit']]);
     } else if (type === 'tabVisibility') {
       setCheckboxes([checkboxesById['available'], checkboxesById['visible']]);
-    } else if (type === 'systemPermission') {
+    } else if (type === 'systemPermission' || type === 'setupEntityAccess') {
       setCheckboxes([checkboxesById['enabled']]);
     }
   }
@@ -2224,7 +2479,7 @@ export const BulkActionRenderer = () => {
             <p className="slds-text-align_center slds-m-bottom_small">
               This change will apply to{' '}
               <strong>
-                {formatNumber(rowCount)} {pluralizeFromNumber(type, rowCount)}
+                {formatNumber(rowCount)} {getRowLabel(context, rowCount)}
               </strong>{' '}
               and all selected profiles and permission sets
             </p>
