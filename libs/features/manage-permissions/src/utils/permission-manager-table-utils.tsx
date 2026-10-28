@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { ensureBoolean, groupByFlat, orderValues, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { ensureBoolean, groupByFlat, orderValues } from '@jetstream/shared/utils';
 import type { ContextMenuItem } from '@jetstream/types';
 import {
   BulkActionCheckbox,
@@ -1699,69 +1699,6 @@ export function applySystemPermissionDependencies(
  * JSX Components
  *
  */
-
-export function getConfirmationModalContent(
-  dirtyObjectCount: number,
-  dirtyFieldCount: number,
-  dirtyTabVisibilityCount: number,
-  dirtySystemPermissionCount: number,
-  /** One entry per setup entity access tab, e.g. `{ label: 'Custom Permission', count: 3 }` */
-  dirtySetupEntityAccessCounts: { label: string; count: number }[] = [],
-) {
-  return (
-    <div>
-      <p>You have made changes to:</p>
-      <ul>
-        {[
-          {
-            dirty: !!dirtyObjectCount,
-            jsx: (
-              <strong>
-                {dirtyObjectCount} Object {pluralizeFromNumber('Permission', dirtyObjectCount)}
-              </strong>
-            ),
-          },
-          {
-            dirty: !!dirtyFieldCount,
-            jsx: (
-              <strong>
-                {dirtyFieldCount} Field {pluralizeFromNumber('Permission', dirtyFieldCount)}
-              </strong>
-            ),
-          },
-          {
-            dirty: !!dirtyTabVisibilityCount,
-            jsx: (
-              <strong>
-                {dirtyTabVisibilityCount} Tab Visibility {pluralizeFromNumber('Permission', dirtyTabVisibilityCount)}
-              </strong>
-            ),
-          },
-          {
-            dirty: !!dirtySystemPermissionCount,
-            jsx: (
-              <strong>
-                {dirtySystemPermissionCount} System {pluralizeFromNumber('Permission', dirtySystemPermissionCount)}
-              </strong>
-            ),
-          },
-          ...dirtySetupEntityAccessCounts.map(({ label, count }) => ({
-            dirty: !!count,
-            jsx: (
-              <strong>
-                {count} {label} {pluralizeFromNumber('Assignment', count)}
-              </strong>
-            ),
-          })),
-        ]
-          .filter(({ dirty }) => dirty)
-          .map(({ jsx }, i) => (
-            <li key={i}>{jsx}</li>
-          ))}
-      </ul>
-    </div>
-  );
-}
 
 /**
  * Performs bulk action against a column

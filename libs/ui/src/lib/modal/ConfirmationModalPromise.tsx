@@ -2,7 +2,8 @@ import { Fragment, FunctionComponent } from 'react';
 import { create, InstanceProps } from 'react-modal-promise';
 import Modal, { ModalProps } from './Modal';
 
-type CommonModalProps = Pick<ModalProps, 'header' | 'tagline' | 'closeOnEsc' | 'closeOnBackdropClick'> & InstanceProps<boolean, never>;
+type CommonModalProps = Pick<ModalProps, 'header' | 'tagline' | 'closeOnEsc' | 'closeOnBackdropClick' | 'size'> &
+  InstanceProps<boolean, never>;
 
 export interface ConfirmationModalProps extends CommonModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ const ConfirmationModal: FunctionComponent<ConfirmationModalProps> = ({
   cancel = 'Cancel',
   closeOnEsc = true,
   closeOnBackdropClick = true,
+  size,
   onResolve,
 }) => {
   if (!isOpen) {
@@ -33,6 +35,7 @@ const ConfirmationModal: FunctionComponent<ConfirmationModalProps> = ({
       tagline={tagline}
       closeOnEsc={closeOnEsc}
       closeOnBackdropClick={closeOnBackdropClick}
+      size={size}
       footer={
         <Fragment>
           <button className="slds-button slds-button_neutral" onClick={() => onResolve(false)}>
