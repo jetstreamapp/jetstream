@@ -47,7 +47,7 @@ const PermissionChangeSectionTable: FunctionComponent<{ section: PermissionChang
       <h3 className="slds-text-heading_small slds-m-bottom_x-small">
         {title} <span className="slds-text-color_weak slds-text-body_regular">({formatNumber(changes.length)})</span>
       </h3>
-      <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout slds-table_header-fixed_container">
+      <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout">
         <thead>
           <tr className="slds-line-height_reset">
             <th scope="col" className="slds-cell-wrap">
