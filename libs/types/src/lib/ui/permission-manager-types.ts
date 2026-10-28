@@ -4,17 +4,32 @@ import {
   ObjectPermissionRecord,
   RecordAttributes,
   RecordResult,
+  SetupEntityAccessRecord,
   TabVisibilityPermissionRecord,
 } from '../salesforce/record.types';
 import { Maybe } from '../types';
 
-export type PermissionType = 'object' | 'field' | 'tabVisibility' | 'systemPermission';
+export type PermissionType = 'object' | 'field' | 'tabVisibility' | 'systemPermission' | 'setupEntityAccess';
 export type ObjectPermissionTypes = 'create' | 'read' | 'edit' | 'delete' | 'viewAll' | 'modifyAll' | 'viewAllFields';
 export type FieldPermissionTypes = 'read' | 'edit';
 export type TabVisibilityPermissionTypes = 'available' | 'visible';
 export type SystemPermissionTypes = 'enabled';
+export type SetupEntityAccessPermissionTypes = 'enabled';
 
-export type PermissionTypes = ObjectPermissionTypes | FieldPermissionTypes | TabVisibilityPermissionTypes | SystemPermissionTypes;
+export type PermissionTypes =
+  | ObjectPermissionTypes
+  | FieldPermissionTypes
+  | TabVisibilityPermissionTypes
+  | SystemPermissionTypes
+  | SetupEntityAccessPermissionTypes;
+
+/**
+ * Setup entities whose access is granted to a profile or permission set through a `SetupEntityAccess` row.
+ * Salesforce uses the same row shape for every type (`SetupEntityType` picklist on the object), so one tab
+ * implementation covers all of them - each type only needs its own catalog query. Only custom permissions are
+ * wired up today; Apex classes, Visualforce pages, apps, flows and custom metadata types are the natural next ones.
+ */
+export type SetupEntityAccessType = 'CustomPermission';
 
 export type BulkActionCheckbox = {
   id: PermissionTypes;
@@ -27,7 +42,8 @@ export type PermissionDefinitionMap =
   | ObjectPermissionDefinitionMap
   | FieldPermissionDefinitionMap
   | TabVisibilityPermissionDefinitionMap
-  | SystemPermissionDefinitionMap;
+  | SystemPermissionDefinitionMap
+  | SetupEntityAccessDefinitionMap;
 
 export interface ObjectPermissionDefinitionMap {
   apiName: string;
@@ -143,6 +159,36 @@ export interface SystemPermissionItem {
   isReadOnly: boolean;
 }
 
+/**
+ * One row per setup entity (e.g. one custom permission), with the access state for every selected
+ * profile and permission set. Keyed in the map by `setupEntityId`.
+ */
+export interface SetupEntityAccessDefinitionMap {
+  setupEntityType: SetupEntityAccessType;
+  /** Id of the setup entity record, e.g. the `CustomPermission.Id`. This is `SetupEntityAccess.SetupEntityId`. */
+  setupEntityId: string;
+  /** Fully qualified API name, including the namespace prefix when the entity comes from a package */
+  apiName: string;
+  label: string;
+  namespacePrefix?: Maybe<string>;
+  description?: Maybe<string>;
+  // used to retain order of permissions
+  permissionKeys: string[]; // this is permission set ids, which could apply to profile or perm set
+  permissions: Record<string, SetupEntityAccessItem>;
+}
+
+export interface SetupEntityAccessItem {
+  /** True when a `SetupEntityAccess` row exists for this parent */
+  enabled: boolean;
+  record?: Maybe<SetupEntityAccessRecord>;
+  errorMessage?: Maybe<string>;
+  /**
+   * True for permission sets installed from a managed package. Salesforce rejects any change to them, so
+   * every edit path treats these as read-only and they are never included in a save.
+   */
+  isReadOnly: boolean;
+}
+
 export interface ObjectPermissionRecordForSave extends Omit<ObjectPermissionRecord, 'Id' | 'Parent'> {
   attributes: Partial<RecordAttributes>;
   Id?: Maybe<string>;
@@ -158,6 +204,15 @@ export interface TabVisibilityPermissionRecordForSave extends Pick<TabVisibility
   Id?: string;
   Name?: string;
   ParentId?: string;
+}
+
+/**
+ * `SetupEntityAccess` has no updateable fields: access is granted by inserting a row and revoked by deleting it.
+ */
+export interface SetupEntityAccessRecordForSave {
+  attributes: Partial<RecordAttributes>;
+  ParentId: string;
+  SetupEntityId: string;
 }
 
 /**
@@ -193,7 +248,8 @@ export type PermissionTableCellExtended =
   | PermissionTableObjectCell
   | PermissionTableFieldCell
   | PermissionTableTabVisibilityCell
-  | PermissionTableSystemPermissionCell;
+  | PermissionTableSystemPermissionCell
+  | PermissionTableSetupEntityAccessCell;
 
 export interface PermissionTableObjectCell extends PermissionTableCell<PermissionTableObjectCellPermission> {
   allowEditPermission: boolean; // TODO: what other permissions may be restricted here??
@@ -218,12 +274,19 @@ export interface PermissionTableTabVisibilityCell extends PermissionTableCell<Pe
 
 export interface PermissionTableSystemPermissionCell extends PermissionTableCell<PermissionTableSystemPermissionCellPermission> {}
 
+export interface PermissionTableSetupEntityAccessCell extends PermissionTableCell<PermissionTableSetupEntityAccessCellPermission> {
+  setupEntityType: SetupEntityAccessType;
+  setupEntityId: string;
+  namespacePrefix?: Maybe<string>;
+  description?: Maybe<string>;
+}
+
 export interface PermissionTableSummaryRow {
   type: 'HEADING' | 'ACTION';
 }
 
 export interface PermissionTableObjectCellPermissionBase<
-  T = ObjectPermissionItem | FieldPermissionItem | TabVisibilityPermissionItem | SystemPermissionItem,
+  T = ObjectPermissionItem | FieldPermissionItem | TabVisibilityPermissionItem | SystemPermissionItem | SetupEntityAccessItem,
 > {
   rowKey: string;
   parentId: string; // permissions set (placeholder profile or permission set Id)
@@ -275,11 +338,19 @@ export interface PermissionTableSystemPermissionCellPermission extends Permissio
   enabledIsDirty: boolean;
 }
 
+export interface PermissionTableSetupEntityAccessCellPermission extends PermissionTableObjectCellPermissionBase<SetupEntityAccessItem> {
+  setupEntityType: SetupEntityAccessType;
+  setupEntityId: string;
+  enabled: boolean;
+  enabledIsDirty: boolean;
+}
+
 export type PermissionTableCellPermission =
   | PermissionTableObjectCellPermission
   | PermissionTableFieldCellPermission
   | PermissionTableTabVisibilityCellPermission
-  | PermissionTableSystemPermissionCellPermission;
+  | PermissionTableSystemPermissionCellPermission
+  | PermissionTableSetupEntityAccessCellPermission;
 
 export interface ManagePermissionsEditorTableProps {
   fieldsByObject: Record<string, string[]>;
@@ -316,6 +387,14 @@ export interface PermissionTabVisibilitySaveData {
   recordsToDelete: string[];
 }
 
+export interface PermissionSetupEntityAccessSaveData {
+  permissionSaveResults: PermissionSaveResults<SetupEntityAccessRecordForSave, PermissionTableSetupEntityAccessCellPermission>[];
+  recordsToInsert: SetupEntityAccessRecordForSave[];
+  /** Never populated - `SetupEntityAccess` cannot be updated - but kept so `savePermissionRecords` can stay generic */
+  recordsToUpdate: SetupEntityAccessRecordForSave[];
+  recordsToDelete: string[];
+}
+
 /**
  * One PermissionSet update per parent (permission set id) carrying every changed `Permissions*` field,
  * plus the dirty cells that produced it so save errors/results can be attributed back to each cell.
@@ -339,6 +418,11 @@ export interface PermissionSystemSaveData {
 
 export interface PermissionManagerTableContext {
   type: PermissionType;
+  /**
+   * What a row is called in the "Showing n of m ..." summary and the bulk edit modal. Falls back to a label derived
+   * from `type` when omitted; the setup entity access table sets it because one `type` covers many entity kinds.
+   */
+  rowLabel?: { singular: string; plural: string };
   rows: PermissionTableCellExtended[];
   totalCount: number;
   filterValue?: string;

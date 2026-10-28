@@ -279,6 +279,27 @@ export interface TabVisibilityPermissionRecord {
   Parent: PermissionPermissionSetRecord;
 }
 
+/**
+ * Grants a profile or permission set access to a setup entity (Apex class, custom permission, ...).
+ * Rows can only be inserted and deleted.
+ */
+export interface SetupEntityAccessRecord {
+  Id: string;
+  ParentId: string;
+  SetupEntityId: string;
+  SetupEntityType?: string;
+}
+
+export interface CustomPermissionRecord {
+  Id: string;
+  DeveloperName: string;
+  MasterLabel: string;
+  NamespacePrefix: string | null;
+  Description: string | null;
+  IsLicensed: boolean;
+  IsProtected: boolean;
+}
+
 export interface TabDefinitionRecord {
   Id: string;
   Name: string;

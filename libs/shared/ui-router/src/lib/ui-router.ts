@@ -136,7 +136,7 @@ export const APP_ROUTES: RouteMap = {
     ...getRoutePath('/permissions-manager'),
     DOCS: 'https://docs.getjetstream.app/permissions',
     TITLE: 'Manage Permissions',
-    DESCRIPTION: 'View and update object and field permissions',
+    DESCRIPTION: 'View and update object, field, tab, system and custom permissions',
   },
   PERMISSION_ANALYSIS: {
     ...getRoutePath('/permission-analysis'),

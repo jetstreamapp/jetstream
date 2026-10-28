@@ -139,6 +139,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   const resetFieldPermissionMap = useResetAtom(fromPermissionsState.fieldPermissionMap);
   const resetTabVisibilityPermissionMap = useResetAtom(fromPermissionsState.tabVisibilityPermissionMap);
   const resetSystemPermissionMap = useResetAtom(fromPermissionsState.systemPermissionMap);
+  const resetSetupEntityAccessPermissionMap = useResetAtom(fromPermissionsState.setupEntityAccessPermissionMap);
 
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [createPermissionSetStartFrom, setCreatePermissionSetStartFrom] = useState<CreatePermissionSetStartFrom | null>(null);
@@ -211,6 +212,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
     resetFieldPermissionMap();
     resetTabVisibilityPermissionMap();
     resetSystemPermissionMap();
+    resetSetupEntityAccessPermissionMap();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProfiles, selectedPermissionSets, selectedSObjects]);
 
@@ -404,7 +406,15 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
                 object and field permission rows to specific types.
               </span>
             )}
-            {!isAnalysis && !hasSelectionsMade && <span>Select one or more profiles or permission sets and one or more objects</span>}
+            {!isAnalysis && !hasSelectionsMade && (
+              <span>Select one or more profiles or permission sets, and the objects whose permissions you want to manage</span>
+            )}
+            {!isAnalysis && hasSelectionsMade && selectedSObjects.length === 0 && (
+              <span className="slds-text-color_weak">
+                No objects selected. You can continue to manage system permissions and custom permissions, or select objects to also manage
+                object, tab and field permissions.
+              </span>
+            )}
             {isAnalysis && continueEnabled && selectedSObjects.length === 0 && (
               <span className="slds-text-color_weak">
                 Ready to continue. Objects are optional: with none selected, the job loads all object and field permission rows for your

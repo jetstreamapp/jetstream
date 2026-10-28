@@ -316,7 +316,7 @@ export function prepareTabVisibilityPermissionSaveData(
 
 export async function savePermissionRecords<RecordType, DirtyPermType>(
   org: SalesforceOrgUi,
-  type: 'ObjectPermissions' | 'FieldPermissions' | 'PermissionSetTabSetting',
+  type: 'ObjectPermissions' | 'FieldPermissions' | 'PermissionSetTabSetting' | 'SetupEntityAccess',
   preparedData: {
     permissionSaveResults: PermissionSaveResults<RecordType, DirtyPermType>[];
     recordsToInsert: RecordType[];
@@ -825,6 +825,10 @@ export function filterPermissionRows<T extends PermissionTableCellExtended>(
  * Splits the selected objects into groups that can each be fetched with one cursor-paged EntityParticle query.
  */
 export function getPermissionableFieldObjectChunks(allSobjects: string[]): string[][] {
+  // Objects are optional in the editor; `splitArrayToMaxSize` would otherwise yield one empty chunk and an invalid query
+  if (!allSobjects.length) {
+    return [];
+  }
   return splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_PERMISSIONABLE_FIELDS_QUERY);
 }
 
@@ -921,6 +925,9 @@ function joinConditionsWithAnd(conditions: Condition[]): WhereClause {
  * @returns query object permissions
  */
 export function getQueryObjectPermissions(allSobjects: string[], permSetIds: string[], profilePermSetIds: string[]): string[] {
+  if (!allSobjects.length) {
+    return [];
+  }
   const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY).map((sobjects) => {
     const query: Query = {
       fields: [
@@ -961,6 +968,9 @@ export function getQueryObjectPermissions(allSobjects: string[], permSetIds: str
  * @returns query for field permissions
  */
 export function getQueryForFieldPermissions(allSobjects: string[], profilePermSetIds: string[], permSetIds: string[]): string[] {
+  if (!allSobjects.length) {
+    return [];
+  }
   const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY).map((sobjects) => {
     const query: Query = {
       fields: [
@@ -997,6 +1007,9 @@ export function getQueryForFieldPermissions(allSobjects: string[], profilePermSe
  * @returns query object permissions
  */
 export function getQueryTabVisibilityPermissions(allSobjects: string[], permSetIds: string[], profilePermSetIds: string[]): string[] {
+  if (!allSobjects.length) {
+    return [];
+  }
   const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY).map((sobjects) => {
     const query: Query = {
       fields: [
@@ -1029,6 +1042,9 @@ export function getQueryTabVisibilityPermissions(allSobjects: string[], permSetI
 }
 
 export function getQueryTabDefinition(allSobjects: string[]): string[] {
+  if (!allSobjects.length) {
+    return [];
+  }
   const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY).map((sobjects) => {
     const query: Query = {
       fields: [getField('Id'), getField('Name'), getField('Label'), getField('SobjectName')],
@@ -1066,6 +1082,9 @@ export function getQueryTabDefinition(allSobjects: string[]): string[] {
  * Unlike EntityParticle, CustomField supports queryMore, so each chunk is a plain query.
  */
 export function getQueryForCustomFieldAudit(allSobjects: string[]): string[] {
+  if (!allSobjects.length) {
+    return [];
+  }
   const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY).map((sobjects) => {
     const query: Query = {
       fields: [
