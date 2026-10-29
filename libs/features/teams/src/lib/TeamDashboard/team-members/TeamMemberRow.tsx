@@ -1,13 +1,14 @@
 import { css } from '@emotion/react';
 import { LoginConfigurationWithCallbacks, TwoFactorTypeWithoutEmail } from '@jetstream/auth/types';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { DropDownItem, TeamLoginConfig, TeamUserAction, TeamUserFacing } from '@jetstream/types';
+import { DropDownItem, TeamAccessProfile, TeamLoginConfig, TeamUserAction, TeamUserFacing } from '@jetstream/types';
 import { Badge, DropDown, Grid, GridCol, Icon, Tooltip } from '@jetstream/ui';
 import { abilityState } from '@jetstream/ui/app-state';
 import { isValid } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
 import { useAtomValue } from 'jotai';
 import { useMemo } from 'react';
+import { AccessProfileCell } from '../access-profiles/AccessProfileCell';
 import { TeamMembersTableProps } from './TeamMembersTable';
 
 export const TeamMemberRow = ({
@@ -17,6 +18,7 @@ export const TeamMemberRow = ({
   requireMfa,
   allowIdentityLinking,
   member,
+  accessProfiles,
   isCurrentUser,
   onUserAction,
 }: {
@@ -26,6 +28,7 @@ export const TeamMemberRow = ({
   requireMfa: TeamLoginConfig['requireMfa'];
   allowIdentityLinking: TeamLoginConfig['allowIdentityLinking'];
   member: TeamUserFacing['members'][number];
+  accessProfiles: TeamAccessProfile[] | null;
   isCurrentUser: boolean;
   onUserAction: TeamMembersTableProps['onUserAction'];
 }) => {
@@ -69,6 +72,11 @@ export const TeamMemberRow = ({
       <td className="slds-cell-wrap">
         <RoleCell role={member.role} />
       </td>
+      {accessProfiles && (
+        <td className="slds-cell-wrap">
+          <AccessProfileCell role={member.role} accessProfileId={member.accessProfileId} accessProfiles={accessProfiles} />
+        </td>
+      )}
       <td className="slds-cell-wrap">
         <StatusCell status={member.status} />
       </td>

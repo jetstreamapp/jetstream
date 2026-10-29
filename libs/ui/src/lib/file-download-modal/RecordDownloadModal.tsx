@@ -114,8 +114,10 @@ export interface RecordDownloadModalProps {
   /**
    * When provided, adds a "Load template (Excel)" format that generates a file in the
    * "Load Records to Multiple Objects" template format for the given object.
+   * `showLoadToolLink` (default true) links the explanation to that tool, pass false when the member's
+   * access profile does not include it.
    */
-  loadTemplateOption?: { sobject: string };
+  loadTemplateOption?: { sobject: string; showLoadToolLink?: boolean };
   trackEvent: (key: string, value?: Record<string, any>) => void;
   onModalClose: (canceled?: boolean) => void;
   onDownload?: (fileFormat: RecordDownloadFileFormat, whichFields: 'all' | 'specified', includeSubquery: boolean) => void;
@@ -721,13 +723,17 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
             {isLoadTemplate && (
               <ScopedNotification theme="info" className="slds-m-vertical_x-small">
                 Creates an Excel file in the{' '}
-                <Link
-                  to={{ pathname: APP_ROUTES.LOAD_MULTIPLE.ROUTE, search: APP_ROUTES.LOAD_MULTIPLE.SEARCH_PARAM }}
-                  target="_blank"
-                  className="slds-text-link"
-                >
-                  {APP_ROUTES.LOAD_MULTIPLE.TITLE}
-                </Link>{' '}
+                {loadTemplateOption?.showLoadToolLink === false ? (
+                  APP_ROUTES.LOAD_MULTIPLE.TITLE
+                ) : (
+                  <Link
+                    to={{ pathname: APP_ROUTES.LOAD_MULTIPLE.ROUTE, search: APP_ROUTES.LOAD_MULTIPLE.SEARCH_PARAM }}
+                    target="_blank"
+                    className="slds-text-link"
+                  >
+                    {APP_ROUTES.LOAD_MULTIPLE.TITLE}
+                  </Link>
+                )}{' '}
                 template format. Each record&apos;s Id becomes its Reference Id and the operation is set to Insert. Adjust the operation,
                 remove unwanted columns, and wrap lookup column headers in {'{curly braces}'} to link related records in the same file.
                 Relationship fields are not included. Use nested subqueries to include related child records in the template.

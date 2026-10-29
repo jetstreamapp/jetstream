@@ -1,4 +1,4 @@
-import { getUserAbility } from '@jetstream/acl';
+import { canAccessTool, canPerformOperation, getUserAbility } from '@jetstream/acl';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { checkHeartbeat, getLocalStore, getOrgGroups, getOrgs, getUserProfile, isAuthenticationFailure } from '@jetstream/shared/data';
@@ -14,11 +14,15 @@ import {
 } from '@jetstream/shared/ui-utils';
 import { getDefaultAppState, groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
 import {
+  ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES,
   AppInfo,
   DEFAULT_FEATURE_FLAGS,
   SoqlQueryFormatOptions,
   SoqlQueryFormatOptionsSchema,
   TeamBillingStatusSchema,
+  type AccessProfileOperationKey,
+  type AccessProfilePolicy,
+  type AccessProfileToolKey,
   type Announcement,
   type ApplicationState,
   type DataHistoryTierLimits,
@@ -35,7 +39,7 @@ import {
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { atomWithLazy, unwrap } from 'jotai/utils';
 import isString from 'lodash/isString';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import z from 'zod';
 
 // FIXME: browser extension should be able to obtain all of this information after logging in
@@ -251,6 +255,14 @@ async function fetchUserProfile(): Promise<UserProfileUi> {
 }
 
 /**
+ * Fetches the profile again for an already-loaded app, for example after the heartbeat reports that the
+ * member's access profile changed. Unlike the initial load, failures are left to the caller.
+ */
+export async function fetchLatestUserProfile(): Promise<UserProfileUi> {
+  return await applyVerifiedFeatureFlags(await getUserProfile());
+}
+
+/**
  * Lazy so the storage read happens on first render (after `ensureLocalStorageReady` has scoped the
  * store to the current user) instead of at module evaluation, which would read the shared un-scoped
  * store while every write lands in the per-user one.
@@ -303,10 +315,11 @@ export const analyticsState = atom<'accepted' | 'rejected' | null>(null);
  */
 export const userProfileSyncState = unwrap(userProfileState, (prev) => prev ?? DEFAULT_PROFILE);
 
-export const isReadOnlyUserState = atom((get) => {
-  const userProfile = get(userProfileSyncState);
-  return userProfile.teamMembership?.role === 'BILLING';
-});
+/**
+ * The billing role, or a member whose team access profile excludes the web application. They only see their
+ * profile, settings, billing and the Team Dashboard.
+ */
+export const isReadOnlyUserState = atom((get) => !get(abilityState).can('read', 'CoreFunctionality'));
 
 /**
  * Resolved + signature-verified feature flags for the current user (see `verifyAndExtractFeatureFlags`).
@@ -323,15 +336,48 @@ export function useFeatureFlag(key: FeatureFlagKey): boolean {
   return featureFlags[key] ?? DEFAULT_FEATURE_FLAGS[key];
 }
 
+/**
+ * Tools and operations the canvas app's Salesforce custom permissions grant, set by the canvas app before it
+ * renders. `null` means full access.
+ */
+export const canvasAccessPolicyState = atom<Pick<AccessProfilePolicy, 'tools' | 'operations'> | null>(null);
+
 export const abilityState = atom((get) => {
   const userProfile = get(userProfileSyncState);
   return getUserAbility({
     isBrowserExtension: isBrowserExtension(),
     isDesktop: isDesktop(),
     isCanvasApp: isCanvasApp(),
+    canvasAccessPolicy: get(canvasAccessPolicyState),
     user: userProfile,
   });
 });
+
+/**
+ * Whether the member's team access profile includes a tool. Access profiles are UI guards that keep members in
+ * their lane, not a security boundary.
+ */
+export function useCanAccessTool(key: AccessProfileToolKey): boolean {
+  const ability = useAtomValue(abilityState);
+  return canAccessTool(ability, key);
+}
+
+/**
+ * Whether the member's team access profile includes an operation, used to hide the buttons that perform it.
+ */
+export function useCanPerformOperation(key: AccessProfileOperationKey): boolean {
+  const ability = useAtomValue(abilityState);
+  return canPerformOperation(ability, key);
+}
+
+/** Whether the member's access includes an operation, and the explanation to show on a control it disables */
+export function useOperationAccess(key: AccessProfileOperationKey): { allowed: boolean; deniedReason?: string } {
+  const allowed = useCanPerformOperation(key);
+  return useMemo(
+    () => ({ allowed, deniedReason: allowed ? undefined : ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES[key] }),
+    [allowed, key],
+  );
+}
 
 export const hasPaidPlanState = atom((get) => {
   const userProfile = get(userProfileSyncState);

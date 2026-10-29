@@ -16,6 +16,7 @@ import {
   pluralizeFromNumber,
 } from '@jetstream/shared/utils';
 import {
+  ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES,
   CloneEditView,
   ContextMenuItem,
   ErrorResult,
@@ -166,6 +167,10 @@ export interface SalesforceRecordDataTableProps {
   onRecordsSaveCapture?: (info: RecordsSaveCaptureInfo) => void;
   /** Analytics tracker (from the host's `useAnalytics`). Optional — defaults to a no-op. */
   trackEvent?: (key: string, value?: Record<string, any>) => void;
+  /** Inline editing plus the edit and clone row actions. Defaults to true. */
+  canWriteRecords?: boolean;
+  /** Delete and restore row actions. Defaults to true. */
+  canDeleteRecords?: boolean;
 }
 
 export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
@@ -199,6 +204,8 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     onSavedRecords,
     onRecordsSaveCapture,
     trackEvent = () => undefined,
+    canWriteRecords = true,
+    canDeleteRecords = true,
   }: SalesforceRecordDataTableProps) => {
     const isMounted = useRef(true);
     const [columns, setColumns] = useState<ColumnWithFilter<RowSalesforceRecordWithKey>[]>();
@@ -250,7 +257,10 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
 
     useEffect(() => {
       if (queryResults) {
-        const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling, fieldMetadata, fieldMetadataSubquery);
+        const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling, fieldMetadata, fieldMetadataSubquery, {
+          canWriteRecords,
+          canDeleteRecords,
+        });
         const fields = parentColumns.filter((column) => column.key && !NON_DATA_COLUMN_KEYS.has(column.key)).map((column) => column.key);
         setColumns(parentColumns);
         setFields(fields);
@@ -281,7 +291,10 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
      */
     useEffect(() => {
       if (fieldMetadata && queryResults) {
-        const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling, fieldMetadata, fieldMetadataSubquery);
+        const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling, fieldMetadata, fieldMetadataSubquery, {
+          canWriteRecords,
+          canDeleteRecords,
+        });
 
         setColumns(addFieldLabelToColumn(parentColumns, fieldMetadata) as unknown as ColumnWithFilter<RowSalesforceRecordWithKey>[]);
 
@@ -296,7 +309,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
 
         setSubqueryColumnsMap(subqueryColumns);
       }
-    }, [fieldMetadata, fieldMetadataSubquery, isTooling, queryResults]);
+    }, [fieldMetadata, fieldMetadataSubquery, isTooling, queryResults, canWriteRecords, canDeleteRecords]);
 
     useEffect(() => {
       // Flatten every field- + record-level message across dirty rows for the "Save Errors" popover.
@@ -660,6 +673,11 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       if (!rows || isSavingRef.current) {
         return;
       }
+      // Write access can be revoked by a profile refresh after the edits were made; they can still be discarded
+      if (!canWriteRecords) {
+        fireToast({ message: ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['records.write'], type: 'warning' });
+        return;
+      }
       if (!dirtyRows.length) {
         setRecords((records) => (records ? [...records] : records));
         return;
@@ -916,6 +934,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
               trackEvent(ANALYTICS_KEYS.query_InlineEditDiscard, { changeCount: dirtyRows.length });
             }}
             onClose={() => setShowPreview(false)}
+            canWriteRecords={canWriteRecords}
           />
         )}
         {downloadConfig && (

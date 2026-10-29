@@ -30,6 +30,7 @@ const sidebar = {
       label: 'Team Management',
       items: [
         'team-management/team-management',
+        // Add 'team-management/access-profiles' here when the team-access-profiles feature flag is turned on by default
         {
           type: 'category',
           label: 'Single Sign-On (SSO)',

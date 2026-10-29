@@ -3,7 +3,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { AsyncJobNew, BulkDownloadJob, Maybe, QueryResultsColumn, SalesforceOrgUi } from '@jetstream/types';
 import { DownloadFromServerOpts, Icon, RecordDownloadFileFormat, RecordDownloadModal } from '@jetstream/ui';
 import { fromJetstreamEvents, fromQueryState, useAnalytics } from '@jetstream/ui-core';
-import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { applicationCookieState, googleDriveAccessState, useCanAccessTool } from '@jetstream/ui/app-state';
 import { composeQuery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import { useAtomValue } from 'jotai';
 import { Fragment, useState } from 'react';
@@ -44,6 +44,7 @@ export const QueryResultsDownloadButton = ({
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [isDownloadModalOpen, setModalOpen] = useState<boolean>(false);
   const includeDeletedRecords = useAtomValue(fromQueryState.queryIncludeDeletedRecordsState);
+  const canUseLoadTool = useCanAccessTool('load');
 
   function handleDidDownload(fileFormat: RecordDownloadFileFormat, whichFields: 'all' | 'specified', includeSubquery: boolean) {
     trackEvent(ANALYTICS_KEYS.query_DownloadResults, {
@@ -155,7 +156,7 @@ export const QueryResultsDownloadButton = ({
           onDownload={handleDidDownload}
           includeDeletedRecords={includeDeletedRecords}
           onDownloadFromServer={handleDownloadFromServer}
-          loadTemplateOption={sObject && !isTooling ? { sobject: sObject } : undefined}
+          loadTemplateOption={sObject && !isTooling ? { sobject: sObject, showLoadToolLink: canUseLoadTool } : undefined}
           source="query_results"
           trackEvent={trackEvent}
         />

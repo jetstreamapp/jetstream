@@ -69,6 +69,8 @@ model User {
   teamMemberUpdatedBy           TeamMember[]           @relation("TeamMemberUpdatedBy")
   teamMemberInvitationCreatedBy TeamMemberInvitation[] @relation("TeamMemberInvitationCreatedBy")
   teamMemberInvitationUpdatedBy TeamMemberInvitation[] @relation("TeamMemberInvitationUpdatedBy")
+  teamAccessProfileCreatedBy    TeamAccessProfile[]    @relation("TeamAccessProfileCreatedBy")
+  teamAccessProfileUpdatedBy    TeamAccessProfile[]    @relation("TeamAccessProfileUpdatedBy")
 
   // Serves findUsersByEmail, generatePasswordResetToken, getUserAndVerifyPassword, resolveSsoUser
   // and the email-change availability checks. NON-UNIQUE on purpose: production contains duplicate
@@ -115,6 +117,7 @@ model Team {
   entitlements         TeamEntitlement?
   featureFlagOverrides FeatureFlagOverride[]
   domainVerifications  DomainVerification[]
+  accessProfiles       TeamAccessProfile[]
 
   createdByUser User? @relation("TeamCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedByUser User? @relation("TeamUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
@@ -133,50 +136,90 @@ enum Feature {
 }
 
 model TeamMember {
-  teamId   String    @db.Uuid
-  userId   String    @unique @db.Uuid
-  role     String    @default("MEMBER") @db.VarChar(50) // 'ADMIN' | 'MEMBER' | 'BILLING'
-  status   String    @default("ACTIVE") @db.VarChar(50) // 'ACTIVE' | 'INACTIVE'
-  features Feature[] @default([ALL])
+  teamId          String    @db.Uuid
+  userId          String    @unique @db.Uuid
+  role            String    @default("MEMBER") @db.VarChar(50) // 'ADMIN' | 'MEMBER' | 'BILLING'
+  status          String    @default("ACTIVE") @db.VarChar(50) // 'ACTIVE' | 'INACTIVE'
+  // Unused; dropped in a follow-up migration once a release that no longer reads it has deployed
+  features        Feature[] @default([ALL]) @ignore
+  // NULL means full access. NoAction (checked at the end of the statement) lets a team delete cascade
+  // through members and profiles together, while deleting a profile that is still assigned fails.
+  accessProfileId String?   @db.Uuid
 
   createdAt   DateTime @default(now())
   createdById String?  @db.Uuid
   updatedAt   DateTime @updatedAt
   updatedById String?  @db.Uuid
 
-  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team          Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessProfile TeamAccessProfile? @relation(fields: [accessProfileId], references: [id], onDelete: NoAction)
 
   createdByUser User? @relation("TeamMemberCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedByUser User? @relation("TeamMemberUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@id([teamId, userId])
+  @@index([accessProfileId])
   @@map("team_member")
 }
 
 model TeamMemberInvitation {
-  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  email      String    @db.VarChar(255)
-  teamId     String    @db.Uuid
-  role       String    @default("MEMBER") @db.VarChar(50) // 'ADMIN' | 'MEMBER' | 'BILLING'
-  features   Feature[] @default([ALL])
-  token      String    @unique @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  expiresAt  DateTime
-  lastSentAt DateTime
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email           String    @db.VarChar(255)
+  teamId          String    @db.Uuid
+  role            String    @default("MEMBER") @db.VarChar(50) // 'ADMIN' | 'MEMBER' | 'BILLING'
+  // Unused; dropped in a follow-up migration once a release that no longer reads it has deployed
+  features        Feature[] @default([ALL]) @ignore
+  token           String    @unique @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  expiresAt       DateTime
+  lastSentAt      DateTime
+  // Copied to the membership on accept; NULL means full access
+  accessProfileId String?   @db.Uuid
 
   createdAt   DateTime @default(now())
   createdById String?  @db.Uuid
   updatedAt   DateTime @updatedAt
   updatedById String?  @db.Uuid
 
-  team          Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  createdByUser User? @relation("TeamMemberInvitationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedByUser User? @relation("TeamMemberInvitationUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  team          Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  accessProfile TeamAccessProfile? @relation(fields: [accessProfileId], references: [id], onDelete: NoAction)
+  createdByUser User?              @relation("TeamMemberInvitationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedByUser User?              @relation("TeamMemberInvitationUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@unique([teamId, email], name: "uniqueTeamEmail", map: "unique_team_email")
   // For listing and expiring
   @@index([teamId, expiresAt])
+  @@index([accessProfileId])
   @@map("team_member_invitation")
+}
+
+/// Controls which tools and operations a team member sees in Jetstream, and which surfaces they may sign in to.
+/// Tools and operations are UI guards only; surface restrictions are enforced when desktop and extension tokens are issued and verified.
+model TeamAccessProfile {
+  id          String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  teamId      String  @db.Uuid
+  name        String  @db.VarChar(100)
+  description String? @db.VarChar(500)
+  /// Validated by AccessProfilePolicySchema in @jetstream/types
+  policy      Json    @db.JsonB
+  /// Applied to invitations without an explicit profile, domain auto-join and SSO JIT provisioning
+  isDefault   Boolean @default(false)
+  /// Incremented on every edit so clients can tell when their copy of the policy is stale
+  version     Int     @default(1)
+
+  createdAt   DateTime @default(now())
+  createdById String?  @db.Uuid
+  updatedAt   DateTime @updatedAt
+  updatedById String?  @db.Uuid
+
+  team          Team                   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  members       TeamMember[]
+  invitations   TeamMemberInvitation[]
+  createdByUser User?                  @relation("TeamAccessProfileCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedByUser User?                  @relation("TeamAccessProfileUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([teamId, name])
+  @@map("team_access_profile")
 }
 
 model LoginConfiguration {
@@ -637,11 +680,11 @@ model Subscription {
 }
 
 model TeamBillingAccount {
-  teamId            String   @unique @db.Uuid
-  customerId        String   @unique
-  manualBilling     Boolean  @default(false)
+  teamId                 String    @unique @db.Uuid
+  customerId             String    @unique
+  manualBilling          Boolean   @default(false)
   /// Purchased seats, the enforced cap. Mirrors max(seatQuantity, includedSeats) for self-serve teams; hand-set for manual billing.
-  licenseCountLimit Int?
+  licenseCountLimit      Int?
   /// Mirror of the Stripe TEAM_ subscription item; null for manual billing or when there is no active subscription
   seatQuantity           Int?
   /// Seats covered by the price's flat first tier (legacy plans include 5); 0 for per-seat pricing
@@ -652,8 +695,8 @@ model TeamBillingAccount {
   pendingSeatQuantity    Int?
   pendingSeatEffectiveAt DateTime?
   seatScheduleId         String?
-  createdAt         DateTime @default(now()) @db.Timestamp(6)
-  updatedAt         DateTime @updatedAt
+  createdAt              DateTime  @default(now()) @db.Timestamp(6)
+  updatedAt              DateTime  @updatedAt
 
   team          Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
   subscriptions TeamSubscription[]

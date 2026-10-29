@@ -1,4 +1,45 @@
-import { SalesforceOrgUi } from '@jetstream/types';
+import { logger } from '@jetstream/shared/client-logger';
+import { AccessProfilePolicySchema, SalesforceOrgUi, type AccessProfilePolicy } from '@jetstream/types';
+import isPlainObject from 'lodash/isPlainObject';
+
+export type CanvasAccessPolicy = Pick<AccessProfilePolicy, 'tools' | 'operations'>;
+
+function parseIfJsonString(value: unknown): unknown {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * Reads the `accessProfile` canvas parameter the packaged JetstreamPage Visualforce page sends, built from the
+ * user's Jetstream custom permissions in Salesforce. Returns `null` for full access.
+ *
+ * - Missing: an older package version, or the app was opened from somewhere other than JetstreamPage
+ * - `null`: the user does not have the Limited Access custom permission
+ * - Otherwise: the user has Limited Access and only gets the tools and operations listed
+ *
+ * Connecting orgs is always allowed because the canvas app only works with the org that opened it.
+ */
+export function parseCanvasAccessPolicy(accessProfile: unknown): CanvasAccessPolicy | null {
+  // Salesforce may hand a nested parameter over as JSON text rather than an object, so a user without
+  // Limited Access can arrive as the string "null" and must still get full access
+  const value = parseIfJsonString(accessProfile);
+  if (value === undefined || value === null) {
+    return null;
+  }
+  // Limited Access is on, so a value that cannot be read shows no tools rather than every tool (fail closed)
+  if (!isPlainObject(value)) {
+    logger.warn('[CANVAS] Could not read the accessProfile parameter, hiding all tools', accessProfile);
+    return { tools: [], operations: ['orgs.connect'] };
+  }
+  const { tools, operations } = AccessProfilePolicySchema.parse(value);
+  return { tools, operations: Array.from(new Set([...operations, 'orgs.connect' as const])) };
+}
 
 export function getCanvasOrg(): SalesforceOrgUi {
   const { client, context } = window.sr;

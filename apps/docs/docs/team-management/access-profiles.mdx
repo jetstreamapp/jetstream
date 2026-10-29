@@ -1,0 +1,185 @@
+---
+id: access-profiles
+title: Access Profiles
+description: Choose which Jetstream tools and actions each member of your team can use.
+keywords: [salesforce, team plan, access profiles, team members, permissions, web app, desktop app, browser extension]
+sidebar_label: Access Profiles
+slug: /team-management/access-profiles
+---
+
+:::info
+
+This feature is available on our Team and Enterprise plans. [Learn more about our plans and pricing](https://getjetstream.app/pricing/).
+
+:::
+
+An access profile chooses which Jetstream tools and actions a team member can use, and which of the web application, desktop application and browser extension they can use. Use them to give people who are not Salesforce administrators, such as sales operations or sales managers, the tools they need without everything else.
+
+Manage access profiles from the **Access Profiles** card on the [Team Dashboard](/team-management).
+
+:::warning[Access profiles are not a security control]
+Access profiles control what members see and can use in Jetstream. They keep people focused and help prevent mistakes, but a determined user can work around them, and they never change anyone's Salesforce permissions. To prevent a user from viewing or changing data, use their Salesforce profile and permission sets.
+:::
+
+## How access profiles work
+
+- Each member has at most one access profile.
+- Members without a profile have **Full access**: every tool, every action, and the web app, desktop app and browser extension. This is how every member works until you create and assign a profile, and tools added to Jetstream in the future are available to them automatically.
+- Only Admins can create, edit, delete and assign access profiles. Billing users can see the Access Profiles card and each member's profile, but cannot change them.
+- Billing users do not use Jetstream tools, so access profiles do not apply to them. Their **Access Profile** column shows a dash.
+- The Team Dashboard is never limited by an access profile, so an Admin who has a profile can still manage the team.
+- Tools and actions are limited in the web app, desktop app and browser extension. Access profiles do not apply to [Jetstream for Salesforce](/managed-package), which runs inside Salesforce. Salesforce administrators limit tools there with [custom permissions](/managed-package#limiting-jetstream-tools) instead.
+
+## What an access profile controls
+
+### Tools
+
+Tools are the Jetstream pages a member can open. Tools that are not included are removed from the navigation menu and the home page, and opening one from a bookmark or link shows **This tool is not available to you** instead.
+
+| Group          | Tool                          | Includes                                                                                   |
+| -------------- | ----------------------------- | ------------------------------------------------------------------------------------------ |
+| Data           | Query Records                 | Query builder, query results, and Quick Query, record search and user search in the header |
+| Data           | Load Records                  | Insert, update, upsert or delete records from a file, for one or multiple objects          |
+| Data           | Update Records Without a File | Bulk update a field across records                                                         |
+| Data           | Create New Record             | Create a single record                                                                     |
+| Data           | Data History                  | Prior data load files and results                                                          |
+| Data           | Platform Events               | Subscribe to and publish platform events                                                   |
+| Administration | Automation Control            | View and toggle flows, triggers, validation rules and workflow rules                       |
+| Administration | Manage Permissions            | View and change object, field and tab permissions                                          |
+| Administration | Permission Analysis           | Audit profiles and permission sets                                                         |
+| Administration | Data Analysis                 | Field usage and data quality analysis                                                      |
+| Metadata       | Deploy and Compare Metadata   | View, compare, download and deploy metadata                                                |
+| Metadata       | Create Object and Fields      | Create custom objects and fields                                                           |
+| Metadata       | Record Type Picklist Manager  | View and update record type picklist values                                                |
+| Metadata       | Formula Evaluator             | Test formulas against records                                                              |
+| Metadata       | Export Object Metadata        | Export object and field metadata to a file                                                 |
+| Developer      | Anonymous Apex                | Run arbitrary Apex code                                                                    |
+| Developer      | Apex Test Runner              | Run Apex tests and view coverage                                                           |
+| Developer      | Debug Logs                    | View debug logs, and purge them when **Delete records** is also included                   |
+| Developer      | Salesforce API                | Send any request to the Salesforce REST API                                                |
+
+### Actions
+
+Actions are limited in every tool where they appear. Buttons for an action that is not included are hidden, or disabled with a message such as "Your Jetstream access does not include deleting records."
+
+| Action                                   | Covers                                                                                                                                                                                                                     |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Create and update records                | Inline and bulk edits in query results, editing and cloning records, insert, update and upsert loads, Update Records Without a File, Create New Record, and publishing platform events                                     |
+| Delete records                           | Deleting and undeleting from query results, delete and hard delete loads, and purging debug logs                                                                                                                           |
+| Deploy metadata and change configuration | Deploying or deleting metadata, creating objects and fields, toggling automation, saving permission changes, managing permission set assignments, updating record type picklist values and loading custom metadata records |
+| Connect Salesforce orgs                  | Adding new Salesforce orgs to Jetstream                                                                                                                                                                                    |
+
+A few things to keep in mind:
+
+- A tool can be included without the actions it uses. For example, Load Records without **Create and update records** only offers delete loads (when **Delete records** is included), and Manage Permissions without **Deploy metadata and change configuration** lets the member view permissions but not save changes.
+- Members without **Connect Salesforce orgs** can keep using, and reconnect, the orgs they have already connected. A member with no connected orgs cannot use Jetstream, which is why every preset includes this action.
+- Anonymous Apex and the Salesforce API tool can create, update and delete records and change metadata on their own, even when those actions are not included. Leave these tools out of profiles for members who should not make changes.
+
+### Which applications members can use
+
+Each profile chooses whether its members can use the **Web application**, the **Desktop application** and the **Browser extension**.
+
+Unlike tools and actions, this is enforced by the Jetstream server. A member whose profile does not include the desktop application or browser extension cannot sign in to it and is told that their team's access profile does not allow it. Members who are already signed in are signed out within a few hours. An access profile can only take this access away: members still need a plan that includes the desktop application or browser extension.
+
+#### Limiting members to the desktop application or browser extension
+
+The desktop application and browser extension connect to Salesforce directly, so Salesforce data never passes through the Jetstream server. Turn off **Web application** to keep members on those applications.
+
+Members without the web application can still sign in to it, because their profile, settings and the Team Dashboard live there. Its home page tells them that web access is restricted and links to the applications they can use. They cannot see or connect Salesforce orgs or open any tool there, and the Jetstream server refuses every request from the web application that would connect to Salesforce.
+
+Admins and Billing members who turn off the web application in their own profile can still manage the team.
+
+## Presets
+
+When you create a profile, start from one of these presets and adjust it as needed. Every preset includes the web application, desktop application and browser extension.
+
+| Preset           | Tools                                                                                                                                                                                                                     | Actions                                                           |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Read only        | Query Records, Permission Analysis, Data Analysis, Export Object Metadata                                                                                                                                                 | Connect Salesforce orgs                                           |
+| Data steward     | Query Records, Load Records, Update Records Without a File, Create New Record, Data History, Data Analysis                                                                                                                | Create and update records, Connect Salesforce orgs                |
+| Salesforce admin | Query Records, Automation Control, Manage Permissions, Permission Analysis, Data Analysis, Deploy and Compare Metadata, Create Object and Fields, Record Type Picklist Manager, Formula Evaluator, Export Object Metadata | Deploy metadata and change configuration, Connect Salesforce orgs |
+| Everything       | Every current tool                                                                                                                                                                                                        | Every action                                                      |
+
+:::note[Everything is not the same as Full access]
+A profile created from the **Everything** preset includes the tools that exist today. Tools added to Jetstream later are not added to it, or to any other profile, automatically. Members without a profile have Full access and receive new tools as they are released.
+:::
+
+## Creating an access profile
+
+1. In the **Access Profiles** card, click **New Access Profile**
+2. Under **Start from**, choose a preset
+3. Enter a **Name** and an optional **Description**. Each profile on your team needs a different name.
+4. Adjust the tools, actions and where members can sign in. Selecting a group, such as **Data**, selects every tool in it, and selecting a tool also selects the actions it needs.
+5. Optionally select **Default profile for new members**
+6. Click **Save**
+
+The profile editor shows a warning when a combination might not do what you expect, such as a tool that is included without the actions it needs, or Anonymous Apex or the Salesforce API tool included in a profile that leaves out record or metadata changes.
+
+The Access Profiles card lists each profile with how many tools and actions it includes, where its members can sign in, and how many members use it. Pending invitations are shown next to the member count, for example "(+2 invited)". The **Full access** row shows how many members do not have a profile.
+
+## Editing an access profile
+
+Click the edit icon next to a profile to change it. Changes apply to every member who has the profile, see [When changes take effect](#when-changes-take-effect).
+
+New tools added to Jetstream are not added to existing profiles. Edit the profile to give its members access to them.
+
+## Default access profile
+
+The default access profile is applied to:
+
+- Invitations sent without choosing a profile. The default is selected for you when an Admin sends an invitation, and invitations sent by Billing users always receive it.
+- People who join your team through your verified domain or [single sign-on just-in-time provisioning](/team-management/sso/overview)
+
+If no profile is the default, these members receive Full access.
+
+Only one profile can be the default. Making a profile the default removes the setting from the previous one. Changing the default does not change the profile of existing members or pending invitations.
+
+## Assigning an access profile
+
+**When inviting a member**: In the **Add Team Member** modal, choose an **Access Profile**. The field is not shown when inviting a Billing user. The invitation keeps its profile when it is resent, and the member receives it when they accept. To change the profile of a pending invitation, cancel it and send a new one, or change the member's profile after they join.
+
+**For an existing member**: Click the dropdown menu next to the member, select **Edit**, choose an **Access Profile**, then click **Save**. You cannot edit your own membership, so ask another Admin to change your profile.
+
+The **Access Profile** column in the Team Members table shows the profile assigned to each member and invitation, or **Full access**.
+
+## When changes take effect
+
+Assigning a different profile, or editing a profile that is in use, reaches members the next time Jetstream checks their access:
+
+- **Web app**: the next time the member returns to their Jetstream tab, or reloads the page
+- **Desktop app and browser extension**: within a few hours
+
+When an Admin edits or deletes the profile assigned to them, their own access updates right away.
+
+## Deleting an access profile
+
+1. Click the delete icon next to the profile
+2. If the profile is assigned to members or pending invitations, choose the profile they should move to under **Move to**
+3. Click **Delete**
+
+**Move to** suggests the team's default profile, or **Full access** when there is no other default. Check the selection before deleting, because Full access gives members every tool and action.
+
+If you delete the default profile, new members receive Full access until you make another profile the default.
+
+## Audit log
+
+The team audit log records each of these changes, along with who made them and when. Admins can review them, or download them as a CSV file, by clicking **View Audit Logs** on the Team Dashboard.
+
+- **Access Profile Created**
+- **Access Profile Updated**, including the tools, actions and applications before and after the change
+- **Access Profile Deleted**, including the profile its members and invitations moved to
+- **Member Access Profile Changed**
+
+## Frequently Asked Questions
+
+### Can an access profile give someone more access in Salesforce?
+
+No. Access profiles only limit what Jetstream shows. Everything a member does still runs as their Salesforce user, with their Salesforce permissions.
+
+### Does an access profile stop a member from changing data?
+
+It hides the buttons that change data, which prevents most mistakes, but it is not a guarantee. Anonymous Apex and the Salesforce API tool can make any change the member's Salesforce user is allowed to make, and a determined user can work around the hidden buttons. Use Salesforce profiles and permission sets for anything that must be enforced.
+
+### What does a member see when a tool is not in their profile?
+
+The tool is not shown in the navigation menu or on the home page. If they open it from a bookmark or link, they see **This tool is not available to you** with a link back to the home page.

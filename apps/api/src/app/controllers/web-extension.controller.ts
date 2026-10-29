@@ -6,6 +6,7 @@ import {
   getCookieConfig,
   InvalidSession,
   MissingEntitlement,
+  SurfaceNotAllowed,
 } from '@jetstream/auth/server';
 import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
@@ -156,6 +157,12 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
   }
 
   const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: user.id, omitSubscriptions: true });
+
+  if (!externalAuthService.isSurfaceAllowedForAudience(userProfile.teamMembership?.accessProfile, externalAuthService.AUDIENCE_WEB_EXT)) {
+    next(new SurfaceNotAllowed());
+    return;
+  }
+
   const existingTokenRecord = await webExtDb.findByUserIdAndDeviceId({
     userId: user.id,
     deviceId,

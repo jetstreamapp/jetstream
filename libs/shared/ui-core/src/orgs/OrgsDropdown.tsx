@@ -1,7 +1,12 @@
 import { css } from '@emotion/react';
 import { AddOrgHandlerFn, Maybe, OrgGroup, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Grid, Icon, Tooltip } from '@jetstream/ui';
-import { fromAppState, getRecentlySelectedOrgForGroup, setRecentlySelectedOrgsToStorage } from '@jetstream/ui/app-state';
+import {
+  fromAppState,
+  getRecentlySelectedOrgForGroup,
+  setRecentlySelectedOrgsToStorage,
+  useCanPerformOperation,
+} from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { Fragment, FunctionComponent, useEffect } from 'react';
@@ -42,6 +47,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
   const hasOrgGroupsConfigured = useAtomValue(fromAppState.orgGroupExistsSelector);
   const setActiveOrgGroup = useSetAtom(fromAppState.ActiveOrgGroupState);
   const activeOrgGroup = useAtomValue(fromAppState.jetstreamActiveGroupSelector);
+  const canConnectOrgs = useCanPerformOperation('orgs.connect');
 
   const { actionInProgress, orgLoading, handleAddOrg, handleRemoveOrg, handleUpdateOrg } = useUpdateOrgs();
   const orgExpiration = useOrgExpiration(selectedOrg);
@@ -160,7 +166,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
               />
             </div>
           )}
-          {!omitAddOrgsButton && (
+          {!omitAddOrgsButton && canConnectOrgs && (
             <div className="slds-col">
               <AddOrg
                 className={addOrgsButtonClassName}

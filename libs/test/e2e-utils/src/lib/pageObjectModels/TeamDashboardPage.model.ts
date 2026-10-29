@@ -41,6 +41,10 @@ export class TeamDashboardPage {
   readonly teamMemberStatusUpdateModal: Locator;
   readonly teamMemberAuthActivityModal: Locator;
 
+  readonly accessProfilesCard: Locator;
+  readonly accessProfileEditorModal: Locator;
+  readonly accessProfileDeleteModal: Locator;
+
   readonly teamSeatsCard: Locator;
   readonly manageSeatsButton: Locator;
   readonly manageSeatsModal: Locator;
@@ -88,6 +92,9 @@ export class TeamDashboardPage {
     this.seatPreview = page.getByTestId('team-seats-preview');
     this.seatsBanner = page.getByTestId('team-seats-banner');
     this.seatsPendingNotice = page.getByTestId('team-seats-pending');
+    this.accessProfilesCard = page.getByTestId('team-access-profiles');
+    this.accessProfileEditorModal = page.getByTestId('team-access-profile-editor-modal');
+    this.accessProfileDeleteModal = page.getByTestId('team-access-profile-delete-modal');
     this.seatsUnavailableNotice = page.getByTestId('seats-unavailable-notice');
   }
 
@@ -147,7 +154,7 @@ export class TeamDashboardPage {
   async openUpdateRoleModal(email: string) {
     const menu = await this.openMemberActions(email);
     await menu.getByRole('menuitem', { name: 'Edit' }).click();
-    await expect(this.teamMemberUpdateModal.getByRole('heading', { name: 'Update Role' })).toBeVisible();
+    await expect(this.teamMemberUpdateModal.getByRole('heading', { name: 'Update Member' })).toBeVisible();
   }
 
   async updateUserRole(email: string, role: TeamMemberRoleLabel) {
@@ -229,8 +236,19 @@ export class TeamDashboardPage {
     await getByPageBannerPromise;
   }
 
+  /** Picklist for an access profile in the invite or update member modal, by profile name or "Full access" */
+  async selectAccessProfile(modal: Locator, accessProfileName: string) {
+    const picklist = modal.getByTestId('dropdown-Access Profile');
+    await picklist.getByPlaceholder('Select an Option').click();
+    // The picklist renders its list in a portal, so the options are not inside the modal or the picklist
+    await this.page.getByRole('option', { name: accessProfileName }).click();
+  }
+
   private async selectRole(modal: Locator, role: TeamMemberRoleLabel) {
-    await modal.getByPlaceholder('Select an Option').click();
-    await modal.getByRole('option', { name: role }).click();
+    // Scoped to the role picklist because the member modals also have an access profile picklist
+    const picklist = modal.getByTestId(/^dropdown-(New )?Role$/);
+    await picklist.getByPlaceholder('Select an Option').click();
+    // The picklist renders its list in a portal, so the options are not inside the modal or the picklist
+    await this.page.getByRole('option', { name: role }).click();
   }
 }

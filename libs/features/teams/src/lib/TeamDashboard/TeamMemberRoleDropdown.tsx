@@ -34,6 +34,7 @@ export function TeamMemberRoleDropdown({ label = 'Role', role, disabled, limitBa
 
   return (
     <Picklist
+      usePortal
       allowDeselection={false}
       label={label}
       items={roleOptions}

@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { formatNumber, hasCtrlOrMeta, isEnterKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
-import { Field, Maybe, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
+import { ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES, Field, Maybe, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
 import { ChangeEvent, Fragment, FunctionComponent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 import Input from '../form/input/Input';
@@ -302,6 +302,8 @@ export interface PreviewChangesModalProps {
   /** Revert all pending edits and close. */
   onDiscard: () => void;
   onClose: () => void;
+  /** Turns off saving, for a member whose write access was revoked after editing. Discard stays available. */
+  canWriteRecords?: boolean;
 }
 
 /**
@@ -330,6 +332,7 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
   isHidden,
   onDiscard,
   onClose,
+  canWriteRecords = true,
 }) => {
   const [globalFilter, setGlobalFilter] = useState<string | null>(null);
   // Once the user saves, switch the banner from "review" to a success/error summary.
@@ -425,7 +428,7 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
     !Number.isInteger(batchSize) || (batchSize as number) < 1 || (batchSize as number) > MAX_SAVE_BATCH_SIZE
       ? `The batch size must be between 1 and ${formatNumber(MAX_SAVE_BATCH_SIZE)}`
       : null;
-  const saveDisabled = isSaving || hasBlockingErrors || !!batchSizeError || dirtyRows.length === 0;
+  const saveDisabled = !canWriteRecords || isSaving || hasBlockingErrors || !!batchSizeError || dirtyRows.length === 0;
 
   // Allow clearing the field while typing (empty -> null); anything non-numeric is ignored.
   const handleBatchSizeChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -672,7 +675,13 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
                 className="slds-button slds-button_brand"
                 onClick={handleSave}
                 disabled={saveDisabled}
-                title={hasBlockingErrors ? 'Fix the highlighted errors before saving' : (batchSizeError ?? undefined)}
+                title={
+                  !canWriteRecords
+                    ? ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['records.write']
+                    : hasBlockingErrors
+                      ? 'Fix the highlighted errors before saving'
+                      : (batchSizeError ?? undefined)
+                }
               >
                 Save ({formatNumber(dirtyRows.length)})
               </button>

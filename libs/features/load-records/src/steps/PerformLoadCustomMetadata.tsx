@@ -23,7 +23,7 @@ import {
   useAnalytics,
   useDeployMetadataPackage,
 } from '@jetstream/ui-core';
-import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth, useOperationAccess } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { ChangeEvent, Fragment, useCallback, useState } from 'react';
@@ -63,6 +63,7 @@ export const PerformLoadCustomMetadata = ({
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
+  const deployAccess = useOperationAccess('metadata.deploy');
   const [loadNumber, setLoadNumber] = useState<number>(0);
   const [rollbackOnError, setRollbackOnError] = useState<boolean>(() => isProduction);
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
@@ -296,7 +297,12 @@ export const PerformLoadCustomMetadata = ({
           <strong className="slds-m-left_xx-small">{selectedOrg.username}</strong>
         </div>
         <div className="slds-m-top_small">
-          <button className="slds-button slds-button_brand" disabled={loading} onClick={handleStartLoad}>
+          <button
+            className="slds-button slds-button_brand"
+            disabled={loading || !deployAccess.allowed}
+            title={deployAccess.deniedReason}
+            onClick={handleStartLoad}
+          >
             Upsert <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedLabel}</strong> Records
           </button>
         </div>

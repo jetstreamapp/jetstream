@@ -39,7 +39,7 @@ function fetchTeam(api: ApiRequestUtils, teamId: string): Promise<TeamUserFacing
 }
 
 function inviteMember(api: ApiRequestUtils, teamId: string, email: string, role: TeamMemberRole): Promise<APIResponse> {
-  return api.makeRequestRaw('POST', `/api/teams/${teamId}/invitations`, { email, role, features: ['ALL'] });
+  return api.makeRequestRaw('POST', `/api/teams/${teamId}/invitations`, { email, role });
 }
 
 async function expectNoSeatsError(response: APIResponse, kind: 'ADD' | 'ACCEPT_INVITATION'): Promise<SeatErrorBody> {
@@ -292,8 +292,11 @@ test.describe('Team seats', () => {
 
     await test.step('BILLING to MEMBER is blocked in the modal too', async () => {
       await teamDashboardPage.openUpdateRoleModal(billingMember.user.email);
-      await teamDashboardPage.teamMemberUpdateModal.getByPlaceholder('Select an Option').click();
-      await teamDashboardPage.teamMemberUpdateModal.getByRole('option', { name: 'Member' }).click();
+      // Scoped to the role picklist: the modal also renders an access profile picklist once the role is not Billing
+      const rolePicklist = teamDashboardPage.teamMemberUpdateModal.getByTestId('dropdown-Role');
+      await rolePicklist.getByPlaceholder('Select an Option').click();
+      // The picklist renders its list in a portal, so the option is outside of the modal
+      await page.getByRole('option', { name: 'Member' }).click();
       await expect(teamDashboardPage.seatsUnavailableNotice).toBeVisible();
       await expect(teamDashboardPage.teamMemberUpdateModal.getByRole('button', { name: 'Save' })).toBeDisabled();
       await teamDashboardPage.teamMemberUpdateModal.getByRole('button', { name: 'Cancel' }).click();

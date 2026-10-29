@@ -10,15 +10,16 @@ query, load, update, and manage their data and metadata without leaving their or
 
 ## What's included
 
-| Component           | API Name                  | Purpose                                                                                    |
-| ------------------- | ------------------------- | ------------------------------------------------------------------------------------------ |
-| External Client App | `Jetstream_Canvas`        | The canvas app definition, OAuth settings, and policies that embed Jetstream               |
-| Custom Application  | `Jetstream`               | Lightning app that hosts the Jetstream tab                                                 |
-| Custom Tab          | `JetstreamAppTab`         | Tab that renders the Visualforce wrapper page                                              |
-| Visualforce Page    | `JetstreamPage`           | Full-screen wrapper that hosts the canvas iframe                                           |
-| Apex Controller     | `JetstreamPageController` | Supplies canvas parameters (e.g. full-screen detection) to the page                        |
-| Custom Setting      | `UserPreferences__c`      | Hierarchy custom setting storing per-user preferences (SOQL formatting, record sync, etc.) |
-| Permission Set      | `Jetstream`               | Grants access to the app, tab, page, and user-preference fields                            |
+| Component           | API Name                               | Purpose                                                                                         |
+| ------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| External Client App | `Jetstream_Canvas`                     | The canvas app definition, OAuth settings, and policies that embed Jetstream                    |
+| Custom Application  | `Jetstream`                            | Lightning app that hosts the Jetstream tab                                                      |
+| Custom Tab          | `JetstreamAppTab`                      | Tab that renders the Visualforce wrapper page                                                   |
+| Visualforce Page    | `JetstreamPage`                        | Full-screen wrapper that hosts the canvas iframe                                                |
+| Apex Controller     | `JetstreamPageController`              | Supplies canvas parameters (full-screen detection and the user's tool access) to the page       |
+| Custom Setting      | `UserPreferences__c`                   | Hierarchy custom setting storing per-user preferences (SOQL formatting, record sync, etc.)      |
+| Permission Set      | `Jetstream`                            | Grants access to the app, tab, page, and user-preference fields                                 |
+| Custom Permissions  | `Limited_Access`, `Tool_*`, `Action_*` | Optional: limit which Jetstream tools and actions a user sees (see [Permissions](#permissions)) |
 
 ## Accessing the app
 
@@ -69,6 +70,7 @@ apps-sfdx/
 │   │       ├── applications/         # Jetstream Lightning app
 │   │       ├── classes/              # Apex controller + tests
 │   │       ├── contentassets/        # App logo
+│   │       ├── customPermissions/    # Limited Access and per-tool/action custom permissions
 │   │       ├── externalClientApps/   # Canvas app (ECA) + OAuth/canvas settings & policies
 │   │       ├── objects/              # UserPreferences__c custom setting + fields
 │   │       ├── pages/                # JetstreamPage Visualforce wrapper
@@ -88,3 +90,10 @@ sf org assign permset --name Jetstream --target-org <org-alias>
 ```
 
 Subscribers must assign this permission set to any user who needs the app.
+
+Users with the `Limited_Access` custom permission only see the Jetstream tools and actions whose `Tool_*` / `Action_*` custom
+permission they also hold; users without it see everything. `JetstreamPageController` checks them with
+`FeatureManagement.checkPermission` and passes the result to the canvas app as the `accessProfile` canvas parameter. The keys in its
+maps must match the tool and operation keys in `libs/types/src/lib/access-profile.types.ts`. These are UI guards, not a security control.
+
+Subscribers cannot edit the packaged `Jetstream` permission set, so they add these custom permissions to their own permission sets.

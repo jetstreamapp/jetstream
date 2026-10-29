@@ -21,7 +21,7 @@ import {
   Tooltip,
 } from '@jetstream/ui';
 import { fromDeployMetadataState, fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
-import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
+import { applicationCookieState, googleDriveAccessState, selectedOrgState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import { addMinutes } from 'date-fns/addMinutes';
 import { formatISO as formatISODate } from 'date-fns/formatISO';
 import { isAfter } from 'date-fns/isAfter';
@@ -59,6 +59,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const selectedOrg = useAtomValue(selectedOrgState);
+  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
   const {
     loadListMetadata,
     loadListMetadataItem,
@@ -396,13 +397,17 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
                   disabled: selectedRows.size === 0,
                   title: selectedRows.size === 0 ? 'Select at least one item from the table to enable this option' : '',
                 },
-                {
-                  id: TABLE_ACTION_DELETE_METADATA,
-                  icon: { type: 'utility', icon: 'delete', description: 'Delete selected metadata' },
-                  value: 'Delete selected metadata',
-                  disabled: selectedRows.size === 0,
-                  title: selectedRows.size === 0 ? 'Select at least one item from the table to enable this option' : '',
-                },
+                ...(canDeployMetadata
+                  ? [
+                      {
+                        id: TABLE_ACTION_DELETE_METADATA,
+                        icon: { type: 'utility', icon: 'delete', description: 'Delete selected metadata' },
+                        value: 'Delete selected metadata',
+                        disabled: selectedRows.size === 0,
+                        title: selectedRows.size === 0 ? 'Select at least one item from the table to enable this option' : '',
+                      },
+                    ]
+                  : []),
               ]}
               disabled={loading}
               onSelected={handleDropdownMenuSelect}

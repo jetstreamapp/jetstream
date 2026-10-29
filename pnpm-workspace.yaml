@@ -113,6 +113,10 @@ overrides:
   # has an array-limit bypass and a DoS (GHSA-x5fp-wj9c-mxmx, GHSA-4mjr-xmp4-gh2g). The API on
   # express 5 already resolves 6.16.0.
   qs: "^6.16.0"
+  # The same docs dev server chain resolves body-parser 1.20.6, which keeps reading trailing bytes after a
+  # compressed request body (DoS, GHSA-27r3-jxmh-p828). 1.20.9 stays within express 4's ~1.20.5 range; the
+  # API on express 5 resolves body-parser 2.x and is unaffected.
+  "body-parser@<1.20.9": "^1.20.9"
   # sockjs 0.3.24 (docs dev server) pins uuid ^8.3.2, which is missing a buffer bounds check in v3/v5/v6
   # (GHSA-w5hq-g745-h8pq). sockjs only calls v4. 11.1.1 is the oldest patched line that still ships CJS.
   "sockjs>uuid": "^11.1.1"

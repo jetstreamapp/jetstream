@@ -44,7 +44,7 @@ import {
   transformEditForm,
   validateEditForm,
 } from '@jetstream/ui-core/shared';
-import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { applicationCookieState, googleDriveAccessState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import { recordSingleRecordAction, SingleRecordActionContext } from '@jetstream/ui/data-history';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { useAtomValue } from 'jotai';
@@ -150,6 +150,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
 
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
+  const canWriteRecords = useCanPerformOperation('records.write');
 
   // User can drill in to related records, this allows us to go back up the chain via Breadcrumbs
   const [recordId, setRecordId] = useState(initialRecordId);
@@ -696,22 +697,26 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                       <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
                       Reload Record
                     </button>
-                    <button
-                      className="slds-button slds-button_neutral"
-                      onClick={() => onChangeAction('edit')}
-                      disabled={loading || !initialRecord}
-                    >
-                      <Icon type="utility" icon="edit" className="slds-button__icon slds-button__icon_left" omitContainer />
-                      Edit
-                    </button>
-                    <button
-                      className="slds-button slds-button_neutral"
-                      onClick={() => onChangeAction('clone')}
-                      disabled={loading || !initialRecord}
-                    >
-                      <Icon type="utility" icon="copy" className="slds-button__icon slds-button__icon_left" omitContainer />
-                      Clone
-                    </button>
+                    {canWriteRecords && (
+                      <>
+                        <button
+                          className="slds-button slds-button_neutral"
+                          onClick={() => onChangeAction('edit')}
+                          disabled={loading || !initialRecord}
+                        >
+                          <Icon type="utility" icon="edit" className="slds-button__icon slds-button__icon_left" omitContainer />
+                          Edit
+                        </button>
+                        <button
+                          className="slds-button slds-button_neutral"
+                          onClick={() => onChangeAction('clone')}
+                          disabled={loading || !initialRecord}
+                        >
+                          <Icon type="utility" icon="copy" className="slds-button__icon slds-button__icon_left" omitContainer />
+                          Clone
+                        </button>
+                      </>
+                    )}
                     <button
                       className="slds-button slds-button_neutral"
                       onClick={() => handleDownloadModalOpen()}

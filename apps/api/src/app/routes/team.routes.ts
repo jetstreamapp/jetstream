@@ -2,6 +2,7 @@ import { getLogger } from '@jetstream/api-config';
 import { TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING, TeamMemberRole, TeamMemberRoleSchema } from '@jetstream/types';
 import express, { Router } from 'express';
 import { routeDefinition as teamController } from '../controllers/team.controller';
+import { checkFeatureFlag } from '../db/feature-flags.db';
 import { findActiveTeamMembershipForRoles } from '../db/team.db';
 import { Request, Response } from '../types/route.types';
 import { checkAuth, validateDoubleCSRF } from './route.middleware';
@@ -97,6 +98,43 @@ routes.put(
   '/:teamId/members/:userId/status',
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
   teamController.updateTeamMemberStatusAndRole.controllerFn(),
+);
+
+/**
+ * Creating a profile is the only way a team starts being limited, so it is the rollout gate. Editing and deleting stay
+ * available when the flag is turned off, so a team that already has profiles can still manage or remove them.
+ */
+async function requireAccessProfilesEnabled(req: Request, res: Response, next: express.NextFunction) {
+  try {
+    const userId = req.session.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    if (!(await checkFeatureFlag({ userId, key: 'team-access-profiles' }))) {
+      return res.status(403).json({ error: 'Access profiles are not available for your team yet' });
+    }
+    next();
+  } catch (ex) {
+    next(ex);
+  }
+}
+
+// Access profiles: which tools and operations members see, and which surfaces they may sign in to
+routes.post(
+  '/:teamId/access-profiles',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN]),
+  requireAccessProfilesEnabled,
+  teamController.createAccessProfile.controllerFn(),
+);
+routes.put(
+  '/:teamId/access-profiles/:id',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN]),
+  teamController.updateAccessProfile.controllerFn(),
+);
+routes.delete(
+  '/:teamId/access-profiles/:id',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN]),
+  teamController.deleteAccessProfile.controllerFn(),
 );
 
 // Purchased seats (BILLING is included so finance can act on money without an admin)

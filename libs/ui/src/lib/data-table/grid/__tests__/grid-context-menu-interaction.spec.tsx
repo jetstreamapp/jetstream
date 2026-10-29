@@ -173,3 +173,20 @@ describe('context menu — group header rows', () => {
     ]);
   });
 });
+
+describe('context menu — explicit empty list', () => {
+  beforeEach(() => copyRecordsToClipboard.mockClear());
+
+  function selectRange() {
+    fireEvent.mouseDown(getCell('1', 'Type'), { button: 0 });
+    fireEvent.mouseEnter(getCell('2', 'Name'));
+    fireEvent.mouseUp(getCell('2', 'Name'));
+  }
+
+  test('an explicit empty list still offers the range copy actions', async () => {
+    renderTable({ contextMenuItems: [] });
+    selectRange();
+
+    expect(await openMenu(getCell('2', 'Name'))).toEqual(['Copy selected cells', 'Copy selected cells with header']);
+  });
+});

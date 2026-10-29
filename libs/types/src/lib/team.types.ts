@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TeamAccessProfileSchema } from './access-profile.types';
 
 export type TeamGlobalAction = 'view-auth-activity' | 'view-user-sessions' | 'team-member-invite' | 'view-audit-log' | 'manage-seats';
 
@@ -19,15 +20,6 @@ export interface TeamInvitationTableAction {
 }
 export type TeamTableAction = TeamMemberTableAction | TeamInvitationTableAction;
 
-export const FeatureSchema = z.enum([
-  'ALL',
-  'QUERY',
-  'UPDATE_RECORDS',
-  'AUTOMATION_CONTROL',
-  'PERMISSION_MANAGER',
-  'DEPLOYMENT',
-  'DEVELOPER_TOOLS',
-]);
 export const TEAM_MEMBER_ROLE_ADMIN = 'ADMIN';
 export const TEAM_MEMBER_ROLE_BILLING = 'BILLING';
 export const TEAM_MEMBER_ROLE_MEMBER = 'MEMBER';
@@ -105,7 +97,8 @@ export const TeamMemberSchema = z.object({
   userId: z.string(),
   role: TeamMemberRoleSchema,
   status: TeamMemberStatusSchema,
-  features: FeatureSchema.array(),
+  /** NULL means full access */
+  accessProfileId: z.string().nullish().default(null),
   user: TeamUserSchema,
   createdAt: DateStringSchema,
   updatedAt: DateStringSchema,
@@ -156,7 +149,7 @@ export const TeamInviteUserFacingSchema = z.object({
   id: z.string(),
   email: z.email(),
   role: TeamMemberRoleSchema,
-  features: FeatureSchema.array(),
+  accessProfileId: z.string().nullish().default(null),
   expiresAt: DateStringSchema,
   lastSentAt: DateStringSchema,
   createdAt: DateStringSchema,
@@ -195,6 +188,7 @@ export const TeamUserFacingSchema = z.object({
   sharedOrgs: TeamOrgSchema.array(),
   members: TeamMemberSchema.array(),
   invitations: TeamInviteUserFacingSchema.array(),
+  accessProfiles: TeamAccessProfileSchema.array().default([]),
   loginConfig: TeamLoginConfigSchema.nullable(),
   billingAccount: z
     .object({
@@ -272,22 +266,34 @@ export type TeamSeatErrorCode = (typeof TEAM_SEAT_ERROR_CODES)[number];
 export type TeamSeatCheckKind = 'ADD' | 'ACCEPT_INVITATION';
 export type TeamSeatLimitErrorCode = 'NO_SEATS' | 'PAST_DUE';
 
+/**
+ * accessProfileId: omitted applies the team default profile, null is full access
+ *
+ * The team request schemas must keep stripping unknown keys (no strictObject): clients from before access
+ * profiles still send a legacy `features` array, which is ignored.
+ */
 export const TeamInvitationRequestSchema = z.object({
   email: z.email().toLowerCase(),
   role: TeamMemberRoleSchema.optional().default('MEMBER'),
-  features: FeatureSchema.array().optional().default(['ALL']),
+  accessProfileId: z.uuid().nullish(),
 });
 export type TeamInvitationRequest = z.infer<typeof TeamInvitationRequestSchema>;
 
+/**
+ * accessProfileId: omitted leaves the current value, null is full access
+ */
 export const TeamInvitationUpdateRequestSchema = z.object({
   role: TeamMemberRoleSchema.optional(),
-  features: FeatureSchema.array().optional(),
+  accessProfileId: z.uuid().nullish(),
 });
 export type TeamInvitationUpdateRequest = z.infer<typeof TeamInvitationUpdateRequestSchema>;
 
+/**
+ * accessProfileId: omitted leaves the current value, null is full access
+ */
 export const TeamMemberUpdateRequestSchema = z.object({
   role: TeamMemberRoleSchema.optional(),
-  features: FeatureSchema.array().optional(),
+  accessProfileId: z.uuid().nullish(),
 });
 export type TeamMemberUpdateRequest = z.infer<typeof TeamMemberUpdateRequestSchema>;
 
@@ -345,7 +351,6 @@ export const DomainVerificationSchema = z.object({
 });
 export type DomainVerification = z.infer<typeof DomainVerificationSchema>;
 
-export type Feature = z.infer<typeof FeatureSchema>;
 export type TeamMemberRole = z.infer<typeof TeamMemberRoleSchema>;
 export type TeamStatus = z.infer<typeof TeamStatusSchema>;
 export type TeamMemberStatus = z.infer<typeof TeamMemberStatusSchema>;

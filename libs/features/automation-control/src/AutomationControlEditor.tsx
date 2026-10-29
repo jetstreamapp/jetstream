@@ -22,7 +22,13 @@ import {
   getModifierKey,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, fromAutomationControlState, fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
-import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
+import {
+  applicationCookieState,
+  googleDriveAccessState,
+  selectSkipFrontdoorAuth,
+  selectedOrgState,
+  useOperationAccess,
+} from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { useState } from 'react';
@@ -59,6 +65,7 @@ export const AutomationControlEditor = () => {
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontdoorLogin = useAtomValue(selectSkipFrontdoorAuth);
+  const deployAccess = useOperationAccess('metadata.deploy');
 
   const selectedSObjects = useAtomValue(fromAutomationControlState.selectedSObjectsState);
   const selectedAutomationTypes = useAtomValue(fromAutomationControlState.selectedAutomationTypes);
@@ -121,7 +128,9 @@ export const AutomationControlEditor = () => {
     trackEvent(ANALYTICS_KEYS.automation_review, { rows: _dirtyRows.length, objects: selectedSObjects.length });
   }
 
-  usePrimaryActionShortcut(handleReviewChanges, { disabled: loading || !dirtyCount });
+  const reviewChangesDisabled = loading || !dirtyCount || !deployAccess.allowed;
+
+  usePrimaryActionShortcut(handleReviewChanges, { disabled: reviewChangesDisabled });
 
   useGoBackShortcut(() => navigate('..'), {});
 
@@ -357,14 +366,16 @@ export const AutomationControlEditor = () => {
           <Tooltip
             openDelay={500}
             content={
-              <div className="slds-p-bottom_small">
-                <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
-              </div>
+              deployAccess.deniedReason ?? (
+                <div className="slds-p-bottom_small">
+                  <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                </div>
+              )
             }
           >
             <button
               className="slds-button slds-button_brand slds-m-left_xx-small"
-              disabled={loading || !dirtyCount}
+              disabled={reviewChangesDisabled}
               onClick={handleReviewChanges}
             >
               <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />

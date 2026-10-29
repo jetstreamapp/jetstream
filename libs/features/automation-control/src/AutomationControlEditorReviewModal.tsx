@@ -5,6 +5,7 @@ import { AutomationControlHistorySource, AutomationControlRestoreAction, Salesfo
 import type { Column } from '@jetstream/ui';
 import { AutoFullHeightContainer, DataTable, Grid, Icon, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { ConfirmPageChange, useAnalytics } from '@jetstream/ui-core';
+import { useOperationAccess } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { from, switchMap } from 'rxjs';
 import { deployMetadata, getAutomationTypeLabel, preparePayloads } from './automation-control-data-utils';
@@ -113,6 +114,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
     defaultApiVersion,
     'review',
   );
+  const deployAccess = useOperationAccess('metadata.deploy');
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [deploymentItemMap, setDeploymentItemMap] = useState<DeploymentItemMap>(() => getDeploymentItemMap(rows));
   const [deploymentItems, setDeploymentItems] = useState<DeploymentItem[]>([]);
@@ -362,14 +364,20 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
                 <button
                   className="slds-button slds-button_neutral"
                   onClick={() => handleRollbackMetadata()}
-                  title="Revert all successfully deployed items"
-                  disabled={inProgress}
+                  title={deployAccess.deniedReason ?? 'Revert all successfully deployed items'}
+                  disabled={inProgress || !deployAccess.allowed}
                 >
                   <Icon type="utility" icon="undo" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Rollback
                 </button>
               )}
-              <button className="slds-button slds-button_brand" onClick={() => setCurrentStep(currentStep + 1)} disabled={inProgress}>
+              {/* The first step's next button deploys, later steps only close the modal */}
+              <button
+                className="slds-button slds-button_brand"
+                onClick={() => setCurrentStep(currentStep + 1)}
+                disabled={inProgress || (currentStep === 0 && !deployAccess.allowed)}
+                title={currentStep === 0 ? deployAccess.deniedReason : undefined}
+              >
                 {nextButtonLabel}
               </button>
             </div>

@@ -1,9 +1,10 @@
 import { css } from '@emotion/react';
+import { canAccessTool } from '@jetstream/acl';
 import { IconName, IconType } from '@jetstream/icon-factory';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { FeatureFlagKey } from '@jetstream/types';
 import { Badge, Icon, ScopedNotification } from '@jetstream/ui';
-import { analysisToolsAccessState, featureFlagsState } from '@jetstream/ui/app-state';
+import { abilityState, analysisToolsAccessState, featureFlagsState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { Fragment } from 'react';
@@ -81,8 +82,12 @@ interface AppHomeProps {
 
 export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = false }: AppHomeProps) => {
   const featureFlags = useAtomValue(featureFlagsState);
+  const ability = useAtomValue(abilityState);
   const { hasAnalysisToolsAccess } = useAtomValue(analysisToolsAccessState);
-  const visibleHomeItems = HOME_ITEMS.filter((card) => !card.flag || featureFlags[card.flag]);
+  // Tools outside the member's team access profile are removed, along with any card left empty
+  const visibleHomeItems = HOME_ITEMS.filter((card) => !card.flag || featureFlags[card.flag])
+    .map((card) => ({ ...card, items: card.items.filter(({ TOOL }) => !TOOL || canAccessTool(ability, TOOL)) }))
+    .filter((card) => card.items.length > 0);
   return (
     <div
       className="slds-m-top_small"
@@ -153,6 +158,17 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
           )}
         </div>
         <AppHomeOrganizations />
+        {visibleHomeItems.length === 0 && (
+          <div
+            css={css`
+              grid-column: 1 / -1;
+            `}
+          >
+            <ScopedNotification theme="info">
+              No tools are available to you. Contact your Jetstream administrator to request access.
+            </ScopedNotification>
+          </div>
+        )}
         {visibleHomeItems.map((card) => {
           const locked = !!card.requiresPro && !hasAnalysisToolsAccess;
           return (

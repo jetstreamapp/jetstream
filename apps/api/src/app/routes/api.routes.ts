@@ -1,6 +1,6 @@
-import { ENV } from '@jetstream/api-config';
-import { getDefaultAppState } from '@jetstream/shared/utils';
-import { AppInfo } from '@jetstream/types';
+import { ENV, logger } from '@jetstream/api-config';
+import { getDefaultAppState, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { AppInfo, getAccessProfileFingerprint } from '@jetstream/types';
 import express, { Router } from 'express';
 import { getAnnouncements } from '../announcements';
 import { routeDefinition as canvasOrgController } from '../controllers/canvas-org.controller';
@@ -19,6 +19,7 @@ import { routeDefinition as stepUpAuthController } from '../controllers/step-up-
 import { routeDefinition as testController } from '../controllers/test.controller';
 import * as userFeedbackController from '../controllers/user-feedback.controller';
 import { routeDefinition as userController } from '../controllers/user.controller';
+import { findActiveTeamAccessProfile } from '../db/user.db';
 import { deferredResponseMiddleware as dfr } from '../utils/deferred-response.middleware';
 import { sendJson } from '../utils/response.handlers';
 import {
@@ -37,6 +38,7 @@ import {
   stepUpVerifyRateLimit,
   validateDoubleCSRF,
   verifyEntitlement,
+  verifyWebAppAllowed,
 } from './route.middleware';
 
 const routes: express.Router = Router();
@@ -45,11 +47,25 @@ routes.use(checkAuth);
 routes.use(validateDoubleCSRF);
 routes.use(addOrgsToLocal);
 
+/**
+ * Best-effort, like the announcements: a database failure looking up the fingerprint must not take down the
+ * heartbeat. Without one the client skips its access profile check until the next heartbeat.
+ */
+async function findAccessProfileFingerprintSafe(userId: string): Promise<string | undefined> {
+  try {
+    return getAccessProfileFingerprint(await findActiveTeamAccessProfile({ userId }));
+  } catch (ex) {
+    logger.error({ userId, ...getErrorMessageAndStackObj(ex) }, 'Failed to get the access profile fingerprint for the heartbeat');
+    return undefined;
+  }
+}
+
 // used to make sure the user is authenticated and can communicate with the server
 routes.get('/heartbeat', async (req: express.Request, res: express.Response) => {
   const result: AppInfo = {
     version: ENV.VERSION || 'unknown',
     announcements: await getAnnouncements(req.session.user),
+    accessProfileFingerprint: req.session.user ? await findAccessProfileFingerprintSafe(req.session.user.id) : undefined,
     appInfo: getDefaultAppState({
       serverUrl: ENV.JETSTREAM_SERVER_URL,
       environment: ENV.ENVIRONMENT,
@@ -134,11 +150,11 @@ routes.post('/data-sync/push', verifyEntitlement('recordSync'), dataSyncControll
  * orgsController Routes
  * ************************************
  */
-routes.post('/orgs/health-check', orgsController.checkOrgHealth.controllerFn());
-routes.get('/orgs', orgsController.getOrgs.controllerFn());
-routes.patch('/orgs/:uniqueId', orgsController.updateOrg.controllerFn());
-routes.delete('/orgs/:uniqueId', orgsController.deleteOrg.controllerFn());
-routes.put('/orgs/:uniqueId/move', orgsController.moveOrg.controllerFn());
+routes.post('/orgs/health-check', verifyWebAppAllowed, orgsController.checkOrgHealth.controllerFn());
+routes.get('/orgs', verifyWebAppAllowed, orgsController.getOrgs.controllerFn());
+routes.patch('/orgs/:uniqueId', verifyWebAppAllowed, orgsController.updateOrg.controllerFn());
+routes.delete('/orgs/:uniqueId', verifyWebAppAllowed, orgsController.deleteOrg.controllerFn());
+routes.put('/orgs/:uniqueId/move', verifyWebAppAllowed, orgsController.moveOrg.controllerFn());
 
 // DEPRECATED - /orgs/groups (remove this after some time)
 routes.get('/jetstream-organizations', orgGroupController.getOrganizations.controllerFn());

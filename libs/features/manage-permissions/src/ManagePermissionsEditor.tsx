@@ -50,7 +50,7 @@ import {
   getModifierKey,
 } from '@jetstream/ui';
 import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState, useAnalytics } from '@jetstream/ui-core';
-import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
+import { applicationCookieState, googleDriveAccessState, selectedOrgState, useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -135,6 +135,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const managePermissionsEditorFieldTableRef = useRef<ManagePermissionsEditorTableRef>(null);
   const managePermissionsEditorSystemPermissionTableRef = useRef<ManagePermissionsEditorTableRef>(null);
   const selectedOrg = useAtomValue(selectedOrgState);
+  const deployAccess = useOperationAccess('metadata.deploy');
 
   const [loading, setLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -827,9 +828,10 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     resetSystemPermissionMap();
   }
 
-  usePrimaryActionShortcut(saveChanges, {
-    disabled: loading || (!dirtyObjectCount && !dirtyFieldCount && !dirtyTabVisibilityCount && !dirtySystemPermissionCount),
-  });
+  const saveDisabled =
+    loading || !deployAccess.allowed || (!dirtyObjectCount && !dirtyFieldCount && !dirtyTabVisibilityCount && !dirtySystemPermissionCount);
+
+  usePrimaryActionShortcut(saveChanges, { disabled: saveDisabled });
 
   useGoBackShortcut(() => {
     handleGoBack();
@@ -920,16 +922,14 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           <Tooltip
             openDelay={500}
             content={
-              <div className="slds-p-bottom_small">
-                <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
-              </div>
+              deployAccess.deniedReason ?? (
+                <div className="slds-p-bottom_small">
+                  <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                </div>
+              )
             }
           >
-            <button
-              className="slds-button slds-button_brand slds-m-left_xx-small"
-              onClick={saveChanges}
-              disabled={loading || (!dirtyObjectCount && !dirtyFieldCount && !dirtyTabVisibilityCount && !dirtySystemPermissionCount)}
-            >
+            <button className="slds-button slds-button_brand slds-m-left_xx-small" onClick={saveChanges} disabled={saveDisabled}>
               <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
               Save
             </button>

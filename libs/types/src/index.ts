@@ -1,3 +1,4 @@
+export * from './lib/access-profile.types';
 export * from './lib/analysis-job-types';
 export * from './lib/billing.types';
 export * from './lib/data-history-types';

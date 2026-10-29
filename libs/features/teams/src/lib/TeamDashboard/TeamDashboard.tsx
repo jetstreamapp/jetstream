@@ -13,7 +13,9 @@ import { useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
   DomainVerification,
+  getAccessProfileFingerprint,
   TEAM_BILLING_STATUS_PAST_DUE,
+  TeamAccessProfile,
   TeamBillingStatusSchema,
   TeamGlobalAction,
   TeamLoginConfig,
@@ -36,10 +38,13 @@ import {
   Spinner,
 } from '@jetstream/ui';
 import { SalesforceCanvasOrgs, useAnalytics } from '@jetstream/ui-core';
-import { abilityState, fromAppState, useFeatureFlag } from '@jetstream/ui/app-state';
-import { useAtomValue } from 'jotai';
+import { abilityState, fetchLatestUserProfile, fromAppState, useFeatureFlag } from '@jetstream/ui/app-state';
+import { useAtom, useAtomValue } from 'jotai';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
+import { TeamAccessProfileDeleteModal } from './access-profiles/TeamAccessProfileDeleteModal';
+import { TeamAccessProfileEditorModal } from './access-profiles/TeamAccessProfileEditorModal';
+import { TeamAccessProfiles } from './access-profiles/TeamAccessProfiles';
 import { TeamSSOConfiguration } from './sso-configuration/TeamSSOConfiguration';
 import { TeamMembersTable } from './team-members/TeamMembersTable';
 import { SeatGate } from './team-seats/seat-gate';
@@ -56,6 +61,8 @@ import { TeamMemberUpdateModal } from './TeamMemberUpdateModal';
 import { TeamName } from './TeamName';
 
 type TeamMemberEditModalState = { open: false } | { open: true; teamMember: TeamUserFacing['members'][number] };
+type AccessProfileEditorModalState = { open: false } | { open: true; accessProfile?: TeamAccessProfile };
+type AccessProfileDeleteModalState = { open: false } | { open: true; accessProfile: TeamAccessProfile };
 type TeamMemberEditStatusModalState =
   | { open: false }
   | { open: true; action: TeamUserAction; teamMember: TeamUserFacing['members'][number] };
@@ -73,7 +80,7 @@ export function TeamDashboard() {
   const [domains, setDomains] = useState<DomainVerification[] | null>([]);
   const [ssoConfig, setSsoConfig] = useState<LoginConfigurationWithCallbacks | null>(null);
   const [loadingError, setLoadingError] = useState<string | null>(null);
-  const userProfile = useAtomValue(fromAppState.userProfileState);
+  const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
 
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [teamSessionModalOpen, setTeamSessionModalOpen] = useState(false);
@@ -82,8 +89,11 @@ export function TeamDashboard() {
   const [manageSeatsModalOpen, setManageSeatsModalOpen] = useState(false);
   const [teamMemberUpdateState, setTeamMemberUpdateState] = useState<TeamMemberEditModalState>({ open: false });
   const [teamMemberStatusUpdateState, setTeamMemberStatusUpdateState] = useState<TeamMemberEditStatusModalState>({ open: false });
+  const [accessProfileEditorState, setAccessProfileEditorState] = useState<AccessProfileEditorModalState>({ open: false });
+  const [accessProfileDeleteState, setAccessProfileDeleteState] = useState<AccessProfileDeleteModalState>({ open: false });
 
   const canvasEnabled = useFeatureFlag('salesforce-canvas');
+  const accessProfilesEnabled = useFeatureFlag('team-access-profiles');
   // Team members' Canvas access is gated by the team entitlement (resolved onto the profile), and only
   // team admins may manage the authorized-orgs list.
   const showCanvasOrgs = canvasEnabled && userProfile.entitlements.salesforceCanvas;
@@ -94,6 +104,10 @@ export function TeamDashboard() {
   const canReadAuthActivity = ability.can('read', 'TeamMemberAuthActivity');
   const canReadSession = ability.can('read', 'TeamMemberSession');
   const canReadAuditLog = ability.can('read', 'AuditLog');
+  const canReadAccessProfiles = ability.can('read', 'TeamAccessProfile');
+  const canUpdateAccessProfiles = ability.can('update', 'TeamAccessProfile');
+  // Teams that already have profiles keep seeing them when the flag is off, so they can still edit or remove them
+  const showAccessProfiles = canReadAccessProfiles && (accessProfilesEnabled || !!team?.accessProfiles.length);
 
   const hasManualBilling = !!team?.billingAccount?.manualBilling;
   // Manual-billing seat limits are set by agreement, so only self-serve teams get the Manage Seats flow.
@@ -202,6 +216,27 @@ export function TeamDashboard() {
     }
   }
 
+  /**
+   * Editing or deleting a profile can change the admin's own access, so pick that up right away instead of
+   * waiting for the next tab focus
+   */
+  async function handleAccessProfileModalClose(updatedTeam?: TeamUserFacing) {
+    handleTeamModalClose(updatedTeam);
+    if (!updatedTeam) {
+      return;
+    }
+    // Same comparison the heartbeat makes, so only a real change to the admin's own access triggers a refetch
+    const ownAccessProfileId = updatedTeam.members.find(({ userId }) => userId === userProfile.id)?.accessProfileId;
+    const ownAccessProfile = updatedTeam.accessProfiles.find(({ id }) => id === ownAccessProfileId);
+    if (getAccessProfileFingerprint(ownAccessProfile) !== getAccessProfileFingerprint(userProfile.teamMembership?.accessProfile)) {
+      try {
+        setUserProfile(await fetchLatestUserProfile());
+      } catch {
+        // The next heartbeat picks up the change
+      }
+    }
+  }
+
   /** Everything the member modals need to explain the seat situation, passed as one prop */
   const seatGate: SeatGate = { seats, hasManualBilling, canManageSeats, isPastDue, onBuySeats: openManageSeatsFromModal };
 
@@ -300,9 +335,32 @@ export function TeamDashboard() {
 
   return (
     <>
+      {team && canUpdateAccessProfiles && accessProfileEditorState.open && (
+        <TeamAccessProfileEditorModal
+          teamId={team.id}
+          accessProfile={accessProfileEditorState.accessProfile}
+          onClose={(updatedTeam) => {
+            handleAccessProfileModalClose(updatedTeam);
+            setAccessProfileEditorState({ open: false });
+          }}
+        />
+      )}
+      {team && canUpdateAccessProfiles && accessProfileDeleteState.open && (
+        <TeamAccessProfileDeleteModal
+          teamId={team.id}
+          accessProfile={accessProfileDeleteState.accessProfile}
+          accessProfiles={team.accessProfiles}
+          onClose={(updatedTeam) => {
+            handleAccessProfileModalClose(updatedTeam);
+            setAccessProfileDeleteState({ open: false });
+          }}
+        />
+      )}
       {team && inviteModalOpen && (
         <TeamMemberInviteModal
           teamId={team.id}
+          accessProfiles={team.accessProfiles}
+          canAssignAccessProfile={canUpdateAccessProfiles && showAccessProfiles}
           userRole={userProfile.teamMembership?.role || TeamMemberRoleSchema.enum.MEMBER}
           ssoConfig={ssoConfig}
           verifiedDomains={verifiedDomains}
@@ -336,6 +394,8 @@ export function TeamDashboard() {
         <TeamMemberUpdateModal
           teamId={team.id}
           teamMember={teamMemberUpdateState.teamMember}
+          accessProfiles={team.accessProfiles}
+          canAssignAccessProfile={canUpdateAccessProfiles && showAccessProfiles}
           currentUserRole={userProfile.teamMembership?.role}
           seatGate={seatGate}
           onClose={(teamData) => {
@@ -430,6 +490,18 @@ export function TeamDashboard() {
             </div>
           )}
 
+          {team && showAccessProfiles && (
+            <TeamAccessProfiles
+              accessProfiles={team.accessProfiles}
+              canUpdate={canUpdateAccessProfiles}
+              // Counts every role, matching each profile's member count from the server
+              fullAccessMemberCount={team.members.filter(({ accessProfileId }) => !accessProfileId).length}
+              onCreate={() => setAccessProfileEditorState({ open: true })}
+              onEdit={(accessProfile) => setAccessProfileEditorState({ open: true, accessProfile })}
+              onDelete={(accessProfile) => setAccessProfileDeleteState({ open: true, accessProfile })}
+            />
+          )}
+
           <div data-testid="team-member-table-container" className="slds-m-bottom_xx-large">
             {team && (
               <TeamMembersTable
@@ -441,6 +513,7 @@ export function TeamDashboard() {
                 manageSeatsDisabledReason={manageSeatsDisabledReason}
                 teamMembers={team.members}
                 invitations={team.invitations}
+                accessProfiles={showAccessProfiles ? team.accessProfiles : null}
                 userProfile={userProfile}
                 configuredSsoProvider={configuredSsoProvider}
                 onGlobalAction={handleTeamGlobalAction}

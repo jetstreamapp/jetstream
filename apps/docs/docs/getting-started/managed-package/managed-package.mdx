@@ -94,6 +94,86 @@ You can also navigate directly to the full-screen page or bookmark it for quick 
 
 `https://{your-domain}.my.salesforce.com/apex/jetstream__JetstreamPage`
 
+## Limiting Jetstream Tools
+
+By default, every user with the **Jetstream** permission set can use every Jetstream tool. To give some users a smaller set of
+tools, such as Query Records without the tools that load data or deploy metadata, assign them the **Jetstream: Limited Access**
+custom permission along with a custom permission for each tool and action they should keep.
+
+:::warning[Limiting tools is not a security control]
+
+These custom permissions only change what Jetstream shows. They keep people focused and help prevent mistakes, but they never change
+anyone's Salesforce permissions, and a determined user can work around them. Everything a user does in Jetstream still runs as their
+Salesforce user, so use their Salesforce profile and permission sets to prevent them from viewing or changing data.
+
+:::
+
+The custom permissions are included in recent versions of the package. If you do not see them under **Custom Permissions** when
+editing a permission set, upgrade Jetstream for Salesforce to the latest version.
+
+### How it works
+
+- Users without **Jetstream: Limited Access** can use every tool and action, even if they also have some of the tool or action
+  custom permissions.
+- Users with **Jetstream: Limited Access** only get the tools and actions whose custom permission they also have. Limited Access on its
+  own shows no tools.
+- Tools that are not included are removed from the navigation menu and the home page, and opening one from a link shows **This tool is
+  not available to you**. Buttons for an action that is not included are hidden, or disabled with a message.
+- Tools added to Jetstream in the future stay hidden from Limited Access users until you upgrade the package and grant their custom
+  permission.
+- Changes apply the next time the user opens or reloads Jetstream.
+- The limits apply when Jetstream is opened from the Jetstream app, tab or page included in the package.
+
+### Set up limited access
+
+1. In Salesforce, go to **Setup > Permission Sets** and click **New**. Give the permission set a name such as **Jetstream Analysts**
+   and save it.
+2. Open **Custom Permissions** and click **Edit**.
+3. Add **Jetstream: Limited Access**, plus the tool and action custom permissions from the tables below that these users should have,
+   then save.
+4. Click **Manage Assignments** and assign the permission set to the users. They still need the **Jetstream** permission set as well.
+
+The packaged **Jetstream** permission set cannot be edited, so add these custom permissions to your own permission set or permission set
+group.
+
+### Tool custom permissions
+
+Some tools need an action custom permission for their main buttons. Without it, the tool opens with those buttons hidden or disabled.
+
+| Custom permission                               | API name                   | Also needs for its main buttons                               |
+| ----------------------------------------------- | -------------------------- | ------------------------------------------------------------- |
+| Jetstream: Tool - Query Records                 | `Tool_Query`               |                                                               |
+| Jetstream: Tool - Load Records                  | `Tool_Load`                | Create and Update Records, or Delete Records for delete loads |
+| Jetstream: Tool - Update Records Without a File | `Tool_Update_Records`      | Create and Update Records                                     |
+| Jetstream: Tool - Create New Record             | `Tool_Create_Record`       | Create and Update Records                                     |
+| Jetstream: Tool - Data History                  | `Tool_Data_History`        |                                                               |
+| Jetstream: Tool - Platform Events               | `Tool_Platform_Events`     | Create and Update Records to publish events                   |
+| Jetstream: Tool - Automation Control            | `Tool_Automation_Control`  | Deploy Metadata and Change Configuration                      |
+| Jetstream: Tool - Manage Permissions            | `Tool_Manage_Permissions`  | Deploy Metadata and Change Configuration                      |
+| Jetstream: Tool - Permission Analysis           | `Tool_Permission_Analysis` |                                                               |
+| Jetstream: Tool - Data Analysis                 | `Tool_Data_Analysis`       |                                                               |
+| Jetstream: Tool - Deploy and Compare Metadata   | `Tool_Deploy_Metadata`     | Deploy Metadata and Change Configuration to deploy            |
+| Jetstream: Tool - Create Object and Fields      | `Tool_Create_Fields`       | Deploy Metadata and Change Configuration                      |
+| Jetstream: Tool - Record Type Picklist Manager  | `Tool_Record_Type_Manager` | Deploy Metadata and Change Configuration                      |
+| Jetstream: Tool - Formula Evaluator             | `Tool_Formula_Evaluator`   |                                                               |
+| Jetstream: Tool - Export Object Metadata        | `Tool_Object_Export`       |                                                               |
+| Jetstream: Tool - Anonymous Apex                | `Tool_Anonymous_Apex`      | Nothing, it can change data and metadata without any action   |
+| Jetstream: Tool - Apex Test Runner              | `Tool_Apex_Tests`          |                                                               |
+| Jetstream: Tool - Debug Logs                    | `Tool_Debug_Logs`          | Delete Records to purge logs                                  |
+| Jetstream: Tool - Salesforce API                | `Tool_Salesforce_Api`      | Nothing, it can send any request without any action           |
+
+### Action custom permissions
+
+| Custom permission                                            | API name                 | Covers                                                                                                                                              |
+| ------------------------------------------------------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Jetstream: Action - Create and Update Records                | `Action_Records_Write`   | Inline and bulk edits in query results, editing and cloning records, insert, update and upsert loads, and publishing platform events                |
+| Jetstream: Action - Delete Records                           | `Action_Records_Delete`  | Deleting and undeleting from query results, delete loads, and purging debug logs                                                                    |
+| Jetstream: Action - Deploy Metadata and Change Configuration | `Action_Metadata_Deploy` | Deploying or deleting metadata, creating objects and fields, toggling automation, saving permission changes and managing permission set assignments |
+
+See [Access Profiles](/team-management/access-profiles#actions) for more detail on what each action covers. Anonymous Apex and the
+Salesforce API tool can make any change the user's Salesforce permissions allow, so leave them out for users who should not make
+changes.
+
 ## Troubleshooting
 
 ### "Your browsing session has ended or is invalid"
