@@ -19,6 +19,11 @@ export const FEATURE_FLAGS = {
     defaultValue: false,
     description: 'Manage Salesforce orgs authorized to use the Canvas app.',
   },
+  'team-access-profiles': {
+    defaultValue: false,
+    description:
+      'Create team access profiles that limit the tools and applications members can use. Profiles that already exist keep applying, and can be edited or deleted, when this is off.',
+  },
 } as const satisfies Record<string, { defaultValue: boolean; description: string }>;
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;

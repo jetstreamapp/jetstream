@@ -312,6 +312,14 @@ export interface SalesforceQueryColumnDefinition<TRow extends object, TSummaryRo
   subqueryColumns: Record<string, ColumnWithFilter<TRow, TSummaryRow>[]>;
 }
 
+/** Record changes a query results table offers, everything is allowed unless turned off */
+export interface RecordOperationPermissions {
+  /** Inline editing plus the edit and clone row actions */
+  canWriteRecords?: boolean;
+  /** Delete and restore row actions */
+  canDeleteRecords?: boolean;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Imperative ref API (unchanged signatures)
 // ─────────────────────────────────────────────────────────────────────────────

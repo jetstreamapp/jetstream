@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { Grid } from '@jetstream/ui';
+import { useCanAccessTool } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useCallback } from 'react';
 import { Link } from 'react-router';
@@ -15,6 +16,7 @@ export interface AnonymousApexHistoryProps {
 
 export const AnonymousApexHistory: FunctionComponent<AnonymousApexHistoryProps> = ({ className, onHistorySelected }) => {
   const historyItems = useAtomValue(fromApexState.selectApexHistoryState);
+  const canUseDebugLogs = useCanAccessTool('debug-logs');
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -45,18 +47,20 @@ export const AnonymousApexHistory: FunctionComponent<AnonymousApexHistoryProps> 
           </select>
         </div>
       )}
-      <div
-        css={css`
-          min-width: 120px;
-        `}
-      >
-        <Link
-          to={{ pathname: APP_ROUTES.DEBUG_LOG_VIEWER.ROUTE, search: APP_ROUTES.DEBUG_LOG_VIEWER.SEARCH_PARAM }}
-          title="View debugs logs - If your anonymous apex initiated a background process, such as a batch job, you can view the logs on the debug log page."
+      {canUseDebugLogs && (
+        <div
+          css={css`
+            min-width: 120px;
+          `}
         >
-          View Debug Logs
-        </Link>
-      </div>
+          <Link
+            to={{ pathname: APP_ROUTES.DEBUG_LOG_VIEWER.ROUTE, search: APP_ROUTES.DEBUG_LOG_VIEWER.SEARCH_PARAM }}
+            title="View debugs logs - If your anonymous apex initiated a background process, such as a batch job, you can view the logs on the debug log page."
+          >
+            View Debug Logs
+          </Link>
+        </div>
+      )}
     </Grid>
   );
 };

@@ -1,5 +1,5 @@
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { AppHome, AppHomeBillingUser, Feedback, OrgSelectionRequired } from '@jetstream/ui-core';
+import { AppHome, AppHomeReadOnlyUser, Feedback, OrgSelectionRequired, ToolAccessGuard } from '@jetstream/ui-core';
 import { abilityState, isReadOnlyUserState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useEffect } from 'react';
@@ -145,10 +145,10 @@ export const AppRoutes = () => {
       {/* <Route path={'/error'} element={<ErrorBoundaryFallback error={new Error('test')} resetErrorBoundary={NOOP} />} /> */}
       <Route
         path={APP_ROUTES.HOME.ROUTE}
-        element={isReadOnlyUser ? <AppHomeBillingUser /> : <AppHome showAlternativeAppFormats={environment.BILLING_ENABLED} />}
+        element={isReadOnlyUser ? <AppHomeReadOnlyUser /> : <AppHome showAlternativeAppFormats={environment.BILLING_ENABLED} />}
       />
       {ability.can('read', 'CoreFunctionality') && (
-        <>
+        <Route element={<ToolAccessGuard />}>
           <Route
             path={APP_ROUTES.QUERY.ROUTE}
             element={
@@ -339,7 +339,7 @@ export const AppRoutes = () => {
               </OrgSelectionRequired>
             }
           />
-        </>
+        </Route>
       )}
 
       <Route path={APP_ROUTES.FEEDBACK_SUPPORT.ROUTE} element={<Feedback />} />

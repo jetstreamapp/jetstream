@@ -5,6 +5,7 @@ import {
   addMemberFromInvitation,
   assertSeatAvailable,
   auditSeatLimitRejection,
+  findDefaultAccessProfileId,
   SeatLimitError,
   withTeamSeatLock,
 } from '@jetstream/team-seats';
@@ -145,7 +146,7 @@ async function joinTeamUnderLock(
   }
   const invitation = await tx.teamMemberInvitation.findFirst({
     where: { teamId, email, expiresAt: { gte: new Date() } },
-    select: { id: true, role: true, features: true },
+    select: { id: true, role: true },
   });
   if (invitation) {
     await addMemberFromInvitation(tx, { teamId, userId, invitation });
@@ -162,7 +163,7 @@ async function joinTeamUnderLock(
       teamId,
       userId,
       role: TEAM_MEMBER_ROLE_MEMBER,
-      features: ['ALL'],
+      accessProfileId: await findDefaultAccessProfileId(tx, teamId),
       status: TEAM_MEMBER_STATUS_ACTIVE,
       createdById: userId,
       updatedById: userId,

@@ -524,7 +524,6 @@ test.describe('Team Dashboard', () => {
           teamId: team.id,
           email: `invite-${Date.now()}@playwright.getjetstream.app`,
           role: 'MEMBER',
-          features: ['ALL'],
           expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
           lastSentAt: new Date(),
           createdById: teamCreationUtils.adminUser.userId,
@@ -681,7 +680,7 @@ test.describe('Team Dashboard', () => {
     await test.step('/api/teams rejects mutating requests with a wrong CSRF token', async () => {
       const response = await request.post(`/api/teams/${team.id}/invitations`, {
         headers: { 'X-Csrf-Token': 'obviously-wrong' },
-        data: { email: `csrf-probe-${Date.now()}@playwright.getjetstream.app`, role: 'MEMBER', features: ['ALL'] },
+        data: { email: `csrf-probe-${Date.now()}@playwright.getjetstream.app`, role: 'MEMBER' },
       });
       expect(response.status()).toBe(403);
     });
@@ -722,7 +721,8 @@ test.describe('Team Dashboard', () => {
       await expect(page.getByRole('option', { name: 'Billing' })).toBeVisible();
       await expect(page.getByRole('option', { name: 'Member' })).toBeVisible();
 
-      const options = await teamDashboardPage.teamMemberInviteModal.getByRole('option').all();
+      // The role picklist renders its list in a portal, outside of the modal
+      const options = await page.getByRole('option').all();
       expect(options.length).toBe(2);
 
       // close menu
@@ -736,7 +736,6 @@ test.describe('Team Dashboard', () => {
       const response = await request.post(`/api/teams/${team.id}/invitations`, {
         data: {
           email: userEmail,
-          features: ['ALL'],
           role: 'ADMIN',
         },
       });
@@ -809,7 +808,6 @@ test.describe('Team Dashboard', () => {
           teamId: team.id,
           email: `admin-invite-${Date.now()}@playwright.getjetstream.app`,
           role: 'ADMIN',
-          features: ['ALL'],
           expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
           lastSentAt: new Date(),
           createdById: adminUser.userId,

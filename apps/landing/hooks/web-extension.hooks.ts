@@ -25,10 +25,13 @@ const ERROR_MESSAGES = {
   UNKNOWN_ERROR: 'There was an unexpected error authenticating your account',
   INVALID_SUBSCRIPTION:
     'You do not have a valid subscription to use the browser extension, sign up for a plan that includes the browser extension.',
+  SURFACE_NOT_ALLOWED:
+    "Your team's Jetstream access profile does not allow the browser extension. Contact your team administrator for access.",
 };
 
 const ERROR_MAP = {
   MissingEntitlement: ERROR_MESSAGES.INVALID_SUBSCRIPTION,
+  SurfaceNotAllowed: ERROR_MESSAGES.SURFACE_NOT_ALLOWED,
 };
 
 const EVENT_MAP = {

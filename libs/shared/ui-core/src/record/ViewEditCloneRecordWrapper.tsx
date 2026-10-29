@@ -8,8 +8,9 @@ import {
   recordActionModalClosedObservable,
   useObservable,
 } from '@jetstream/shared/ui-utils';
-import { CloneEditView, SalesforceOrgUi } from '@jetstream/types';
-import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
+import { ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES, CloneEditView, SalesforceOrgUi } from '@jetstream/types';
+import { fireToast } from '@jetstream/ui';
+import { applicationCookieState, selectedOrgState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { ViewEditCloneRecord } from './ViewEditCloneRecord';
@@ -35,6 +36,10 @@ async function fetchSobjectName(selectedOrg: SalesforceOrgUi, recordId: string) 
   }
 }
 
+function fireWriteNotAllowedToast() {
+  fireToast({ type: 'warning', message: ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['records.write'] });
+}
+
 /**
  * Manages the state and behavior of the ViewEditCloneRecord component.
  * Anywhere in the app, components can emit observable events to trigger this to open.
@@ -50,6 +55,7 @@ export const ViewEditCloneRecordWrapper: FunctionComponent = () => {
   // which clears form/breadcrumb state without manual resets.
   const [instanceKey, setInstanceKey] = useState(0);
   const [didSave, setDidSave] = useState(false);
+  const canWriteRecords = useCanPerformOperation('records.write');
 
   const appActionEvents = useObservable(appActionObservable$.pipe(appActionRecordEventFilter));
 
@@ -75,12 +81,17 @@ export const ViewEditCloneRecordWrapper: FunctionComponent = () => {
         if (!isValidSalesforceRecordId(appActionEvents.payload.recordId)) {
           return;
         }
-        setAction('edit');
+        // Without write access the record still opens, just read-only
+        setAction(canWriteRecords ? 'edit' : 'view');
         _modalOpen = true;
         _recordId = appActionEvents.payload.recordId;
         break;
       }
       case 'CREATE_RECORD': {
+        if (!canWriteRecords) {
+          fireWriteNotAllowedToast();
+          return;
+        }
         setAction('create');
         _modalOpen = true;
         _sobjectName = appActionEvents.payload.objectName;
@@ -88,6 +99,10 @@ export const ViewEditCloneRecordWrapper: FunctionComponent = () => {
       }
       case 'CLONE_RECORD': {
         if (!isValidSalesforceRecordId(appActionEvents.payload.recordId)) {
+          return;
+        }
+        if (!canWriteRecords) {
+          fireWriteNotAllowedToast();
           return;
         }
         setAction('clone');
@@ -119,6 +134,21 @@ export const ViewEditCloneRecordWrapper: FunctionComponent = () => {
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appActionEvents]);
+
+  // Write access can be revoked while a modal is open (a profile refresh on focus or heartbeat). Drop back to the
+  // read-only view so the open form cannot save, and close a create form since there is no record to view.
+  useEffect(() => {
+    if (canWriteRecords || !modalOpen || action === 'view') {
+      return;
+    }
+    fireWriteNotAllowedToast();
+    if (action === 'create') {
+      onModalClose();
+    } else {
+      setAction('view');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canWriteRecords]);
 
   function onActionChange(action: CloneEditView) {
     setAction(action);

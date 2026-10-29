@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { updateUser } from '../user.db';
+import { findActiveTeamAccessProfile, findIdByUserIdUserFacing, updateUser } from '../user.db';
 
 const prismaMock = vi.hoisted(() => ({
   user: {
     update: vi.fn(),
+    findFirstOrThrow: vi.fn(),
+  },
+  teamMember: {
+    findFirst: vi.fn(),
   },
 }));
 
@@ -12,6 +16,14 @@ vi.mock('@jetstream/api-config', () => ({
     error: vi.fn(),
   },
   prisma: prismaMock,
+}));
+
+vi.mock('../feature-flags.db', () => ({
+  resolveFeatureFlagsForUser: vi.fn(async () => ({})),
+}));
+
+vi.mock('../../services/feature-flag-signing.service', () => ({
+  signFeatureFlags: vi.fn(() => 'signature'),
 }));
 
 const sessionUser = {
@@ -80,5 +92,63 @@ describe('updateUser preferences', () => {
       recordSyncEnabled: true,
       soqlQueryFormatOptions: expect.objectContaining({ numIndent: 1, fieldMaxLineLength: 1 }),
     });
+  });
+});
+
+describe('findActiveTeamAccessProfile', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns the profile the user is assigned in an active team', async () => {
+    const accessProfile = { id: 'profile-1', version: 3, policy: { v: 1, tools: [], operations: [], surfaces: ['desktop'] } };
+    prismaMock.teamMember.findFirst.mockResolvedValue({ accessProfile });
+
+    await expect(findActiveTeamAccessProfile({ userId: sessionUser.id })).resolves.toEqual(accessProfile);
+    // A membership of an inactive team is ignored, matching /api/me
+    expect(prismaMock.teamMember.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: sessionUser.id, team: { status: 'ACTIVE' } } }),
+    );
+  });
+
+  it('returns null for a member without a profile', async () => {
+    prismaMock.teamMember.findFirst.mockResolvedValue({ accessProfile: null });
+
+    await expect(findActiveTeamAccessProfile({ userId: sessionUser.id })).resolves.toBeNull();
+  });
+
+  it('returns null for a user without a membership in an active team', async () => {
+    prismaMock.teamMember.findFirst.mockResolvedValue(null);
+
+    await expect(findActiveTeamAccessProfile({ userId: sessionUser.id })).resolves.toBeNull();
+  });
+});
+
+describe('findIdByUserIdUserFacing', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('only reads the membership of an active team, so a profile from an inactive team cannot block desktop or extension sign in', async () => {
+    prismaMock.user.findFirstOrThrow.mockResolvedValue({
+      id: sessionUser.id,
+      email: sessionUser.email,
+      name: sessionUser.name,
+      emailVerified: true,
+      picture: null,
+      preferences: null,
+      entitlements: null,
+      subscriptions: [],
+      teamMembership: null,
+    });
+
+    const userProfile = await findIdByUserIdUserFacing({ userId: sessionUser.id });
+
+    expect(userProfile.teamMembership).toBeNull();
+    // The desktop and extension initSession surface checks read `teamMembership.accessProfile` from this
+    // result, so the select is the only thing excluding an inactive team's profile (matches verifyToken)
+    const { select } = prismaMock.user.findFirstOrThrow.mock.calls[0][0];
+    expect(select.teamMembership.where).toEqual({ team: { status: 'ACTIVE' } });
+    expect(select.teamMembership.select.accessProfile).toEqual({ select: { id: true, name: true, version: true, policy: true } });
   });
 });

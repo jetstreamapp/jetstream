@@ -123,6 +123,9 @@
       "path": "../../libs/shared/client-logger/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/auth/acl/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/ui/tsconfig.lib.json"
     },
     {

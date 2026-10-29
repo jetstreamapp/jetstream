@@ -39,6 +39,7 @@ import {
   addMemberFromInvitation,
   auditSeatLimitRejection,
   checkSeatAvailability,
+  findDefaultAccessProfileId,
   SeatLimitError,
   withTeamSeatLock,
 } from '@jetstream/team-seats';
@@ -1387,7 +1388,7 @@ export async function removeIdentityFromUser(
 /**
  * Creates a new user, auto-joining them to the team from the login configuration when one is set
  * and a seat is free. A user who holds a pending invitation is not auto-joined: the accept step that
- * follows converts their reservation with the invitation's role and features, and a seat check here
+ * follows converts their reservation with the invitation's role and access profile, and a seat check here
  * would count that reservation against them. The invitation lookup, the seat check and the user write
  * all share the team row lock so a concurrent invite cannot take the same seat or be overtaken by a
  * plain auto-join. When no seat is available the user is still created (they can log in) but without
@@ -1395,7 +1396,7 @@ export async function removeIdentityFromUser(
  */
 async function createUserWithDomainAutoJoin(
   { email, loginConfiguration }: { email: string; loginConfiguration: Maybe<LoginConfiguration> },
-  createUser: (tx: Prisma.TransactionClient, autoJoinTeamId: string | null) => Promise<AuthenticatedUser>,
+  createUser: (tx: Prisma.TransactionClient, autoJoin: AutoJoinMembership | null) => Promise<AuthenticatedUser>,
 ): Promise<AuthenticatedUser> {
   const autoJoinTeamId = loginConfiguration?.autoAddToTeam && loginConfiguration.team?.id ? loginConfiguration.team.id : null;
   if (!autoJoinTeamId) {
@@ -1404,8 +1405,8 @@ async function createUserWithDomainAutoJoin(
 
   return withTeamSeatLock(autoJoinTeamId, async (tx) => {
     // Read the invitation under the lock rather than before it: one created while we waited must still
-    // win, otherwise the user is auto-joined as a plain member and the invitation's role and features
-    // are dropped along with it by the cleanup that follows.
+    // win, otherwise the user is auto-joined as a plain member and the invitation's role and access
+    // profile are dropped along with it by the cleanup that follows.
     const pendingInvitation = await tx.teamMemberInvitation.findFirst({
       select: { id: true },
       where: { teamId: autoJoinTeamId, email, expiresAt: { gte: new Date() } },
@@ -1416,7 +1417,7 @@ async function createUserWithDomainAutoJoin(
 
     const availability = await checkSeatAvailability(tx, { teamId: autoJoinTeamId, kind: 'ADD', role: TEAM_MEMBER_ROLE_MEMBER });
     if (availability.ok) {
-      return createUser(tx, autoJoinTeamId);
+      return createUser(tx, { teamId: autoJoinTeamId, accessProfileId: await findDefaultAccessProfileId(tx, autoJoinTeamId) });
     }
 
     logger.warn(
@@ -1428,11 +1429,24 @@ async function createUserWithDomainAutoJoin(
   });
 }
 
-function buildAutoJoinMembership(autoJoinTeamId: string | null) {
-  if (!autoJoinTeamId) {
+interface AutoJoinMembership {
+  teamId: string;
+  /** The team's default access profile, NULL means full access */
+  accessProfileId: string | null;
+}
+
+function buildAutoJoinMembership(autoJoin: AutoJoinMembership | null) {
+  if (!autoJoin) {
     return undefined;
   }
-  return { create: { teamId: autoJoinTeamId, role: TEAM_MEMBER_ROLE_MEMBER, status: TEAM_MEMBER_STATUS_ACTIVE } };
+  return {
+    create: {
+      teamId: autoJoin.teamId,
+      role: TEAM_MEMBER_ROLE_MEMBER,
+      status: TEAM_MEMBER_STATUS_ACTIVE,
+      accessProfileId: autoJoin.accessProfileId,
+    },
+  };
 }
 
 async function createUserFromProvider(
@@ -1441,7 +1455,7 @@ async function createUserFromProvider(
   loginConfiguration: Maybe<LoginConfiguration>,
 ) {
   const email = providerUser.email?.toLowerCase();
-  const user = await createUserWithDomainAutoJoin({ email, loginConfiguration }, (tx, autoJoinTeamId) =>
+  const user = await createUserWithDomainAutoJoin({ email, loginConfiguration }, (tx, autoJoin) =>
     tx.user
       .create({
         select: AuthenticatedUserSelect,
@@ -1480,7 +1494,7 @@ async function createUserFromProvider(
               enabled: ENV.JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE,
             },
           },
-          teamMembership: buildAutoJoinMembership(autoJoinTeamId),
+          teamMembership: buildAutoJoinMembership(autoJoin),
         },
       })
       .then((user) => AuthenticatedUserSchema.parse(user)),
@@ -1596,7 +1610,7 @@ async function createUserFromUserInfo(
   email = email.toLowerCase();
 
   const passwordHash = await hashPassword(password);
-  const user = await createUserWithDomainAutoJoin({ email, loginConfiguration }, async (tx, autoJoinTeamId) => {
+  const user = await createUserWithDomainAutoJoin({ email, loginConfiguration }, async (tx, autoJoin) => {
     // Create initial user
     const user = await tx.user
       .create({
@@ -1621,7 +1635,7 @@ async function createUserFromUserInfo(
               enabled: ENV.JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE,
             },
           },
-          teamMembership: buildAutoJoinMembership(autoJoinTeamId),
+          teamMembership: buildAutoJoinMembership(autoJoin),
         },
       })
       .then((user) => AuthenticatedUserSchema.parse(user));
@@ -1759,7 +1773,6 @@ async function getTeamInviteConfiguration({ email, teamInvite }: { email: string
       id: true,
       email: true,
       role: true,
-      features: true,
       createdById: true,
       team: {
         select: {

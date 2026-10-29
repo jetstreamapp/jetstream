@@ -16,7 +16,7 @@ import {
   Tooltip,
 } from '@jetstream/ui';
 import { DeployResults, MassUpdateRecordsDeploymentRow, MetadataRow, SkipDataHistoryCheckbox, useDeployRecords } from '@jetstream/ui-core';
-import { selectedOrgState } from '@jetstream/ui/app-state';
+import { selectedOrgState, useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { useAtomCallback } from 'jotai/utils';
 import isNumber from 'lodash/isNumber';
@@ -38,6 +38,7 @@ export const MassUpdateRecordsDeployment = () => {
   const navigate = useNavigate();
   const selectedOrg = useAtomValue(selectedOrgState);
   const rows = useAtomValue(fromMassUpdateState.rowsState);
+  const writeAccess = useOperationAccess('records.write');
   const [loading, setLoading] = useState(false);
   const [batchSize, setBatchSize] = useState<Maybe<number>>(10000);
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
@@ -78,7 +79,9 @@ export const MassUpdateRecordsDeployment = () => {
     resumePolling(row, getRows);
   }
 
-  usePrimaryActionShortcut(handleDeploy, { disabled: loading || !!batchSizeError });
+  const deployDisabled = loading || !!batchSizeError || !writeAccess.allowed;
+
+  usePrimaryActionShortcut(handleDeploy, { disabled: deployDisabled });
   useGoBackShortcut(() => navigate('..'), { disabled: loading });
 
   useEffect(() => {
@@ -118,16 +121,14 @@ export const MassUpdateRecordsDeployment = () => {
           <Tooltip
             openDelay={500}
             content={
-              <div className="slds-p-bottom_small">
-                <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
-              </div>
+              writeAccess.deniedReason ?? (
+                <div className="slds-p-bottom_small">
+                  <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                </div>
+              )
             }
           >
-            <button
-              className="slds-button slds-button_brand slds-is-relative"
-              onClick={handleDeploy}
-              disabled={loading || !!batchSizeError}
-            >
+            <button className="slds-button slds-button_brand slds-is-relative" onClick={handleDeploy} disabled={deployDisabled}>
               {loading && <Spinner size="small" />}
               Update Records
             </button>

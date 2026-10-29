@@ -3,7 +3,7 @@ import { checkOrgHealth } from '@jetstream/shared/data';
 import { DeployMetadataTableRow, DeployOptions, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
 import { fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
-import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { applicationCookieState, googleDriveAccessState, useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, useState } from 'react';
 import { convertRowsToMapOfListMetadataResults, getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
@@ -20,6 +20,7 @@ export const DeployMetadataToOrg = ({ selectedOrg, loading, selectedRows }: Depl
   const { trackEvent } = useAnalytics();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
+  const deployAccess = useOperationAccess('metadata.deploy');
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState(false);
@@ -71,9 +72,9 @@ export const DeployMetadataToOrg = ({ selectedOrg, loading, selectedRows }: Depl
     <Fragment>
       <button
         className="slds-button slds-button_brand"
-        disabled={loading || selectedRows.size === 0}
+        disabled={loading || selectedRows.size === 0 || !deployAccess.allowed}
         onClick={handleClick}
-        title="Deploy the selected metadata to any other org."
+        title={deployAccess.deniedReason ?? 'Deploy the selected metadata to any other org.'}
       >
         <Icon type="utility" icon="share" className="slds-button__icon slds-button__icon_left" omitContainer />
         Deploy to Different Org

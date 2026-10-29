@@ -109,6 +109,7 @@ const UserFacingProfileSelect = {
     select: {
       role: true,
       status: true,
+      accessProfile: { select: { id: true, name: true, version: true, policy: true } },
       team: {
         select: {
           id: true,
@@ -209,6 +210,18 @@ export const findIdByUserIdUserFacing = async ({
     featureFlags,
     featureFlagsSignature: signFeatureFlags(user.id, featureFlags),
   });
+};
+
+/**
+ * The access profile that applies to a user, or null for full access. Matches `/api/me`, which ignores the membership
+ * of an inactive team, so the heartbeat fingerprint and the web surface check agree with the client.
+ */
+export const findActiveTeamAccessProfile = async ({ userId }: { userId: string }) => {
+  const teamMembership = await prisma.teamMember.findFirst({
+    select: { accessProfile: { select: { id: true, version: true, policy: true } } },
+    where: { userId, team: { status: 'ACTIVE' } },
+  });
+  return teamMembership?.accessProfile ?? null;
 };
 
 export const getBillingAccount = async (id: string) => {

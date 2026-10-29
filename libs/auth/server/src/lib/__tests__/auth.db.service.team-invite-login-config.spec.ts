@@ -104,7 +104,6 @@ function mockPendingInvite(ssoBypassConfig: SsoBypassConfig) {
     id: 'invite-id',
     email: EMAIL,
     role: 'MEMBER',
-    features: [],
     createdById: 'inviter-id',
     team: { id: TEAM_ID, name: 'Acme', loginConfig: buildSsoRequiredLoginConfig(ssoBypassConfig) },
   });
@@ -192,7 +191,7 @@ beforeEach(() => {
   prismaMock.teamMemberInvitation.delete.mockResolvedValue({ id: 'invite-id' });
   prismaMock.teamMember.create.mockResolvedValue({ role: 'MEMBER', status: 'ACTIVE', teamId: TEAM_ID, userId: USER_ID });
   // The invitation re-read under the lock, and a team with no seat limit so the seat check always passes
-  prismaMock.teamMemberInvitation.findFirstOrThrow.mockResolvedValue({ role: 'MEMBER', features: [] });
+  prismaMock.teamMemberInvitation.findFirstOrThrow.mockResolvedValue({ role: 'MEMBER' });
   prismaMock.team.findUniqueOrThrow.mockResolvedValue({ billingStatus: 'ACTIVE', billingAccount: null });
   prismaMock.teamMember.count.mockResolvedValue(0);
   prismaMock.teamMemberInvitation.count.mockResolvedValue(0);
@@ -386,7 +385,6 @@ describe('existing member of another team with a pending invite', () => {
       id: 'invite-id',
       email: EMAIL,
       role: 'MEMBER',
-      features: [],
       createdById: 'inviter-id',
       team: {
         id: TEAM_ID,

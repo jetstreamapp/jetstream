@@ -30,7 +30,7 @@ import {
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, useAnalytics } from '@jetstream/ui-core';
 import { EditFromErrors, handleEditFormErrorResponse, transformEditForm, validateEditForm } from '@jetstream/ui-core/shared';
-import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
+import { applicationCookieState, selectedOrgState, useOperationAccess } from '@jetstream/ui/app-state';
 import { recordSingleRecordAction, SingleRecordActionContext } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
@@ -44,6 +44,7 @@ export const CreateRecords = () => {
 
   const { defaultApiVersion } = useAtomValue(applicationCookieState);
   const selectedOrg = useAtomValue(selectedOrgState);
+  const writeAccess = useOperationAccess('records.write');
   const [formKey, setFormKey] = useState(0);
 
   const [loading, setLoading] = useState<boolean>(false);
@@ -318,7 +319,12 @@ export const CreateRecords = () => {
                 Clear
               </button>
             )}
-            <button className="slds-button slds-button_brand" disabled={!selectedObject} onClick={() => handleSave()}>
+            <button
+              className="slds-button slds-button_brand"
+              disabled={!selectedObject || !writeAccess.allowed}
+              title={writeAccess.deniedReason}
+              onClick={() => handleSave()}
+            >
               Save
             </button>
           </PageHeaderActions>

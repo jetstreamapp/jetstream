@@ -2,17 +2,18 @@
 // Maybe we can split some code into multiple libraries?
 /* eslint-disable no-restricted-globals */
 import { css } from '@emotion/react';
+import { canAccessTool, canPerformOperation, getUserAbility } from '@jetstream/acl';
 import { logger } from '@jetstream/shared/client-logger';
-import { APP_ROUTES } from '@jetstream/shared/ui-router';
+import { APP_ROUTES, isPathAllowedByAccessProfile } from '@jetstream/shared/ui-router';
 import type { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, OutsideClickHandler, Tabs } from '@jetstream/ui';
-import { fromAppState } from '@jetstream/ui/app-state';
+import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue, useSetAtom } from 'jotai';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import browser from 'webextension-polyfill';
 import { useResolvedColorScheme } from '../hooks/useResolvedColorScheme';
 import '../sfdc-styles-shim.css';
-import { chromeStorageOptions, chromeSyncStorage } from '../utils/extension.store';
+import { chromeStorageOptions, chromeSyncStorage, UserProfileState } from '../utils/extension.store';
 import { getRecordPageObject, getRecordPageRecordId, sendMessage } from '../utils/web-extension.utils';
 import JetstreamIcon from './icons/JetstreamIcon';
 import JetstreamLogo from './icons/JetstreamLogo';
@@ -107,6 +108,7 @@ function getActionLink(sfHost: string, pageLink: PageLink, objectName?: Maybe<st
 export function SfdcPageButton() {
   const options = useAtomValue(chromeStorageOptions);
   const { authTokens, buttonPosition } = useAtomValue(chromeSyncStorage);
+  const userProfile = useAtomValue(UserProfileState);
   const resolvedScheme = useResolvedColorScheme();
   const [isOnSalesforcePage] = useState(
     () => !!document.querySelector('body.sfdcBody, body.ApexCSIPage, #auraLoadingBox') || location.host.endsWith('.visualforce.com'),
@@ -120,6 +122,17 @@ export function SfdcPageButton() {
 
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
   const setSalesforceOrgs = useSetAtom(fromAppState.salesforceOrgsState);
+
+  // This runs on Salesforce pages outside of the Jetstream app state, so the ability is built from the profile in extension storage.
+  // A missing profile means no restrictions are known, which is full access, not an ability with no rules.
+  const ability = useMemo(() => getUserAbility({ user: userProfile ?? DEFAULT_PROFILE, isBrowserExtension: true }), [userProfile]);
+  const canWriteRecords = canPerformOperation(ability, 'records.write');
+  // Viewing and searching records is part of the Query tool, matching the web app where record and user search follow it
+  const canQueryRecords = canAccessTool(ability, 'query');
+  const pageLinks = useMemo(
+    () => PAGE_LINKS.filter(({ link }) => isPathAllowedByAccessProfile(link, (tool) => canAccessTool(ability, tool))),
+    [ability],
+  );
 
   useEffect(() => {
     try {
@@ -296,7 +309,7 @@ export function SfdcPageButton() {
                         display: flex;
                       `}
                     >
-                      {PAGE_LINKS.map((item) => (
+                      {pageLinks.map((item) => (
                         <GridCol key={item.link} className="slds-m-bottom_x-small" css={ItemColStyles}>
                           <a
                             href={getActionLink(sfHost, item, objectName, recordId)}
@@ -313,35 +326,39 @@ export function SfdcPageButton() {
 
                       {recordId && (
                         <>
-                          {objectName && (
+                          {canQueryRecords && objectName && (
                             <GridCol className="slds-m-bottom_x-small" css={ItemColStyles}>
                               <SfdcPageRecordQuickViewButton sfHost={sfHost} recordId={recordId} sobject={objectName} />
                             </GridCol>
                           )}
-                          <GridCol className="slds-m-bottom_x-small" css={ItemColStyles}>
-                            <a
-                              href={`${browser.runtime.getURL('app.html')}?host=${sfHost}&action=VIEW_RECORD&actionValue=${recordId}`}
-                              className="slds-button slds-button_neutral slds-button_stretch"
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              View Current Record
-                            </a>
-                          </GridCol>
-                          <GridCol className="slds-m-bottom_x-small" css={ItemColStyles}>
-                            <a
-                              href={`${browser.runtime.getURL('app.html')}?host=${sfHost}&action=EDIT_RECORD&actionValue=${recordId}`}
-                              className="slds-button slds-button_neutral slds-button_stretch"
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Edit Current Record
-                            </a>
-                          </GridCol>
+                          {canQueryRecords && (
+                            <GridCol className="slds-m-bottom_x-small" css={ItemColStyles}>
+                              <a
+                                href={`${browser.runtime.getURL('app.html')}?host=${sfHost}&action=VIEW_RECORD&actionValue=${recordId}`}
+                                className="slds-button slds-button_neutral slds-button_stretch"
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                View Current Record
+                              </a>
+                            </GridCol>
+                          )}
+                          {canWriteRecords && (
+                            <GridCol className="slds-m-bottom_x-small" css={ItemColStyles}>
+                              <a
+                                href={`${browser.runtime.getURL('app.html')}?host=${sfHost}&action=EDIT_RECORD&actionValue=${recordId}`}
+                                className="slds-button slds-button_neutral slds-button_stretch"
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Edit Current Record
+                              </a>
+                            </GridCol>
+                          )}
                         </>
                       )}
 
-                      {objectName && (
+                      {canWriteRecords && objectName && (
                         <GridCol className="slds-m-bottom_x-small" css={ItemColStyles}>
                           <a
                             href={`${browser.runtime.getURL('app.html')}?host=${sfHost}&action=CREATE_RECORD&actionValue=${objectName}`}
@@ -354,17 +371,23 @@ export function SfdcPageButton() {
                         </GridCol>
                       )}
 
-                      <GridCol className="slds-m-bottom_x-small" css={ItemColStyles}>
-                        <SfdcPageButtonRecordSearch sfHost={sfHost} />
-                      </GridCol>
+                      {canQueryRecords && (
+                        <GridCol className="slds-m-bottom_x-small" css={ItemColStyles}>
+                          <SfdcPageButtonRecordSearch sfHost={sfHost} canEditRecords={canWriteRecords} />
+                        </GridCol>
+                      )}
                     </Grid>
                   ),
                 },
-                {
-                  id: 'user-search',
-                  title: 'User Search',
-                  content: <SfdcPageButtonUserSearch sfHost={sfHost} />,
-                },
+                ...(canQueryRecords
+                  ? [
+                      {
+                        id: 'user-search',
+                        title: 'User Search',
+                        content: <SfdcPageButtonUserSearch sfHost={sfHost} />,
+                      },
+                    ]
+                  : []),
                 {
                   id: 'quick-links',
                   title: 'Quick Links',

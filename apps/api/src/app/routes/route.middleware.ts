@@ -20,17 +20,19 @@ import { CSRF_TOKEN_INVALID_ERROR_TYPE, StepUpPurpose, UserProfileSession } from
 import { ApiConnection, exchangeRefreshToken, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, getErrorMessageAndStackObj, ORG_INACTIVITY_EXPIRATION_DAYS } from '@jetstream/shared/utils';
+import { isAccessProfileSurfaceAllowed } from '@jetstream/types';
 import { parseCookie } from 'cookie';
 import { addDays, getUnixTime, isBefore } from 'date-fns';
 import express, { Request } from 'express';
+import { LRUCache } from 'lru-cache';
 import multer from 'multer';
 import { randomBytes } from 'node:crypto';
 import os from 'node:os';
 import { v4 as uuid } from 'uuid';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
-import { checkUserEntitlement } from '../db/user.db';
+import { checkUserEntitlement, findActiveTeamAccessProfile } from '../db/user.db';
 import * as sfdcEncService from '../services/salesforce-org-encryption.service';
-import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
+import { AuthenticationError, NotAllowedError, NotFoundError, UserFacingError } from '../utils/error-handler';
 import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
 
 export function basicAuthMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -268,13 +270,54 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
     }
   } catch (ex) {
     getLogger().warn({ err: ex }, '[INIT-ORG][ERROR]');
-    if (ex instanceof NotFoundError) {
+    if (ex instanceof NotFoundError || ex instanceof NotAllowedError) {
       return next(ex);
     }
     return next(new UserFacingError('There was an error initializing the connection to Salesforce'));
   }
 
   next();
+}
+
+export const WEB_APP_NOT_ALLOWED_MESSAGE = 'Your team access profile does not include the Jetstream web application.';
+
+// Every Salesforce request from a web session checks this, so a short TTL keeps it off the hot path. Each process has
+// its own cache, so a profile edit reaches a member's in-flight sessions within the TTL; the org management routes
+// below check the database directly.
+const WEB_APP_ACCESS_CACHE_TTL_MS = 15_000;
+const webAppAccessCache = new LRUCache<string, true>({ max: 1000, ttl: WEB_APP_ACCESS_CACHE_TTL_MS });
+
+export function clearWebAppAccessCache() {
+  webAppAccessCache.clear();
+}
+
+/**
+ * Every Salesforce connection from a web session resolves its org through `getOrgForRequest`, so refusing there
+ * keeps Salesforce data off the server for members limited to the desktop application or browser extension.
+ * Desktop and extension requests authenticate with their own tokens and never reach this.
+ */
+async function assertWebAppAllowed(userId: string, { useCache = false }: { useCache?: boolean } = {}) {
+  if (useCache && webAppAccessCache.has(userId)) {
+    return;
+  }
+  if (!isAccessProfileSurfaceAllowed(await findActiveTeamAccessProfile({ userId }), 'web')) {
+    webAppAccessCache.delete(userId);
+    throw new NotAllowedError(WEB_APP_NOT_ALLOWED_MESSAGE);
+  }
+  webAppAccessCache.set(userId, true);
+}
+
+/** For routes that manage orgs without connecting to one, such as listing orgs or adding a new one */
+export async function verifyWebAppAllowed(req: express.Request, _res: express.Response, next: express.NextFunction) {
+  try {
+    if (!req.session.user) {
+      return next(new AuthenticationError('Unauthorized'));
+    }
+    await assertWebAppAllowed(req.session.user.id);
+    next();
+  } catch (ex) {
+    next(ex);
+  }
 }
 
 export const verifyEntitlement =
@@ -344,9 +387,13 @@ export async function getOrgFromHeaderOrQuery(
     return;
   }
 
+  // `addOrgsToLocal` resolves both a source and a target org, so share one access check across the request
+  res.locals.webAppAccessCheck ??= assertWebAppAllowed(user.id, { useCache: true });
+
   return getOrgForRequest(user, uniqueId, apiVersion, includeCallOptions, requestId, {
     ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
     userAgent: req.get('user-agent'),
+    webAppAccessCheck: res.locals.webAppAccessCheck,
   });
 }
 
@@ -356,8 +403,10 @@ export async function getOrgForRequest(
   apiVersion?: string,
   includeCallOptions?: boolean,
   requestId?: string,
-  requestContext?: { ipAddress?: string; userAgent?: string },
+  requestContext?: { ipAddress?: string; userAgent?: string; webAppAccessCheck?: Promise<void> },
 ) {
+  await (requestContext?.webAppAccessCheck ?? assertWebAppAllowed(user.id, { useCache: true }));
+
   const org = await salesforceOrgsDb.findByUniqueId_UNSAFE(user.id, uniqueId);
   if (!org || org.jetstreamUserId2 !== user.id) {
     throw new NotFoundError('An org with the provided id does not exist');

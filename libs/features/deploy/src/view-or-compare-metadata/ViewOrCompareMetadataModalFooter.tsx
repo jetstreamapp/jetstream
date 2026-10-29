@@ -1,4 +1,5 @@
 import { Grid, Icon, Tooltip } from '@jetstream/ui';
+import { useOperationAccess } from '@jetstream/ui/app-state';
 import { FunctionComponent } from 'react';
 import { OrgType } from './viewOrCompareMetadataTypes';
 
@@ -33,7 +34,16 @@ export const ViewOrCompareMetadataModalFooter: FunctionComponent<ViewOrCompareMe
   onDeployToTarget,
   onClose,
 }) => {
+  const deployAccess = useOperationAccess('metadata.deploy');
   const hasBoth = hasSourceMetadata && hasTargetMetadata;
+
+  let deployTooltip = 'Select a target org to deploy changes';
+  if (deployAccess.deniedReason) {
+    deployTooltip = deployAccess.deniedReason;
+  } else if (hasTargetMetadata) {
+    deployTooltip = 'Deploy changes to the target org, confirm which metadata components to deploy on the next screen';
+  }
+
   return (
     <Grid align="spread" verticalAlign="center">
       <div>
@@ -54,17 +64,11 @@ export const ViewOrCompareMetadataModalFooter: FunctionComponent<ViewOrCompareMe
         )}
       </div>
       <Grid>
-        <Tooltip
-          content={
-            hasTargetMetadata
-              ? 'Deploy changes to the target org, confirm which metadata components to deploy on the next screen'
-              : 'Select a target org to deploy changes'
-          }
-        >
+        <Tooltip content={deployTooltip}>
           <button
             className="slds-button slds-button_brand slds-m-right_x-small"
             onClick={() => onDeployToTarget()}
-            disabled={!hasTargetMetadata}
+            disabled={!hasTargetMetadata || !deployAccess.allowed}
           >
             <Icon type="utility" icon="share" className="slds-button__icon slds-button__icon_left" omitContainer />
             Deploy Changes

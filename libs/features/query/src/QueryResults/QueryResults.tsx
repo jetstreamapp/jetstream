@@ -67,7 +67,7 @@ import {
   useQueryRestore,
 } from '@jetstream/ui-core';
 import { getFlattenSubqueryFlattenedFieldMap } from '@jetstream/ui-core/shared';
-import { fromAppState, googleDriveAccessState, soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
+import { fromAppState, googleDriveAccessState, soqlQueryFormatOptionsState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import { recordDataHistoryAction } from '@jetstream/ui/data-history';
 import { queryHistoryDb } from '@jetstream/ui/db';
 import { Query, composeQuery, formatQuery, parseQuery, stripComments } from '@jetstreamapp/soql-parser-js';
@@ -134,6 +134,8 @@ export const QueryResults = React.memo(() => {
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(fromAppState.applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontdoorLogin = useAtomValue(fromAppState.selectSkipFrontdoorAuth);
+  const canWriteRecords = useCanPerformOperation('records.write');
+  const canDeleteRecords = useCanPerformOperation('records.delete');
   const [totalRecordCount, setTotalRecordCount] = useState<number | null>(null);
   const bulkDeleteJob = useObservable(
     fromJetstreamEvents
@@ -850,14 +852,14 @@ export const QueryResults = React.memo(() => {
               <EmptyState
                 size="large"
                 headline="There are no records matching your query"
-                subHeading="Go back and adjust your query or create a new record."
+                subHeading={canWriteRecords ? 'Go back and adjust your query or create a new record.' : 'Go back and adjust your query.'}
                 illustration={<CampingRainIllustration />}
               >
                 <Link className="slds-button slds-button_brand" to=".." state={{ soql }}>
                   <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Go Back
                 </Link>
-                {queryResults?.parsedQuery?.sObject && (
+                {canWriteRecords && queryResults?.parsedQuery?.sObject && (
                   <button className="slds-button slds-button_neutral slds-m-left_small" onClick={handleCreateNewRecord}>
                     Create a new record
                   </button>
@@ -920,6 +922,8 @@ export const QueryResults = React.memo(() => {
                 handleGetAsApex(record);
               }}
               onReloadQuery={() => executeQuery(soql, RECORD_BULK_ACTION, { isTooling })}
+              canWriteRecords={canWriteRecords}
+              canDeleteRecords={canDeleteRecords}
             />
           )}
         </AutoFullHeightContainer>

@@ -22,8 +22,10 @@ const SELECT = {
       teamMembership: {
         select: {
           status: true,
+          accessProfile: { select: { policy: true } },
           team: {
             select: {
+              status: true,
               entitlements: { select: { chromeExtension: true, googleDrive: true, recordSync: true, desktop: true } },
             },
           },

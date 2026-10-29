@@ -1,17 +1,30 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { getAuthErrorMessage, HTTP, isAuthErrorType, isLoginMethod } from '@jetstream/shared/constants';
-import { checkHeartbeat, disconnectSocket, initSocket, registerMiddleware, updateUserProfile } from '@jetstream/shared/data';
+import {
+  checkHeartbeat,
+  disconnectSocket,
+  getOrgGroups,
+  getOrgs,
+  initSocket,
+  registerMiddleware,
+  updateUserProfile,
+} from '@jetstream/shared/data';
 import { initErrorTracker, setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/ui-utils';
-import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
+import {
+  Announcement,
+  getAccessProfileFingerprint,
+  JetstreamEventSaveSoqlQueryFormatOptionsPayload,
+  SalesforceOrgUi,
+} from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
 import { fromJetstreamEvents, useAnalytics, useInitDataHistory } from '@jetstream/ui-core';
-import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
+import { DEFAULT_PROFILE, fetchLatestUserProfile, fromAppState } from '@jetstream/ui/app-state';
 import { CookieConsentBanner, useConditionalGoogleAnalytics } from '@jetstream/ui/cookie-consent-banner';
 import { ensureLocalStorageReady, initDexieDb, pruneAnalysisJobHistory } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
-import { useAtom, useAtomValue } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import localforage from 'localforage';
-import React, { Fragment, FunctionComponent, use, useCallback, useEffect } from 'react';
+import React, { Fragment, FunctionComponent, use, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 import { Observable, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -42,10 +55,11 @@ export interface AppInitializerProps {
 }
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnouncements, children }) => {
-  const userProfile = useAtomValue(fromAppState.userProfileState);
+  const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
   const ability = useAtomValue(fromAppState.abilityState);
   const { version, announcements, appInfo } = useAtomValue(fromAppState.appInfoState);
   const [orgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
+  const setOrgGroups = useSetAtom(fromAppState.orgGroupsState);
   const invalidOrg = useObservable(orgConnectionError$);
   const onSaveSoqlQueryFormatOptions = useObservable(
     fromJetstreamEvents.getObservable('saveSoqlQueryFormatOptions') as Observable<JetstreamEventSaveSoqlQueryFormatOptionsPayload>,
@@ -181,6 +195,26 @@ APP VERSION ${version}
   }, [invalidOrg]);
 
   /**
+   * Orgs load once with the page, and the server refuses them while the member's access profile excludes the web
+   * application. Reload them when an access profile refresh gives that access back, or the org picker stays empty.
+   */
+  const hasCoreFunctionality = ability.can('read', 'CoreFunctionality');
+  const previousHasCoreFunctionality = useRef(hasCoreFunctionality);
+  useEffect(() => {
+    const regainedAccess = hasCoreFunctionality && !previousHasCoreFunctionality.current;
+    previousHasCoreFunctionality.current = hasCoreFunctionality;
+    if (!regainedAccess) {
+      return;
+    }
+    getOrgs()
+      .then(setOrgs)
+      .catch((ex) => logger.warn('Error reloading orgs after access was restored', ex));
+    getOrgGroups()
+      .then(setOrgGroups)
+      .catch((ex) => logger.warn('Error reloading org groups after access was restored', ex));
+  }, [hasCoreFunctionality, setOrgs, setOrgGroups]);
+
+  /**
    * When a tab/browser window becomes visible check with the server
    * 1. ensure user is still authenticated
    * 2. make sure the app version has not changed, if it has then refresh the page
@@ -189,7 +223,7 @@ APP VERSION ${version}
     async (_: FocusEvent) => {
       try {
         if (document.visibilityState === 'visible') {
-          const { version: serverVersion, announcements } = await checkHeartbeat();
+          const { version: serverVersion, announcements, accessProfileFingerprint } = await checkHeartbeat();
           // TODO: inform user that there is a new version and that they should refresh their browser.
           // We could force refresh, but don't want to get into some weird infinite refresh state
           if (version !== serverVersion) {
@@ -198,12 +232,19 @@ APP VERSION ${version}
           if (announcements && onAnnouncements) {
             onAnnouncements(announcements);
           }
+          // An admin changed this member's access profile since the page loaded, pick it up without a reload
+          if (
+            accessProfileFingerprint &&
+            accessProfileFingerprint !== getAccessProfileFingerprint(userProfile.teamMembership?.accessProfile)
+          ) {
+            setUserProfile(await fetchLatestUserProfile());
+          }
         }
       } catch {
         // ignore error, but user should have been logged out if this failed
       }
     },
-    [onAnnouncements, version],
+    [onAnnouncements, setUserProfile, userProfile, version],
   );
 
   useEffect(() => {

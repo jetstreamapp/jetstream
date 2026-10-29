@@ -24,8 +24,9 @@ The Team Dashboard provides:
 - **Team name management**: Customize your team's display name
 - **Seat management**: See how many seats you have purchased and are using, and buy more or reduce your count
 - **Login configuration**: Control authentication methods and security requirements
+- **Access profiles**: Choose which Jetstream tools and actions each member can use
 - **Team member management**: Invite, activate, deactivate, and manage team member roles
-- **Activity monitoring**: View authentication activity and active user sessions (Admin only)
+- **Activity monitoring**: View authentication activity and active user sessions, and review audit logs (audit logs are Admin only)
 
 ## Team Name
 
@@ -116,6 +117,16 @@ Login with Salesforce requires using a production environment. The connected app
 
 After making changes to the login configuration, click the **Save** button in the top-right corner of the Login Configuration card. Modified fields will be highlighted in yellow to indicate unsaved changes.
 
+## Access Profiles
+
+An access profile chooses which Jetstream tools and actions a team member can use, and which of the web application, desktop application and browser extension they can use. Use them to give people who are not Salesforce administrators, such as sales operations or sales managers, the tools they need without everything else.
+
+- Members without a profile have **Full access**, which is how every member works until you create and assign a profile
+- Admins create, edit and delete profiles from the **Access Profiles** card, and choose a profile when inviting or editing a member
+- An optional default profile is applied to invitations that do not choose another profile, and to people who join through your verified domain or single sign-on
+
+Access profiles keep people focused and help prevent mistakes, but they are not a security control and never change anyone's Salesforce permissions. See [Access Profiles](/team-management/access-profiles) for the full list of tools and actions, the presets, and how changes reach members.
+
 ## Team Members
 
 The Team Members table displays all active members, inactive members, and pending invitations.
@@ -128,6 +139,7 @@ For each team member, you can view:
 - **Authentication Identities**: Login methods linked to the account (e.g., Google, Username/Password)
 - **Multi-Factor Authentication**: Configured MFA methods (e.g., Email, Authenticator App)
 - **Role**: Member role (Admin, Member, or Billing)
+- **Access Profile**: The [access profile](/team-management/access-profiles) assigned to the member, or Full access
 - **Status**: Active or Inactive
 - **Last Logged In**: Timestamp of most recent login
 
@@ -137,6 +149,8 @@ For each team member, you can view:
 - **Member**: Standard user access to Jetstream features
 - **Billing**: Access only to billing management (does not use a seat)
 
+A role decides what someone can manage on the Team Dashboard. To limit which Jetstream tools and actions an Admin or Member can use, assign them an [access profile](/team-management/access-profiles).
+
 ### Managing Team Members
 
 #### Adding Team Members
@@ -144,7 +158,8 @@ For each team member, you can view:
 1. Click the **Add Team Member** button
 2. Select the role for the new member
 3. Enter the email address
-4. Click **Send Invitation**
+4. If you are an Admin, choose an [access profile](/team-management/access-profiles). The team's default profile is selected for you. Invitations sent by Billing users receive the default profile.
+5. Click **Send Invitation**
 
 ![Invite Team Member Modal](./team-dashboard-invite-member.png)
 
@@ -156,7 +171,7 @@ The invited user will receive an email with instructions to accept the invitatio
 
 #### Editing Team Members
 
-Click the dropdown menu next to a team member to edit their role. Role changes take effect immediately.
+Click the dropdown menu next to a team member and select **Edit** to change their role or, if you are an Admin, their access profile. Role changes take effect immediately. Access profile changes reach the member the next time they return to their Jetstream tab, or within a few hours in the desktop app and browser extension. See [When changes take effect](/team-management/access-profiles#when-changes-take-effect).
 
 #### Deactivating Team Members
 
@@ -244,6 +259,10 @@ Admins can revoke individual sessions by clicking the dropdown menu next to a se
 Regularly review active sessions to ensure only authorized users have access. Revoke any suspicious or unrecognized sessions immediately.
 :::
 
+### View Audit Logs
+
+Click **View Audit Logs** in the top-right corner of the Team Dashboard to see changes made to your team, such as invitations, role and status changes, seat changes, login configuration, single sign-on, and [access profiles](/team-management/access-profiles#audit-log). Each entry shows when the change was made, who made it, and the details of the change. Choose a date range to narrow the list, or click **Download CSV** to export it.
+
 ## Billing Integration
 
 Access your team's billing information by clicking **Go to Billing** in the top-right corner of the Team Dashboard. This takes you to the [Billing page](/user-profile-and-settings/billing) where you can:
@@ -284,6 +303,10 @@ No. A decrease takes effect at the end of your current billing period, so the se
 ### Can I have multiple admins?
 
 Yes, you can assign the Admin role to multiple team members. This allows shared responsibility for team management.
+
+### Can I limit which tools a team member can use?
+
+Yes. Create an [access profile](/team-management/access-profiles) with the tools and actions the member needs and assign it to them. Members without a profile can use everything.
 
 ### How quickly do login configuration changes take effect?
 

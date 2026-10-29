@@ -47,7 +47,14 @@ import {
   jobsState,
   useAnalytics,
 } from '@jetstream/ui-core';
-import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState, useFeatureFlag } from '@jetstream/ui/app-state';
+import {
+  applicationCookieState,
+  selectSkipFrontdoorAuth,
+  selectedOrgState,
+  useCanAccessTool,
+  useCanPerformOperation,
+  useFeatureFlag,
+} from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
@@ -90,6 +97,8 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   const selectedOrg = useAtomValue(selectedOrgState);
   const { serverUrl } = useAtomValue(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
+  const canDeployMetadata = useCanPerformOperation('metadata.deploy');
+  const canUsePermissionAnalysis = useCanAccessTool('permission-analysis');
   const { trackEvent } = useAnalytics();
 
   const renderPopoverTrigger = (recordType: ProfileOrPermSetRecordType) => (item: ListItem) => {
@@ -116,7 +125,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
           recordId={item.id}
           recordType={recordType}
           meta={meta}
-          allowManageAssignments={recordType === 'PermissionSet'}
+          allowManageAssignments={recordType === 'PermissionSet' && canDeployMetadata}
           trackEvent={trackEvent}
         />
       </Grid>
@@ -326,7 +335,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
               </Tooltip>
             )}
             {/* Each button must be a direct child so PageHeaderActions gives it its own control wrapper and spacing */}
-            {!isAnalysis && (
+            {!isAnalysis && canDeployMetadata && (
               <button
                 type="button"
                 className="slds-button slds-button_neutral"
@@ -337,7 +346,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
                 New Permission Set
               </button>
             )}
-            {!isAnalysis && (
+            {!isAnalysis && canDeployMetadata && (
               <button
                 type="button"
                 className="slds-button slds-button_neutral"
@@ -348,7 +357,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
                 Clone
               </button>
             )}
-            {!isAnalysis && analysisToolsEnabled && (
+            {!isAnalysis && analysisToolsEnabled && canUsePermissionAnalysis && (
               <Link className="slds-button slds-button_neutral" to={APP_ROUTES.PERMISSION_ANALYSIS.ROUTE}>
                 Open in Permission Analysis
               </Link>
