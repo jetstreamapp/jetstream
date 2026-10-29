@@ -1950,6 +1950,13 @@ export async function handleSignInOrRegistration(
             );
             throw new LoginWithExistingIdentity();
           }
+          // A deactivated team member keeps their user account and can still control the email on it, so
+          // without this check they could sign in by auto-linking a brand-new provider identity to the
+          // account - the one sign-in path that skipped the inactive guard (advisory GHSA-5q9v-g62p-w5qw).
+          // Mirrors the throwIfInactiveUser calls on the already-linked OAuth and credentials login paths.
+          // This runs after the verified-email check so an unverified provider email gets the same
+          // LoginWithExistingIdentity response for every existing account and never reveals membership status.
+          throwIfInactiveUser(existingUser);
 
           // Get correct loginConfiguration based on the target user if user is part of team
           if (existingUser.teamMembership) {

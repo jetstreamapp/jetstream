@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { findActiveTeamAccessProfile, findIdByUserIdUserFacing, updateUser } from '../user.db';
+import { findActiveTeamAccessProfile, findIdByUserIdUserFacing, getBillingAccount, updateUser } from '../user.db';
 
 const prismaMock = vi.hoisted(() => ({
   user: {
     update: vi.fn(),
+    findFirst: vi.fn(),
     findFirstOrThrow: vi.fn(),
   },
   teamMember: {
@@ -150,5 +151,74 @@ describe('findIdByUserIdUserFacing', () => {
     const { select } = prismaMock.user.findFirstOrThrow.mock.calls[0][0];
     expect(select.teamMembership.where).toEqual({ team: { status: 'ACTIVE' } });
     expect(select.teamMembership.select.accessProfile).toEqual({ select: { id: true, name: true, version: true, policy: true } });
+  });
+});
+
+describe('getBillingAccount gates the team customer on active membership', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function inactiveAdminWithTeamCustomer({ personalCustomerId }: { personalCustomerId: string | null }) {
+    return {
+      billingAccount: personalCustomerId ? { customerId: personalCustomerId, manualBilling: false } : null,
+      teamMembership: {
+        status: 'INACTIVE',
+        role: 'ADMIN',
+        team: {
+          id: 'team-1',
+          status: 'ACTIVE',
+          billingAccount: { customerId: 'cus_team', manualBilling: false },
+        },
+      },
+    };
+  }
+
+  it('does not resolve a DEACTIVATED admin to the team Stripe customer (no personal account -> null)', async () => {
+    prismaMock.user.findFirst.mockResolvedValue(inactiveAdminWithTeamCustomer({ personalCustomerId: null }));
+
+    const result = await getBillingAccount('deactivated-admin-id');
+
+    // The inactive membership no longer opens the team's billing portal.
+    expect(result).toBeNull();
+  });
+
+  it('falls through to the DEACTIVATED member personal billing account instead of the team customer', async () => {
+    prismaMock.user.findFirst.mockResolvedValue(inactiveAdminWithTeamCustomer({ personalCustomerId: 'cus_personal' }));
+
+    const result = await getBillingAccount('deactivated-admin-id');
+
+    // Their own customer, as a plain user — never the shared team customer.
+    expect(result).toEqual({ customerId: 'cus_personal', manualBilling: false, teamId: null, teamRole: null });
+  });
+
+  it('still resolves an ACTIVE admin of an ACTIVE team to the team Stripe customer', async () => {
+    prismaMock.user.findFirst.mockResolvedValue({
+      billingAccount: null,
+      teamMembership: {
+        status: 'ACTIVE',
+        role: 'ADMIN',
+        team: { id: 'team-1', status: 'ACTIVE', billingAccount: { customerId: 'cus_team', manualBilling: false } },
+      },
+    });
+
+    const result = await getBillingAccount('active-admin-id');
+
+    expect(result).toEqual({ customerId: 'cus_team', manualBilling: false, teamId: 'team-1', teamRole: 'ADMIN' });
+  });
+
+  it('does not resolve the team customer when the team itself is INACTIVE', async () => {
+    prismaMock.user.findFirst.mockResolvedValue({
+      billingAccount: null,
+      teamMembership: {
+        status: 'ACTIVE',
+        role: 'ADMIN',
+        team: { id: 'team-1', status: 'INACTIVE', billingAccount: { customerId: 'cus_team', manualBilling: false } },
+      },
+    });
+
+    const result = await getBillingAccount('admin-of-inactive-team');
+
+    expect(result).toBeNull();
   });
 });
