@@ -8,6 +8,7 @@ import {
   SoqlQueryFormatOptionsSchema,
   TeamMemberRole,
   TeamMemberStatusSchema,
+  TeamStatusSchema,
   UserProfileUi,
   UserProfileUiSchema,
 } from '@jetstream/types';
@@ -225,12 +226,15 @@ export const getBillingAccount = async (id: string) => {
       },
     },
   });
-  if (userBillingAccount?.teamMembership?.team?.billingAccount?.customerId) {
+  const teamMembership = userBillingAccount?.teamMembership;
+  const hasActiveTeamMembership =
+    teamMembership?.status === TeamMemberStatusSchema.enum.ACTIVE && teamMembership?.team?.status === TeamStatusSchema.enum.ACTIVE;
+  if (hasActiveTeamMembership && teamMembership?.team?.billingAccount?.customerId) {
     return {
-      customerId: userBillingAccount.teamMembership.team.billingAccount.customerId,
-      manualBilling: userBillingAccount.teamMembership.team.billingAccount.manualBilling,
-      teamId: userBillingAccount.teamMembership.team.id,
-      teamRole: userBillingAccount.teamMembership.role as TeamMemberRole,
+      customerId: teamMembership.team.billingAccount.customerId,
+      manualBilling: teamMembership.team.billingAccount.manualBilling,
+      teamId: teamMembership.team.id,
+      teamRole: teamMembership.role as TeamMemberRole,
     };
   }
   if (userBillingAccount?.billingAccount?.customerId) {
