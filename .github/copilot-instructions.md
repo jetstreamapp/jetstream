@@ -18,3 +18,4 @@ Jetstream is a private Nx monorepo (React 19 + Vite web app, Express/Prisma API,
 - UI is hand-built — this repo does NOT use `@salesforce/design-system-react`. Prefer SLDS CSS classes; use Emotion `css` where needed. State is jotai atoms.
 - Always use curly braces on `if` statements. Prefer verbose variable names (except `i` for index); avoid single-letter names.
 - Tests are Vitest, co-located in `__tests__/*.spec.ts`. Migrations are created with the Prisma CLI only.
+- **Access profiles gate every tool and write action.** A new page needs a `TOOL` key on its `APP_ROUTES` entry; a new create/update/delete/deploy/connect button needs `useOperationAccess('<key>')` with the control disabled and `deniedReason` in its tooltip. Flag a new write entry point that skips this.
