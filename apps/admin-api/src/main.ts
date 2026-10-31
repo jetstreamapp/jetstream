@@ -1,7 +1,7 @@
 // Must be first: initializes Sentry, validates the shared env and connects the database
 import '@jetstream/api-config';
 
-import { createRateLimit, httpLogger, logger, requestContextMiddleware } from '@jetstream/api-config';
+import { createRateLimit, httpLogger, installProcessErrorHandlers, logger, requestContextMiddleware } from '@jetstream/api-config';
 import cookieParser from 'cookie-parser';
 import express from 'express';
 import helmet from 'helmet';
@@ -16,6 +16,8 @@ import { errorHandler, notFoundHandler } from './app/utils/error-handler';
 /** The SPA build output (dist/apps/admin) sits next to this bundle (dist/apps/admin-api) */
 const SPA_DIRECTORY = join(__dirname, '../admin');
 const SPA_INDEX_FILE = join(SPA_DIRECTORY, 'index.html');
+
+installProcessErrorHandlers();
 
 const app = express();
 
