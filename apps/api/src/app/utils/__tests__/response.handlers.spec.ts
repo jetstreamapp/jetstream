@@ -537,3 +537,38 @@ describe('pipeWebStreamToResponse', () => {
     await vi.waitFor(() => expect(onCancel).toHaveBeenCalled());
   });
 });
+
+describe('streamParsedCsvAsJson errors', () => {
+  it('destroys the response instead of ending it when parsing fails after rows were written', async () => {
+    const res = createMockStreamRes();
+    const destroy = vi.fn();
+    Object.assign(res, { destroy });
+    const stream = new PassThrough({ objectMode: true });
+    res.write.mockImplementation((data: string) => {
+      res._chunks.push(data);
+      res.headersSent = true;
+      return true;
+    });
+
+    streamParsedCsvAsJson(res as any, stream);
+    stream.write({ Id: '001' });
+    await tick(0);
+    const streamError = new Error('batch 2 failed');
+    stream.destroy(streamError);
+    await vi.waitFor(() => expect(destroy).toHaveBeenCalledWith(streamError));
+
+    expect(res.end).not.toHaveBeenCalled();
+    expect(res._chunks.join('')).toBe('{"data":[{"Id":"001"}');
+  });
+
+  it('responds with a 400 when parsing fails before anything was written', async () => {
+    const res = createMockStreamRes();
+    const stream = new PassThrough({ objectMode: true });
+
+    streamParsedCsvAsJson(res as any, stream);
+    stream.destroy(new Error('bad csv'));
+    await vi.waitFor(() => expect(res.status).toHaveBeenCalledWith(400));
+
+    expect(res.json).toHaveBeenCalledWith({ error: true, success: false, message: 'Error streaming CSV' });
+  });
+});

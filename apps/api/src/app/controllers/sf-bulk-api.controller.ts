@@ -1,9 +1,9 @@
-import { getLogger } from '@jetstream/api-config';
 import { BooleanQueryParamSchema, CreateJobRequestSchema } from '@jetstream/api-types';
+import { concatenateCsvStreams } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
-import { ensureBoolean, getErrorMessageAndStackObj, toBoolean } from '@jetstream/shared/utils';
+import { ensureBoolean, toBoolean } from '@jetstream/shared/utils';
 import { NODE_STREAM_INPUT, parse as parseCsv } from 'papaparse';
-import { PassThrough, Readable, Transform } from 'stream';
+import { Readable } from 'stream';
 import { z } from 'zod';
 import type { Response } from '../types/route.types';
 import { UserFacingError } from '../utils/error-handler';
@@ -263,28 +263,17 @@ const downloadResults = createRoute(routeDefinition.downloadResults.validators, 
 
 /**
  * Download all results from a batch job as JSON, streamed from Salesforce as CSVs, and transformed to JSON on the fly
+ *
+ * The client pairs result rows with the records it submitted by position, so a batch that is missing from the
+ * output would shift every later row onto the wrong source record. Any batch failure therefore fails the whole
+ * response (an error status, or a destroyed connection once streaming has started) rather than skipping the batch.
  */
 const downloadAllResults = createRoute(
   routeDefinition.downloadAllResults.validators,
-  async ({ params, jetstreamConn, query, requestId }, _, res, next) => {
-    const combinedStream = new PassThrough();
+  async ({ params, jetstreamConn, query }, _, res, next) => {
     try {
       const jobId = params.jobId;
       let { batchIds } = query;
-
-      const csvParseStream = parseCsv(NODE_STREAM_INPUT, {
-        delimiter: ',',
-        header: true,
-        skipEmptyLines: true,
-        transform: (data, field) => {
-          if (field === 'Success' || field === 'Created') {
-            return toBoolean(data);
-          } else if (field === 'Id' || field === 'Error') {
-            return data || null;
-          }
-          return data;
-        },
-      });
 
       // Fetch job to get all completed batches
       const job = await jetstreamConn.bulk.getJob(jobId);
@@ -306,67 +295,18 @@ const downloadAllResults = createRoute(
         throw new UserFacingError('No completed batches found in the job');
       }
 
-      // initiate stream response through passthrough stream
-      streamParsedCsvAsJson(res, csvParseStream);
-      combinedStream.on('error', (err) => csvParseStream.destroy(err));
-      combinedStream.pipe(csvParseStream);
+      const [firstBatchId, ...remainingBatchIds] = Array.from(batchIds);
+      // Requested before the response starts so a failure here is still reported with a proper error response
+      const firstBatchResults = await jetstreamConn.bulk.downloadRecords(jobId, firstBatchId, 'result');
 
-      let isFirstBatch = true;
+      // Every batch result file starts with the same header row, which is only kept for the first batch
+      const combinedResults = concatenateCsvStreams([
+        async () => firstBatchResults,
+        ...remainingBatchIds.map((batchId) => () => jetstreamConn.bulk.downloadRecords(jobId, batchId, 'result')),
+      ]);
 
-      for (const batchId of batchIds) {
-        try {
-          const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, 'result');
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const readable = Readable.fromWeb(results as any);
-
-          let streamToPipe: Readable;
-
-          if (isFirstBatch) {
-            // First batch, include headers
-            streamToPipe = readable;
-            isFirstBatch = false;
-          } else {
-            let headerRemoved = false;
-            // Subsequent batches, remove headers
-            const removeHeaderTransform = new Transform({
-              transform(chunk, _, callback) {
-                // Convert chunk to string
-                const data = chunk.toString();
-                // If header has been removed, pass data through
-                if (headerRemoved) {
-                  callback(null, chunk);
-                } else {
-                  // Remove the first line (header)
-                  const index = data.indexOf('\n');
-                  if (index !== -1) {
-                    headerRemoved = true;
-                    const dataWithoutHeader = data.slice(index + 1);
-                    callback(null, Buffer.from(dataWithoutHeader));
-                  } else {
-                    // Header line not yet complete
-                    callback();
-                  }
-                }
-              },
-            });
-            streamToPipe = readable.pipe(removeHeaderTransform);
-          }
-
-          // pipe all data through passthrough stream
-          await new Promise((resolve, reject) => {
-            streamToPipe.pipe(combinedStream, { end: false });
-            streamToPipe.on('end', resolve);
-            streamToPipe.on('error', reject);
-          });
-        } catch (ex) {
-          getLogger().error({ requestId, ...getErrorMessageAndStackObj(ex) }, 'Error downloading batch results');
-        }
-      }
-      // indicate end of stream - we are done pushing data
-      combinedStream.end();
+      streamBulkCsvAsJson(res, combinedResults);
     } catch (ex) {
-      // combinedStream.destroy();
-      combinedStream.end();
       next(new UserFacingError(ex));
     }
   },

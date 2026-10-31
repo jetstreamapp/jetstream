@@ -181,7 +181,8 @@ export function streamParsedCsvAsJson(res: express.Response, csvParseStream: Dup
     if (!res.headersSent) {
       res.status(400).json({ error: true, success: false, message: 'Error streaming CSV' });
     } else {
-      res.end();
+      // Ending here would send truncated JSON with a 200 - destroying it makes the client see a network error
+      res.destroy(err);
     }
   });
 }
