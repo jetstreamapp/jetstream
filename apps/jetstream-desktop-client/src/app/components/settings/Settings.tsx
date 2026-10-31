@@ -28,7 +28,7 @@ import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { useAtomCallback } from 'jotai/utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { desktopUserPreferences, desktopUserPreferencesSyncState } from '../core/AppDesktopState';
+import { desktopUserPreferences } from '../core/AppDesktopState';
 
 const HEIGHT_BUFFER = 170;
 
@@ -98,8 +98,8 @@ export const Settings = () => {
 
   // Shows the change immediately, so controls reflect a click before the save finishes
   const mergePreferences = useAtomCallback(
-    useCallback((get, set, changes: Partial<DesktopUserPreferences>) => {
-      set(desktopUserPreferences, { ...get(desktopUserPreferencesSyncState), ...changes });
+    useCallback(async (get, set, changes: Partial<DesktopUserPreferences>) => {
+      set(desktopUserPreferences, { ...(await get(desktopUserPreferences)), ...changes });
     }, []),
   );
 
@@ -107,8 +107,8 @@ export const Settings = () => {
   // except for settings changed again since
   const savedPreferencesRef = useRef(preferences);
   const showSavedPreferences = useAtomCallback(
-    useCallback((get, set, changes: Partial<DesktopUserPreferences>) => {
-      const currentPreferences = get(desktopUserPreferencesSyncState);
+    useCallback(async (get, set, changes: Partial<DesktopUserPreferences>) => {
+      const currentPreferences = await get(desktopUserPreferences);
       set(desktopUserPreferences, {
         ...currentPreferences,
         ...getPreferencesToRestore(currentPreferences, changes, savedPreferencesRef.current),
@@ -130,14 +130,14 @@ export const Settings = () => {
         const savedPreferences = await window.electronAPI.setPreferences(changes);
         savedPreferencesRef.current = savedPreferences;
         // The main process logs a change it cannot store and resolves anyway, so show what it actually kept
-        showSavedPreferences(changes);
+        await showSavedPreferences(changes);
         setUserProfile((prev) => ({
           ...prev,
           preferences: savedPreferences,
         }));
         trackEvent(ANALYTICS_KEYS.settings_update_user);
       } catch (ex) {
-        showSavedPreferences(changes);
+        await showSavedPreferences(changes);
         logger.warn('Error updating user settings', ex);
         fireToast({
           message: 'There was a problem updating your settings. Try again or file a support ticket for assistance.',
@@ -167,7 +167,7 @@ export const Settings = () => {
           return;
         }
         savedPreferencesRef.current = savedPreferences;
-        mergePreferences({ fileDownload: savedPreferences.fileDownload });
+        await mergePreferences({ fileDownload: savedPreferences.fileDownload });
         setUserProfile((prev) => ({
           ...prev,
           preferences: savedPreferences,
