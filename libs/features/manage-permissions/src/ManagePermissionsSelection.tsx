@@ -36,9 +36,11 @@ import {
   ProfileOrPermSetPopover,
   ProfileOrPermSetRecordType,
   Tooltip,
+  ariaDisabledButtonProps,
   fireToast,
   getAriaKeyshortcuts,
   getModifierKey,
+  useAnnouncer,
 } from '@jetstream/ui';
 import {
   PermissionAnalysisHistoryModal,
@@ -101,6 +103,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   const canDeployMetadata = useCanPerformOperation('metadata.deploy');
   const canUsePermissionAnalysis = useCanAccessTool('permission-analysis');
   const { trackEvent } = useAnalytics();
+  const { announce, announcer } = useAnnouncer();
 
   const renderPopoverTrigger = (recordType: ProfileOrPermSetRecordType) => (item: ListItem) => {
     const meta = item.meta as PermissionSetWithProfileRecord | PermissionSetNoProfileRecord | undefined;
@@ -109,6 +112,8 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
         {recordType === 'PermissionSet' && isManagedPermissionSet(meta, selectedOrg.orgNamespacePrefix) && (
           <Tooltip
             content={`Provided by ${getManagedPermissionSetSource(meta)}. Salesforce does not allow these permissions to be changed, so this permission set is read-only.`}
+            // The list demotes this to -1, so it is reached with the row's ArrowRight like the details button
+            triggerTabIndex={0}
           >
             <Icon
               type="utility"
@@ -188,7 +193,11 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
     toggleShowManagedPermissionSets(visible);
     if (!visible && managedPermissionSets?.length) {
       const managedIds = new Set(managedPermissionSets.map(({ id }) => id));
+      const removedCount = selectedPermissionSets.filter((id) => managedIds.has(id)).length;
       setSelectedPermissionSets((previouslySelected) => previouslySelected.filter((id) => !managedIds.has(id)));
+      if (removedCount) {
+        announce(`${formatNumber(removedCount)} managed ${pluralizeFromNumber('permission set', removedCount)} removed from selection`);
+      }
     }
   }
 
@@ -311,6 +320,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
 
   return (
     <Page testId="manage-permissions-page">
+      {announcer}
       <RequireMetadataApiBanner />
       <PageHeader>
         <PageHeaderRow>
@@ -338,11 +348,11 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
             )}
             {/* Each button must be a direct child so PageHeaderActions gives it its own control wrapper and spacing */}
             {!isAnalysis && canDeployMetadata && (
+              // Not natively disabled: the lists reload after a create, and focus returns here as the modal closes
               <button
                 type="button"
                 className="slds-button slds-button_neutral"
-                disabled={!permissionListsLoaded}
-                onClick={() => setCreatePermissionSetStartFrom('blank')}
+                {...ariaDisabledButtonProps(!permissionListsLoaded, () => setCreatePermissionSetStartFrom('blank'))}
               >
                 <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
                 New Permission Set
@@ -352,8 +362,8 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
               <button
                 type="button"
                 className="slds-button slds-button_neutral"
-                disabled={!permissionListsLoaded}
-                onClick={() => setCreatePermissionSetStartFrom('clone')}
+                aria-label="Clone permission set"
+                {...ariaDisabledButtonProps(!permissionListsLoaded, () => setCreatePermissionSetStartFrom('clone'))}
               >
                 <Icon type="utility" icon="copy" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Clone
