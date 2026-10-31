@@ -134,8 +134,9 @@ export class SamlService {
       // Identity Provider
       entryPoint: config.idpSsoUrl,
       idpCert: config.idpCertificate,
-      // node-saml only enforces idpIssuer on logout messages; authentication assertions are bound to the
-      // configured IdP in validateSamlResponse below.
+      // From node-saml 5.2.0 this makes the library itself reject an assertion (or signed response) whose <Issuer>
+      // differs, with "Unknown SAML issuer. Expected: … Received: …". validateSamlResponse below repeats the check
+      // as a backstop so the binding does not depend on the library version (5.1.0 only applied it to logout messages).
       idpIssuer: config.idpEntityId,
 
       // Options
@@ -292,10 +293,11 @@ export class SamlService {
 
       // Bind the assertion to the configured IdP. Signature verification only proves the assertion was signed with
       // the configured certificate; an IdP that signs several tenants with the same certificate could otherwise
-      // present an assertion issued for another tenant. node-saml sets profile.issuer from the assertion's <Issuer>
-      // but does not compare it on the authentication path (its idpIssuer option only covers logout messages), so
-      // it is enforced here. idpEntityId is NOT NULL in the database and required on save, so this is unconditional.
-      // Checked before the replay gate so a rejected assertion does not consume a replay marker.
+      // present an assertion issued for another tenant. node-saml 5.2.0+ already enforces `idpIssuer` inside
+      // validatePostResponseAsync (5.1.0 only did so for logout messages), so with a current library a mismatch is
+      // rejected before reaching here and surfaces through the catch below as "Unknown SAML issuer"; this check is the
+      // version-independent backstop. idpEntityId is NOT NULL in the database and required on save, so it is
+      // unconditional. Checked before the replay gate so a rejected assertion does not consume a replay marker.
       if (!profile.issuer || profile.issuer !== config.idpEntityId) {
         logger.warn(
           { teamId, expectedIssuer: config.idpEntityId, actualIssuer: profile.issuer },
