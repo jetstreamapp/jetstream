@@ -82,6 +82,20 @@ describe('AddOrg', () => {
       );
     });
 
+    it('describes Continue with the fixed login url and why it cannot be changed', () => {
+      canConnectOrgs = false;
+      renderOpen(buildOrg('https://acme.my.salesforce.com'));
+
+      const describedBy = screen.getByRole('button', { name: 'Continue' }).getAttribute('aria-describedby') ?? '';
+      const description = describedBy
+        .split(' ')
+        .map((id) => document.getElementById(id)?.textContent)
+        .join(' ');
+      expect(description).toContain('Salesforce Login URL');
+      expect(description).toContain('https://acme.my.salesforce.com');
+      expect(description).toContain('allows reconnecting orgs you have already added');
+    });
+
     it.each([
       [false, 'https://login.salesforce.com'],
       [true, 'https://test.salesforce.com'],
@@ -110,6 +124,11 @@ describe('AddOrg', () => {
       clickContinue();
 
       expect(onAddOrgHandlerFn).toHaveBeenCalledWith(expect.objectContaining({ loginUrl: instanceUrl }), expect.any(Function));
+    });
+
+    it('does not describe Continue with a fixed login url when the user can pick one', () => {
+      renderOpen(buildOrg('https://acme.my.salesforce.com'));
+      expect(screen.getByRole('button', { name: 'Continue' }).hasAttribute('aria-describedby')).toBe(false);
     });
 
     it('passes the existing username as the login hint', () => {
