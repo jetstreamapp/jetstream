@@ -1,4 +1,4 @@
-import { resolve } from 'node:path';
+import { extname, resolve } from 'node:path';
 
 /**
  * Allowlist of files the renderer may ask the main process to open or reveal (`openFile` /
@@ -43,6 +43,19 @@ export function resolveOpenableFile(filePath: unknown): string | null {
   }
   const resolvedPath = resolve(filePath);
   return openableFiles.has(resolvedPath) ? resolvedPath : null;
+}
+
+/**
+ * File types Jetstream's own download paths produce. Registration proves the main process WROTE the
+ * file, but the renderer still chooses its name (and so its extension) when auto-save is configured,
+ * and the content is Salesforce data the renderer can seed — so without this a renderer could register
+ * an `.hta`/`.bat`/`.app` and then launch it through `openFile`.
+ */
+const OPENABLE_EXTENSIONS = new Set(['.zip', '.csv', '.xlsx', '.json', '.xml', '.txt', '.tsv']);
+
+/** True when the file's extension is one of the types Jetstream produces, so opening it never executes it. */
+export function isOpenableFileType(filePath: string): boolean {
+  return OPENABLE_EXTENSIONS.has(extname(filePath).toLowerCase());
 }
 
 /** Test-only: forget every registered file. */

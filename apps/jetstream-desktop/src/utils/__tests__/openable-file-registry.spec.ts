@@ -1,6 +1,6 @@
 import { join, resolve } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { clearOpenableFiles, registerOpenableFile, resolveOpenableFile } from '../openable-file-registry';
+import { clearOpenableFiles, isOpenableFileType, registerOpenableFile, resolveOpenableFile } from '../openable-file-registry';
 
 describe('openable-file-registry', () => {
   beforeEach(() => {
@@ -52,5 +52,29 @@ describe('openable-file-registry', () => {
     registerOpenableFile(resolve('/tmp/downloads/file-overflow.csv'));
     expect(resolveOpenableFile(first)).toBe(first);
     expect(resolveOpenableFile(resolve('/tmp/downloads/file-0.csv'))).toBeNull();
+  });
+
+  describe('isOpenableFileType', () => {
+    it.each(['results.csv', 'results.CSV', 'export.xlsx', 'records.json', 'package.xml', 'files.zip', 'notes.txt', 'data.tsv'])(
+      'accepts the download types Jetstream produces (%s)',
+      (fileName) => {
+        expect(isOpenableFileType(resolve('/tmp/downloads', fileName))).toBe(true);
+      },
+    );
+
+    it.each([
+      'report.hta',
+      'run.bat',
+      'run.cmd',
+      'setup.exe',
+      'tool.app',
+      'script.sh',
+      'script.ps1',
+      'link.lnk',
+      'results',
+      'results.csv.exe',
+    ])('refuses a renderer-chosen name that the OS would execute or that is not a Jetstream download type (%s)', (fileName) => {
+      expect(isOpenableFileType(resolve('/tmp/downloads', fileName))).toBe(false);
+    });
   });
 });
