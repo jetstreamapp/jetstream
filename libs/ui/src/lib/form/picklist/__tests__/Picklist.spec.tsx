@@ -2,7 +2,7 @@ import { axeScan } from '@jetstream/test-utils';
 import { ListItem } from '@jetstream/types';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { Picklist } from '../Picklist';
 
 const ITEMS: ListItem[] = [
@@ -14,6 +14,15 @@ const items: ListItem[] = [
   { id: 'a', label: 'Alpha', value: 'a' },
   { id: 'b', label: 'Bravo', value: 'b' },
 ];
+
+/** The text a screen reader reads as the element's description (its aria-describedby targets, in order) */
+function getDescription(element: HTMLElement) {
+  return (element.getAttribute('aria-describedby') ?? '')
+    .split(' ')
+    .filter(Boolean)
+    .map((id) => document.getElementById(id)?.textContent ?? '')
+    .join(' ');
+}
 
 function renderPicklist() {
   const onChange = vi.fn();
@@ -117,5 +126,64 @@ describe('Picklist', () => {
     input.focus();
     expect(fireEvent.keyDown(input, { key: 'Enter', metaKey: true })).toBe(true);
     expect(input.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  test('describes the combobox with its help text', async () => {
+    const { baseElement } = render(<Picklist label="Letter" items={items} helpText="Pick the first letter" onChange={vi.fn()} />);
+    expect(getDescription(screen.getByRole('combobox', { name: 'Letter' }))).toBe('Pick the first letter');
+    await axeScan(baseElement);
+  });
+
+  describe('usePortal', () => {
+    // Stands in for a hosting modal or popover, which would close on an Escape that reaches it
+    const onOuterKeyDown = vi.fn();
+    beforeEach(() => {
+      onOuterKeyDown.mockClear();
+      document.addEventListener('keydown', onOuterKeyDown);
+    });
+    afterEach(() => {
+      document.removeEventListener('keydown', onOuterKeyDown);
+    });
+
+    function renderPortalPicklist() {
+      const result = render(<Picklist label="Letter" items={items} usePortal onChange={vi.fn()} />);
+      return { ...result, input: screen.getByRole('combobox') as HTMLInputElement };
+    }
+
+    test('ArrowDown moves focus into the portaled list, and Escape closes only the list', async () => {
+      const { input, container, baseElement } = renderPortalPicklist();
+      input.focus();
+      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.keyUp(input, { key: 'Enter' });
+      fireEvent.keyUp(input, { key: 'ArrowDown' });
+
+      const firstOption = screen.getAllByRole('option')[0];
+      expect(container.contains(firstOption)).toBe(false);
+      await waitFor(() => expect(document.activeElement).toBe(firstOption));
+      await axeScan(baseElement);
+
+      fireEvent.keyDown(firstOption, { key: 'ArrowDown' });
+      await waitFor(() => expect(document.activeElement).toBe(screen.getAllByRole('option')[1]));
+
+      fireEvent.keyDown(document.activeElement as HTMLElement, { key: 'Escape' });
+      expect(input.getAttribute('aria-expanded')).toBe('false');
+      expect(document.activeElement).toBe(input);
+      // The press was consumed by the list, so a hosting modal or popover never sees it
+      expect(onOuterKeyDown.mock.calls.some(([event]) => (event as KeyboardEvent).key === 'Escape')).toBe(false);
+    });
+
+    test('a press on the portaled list itself (padding or scrollbar) does not count as an outside click', () => {
+      const { input } = renderPortalPicklist();
+      fireEvent.click(input);
+      const listbox = screen.getByRole('listbox');
+
+      fireEvent.mouseDown(listbox);
+      fireEvent.mouseUp(listbox);
+      expect(input.getAttribute('aria-expanded')).toBe('true');
+
+      fireEvent.mouseDown(document.body);
+      fireEvent.mouseUp(document.body);
+      expect(input.getAttribute('aria-expanded')).toBe('false');
+    });
   });
 });
