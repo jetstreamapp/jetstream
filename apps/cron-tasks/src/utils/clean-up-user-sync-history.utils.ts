@@ -5,10 +5,25 @@ import { logger } from '../config/logger.config';
 export const DELETED_AT_THRESHOLD = 60;
 export const EXCESS_THRESHOLD = 750;
 /**
- * Any records over this amount will get purged regardless of age
+ * Any records over this amount will get purged regardless of age (favorited query history is always kept)
  */
 export const EXTREME_EXCESS_THRESHOLD = 2500;
 export const OLDER_THAN_THRESHOLD = 90;
+
+/**
+ * Records within a (userId, entity) group that are eligible for deletion.
+ * Favorited query history is never deleted.
+ */
+function getDeletableRecordsFilter(userId: string, entity: string): Prisma.UserSyncDataWhereInput {
+  const filter: Prisma.UserSyncDataWhereInput = { userId, entity };
+  if (entity === 'query_history') {
+    filter.data = {
+      path: ['isFavorite'],
+      equals: false,
+    };
+  }
+  return filter;
+}
 
 export async function cleanUpUserSyncHistory(prisma: PrismaClient) {
   const now = startOfDay(new Date());
@@ -56,10 +71,11 @@ export async function cleanUpUserSyncHistory(prisma: PrismaClient) {
      */
     if (total > EXTREME_EXCESS_THRESHOLD) {
       const excess = total - EXTREME_EXCESS_THRESHOLD;
+      const filter = getDeletableRecordsFilter(userId, entity);
 
       // Get the excess oldest records matching criteria
       const recordsToDelete = await prisma.userSyncData.findMany({
-        where: { userId, entity },
+        where: filter,
         orderBy: { updatedAt: 'asc' },
         take: excess,
         select: { id: true },
@@ -67,10 +83,9 @@ export async function cleanUpUserSyncHistory(prisma: PrismaClient) {
 
       if (recordsToDelete.length > 0) {
         const ids = recordsToDelete.map(({ id }) => id);
+        // Re-apply the filter so a record favorited between the select and the delete survives
         const delResult = await prisma.userSyncData.deleteMany({
-          where: {
-            id: { in: ids },
-          },
+          where: { ...filter, id: { in: ids } },
         });
         logger.info(`Deleted ${delResult.count} records for user ${userId} on entity ${entity}`);
         results.push({ userId, entity, excess, deletedCount: delResult.count });
@@ -84,18 +99,9 @@ export async function cleanUpUserSyncHistory(prisma: PrismaClient) {
       const excess = total - EXCESS_THRESHOLD;
 
       const filter: Prisma.UserSyncDataWhereInput = {
-        userId,
-        entity,
+        ...getDeletableRecordsFilter(userId, entity),
         updatedAt: { lte: olderThanThreshold },
       };
-
-      // For query_history, include the condition to keep favorites
-      if (entity === 'query_history') {
-        filter.data = {
-          path: ['isFavorite'],
-          equals: false,
-        };
-      }
 
       // Get the excess oldest records matching criteria
       const recordsToDelete = await prisma.userSyncData.findMany({
@@ -108,9 +114,7 @@ export async function cleanUpUserSyncHistory(prisma: PrismaClient) {
       if (recordsToDelete.length > 0) {
         const ids = recordsToDelete.map(({ id }) => id);
         const delResult = await prisma.userSyncData.deleteMany({
-          where: {
-            id: { in: ids },
-          },
+          where: { ...filter, id: { in: ids } },
         });
         logger.info(`Deleted ${delResult.count} records for user ${userId} on entity ${entity}`);
         results.push({ userId, entity, excess, deletedCount: delResult.count });

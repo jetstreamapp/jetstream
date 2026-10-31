@@ -339,6 +339,57 @@ describe('UserSyncData Cleanup Integration Test', () => {
     expect(dbCount).toEqual(EXTREME_EXCESS_THRESHOLD);
   });
 
+  it('Should not delete favorites when records are beyond EXTREME_EXCESS_THRESHOLD', async () => {
+    const userId = uuid();
+    const orgId = uuid();
+
+    await prisma.user.create({
+      data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId },
+    });
+
+    const favoriteCount = 200;
+    const nonFavoriteCount = EXTREME_EXCESS_THRESHOLD + 300;
+
+    // Favorites are the oldest records, so they would be first in line without the favorite filter
+    const oldFavorites = generateSyncRecords({
+      entity: 'query_history',
+      count: favoriteCount,
+      userId,
+      orgId,
+      isFavorite: true,
+      updatedAt: addDays(new Date(), (OLDER_THAN_THRESHOLD + 30) * -1),
+      deletedAt: null,
+    });
+
+    const nonFavorites = generateSyncRecords({
+      entity: 'query_history',
+      count: nonFavoriteCount,
+      userId,
+      orgId,
+      isFavorite: false,
+      updatedAt: addDays(new Date(), -1),
+      deletedAt: null,
+    });
+
+    const { count } = await prisma.userSyncData.createMany({
+      data: [...oldFavorites, ...nonFavorites],
+    });
+    expect(count).toEqual(favoriteCount + nonFavoriteCount);
+
+    await cleanUpUserSyncHistory(prisma);
+
+    const remainingFavorites = await prisma.userSyncData.count({
+      where: { userId, entity: 'query_history', data: { path: ['isFavorite'], equals: true } },
+    });
+    const remainingNonFavorites = await prisma.userSyncData.count({
+      where: { userId, entity: 'query_history', data: { path: ['isFavorite'], equals: false } },
+    });
+
+    expect(remainingFavorites).toEqual(favoriteCount);
+    // total excess (favorites + non-favorites - threshold) is removed from non-favorites only
+    expect(remainingNonFavorites).toEqual(EXTREME_EXCESS_THRESHOLD - favoriteCount);
+  });
+
   it('Delete scope should be limited to user+entity', async () => {
     const userId1 = uuid();
     const userId2 = uuid();
