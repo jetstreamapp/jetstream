@@ -10,7 +10,12 @@ import {
   IcpResponse,
   IpcEventChannel,
 } from '@jetstream/desktop/types';
-import { ApiConnection, getApiRequestFactoryFn, getBinaryFileRecordQueryMap } from '@jetstream/salesforce-api';
+import {
+  ApiConnection,
+  getApiRequestFactoryFn,
+  getBinaryFileRecordQueryMap,
+  getUntrustedCertificateErrorMessage,
+} from '@jetstream/salesforce-api';
 import * as oauthService from '@jetstream/salesforce-oauth';
 import { HTTP } from '@jetstream/shared/constants';
 import { JetstreamEventStreamFilePayload, UserProfileUi } from '@jetstream/types';
@@ -387,6 +392,8 @@ const handleAddOrgEvent: MainIpcHandler<'addOrg'> = async (event, payload) => {
       if (ex instanceof ResponseBodyError) {
         message = `There was an error authenticating with Salesforce. ${ex.error_description || ''}`.trim();
       }
+      // The token exchange is the first request to Salesforce, so this is where a TLS-inspecting proxy shows up
+      message = getUntrustedCertificateErrorMessage(ex, new URL(payload.loginUrl).hostname) ?? message;
 
       logger.error('Error handling callback', ex);
       event.sender.send(IpcEventChannel.toastMessage, { type: 'error', message });
