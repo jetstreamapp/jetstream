@@ -34,6 +34,7 @@ import {
   AutoFullHeightContainer,
   ColumnWithFilter,
   ConfirmationModalPromise,
+  DisabledReasonButton,
   FileFauxDownloadModal,
   FileFauxDownloadModalProps,
   Icon,
@@ -927,26 +928,22 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
             <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" />
             <span>Export</span>
           </button>
-          <Tooltip
-            openDelay={500}
-            content={
-              deployAccess.deniedReason ?? (
-                <div className="slds-p-bottom_small">
-                  <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
-                </div>
-              )
+          <DisabledReasonButton
+            className="slds-button slds-button_brand slds-m-left_xx-small"
+            aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+            disabled={saveDisabled}
+            disabledReason={deployAccess.allowed ? null : deployAccess.deniedReason}
+            tooltipOpenDelay={500}
+            tooltip={
+              <div className="slds-p-bottom_small">
+                <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+              </div>
             }
+            onClick={saveChanges}
           >
-            <button
-              className="slds-button slds-button_brand slds-m-left_xx-small"
-              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
-              onClick={saveChanges}
-              disabled={saveDisabled}
-            >
-              <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
-              Save
-            </button>
-          </Tooltip>
+            <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
+            Save
+          </DisabledReasonButton>
         </ToolbarItemActions>
       </Toolbar>
       <AutoFullHeightContainer
