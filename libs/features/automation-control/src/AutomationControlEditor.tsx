@@ -8,6 +8,7 @@ import {
   AutoFullHeightContainer,
   Badge,
   ButtonGroupContainer,
+  DisabledReasonButton,
   FileDownloadModal,
   FileFauxDownloadModal,
   Grid,
@@ -34,7 +35,7 @@ import {
 } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import AutomationControlEditorReviewModal from './AutomationControlEditorReviewModal';
 import AutomationControlEditorTable from './AutomationControlEditorTable';
@@ -53,6 +54,7 @@ import {
   isValidationRecord,
   isWorkflowRuleRecord,
 } from './automation-control-data-utils';
+import { getPendingRestoreMessage, getStagedRestoreAnnouncement } from './automation-control-history-utils';
 import { TableRowItem, TableRowOrItemOrChild } from './automation-control-types';
 import { useAutomationControlData } from './useAutomationControlData';
 import { useHistoryRestoreStaging } from './useHistoryRestoreStaging';
@@ -87,6 +89,8 @@ export const AutomationControlEditor = () => {
   const [exportDataModalData, setExportDataModalData] = useState<any[]>([]);
 
   const { announce, announcer } = useAnnouncer();
+  const historyButtonRef = useRef<HTMLButtonElement>(null);
+  const focusAfterReviewCloseRef = useRef(false);
 
   const [exportMetadataModalOpen, setExportMetadataModalOpen] = useState<boolean>(false);
 
@@ -122,6 +126,37 @@ export const AutomationControlEditor = () => {
     dirtyRows,
   });
 
+  // The restore banners mount with their text, which a live region does not announce
+  useEffect(() => {
+    if (pendingHistoryRestore) {
+      announce(getPendingRestoreMessage(pendingHistoryRestore.action, pendingHistoryRestore.entry.createdAt));
+    }
+  }, [announce, pendingHistoryRestore]);
+
+  useEffect(() => {
+    if (stagedRestore) {
+      announce(getStagedRestoreAnnouncement(stagedRestore));
+    }
+  }, [announce, stagedRestore]);
+
+  // A deploy refreshes the data, which clears a staged restore and unmounts the banner whose Review Changes button
+  // may have opened the modal, so the modal has nothing to return focus to. Two frames lets the modal return focus
+  // to an opener that still exists first (see Modal); only when that left focus on <body> does History take it.
+  useEffect(() => {
+    if (saveModalOpen || !focusAfterReviewCloseRef.current) {
+      return;
+    }
+    focusAfterReviewCloseRef.current = false;
+    let frameId = requestAnimationFrame(() => {
+      frameId = requestAnimationFrame(() => {
+        if (!document.activeElement || document.activeElement === document.body) {
+          historyButtonRef.current?.focus();
+        }
+      });
+    });
+    return () => cancelAnimationFrame(frameId);
+  }, [saveModalOpen]);
+
   function handleResetChanges() {
     resetChanges();
     trackEvent(ANALYTICS_KEYS.automation_toggle_all, { type: 'reset' });
@@ -149,6 +184,7 @@ export const AutomationControlEditor = () => {
     if (refreshData) {
       fetchData();
     }
+    focusAfterReviewCloseRef.current = true;
     setSaveModalOpen(false);
   }
 
@@ -347,6 +383,7 @@ export const AutomationControlEditor = () => {
         </ToolbarItemGroup>
         <ToolbarItemActions>
           <AutomationControlHistoryButton
+            ref={historyButtonRef}
             className="collapsible-button collapsible-button-xl"
             selectedOrg={selectedOrg}
             hasUnsavedChanges={dirtyCount > 0}
@@ -381,27 +418,23 @@ export const AutomationControlEditor = () => {
               <span>Export as Spreadsheet</span>
             </button>
           </ButtonGroupContainer>
-          <Tooltip
-            className="slds-m-left_x-small"
-            openDelay={500}
-            content={
-              deployAccess.deniedReason ?? (
-                <div className="slds-p-bottom_small">
-                  <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
-                </div>
-              )
+          <DisabledReasonButton
+            className="slds-button slds-button_brand slds-m-left_xx-small"
+            tooltipClassName="slds-m-left_x-small"
+            tooltipOpenDelay={500}
+            tooltip={
+              <div className="slds-p-bottom_small">
+                <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+              </div>
             }
+            aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+            disabled={reviewChangesDisabled}
+            disabledReason={deployAccess.deniedReason}
+            onClick={handleReviewChanges}
           >
-            <button
-              className="slds-button slds-button_brand slds-m-left_xx-small"
-              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
-              disabled={reviewChangesDisabled}
-              onClick={handleReviewChanges}
-            >
-              <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
-              Review Changes
-            </button>
-          </Tooltip>
+            <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
+            Review Changes
+          </DisabledReasonButton>
         </ToolbarItemActions>
       </Toolbar>
       <AutomationControlRestoreBanner
