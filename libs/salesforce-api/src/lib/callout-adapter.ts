@@ -375,6 +375,40 @@ function createBadGatewayError(message: string | undefined) {
 }
 
 /**
+ * TLS failures where the certificate chain does not lead to a trusted root. Behind a proxy that inspects TLS traffic,
+ * every request fails this way until the proxy's certificate authority is trusted, so retrying never helps.
+ */
+const UNTRUSTED_CERTIFICATE_ERROR_CODES = new Set([
+  'SELF_SIGNED_CERT_IN_CHAIN',
+  'DEPTH_ZERO_SELF_SIGNED_CERT',
+  'UNABLE_TO_GET_ISSUER_CERT',
+  'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+]);
+
+/**
+ * A user-facing message for a Node fetch that failed because the server's certificate is not trusted, or `null` for any
+ * other failure. Undici keeps the TLS error code on the `cause` of its `TypeError: fetch failed`. In the desktop app the
+ * message points to the setting that trusts the operating system's certificate store, which is where IT teams install
+ * their inspection certificate.
+ */
+export function getUntrustedCertificateErrorMessage(ex: unknown, hostname: string): string | null {
+  if (!(ex instanceof TypeError)) {
+    return null;
+  }
+  const code = (ex.cause as { code?: unknown } | undefined)?.code;
+  if (typeof code !== 'string' || !UNTRUSTED_CERTIFICATE_ERROR_CODES.has(code)) {
+    return null;
+  }
+  const message = `The security certificate for ${hostname} is not trusted (${code}).`;
+  const isDesktopApp = typeof process !== 'undefined' && !!process.versions?.electron;
+  if (!isDesktopApp) {
+    return message;
+  }
+  return `${message} This usually means a proxy or firewall on your network is inspecting traffic. Turn on "Trust certificates installed on this computer" in Settings, or ask your IT team to install their certificate authority on this computer.`;
+}
+
+/**
  * Node's fetch (undici) rejects with a bare `TypeError: fetch failed` when the connection to Salesforce fails, and keeps
  * the reason (ECONNRESET, EAI_AGAIN, UND_ERR_SOCKET, ...) only on `cause`. These are reported as a 502 so they are
  * attributed upstream and retried by clients like any other gateway failure, and the reason is logged because nothing
@@ -394,6 +428,10 @@ function handleFetchFailure(ex: unknown, url: string, method: string, logger: Lo
     throw createBadGatewayError(
       `The Salesforce domain ${hostname} could not be found, so the org may have been deleted. Reconnect the org if it still exists, otherwise remove it from Jetstream.`,
     );
+  }
+  const untrustedCertificateMessage = getUntrustedCertificateErrorMessage(ex, hostname);
+  if (untrustedCertificateMessage) {
+    throw createBadGatewayError(untrustedCertificateMessage);
   }
   throw createBadGatewayError(`The connection to Salesforce failed (${code}). This is usually temporary - please try again.`);
 }

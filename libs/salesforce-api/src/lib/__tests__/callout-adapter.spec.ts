@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ApiRequestError, getApiRequestFactoryFn, resolveSameOriginRequestUrl, sanitizeCallerHeaders } from '../callout-adapter';
+import {
+  ApiRequestError,
+  getApiRequestFactoryFn,
+  getUntrustedCertificateErrorMessage,
+  resolveSameOriginRequestUrl,
+  sanitizeCallerHeaders,
+} from '../callout-adapter';
 import type { FetchFn } from '../types';
 
 describe('resolveSameOriginRequestUrl', () => {
@@ -1016,6 +1022,24 @@ describe('callout-adapter XML parsing', () => {
       );
     });
 
+    it('reports an untrusted certificate chain as a 502 that names the cause instead of suggesting a retry', async () => {
+      const mockFetch = vi.fn(() =>
+        Promise.reject(
+          new TypeError('fetch failed', {
+            cause: Object.assign(new Error('self-signed certificate in certificate chain'), { code: 'SELF_SIGNED_CERT_IN_CHAIN' }),
+          }),
+        ),
+      ) as unknown as FetchFn;
+
+      const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+      const request = apiRequest({ url: '/services/oauth2/userinfo', method: 'GET', sessionInfo: mockSessionInfo });
+      await expect(request).rejects.toMatchObject({
+        status: 502,
+        message: 'The security certificate for test.salesforce.com is not trusted (SELF_SIGNED_CERT_IN_CHAIN).',
+      });
+    });
+
     it('rethrows failures that did not come from the connection unchanged', async () => {
       const abortError = new DOMException('This operation was aborted', 'AbortError');
       const mockFetch = vi.fn(() => Promise.reject(abortError)) as unknown as FetchFn;
@@ -1255,5 +1279,30 @@ describe('callout-adapter refresh token rotation', () => {
 
     expect(refreshTokens).toHaveBeenCalledTimes(1);
     expect(onConnectionError).toHaveBeenCalledWith('expired access/refresh token');
+  });
+});
+
+describe('getUntrustedCertificateErrorMessage', () => {
+  function fetchFailure(code: string) {
+    return new TypeError('fetch failed', { cause: Object.assign(new Error(code), { code }) });
+  }
+
+  it('returns null for failures other than an untrusted certificate chain', () => {
+    expect(getUntrustedCertificateErrorMessage(fetchFailure('ECONNRESET'), 'login.salesforce.com')).toBeNull();
+    // An expired certificate or a hostname mismatch is not fixed by trusting another certificate authority
+    expect(getUntrustedCertificateErrorMessage(fetchFailure('CERT_HAS_EXPIRED'), 'login.salesforce.com')).toBeNull();
+    expect(getUntrustedCertificateErrorMessage(fetchFailure('ERR_TLS_CERT_ALTNAME_INVALID'), 'login.salesforce.com')).toBeNull();
+    expect(getUntrustedCertificateErrorMessage(new Error('SELF_SIGNED_CERT_IN_CHAIN'), 'login.salesforce.com')).toBeNull();
+  });
+
+  it('points desktop users to the setting that trusts the operating system certificate store', () => {
+    Object.defineProperty(process.versions, 'electron', { value: '43.8.6', configurable: true, enumerable: true });
+    try {
+      expect(getUntrustedCertificateErrorMessage(fetchFailure('UNABLE_TO_GET_ISSUER_CERT_LOCALLY'), 'login.salesforce.com')).toBe(
+        'The security certificate for login.salesforce.com is not trusted (UNABLE_TO_GET_ISSUER_CERT_LOCALLY). This usually means a proxy or firewall on your network is inspecting traffic. Turn on "Trust certificates installed on this computer" in Settings, or ask your IT team to install their certificate authority on this computer.',
+      );
+    } finally {
+      delete (process.versions as Record<string, string | undefined>).electron;
+    }
   });
 });
