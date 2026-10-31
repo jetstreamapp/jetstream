@@ -72,6 +72,10 @@ export const CreateNewGlobalPicklistModal: FunctionComponent<CreateNewGlobalPick
   }, [picklistData]);
 
   async function handleSave() {
+    // Enter in a field submits the form without going through the aria-disabled button's guarded click
+    if (!isValid || loading) {
+      return;
+    }
     try {
       setIsLoading(true);
       setErrorMessage(null);
