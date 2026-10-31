@@ -5,10 +5,20 @@ import { bulkApiGetRecords } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { BulkJobBatchInfo, BulkJobResultRecord, DownloadAction, DownloadType, SalesforceOrgUi } from '@jetstream/types';
-import { Card, FileDownloadModal, Grid, Icon, SalesforceLogin, ScopedNotification, Spinner, SupportLink } from '@jetstream/ui';
+import {
+  Card,
+  FileDownloadModal,
+  Grid,
+  Icon,
+  SalesforceLogin,
+  ScopedNotification,
+  Spinner,
+  SupportLink,
+  useAnnouncer,
+} from '@jetstream/ui';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useAnalytics } from '../analytics';
 import ConfirmPageChange from '../app/ConfirmPageChange';
 import { fromJetstreamEvents } from '../jetstream-events';
@@ -65,6 +75,8 @@ export const MassUpdateRecordsDeploymentRow = ({
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
+  const statusRef = useRef<HTMLDivElement>(null);
+  const { announce, announcer } = useAnnouncer();
 
   const { done, processingErrors, status, fatalErrorMessage, statusCheckFailed, jobInfo, processingEndTime, processingStartTime } =
     deployResults;
@@ -165,6 +177,13 @@ export const MassUpdateRecordsDeploymentRow = ({
     setResultsModalData({ open: false, data: [], header: [], type: 'results' });
   }
 
+  function handleCheckStatusAgain() {
+    // The button unmounts as soon as polling resumes - hand focus to the status line it updates instead of <body>
+    statusRef.current?.focus();
+    announce(`Checking status for ${sobject}`);
+    onCheckStatusAgain?.();
+  }
+
   return (
     <Fragment>
       <ConfirmPageChange actionInProgress={status?.includes('In Progress')} />
@@ -234,7 +253,9 @@ export const MassUpdateRecordsDeploymentRow = ({
           </div>
         )}
         <div className="slds-scrollable_x">
-          <div className="text-bold slds-m-left_medium">{status}</div>
+          <div ref={statusRef} tabIndex={-1} className="text-bold slds-m-left_medium">
+            {status}
+          </div>
           {jobInfo?.id && (
             <SalesforceLogin
               className="slds-m-left_medium"
@@ -269,11 +290,12 @@ export const MassUpdateRecordsDeploymentRow = ({
           </ScopedNotification>
         )}
         {statusCheckFailed && onCheckStatusAgain && (
-          <button className="slds-button slds-button_neutral slds-m-left_small" onClick={onCheckStatusAgain}>
+          <button className="slds-button slds-button_neutral slds-m-left_small" onClick={handleCheckStatusAgain}>
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
             Check status again
           </button>
         )}
+        {announcer}
       </Card>
     </Fragment>
   );
