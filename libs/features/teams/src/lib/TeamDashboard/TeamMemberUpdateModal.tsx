@@ -50,7 +50,8 @@ export function TeamMemberUpdateModal({
   const { seatBlocked } = seatEvaluation;
 
   const handleUpdateRole = async () => {
-    if (seatBlocked) {
+    // Enter in a field submits the form without going through the aria-disabled button's guarded click
+    if (!isDirty || loading || seatBlocked) {
       return;
     }
     setErrorMessage(null);
