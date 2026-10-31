@@ -50,6 +50,10 @@ export function TeamMemberInviteModal({
   const ssoWarning = getSsoInviteWarning({ email: checkedEmail, role, ssoConfig, verifiedDomains });
 
   const handleInvite = async () => {
+    // Enter in a field submits the form without going through the aria-disabled button's guarded click
+    if (loading) {
+      return;
+    }
     setErrorMessage(null);
     setLoading(true);
     try {
