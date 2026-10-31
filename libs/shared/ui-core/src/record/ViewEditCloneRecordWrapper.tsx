@@ -12,7 +12,7 @@ import { ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES, CloneEditView, Salesforc
 import { fireToast, useAnnouncer } from '@jetstream/ui';
 import { applicationCookieState, selectedOrgState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { ViewEditCloneRecord } from './ViewEditCloneRecord';
 
 async function fetchSobjectName(selectedOrg: SalesforceOrgUi, recordId: string) {
@@ -56,6 +56,12 @@ export const ViewEditCloneRecordWrapper: FunctionComponent = () => {
   const [instanceKey, setInstanceKey] = useState(0);
   const [didSave, setDidSave] = useState(false);
   const canWriteRecords = useCanPerformOperation('records.write');
+  // The announcer is rendered INSIDE the modal: outside it, the modal's focus manager marks the rest of the
+  // document aria-hidden and the message is never read (including a toast's)
+  const { announce, announcer } = useAnnouncer();
+  // Wraps the announcer, so it doubles as a handle on the open dialog
+  const liveRegionRef = useRef<HTMLDivElement>(null);
+  const restoreFocusAfterRevokeRef = useRef(false);
 
   const appActionEvents = useObservable(appActionObservable$.pipe(appActionRecordEventFilter));
 
@@ -145,20 +151,31 @@ export const ViewEditCloneRecordWrapper: FunctionComponent = () => {
     if (action === 'create') {
       onModalClose();
     } else {
+      announce(`${ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['records.write']} The record is now read-only.`);
+      restoreFocusAfterRevokeRef.current = true;
       setAction('view');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canWriteRecords]);
 
+  // The edit form (and the focused field or Save button with it) unmounts when access is revoked, which drops focus
+  // to <body>; keep it in the dialog instead
+  useEffect(() => {
+    if (!restoreFocusAfterRevokeRef.current || action !== 'view') {
+      return;
+    }
+    restoreFocusAfterRevokeRef.current = false;
+    const dialog = liveRegionRef.current?.closest<HTMLElement>('[role="dialog"]');
+    if (dialog && !dialog.contains(document.activeElement)) {
+      dialog.focus();
+    }
+  }, [action]);
+
   function onActionChange(action: CloneEditView) {
     setAction(action);
   }
 
-  // The modal remounts in view mode after a save, so the only sign of success is the changed title. The
-  // announcer is rendered INSIDE the modal: outside it, the modal's focus manager marks the rest of the
-  // document aria-hidden and the message is never read
-  const { announce, announcer } = useAnnouncer();
-
+  // The modal remounts in view mode after a save, so the only sign of success is the changed title
   function onSave(saved: { recordId: string; sobjectName: string }) {
     setRecordId(saved.recordId);
     setSobjectName(saved.sobjectName);
@@ -186,7 +203,7 @@ export const ViewEditCloneRecordWrapper: FunctionComponent = () => {
 
   return (
     <ViewEditCloneRecord
-      liveRegion={announcer}
+      liveRegion={<div ref={liveRegionRef}>{announcer}</div>}
       key={instanceKey}
       apiVersion={defaultApiVersion}
       selectedOrg={selectedOrg}
