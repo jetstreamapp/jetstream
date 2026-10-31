@@ -4,7 +4,7 @@ import { ConfirmationModalPromise, Icon } from '@jetstream/ui';
 import { fromAutomationControlState, useAnalytics } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import { useSetAtom } from 'jotai';
-import { Fragment, FunctionComponent, useState } from 'react';
+import { Fragment, FunctionComponent, Ref, useState } from 'react';
 import { getRestoreSnapshot } from './automation-control-history-utils';
 import AutomationControlHistoryModal from './AutomationControlHistoryModal';
 
@@ -15,6 +15,7 @@ export interface AutomationControlHistoryButtonProps {
   hasUnsavedChanges?: boolean;
   /** Called once a restore is queued, e.g. to navigate to the editor */
   onRestore?: () => void;
+  ref?: Ref<HTMLButtonElement>;
 }
 
 export const AutomationControlHistoryButton: FunctionComponent<AutomationControlHistoryButtonProps> = ({
@@ -22,6 +23,7 @@ export const AutomationControlHistoryButton: FunctionComponent<AutomationControl
   selectedOrg,
   hasUnsavedChanges,
   onRestore,
+  ref,
 }) => {
   const { trackEvent } = useAnalytics();
   const [isOpen, setIsOpen] = useState(false);
@@ -58,7 +60,12 @@ export const AutomationControlHistoryButton: FunctionComponent<AutomationControl
 
   return (
     <Fragment>
-      <button className={classNames('slds-button slds-button_neutral', className)} title="View deployment history" onClick={handleOpen}>
+      <button
+        ref={ref}
+        className={classNames('slds-button slds-button_neutral', className)}
+        title="View deployment history"
+        onClick={handleOpen}
+      >
         <Icon type="utility" icon="date_time" className="slds-button__icon slds-button__icon_left" omitContainer />
         <span>History</span>
       </button>
