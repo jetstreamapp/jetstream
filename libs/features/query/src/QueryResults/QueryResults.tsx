@@ -837,7 +837,13 @@ export const QueryResults = React.memo(() => {
                   your query.
                 </div>
               </div>
-              <pre>
+              <pre
+                // Keeps the line breaks and caret alignment of SOQL errors while wrapping messages wider than the page
+                css={css`
+                  white-space: pre-wrap;
+                  overflow-wrap: anywhere;
+                `}
+              >
                 <code>{errorMessage}</code>
               </pre>
             </div>
