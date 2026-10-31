@@ -63,11 +63,39 @@ const execAsync = promisify(exec);
  * The connection string is handed to the shell as an environment variable instead of being interpolated
  * into the command: when psql exits non-zero, `exec` rejects with `Command failed: <command>` and that
  * message is logged, so an interpolated URI would write the database password to the logs on every failure.
+ *
+ * psql itself can still echo a malformed URI, password included, to stderr (libpq quotes its input in
+ * errors such as "invalid percent-encoded token"), and `exec` appends stderr to that same message — so the
+ * rejection is rethrown with the URI and its password removed from the message and stack.
  */
 async function runPsql(sql: string): Promise<void> {
-  await execAsync(`psql "$JETSTREAM_POSTGRES_DBURI" -c "${sql}"`, {
-    env: { ...process.env, JETSTREAM_POSTGRES_DBURI: ENV.JETSTREAM_POSTGRES_DBURI },
-  });
+  try {
+    await execAsync(`psql "$JETSTREAM_POSTGRES_DBURI" -c "${sql}"`, {
+      env: { ...process.env, JETSTREAM_POSTGRES_DBURI: ENV.JETSTREAM_POSTGRES_DBURI },
+    });
+  } catch (error) {
+    throw redactConnectionString(error);
+  }
+}
+
+/** The whole connection string and, separately, its password — matched textually because the URI that matters here is one libpq refused to parse */
+function getConnectionStringSecrets(): string[] {
+  const connectionString = ENV.JETSTREAM_POSTGRES_DBURI;
+  if (!connectionString) {
+    return [];
+  }
+  const password = connectionString.match(/^[a-z]+:\/\/[^/@:]*:([^@]*)@/i)?.[1];
+  return password ? [connectionString, password] : [connectionString];
+}
+
+/** A plain Error carrying only the redacted message and stack; `exec`'s extra `cmd`/`stdout`/`stderr` properties are dropped */
+function redactConnectionString(error: unknown): Error {
+  const secrets = getConnectionStringSecrets();
+  const redact = (text: string) => secrets.reduce((redacted, secret) => redacted.split(secret).join('[REDACTED]'), text);
+  const original = error instanceof Error ? error : new Error(String(error));
+  const redacted = new Error(redact(original.message));
+  redacted.stack = original.stack ? redact(original.stack) : undefined;
+  return redacted;
 }
 
 if (!ENV.MAX_MIND_ACCOUNT_ID || !ENV.MAX_MIND_LICENSE_KEY) {
