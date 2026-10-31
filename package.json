@@ -324,7 +324,7 @@
     "lru-cache": "^11.5.3",
     "mailgun.js": "14.0.1",
     "maxmind": "^5.0.7",
-    "monaco-editor": "^0.56.0",
+    "monaco-editor": "^0.57.0",
     "multer": "^2.5.0",
     "nanoid": "^6.0.1",
     "next": "^16.4.3",
