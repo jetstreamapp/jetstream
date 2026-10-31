@@ -1,10 +1,15 @@
 import { IconObj } from '@jetstream/icon-factory';
 import React, { FunctionComponent } from 'react';
 import Icon from '../../widgets/Icon';
+import { ariaDisabledButtonProps } from './aria-disabled-button.utils';
 
 export interface FormRowButtonProps {
   title: string;
   icon: IconObj;
+  /**
+   * Applied as aria-disabled so the button stays focusable: a row action (e.g. Move Up into the first row) can
+   * disable the very button that was just pressed, and native disabled would drop focus to <body>
+   */
   disabled?: boolean;
   onClick: () => void;
   children?: React.ReactNode;
@@ -27,8 +32,7 @@ export const FormRowButton: FunctionComponent<FormRowButtonProps> = ({ title, ic
           type="button"
           className="slds-button slds-button_icon slds-button_icon-border-filled"
           title={title}
-          disabled={disabled}
-          onClick={() => onClick()}
+          {...ariaDisabledButtonProps(disabled, () => onClick())}
         >
           <Icon type={icon.type} icon={icon.icon} description={icon.description || title} className="slds-button__icon" omitContainer />
         </button>
