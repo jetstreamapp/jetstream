@@ -19,7 +19,7 @@ import {
   TeamAccessProfile,
   TeamUserFacing,
 } from '@jetstream/types';
-import { Checkbox, Input, Modal, ScopedNotification, Spinner, Textarea } from '@jetstream/ui';
+import { ariaDisabledButtonProps, AssistiveStatus, Checkbox, Input, Modal, ScopedNotification, Spinner, Textarea } from '@jetstream/ui';
 import { useMemo, useState } from 'react';
 
 interface TeamAccessProfileEditorModalProps {
@@ -52,6 +52,8 @@ export function TeamAccessProfileEditorModal({ teamId, accessProfile, onClose }:
   const enabledOperations = useMemo(() => new Set(policy.operations), [policy.operations]);
   const enabledSurfaces = useMemo(() => new Set(policy.surfaces), [policy.surfaces]);
   const warnings = useMemo(() => getAccessProfilePolicyWarnings(policy), [policy]);
+  // The warning notice mounts with its text when a checkbox is toggled, which screen readers do not announce
+  const warningAnnouncement = warnings.length ? `Warning: ${warnings.map(({ message }) => message).join(' ')}` : '';
   const trimmedName = name.trim();
   const warningsFor = (target: AccessProfilePolicyWarning['target']) => warnings.filter((warning) => warning.target === target);
 
@@ -95,7 +97,8 @@ export function TeamAccessProfileEditorModal({ teamId, accessProfile, onClose }:
   }
 
   async function handleSave() {
-    if (!trimmedName) {
+    // Enter in a field submits the form without going through Save's guarded click
+    if (!trimmedName || loading) {
       return;
     }
     setErrorMessage(null);
@@ -125,11 +128,12 @@ export function TeamAccessProfileEditorModal({ teamId, accessProfile, onClose }:
           <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>
             Cancel
           </button>
+          {/* The form's onSubmit owns the save; aria-disabled keeps focus on Save while the save it started runs */}
           <button
             type="submit"
             form="team-access-profile-editor-form"
             className="slds-button slds-button_brand slds-is-relative"
-            disabled={!trimmedName || loading}
+            {...ariaDisabledButtonProps(!trimmedName || loading, () => {})}
           >
             Save
             {loading && <Spinner className="slds-spinner slds-spinner_small" />}
@@ -255,6 +259,8 @@ export function TeamAccessProfileEditorModal({ teamId, accessProfile, onClose }:
             onChange={(checked) => setSurfaceEnabled(key, checked)}
           />
         ))}
+
+        <AssistiveStatus message={warningAnnouncement} />
       </form>
     </Modal>
   );
@@ -286,7 +292,7 @@ function ToolGroup({
         disabled={disabled}
         onChange={(checked) => onChange(toolKeys, checked)}
       />
-      <div className="slds-p-left_medium">
+      <div className="slds-p-left_medium" role="group" aria-label={group.label}>
         {tools.map(({ key, label, description, isEscapeHatch }) => (
           <Checkbox
             key={key}

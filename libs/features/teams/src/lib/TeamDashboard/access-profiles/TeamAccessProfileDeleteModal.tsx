@@ -1,8 +1,8 @@
 import { deleteTeamAccessProfile } from '@jetstream/shared/data';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { TeamAccessProfile, TeamUserFacing } from '@jetstream/types';
-import { Modal, ScopedNotification, Spinner } from '@jetstream/ui';
-import { useState } from 'react';
+import { ariaDisabledButtonProps, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
+import { useEffect, useRef, useState } from 'react';
 import { FULL_ACCESS_ID, getDefaultAccessProfileId } from './access-profile.utils';
 import { TeamAccessProfileDropdown } from './TeamAccessProfileDropdown';
 
@@ -23,6 +23,7 @@ export function TeamAccessProfileDeleteModal({ teamId, accessProfile, accessProf
   // The counts are from when the dashboard loaded. If someone was assigned the profile since and the server
   // refuses the delete, show the picker so the admin can choose a destination instead of closing and reopening.
   const [reassignRequired, setReassignRequired] = useState(false);
+  const reassignContainerRef = useRef<HTMLDivElement>(null);
 
   const { memberCount, invitationCount } = accessProfile;
   const isInUse = memberCount > 0 || invitationCount > 0;
@@ -33,6 +34,13 @@ export function TeamAccessProfileDeleteModal({ teamId, accessProfile, accessProf
   ]
     .filter(Boolean)
     .join(' and ');
+
+  // The picker appears only after a refused delete: move focus to it, the error alert explains why it is there
+  useEffect(() => {
+    if (reassignRequired) {
+      reassignContainerRef.current?.querySelector<HTMLElement>('[role="combobox"]')?.focus();
+    }
+  }, [reassignRequired]);
 
   async function handleDelete() {
     setErrorMessage(null);
@@ -63,7 +71,8 @@ export function TeamAccessProfileDeleteModal({ teamId, accessProfile, accessProf
           <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>
             Cancel
           </button>
-          <button className="slds-button slds-button_destructive slds-is-relative" onClick={handleDelete} disabled={loading}>
+          {/* aria-disabled keeps focus on Delete while its own click runs; native disabled would drop it to <body> */}
+          <button className="slds-button slds-button_destructive slds-is-relative" {...ariaDisabledButtonProps(loading, handleDelete)}>
             Delete
             {loading && <Spinner className="slds-spinner slds-spinner_small" />}
           </button>
@@ -76,7 +85,7 @@ export function TeamAccessProfileDeleteModal({ teamId, accessProfile, accessProf
         {accessProfile.isDefault && ' New members will receive full access unless you choose another default profile.'}
       </p>
       {showReassign && (
-        <>
+        <div ref={reassignContainerRef}>
           <p className="slds-m-bottom_small">
             {isInUse
               ? `It is assigned to ${assignmentSummary}. Choose the profile they should move to.`
@@ -90,7 +99,7 @@ export function TeamAccessProfileDeleteModal({ teamId, accessProfile, accessProf
             disabled={loading}
             onChange={setReassignToAccessProfileId}
           />
-        </>
+        </div>
       )}
     </Modal>
   );
