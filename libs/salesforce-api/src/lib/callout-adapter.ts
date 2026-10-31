@@ -100,9 +100,10 @@ function getRedirectedRequestOptions(status: number, options: RedirectableFetchO
  * so a caller-chosen Salesforce path that answers with a cross-origin redirect would otherwise carry
  * `X-SFDC-Session` to the foreign host. Same-origin redirects keep working; cross-origin ones are refused.
  *
- * In a browser (web extension, Canvas) a manual redirect comes back as an `opaqueredirect` response with
- * no `Location` to validate, so it is refused outright. A 3xx without a `Location` header is handed back
- * to the caller like any other non-ok response.
+ * In a browser fetch (web extension) a manual redirect comes back as an `opaqueredirect` response with
+ * no `Location` to validate, so it is refused outright. Canvas is not covered: its adapter sends requests
+ * through the Canvas SDK's XHR, which ignores `redirect` and follows redirects itself. A 3xx without a
+ * `Location` header is handed back to the caller like any other non-ok response.
  */
 async function fetchFollowingSameOriginRedirects(
   fetch: FetchFn,
