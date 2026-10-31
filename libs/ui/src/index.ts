@@ -42,6 +42,7 @@ export * from './lib/form/button/aria-disabled-button.utils';
 export * from './lib/form/button/ButtonGroupContainer';
 export * from './lib/form/button/ButtonRowContainer';
 export * from './lib/form/button/ButtonRowItem';
+export * from './lib/form/button/DisabledReasonButton';
 export * from './lib/form/button/FormRowButton';
 export * from './lib/form/button/UpgradeToProButton';
 export * from './lib/form/checkbox-button/CheckboxButton';
