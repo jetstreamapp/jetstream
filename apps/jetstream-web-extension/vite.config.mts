@@ -1,4 +1,5 @@
 /// <reference types='vitest' />
+import { nxReadySignal } from '@nx/vite/plugins/nx-ready-signal.plugin';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
@@ -41,6 +42,7 @@ export default defineConfig(({ command, mode }) => {
       placeholderHtmlPlugin(),
       sharedAssetsPlugin(),
       extensionScriptsBuildPlugin(mode),
+      nxReadySignal(),
     ],
     resolve: { tsconfigPaths: true },
 

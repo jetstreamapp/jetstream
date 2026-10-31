@@ -23,6 +23,9 @@
       "options": {
         "buildTarget": "jetstream-canvas:build",
         "spa": true
+      },
+      "readyWhen": {
+        "signal": true
       }
     }
   }

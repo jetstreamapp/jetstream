@@ -1,4 +1,5 @@
 /// <reference types="vitest/config" />
+import { nxReadySignal } from '@nx/vite/plugins/nx-ready-signal.plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import react from '@vitejs/plugin-react';
 import dns from 'dns';
@@ -56,6 +57,7 @@ export default defineConfig(async ({ command }) => ({
     baseHrefPlugin(),
     cspNoncePlugin(),
     devServerBannerPlugin(API_SERVER_URL),
+    nxReadySignal(),
     // Sentry plugin must be LAST per docs. Reads SENTRY_AUTH_TOKEN / SENTRY_ORG /
     // SENTRY_PROJECT / SENTRY_URL from env automatically.
     ...(uploadSourcemaps

@@ -54,10 +54,6 @@
     "e2e-ci": {
       "cache": true
     },
-    "@nx/vitest:test": {
-      "cache": true,
-      "inputs": ["default", "^production"]
-    },
     "@nx/js:tsc": {
       "cache": true,
       "dependsOn": ["^build"],
@@ -118,8 +114,7 @@
         "serveTargetName": "serve",
         "previewTargetName": "preview",
         "serveStaticTargetName": "serve-static",
-        "devTargetName": "dev",
-        "typecheckTargetName": "typecheck"
+        "devTargetName": "dev"
       },
       "include": [
         "apps/admin/**/*",
@@ -157,5 +152,8 @@
   "analytics": false,
   "sync": {
     "applyChanges": true
+  },
+  "affected": {
+    "legacy": true
   }
 }
