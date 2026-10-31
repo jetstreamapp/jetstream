@@ -31,7 +31,8 @@ export function PermissionColumnGroupHeader({ id, label, type }: PermissionColum
   const isPermissionSet = type === 'Permission Set';
   const meta = isPermissionSet ? permissionSetsById[id] : profilesById[id];
   const isReadOnly = isManagedPermissionSet(meta, selectedOrg.orgNamespacePrefix);
-  const fullLabel = isReadOnly ? `${label} (${type}) — Managed, read-only` : `${label} (${type})`;
+  const labelWithType = `${label} (${type})`;
+  const fullLabel = isReadOnly ? `${labelWithType} — Managed, read-only` : labelWithType;
 
   return (
     <span
@@ -44,13 +45,8 @@ export function PermissionColumnGroupHeader({ id, label, type }: PermissionColum
     >
       {isReadOnly && (
         <Tooltip content={`Provided by ${getManagedPermissionSetSource(meta)}. Salesforce does not allow these permissions to be changed.`}>
-          <Icon
-            type="utility"
-            icon="lock"
-            className="slds-icon slds-icon-text-default slds-icon_xx-small slds-shrink-none"
-            omitContainer
-            description="Managed, read-only"
-          />
+          {/* Decorative: the visible label already says "Managed, read-only" */}
+          <Icon type="utility" icon="lock" className="slds-icon slds-icon-text-default slds-icon_xx-small slds-shrink-none" omitContainer />
         </Tooltip>
       )}
       <span className="slds-truncate" title={fullLabel}>
@@ -76,7 +72,7 @@ export function PermissionColumnGroupHeader({ id, label, type }: PermissionColum
           recordType={isPermissionSet ? 'PermissionSet' : 'Profile'}
           meta={meta}
           allowManageAssignments={isPermissionSet && canDeployMetadata}
-          buttonTitle={`View ${fullLabel} details`}
+          buttonTitle={`View ${labelWithType} details`}
           trackEvent={trackEvent}
         />
       </span>
