@@ -15,7 +15,7 @@ import localforage from 'localforage';
 import React, { Fragment, FunctionComponent, use, useCallback, useEffect } from 'react';
 import { Observable, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { desktopUserPreferences, desktopUserPreferencesSyncState } from './AppDesktopState';
+import { desktopUserPreferences } from './AppDesktopState';
 import { useDesktopErrorTracker } from './useDesktopErrorTracker';
 import { useElectronActionLoader } from './useElectronActionLoader';
 
@@ -59,8 +59,8 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ authInf
 
   // Settings reads the desktop preferences atom, so a format saved from the query editor has to land there too
   const mergeSavedSoqlQueryFormatOptions = useAtomCallback(
-    useCallback((get, set, soqlQueryFormatOptions: SoqlQueryFormatOptions) => {
-      set(desktopUserPreferences, { ...get(desktopUserPreferencesSyncState), soqlQueryFormatOptions });
+    useCallback(async (get, set, soqlQueryFormatOptions: SoqlQueryFormatOptions) => {
+      set(desktopUserPreferences, { ...(await get(desktopUserPreferences)), soqlQueryFormatOptions });
     }, []),
   );
 
