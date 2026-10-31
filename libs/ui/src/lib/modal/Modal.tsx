@@ -13,6 +13,7 @@ import { isEscapeKey, isImeComposing } from '@jetstream/shared/ui-utils';
 import { Maybe, SizeSmMdLg } from '@jetstream/types';
 import classNames from 'classnames';
 import { KeyboardEvent, ReactNode, RefObject, useEffect, useRef, useState } from 'react';
+import { ariaDisabledButtonProps } from '../form/button/aria-disabled-button.utils';
 import Icon from '../widgets/Icon';
 import { PortalProvider } from './PortalContext';
 
@@ -214,11 +215,12 @@ export const Modal = ({
             >
               <div data-testid={testId} className={classNames('slds-modal__container', containerClassName)}>
                 <header className={classNames('slds-modal__header', { 'slds-modal__header_empty': !header })}>
+                  {/* aria-disabled so a user who tabbed here while an action locks the modal keeps focus */}
                   <button
+                    type="button"
                     className="slds-button slds-button_icon slds-modal__close"
                     title="Close"
-                    disabled={closeDisabled}
-                    onClick={() => onClose()}
+                    {...ariaDisabledButtonProps(closeDisabled, () => onClose())}
                   >
                     <Icon type="utility" icon="close" className="slds-button__icon slds-button__icon_large" omitContainer />
                     <span className="slds-assistive-text">Close</span>
