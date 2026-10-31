@@ -3,6 +3,7 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, multiWordObjectFilter } from '@jetstream/shared/utils';
 import { ListItem, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord, SalesforceOrgUi } from '@jetstream/types';
 import {
+  AssistiveStatus,
   Checkbox,
   ComboboxWithGroupedItems,
   ComboboxWithItems,
@@ -15,12 +16,13 @@ import {
   ScopedNotification,
   Spinner,
   Textarea,
+  ariaDisabledButtonProps,
   getProfileOrPermSetSetupUrl,
 } from '@jetstream/ui';
 import { ConfirmPageChange } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { FormEvent, FunctionComponent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   PermissionSetCreateResult,
   PermissionSetLicenseOption,
@@ -33,6 +35,9 @@ import {
 } from './utils/permission-set-create-utils';
 
 const NO_LICENSE_ID = '__none__';
+const FORM_ID = 'create-permission-set-form';
+/** Fields that only become read-only while saving - every other control is disabled and cannot keep focus */
+const TEXT_FIELD_IDS = new Set(['permission-set-label', 'permission-set-name', 'permission-set-description']);
 
 /** Search the API Name and package as well as the label */
 const cloneSourceFilterFn = (filter: string) => {
@@ -84,6 +89,10 @@ export const CreatePermissionSetModal: FunctionComponent<CreatePermissionSetModa
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [result, setResult] = useState<PermissionSetCreateResult | null>(null);
+
+  const formRef = useRef<HTMLFormElement>(null);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   const cloneSourceGroups = useMemo(
     () => getCloneSourceGroups(profiles, permissionSets, managedPermissionSets),
@@ -148,12 +157,23 @@ export const CreatePermissionSetModal: FunctionComponent<CreatePermissionSetModa
   const nameIsValid = !name || isValidPermissionSetApiName(name);
   const canSave = !saving && !result && !!label.trim() && !!name && nameIsValid && (startFrom === 'blank' || !!cloneSourceId);
 
+  // The form is replaced by the outcome, so focus moves to the button that now closes the modal
+  useEffect(() => {
+    if (result) {
+      closeButtonRef.current?.focus();
+    }
+  }, [result]);
+
   async function handleSubmit(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     if (!canSave) {
       return;
     }
     const cloneFromId = startFrom === 'clone' ? cloneSourceId : null;
+    const { activeElement } = document;
+    if (activeElement && formRef.current?.contains(activeElement) && !TEXT_FIELD_IDS.has(activeElement.id)) {
+      submitButtonRef.current?.focus();
+    }
     try {
       setSaving(true);
       setErrorMessage(null);
@@ -186,6 +206,13 @@ export const CreatePermissionSetModal: FunctionComponent<CreatePermissionSetModa
 
   const failedCloneSteps = result?.cloneSteps.filter(({ failed }) => failed > 0) || [];
 
+  let statusMessage = progressMessage ? `${progressMessage}…` : '';
+  if (result) {
+    statusMessage = failedCloneSteps.length
+      ? `${label} was created, but some permissions could not be copied.`
+      : `${label} was created and selected.`;
+  }
+
   return (
     <>
       <ConfirmPageChange actionInProgress={saving} />
@@ -203,11 +230,23 @@ export const CreatePermissionSetModal: FunctionComponent<CreatePermissionSetModa
         closeDisabled={saving}
         footer={
           <Grid align="end">
-            <button className="slds-button slds-button_neutral" onClick={handleClose} disabled={saving}>
+            <button
+              ref={closeButtonRef}
+              type="button"
+              className="slds-button slds-button_neutral"
+              {...ariaDisabledButtonProps(saving, handleClose)}
+            >
               {result ? 'Close' : 'Cancel'}
             </button>
             {!result && (
-              <button className="slds-button slds-button_brand" form="create-permission-set-form" type="submit" disabled={!canSave}>
+              <button
+                ref={submitButtonRef}
+                className="slds-button slds-button_brand"
+                form={FORM_ID}
+                type="submit"
+                // The form's onSubmit does the work; this only blocks the submit while unavailable
+                {...ariaDisabledButtonProps(!canSave, () => undefined)}
+              >
                 {startFrom === 'clone' ? 'Clone' : 'Create'}
               </button>
             )}
@@ -221,12 +260,9 @@ export const CreatePermissionSetModal: FunctionComponent<CreatePermissionSetModa
             min-height: 20rem;
           `}
         >
+          <AssistiveStatus message={statusMessage} />
           {saving && <Spinner />}
-          {progressMessage && (
-            <p className="slds-text-align_center slds-text-color_weak slds-m-bottom_small" role="status">
-              {progressMessage}…
-            </p>
-          )}
+          {progressMessage && <p className="slds-text-align_center slds-text-color_weak slds-m-bottom_small">{progressMessage}…</p>}
           {errorMessage && (
             <ScopedNotification theme="error" className="slds-m-bottom_small">
               {errorMessage}
@@ -242,7 +278,7 @@ export const CreatePermissionSetModal: FunctionComponent<CreatePermissionSetModa
               failedCloneSteps={failedCloneSteps}
             />
           ) : (
-            <form id="create-permission-set-form" onSubmit={handleSubmit}>
+            <form ref={formRef} id={FORM_ID} onSubmit={handleSubmit}>
               <RadioGroup label="Start From" isButtonGroup>
                 <RadioButton
                   id="permission-set-start-from-blank"
@@ -292,7 +328,7 @@ export const CreatePermissionSetModal: FunctionComponent<CreatePermissionSetModa
                   value={label}
                   maxLength={80}
                   required
-                  disabled={saving}
+                  readOnly={saving}
                   onChange={(event) => setLabel(event.target.value)}
                 />
               </Input>
@@ -312,7 +348,7 @@ export const CreatePermissionSetModal: FunctionComponent<CreatePermissionSetModa
                   value={name}
                   maxLength={80}
                   required
-                  disabled={saving}
+                  readOnly={saving}
                   aria-describedby={!nameIsValid ? 'permission-set-name-error' : undefined}
                   onChange={(event) => setNameOverride(event.target.value)}
                 />
@@ -325,7 +361,7 @@ export const CreatePermissionSetModal: FunctionComponent<CreatePermissionSetModa
                   value={description}
                   rows={2}
                   maxLength={255}
-                  disabled={saving}
+                  readOnly={saving}
                   onChange={(event) => setDescription(event.target.value)}
                 />
               </Textarea>
