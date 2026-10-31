@@ -1,5 +1,5 @@
 import { AscDesc, FirstLast, ListItem, QueryOrderByClause } from '@jetstream/types';
-import { Icon, ariaDisabledButtonProps } from '@jetstream/ui';
+import { Icon, ariaDisabledButtonProps, useAnnouncer } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
 import React, { FunctionComponent, useRef } from 'react';
 import QueryOrderByRow from './QueryOrderByRow';
@@ -28,6 +28,7 @@ export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps
     // The same component is mounted in the query builder AND the subquery panel, so the focus target
     // must be looked up inside this instance, not the document
     const containerRef = useRef<HTMLDivElement>(null);
+    const { announce, announcer } = useAnnouncer();
     function getNextKey(clauses: QueryOrderByClause[]) {
       return clauses.reduce((max, clause) => Math.max(max, clause.key), -1) + 1;
     }
@@ -66,6 +67,18 @@ export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps
       }
       const reorderedClauses = [...orderByClauses];
       [reorderedClauses[currentIndex], reorderedClauses[targetIndex]] = [reorderedClauses[targetIndex], reorderedClauses[currentIndex]];
+      // The rows are keyed, so the swap re-inserts the moved row and drops keyboard focus to <body>. Follow the row to
+      // its new position, on the same button unless the row reached an end, where that button is now disabled
+      const reachedEnd = targetIndex === 0 || targetIndex === reorderedClauses.length - 1;
+      const sameButtonTitle = direction === 'UP' ? 'Move Up' : 'Move Down';
+      const otherButtonTitle = direction === 'UP' ? 'Move Down' : 'Move Up';
+      const focusButtonTitle = reachedEnd ? otherButtonTitle : sameButtonTitle;
+      window.setTimeout(() => {
+        containerRef.current
+          ?.querySelector<HTMLElement>(`[role="group"][aria-label="Order by row ${targetIndex + 1}"] button[title="${focusButtonTitle}"]`)
+          ?.focus();
+      });
+      announce(`Moved to position ${targetIndex + 1} of ${reorderedClauses.length}`);
       setOrderByClauses(reorderedClauses);
     }
 
@@ -95,6 +108,7 @@ export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps
             Add Order By
           </button>
         </div>
+        {announcer}
       </div>
     );
   },

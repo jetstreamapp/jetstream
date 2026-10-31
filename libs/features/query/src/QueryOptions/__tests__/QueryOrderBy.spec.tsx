@@ -58,8 +58,12 @@ function getRows(instance: HTMLElement) {
   return within(instance).getAllByRole('group', { name: /^Order by row \d+$/ });
 }
 
+function getRowButton(instance: HTMLElement, rowNumber: number, title: string) {
+  return within(within(instance).getByRole('group', { name: `Order by row ${rowNumber}` })).getByTitle(title);
+}
+
 function getDeleteButton(instance: HTMLElement, rowNumber: number) {
-  return within(within(instance).getByRole('group', { name: `Order by row ${rowNumber}` })).getByTitle('Delete Condition');
+  return getRowButton(instance, rowNumber, 'Delete Condition');
 }
 
 describe('QueryOrderByContainer', () => {
@@ -106,6 +110,41 @@ describe('QueryOrderByContainer', () => {
 
     await waitFor(() => expect(getRows(subquery)).toHaveLength(1));
     await waitFor(() => expect(document.activeElement).toBe(getDeleteButton(subquery, 1)));
+  });
+
+  it('follows a row moved up with focus, on the same button, and announces its new position', async () => {
+    const { parent, subquery } = setup({ subqueryRowCount: 3 });
+    const moveUpButton = getRowButton(subquery, 3, 'Move Up');
+    moveUpButton.focus();
+
+    fireEvent.click(moveUpButton);
+
+    await waitFor(() => expect(document.activeElement).toBe(getRowButton(subquery, 2, 'Move Up')));
+    expect(parent.contains(document.activeElement)).toBe(false);
+    await waitFor(() => expect(within(subquery).getByRole('status').textContent).toBe('Moved to position 2 of 3'));
+  });
+
+  it('lands on Move Down when a row is moved up into the first position, where Move Up is now disabled', async () => {
+    const { subquery } = setup();
+    const moveUpButton = getRowButton(subquery, 2, 'Move Up');
+    moveUpButton.focus();
+
+    fireEvent.click(moveUpButton);
+
+    await waitFor(() => expect(document.activeElement).toBe(getRowButton(subquery, 1, 'Move Down')));
+    expect(getRowButton(subquery, 1, 'Move Up').getAttribute('aria-disabled')).toBe('true');
+    await waitFor(() => expect(within(subquery).getByRole('status').textContent).toBe('Moved to position 1 of 2'));
+  });
+
+  it('lands on Move Up when a row is moved down into the last position', async () => {
+    const { subquery } = setup();
+    const moveDownButton = getRowButton(subquery, 1, 'Move Down');
+    moveDownButton.focus();
+
+    fireEvent.click(moveDownButton);
+
+    await waitFor(() => expect(document.activeElement).toBe(getRowButton(subquery, 2, 'Move Up')));
+    await waitFor(() => expect(within(subquery).getByRole('status').textContent).toBe('Moved to position 2 of 2'));
   });
 
   it('adds a row and caps the list at five', () => {
