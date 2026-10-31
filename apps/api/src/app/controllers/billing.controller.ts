@@ -126,6 +126,28 @@ async function resolveUsableTeamCustomer(customerId: string | undefined): Promis
   return customer;
 }
 
+/**
+ * The buyer's own customer: the one on their billing account, or when they have none yet, one an earlier checkout
+ * created but never completed, so repeat visits stop minting a new customer each time. A deleted customer cannot
+ * open Checkout, so it counts as none and checkout creates a fresh one, which the completed session then binds.
+ */
+async function resolvePersonalCustomer(user: {
+  id: string;
+  email: string;
+  billingAccount?: { customerId: string } | null;
+}): Promise<Stripe.Customer | undefined> {
+  const customerId = user.billingAccount?.customerId;
+  if (!customerId) {
+    return (await stripeService.findReusableCustomerForUser({ user })) ?? undefined;
+  }
+  const customer = await stripeService.fetchCustomerWithSubscriptionsById({ customerId });
+  if (customer.deleted) {
+    getLogger().warn({ customerId }, 'Billing account points at a deleted Stripe customer; checkout will create a new one');
+    return undefined;
+  }
+  return customer;
+}
+
 const createCheckoutSessionHandler = createRoute(
   routeDefinition.createCheckoutSession.validators,
   async ({ user: sessionUser, body }, req, res) => {
@@ -171,11 +193,16 @@ const createCheckoutSessionHandler = createRoute(
           code: 'SEATS_MANUAL_BILLING',
         });
       }
-      const teamCustomer = team ? await resolveUsableTeamCustomer(team.billingAccount?.customerId) : undefined;
+      // An existing team always bills against its own customer, never the buyer's personal one, so a
+      // team whose billing account is not set up yet gets a dedicated TEAM customer. A brand-new team
+      // starts from the buyer's own customer when they have one.
+      const checkoutCustomer = team
+        ? await resolveUsableTeamCustomer(team.billingAccount?.customerId)
+        : await resolvePersonalCustomer(user);
       // Read from Stripe rather than the database so a checkout that just completed counts before its
       // webhook lands. The billing page never offers checkout in this state, so this catches direct
       // calls and a stale second tab.
-      if (teamCustomer && stripeService.hasCurrentTeamPlanSubscription(teamCustomer)) {
+      if (team && checkoutCustomer && stripeService.hasCurrentTeamPlanSubscription(checkoutCustomer)) {
         throw new UserFacingError(
           'Your team already has a subscription. Change seats from the team dashboard, or manage your plan from the billing portal.',
           { code: 'SEATS_ALREADY_SUBSCRIBED' },
@@ -187,11 +214,8 @@ const createCheckoutSessionHandler = createRoute(
       session = await stripeService.createCheckoutSession({
         mode: 'subscription',
         priceId,
-        // An existing team always bills against its own customer, never the buyer's personal one, so a
-        // team whose billing account is not set up yet gets a dedicated TEAM customer. A brand-new team
-        // starts from the buyer's own customer when they have one.
         // Customer will be created if it doesn't exist
-        customerId: team ? teamCustomer?.id : user.billingAccount?.customerId,
+        customerId: checkoutCustomer?.id,
         user,
         type: 'TEAM',
         teamId: team?.id,
@@ -200,11 +224,12 @@ const createCheckoutSessionHandler = createRoute(
         teamName,
       });
     } else {
+      const personalCustomer = await resolvePersonalCustomer(user);
       session = await stripeService.createCheckoutSession({
         mode: 'subscription',
         priceId,
         // Customer will be created if it doesn't exist
-        customerId: user.billingAccount?.customerId,
+        customerId: personalCustomer?.id,
         user,
         type: 'USER',
         productionOrgId,

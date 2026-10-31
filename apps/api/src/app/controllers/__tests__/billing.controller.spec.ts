@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   ensureStripeIsInitialized: vi.fn(),
   fetchPrices: vi.fn(),
   fetchCustomerWithSubscriptionsById: vi.fn(),
+  findReusableCustomerForUser: vi.fn(),
   hasCurrentTeamPlanSubscription: vi.fn(),
   createCheckoutSession: vi.fn(),
   synchronizeStripeWithJetstreamIfRequiredForTeamOrUser: vi.fn(),
@@ -54,6 +55,7 @@ vi.mock('../../services/stripe.service', () => ({
   ensureStripeIsInitialized: mocks.ensureStripeIsInitialized,
   fetchPrices: mocks.fetchPrices,
   fetchCustomerWithSubscriptionsById: mocks.fetchCustomerWithSubscriptionsById,
+  findReusableCustomerForUser: mocks.findReusableCustomerForUser,
   hasCurrentTeamPlanSubscription: mocks.hasCurrentTeamPlanSubscription,
   createCheckoutSession: mocks.createCheckoutSession,
   synchronizeStripeWithJetstreamIfRequiredForTeamOrUser: mocks.synchronizeStripeWithJetstreamIfRequiredForTeamOrUser,
@@ -176,7 +178,11 @@ describe('billing.controller - createCheckoutSession', () => {
     mocks.findByIdWithSubscriptions.mockResolvedValue(buyer);
     mocks.findByUserIdWithSubscriptions.mockResolvedValue(null);
     mocks.findProductionOrganizationId.mockResolvedValue(PRODUCTION_ORG_ID);
-    mocks.fetchCustomerWithSubscriptionsById.mockResolvedValue({ id: TEAM_CUSTOMER_ID, subscriptions: { data: [] } });
+    mocks.fetchCustomerWithSubscriptionsById.mockImplementation(async ({ customerId }: { customerId: string }) => ({
+      id: customerId,
+      subscriptions: { data: [] },
+    }));
+    mocks.findReusableCustomerForUser.mockResolvedValue(null);
     mocks.hasCurrentTeamPlanSubscription.mockReturnValue(false);
     mocks.assertCheckoutSeatsCoverUsage.mockResolvedValue(undefined);
     mocks.createCheckoutSession.mockResolvedValue({ url: CHECKOUT_URL });
@@ -313,7 +319,8 @@ describe('billing.controller - createCheckoutSession', () => {
       const { next } = await runCheckout({ priceLookupKey: 'TEAM_MONTHLY', seats: 4, teamName: 'Acme Admins' });
 
       expect(next).not.toHaveBeenCalled();
-      expect(mocks.fetchCustomerWithSubscriptionsById).not.toHaveBeenCalled();
+      expect(mocks.fetchCustomerWithSubscriptionsById).toHaveBeenCalledWith({ customerId: PERSONAL_CUSTOMER_ID });
+      expect(mocks.findReusableCustomerForUser).not.toHaveBeenCalled();
       expect(mocks.assertCheckoutSeatsCoverUsage).not.toHaveBeenCalled();
       const args = getCheckoutSessionArgs();
       expect(args).toMatchObject({
@@ -331,6 +338,17 @@ describe('billing.controller - createCheckoutSession', () => {
       const { next } = await runCheckout({ priceLookupKey: 'TEAM_MONTHLY', teamName: 'Acme Admins' });
 
       expectRejected(next, { code: 'SEATS_BELOW_MINIMUM' });
+    });
+
+    it('reuses a customer an earlier checkout left behind when the buyer has no billing account', async () => {
+      mocks.findByIdWithSubscriptions.mockResolvedValue({ ...buyer, billingAccount: null });
+      mocks.findReusableCustomerForUser.mockResolvedValue({ id: 'cus_left_behind', subscriptions: { data: [] } });
+
+      const { next } = await runCheckout({ priceLookupKey: 'TEAM_MONTHLY', seats: 4 });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(mocks.findReusableCustomerForUser).toHaveBeenCalledWith({ user: expect.objectContaining({ id: USER_ID }) });
+      expect(getCheckoutSessionArgs()).toMatchObject({ customerId: 'cus_left_behind', type: 'TEAM' });
     });
   });
 
@@ -351,6 +369,36 @@ describe('billing.controller - createCheckoutSession', () => {
       expect(args).not.toHaveProperty('quantity');
       expect(args).not.toHaveProperty('teamName');
       expect(mocks.sendJson).toHaveBeenCalledWith(expect.anything(), { url: CHECKOUT_URL });
+    });
+
+    it('reuses a customer an earlier checkout left behind when the buyer has no billing account', async () => {
+      mocks.findByIdWithSubscriptions.mockResolvedValue({ ...buyer, billingAccount: null });
+      mocks.findReusableCustomerForUser.mockResolvedValue({ id: 'cus_left_behind', subscriptions: { data: [] } });
+
+      const { next } = await runCheckout({ priceLookupKey: 'PRO_MONTHLY' });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(mocks.fetchCustomerWithSubscriptionsById).not.toHaveBeenCalled();
+      expect(getCheckoutSessionArgs()).toMatchObject({ customerId: 'cus_left_behind', type: 'USER' });
+    });
+
+    it('lets checkout create the customer when the buyer has none to reuse', async () => {
+      mocks.findByIdWithSubscriptions.mockResolvedValue({ ...buyer, billingAccount: null });
+
+      const { next } = await runCheckout({ priceLookupKey: 'PRO_MONTHLY' });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(getCheckoutSessionArgs().customerId).toBeUndefined();
+    });
+
+    it('lets checkout create a fresh customer when the billing account customer was deleted', async () => {
+      mocks.fetchCustomerWithSubscriptionsById.mockResolvedValue({ id: PERSONAL_CUSTOMER_ID, deleted: true });
+
+      const { next } = await runCheckout({ priceLookupKey: 'PRO_MONTHLY' });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(mocks.findReusableCustomerForUser).not.toHaveBeenCalled();
+      expect(getCheckoutSessionArgs().customerId).toBeUndefined();
     });
 
     it('ignores seats and team name sent with an individual plan', async () => {

@@ -126,13 +126,19 @@ function findTeamPlanSubscription(subscriptions: Stripe.Subscription[]) {
 /** Any other status still holds the customer's plan, including past due, unpaid and set to cancel */
 const endedSubscriptionStatuses = new Set<Stripe.Subscription.Status>(['canceled', 'incomplete_expired']);
 
+/** The customer is actually paying, as opposed to Stripe still waiting on the first invoice (`incomplete`) */
+const paidSubscriptionStatuses = new Set<Stripe.Subscription.Status>(['active', 'trialing']);
+
+function getCurrentSubscriptions(customer: Stripe.Customer): Stripe.Subscription[] {
+  return (customer.subscriptions?.data ?? []).filter(({ status }) => !endedSubscriptionStatuses.has(status));
+}
+
 /**
  * A second TEAM subscription on the same customer leaves the seat item ambiguous (see `findTeamSeatItem`),
  * so checkout must not start another one until the current one has ended.
  */
 export function hasCurrentTeamPlanSubscription(customer: Stripe.Customer): boolean {
-  const currentSubscriptions = (customer.subscriptions?.data ?? []).filter(({ status }) => !endedSubscriptionStatuses.has(status));
-  return !!findTeamPlanSubscription(currentSubscriptions);
+  return !!findTeamPlanSubscription(getCurrentSubscriptions(customer));
 }
 
 /**
@@ -260,13 +266,87 @@ export async function fetchCustomerEntitlements({
   return await stripe.entitlements.activeEntitlements.list({ customer: customerId });
 }
 
-export async function fetchCustomerWithSubscriptionsByJetstreamId({ userId }: { userId: string }): Promise<Stripe.Customer> {
-  const customerWithSubscriptions = await stripe.customers.search({
-    query: `metadata["userId"]:"${userId}"`,
-    limit: 1,
-    expand: ['subscriptions', 'entitlements'],
-  });
-  return customerWithSubscriptions.data[0];
+/**
+ * Upper bound on customers read when looking a user's customer up by metadata. One is the norm; more only exist
+ * for users who opened checkout repeatedly before customers were reused, and Stripe's page maximum keeps the one
+ * they pay on in view for any plausible number of those.
+ */
+const CUSTOMER_SEARCH_LIMIT = 100;
+
+/**
+ * Lower is better: a customer being paid for, then one with any current subscription, then one with none. This is
+ * where money has moved, so it is the customer that checkout must keep using.
+ */
+function getCustomerReuseRank(customer: Stripe.Customer): number {
+  const currentSubscriptions = getCurrentSubscriptions(customer);
+  if (currentSubscriptions.some(({ status }) => paidSubscriptionStatuses.has(status))) {
+    return 0;
+  }
+  return currentSubscriptions.length > 0 ? 1 : 2;
+}
+
+/**
+ * Finds a personal Stripe customer left behind by an earlier checkout, for a user who has no billing account yet.
+ * Checkout used to create a customer on every visit until one completed, so repeat visits (and a double click)
+ * each minted another one.
+ *
+ * Customers carrying a `teamId` are never reused: a team's customer also carries its purchaser's `userId`, and
+ * neither a personal plan nor a new team may land on it. Duplicates resolve deterministically (see
+ * `getCustomerReuseRank`, then the oldest, then the id), because Stripe search does not guarantee an order.
+ *
+ * Only the email is refreshed on the customer that is reused: checkout never corrects it once a customer is
+ * attached, while the name is left to checkout, which sets it to the legal business name it collects.
+ */
+export async function findReusableCustomerForUser({ user }: { user: Pick<UserProfile, 'id' | 'email'> }): Promise<Stripe.Customer | null> {
+  let searchResult: Stripe.ApiSearchResult<Stripe.Customer>;
+  try {
+    searchResult = await stripe.customers.search({
+      query: `metadata["userId"]:"${user.id}"`,
+      limit: CUSTOMER_SEARCH_LIMIT,
+      expand: ['data.subscriptions'],
+    });
+  } catch (ex) {
+    // Creating a customer is the behavior from before reuse existed, and the idempotency key on create still
+    // stops a double click from minting two
+    logger.warn({ userId: user.id, ...getErrorMessageAndStackObj(ex) }, '[STRIPE]: Unable to search for an existing Stripe customer');
+    return null;
+  }
+
+  if (searchResult.has_more) {
+    logger.error(
+      { userId: user.id, customerCount: searchResult.data.length },
+      '[STRIPE]: More Stripe customers for one user than a single search page, reconcile them manually',
+    );
+  }
+
+  const customers = searchResult.data
+    .filter(({ metadata }) => !metadata.teamId)
+    .sort(
+      (left, right) =>
+        getCustomerReuseRank(left) - getCustomerReuseRank(right) || left.created - right.created || left.id.localeCompare(right.id),
+    );
+  const [customer] = customers;
+  if (!customer) {
+    return null;
+  }
+  if (customers.length > 1) {
+    logger.warn(
+      { userId: user.id, customerId: customer.id, customerIds: customers.map(({ id }) => id) },
+      '[STRIPE]: Multiple Stripe customers found for one user, reusing the best match',
+    );
+  }
+
+  if (customer.email !== user.email) {
+    // Receipts going to an old address is not worth failing checkout over
+    try {
+      await stripe.customers.update(customer.id, { email: user.email });
+      customer.email = user.email;
+    } catch (ex) {
+      logger.warn({ customerId: customer.id, ...getErrorMessageAndStackObj(ex) }, '[STRIPE]: Unable to refresh the reused customer email');
+    }
+  }
+  logger.info({ userId: user.id, customerId: customer.id }, '[STRIPE]: Reusing existing Stripe customer for checkout');
+  return customer;
 }
 
 export async function getUserFacingStripeCustomer({ customerId }: { customerId: string }): Promise<StripeUserFacingCustomer | null> {
@@ -326,6 +406,16 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
   return customerWithSubscriptions;
 }
 
+async function createBankTransferFundingInstructions(customerId: string) {
+  await stripe.customers.createFundingInstructions(customerId, {
+    currency: 'usd',
+    funding_type: 'bank_transfer',
+    bank_transfer: {
+      type: 'us_bank_transfer',
+    },
+  });
+}
+
 export async function createCustomer(
   user: Pick<UserProfile, 'id' | 'name' | 'email'>,
   type: 'TEAM' | 'USER',
@@ -336,13 +426,36 @@ export async function createCustomer(
     metadata: { userId: user.id, teamId: null, type },
   });
   if (type === 'TEAM') {
-    await stripe.customers.createFundingInstructions(customer.id, {
-      currency: 'usd',
-      funding_type: 'bank_transfer',
-      bank_transfer: {
-        type: 'us_bank_transfer',
-      },
-    });
+    await createBankTransferFundingInstructions(customer.id);
+  }
+  return customer;
+}
+
+/**
+ * Creates the user's customer at most once per day, however many checkouts they open at the same time.
+ *
+ * Stripe's search index lags writes by up to a minute, so a double click misses the customer the first click
+ * created and `findReusableCustomerForUser` cannot catch it. Stripe honors an idempotency key for 24 hours but
+ * rejects a reused key whose parameters changed, so the create carries only the invariant `userId` and everything
+ * that can change between attempts (email, name, plan type) is applied by a follow-up update.
+ */
+async function createCustomerForUser(
+  user: Pick<UserProfile, 'id' | 'name' | 'email'>,
+  type: 'TEAM' | 'USER',
+): Promise<Stripe.Response<Stripe.Customer>> {
+  const { id: customerId } = await stripe.customers.create(
+    { metadata: { userId: user.id } },
+    { idempotencyKey: `customer-create:${user.id}` },
+  );
+  // `teamId` is left out rather than nulled: a replayed key returns the customer an earlier attempt created, and
+  // a team bound to it since then must keep its id
+  const customer = await stripe.customers.update(customerId, {
+    email: user.email,
+    name: user.name,
+    metadata: { userId: user.id, type },
+  });
+  if (type === 'TEAM') {
+    await createBankTransferFundingInstructions(customer.id);
   }
   return customer;
 }
@@ -364,13 +477,7 @@ export async function updateCustomerMetadata(
 ): Promise<Stripe.Response<Stripe.Customer>> {
   const customer = await stripe.customers.update(customerId, { metadata });
   if (metadata.type === 'TEAM') {
-    await stripe.customers.createFundingInstructions(customer.id, {
-      currency: 'usd',
-      funding_type: 'bank_transfer',
-      bank_transfer: {
-        type: 'us_bank_transfer',
-      },
-    });
+    await createBankTransferFundingInstructions(customer.id);
   }
   return customer;
 }
@@ -931,8 +1038,10 @@ export async function createCheckoutSession({
   if (customerId) {
     shouldCollectProductionOrgId = !(await hasProductionOrgIdOnFile(customerId));
   } else {
-    // Checks what came back instead of assuming a brand new customer, so this stays correct if an existing one is ever resolved here
-    const customer = await createCustomer(user, type);
+    // An existing team's replacement customer must be its own, and the per-user idempotency key could hand back the
+    // buyer's personal customer. Checks what came back instead of assuming a brand new customer, since the key can
+    // return one an earlier checkout created.
+    const customer = teamId ? await createCustomer(user, type) : await createCustomerForUser(user, type);
     customerId = customer.id;
     shouldCollectProductionOrgId = !hasValidProductionOrgId(customer);
   }

@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   sessionsRetrieve: vi.fn(),
   customersRetrieve: vi.fn(),
   customersCreate: vi.fn(async (_params: Record<string, any>) => ({ id: 'cus_new', metadata: {} as Record<string, string> })),
-  customersUpdate: vi.fn(async (_customerId: string, _params: Record<string, any>) => ({ id: 'cus_1' })),
+  customersUpdate: vi.fn(async (customerId: string, params: Record<string, any>) => ({ id: customerId, metadata: params.metadata ?? {} })),
   loggerWarn: vi.fn(),
 }));
 
@@ -149,7 +149,9 @@ describe('production org id collected at checkout', () => {
   });
 
   it('does not ask when the customer resolved for checkout already has an org id on file', async () => {
-    mocks.customersCreate.mockResolvedValueOnce({ id: 'cus_existing', metadata: { productionOrgId: PRODUCTION_ORG_ID } });
+    // The idempotency key can hand back a customer an earlier checkout created, and Stripe merges metadata on update
+    mocks.customersCreate.mockResolvedValueOnce({ id: 'cus_existing', metadata: {} });
+    mocks.customersUpdate.mockResolvedValueOnce({ id: 'cus_existing', metadata: { productionOrgId: PRODUCTION_ORG_ID } });
 
     await createSession(undefined, { isNewCustomer: true });
 
