@@ -3,7 +3,16 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
-import { Badge, ConfirmationModalPromise, DropDown, focusContainer, Grid, Icon, ScopedNotification } from '@jetstream/ui';
+import {
+  Badge,
+  ConfirmationModalPromise,
+  DisabledReasonButton,
+  DropDown,
+  focusContainer,
+  Grid,
+  Icon,
+  ScopedNotification,
+} from '@jetstream/ui';
 import { ConfirmPageChange, useAnalytics } from '@jetstream/ui-core';
 import { useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
@@ -160,19 +169,19 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
           </ScopedNotification>
         )}
         {!loading && totalRecordCount > 0 && (
-          <button
+          <DisabledReasonButton
             ref={loadButtonRef}
             className="slds-button slds-button_brand"
             disabled={!writeAccess.allowed}
-            title={writeAccess.deniedReason}
-            onClick={handleLoadStarted}
+            disabledReason={writeAccess.deniedReason}
+            onClick={() => handleLoadStarted()}
           >
             Load <strong className="slds-m-horizontal_xx-small">{formatNumber(totalRecordCount)}</strong>
             {pluralizeFromNumber('Record', totalRecordCount)} ({formatNumber(totalGroupCount)}{' '}
             {pluralizeFromNumber('Group', totalGroupCount)}
             {requests && requests.length > 1 ? `, ${formatNumber(requests.length)} ${pluralizeFromNumber('Request', requests.length)}` : ''}
             )
-          </button>
+          </DisabledReasonButton>
         )}
         {loading && (
           <button className="slds-button slds-button_text-destructive" onClick={handleCancel}>

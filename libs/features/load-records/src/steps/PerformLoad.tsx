@@ -11,10 +11,10 @@ import {
   UiTabSection,
 } from '@jetstream/types';
 import {
-  ariaDisabledButtonProps,
   Badge,
   Checkbox,
   ConfirmationModalPromise,
+  DisabledReasonButton,
   Grid,
   Input,
   Radio,
@@ -492,7 +492,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     handleRetryFailedRecords,
   ]);
 
-  // Disabled conditions for the start buttons, applied via ariaDisabledButtonProps so the
+  // Disabled conditions for the start buttons; DisabledReasonButton keeps them focusable (aria-disabled), so the
   // aria-disabled attribute and the click guard can never drift apart
   const startTrialRunDisabled =
     hasDataInputError() || loadInProgressTrialRun || hasLoadResultsTrialRun || loadInProgress || !isLoadTypeAllowed;
@@ -672,27 +672,29 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         <Grid>
           {trialRun && (
             <div className="slds-m-top_small slds-m-right_small">
-              <button
+              <DisabledReasonButton
                 data-testid="start-load"
                 className="slds-button slds-button_brand"
-                title={isLoadTypeAllowed ? undefined : LOAD_TYPE_NOT_ALLOWED_MESSAGE}
-                {...ariaDisabledButtonProps(startTrialRunDisabled, () => handleStartLoad(true))}
+                disabled={startTrialRunDisabled}
+                disabledReason={isLoadTypeAllowed ? undefined : LOAD_TYPE_NOT_ALLOWED_MESSAGE}
+                onClick={() => handleStartLoad(true)}
               >
                 {loadTypeLabel} <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedTrialRunLabel}</strong>{' '}
                 {pluralizeIfMultiple('Record', inputFileDataTrialRun)} (Dry Run)
-              </button>
+              </DisabledReasonButton>
             </div>
           )}
           <div className="slds-m-top_small">
-            <button
+            <DisabledReasonButton
               data-testid="start-load"
               className="slds-button slds-button_brand"
-              title={isLoadTypeAllowed ? undefined : LOAD_TYPE_NOT_ALLOWED_MESSAGE}
-              {...ariaDisabledButtonProps(startLoadDisabled, () => handleStartLoad())}
+              disabled={startLoadDisabled}
+              disabledReason={isLoadTypeAllowed ? undefined : LOAD_TYPE_NOT_ALLOWED_MESSAGE}
+              onClick={() => handleStartLoad()}
             >
               {loadTypeLabel} <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedLabel}</strong>{' '}
               {pluralizeIfMultiple('Record', inputFileDataToLoad)}
-            </button>
+            </DisabledReasonButton>
           </div>
         </Grid>
       </div>
