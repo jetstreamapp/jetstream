@@ -30,7 +30,8 @@ export function TeamMemberStatusUpdateModal({ teamId, teamMember, action, seatGa
   const { seatBlocked } = seatEvaluation;
 
   const handleUpdateStatusAndRole = async () => {
-    if (seatBlocked) {
+    // Enter in a field submits the form without going through the aria-disabled button's guarded click
+    if (loading || seatBlocked) {
       return;
     }
     setErrorMessage(null);
