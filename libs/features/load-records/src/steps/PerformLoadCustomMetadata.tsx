@@ -14,11 +14,11 @@ import {
   ViewModalData,
 } from '@jetstream/types';
 import {
-  ariaDisabledButtonProps,
   AssistiveStatus,
   Badge,
   Checkbox,
   ConfirmationModalPromise,
+  DisabledReasonButton,
   FileDownloadModal,
   SalesforceLogin,
   Select,
@@ -300,13 +300,14 @@ export const PerformLoadCustomMetadata = ({
         </div>
         <div className="slds-m-top_small">
           {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
-          <button
+          <DisabledReasonButton
             className="slds-button slds-button_brand"
-            title={deployAccess.deniedReason}
-            {...ariaDisabledButtonProps(loading || !deployAccess.allowed, () => handleStartLoad())}
+            disabled={loading || !deployAccess.allowed}
+            disabledReason={deployAccess.deniedReason}
+            onClick={() => handleStartLoad()}
           >
             Upsert <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedLabel}</strong> Records
-          </button>
+          </DisabledReasonButton>
         </div>
       </div>
       <h2 className="slds-text-heading_medium">Results</h2>
