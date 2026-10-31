@@ -63,6 +63,8 @@ export const AppHomeReadOnlyUser = () => {
         }
       `}
     >
+      {/* The page has no visible title — give screen reader users a heading to land on and outline from */}
+      <h1 className="slds-assistive-text">Home</h1>
       <div
         css={css`
           display: grid;
