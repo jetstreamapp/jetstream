@@ -1,6 +1,13 @@
 import { css } from '@emotion/react';
 import { ACCESS_PROFILE_SURFACES, getAccessProfilePolicySummary, TeamAccessProfile } from '@jetstream/types';
 import { Badge, Card, EmptyState, Icon, Tooltip } from '@jetstream/ui';
+import { useEffect, useRef } from 'react';
+
+const NEW_ACCESS_PROFILE_BUTTON_ID = 'team-access-profile-new';
+
+function getDeleteButtonId(accessProfileId: string) {
+  return `team-access-profile-delete-${accessProfileId}`;
+}
 
 interface TeamAccessProfilesProps {
   accessProfiles: TeamAccessProfile[];
@@ -21,6 +28,7 @@ export function TeamAccessProfiles({
   onDelete,
 }: TeamAccessProfilesProps) {
   const hasDefaultProfile = accessProfiles.some(({ isDefault }) => isDefault);
+  useFocusAfterDelete(accessProfiles);
 
   return (
     <Card
@@ -30,7 +38,7 @@ export function TeamAccessProfiles({
       icon={{ type: 'standard', icon: 'portal_roles_and_subordinates' }}
       actions={
         canUpdate && (
-          <button className="slds-button slds-button_neutral" onClick={onCreate}>
+          <button id={NEW_ACCESS_PROFILE_BUTTON_ID} className="slds-button slds-button_neutral" onClick={onCreate}>
             New Access Profile
           </button>
         )
@@ -47,7 +55,11 @@ export function TeamAccessProfiles({
           subHeading={canUpdate ? 'Create a profile to give some members access to only the tools they need.' : undefined}
         />
       ) : (
-        <table data-testid="team-access-profile-table" className="slds-table slds-table_cell-buffer slds-table_bordered">
+        <table
+          data-testid="team-access-profile-table"
+          className="slds-table slds-table_cell-buffer slds-table_bordered"
+          aria-label="Access profiles"
+        >
           <thead>
             <tr className="slds-line-height_reset">
               <th scope="col">Profile</th>
@@ -79,7 +91,11 @@ export function TeamAccessProfiles({
               <td>All</td>
               <td>Web, desktop and extension</td>
               <td>{fullAccessMemberCount}</td>
-              {canUpdate && <td />}
+              {canUpdate && (
+                <td>
+                  <span className="slds-assistive-text">Built in, cannot be edited or deleted</span>
+                </td>
+              )}
             </tr>
             {accessProfiles.map((accessProfile) => (
               <AccessProfileRow
@@ -135,7 +151,10 @@ function AccessProfileRow({
       <td>
         {memberCount}
         {invitationCount > 0 && (
-          <Tooltip content={`${invitationCount} pending ${invitationCount === 1 ? 'invitation uses' : 'invitations use'} this profile`}>
+          <Tooltip
+            content={`${invitationCount} pending ${invitationCount === 1 ? 'invitation uses' : 'invitations use'} this profile`}
+            triggerTabIndex={0}
+          >
             <span className="slds-m-left_xx-small slds-text-color_weak">(+{invitationCount} invited)</span>
           </Tooltip>
         )}
@@ -150,6 +169,7 @@ function AccessProfileRow({
             <Icon type="utility" icon="edit" className="slds-button__icon" omitContainer description={`Edit ${name}`} />
           </button>
           <button
+            id={getDeleteButtonId(accessProfile.id)}
             className="slds-button slds-button_icon slds-button_icon-border-filled slds-m-left_xx-small"
             title="Delete"
             onClick={() => onDelete(accessProfile)}
@@ -160,4 +180,34 @@ function AccessProfileRow({
       )}
     </tr>
   );
+}
+
+/**
+ * Deleting a profile removes the row holding the Delete button that opened the delete modal, so the modal has
+ * nowhere to return focus and it falls to <body>. When a profile disappears and focus is lost, move it to the
+ * Delete button of the row that took its place (the next row, else the previous one), or to New Access Profile
+ * when no profiles remain.
+ */
+function useFocusAfterDelete(accessProfiles: TeamAccessProfile[]) {
+  const previousAccessProfilesRef = useRef(accessProfiles);
+
+  useEffect(() => {
+    const previousAccessProfiles = previousAccessProfilesRef.current;
+    previousAccessProfilesRef.current = accessProfiles;
+    const remainingIds = new Set(accessProfiles.map(({ id }) => id));
+    const deletedIndex = previousAccessProfiles.findIndex(({ id }) => !remainingIds.has(id));
+    if (deletedIndex === -1) {
+      return;
+    }
+    const neighbour = previousAccessProfiles[deletedIndex + 1] ?? previousAccessProfiles[deletedIndex - 1];
+    // A timeout so the closing modal's own return-focus attempt (a microtask on unmount) has already run
+    window.setTimeout(() => {
+      if (document.activeElement && document.activeElement !== document.body) {
+        return;
+      }
+      const target =
+        (neighbour && document.getElementById(getDeleteButtonId(neighbour.id))) || document.getElementById(NEW_ACCESS_PROFILE_BUTTON_ID);
+      target?.focus();
+    });
+  }, [accessProfiles]);
 }
