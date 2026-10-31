@@ -1,0 +1,40 @@
+---
+slug: v10.28.0
+title: 10.28.0 - Trust system certificates in the desktop app
+date: '2026-10-31'
+tags: [web, desktop, extension]
+versions:
+  web: 10.28.0
+  desktop: 4.21.0
+  extension: 3.26.0
+summary: The desktop app can now trust certificate authorities installed on your computer, for networks that inspect traffic through a corporate proxy.
+highlights:
+  - title: Trust certificates installed on this computer
+    description: A new desktop setting lets Jetstream connect to Salesforce through a corporate proxy that inspects traffic with its own certificate.
+    docLink: /user-profile-and-settings/settings
+    platforms: [desktop]
+  - title: Certificate errors explain how to fix them
+    description: When connecting an org or calling Salesforce fails with an untrusted certificate, the error now points to the new setting instead of suggesting you try again.
+    platforms: [desktop]
+  - title: Deactivated team members lose billing access
+    description: A deactivated team member can no longer open the team's billing portal or sign in by linking a new login provider.
+    platforms: [web]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Trust certificates installed on this computer
+
+Some companies inspect network traffic through a proxy or firewall that re-signs connections with its own certificate. The desktop app did not trust that certificate, so connecting an org failed with errors such as `SELF_SIGNED_CERT_IN_CHAIN`. Turn on **Settings > General > Trust certificates installed on this computer** to also trust the certificate authorities in your operating system's certificate store (Keychain on macOS, the Windows certificate store on Windows). The setting is off by default and applies without restarting the app.
+
+### Certificate errors explain how to fix them
+
+When connecting an org or calling Salesforce fails because the certificate chain is not trusted, the desktop app now names the error, explains that a proxy is probably inspecting traffic, and points to the new setting. Expired certificates and hostname mismatches still show the general connection error, since trusting another certificate authority would not fix them.
+
+### Other fixes
+
+- Deactivated team members can no longer open the team's billing portal or sign in by linking a new login provider with the same email.
+- Long error messages on the query results page now wrap instead of running off the page.
+- In the desktop app, changing a setting in a newly opened Settings window no longer shows the other settings as reset to their defaults (the saved values were never affected).

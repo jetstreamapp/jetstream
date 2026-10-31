@@ -1,5 +1,31 @@
 [
   {
+    "slug": "v10.28.0",
+    "title": "10.28.0 - Trust system certificates in the desktop app",
+    "date": "2026-10-31",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.28.0", "desktop": "4.21.0", "extension": "3.26.0" },
+    "summary": "The desktop app can now trust certificate authorities installed on your computer, for networks that inspect traffic through a corporate proxy.",
+    "highlights": [
+      {
+        "title": "Trust certificates installed on this computer",
+        "description": "A new desktop setting lets Jetstream connect to Salesforce through a corporate proxy that inspects traffic with its own certificate.",
+        "platforms": ["desktop"],
+        "docLink": "/user-profile-and-settings/settings"
+      },
+      {
+        "title": "Certificate errors explain how to fix them",
+        "description": "When connecting an org or calling Salesforce fails with an untrusted certificate, the error now points to the new setting instead of suggesting you try again.",
+        "platforms": ["desktop"]
+      },
+      {
+        "title": "Deactivated team members lose billing access",
+        "description": "A deactivated team member can no longer open the team's billing portal or sign in by linking a new login provider.",
+        "platforms": ["web"]
+      }
+    ]
+  },
+  {
     "slug": "v10.27.0",
     "title": "10.27.0 - Automation Control history and package downloads",
     "date": "2026-10-27",
