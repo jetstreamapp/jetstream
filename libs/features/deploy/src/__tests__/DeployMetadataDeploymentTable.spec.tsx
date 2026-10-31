@@ -66,6 +66,17 @@ function getHideEmptyTypesCheckbox() {
   return screen.getByLabelText('Hide Empty Types');
 }
 
+/** Ticks or unticks one value in the Name column filter, then closes the filter the way a keyboard user would */
+function toggleNameFilterValue(value: string) {
+  fireEvent.click(screen.getByRole('button', { name: 'Filter Name' }));
+  const valueCheckbox = screen.getByLabelText(value);
+  fireEvent.click(valueCheckbox);
+  // The filter popover is modal, so the grid is hidden from assistive tech until it closes
+  fireEvent.keyDown(valueCheckbox, { key: 'Escape' });
+  fireEvent.keyUp(valueCheckbox, { key: 'Escape' });
+  expect(screen.queryByLabelText(value)).toBeNull();
+}
+
 describe('DeployMetadataDeploymentTable', () => {
   it('shows metadata types with no components by default', () => {
     setup();
@@ -102,8 +113,8 @@ describe('DeployMetadataDeploymentTable', () => {
       }),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Filter Name' }));
-    fireEvent.click(screen.getByLabelText('AddPrimaryContact'));
+    toggleNameFilterValue('AddPrimaryContact');
+    expect(screen.getByRole('gridcell', { name: 'AccountTriggerHandler' })).toBeTruthy();
     expect(screen.queryByRole('gridcell', { name: 'AddPrimaryContact' })).toBeNull();
 
     fireEvent.click(getHideEmptyTypesCheckbox());
@@ -126,8 +137,7 @@ describe('DeployMetadataDeploymentTable', () => {
       }),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Filter Name' }));
-    fireEvent.click(screen.getByLabelText('-BLANK-'));
+    toggleNameFilterValue('-BLANK-');
     expect(screen.queryByText('Analytic Snapshots')).toBeNull();
 
     fireEvent.click(getHideEmptyTypesCheckbox());
