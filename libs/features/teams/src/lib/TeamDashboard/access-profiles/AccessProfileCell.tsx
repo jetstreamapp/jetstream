@@ -12,7 +12,14 @@ export function AccessProfileCell({
 }) {
   // The billing role never has access to tools, so a profile would not change anything
   if (role === TEAM_MEMBER_ROLE_BILLING) {
-    return <span title="Billing users do not have access to Jetstream tools">—</span>;
+    return (
+      <span>
+        <span aria-hidden="true" title="Billing users do not have access to Jetstream tools">
+          —
+        </span>
+        <span className="slds-assistive-text">None, billing users do not have access to Jetstream tools</span>
+      </span>
+    );
   }
   return <span>{getAccessProfileName(accessProfiles, accessProfileId)}</span>;
 }
