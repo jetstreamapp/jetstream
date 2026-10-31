@@ -7,6 +7,7 @@ import {
   BadgePopover,
   BadgePopoverList,
   ConfirmationModalPromise,
+  DisabledReasonButton,
   Grid,
   Icon,
   KeyboardShortcut,
@@ -22,7 +23,7 @@ import { RequireMetadataApiBanner, useAnalytics } from '@jetstream/ui-core';
 import { selectedOrgState, useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
-import { FunctionComponent, ReactNode, useCallback, useState } from 'react';
+import { FunctionComponent, useCallback, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import CreateFieldsDeployModal from './CreateFieldsDeployModal';
 import CreateFieldsImportExport from './CreateFieldsImportExport';
@@ -158,15 +159,11 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
   usePrimaryActionShortcut(handleSubmit, { disabled: !allValid || !deployAccess.allowed });
   useGoBackShortcut(() => navigate('..'), {});
 
-  let submitTooltip: ReactNode = 'All fields must be fully configured';
+  let submitDisabledReason: string | undefined;
   if (!deployAccess.allowed) {
-    submitTooltip = deployAccess.deniedReason;
-  } else if (allValid) {
-    submitTooltip = (
-      <div className="slds-p-bottom_small">
-        <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
-      </div>
-    );
+    submitDisabledReason = deployAccess.deniedReason;
+  } else if (!allValid) {
+    submitDisabledReason = 'All fields must be fully configured';
   }
 
   // Announces repeated adds/deletes to screen readers
@@ -266,17 +263,22 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
             <span>Reset Fields</span>
           </button>
-          <Tooltip openDelay={500} content={submitTooltip}>
-            <button
-              className="slds-button slds-button_brand"
-              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
-              onClick={() => handleSubmit()}
-              disabled={!allValid || !deployAccess.allowed}
-            >
-              <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Upsert Fields
-            </button>
-          </Tooltip>
+          <DisabledReasonButton
+            className="slds-button slds-button_brand"
+            aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+            disabled={!allValid || !deployAccess.allowed}
+            disabledReason={submitDisabledReason}
+            tooltipOpenDelay={500}
+            tooltip={
+              <div className="slds-p-bottom_small">
+                <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+              </div>
+            }
+            onClick={() => handleSubmit()}
+          >
+            <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
+            Upsert Fields
+          </DisabledReasonButton>
         </ToolbarItemActions>
       </Toolbar>
       {announcer}
