@@ -59,7 +59,14 @@ vi.mock('stripe', () => ({
     entitlements = { activeEntitlements: { list: mocks.activeEntitlementsList } };
     webhooks = { constructEvent: mocks.webhooksConstructEvent };
     prices = { list: mocks.pricesList, retrieve: mocks.pricesRetrieve };
-    checkout = { sessions: { create: mocks.checkoutSessionsCreate, retrieve: mocks.checkoutSessionsRetrieve } };
+    checkout = {
+      sessions: {
+        create: mocks.checkoutSessionsCreate,
+        retrieve: mocks.checkoutSessionsRetrieve,
+        list: vi.fn(async () => ({ data: [] })),
+        expire: vi.fn(),
+      },
+    };
     subscriptionItems = { update: mocks.subscriptionItemsUpdate };
     subscriptionSchedules = {
       create: mocks.schedulesCreate,

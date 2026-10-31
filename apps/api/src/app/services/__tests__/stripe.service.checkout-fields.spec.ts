@@ -14,7 +14,14 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('stripe', () => ({
   default: class {
-    checkout = { sessions: { create: mocks.sessionsCreate, retrieve: mocks.sessionsRetrieve } };
+    checkout = {
+      sessions: {
+        create: mocks.sessionsCreate,
+        retrieve: mocks.sessionsRetrieve,
+        list: vi.fn(async () => ({ data: [] })),
+        expire: vi.fn(),
+      },
+    };
     customers = {
       retrieve: mocks.customersRetrieve,
       update: mocks.customersUpdate,

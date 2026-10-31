@@ -1041,8 +1041,38 @@ function getProductionOrgIdCheckoutParams(
   };
 }
 
+const CHECKOUT_SESSION_LIFETIME_SECONDS = 60 * 60;
+
 /**
- * CREATE BILLING PORTAL SESSION
+ * Every checkout tab is its own session and every one of them can be paid, so a forgotten tab could start a second
+ * subscription. Expiring the customer's other open subscription sessions leaves only the newest one payable.
+ *
+ * Failures never block checkout: a session that completed or expired since the list cannot be expired, which is fine.
+ */
+async function expireOpenCheckoutSessions(customerId: string) {
+  let openSessions: Stripe.Checkout.Session[];
+  try {
+    ({ data: openSessions } = await stripe.checkout.sessions.list({ customer: customerId, status: 'open', limit: 100 }));
+  } catch (ex) {
+    logger.warn({ customerId, ...getErrorMessageAndStackObj(ex) }, '[STRIPE]: Unable to list open checkout sessions to expire');
+    return;
+  }
+  await Promise.all(
+    openSessions
+      .filter(({ mode }) => mode === 'subscription')
+      .map(async ({ id: sessionId }) => {
+        try {
+          await stripe.checkout.sessions.expire(sessionId);
+          logger.info({ customerId, sessionId }, '[STRIPE]: Expired an older open checkout session');
+        } catch (ex) {
+          logger.warn({ customerId, sessionId, ...getErrorMessageAndStackObj(ex) }, '[STRIPE]: Unable to expire an open checkout session');
+        }
+      }),
+  );
+}
+
+/**
+ * CREATE CHECKOUT SESSION
  */
 export async function createCheckoutSession({
   customerId,
@@ -1071,6 +1101,7 @@ export async function createCheckoutSession({
   const urlParams = new URLSearchParams({ sessionId: 'CHECKOUT_SESSION_ID', type, priceId, userId: user.id, mode });
 
   let shouldCollectProductionOrgId: boolean;
+  let canHaveOpenCheckoutSessions = true;
   if (customerId) {
     shouldCollectProductionOrgId = !(await hasProductionOrgIdOnFile(customerId));
   } else {
@@ -1080,6 +1111,12 @@ export async function createCheckoutSession({
     const customer = teamId ? await createCustomer(user, type) : await createCustomerForUser(user, type);
     customerId = customer.id;
     shouldCollectProductionOrgId = !hasValidProductionOrgId(customer);
+    // Only the per-user key can return a customer that already has a checkout open (a double click)
+    canHaveOpenCheckoutSessions = !teamId;
+  }
+
+  if (canHaveOpenCheckoutSessions) {
+    await expireOpenCheckoutSessions(customerId);
   }
 
   urlParams.set('customerId', customerId);
@@ -1111,6 +1148,8 @@ export async function createCheckoutSession({
     ],
     allow_promotion_codes: true,
     mode,
+    // Stripe's default is 24 hours; a short life bounds how long a forgotten tab can still be paid (minimum 30 minutes)
+    expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_SESSION_LIFETIME_SECONDS,
     success_url: successUrl,
     cancel_url: cancelUrl,
     automatic_tax: { enabled: false },

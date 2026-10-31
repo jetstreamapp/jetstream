@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as StripeService from '../stripe.service';
 
 const mocks = vi.hoisted(() => ({
@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   createFundingInstructions: vi.fn(async () => ({})),
   sessionsCreate: vi.fn(async () => ({ id: 'cs_new', url: 'https://checkout.stripe.test/cs_new' })),
   sessionsRetrieve: vi.fn(),
+  sessionsList: vi.fn(),
+  sessionsExpire: vi.fn(),
   upsertBillingAccount: vi.fn(),
   updateSubscriptionStateForCustomer: vi.fn(async () => undefined),
   updateUserEntitlements: vi.fn(async () => undefined),
@@ -25,7 +27,14 @@ vi.mock('stripe', () => ({
       retrieve: mocks.customersRetrieve,
       update: mocks.customersUpdate,
     };
-    checkout = { sessions: { create: mocks.sessionsCreate, retrieve: mocks.sessionsRetrieve } };
+    checkout = {
+      sessions: {
+        create: mocks.sessionsCreate,
+        retrieve: mocks.sessionsRetrieve,
+        list: mocks.sessionsList,
+        expire: mocks.sessionsExpire,
+      },
+    };
     entitlements = { activeEntitlements: { list: vi.fn(async () => ({ data: [] })) } };
   },
 }));
@@ -84,6 +93,8 @@ beforeEach(async () => {
     metadata: {},
     ...params,
   }));
+  mocks.sessionsList.mockResolvedValue({ data: [] });
+  mocks.sessionsExpire.mockImplementation(async (sessionId: string) => ({ id: sessionId, status: 'expired' }));
   mocks.upsertBillingAccount.mockImplementation(async ({ customerId }: { customerId: string }) => ({ customerId }));
   stripeService = await import('../stripe.service');
 });
@@ -327,5 +338,89 @@ describe('recording a checkout that completed on a second customer', () => {
 
     expect(mocks.upsertBillingAccount).toHaveBeenCalledWith({ userId: user.id, customerId: 'cus_paid', canRepoint: true });
     expect(mocks.updateSubscriptionStateForCustomer).toHaveBeenCalledWith(expect.objectContaining({ customerId: 'cus_paid' }));
+  });
+});
+
+describe('createCheckoutSession expires older open checkout sessions', () => {
+  const NOW = new Date('2026-10-31T12:00:00.000Z');
+
+  const createSession = (customerId?: string, teamId?: string) =>
+    stripeService.createCheckoutSession({
+      customerId,
+      mode: 'subscription',
+      priceId: 'price_1',
+      user,
+      type: teamId ? 'TEAM' : 'USER',
+      teamId,
+    });
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(NOW);
+    mocks.customersRetrieve.mockResolvedValue(customer({ id: 'cus_1', created: 100 }));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('expires only the open subscription sessions of the customer, before creating the new one', async () => {
+    mocks.sessionsList.mockResolvedValue({
+      data: [
+        { id: 'cs_old_subscription', mode: 'subscription' },
+        { id: 'cs_setup', mode: 'setup' },
+        { id: 'cs_payment', mode: 'payment' },
+        { id: 'cs_other_tab', mode: 'subscription' },
+      ],
+    });
+
+    await createSession('cus_1');
+
+    expect(mocks.sessionsList).toHaveBeenCalledWith({ customer: 'cus_1', status: 'open', limit: 100 });
+    expect(mocks.sessionsExpire.mock.calls.map(([sessionId]) => sessionId)).toEqual(['cs_old_subscription', 'cs_other_tab']);
+    const lastExpireOrder = Math.max(...mocks.sessionsExpire.mock.invocationCallOrder);
+    expect(lastExpireOrder).toBeLessThan(mocks.sessionsCreate.mock.invocationCallOrder[0]);
+  });
+
+  it('still creates the session when a session cannot be expired', async () => {
+    mocks.sessionsList.mockResolvedValue({
+      data: [
+        { id: 'cs_completed_meanwhile', mode: 'subscription' },
+        { id: 'cs_still_open', mode: 'subscription' },
+      ],
+    });
+    mocks.sessionsExpire.mockRejectedValueOnce(new Error('Only Checkout Sessions with a status of open can be expired'));
+
+    await expect(createSession('cus_1')).resolves.toEqual(expect.objectContaining({ id: 'cs_new' }));
+    expect(mocks.sessionsExpire).toHaveBeenCalledWith('cs_still_open');
+    expect(mocks.loggerWarn).toHaveBeenCalledWith(expect.objectContaining({ sessionId: 'cs_completed_meanwhile' }), expect.any(String));
+  });
+
+  it('still creates the session when the open sessions cannot be listed', async () => {
+    mocks.sessionsList.mockRejectedValue(new Error('Stripe is unavailable'));
+
+    await expect(createSession('cus_1')).resolves.toEqual(expect.objectContaining({ id: 'cs_new' }));
+    expect(mocks.sessionsExpire).not.toHaveBeenCalled();
+  });
+
+  // The per-user idempotency key hands a double click the customer the first click created, along with its session
+  it('expires the open sessions of a customer the per-user idempotency key returned', async () => {
+    await createSession();
+
+    expect(mocks.sessionsList).toHaveBeenCalledWith(expect.objectContaining({ customer: 'cus_created' }));
+  });
+
+  it("skips the lookup for an existing team's brand-new replacement customer", async () => {
+    mocks.customersCreate.mockResolvedValue({ id: 'cus_team_new', metadata: {} });
+
+    await createSession(undefined, 'team-1');
+
+    expect(mocks.sessionsList).not.toHaveBeenCalled();
+  });
+
+  it('expires the new session an hour after it is created', async () => {
+    await createSession('cus_1');
+
+    expect(mocks.sessionsCreate).toHaveBeenCalledWith(expect.objectContaining({ expires_at: NOW.getTime() / 1000 + 60 * 60 }));
   });
 });
