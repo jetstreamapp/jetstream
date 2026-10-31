@@ -1,12 +1,15 @@
 import { getLogger } from '@jetstream/api-config';
 import { AuditLogAction, AuditLogResource, createTeamAuditLog } from '@jetstream/audit-logs';
 import { getApiAddressFromReq } from '@jetstream/auth/server';
+import { UserProfileSession } from '@jetstream/auth/types';
+import type { SalesforceOrg } from '@jetstream/prisma';
 import { ApiRequestError } from '@jetstream/salesforce-api';
 import { ERROR_MESSAGES } from '@jetstream/shared/constants';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { SObjectOrganization } from '@jetstream/types';
 import { z } from 'zod';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
+import { Request, Response } from '../types/route.types';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
@@ -89,31 +92,51 @@ const deleteOrg = createRoute(routeDefinition.deleteOrg.validators, async ({ par
 
     sendJson(res, undefined, 204);
 
-    const teamId = user.teamMembership?.teamId;
-    if (teamId) {
-      createTeamAuditLog({
-        userId: user.id,
-        teamId,
-        action: AuditLogAction.ORG_DELETED,
-        resource: AuditLogResource.SALESFORCE_ORG,
-        resourceId: deletedOrg.uniqueId,
-        metadata: {
-          uniqueId: deletedOrg.uniqueId,
-          username: deletedOrg.username,
-          orgName: deletedOrg.orgName,
-          label: deletedOrg.label,
-          loginUrl: deletedOrg.loginUrl,
-          instanceUrl: deletedOrg.instanceUrl,
-          isSandbox: deletedOrg.orgIsSandbox,
-        },
-        ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
-        userAgent: req.get('user-agent'),
-      });
-    }
+    createOrgDeletedAuditLogs({ user, req, res, deletedOrgs: [deletedOrg] });
   } catch (ex) {
     next(new UserFacingError(ex));
   }
 });
+
+/**
+ * Record an ORG_DELETED team audit log entry for each deleted org. No-op for users that are not on a team.
+ */
+export function createOrgDeletedAuditLogs({
+  user,
+  req,
+  res,
+  deletedOrgs,
+}: {
+  user: UserProfileSession;
+  req: Request<unknown, unknown, unknown>;
+  res: Response;
+  deletedOrgs: Pick<SalesforceOrg, 'uniqueId' | 'username' | 'orgName' | 'label' | 'loginUrl' | 'instanceUrl' | 'orgIsSandbox'>[];
+}) {
+  const teamId = user.teamMembership?.teamId;
+  if (!teamId) {
+    return;
+  }
+  deletedOrgs.forEach((deletedOrg) => {
+    createTeamAuditLog({
+      userId: user.id,
+      teamId,
+      action: AuditLogAction.ORG_DELETED,
+      resource: AuditLogResource.SALESFORCE_ORG,
+      resourceId: deletedOrg.uniqueId,
+      metadata: {
+        uniqueId: deletedOrg.uniqueId,
+        username: deletedOrg.username,
+        orgName: deletedOrg.orgName,
+        label: deletedOrg.label,
+        loginUrl: deletedOrg.loginUrl,
+        instanceUrl: deletedOrg.instanceUrl,
+        isSandbox: deletedOrg.orgIsSandbox,
+      },
+      ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
+      userAgent: req.get('user-agent'),
+    });
+  });
+}
 
 /**
  * Check if the org is still valid
