@@ -2,7 +2,16 @@ import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { parse } from '@jetstreamapp/simple-xml';
 import isObject from 'lodash/isObject';
-import { ApiRequestOptions, ApiRequestOutputType, BulkXmlErrorResponse, FetchFn, FetchResponse, Logger, SoapErrorResponse } from './types';
+import {
+  ApiRequestOptions,
+  ApiRequestOutputType,
+  BulkXmlErrorResponse,
+  FetchFn,
+  FetchOptions,
+  FetchResponse,
+  Logger,
+  SoapErrorResponse,
+} from './types';
 
 const SOAP_API_AUTH_ERROR_REGEX = /<faultcode>[a-zA-Z]+:INVALID_SESSION_ID<\/faultcode>/;
 // Bulk API v1 reports session-auth failures as HTTP 400 with an XML body instead of a 401
@@ -58,6 +67,73 @@ export function resolveSameOriginRequestUrl(url: string, instanceUrl: string): s
     throw new Error(`Request URL must stay on the Salesforce instance origin over HTTPS: ${url}`);
   }
   return resolved.toString();
+}
+
+/** Redirect hops followed for one Salesforce request before it is abandoned, matching curl's conservative default. */
+export const MAX_REDIRECT_HOPS = 5;
+
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+
+/** Headers that describe a request body, dropped when a redirect turns the request into a body-less GET. */
+const BODY_HEADERS = new Set(['content-type', 'content-length', 'content-encoding', 'content-language', 'content-location']);
+
+type RedirectableFetchOptions = Omit<FetchOptions, 'headers'> & { headers: Record<string, string> };
+
+/**
+ * The request to send for a redirect, following the Fetch standard: a 303 always becomes a body-less GET,
+ * a 301/302 does so for a POST, and a 307/308 re-sends the same method and body.
+ */
+function getRedirectedRequestOptions(status: number, options: RedirectableFetchOptions): RedirectableFetchOptions {
+  const method = options.method || 'GET';
+  const becomesGet = status === 303 || ((status === 301 || status === 302) && method === 'POST');
+  if (!becomesGet) {
+    return options;
+  }
+  const headers = Object.fromEntries(Object.entries(options.headers).filter(([name]) => !BODY_HEADERS.has(name.toLowerCase())));
+  return { ...options, method: 'GET', body: undefined, duplex: undefined, headers };
+}
+
+/**
+ * Issues the request with `redirect: 'manual'` and follows redirects itself so that every hop is checked
+ * against the org's instance origin before the session credentials are sent again. The runtime's own
+ * redirect handling only strips `Authorization` when the origin changes and keeps every other header,
+ * so a caller-chosen Salesforce path that answers with a cross-origin redirect would otherwise carry
+ * `X-SFDC-Session` to the foreign host. Same-origin redirects keep working; cross-origin ones are refused.
+ *
+ * In a browser (web extension, Canvas) a manual redirect comes back as an `opaqueredirect` response with
+ * no `Location` to validate, so it is refused outright. A 3xx without a `Location` header is handed back
+ * to the caller like any other non-ok response.
+ */
+async function fetchFollowingSameOriginRedirects(
+  fetch: FetchFn,
+  url: string,
+  options: RedirectableFetchOptions,
+  instanceUrl: string,
+  logger: Logger,
+): Promise<FetchResponse> {
+  let currentUrl = url;
+  let currentOptions: RedirectableFetchOptions = { ...options, redirect: 'manual' };
+  for (let hop = 0; ; hop++) {
+    const requestUrl = currentUrl;
+    const requestMethod = currentOptions.method || 'GET';
+    const response = await fetch(requestUrl, currentOptions).catch((ex) => handleFetchFailure(ex, requestUrl, requestMethod, logger));
+    if (response.type === 'opaqueredirect') {
+      throw new Error('Salesforce responded with a redirect that cannot be followed securely');
+    }
+    const location = REDIRECT_STATUSES.has(response.status) ? response.headers.get('Location') : null;
+    if (!location) {
+      return response;
+    }
+    if (hop >= MAX_REDIRECT_HOPS) {
+      throw new Error(`Salesforce redirected more than ${MAX_REDIRECT_HOPS} times, giving up: ${requestUrl}`);
+    }
+    // The redirect body is never read; draining it releases the connection back to the pool.
+    response.text().catch(() => undefined);
+    // `Location` is relative to the URL that was just requested, which is already on the instance origin.
+    currentUrl = resolveSameOriginRequestUrl(new URL(location, requestUrl).toString(), instanceUrl);
+    currentOptions = getRedirectedRequestOptions(response.status, currentOptions);
+    logger.debug({ status: response.status, from: requestUrl, to: currentUrl }, '[API REQUEST] Following same-origin redirect');
+  }
 }
 
 export const CALLOUT_ADAPTER_PARSE_OPTIONS = {
@@ -194,26 +270,33 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
         logger.trace(`[API REQUEST]: ${method} ${url}`);
       }
 
-      return fetch(url, {
-        method,
-        body,
-        duplex,
-        // Salesforce marks describe responses as cacheable, and where Salesforce is called straight from the
-        // browser (Canvas, web extension) the HTTP cache kept serving a stale describe even after an explicit
-        // refresh, so new objects/fields never appeared. Jetstream keeps its own cache, so always go to the network.
-        cache: 'no-store',
-        headers: {
-          // default headers, can be overridden by caller
-          [HTTP.HEADERS.CONTENT_TYPE]: 'application/json; charset=UTF-8',
-          [HTTP.HEADERS.ACCEPT]: 'application/json; charset=UTF-8',
-          // caller-provided overrides (auth/session/cookie/host stripped)
-          ...sanitizeCallerHeaders(headers),
-          // Server-bound credentials are set AFTER caller headers so they always win
-          Authorization: `Bearer ${accessToken}`,
-          [HTTP.HEADERS.X_SFDC_Session]: accessToken,
+      // Redirects are followed by hand so each hop is re-checked against the instance origin before the
+      // credentials below are sent again (see fetchFollowingSameOriginRedirects).
+      return fetchFollowingSameOriginRedirects(
+        fetch,
+        url,
+        {
+          method,
+          body,
+          duplex,
+          // Salesforce marks describe responses as cacheable, and where Salesforce is called straight from the
+          // browser (Canvas, web extension) the HTTP cache kept serving a stale describe even after an explicit
+          // refresh, so new objects/fields never appeared. Jetstream keeps its own cache, so always go to the network.
+          cache: 'no-store',
+          headers: {
+            // default headers, can be overridden by caller
+            [HTTP.HEADERS.CONTENT_TYPE]: 'application/json; charset=UTF-8',
+            [HTTP.HEADERS.ACCEPT]: 'application/json; charset=UTF-8',
+            // caller-provided overrides (auth/session/cookie/host stripped)
+            ...sanitizeCallerHeaders(headers),
+            // Server-bound credentials are set AFTER caller headers so they always win
+            Authorization: `Bearer ${accessToken}`,
+            [HTTP.HEADERS.X_SFDC_Session]: accessToken,
+          },
         },
-      })
-        .catch((ex) => handleFetchFailure(ex, url, method, logger))
+        instanceUrl,
+        logger,
+      )
         .then(async (response) => {
           if (enableLogging) {
             logger.trace(`[API RESPONSE]: ${response.status}`);
@@ -534,6 +617,8 @@ export function exchangeRefreshToken(
       [HTTP.HEADERS.ACCEPT]: HTTP.CONTENT_TYPE.JSON,
     },
     signal: AbortSignal.timeout(timeoutMs),
+    // The token endpoint never redirects; a 307/308 would otherwise re-POST the refresh token and client secret elsewhere.
+    redirect: 'error',
   })
     .then((response) => {
       if (response.ok) {

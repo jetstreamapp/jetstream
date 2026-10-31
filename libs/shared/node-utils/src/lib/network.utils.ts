@@ -5,50 +5,60 @@ import * as net from 'net';
 import type { Agent } from 'undici';
 
 /**
- * Checks whether an IP address belongs to a private, reserved, or otherwise
- * non-public range that should not be reached by server-side requests.
+ * Address ranges that server-side requests must never reach: loopback, link-local, RFC 1918 private
+ * ranges, carrier-grade NAT, documentation/benchmarking ranges, multicast and reserved space, cloud
+ * metadata IPs, and their IPv6 equivalents.
  *
- * Covers: loopback, link-local, RFC 1918 private ranges, carrier-grade NAT,
- * documentation ranges, benchmarking, IPv6 equivalents, and cloud metadata IPs.
+ * Built on `net.BlockList` so matching is done on the parsed address rather than its textual form:
+ * `::ffff:7f00:1`, `::ffff:127.0.0.1` and the fully expanded spelling are all the same mapped loopback
+ * address, and a `/10` such as `fe80::/10` also covers `fe90…`–`febf…`. `check(address, 'ipv6')`
+ * matches IPv4-mapped IPv6 addresses against the IPv4 rules, so the `::ffff:0:0/96` mapped range needs
+ * no entry of its own.
+ */
+const BLOCKED_ADDRESSES = new net.BlockList();
+
+BLOCKED_ADDRESSES.addSubnet('0.0.0.0', 8, 'ipv4'); // 0.0.0.0/8 — current network
+BLOCKED_ADDRESSES.addSubnet('10.0.0.0', 8, 'ipv4'); // 10.0.0.0/8
+BLOCKED_ADDRESSES.addSubnet('127.0.0.0', 8, 'ipv4'); // 127.0.0.0/8 — loopback
+BLOCKED_ADDRESSES.addSubnet('169.254.0.0', 16, 'ipv4'); // 169.254.0.0/16 — link-local / cloud metadata (169.254.169.254)
+BLOCKED_ADDRESSES.addSubnet('172.16.0.0', 12, 'ipv4'); // 172.16.0.0/12
+BLOCKED_ADDRESSES.addSubnet('192.168.0.0', 16, 'ipv4'); // 192.168.0.0/16
+BLOCKED_ADDRESSES.addSubnet('100.64.0.0', 10, 'ipv4'); // 100.64.0.0/10 — carrier-grade NAT
+BLOCKED_ADDRESSES.addSubnet('192.0.0.0', 24, 'ipv4'); // 192.0.0.0/24 — IETF protocol assignments
+BLOCKED_ADDRESSES.addSubnet('192.0.2.0', 24, 'ipv4'); // 192.0.2.0/24 — TEST-NET-1
+BLOCKED_ADDRESSES.addSubnet('198.51.100.0', 24, 'ipv4'); // 198.51.100.0/24 — TEST-NET-2
+BLOCKED_ADDRESSES.addSubnet('203.0.113.0', 24, 'ipv4'); // 203.0.113.0/24 — TEST-NET-3
+BLOCKED_ADDRESSES.addSubnet('198.18.0.0', 15, 'ipv4'); // 198.18.0.0/15 — benchmarking
+BLOCKED_ADDRESSES.addSubnet('224.0.0.0', 4, 'ipv4'); // 224.0.0.0/4 — multicast
+BLOCKED_ADDRESSES.addSubnet('240.0.0.0', 4, 'ipv4'); // 240.0.0.0/4 — reserved, includes the limited broadcast address
+
+BLOCKED_ADDRESSES.addAddress('::', 'ipv6'); // ::/128 — unspecified
+BLOCKED_ADDRESSES.addAddress('::1', 'ipv6'); // ::1/128 — loopback
+BLOCKED_ADDRESSES.addSubnet('::', 96, 'ipv6'); // ::/96 — deprecated IPv4-compatible form, embeds an IPv4 address (::7f00:1)
+BLOCKED_ADDRESSES.addSubnet('fe80::', 10, 'ipv6'); // fe80::/10 — link-local
+BLOCKED_ADDRESSES.addSubnet('fc00::', 7, 'ipv6'); // fc00::/7 — unique local
+BLOCKED_ADDRESSES.addSubnet('ff00::', 8, 'ipv6'); // ff00::/8 — multicast
+BLOCKED_ADDRESSES.addSubnet('64:ff9b::', 96, 'ipv6'); // 64:ff9b::/96 — NAT64 well-known prefix, embeds an IPv4 address
+BLOCKED_ADDRESSES.addSubnet('64:ff9b:1::', 48, 'ipv6'); // 64:ff9b:1::/48 — NAT64 local-use prefix
+BLOCKED_ADDRESSES.addSubnet('2001:db8::', 32, 'ipv6'); // 2001:db8::/32 — documentation
+BLOCKED_ADDRESSES.addSubnet('2002::', 16, 'ipv6'); // 2002::/16 — 6to4, the embedded IPv4 address can be private
+BLOCKED_ADDRESSES.addSubnet('100::', 64, 'ipv6'); // 100::/64 — discard-only
+
+/**
+ * Checks whether an IP address belongs to a private, reserved, or otherwise non-public range that
+ * should not be reached by server-side requests. See {@link BLOCKED_ADDRESSES} for the ranges.
+ *
+ * Pure (no DNS) so it can run anywhere, including the pinned dispatcher's `connect.lookup` callback.
  */
 function isPrivateOrReservedIp(ip: string): boolean {
-  // IPv4-mapped IPv6 (e.g., ::ffff:127.0.0.1) — extract the IPv4 portion
-  const v4Mapped = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
-  const normalizedIp = v4Mapped ? v4Mapped[1] : ip;
-
-  if (net.isIPv4(normalizedIp)) {
-    const parts = normalizedIp.split('.').map(Number);
-    const [a, b] = parts;
-    return (
-      a === 0 || // 0.0.0.0/8 — current network
-      a === 10 || // 10.0.0.0/8
-      a === 127 || // 127.0.0.0/8 — loopback
-      (a === 169 && b === 254) || // 169.254.0.0/16 — link-local / cloud metadata (169.254.169.254)
-      (a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12
-      (a === 192 && b === 168) || // 192.168.0.0/16
-      (a === 100 && b >= 64 && b <= 127) || // 100.64.0.0/10 — carrier-grade NAT
-      (a === 192 && b === 0 && parts[2] === 0) || // 192.0.0.0/24 — IETF protocol assignments
-      (a === 192 && b === 0 && parts[2] === 2) || // 192.0.2.0/24 — TEST-NET-1
-      (a === 198 && b === 51 && parts[2] === 100) || // 198.51.100.0/24 — TEST-NET-2
-      (a === 203 && b === 0 && parts[2] === 113) || // 203.0.113.0/24 — TEST-NET-3
-      (a === 198 && b >= 18 && b <= 19) || // 198.18.0.0/15 — benchmarking
-      a >= 224 // 224.0.0.0+ — multicast & reserved
-    );
+  const family = net.isIP(ip);
+  if (family === 4) {
+    return BLOCKED_ADDRESSES.check(ip, 'ipv4');
   }
-
-  if (net.isIPv6(normalizedIp)) {
-    const lower = normalizedIp.toLowerCase();
-    return (
-      lower === '::' || // unspecified
-      lower === '::1' || // loopback
-      lower.startsWith('fe80') || // link-local
-      lower.startsWith('fc') || // unique local (fc00::/7)
-      lower.startsWith('fd') || // unique local (fc00::/7)
-      lower.startsWith('ff') // multicast
-    );
+  if (family === 6) {
+    return BLOCKED_ADDRESSES.check(ip, 'ipv6');
   }
-
-  // If we can't determine the type, reject it to be safe
+  // Not a parseable address of either family — reject rather than let an unknown form through
   return true;
 }
 
