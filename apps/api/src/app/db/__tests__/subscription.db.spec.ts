@@ -20,6 +20,8 @@ const prismaMock = vi.hoisted(() => {
     },
     subscription: {
       updateMany: vi.fn(async () => ({ count: 0 })),
+      deleteMany: vi.fn(async () => ({ count: 0 })),
+      upsert: vi.fn(async () => ({})),
     },
   };
   mock.$transaction = vi.fn(async (operations: unknown) =>
@@ -107,7 +109,7 @@ describe('updateTeamSubscriptionStateForCustomer', () => {
 
     expect(mocks.withTeamSeatLock).toHaveBeenCalledWith('team_1', expect.any(Function));
     expect(prismaMock.teamSubscription.deleteMany).toHaveBeenCalledWith({
-      where: { teamId: 'team_1', customerId: 'cus_1', priceId: { notIn: ['price_TEAM_MONTHLY'] } },
+      where: { teamId: 'team_1', customerId: 'cus_1', NOT: [{ subscriptionId: 'sub_1', priceId: 'price_TEAM_MONTHLY' }] },
     });
     expect(prismaMock.teamSubscription.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -316,6 +318,44 @@ describe('pending decrease writers', () => {
       where: { teamId: 'team_1' },
       data: { pendingSeatQuantity: null, pendingSeatEffectiveAt: null, seatScheduleId: null },
     });
+  });
+});
+
+describe('updateSubscriptionStateForCustomer', () => {
+  const subscriptionWithPrices = (id: string, ...priceIds: string[]) =>
+    ({ id, status: 'active', items: { data: priceIds.map((priceId) => ({ price: { id: priceId } })) } }) as unknown as StripeSubscription;
+
+  const run = (subscriptions: StripeSubscription[]) =>
+    subscriptionDb.updateSubscriptionStateForCustomer({ userId: 'user_1', customerId: 'cus_1', subscriptions });
+
+  // A row cascaded from the customer that held the account before keeps its own subscription id, so on the same
+  // price only the pair tells it apart from the current one
+  it('deletes every row whose (subscription, price) pair Stripe no longer reports', async () => {
+    await run([subscriptionWithPrices('sub_1', 'price_PRO_MONTHLY', 'price_ADDON')]);
+
+    expect(prismaMock.subscription.deleteMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'user_1',
+        customerId: 'cus_1',
+        NOT: [
+          { subscriptionId: 'sub_1', priceId: 'price_PRO_MONTHLY' },
+          { subscriptionId: 'sub_1', priceId: 'price_ADDON' },
+        ],
+      },
+    });
+    expect(prismaMock.subscription.upsert).toHaveBeenCalledTimes(2);
+    expect(prismaMock.subscription.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { uniqueSubscription: { userId: 'user_1', subscriptionId: 'sub_1', priceId: 'price_PRO_MONTHLY' } },
+      }),
+    );
+  });
+
+  it('clears every row for the customer when Stripe reports nothing current', async () => {
+    await run([]);
+
+    expect(prismaMock.subscription.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user_1', customerId: 'cus_1' } });
+    expect(prismaMock.subscription.upsert).not.toHaveBeenCalled();
   });
 });
 
