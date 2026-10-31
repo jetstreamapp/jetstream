@@ -401,9 +401,28 @@ describe('billing.controller - createCheckoutSession', () => {
       expect(getCheckoutSessionArgs().customerId).toBeUndefined();
     });
 
-    it('ignores seats and team name sent with an individual plan', async () => {
+    it('rejects an individual plan for an active member of an active team', async () => {
       mocks.findByUserIdWithSubscriptions.mockResolvedValue(makeTeam({ member: { role: 'MEMBER', status: 'ACTIVE' } }));
 
+      const { next } = await runCheckout({ priceLookupKey: 'PRO_MONTHLY' });
+
+      expectRejected(next, { message: /You are currently part of a team/ });
+      expect(mocks.fetchCustomerWithSubscriptionsById).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['a deactivated member of an active team', makeTeam({ member: { role: 'ADMIN', status: 'INACTIVE' } })],
+      ['an active member of an inactive team', makeTeam({ status: 'INACTIVE', member: { role: 'MEMBER', status: 'ACTIVE' } })],
+    ])('allows an individual plan for %s', async (_, team) => {
+      mocks.findByUserIdWithSubscriptions.mockResolvedValue(team);
+
+      const { next } = await runCheckout({ priceLookupKey: 'PRO_MONTHLY' });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(getCheckoutSessionArgs()).toMatchObject({ customerId: PERSONAL_CUSTOMER_ID, type: 'USER' });
+    });
+
+    it('ignores seats and team name sent with an individual plan', async () => {
       const { next } = await runCheckout({ priceLookupKey: 'PRO_ANNUAL', seats: 3, teamName: 'Ignored' });
 
       expect(next).not.toHaveBeenCalled();

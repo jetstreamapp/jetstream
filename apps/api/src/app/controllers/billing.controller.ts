@@ -163,6 +163,9 @@ const createCheckoutSessionHandler = createRoute(
     const user = await userDbService.findByIdWithSubscriptions(sessionUser.id);
     const team = await teamDbService.findByUserIdWithSubscriptions({ userId: sessionUser.id });
     const teamMember = team?.members.find(({ userId }) => userId === sessionUser.id);
+    // Membership is returned regardless of status, so a deactivated admin would otherwise keep the
+    // ability to open checkout against the team's Stripe customer
+    const isActiveTeamMember = team?.status === TEAM_STATUS_ACTIVE && teamMember?.status === TEAM_MEMBER_STATUS_ACTIVE;
     // The pre-fill is only a convenience, so a failed lookup must never block checkout
     const productionOrgId = await salesforceOrgsDb.findProductionOrganizationId(sessionUser.id).catch((ex) => {
       getLogger().warn(
@@ -176,9 +179,6 @@ const createCheckoutSessionHandler = createRoute(
     let session: Stripe.Response<Stripe.Checkout.Session> | null = null;
 
     if (type === 'TEAM') {
-      // Membership is returned regardless of status, so a deactivated admin would otherwise keep the
-      // ability to open checkout against the team's Stripe customer
-      const isActiveTeamMember = team?.status === TEAM_STATUS_ACTIVE && teamMember?.status === TEAM_MEMBER_STATUS_ACTIVE;
       const hasBillingRole = teamMember?.role === 'ADMIN' || teamMember?.role === 'BILLING';
       if (team && (!isActiveTeamMember || !hasBillingRole)) {
         throw new UserFacingError(`You do not have permission to create a billing session for this team`);
@@ -224,6 +224,13 @@ const createCheckoutSessionHandler = createRoute(
         teamName,
       });
     } else {
+      // The billing page disables personal plans for team members; hold the same line here so a direct API call
+      // cannot add a personal subscription alongside the team's
+      if (isActiveTeamMember) {
+        throw new UserFacingError(
+          'You are currently part of a team, contact support if you would like to downgrade to an individual plan.',
+        );
+      }
       const personalCustomer = await resolvePersonalCustomer(user);
       session = await stripeService.createCheckoutSession({
         mode: 'subscription',
