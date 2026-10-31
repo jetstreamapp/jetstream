@@ -50,14 +50,16 @@ export const App = () => {
               <DesktopPreferencesSync />
               {isSettingsWindow() ? (
                 // The Settings window has a native title bar and only ever shows the Settings page. It does not use
-                // `app-container`, whose top margin makes room for the main window's fixed header.
-                <div className="slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
+                // `app-container`, whose top margin makes room for the main window's fixed header. The route never
+                // changes in this window, so the main content only takes focus for a `#section` deep link - the same
+                // section SettingsLayout scrolls to.
+                <AppMainContent className="slds-p-horizontal_xx-small slds-p-vertical_xx-small">
                   <Suspense fallback={<AppLoading />}>
                     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
                       <Settings />
                     </ErrorBoundary>
                   </Suspense>
-                </div>
+                </AppMainContent>
               ) : (
                 <>
                   <AppStateResetOnOrgChange />
