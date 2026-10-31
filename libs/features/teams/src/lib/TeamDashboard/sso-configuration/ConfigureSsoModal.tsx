@@ -24,6 +24,10 @@ export function ConfigureSsoModal({ teamId, existingSsoConfig, onClose }: Config
       | { type: 'OIDC'; data: Parameters<ConfigureSsoOidcFormProps['onSave']>[0] }
       | { type: 'SAML'; data: Parameters<ConfigureSsoSamlFormProps['onSave']>[0] },
   ) {
+    // Enter in a field submits the form without going through the aria-disabled button's guarded click
+    if (loading) {
+      return;
+    }
     try {
       setLoading(true);
       setTestResult(null);
