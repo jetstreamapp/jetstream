@@ -8,6 +8,7 @@ import {
   AssistiveStatus,
   AutoFullHeightContainer,
   DataTable,
+  DisabledReasonButton,
   Grid,
   Icon,
   Modal,
@@ -119,11 +120,8 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   const { trackEvent } = useAnalytics();
   /** History entry of this modal's deploy, referenced by the rollback entry if Rollback is clicked */
   const deployHistorySource = useRef<AutomationControlHistorySource | null>(null);
-  const { preparingVariant, packageDownload, packageError, preparePackage, closePackageDownload } = useAutomationPackageDownload(
-    selectedOrg,
-    defaultApiVersion,
-    'review',
-  );
+  const { preparingVariant, packageDownload, packageError, preparePackage, closePackageDownload, packageTriggerRef, modalInitialFocus } =
+    useAutomationPackageDownload(selectedOrg, defaultApiVersion, 'review');
   const deployAccess = useOperationAccess('metadata.deploy');
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [deploymentItemMap, setDeploymentItemMap] = useState<DeploymentItemMap>(() => getDeploymentItemMap(rows));
@@ -135,6 +133,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   const [didRollback, setDidRollback] = useState(false);
   const [didDeployMetadata, setDidDeployMetadata] = useState(false);
   const primaryButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
 
   const deploymentItemRows: DeploymentItemRow[] = useMemo(
     () =>
@@ -268,6 +267,13 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
     return save;
   }
 
+  /** Cancel stays focusable while deploying and unmounts once the deploy finishes, so focus moves to the primary button */
+  function moveFocusOffCancel() {
+    if (cancelButtonRef.current && document.activeElement === cancelButtonRef.current) {
+      primaryButtonRef.current?.focus();
+    }
+  }
+
   function handleDeployMetadata(currDeploymentItemMap: DeploymentItemMap, isRollback?: boolean) {
     trackEvent(ANALYTICS_KEYS.automation_deploy, { type: isRollback ? 'rollback' : 'deploy', items: deploymentItems.length });
     const deployResultsByKey: Record<string, AutomationControlDeploymentItem> = {};
@@ -304,6 +310,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
               return output;
             }, {}),
           }));
+          moveFocusOffCancel();
           setInProgress(false);
           setNextButtonLabel('Close');
           setDidDeploy(true);
@@ -316,6 +323,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
         },
         complete: () => {
           logger.log('handleDeployMetadata - complete()');
+          moveFocusOffCancel();
           setInProgress(false);
           setDidDeployMetadata(true);
           setNextButtonLabel('Close');
@@ -375,46 +383,56 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
         closeOnBackdropClick={false}
         closeOnEsc={false}
         hide={!!packageDownload}
+        initialFocus={modalInitialFocus}
         onClose={() => handleCloseModal()}
         footer={
           <Grid align="spread" verticalAlign="center">
             <AutomationPackageDropDown
               disabled={inProgress}
               isPreparing={!!preparingVariant}
+              triggerRef={packageTriggerRef}
               onSelected={(variant) => preparePackage(getPackageItemsFromRows(rows, variant), variant)}
             />
             <div>
-              {/* ariaDisabledButtonProps keeps the footer buttons focusable while a deploy is in
-                  flight, so focus is not dropped mid-operation */}
+              {/* The footer buttons stay focusable while a deploy is in flight, so focus is not dropped mid-operation */}
               {!didDeploy && (
-                <button className="slds-button slds-button_neutral" {...ariaDisabledButtonProps(inProgress, () => onClose())}>
+                <button
+                  ref={cancelButtonRef}
+                  className="slds-button slds-button_neutral"
+                  {...ariaDisabledButtonProps(inProgress, () => onClose())}
+                >
                   Cancel
                 </button>
               )}
               {didDeploy && !didRollback && (
-                <button
+                <DisabledReasonButton
                   className="slds-button slds-button_neutral"
-                  title={deployAccess.deniedReason ?? 'Revert all successfully deployed items'}
-                  {...ariaDisabledButtonProps(inProgress || !deployAccess.allowed, () => {
+                  tooltip={inProgress ? undefined : 'Revert all successfully deployed items'}
+                  disabled={inProgress || !deployAccess.allowed}
+                  disabledReason={deployAccess.deniedReason}
+                  onClick={() => {
                     handleRollbackMetadata();
                     // This button unmounts when the rollback finishes — hand focus to the primary
                     // button (which becomes "Close") so focus survives the removal
                     primaryButtonRef.current?.focus();
-                  })}
+                  }}
                 >
                   <Icon type="utility" icon="undo" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Rollback
-                </button>
+                </DisabledReasonButton>
               )}
               {/* The first step's next button deploys, later steps only close the modal */}
-              <button
+              <DisabledReasonButton
                 ref={primaryButtonRef}
                 className="slds-button slds-button_brand"
-                title={currentStep === 0 ? deployAccess.deniedReason : undefined}
-                {...ariaDisabledButtonProps(nextButtonDisabled, () => setCurrentStep(currentStep + 1))}
+                // the tooltip wrapper breaks SLDS's adjacent-button spacing
+                tooltipClassName="slds-m-left_xx-small"
+                disabled={nextButtonDisabled}
+                disabledReason={currentStep === 0 ? deployAccess.deniedReason : undefined}
+                onClick={() => setCurrentStep(currentStep + 1)}
               >
                 {nextButtonLabel}
-              </button>
+              </DisabledReasonButton>
             </div>
           </Grid>
         }
