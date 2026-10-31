@@ -3,7 +3,17 @@ import { clearCacheForOrg, describeSObject } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { DescribeSObjectResult, ListItem, Maybe, PicklistFieldValues, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
-import { AssistiveStatus, Card, ComboboxWithItems, Grid, Icon, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
+import {
+  AssistiveStatus,
+  Card,
+  ComboboxWithItems,
+  DisabledReasonButton,
+  Grid,
+  Icon,
+  ScopedNotification,
+  Spinner,
+  Tooltip,
+} from '@jetstream/ui';
 import { useOperationAccess } from '@jetstream/ui/app-state';
 import { formatRelative } from 'date-fns/formatRelative';
 import { Fragment, FunctionComponent, useCallback, useEffect, useReducer, useRef, useState } from 'react';
@@ -166,16 +176,15 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
       icon={{ type: 'standard', icon: 'record_create' }}
       title="Publish Event"
       actions={
-        <button
-          type="button"
+        <DisabledReasonButton
           className="slds-button slds-button_brand slds-is-relative"
           disabled={!sobjectDescribeLoaded || !sobjectDescribeData || !writeAccess.allowed}
-          title={writeAccess.deniedReason}
-          onClick={handlePublish}
+          disabledReason={writeAccess.deniedReason}
+          onClick={() => handlePublish()}
         >
           Publish Event
           {publishLoading && <Spinner className="slds-spinner slds-spinner_small" />}
-        </button>
+        </DisabledReasonButton>
       }
     >
       {(loadingPlatformEvents || sobjectDescribeLoading) && <Spinner />}
