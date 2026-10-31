@@ -4,6 +4,7 @@ import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { AutomationControlHistoryEntry, AutomationControlRestoreAction } from '@jetstream/types';
 import type { Column } from '@jetstream/ui';
 import { Badge, DataTable, Grid, Icon, Tooltip } from '@jetstream/ui';
+import { useOperationAccess } from '@jetstream/ui/app-state';
 import { FunctionComponent, useMemo } from 'react';
 import { getAutomationTypeLabel } from './automation-control-data-utils';
 import { formatHistoryDate, getHistoryActionLabel, getHistoryStatus } from './automation-control-history-utils';
@@ -69,7 +70,9 @@ export const AutomationControlHistoryEntryDetail: FunctionComponent<AutomationCo
     [entry.items],
   );
   const status = getHistoryStatus(entry);
-  const canRollBack = entry.successCount + entry.incompleteCount > 0;
+  // Restoring stages changes that can only be applied through the gated Review modal, so gate the entry point too
+  const deployAccess = useOperationAccess('metadata.deploy');
+  const canRollBack = deployAccess.allowed && entry.successCount + entry.incompleteCount > 0;
   const outcomeSummary = [
     entry.errorCount > 0 && `${formatNumber(entry.errorCount)} failed`,
     entry.incompleteCount > 0 && `${formatNumber(entry.incompleteCount)} not confirmed`,
@@ -101,9 +104,10 @@ export const AutomationControlHistoryEntryDetail: FunctionComponent<AutomationCo
           />
           <Tooltip
             content={
-              canRollBack
+              deployAccess.deniedReason ??
+              (canRollBack
                 ? 'Restore the active state from before these changes were deployed.'
-                : 'Nothing was deployed successfully, so there is nothing to roll back.'
+                : 'Nothing was deployed successfully, so there is nothing to roll back.')
             }
           >
             <button className="slds-button slds-button_brand" disabled={!canRollBack} onClick={() => onRestore(entry, 'rollback')}>
@@ -111,8 +115,12 @@ export const AutomationControlHistoryEntryDetail: FunctionComponent<AutomationCo
               Roll Back
             </button>
           </Tooltip>
-          <Tooltip content="Apply these changes again. Items that failed are retried.">
-            <button className="slds-button slds-button_neutral slds-m-left_x-small" onClick={() => onRestore(entry, 'redeploy')}>
+          <Tooltip content={deployAccess.deniedReason ?? 'Apply these changes again. Items that failed are retried.'}>
+            <button
+              className="slds-button slds-button_neutral slds-m-left_x-small"
+              disabled={!deployAccess.allowed}
+              onClick={() => onRestore(entry, 'redeploy')}
+            >
               <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
               Re-deploy
             </button>

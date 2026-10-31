@@ -387,6 +387,7 @@ export const AutomationControlEditor = () => {
       <AutomationControlRestoreBanner
         pendingRestore={pendingHistoryRestore}
         stagedRestore={stagedRestore}
+        deployDeniedReason={deployAccess.deniedReason}
         onReviewChanges={handleReviewChanges}
       />
       <div>
