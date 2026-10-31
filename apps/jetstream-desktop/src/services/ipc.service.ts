@@ -25,6 +25,7 @@ import { openSettingsWindow } from '../browser/settings-window';
 import { checkForUpdates, getCurrentUpdateStatus, getUpdatePolicy, installUpdate, refreshUpdatePolicy } from '../config/auto-updater';
 import { ENV } from '../config/environment';
 import { initMainErrorTracker } from '../config/error-tracker';
+import { applySystemCertificateTrust } from '../config/system-certificates';
 import { desktopRoutes } from '../controllers/desktop.routes';
 import { getOrgFromHeaderOrQuery, initApiConnection } from '../utils/route.utils';
 import { openExternalSafe } from '../utils/url.utils';
@@ -223,6 +224,7 @@ const handleSetPreferences: MainIpcHandler<'setPreferences'> = async (event, pay
   // any renderer code could aim all history I/O, or every download, at an arbitrary path.
   const updatedPreferences = dataService.updateUserPreferencesFromRenderer(payload);
   broadcastPreferencesChanged(updatedPreferences, { exclude: event.sender });
+  applySystemCertificateTrust(updatedPreferences.trustSystemCertificates);
   // Start or stop the background update timers immediately, so the toggle takes effect without a
   // restart. An administrator policy still wins - refreshing re-applies the full precedence chain.
   await refreshUpdatePolicy();

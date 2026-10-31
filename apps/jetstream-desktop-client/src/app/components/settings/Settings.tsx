@@ -287,6 +287,15 @@ export const Settings = () => {
                 )}
               </SettingsRow>
             </SettingsGroup>
+            <SettingsGroup title="Network">
+              <SettingsToggleRow
+                id="trust-system-certificates-toggle"
+                title="Trust certificates installed on this computer"
+                description="Turn this on if your company inspects network traffic and connecting to Salesforce fails with a certificate error. Jetstream will also trust the certificate authorities your IT team installed on this computer, the same way your browser does."
+                checked={preferences?.trustSystemCertificates ?? false}
+                onChange={(trustSystemCertificates) => savePreferences({ trustSystemCertificates })}
+              />
+            </SettingsGroup>
           </SettingsSection>
 
           <SettingsSection id="query" title="Query">
