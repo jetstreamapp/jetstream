@@ -5,6 +5,7 @@ import { Maybe } from '@jetstream/types';
 import { app, dialog, WebContents } from 'electron';
 import logger from 'electron-log';
 import { createWriteStream, existsSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
@@ -14,6 +15,21 @@ import { getUserPreferences } from './persistence.service';
 function emitProgress(sender: Maybe<WebContents>, progress: DownloadZipProgress) {
   // Send progress update to renderer
   sender?.send('download-progress', progress);
+}
+
+/**
+ * Write a download to disk. If the download fails part way, the partial file is removed so a truncated file
+ * is never left behind looking like a complete download.
+ */
+async function writeDownloadToFile(source: Readable, filePath: string) {
+  try {
+    await pipeline(source, createWriteStream(filePath));
+  } catch (ex) {
+    await rm(filePath, { force: true }).catch((removeError) => {
+      logger.warn('Unable to remove partial download', getErrorMessageAndStackObj(removeError));
+    });
+    throw ex;
+  }
 }
 
 /**
@@ -63,9 +79,6 @@ export async function downloadAndZipFilesToDisk(
     const totalBytes = Number(zipResult.size);
     let currentFileIndex = 0;
 
-    // Create write stream for the zip file
-    const writeStream = createWriteStream(downloadPath);
-
     // Convert web stream to Node.js readable stream
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const nodeStream = Readable.fromWeb(zipResult.stream as any);
@@ -94,8 +107,7 @@ export async function downloadAndZipFilesToDisk(
       });
     });
 
-    // Pipe the stream to file
-    await pipeline(nodeStream, writeStream);
+    await writeDownloadToFile(nodeStream, downloadPath);
 
     logger.info(`Zip file downloaded successfully: ${downloadPath}`);
     setRecentDocument(downloadPath);
@@ -156,15 +168,8 @@ export async function downloadBulkApiFileAndSaveToDisk({
       ? await jetstreamConn.bulk.downloadQueryResults(jobId, batchId)
       : await jetstreamConn.bulk.downloadRecords(jobId, batchId, type);
 
-    // Create write stream for the zip file
-    const writeStream = createWriteStream(downloadPath);
-
-    // Convert web stream to Node.js readable stream
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const nodeStream = Readable.fromWeb(results as any);
-
-    // Pipe the stream to file
-    await pipeline(nodeStream, writeStream);
+    await writeDownloadToFile(Readable.fromWeb(results as any), downloadPath);
 
     logger.info(`File downloaded successfully: ${downloadPath}`);
     setRecentDocument(downloadPath);

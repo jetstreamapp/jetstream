@@ -176,6 +176,24 @@ export class StreamingZip {
   }
 
   /**
+   * Fail the zip stream so the consumer sees an error instead of waiting forever for more data,
+   * then trigger all abort callbacks to stop any remaining downloads
+   */
+  error(error: unknown): void {
+    if (this.aborted) {
+      return;
+    }
+    if (this.outputController && !this.controllerClosed) {
+      try {
+        this.outputController.error(error);
+      } catch {
+        // the stream was already closed or cancelled
+      }
+    }
+    this.abort();
+  }
+
+  /**
    * Check if the stream has been aborted
    */
   isAborted(): boolean {
