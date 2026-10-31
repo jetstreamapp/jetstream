@@ -57,6 +57,19 @@ CREATE INDEX idx_geoip2_organization_network ON geo_ip.organization USING gist (
 
 const execAsync = promisify(exec);
 
+/**
+ * Runs one SQL statement through the psql CLI.
+ *
+ * The connection string is handed to the shell as an environment variable instead of being interpolated
+ * into the command: when psql exits non-zero, `exec` rejects with `Command failed: <command>` and that
+ * message is logged, so an interpolated URI would write the database password to the logs on every failure.
+ */
+async function runPsql(sql: string): Promise<void> {
+  await execAsync(`psql "$JETSTREAM_POSTGRES_DBURI" -c "${sql}"`, {
+    env: { ...process.env, JETSTREAM_POSTGRES_DBURI: ENV.JETSTREAM_POSTGRES_DBURI },
+  });
+}
+
 if (!ENV.MAX_MIND_ACCOUNT_ID || !ENV.MAX_MIND_LICENSE_KEY) {
   logger.error('Missing MaxMind credentials');
   process.exit(1);
@@ -79,15 +92,13 @@ async function importCSVToTable(csvPath: string, tableName: string, schema: stri
     // Only create temp table if requested (first file)
     if (createTemp) {
       logger.info(`Creating temporary table ${fullTempTableName}`);
-      await execAsync(`psql "${ENV.JETSTREAM_POSTGRES_DBURI}" -c "DROP TABLE IF EXISTS ${fullTempTableName}"`);
-      await execAsync(
-        `psql "${ENV.JETSTREAM_POSTGRES_DBURI}" -c "CREATE TABLE ${fullTempTableName} (LIKE ${fullTableName} INCLUDING ALL)"`,
-      );
+      await runPsql(`DROP TABLE IF EXISTS ${fullTempTableName}`);
+      await runPsql(`CREATE TABLE ${fullTempTableName} (LIKE ${fullTableName} INCLUDING ALL)`);
     }
 
     // Import CSV data
     logger.info(`Importing ${csvPath} to ${fullTempTableName}`);
-    await execAsync(`psql "${ENV.JETSTREAM_POSTGRES_DBURI}" -c "\\COPY ${fullTempTableName} FROM '${csvPath}' WITH (FORMAT CSV, HEADER)"`);
+    await runPsql(`\\COPY ${fullTempTableName} FROM '${csvPath}' WITH (FORMAT CSV, HEADER)`);
   } catch (error) {
     logger.error({ err: error }, `Error importing ${csvPath}: %s`, error.message);
     throw error;
@@ -101,19 +112,17 @@ async function swapTables(tableName: string, schema: string): Promise<void> {
 
   try {
     // Atomic swap
-    await execAsync(`
-      psql "${ENV.JETSTREAM_POSTGRES_DBURI}" -c "
+    await runPsql(`
         BEGIN;
         DROP TABLE IF EXISTS ${fullTableName};
         ALTER TABLE ${fullTempTableName} RENAME TO ${tableName};
         COMMIT;
-      "
-    `);
+      `);
     logger.info(`Successfully swapped ${fullTempTableName} to ${fullTableName}`);
   } catch (error) {
     logger.error({ err: error }, `Error swapping tables: %s`, error.message);
     // Cleanup temp table if it exists
-    await execAsync(`psql "${ENV.JETSTREAM_POSTGRES_DBURI}" -c "DROP TABLE IF EXISTS ${fullTempTableName}"`).catch(() => {
+    await runPsql(`DROP TABLE IF EXISTS ${fullTempTableName}`).catch(() => {
       logger.warn(`Failed to drop table ${fullTempTableName}`);
     });
     throw error;
@@ -239,7 +248,7 @@ async function cleanupTempTables(): Promise<void> {
   for (const table of tables) {
     const tempTableName = `geo_ip.${table}_temp`;
     try {
-      await execAsync(`psql "${ENV.JETSTREAM_POSTGRES_DBURI}" -c "DROP TABLE IF EXISTS ${tempTableName}"`);
+      await runPsql(`DROP TABLE IF EXISTS ${tempTableName}`);
       logger.info(`Cleaned up temporary table ${tempTableName}`);
     } catch (error) {
       logger.warn(`Failed to drop temporary table ${tempTableName}: ${error.message}`);
