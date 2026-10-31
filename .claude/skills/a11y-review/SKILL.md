@@ -63,6 +63,7 @@ with an `onClick`, `onKeyDown`, `href`, `tabIndex`, or an ARIA widget role.
 | Need                                                   | Use                                                                                           |
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
 | Keep a self-disabling button focusable                 | `ariaDisabledButtonProps` (`libs/ui/src/lib/form/button/aria-disabled-button.utils.ts`)       |
+| Explain why a button is unavailable                    | `DisabledReasonButton` (tooltip on hover and focus + `aria-describedby`; not `title`)         |
 | Announce a status string                               | `AssistiveStatus` (polite region), `useAnnouncer` (imperative), `ScopedNotification` (banner) |
 | Escape closes this layer only                          | `useEscapeToCloseLayer` / `EscapeLayerPropagationContext`                                     |
 | Single-tab-stop list with row-level extras             | `List` (roving tabindex, `focusListEntryRow`), `Tabs`, `Accordion`, `Tree`                    |
