@@ -5,8 +5,9 @@ import { ensureBoolean, getErrorMessageAndStackObj, toBoolean } from '@jetstream
 import { NODE_STREAM_INPUT, parse as parseCsv } from 'papaparse';
 import { PassThrough, Readable, Transform } from 'stream';
 import { z } from 'zod';
+import type { Response } from '../types/route.types';
 import { UserFacingError } from '../utils/error-handler';
-import { sendJson, streamParsedCsvAsJson } from '../utils/response.handlers';
+import { pipeWebStreamToResponse, sendJson, streamParsedCsvAsJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
@@ -176,6 +177,41 @@ const addBatchToJobWithBinaryAttachment = createRoute(
   },
 );
 
+function createBulkCsvParseStream() {
+  return parseCsv(NODE_STREAM_INPUT, {
+    delimiter: ',',
+    header: true,
+    skipEmptyLines: true,
+    transform: (data, field) => {
+      if (field === 'Success' || field === 'Created') {
+        return toBoolean(data);
+      } else if (field === 'Id' || field === 'Error') {
+        return data || null;
+      }
+      return data;
+    },
+  });
+}
+
+/**
+ * Parse a Bulk API CSV stream and stream the records to the client as JSON.
+ * A source failure errors the parser (see `streamParsedCsvAsJson`), and a client disconnect cancels the source.
+ */
+function streamBulkCsvAsJson(res: Response, csvStream: ReadableStream<Uint8Array>) {
+  const csvParseStream = createBulkCsvParseStream();
+  streamParsedCsvAsJson(res, csvParseStream);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const readable = Readable.fromWeb(csvStream as any);
+  readable.on('error', (err) => csvParseStream.destroy(err));
+  res.on('close', () => {
+    if (!res.writableFinished) {
+      readable.destroy();
+    }
+  });
+  readable.pipe(csvParseStream);
+}
+
 /**
  * Download request or results as a CSV file directly streamed from SFDC
  * this should only be called from a link and not a JSON API call
@@ -199,8 +235,7 @@ const downloadResultsFile = createRoute(
       const results = isQuery
         ? await jetstreamConn.bulk.downloadQueryResults(jobId, batchId)
         : await jetstreamConn.bulk.downloadRecords(jobId, batchId, type);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Readable.fromWeb(results as any).pipe(res);
+      pipeWebStreamToResponse(res, results, next);
     } catch (ex) {
       next(new UserFacingError(ex));
     }
@@ -217,29 +252,10 @@ const downloadResults = createRoute(routeDefinition.downloadResults.validators, 
     const type = query.type;
     const isQuery = ensureBoolean(query.isQuery);
 
-    const csvParseStream = parseCsv(NODE_STREAM_INPUT, {
-      delimiter: ',',
-      header: true,
-      skipEmptyLines: true,
-      transform: (data, field) => {
-        if (field === 'Success' || field === 'Created') {
-          return toBoolean(data);
-        } else if (field === 'Id' || field === 'Error') {
-          return data || null;
-        }
-        return data;
-      },
-    });
-
-    streamParsedCsvAsJson(res, csvParseStream);
-
     const results = isQuery
       ? await jetstreamConn.bulk.downloadQueryResults(jobId, batchId)
       : await jetstreamConn.bulk.downloadRecords(jobId, batchId, type);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const readable = Readable.fromWeb(results as any);
-    readable.on('error', (err) => csvParseStream.destroy(err));
-    readable.pipe(csvParseStream);
+    streamBulkCsvAsJson(res, results);
   } catch (ex) {
     next(new UserFacingError(ex));
   }

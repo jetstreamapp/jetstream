@@ -1,11 +1,11 @@
 import { AuthError, ProviderNotAllowed, StepUpAuthRequiredError } from '@jetstream/auth/server';
 import { ApiRequestError } from '@jetstream/salesforce-api';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
-import { PassThrough } from 'node:stream';
+import { PassThrough, Writable } from 'node:stream';
 import { describe, expect, it, vi } from 'vitest';
 import * as salesforceOrgsDb from '../../db/salesforce-org.db';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../error-handler';
-import { streamParsedCsvAsJson, uncaughtErrorHandler } from '../response.handlers';
+import { pipeWebStreamToResponse, streamParsedCsvAsJson, uncaughtErrorHandler } from '../response.handlers';
 
 const prismaMocks = vi.hoisted(() => {
   class PrismaClientKnownRequestError extends Error {
@@ -431,5 +431,109 @@ describe('streamParsedCsvAsJson', () => {
     await done;
 
     expect(res._chunks.join('')).toBe('{"data":[]}');
+  });
+});
+
+function createWritableRes() {
+  const chunks: Buffer[] = [];
+  createMockStreamRes(); // refresh the shared logger mock
+  const res = Object.assign(
+    new Writable({
+      write(chunk, _encoding, callback) {
+        res.headersSent = true;
+        chunks.push(chunk);
+        callback();
+      },
+    }),
+    { headersSent: false, chunks },
+  );
+  vi.spyOn(res, 'destroy');
+  // a destroyed response emits 'error' here; a real ServerResponse hands that to the socket instead
+  res.on('error', () => undefined);
+  return res;
+}
+
+const tick = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
+
+describe('pipeWebStreamToResponse', () => {
+  const encoder = new TextEncoder();
+
+  it('streams the source to the response', async () => {
+    const res = createWritableRes();
+    const next = vi.fn();
+    const finished = new Promise((resolve) => res.on('finish', resolve));
+
+    pipeWebStreamToResponse(res as any, new Response('a,b\n1,2\n').body as ReadableStream<Uint8Array>, next);
+    await finished;
+
+    expect(Buffer.concat(res.chunks).toString()).toBe('a,b\n1,2\n');
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('destroys the response when the source fails after data was sent', async () => {
+    const res = createWritableRes();
+    const next = vi.fn();
+    const uncaughtExceptionListener = vi.fn();
+    process.on('uncaughtException', uncaughtExceptionListener);
+    const upstreamError = new Error('ECONNRESET');
+    const source = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode('a,b\n'));
+      },
+      async pull(controller) {
+        await tick();
+        controller.error(upstreamError);
+      },
+    });
+
+    try {
+      pipeWebStreamToResponse(res as any, source, next);
+      await vi.waitFor(() => expect(res.destroy).toHaveBeenCalledWith(upstreamError));
+    } finally {
+      process.off('uncaughtException', uncaughtExceptionListener);
+    }
+
+    expect(Buffer.concat(res.chunks).toString()).toBe('a,b\n');
+    expect(next).not.toHaveBeenCalled();
+    expect(uncaughtExceptionListener).not.toHaveBeenCalled();
+  });
+
+  it('passes the error to next when the source fails before anything was sent', async () => {
+    const res = createWritableRes();
+    const next = vi.fn();
+    const source = new ReadableStream<Uint8Array>({
+      async pull(controller) {
+        await tick();
+        controller.error(new Error('Salesforce unavailable'));
+      },
+    });
+
+    pipeWebStreamToResponse(res as any, source, next);
+    await vi.waitFor(() => expect(next).toHaveBeenCalledTimes(1));
+
+    expect(next.mock.calls[0][0]).toBeInstanceOf(UserFacingError);
+    expect(next.mock.calls[0][0].message).toBe('Salesforce unavailable');
+    expect(res.destroy).not.toHaveBeenCalled();
+  });
+
+  it('cancels the source when the client goes away before the download finishes', async () => {
+    const res = createWritableRes();
+    const onCancel = vi.fn();
+    const source = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode('a,b\n'));
+      },
+      async pull() {
+        // never produces more data, like a slow upstream
+        await new Promise(() => undefined);
+      },
+      cancel: onCancel,
+    });
+
+    pipeWebStreamToResponse(res as any, source, vi.fn());
+    await vi.waitFor(() => expect(res.chunks.length).toBe(1));
+    res.destroy();
+
+    await vi.waitFor(() => expect(onCancel).toHaveBeenCalled());
   });
 });

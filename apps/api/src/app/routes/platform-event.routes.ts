@@ -98,6 +98,20 @@ routes.use('/', async (req: express.Request, res: express.Response, next: expres
           if (proxyResponse.headers['set-cookie']) {
             responseHeaders['set-cookie'] = proxyResponse.headers['set-cookie'].map(normalizePlatformEventSetCookie);
           }
+          // An upstream reset mid-body would otherwise be an uncaught exception and leave the response hanging
+          proxyResponse.on('error', (err) => {
+            getLogger().warn({ err }, '[PROXY][RESPONSE_ERROR]');
+            if (!res.headersSent) {
+              next(err);
+              return;
+            }
+            res.destroy(err);
+          });
+          res.on('close', () => {
+            if (!res.writableFinished) {
+              proxyResponse.destroy();
+            }
+          });
           // stream response back to user
           res.writeHead(proxyResponse.statusCode || 500, responseHeaders);
           proxyResponse.pipe(res, { end: true });
