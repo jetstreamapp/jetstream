@@ -8,6 +8,8 @@
  * to forward the current session id.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { UserFacingError } from '../../utils/error-handler';
+import { sendJson } from '../../utils/response.handlers';
 import { routeDefinition } from '../user.controller';
 
 const emailMocks = vi.hoisted(() => ({
@@ -217,5 +219,61 @@ describe('user.controller - unlinkIdentity', () => {
     expect(passedUserId).toBe('user-id');
     expect(passedProvider).toBe('google');
     expect(passedProviderAccountId).toBe('google-account-A');
+  });
+});
+
+describe('user.controller - deletePassword', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    userDbMocks.findUserWithIdentitiesById.mockResolvedValue({
+      id: 'user-id',
+      email: 'user@example.com',
+      identities: [],
+    });
+    emailMocks.sendAuthenticationChangeConfirmation.mockResolvedValue(undefined);
+  });
+
+  it('fails without side effects when the password cannot be removed', async () => {
+    authServerMocks.removePasswordFromUser.mockResolvedValue({
+      error: new Error('Your password cannot be removed without an alternative login method, such as a social provider'),
+    });
+
+    const req = makeReq();
+    const res = makeRes();
+    const next = vi.fn();
+
+    const handler = routeDefinition.deletePassword.controllerFn();
+    await handler(req as never, res as never, next);
+
+    expect(authServerMocks.removePasswordFromUser).toHaveBeenCalledWith('user-id');
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next.mock.calls[0][0]).toBeInstanceOf(UserFacingError);
+    expect(next.mock.calls[0][0].message).toBe(
+      'Your password cannot be removed without an alternative login method, such as a social provider',
+    );
+    expect(authServerMocks.revokeAllUserSessions).not.toHaveBeenCalled();
+    expect(emailMocks.sendAuthenticationChangeConfirmation).not.toHaveBeenCalled();
+    expect(authServerMocks.createUserActivityFromReq).not.toHaveBeenCalled();
+    expect(sendJson).not.toHaveBeenCalled();
+  });
+
+  it('revokes other sessions and notifies the user when the password is removed', async () => {
+    authServerMocks.removePasswordFromUser.mockResolvedValue({ id: 'user-id' });
+
+    const req = makeReq();
+    const res = makeRes();
+    const next = vi.fn();
+
+    const handler = routeDefinition.deletePassword.controllerFn();
+    await handler(req as never, res as never, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(authServerMocks.revokeAllUserSessions).toHaveBeenCalledWith('user-id', 'current-session-id');
+    expect(emailMocks.sendAuthenticationChangeConfirmation).toHaveBeenCalledTimes(1);
+    expect(authServerMocks.createUserActivityFromReq).toHaveBeenCalledWith(
+      req,
+      res,
+      expect.objectContaining({ action: 'PASSWORD_REMOVE', success: true }),
+    );
   });
 });

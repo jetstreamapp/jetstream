@@ -252,7 +252,10 @@ const initResetPassword = createRoute(routeDefinition.initResetPassword.validato
 });
 
 const deletePassword = createRoute(routeDefinition.deletePassword.validators, async ({ user }, req, res) => {
-  await removePasswordFromUser(user.id);
+  const results = await removePasswordFromUser(user.id);
+  if ('error' in results) {
+    throw new UserFacingError(results.error.message);
+  }
 
   // Revoke other sessions so an attacker with a stolen session loses access when the legitimate user rotates credentials.
   await revokeAllUserSessions(user.id, req.session.id);
