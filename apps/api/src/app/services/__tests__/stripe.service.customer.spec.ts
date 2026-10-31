@@ -424,3 +424,77 @@ describe('createCheckoutSession expires older open checkout sessions', () => {
     expect(mocks.sessionsCreate).toHaveBeenCalledWith(expect.objectContaining({ expires_at: NOW.getTime() / 1000 + 60 * 60 }));
   });
 });
+
+describe('duplicate plan subscription detection', () => {
+  const planSubscription = (id: string, lookupKey: string, status = 'active') => ({
+    id,
+    status,
+    items: { data: [{ price: { id: `price_${lookupKey}`, lookup_key: lookupKey } }] },
+  });
+
+  const sync = (...subscriptions: ReturnType<typeof planSubscription>[]) =>
+    stripeService.saveOrUpdateSubscription({
+      customer: customer({ id: 'cus_1', created: 100, subscriptions }) as never,
+      sendWelcomeEmail: false,
+    });
+
+  const duplicateLogs = () =>
+    mocks.loggerError.mock.calls.filter(([, message]) => typeof message === 'string' && message.includes('review for a refund'));
+
+  it('logs one error naming every current individual subscription when there is more than one', async () => {
+    await sync(planSubscription('sub_monthly', 'PRO_MONTHLY'), planSubscription('sub_annual', 'PRO_ANNUAL', 'past_due'));
+
+    expect(duplicateLogs()).toHaveLength(1);
+    expect(duplicateLogs()[0][0]).toEqual(
+      expect.objectContaining({
+        customerId: 'cus_1',
+        userId: user.id,
+        personalPlanSubscriptionIds: ['sub_monthly', 'sub_annual'],
+        teamPlanSubscriptionIds: [],
+      }),
+    );
+  });
+
+  it('logs when a customer has more than one current team subscription', async () => {
+    const teamCustomer = customer({
+      id: 'cus_team',
+      created: 100,
+      metadata: { teamId: 'team-1', type: 'TEAM' },
+      subscriptions: [planSubscription('sub_team_1', 'TEAM_MONTHLY'), planSubscription('sub_team_2', 'TEAM_ANNUAL')],
+    });
+
+    // Recording the team needs the team db, which is out of scope here; the detector runs before it
+    await stripeService.saveOrUpdateSubscription({ customer: teamCustomer as never, sendWelcomeEmail: false }).catch(() => undefined);
+
+    expect(duplicateLogs()).toHaveLength(1);
+    expect(duplicateLogs()[0][0]).toEqual(
+      expect.objectContaining({ customerId: 'cus_team', teamPlanSubscriptionIds: ['sub_team_1', 'sub_team_2'] }),
+    );
+  });
+
+  it.each([
+    [
+      'one individual and one team subscription',
+      [planSubscription('sub_pro', 'PRO_MONTHLY'), planSubscription('sub_team', 'TEAM_MONTHLY')],
+    ],
+    [
+      'a current subscription next to an ended one',
+      [planSubscription('sub_new', 'PRO_MONTHLY'), planSubscription('sub_old', 'PRO_MONTHLY', 'canceled')],
+    ],
+    ['a single subscription', [planSubscription('sub_pro', 'PRO_MONTHLY')]],
+  ])('stays quiet for %s', async (_, subscriptions) => {
+    await sync(...subscriptions).catch(() => undefined);
+
+    expect(duplicateLogs()).toHaveLength(0);
+  });
+
+  it('only logs, leaving both subscriptions to be recorded as they are', async () => {
+    await sync(planSubscription('sub_monthly', 'PRO_MONTHLY'), planSubscription('sub_annual', 'PRO_ANNUAL'));
+
+    expect(mocks.updateSubscriptionStateForCustomer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subscriptions: [expect.objectContaining({ id: 'sub_monthly' }), expect.objectContaining({ id: 'sub_annual' })],
+      }),
+    );
+  });
+});

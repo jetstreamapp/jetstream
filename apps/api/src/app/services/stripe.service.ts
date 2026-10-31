@@ -826,6 +826,32 @@ export async function synchronizeStripeWithJetstreamTeamIfRequired({
 }
 
 /**
+ * Checkout refuses a second subscription of a plan the customer already has, but a checkout that was open before the
+ * first one completed, or a change made in Stripe, can still leave a customer paying twice. Nothing is canceled or
+ * refunded automatically; this only makes the double charge visible.
+ */
+function logDuplicatePlanSubscriptions(customer: Stripe.Customer) {
+  const currentSubscriptions = getCurrentSubscriptions(customer);
+  const teamPlanSubscriptionIds = currentSubscriptions.filter(isTeamPlanSubscription).map(({ id }) => id);
+  const personalPlanSubscriptionIds = currentSubscriptions
+    .filter((subscription) => !isTeamPlanSubscription(subscription))
+    .map(({ id }) => id);
+  if (teamPlanSubscriptionIds.length <= 1 && personalPlanSubscriptionIds.length <= 1) {
+    return;
+  }
+  logger.error(
+    {
+      customerId: customer.id,
+      userId: customer.metadata.userId,
+      teamId: customer.metadata.teamId,
+      teamPlanSubscriptionIds,
+      personalPlanSubscriptionIds,
+    },
+    '[STRIPE]: Customer has more than one current subscription for the same plan, review for a refund',
+  );
+}
+
+/**
  * Synchronize subscription state from Stripe to Jetstream
  *
  * If customer metadata is not correct, then this may be a NOOP
@@ -842,6 +868,8 @@ export async function saveOrUpdateSubscription({
     await subscriptionDbService.cancelAllSubscriptionsForUser({ customerId: customer.id });
     return;
   }
+
+  logDuplicatePlanSubscriptions(customer);
 
   let { userId, teamId, type = 'USER' } = customer.metadata;
   const subscriptions = customer.subscriptions?.data ?? [];
