@@ -1,4 +1,5 @@
 import { SalesforceOrgUi } from '@jetstream/types';
+import { DisabledReasonButton } from '@jetstream/ui';
 import { useOperationAccess } from '@jetstream/ui/app-state';
 import { useSetAtom } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
@@ -81,10 +82,10 @@ export const CreateNewObject: FunctionComponent<CreateNewObjectProps> = ({
 
   return (
     <Fragment>
-      <button
+      <DisabledReasonButton
         className="slds-button slds-button_neutral"
         disabled={!deployAccess.allowed}
-        title={deployAccess.deniedReason}
+        disabledReason={deployAccess.deniedReason}
         onClick={() => {
           resetAll();
           setSelectedProfiles(initialSelectedProfiles);
@@ -93,7 +94,7 @@ export const CreateNewObject: FunctionComponent<CreateNewObjectProps> = ({
         }}
       >
         Create New Object
-      </button>
+      </DisabledReasonButton>
 
       {modalOpen && <CreateNewObjectModal onClose={handleClose} selectedOrg={selectedOrg} />}
     </Fragment>
