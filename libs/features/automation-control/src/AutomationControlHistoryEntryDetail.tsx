@@ -3,8 +3,8 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { AutomationControlHistoryEntry, AutomationControlRestoreAction } from '@jetstream/types';
 import type { Column } from '@jetstream/ui';
-import { Badge, DataTable, Grid, Icon, Tooltip } from '@jetstream/ui';
-import { FunctionComponent, useMemo } from 'react';
+import { Badge, DataTable, DisabledReasonButton, Grid, Icon, Tooltip } from '@jetstream/ui';
+import { FunctionComponent, MutableRefObject, useMemo } from 'react';
 import { getAutomationTypeLabel } from './automation-control-data-utils';
 import { formatHistoryDate, getHistoryActionLabel, getHistoryStatus } from './automation-control-history-utils';
 import { AutomationPackageVariant } from './automation-control-package-utils';
@@ -54,6 +54,7 @@ const getRowKey = ({ key }: HistoryItemRow) => key;
 export interface AutomationControlHistoryEntryDetailProps {
   entry: AutomationControlHistoryEntry;
   isPreparingPackage: boolean;
+  packageTriggerRef: MutableRefObject<HTMLButtonElement | null>;
   onRestore: (entry: AutomationControlHistoryEntry, action: AutomationControlRestoreAction) => void;
   onDownloadPackage: (entry: AutomationControlHistoryEntry, variant: AutomationPackageVariant) => void;
 }
@@ -61,6 +62,7 @@ export interface AutomationControlHistoryEntryDetailProps {
 export const AutomationControlHistoryEntryDetail: FunctionComponent<AutomationControlHistoryEntryDetailProps> = ({
   entry,
   isPreparingPackage,
+  packageTriggerRef,
   onRestore,
   onDownloadPackage,
 }) => {
@@ -97,20 +99,19 @@ export const AutomationControlHistoryEntryDetail: FunctionComponent<AutomationCo
           <AutomationPackageDropDown
             className="slds-m-right_x-small"
             isPreparing={isPreparingPackage}
+            triggerRef={packageTriggerRef}
             onSelected={(variant) => onDownloadPackage(entry, variant)}
           />
-          <Tooltip
-            content={
-              canRollBack
-                ? 'Restore the active state from before these changes were deployed.'
-                : 'Nothing was deployed successfully, so there is nothing to roll back.'
-            }
+          <DisabledReasonButton
+            className="slds-button slds-button_brand"
+            tooltip="Restore the active state from before these changes were deployed."
+            disabled={!canRollBack}
+            disabledReason="Nothing was deployed successfully, so there is nothing to roll back."
+            onClick={() => onRestore(entry, 'rollback')}
           >
-            <button className="slds-button slds-button_brand" disabled={!canRollBack} onClick={() => onRestore(entry, 'rollback')}>
-              <Icon type="utility" icon="undo" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Roll Back
-            </button>
-          </Tooltip>
+            <Icon type="utility" icon="undo" className="slds-button__icon slds-button__icon_left" omitContainer />
+            Roll Back
+          </DisabledReasonButton>
           <Tooltip content="Apply these changes again. Items that failed are retried.">
             <button className="slds-button slds-button_neutral slds-m-left_x-small" onClick={() => onRestore(entry, 'redeploy')}>
               <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />

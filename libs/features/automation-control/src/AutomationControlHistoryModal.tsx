@@ -5,6 +5,7 @@ import { AutomationControlHistoryEntry, AutomationControlRestoreAction, Salesfor
 import {
   Badge,
   EmptyState,
+  focusListEntryRow,
   Grid,
   GridCol,
   List,
@@ -12,13 +13,14 @@ import {
   OpenRoadIllustration,
   ScopedNotification,
   SearchInput,
+  ShowingCountStatus,
   Spinner,
 } from '@jetstream/ui';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { AUTOMATION_CONTROL_HISTORY_MAX_ENTRIES_PER_ORG, automationControlHistoryDb } from '@jetstream/ui/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useAtomValue } from 'jotai';
-import { Fragment, FunctionComponent, useMemo, useState } from 'react';
+import { Fragment, FunctionComponent, useMemo, useRef, useState } from 'react';
 import { getAutomationTypeLabel } from './automation-control-data-utils';
 import { formatHistoryDate, getHistoryActionLabel, getHistoryStatus } from './automation-control-history-utils';
 import { getPackageItemsFromHistory } from './automation-control-package-utils';
@@ -61,11 +63,9 @@ export const AutomationControlHistoryModal: FunctionComponent<AutomationControlH
   const { defaultApiVersion } = useAtomValue(applicationCookieState);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [filterValue, setFilterValue] = useState('');
-  const { preparingVariant, packageDownload, packageError, preparePackage, closePackageDownload } = useAutomationPackageDownload(
-    selectedOrg,
-    defaultApiVersion,
-    'history',
-  );
+  const { preparingVariant, packageDownload, packageError, preparePackage, closePackageDownload, packageTriggerRef, modalInitialFocus } =
+    useAutomationPackageDownload(selectedOrg, defaultApiVersion, 'history');
+  const listRef = useRef<HTMLUListElement>(null);
 
   const entries = useLiveQuery(() => automationControlHistoryDb.getEntries(selectedOrg.uniqueId), [selectedOrg.uniqueId]);
   const loading = entries === undefined;
@@ -85,6 +85,7 @@ export const AutomationControlHistoryModal: FunctionComponent<AutomationControlH
         tagline={`Changes deployed to this org from Automation Control. The last ${AUTOMATION_CONTROL_HISTORY_MAX_ENTRIES_PER_ORG} deployments are kept in this browser.`}
         size="lg"
         hide={!!packageDownload}
+        initialFocus={modalInitialFocus}
         classStyles={css`
           min-height: 75vh;
           max-height: 75vh;
@@ -118,15 +119,21 @@ export const AutomationControlHistoryModal: FunctionComponent<AutomationControlH
             <GridCol size={12} sizeMedium={4} className="slds-scrollable_y slds-p-right_small">
               <SearchInput
                 id="automation-history-filter"
+                ariaLabel="Filter deployments"
                 placeholder="Filter by object, automation, or date"
                 value={filterValue}
                 onChange={setFilterValue}
+                onArrowKeyUpDown={() => focusListEntryRow(listRef.current)}
               />
-              <div className="slds-text-body_small slds-text-color_weak slds-p-left_xx-small slds-p-vertical_xx-small">
-                Showing {formatNumber(filteredListRows.length)} of {formatNumber(listRows.length)}{' '}
-                {pluralizeFromNumber('deployment', listRows.length)}
-              </div>
+              <ShowingCountStatus
+                className="slds-text-body_small slds-text-color_weak slds-p-left_xx-small slds-p-vertical_xx-small"
+                filteredCount={filteredListRows.length}
+                totalCount={listRows.length}
+                singularNoun="deployment"
+              />
               <List
+                ref={listRef}
+                ariaLabel="Deployment history"
                 items={filteredListRows}
                 isActive={({ entry }: HistoryListRow) => entry.key === selectedEntry?.key}
                 onSelected={setSelectedKey}
@@ -158,6 +165,7 @@ export const AutomationControlHistoryModal: FunctionComponent<AutomationControlH
                 <AutomationControlHistoryEntryDetail
                   entry={selectedEntry}
                   isPreparingPackage={!!preparingVariant}
+                  packageTriggerRef={packageTriggerRef}
                   onRestore={onRestore}
                   onDownloadPackage={(entry, variant) => preparePackage(getPackageItemsFromHistory(entry.items, variant), variant)}
                 />
