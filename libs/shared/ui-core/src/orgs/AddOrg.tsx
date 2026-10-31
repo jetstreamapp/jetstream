@@ -24,6 +24,12 @@ import { parseSalesforceLoginUrl } from './salesforce-login-url.utils';
 
 type OrgType = 'prod' | 'sandbox' | 'pre-release' | 'custom';
 
+const RECONNECT_LOGIN_URL_IDS = {
+  label: 'org-reconnect-login-url-label',
+  value: 'org-reconnect-login-url',
+  help: 'org-reconnect-login-url-help',
+};
+
 const loginUrlMap = {
   prod: SFDC_LOGIN_URL_PROD,
   sandbox: SFDC_LOGIN_URL_SANDBOX,
@@ -165,9 +171,13 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
         <div className="slds-text-align_left">
           {reconnectOnlyLoginUrl ? (
             <ReadOnlyFormElement
-              id="org-reconnect-login-url"
-              label="Salesforce Login URL"
-              helpText="Your team's access profile allows reconnecting orgs you have already added, but not connecting new orgs."
+              id={RECONNECT_LOGIN_URL_IDS.value}
+              label={<span id={RECONNECT_LOGIN_URL_IDS.label}>Salesforce Login URL</span>}
+              helpText={
+                <span id={RECONNECT_LOGIN_URL_IDS.help}>
+                  Your team's access profile allows reconnecting orgs you have already added, but not connecting new orgs.
+                </span>
+              }
               value={reconnectOnlyLoginUrl}
             />
           ) : (
@@ -291,7 +301,17 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
               </a>
             </GridCol>
             <GridCol bump="left">
-              <button className="slds-button slds-button_brand" onClick={handleAddOrg} disabled={!canContinue}>
+              <button
+                className="slds-button slds-button_brand"
+                // The fixed login url is not a form control, so tie it (and why it is fixed) to the button that uses it
+                aria-describedby={
+                  reconnectOnlyLoginUrl
+                    ? `${RECONNECT_LOGIN_URL_IDS.label} ${RECONNECT_LOGIN_URL_IDS.value} ${RECONNECT_LOGIN_URL_IDS.help}`
+                    : undefined
+                }
+                onClick={handleAddOrg}
+                disabled={!canContinue}
+              >
                 Continue
               </button>
             </GridCol>
