@@ -11,6 +11,7 @@ export default defineConfig(() => ({
     globals: true,
     environment: 'jsdom',
     include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    setupFiles: ['../../test-utils/src/test-setup-dom.ts'],
     reporters: ['default'],
     passWithNoTests: true,
     coverage: {
