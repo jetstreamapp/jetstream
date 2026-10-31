@@ -31,7 +31,7 @@ const mocks = vi.hoisted(() => ({
     id: 'team_new',
     customerId: billingAccountCustomerId,
   })),
-  upsertBillingAccount: vi.fn(async () => ({})),
+  upsertBillingAccount: vi.fn(async ({ customerId }: { userId: string; customerId: string; canRepoint: boolean }) => ({ customerId })),
   checkoutSessionsRetrieve: vi.fn(),
   // An existing billing account keeps its customer, which is what the team sync compares against
   createBillingAccountIfNotExists: vi.fn(async ({ customerId }: { teamId: string; customerId: string }) => ({ customerId })),
@@ -334,7 +334,7 @@ describe('personal -> team plan upgrade', () => {
       const result = await stripeService.saveSubscriptionFromCompletedSession({ sessionId: 'cs_1' });
 
       expect(mocks.upsertTeamWithBillingAccount).toHaveBeenCalledWith(expect.objectContaining({ rebindCustomerForTeamId: undefined }));
-      expect(mocks.upsertBillingAccount).toHaveBeenCalledWith({ userId: 'user_1', customerId: 'cus_1' });
+      expect(mocks.upsertBillingAccount).toHaveBeenCalledWith({ userId: 'user_1', customerId: 'cus_1', canRepoint: true });
       expect(mocks.customersUpdate).toHaveBeenCalledWith('cus_1', { metadata: { userId: 'user_1', teamId: null, type: 'USER' } });
       expect(mocks.updateTeamSubscriptionStateForCustomer).not.toHaveBeenCalled();
       expect(result).toEqual({ userId: 'user_1', teamId: null, type: 'USER' });

@@ -629,14 +629,26 @@ export async function saveSubscriptionFromCompletedSession({
       teamId = null;
     }
   }
+  // Stripe merges metadata keys, so an absent productionOrgId keeps a previously collected value in place
+  const productionOrgId = getProductionOrgIdFromSession(session);
   if (type === 'USER') {
-    // Ensure billing account exists
-    await userDbService.upsertBillingAccount({ userId, customerId });
+    // A subscription still waiting on its first payment cannot take the account; the subscription event that
+    // follows payment claims it through `saveOrUpdateSubscription`
+    const billingAccount = await userDbService.upsertBillingAccount({
+      userId,
+      customerId,
+      canRepoint: isObject(subscription) && paidSubscriptionStatuses.has(subscription.status),
+    });
+    if (billingAccount.customerId !== customerId) {
+      // Recording this customer would overwrite the subscriptions of the customer that holds the account. Returning
+      // instead of throwing keeps the webhook from retrying a decision that will not change.
+      await updateCustomerMetadata(customerId, { userId, teamId: null, type: 'USER', productionOrgId });
+      return { userId, teamId: null, type: 'USER' as const };
+    }
   }
 
   // ensure stripe has proper metadata
-  // Stripe merges metadata keys, so an absent productionOrgId keeps a previously collected value in place
-  await updateCustomerMetadata(customerId, { userId, teamId, type, productionOrgId: getProductionOrgIdFromSession(session) });
+  await updateCustomerMetadata(customerId, { userId, teamId, type, productionOrgId });
 
   // Update customer subscriptions - will also be updated via webhook
   const customer = await fetchCustomerWithSubscriptionsById({ customerId });
@@ -866,7 +878,18 @@ export async function saveOrUpdateSubscription({
     await stripe.customers.update(customer.id, { metadata: { userId, type } });
   } else if (userId && type === 'USER') {
     // For new subscriptions, create a billing account if it does not exist
-    await userDbService.upsertBillingAccount({ userId, customerId: customer.id });
+    const billingAccount = await userDbService.upsertBillingAccount({
+      userId,
+      customerId: customer.id,
+      canRepoint: subscriptions.some(({ status }) => paidSubscriptionStatuses.has(status)),
+    });
+    if (billingAccount.customerId !== customer.id) {
+      logger.warn(
+        { customerId: customer.id, userId, billingAccountCustomerId: billingAccount.customerId },
+        'Unable to save subscriptions - the customer does not hold the user billing account',
+      );
+      return;
+    }
   } else if (teamId && type === 'TEAM') {
     // For new subscriptions, create a billing account if it does not exist
     const billingAccount = await teamDbService.createBillingAccountIfNotExists({ teamId, customerId: customer.id });

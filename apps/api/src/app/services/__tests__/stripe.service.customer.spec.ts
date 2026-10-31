@@ -8,6 +8,10 @@ const mocks = vi.hoisted(() => ({
   customersRetrieve: vi.fn(),
   createFundingInstructions: vi.fn(async () => ({})),
   sessionsCreate: vi.fn(async () => ({ id: 'cs_new', url: 'https://checkout.stripe.test/cs_new' })),
+  sessionsRetrieve: vi.fn(),
+  upsertBillingAccount: vi.fn(),
+  updateSubscriptionStateForCustomer: vi.fn(async () => undefined),
+  updateUserEntitlements: vi.fn(async () => undefined),
   loggerWarn: vi.fn(),
   loggerError: vi.fn(),
 }));
@@ -21,7 +25,7 @@ vi.mock('stripe', () => ({
       retrieve: mocks.customersRetrieve,
       update: mocks.customersUpdate,
     };
-    checkout = { sessions: { create: mocks.sessionsCreate } };
+    checkout = { sessions: { create: mocks.sessionsCreate, retrieve: mocks.sessionsRetrieve } };
     entitlements = { activeEntitlements: { list: vi.fn(async () => ({ data: [] })) } };
   },
 }));
@@ -31,10 +35,16 @@ vi.mock('@jetstream/api-config', () => ({
   logger: { error: mocks.loggerError, warn: mocks.loggerWarn, info: vi.fn(), debug: vi.fn() },
   prisma: {},
 }));
-vi.mock('@jetstream/email', () => ({ sendWelcomeToProEmail: vi.fn() }));
-vi.mock('../../db/subscription.db', () => ({}));
+vi.mock('@jetstream/email', () => ({ sendWelcomeToProEmail: vi.fn(async () => undefined) }));
+vi.mock('../../db/subscription.db', () => ({
+  updateSubscriptionStateForCustomer: mocks.updateSubscriptionStateForCustomer,
+  updateUserEntitlements: mocks.updateUserEntitlements,
+}));
 vi.mock('../../db/team.db', () => ({}));
-vi.mock('../../db/user.db', () => ({}));
+vi.mock('../../db/user.db', () => ({
+  upsertBillingAccount: mocks.upsertBillingAccount,
+  findById: vi.fn(async () => ({ id: 'user-1', email: 'user@example.com' })),
+}));
 
 const user = { id: 'user-1', name: 'Test User', email: 'user@example.com' };
 
@@ -48,7 +58,7 @@ const customer = ({
   id: string;
   created: number;
   email?: string;
-  subscriptions?: { id: string; status: string }[];
+  subscriptions?: { id: string; status: string; items?: unknown }[];
   metadata?: Record<string, string>;
 }) => ({
   id,
@@ -74,6 +84,7 @@ beforeEach(async () => {
     metadata: {},
     ...params,
   }));
+  mocks.upsertBillingAccount.mockImplementation(async ({ customerId }: { customerId: string }) => ({ customerId }));
   stripeService = await import('../stripe.service');
 });
 
@@ -246,5 +257,75 @@ describe('createCheckoutSession without a customer', () => {
     await createSession();
 
     expect(mocks.customersSearch).not.toHaveBeenCalled();
+  });
+});
+
+describe('recording a checkout that completed on a second customer', () => {
+  const proSubscription = (status: string) => ({
+    id: `sub_${status}`,
+    status,
+    items: { data: [{ price: { id: 'price_PRO_MONTHLY', lookup_key: 'PRO_MONTHLY' } }] },
+  });
+
+  const completeCheckout = (subscriptionStatus: string | null) => {
+    mocks.sessionsRetrieve.mockResolvedValue({
+      id: 'cs_1',
+      status: 'complete',
+      customer: 'cus_new',
+      client_reference_id: user.id,
+      metadata: { userId: user.id, type: 'USER' },
+      subscription: subscriptionStatus ? proSubscription(subscriptionStatus) : null,
+      custom_fields: [],
+    });
+    mocks.customersRetrieve.mockResolvedValue({
+      ...customer({ id: 'cus_new', created: 200, subscriptions: subscriptionStatus ? [proSubscription(subscriptionStatus)] : [] }),
+    });
+    return stripeService.saveSubscriptionFromCompletedSession({ sessionId: 'cs_1' });
+  };
+
+  it('records the subscription on the customer the payment belongs to', async () => {
+    const result = await completeCheckout('active');
+
+    expect(mocks.upsertBillingAccount).toHaveBeenCalledWith({ userId: user.id, customerId: 'cus_new', canRepoint: true });
+    expect(mocks.updateSubscriptionStateForCustomer).toHaveBeenCalledWith(expect.objectContaining({ customerId: 'cus_new' }));
+    expect(mocks.updateUserEntitlements).toHaveBeenCalledWith('cus_new', expect.anything());
+    expect(result).toEqual({ userId: user.id, teamId: null, type: 'USER' });
+  });
+
+  it('does not let a subscription still waiting on payment take the billing account', async () => {
+    await completeCheckout('incomplete');
+
+    expect(mocks.upsertBillingAccount).toHaveBeenCalledWith(expect.objectContaining({ canRepoint: false }));
+  });
+
+  // Throwing here would make the webhook retry forever, which is how the unique violation used to strand the payment
+  it('finishes without recording anything when the billing account stays on another customer', async () => {
+    mocks.upsertBillingAccount.mockResolvedValue({ customerId: 'cus_old' });
+
+    const result = await completeCheckout('active');
+
+    expect(result).toEqual({ userId: user.id, teamId: null, type: 'USER' });
+    expect(mocks.customersUpdate).toHaveBeenCalledWith('cus_new', { metadata: { userId: user.id, teamId: null, type: 'USER' } });
+    expect(mocks.updateSubscriptionStateForCustomer).not.toHaveBeenCalled();
+    expect(mocks.updateUserEntitlements).not.toHaveBeenCalled();
+  });
+
+  it('skips a subscription event from a customer that does not hold the billing account', async () => {
+    mocks.upsertBillingAccount.mockResolvedValue({ customerId: 'cus_old' });
+    const eventCustomer = customer({ id: 'cus_abandoned', created: 100, subscriptions: [proSubscription('incomplete')] });
+
+    await stripeService.saveOrUpdateSubscription({ customer: eventCustomer as never, sendWelcomeEmail: false });
+
+    expect(mocks.upsertBillingAccount).toHaveBeenCalledWith({ userId: user.id, customerId: 'cus_abandoned', canRepoint: false });
+    expect(mocks.updateSubscriptionStateForCustomer).not.toHaveBeenCalled();
+  });
+
+  it('lets a subscription event from a paid customer claim the billing account', async () => {
+    const eventCustomer = customer({ id: 'cus_paid', created: 100, subscriptions: [proSubscription('active')] });
+
+    await stripeService.saveOrUpdateSubscription({ customer: eventCustomer as never, sendWelcomeEmail: false });
+
+    expect(mocks.upsertBillingAccount).toHaveBeenCalledWith({ userId: user.id, customerId: 'cus_paid', canRepoint: true });
+    expect(mocks.updateSubscriptionStateForCustomer).toHaveBeenCalledWith(expect.objectContaining({ customerId: 'cus_paid' }));
   });
 });

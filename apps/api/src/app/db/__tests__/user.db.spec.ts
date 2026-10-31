@@ -1,5 +1,6 @@
+import { Prisma } from '@jetstream/prisma';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { findActiveTeamAccessProfile, findIdByUserIdUserFacing, getBillingAccount, updateUser } from '../user.db';
+import { findActiveTeamAccessProfile, findIdByUserIdUserFacing, getBillingAccount, updateUser, upsertBillingAccount } from '../user.db';
 
 const prismaMock = vi.hoisted(() => ({
   user: {
@@ -10,12 +11,18 @@ const prismaMock = vi.hoisted(() => ({
   teamMember: {
     findFirst: vi.fn(),
   },
+  billingAccount: {
+    findUnique: vi.fn(),
+    findUniqueOrThrow: vi.fn(),
+    create: vi.fn(),
+    updateMany: vi.fn(),
+  },
 }));
 
+const loggerMock = vi.hoisted(() => ({ error: vi.fn(), warn: vi.fn(), info: vi.fn() }));
+
 vi.mock('@jetstream/api-config', () => ({
-  logger: {
-    error: vi.fn(),
-  },
+  logger: loggerMock,
   prisma: prismaMock,
 }));
 
@@ -220,5 +227,124 @@ describe('getBillingAccount gates the team customer on active membership', () =>
     const result = await getBillingAccount('admin-of-inactive-team');
 
     expect(result).toBeNull();
+  });
+});
+
+describe('upsertBillingAccount', () => {
+  const USER_ID = 'user-1';
+
+  const uniqueConstraintError = () =>
+    new Prisma.PrismaClientKnownRequestError('Unique constraint failed', { code: 'P2002', clientVersion: 'test' });
+
+  function existingAccount({ customerId, paidSubscriptionIds = [] }: { customerId: string; paidSubscriptionIds?: string[] }) {
+    prismaMock.billingAccount.findUnique.mockResolvedValue({
+      customerId,
+      subscriptions: paidSubscriptionIds.map((subscriptionId) => ({ subscriptionId })),
+    });
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prismaMock.billingAccount.findUnique.mockResolvedValue(null);
+    prismaMock.billingAccount.create.mockImplementation(async ({ data }: { data: { customerId: string } }) => ({
+      customerId: data.customerId,
+    }));
+    prismaMock.billingAccount.updateMany.mockResolvedValue({ count: 1 });
+  });
+
+  it('looks the account up by user id alone and reads only the paid subscriptions recorded on it', async () => {
+    await upsertBillingAccount({ userId: USER_ID, customerId: 'cus_1', canRepoint: true });
+
+    expect(prismaMock.billingAccount.findUnique).toHaveBeenCalledWith({
+      where: { userId: USER_ID },
+      select: {
+        customerId: true,
+        subscriptions: { where: { status: { in: ['ACTIVE', 'TRIALING'] } }, select: { subscriptionId: true } },
+      },
+    });
+  });
+
+  it('creates the account for a user who has none', async () => {
+    await expect(upsertBillingAccount({ userId: USER_ID, customerId: 'cus_1', canRepoint: false })).resolves.toEqual({
+      customerId: 'cus_1',
+    });
+    expect(prismaMock.billingAccount.create).toHaveBeenCalledWith({
+      data: { customerId: 'cus_1', userId: USER_ID },
+      select: { customerId: true },
+    });
+  });
+
+  it('leaves an account already on the customer alone', async () => {
+    existingAccount({ customerId: 'cus_1', paidSubscriptionIds: ['sub_1'] });
+
+    await expect(upsertBillingAccount({ userId: USER_ID, customerId: 'cus_1', canRepoint: false })).resolves.toEqual({
+      customerId: 'cus_1',
+    });
+    expect(prismaMock.billingAccount.create).not.toHaveBeenCalled();
+    expect(prismaMock.billingAccount.updateMany).not.toHaveBeenCalled();
+  });
+
+  // The unique violation used to abort checkout completion after the user had already been charged
+  it('moves the account to a second paid customer instead of failing on the unique user id', async () => {
+    existingAccount({ customerId: 'cus_old' });
+    prismaMock.billingAccount.create.mockRejectedValue(uniqueConstraintError());
+
+    await expect(upsertBillingAccount({ userId: USER_ID, customerId: 'cus_new', canRepoint: true })).resolves.toEqual({
+      customerId: 'cus_new',
+    });
+    expect(prismaMock.billingAccount.create).not.toHaveBeenCalled();
+    expect(prismaMock.billingAccount.updateMany).toHaveBeenCalledWith({
+      where: { userId: USER_ID, customerId: 'cus_old' },
+      data: { customerId: 'cus_new' },
+    });
+  });
+
+  it('keeps the account on its customer when the new one has nothing paid for', async () => {
+    existingAccount({ customerId: 'cus_old' });
+
+    await expect(upsertBillingAccount({ userId: USER_ID, customerId: 'cus_new', canRepoint: false })).resolves.toEqual({
+      customerId: 'cus_old',
+    });
+    expect(prismaMock.billingAccount.updateMany).not.toHaveBeenCalled();
+    expect(loggerMock.error).not.toHaveBeenCalled();
+  });
+
+  it('keeps the account on a customer that is still paid for and flags the double charge for a refund', async () => {
+    existingAccount({ customerId: 'cus_old', paidSubscriptionIds: ['sub_old'] });
+
+    await expect(upsertBillingAccount({ userId: USER_ID, customerId: 'cus_new', canRepoint: true })).resolves.toEqual({
+      customerId: 'cus_old',
+    });
+    expect(prismaMock.billingAccount.updateMany).not.toHaveBeenCalled();
+    expect(loggerMock.error).toHaveBeenCalledTimes(1);
+    expect(loggerMock.error).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: USER_ID, customerId: 'cus_new', billingAccountCustomerId: 'cus_old' }),
+      expect.stringContaining('review for a refund'),
+    );
+  });
+
+  it('reports the customer a concurrent event moved the account to', async () => {
+    existingAccount({ customerId: 'cus_old' });
+    prismaMock.billingAccount.updateMany.mockResolvedValue({ count: 0 });
+    prismaMock.billingAccount.findUniqueOrThrow.mockResolvedValue({ customerId: 'cus_other' });
+
+    await expect(upsertBillingAccount({ userId: USER_ID, customerId: 'cus_new', canRepoint: true })).resolves.toEqual({
+      customerId: 'cus_other',
+    });
+  });
+
+  it('reports the customer of an account a concurrent event created first', async () => {
+    prismaMock.billingAccount.create.mockRejectedValue(uniqueConstraintError());
+    prismaMock.billingAccount.findUniqueOrThrow.mockResolvedValue({ customerId: 'cus_other' });
+
+    await expect(upsertBillingAccount({ userId: USER_ID, customerId: 'cus_new', canRepoint: true })).resolves.toEqual({
+      customerId: 'cus_other',
+    });
+  });
+
+  it('rethrows any other database error', async () => {
+    prismaMock.billingAccount.create.mockRejectedValue(new Error('connection lost'));
+
+    await expect(upsertBillingAccount({ userId: USER_ID, customerId: 'cus_1', canRepoint: true })).rejects.toThrow('connection lost');
   });
 });
