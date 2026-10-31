@@ -234,6 +234,11 @@ export const DesktopUserPreferencesSchema = z.object({
    * it off regardless of this value (see `UpdatePolicy`).
    */
   autoUpdateEnabled: z.boolean().optional().default(true),
+  /**
+   * Main-process TLS (every Salesforce request) also trusts certificate authorities from the OS store, for
+   * networks that inspect TLS traffic with a corporate CA. App windows already trust the OS store.
+   */
+  trustSystemCertificates: z.boolean().optional().default(false),
   /** Base directory for native Data History storage — defaults to `<userData>/data-history` when unset */
   dataHistoryFolder: z.string().optional(),
   soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.prefault({}),

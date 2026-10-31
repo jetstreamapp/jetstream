@@ -1,6 +1,7 @@
 import { DesktopUserPreferencesSchema } from '@jetstream/desktop/types';
 import { z } from 'zod';
 import { ENV } from '../config/environment';
+import { applySystemCertificateTrust } from '../config/system-certificates';
 import * as dataService from '../services/persistence.service';
 import { broadcastPreferencesChanged } from '../services/preferences-broadcast.service';
 import { getDesktopRequestHeaders } from '../utils/request-headers.utils';
@@ -52,7 +53,9 @@ const updateProfile = createRoute(routeDefinition.updateProfile.validators, asyn
   try {
     // This route is called from the renderer (electronAPI.request), so it must apply the same
     // restrictions as the `setPreferences` IPC handler - the folder paths are main-process-owned.
-    broadcastPreferencesChanged(dataService.updateUserPreferencesFromRenderer(body.preferences));
+    const updatedPreferences = dataService.updateUserPreferencesFromRenderer(body.preferences);
+    broadcastPreferencesChanged(updatedPreferences);
+    applySystemCertificateTrust(updatedPreferences.trustSystemCertificates);
     const userProfile = dataService.getFullUserProfile();
 
     return handleJsonResponse(userProfile);

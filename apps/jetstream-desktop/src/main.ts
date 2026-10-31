@@ -5,10 +5,12 @@ import { closeSettingsWindowIfAlone } from './browser/settings-window';
 import { initializeAutoUpdater } from './config/auto-updater';
 import { ENV } from './config/environment';
 import { initializeSmokeTest } from './config/smoke-test';
+import { applySystemCertificateTrust } from './config/system-certificates';
 import { initDeepLink } from './services/deep-link.service';
 import { registerIpc } from './services/ipc.service';
 import { initAppMenu } from './services/menu.service';
 import { registerNotificationPoller } from './services/notification.service';
+import { getUserPreferences } from './services/persistence.service';
 import {
   registerDownloadHandler,
   registerFileOpenHandler,
@@ -58,6 +60,9 @@ logger.info({
 });
 
 app.whenReady().then(async () => {
+  // Before anything opens a TLS connection - a connection keeps the trust it was opened with
+  applySystemCertificateTrust(getUserPreferences().trustSystemCertificates);
+
   // re-initialize so that recent documents menu is up to date
   initAppMenu();
   registerProtocols();
