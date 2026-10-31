@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { formatNumber, hasCtrlOrMeta, isEnterKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES, Field, Maybe, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
 import { ChangeEvent, Fragment, FunctionComponent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ariaDisabledButtonProps } from '../form/button/aria-disabled-button.utils';
+import { DisabledReasonButton } from '../form/button/DisabledReasonButton';
 import Checkbox from '../form/checkbox/Checkbox';
 import Input from '../form/input/Input';
 import SearchInput from '../form/search-input/SearchInput';
@@ -689,27 +689,23 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
               {allSaved ? 'Close' : 'Cancel'}
             </button>
             {!allSaved && (
-              // The reason rides on a Tooltip rather than a title: an aria-disabled button has
-              // pointer-events:none, so hover never reaches it, while the tooltip's own wrapper still does
-              <Tooltip
-                // The wrapper breaks the footer's `.slds-button + .slds-button` spacing rule
-                className="slds-m-left_x-small"
-                content={
+              // Stays focusable while it disables itself, and says why on hover and keyboard focus
+              <DisabledReasonButton
+                className="slds-button slds-button_brand"
+                // The tooltip wrapper breaks the footer's `.slds-button + .slds-button` spacing rule
+                tooltipClassName="slds-m-left_x-small"
+                disabled={saveDisabled}
+                disabledReason={
                   !canWriteRecords
                     ? ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['records.write']
                     : hasBlockingErrors
                       ? 'Fix the highlighted errors before saving'
                       : batchSizeError
                 }
+                onClick={() => handleSave()}
               >
-                <button
-                  className="slds-button slds-button_brand"
-                  // aria-disabled keeps focus on Save while it disables itself
-                  {...ariaDisabledButtonProps(saveDisabled, handleSave)}
-                >
-                  Save ({formatNumber(dirtyRows.length)})
-                </button>
-              </Tooltip>
+                Save ({formatNumber(dirtyRows.length)})
+              </DisabledReasonButton>
             )}
           </div>
         </div>
