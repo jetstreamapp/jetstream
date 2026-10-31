@@ -119,8 +119,12 @@ export function filterInactiveSubscriptions(subscriptions: Stripe.Subscription[]
   return subscriptions.filter((subscription) => activeSubscriptionStatuses.has(subscription.status));
 }
 
+function isTeamPlanSubscription({ items }: Stripe.Subscription): boolean {
+  return items.data.some((item) => item.price.lookup_key?.startsWith('TEAM_'));
+}
+
 function findTeamPlanSubscription(subscriptions: Stripe.Subscription[]) {
-  return subscriptions.find(({ items }) => items.data.some((item) => item.price.lookup_key?.startsWith('TEAM_')));
+  return subscriptions.find(isTeamPlanSubscription);
 }
 
 /** Any other status still holds the customer's plan, including past due, unpaid and set to cancel */
@@ -139,6 +143,15 @@ function getCurrentSubscriptions(customer: Stripe.Customer): Stripe.Subscription
  */
 export function hasCurrentTeamPlanSubscription(customer: Stripe.Customer): boolean {
   return !!findTeamPlanSubscription(getCurrentSubscriptions(customer));
+}
+
+/**
+ * The individual plan counterpart of `hasCurrentTeamPlanSubscription`: a second one on the same customer charges the
+ * user twice for the same entitlements, so checkout must not start another one until the current one has ended.
+ * Any subscription without a TEAM price counts, so a legacy individual price is covered too.
+ */
+export function hasCurrentPersonalPlanSubscription(customer: Stripe.Customer): boolean {
+  return getCurrentSubscriptions(customer).some((subscription) => !isTeamPlanSubscription(subscription));
 }
 
 /**

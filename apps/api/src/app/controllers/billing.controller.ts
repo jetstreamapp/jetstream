@@ -201,10 +201,13 @@ const createCheckoutSessionHandler = createRoute(
         : await resolvePersonalCustomer(user);
       // Read from Stripe rather than the database so a checkout that just completed counts before its
       // webhook lands. The billing page never offers checkout in this state, so this catches direct
-      // calls and a stale second tab.
-      if (team && checkoutCustomer && stripeService.hasCurrentTeamPlanSubscription(checkoutCustomer)) {
+      // calls and a stale second tab. A buyer without a team yet is checked too: their own customer can
+      // already carry a Team subscription whose team was never created or that they have since left.
+      if (checkoutCustomer && stripeService.hasCurrentTeamPlanSubscription(checkoutCustomer)) {
         throw new UserFacingError(
-          'Your team already has a subscription. Change seats from the team dashboard, or manage your plan from the billing portal.',
+          team
+            ? 'Your team already has a subscription. Change seats from the team dashboard, or manage your plan from the billing portal.'
+            : 'You already have a Team subscription. Manage your plan from the billing portal, or contact support for help.',
           { code: 'SEATS_ALREADY_SUBSCRIBED' },
         );
       }
@@ -232,6 +235,13 @@ const createCheckoutSessionHandler = createRoute(
         );
       }
       const personalCustomer = await resolvePersonalCustomer(user);
+      // Only the billing page hides the plan picker while a subscription is active, so a direct call, a stale
+      // second tab, or a past due subscription would otherwise start a second one and charge the user twice
+      if (personalCustomer && stripeService.hasCurrentPersonalPlanSubscription(personalCustomer)) {
+        throw new UserFacingError('You already have an individual subscription. Manage your plan from the billing portal.', {
+          code: 'PRO_ALREADY_SUBSCRIBED',
+        });
+      }
       session = await stripeService.createCheckoutSession({
         mode: 'subscription',
         priceId,

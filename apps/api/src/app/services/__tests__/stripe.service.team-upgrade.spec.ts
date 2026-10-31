@@ -459,6 +459,41 @@ describe('hasCurrentTeamPlanSubscription', () => {
   });
 });
 
+describe('hasCurrentPersonalPlanSubscription', () => {
+  const customerWithSubscriptions = (...subscriptions: ReturnType<typeof subscriptionWithPrice>[]) =>
+    ({ ...customerWithPlan('PRO_MONTHLY'), subscriptions: { object: 'list', data: subscriptions } }) as unknown as LiveStripeCustomer;
+
+  it.each(['active', 'trialing', 'incomplete', 'past_due', 'unpaid', 'paused'])(
+    'counts a %s individual subscription as current so a second checkout is refused',
+    (status) => {
+      const customer = customerWithSubscriptions({ ...subscriptionWithPrice('PRO_ANNUAL'), status });
+
+      expect(stripeService.hasCurrentPersonalPlanSubscription(customer)).toBe(true);
+    },
+  );
+
+  it.each(['canceled', 'incomplete_expired'])('lets a user whose subscription is %s subscribe again', (status) => {
+    const customer = customerWithSubscriptions({ ...subscriptionWithPrice('PRO_MONTHLY'), status });
+
+    expect(stripeService.hasCurrentPersonalPlanSubscription(customer)).toBe(false);
+  });
+
+  it('counts a legacy price without a lookup key as an individual plan', () => {
+    const subscription = subscriptionWithPrice('LEGACY');
+    subscription.items.data[0].price.lookup_key = null as unknown as string;
+
+    expect(stripeService.hasCurrentPersonalPlanSubscription(customerWithSubscriptions(subscription))).toBe(true);
+  });
+
+  it('ignores team plan subscriptions', () => {
+    expect(stripeService.hasCurrentPersonalPlanSubscription(customerWithSubscriptions(subscriptionWithPrice('TEAM_MONTHLY')))).toBe(false);
+  });
+
+  it('returns false for a customer with no subscriptions', () => {
+    expect(stripeService.hasCurrentPersonalPlanSubscription(customerWithSubscriptions())).toBe(false);
+  });
+});
+
 describe('fetchPrices', () => {
   it('expands product and tiers so the checkout seat picker can price seats from Stripe data', async () => {
     mocks.pricesList.mockResolvedValue({

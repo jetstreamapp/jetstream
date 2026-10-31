@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   fetchCustomerWithSubscriptionsById: vi.fn(),
   findReusableCustomerForUser: vi.fn(),
   hasCurrentTeamPlanSubscription: vi.fn(),
+  hasCurrentPersonalPlanSubscription: vi.fn(),
   createCheckoutSession: vi.fn(),
   synchronizeStripeWithJetstreamIfRequiredForTeamOrUser: vi.fn(),
   convertCustomerWithSubscriptionsToUserFacing: vi.fn(),
@@ -57,6 +58,7 @@ vi.mock('../../services/stripe.service', () => ({
   fetchCustomerWithSubscriptionsById: mocks.fetchCustomerWithSubscriptionsById,
   findReusableCustomerForUser: mocks.findReusableCustomerForUser,
   hasCurrentTeamPlanSubscription: mocks.hasCurrentTeamPlanSubscription,
+  hasCurrentPersonalPlanSubscription: mocks.hasCurrentPersonalPlanSubscription,
   createCheckoutSession: mocks.createCheckoutSession,
   synchronizeStripeWithJetstreamIfRequiredForTeamOrUser: mocks.synchronizeStripeWithJetstreamIfRequiredForTeamOrUser,
   convertCustomerWithSubscriptionsToUserFacing: mocks.convertCustomerWithSubscriptionsToUserFacing,
@@ -184,6 +186,7 @@ describe('billing.controller - createCheckoutSession', () => {
     }));
     mocks.findReusableCustomerForUser.mockResolvedValue(null);
     mocks.hasCurrentTeamPlanSubscription.mockReturnValue(false);
+    mocks.hasCurrentPersonalPlanSubscription.mockReturnValue(false);
     mocks.assertCheckoutSeatsCoverUsage.mockResolvedValue(undefined);
     mocks.createCheckoutSession.mockResolvedValue({ url: CHECKOUT_URL });
   });
@@ -334,6 +337,36 @@ describe('billing.controller - createCheckoutSession', () => {
       expect(args.teamId).toBeUndefined();
     });
 
+    it('rejects a buyer whose own customer already has a current TEAM subscription', async () => {
+      mocks.hasCurrentTeamPlanSubscription.mockReturnValue(true);
+
+      const { next } = await runCheckout({ priceLookupKey: 'TEAM_MONTHLY', seats: 4, teamName: 'Acme Admins' });
+
+      expectRejected(next, { code: 'SEATS_ALREADY_SUBSCRIBED', message: /You already have a Team subscription/ });
+      expect(mocks.hasCurrentTeamPlanSubscription).toHaveBeenCalledWith(expect.objectContaining({ id: PERSONAL_CUSTOMER_ID }));
+    });
+
+    it('checks a customer reused for a buyer without a billing account for a current TEAM subscription', async () => {
+      mocks.findByIdWithSubscriptions.mockResolvedValue({ ...buyer, billingAccount: null });
+      mocks.findReusableCustomerForUser.mockResolvedValue({ id: 'cus_left_behind', subscriptions: { data: [] } });
+      mocks.hasCurrentTeamPlanSubscription.mockReturnValue(true);
+
+      const { next } = await runCheckout({ priceLookupKey: 'TEAM_MONTHLY', seats: 4 });
+
+      expectRejected(next, { code: 'SEATS_ALREADY_SUBSCRIBED' });
+      expect(mocks.hasCurrentTeamPlanSubscription).toHaveBeenCalledWith(expect.objectContaining({ id: 'cus_left_behind' }));
+    });
+
+    // Upgrading from the individual plan to a team runs on the buyer's own customer
+    it('allows a buyer with a current individual plan to start a team', async () => {
+      mocks.hasCurrentPersonalPlanSubscription.mockReturnValue(true);
+
+      const { next } = await runCheckout({ priceLookupKey: 'TEAM_MONTHLY', seats: 4 });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(getCheckoutSessionArgs()).toMatchObject({ customerId: PERSONAL_CUSTOMER_ID, type: 'TEAM' });
+    });
+
     it('rejects a new team checkout without seats', async () => {
       const { next } = await runCheckout({ priceLookupKey: 'TEAM_MONTHLY', teamName: 'Acme Admins' });
 
@@ -399,6 +432,27 @@ describe('billing.controller - createCheckoutSession', () => {
       expect(next).not.toHaveBeenCalled();
       expect(mocks.findReusableCustomerForUser).not.toHaveBeenCalled();
       expect(getCheckoutSessionArgs().customerId).toBeUndefined();
+    });
+
+    it('rejects a buyer whose customer already has a current individual subscription', async () => {
+      mocks.hasCurrentPersonalPlanSubscription.mockReturnValue(true);
+
+      const { next } = await runCheckout({ priceLookupKey: 'PRO_ANNUAL' });
+
+      expectRejected(next, { code: 'PRO_ALREADY_SUBSCRIBED' });
+      expect(mocks.hasCurrentPersonalPlanSubscription).toHaveBeenCalledWith(expect.objectContaining({ id: PERSONAL_CUSTOMER_ID }));
+    });
+
+    // The state a user is left in when their subscription was paid for but never recorded
+    it('checks a customer reused for a buyer without a billing account for a current individual subscription', async () => {
+      mocks.findByIdWithSubscriptions.mockResolvedValue({ ...buyer, billingAccount: null });
+      mocks.findReusableCustomerForUser.mockResolvedValue({ id: 'cus_left_behind', subscriptions: { data: [] } });
+      mocks.hasCurrentPersonalPlanSubscription.mockReturnValue(true);
+
+      const { next } = await runCheckout({ priceLookupKey: 'PRO_MONTHLY' });
+
+      expectRejected(next, { code: 'PRO_ALREADY_SUBSCRIBED' });
+      expect(mocks.hasCurrentPersonalPlanSubscription).toHaveBeenCalledWith(expect.objectContaining({ id: 'cus_left_behind' }));
     });
 
     it('rejects an individual plan for an active member of an active team', async () => {
