@@ -70,6 +70,9 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
     }
   }, [inputRef, localInputRef, indeterminate, checked]);
 
+  const labelHelpId = labelHelp ? `${id}-label-help-text` : undefined;
+  const helpTextId = helpText ? `${id}-help-text` : undefined;
+
   return (
     <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
       {isStandAlone && (
@@ -82,7 +85,7 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
             )}
             {label}
           </label>
-          {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
+          {labelHelp && <HelpText id={labelHelpId} content={labelHelp} />}
         </Fragment>
       )}
       <div className="slds-form-element__control">
@@ -102,7 +105,7 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
             disabled={readOnly || disabled}
             readOnly={readOnly}
             tabIndex={tabIndex}
-            aria-describedby={[labelHelp ? `${id}-label-help-text` : undefined, errorMessageId].filter(Boolean).join(' ') || undefined}
+            aria-describedby={[labelHelpId, helpTextId, errorMessageId].filter(Boolean).join(' ') || undefined}
             onChange={(event) => {
               onChange && onChange(event.target?.checked || false);
               onChangeNative && onChangeNative(event);
@@ -117,12 +120,16 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
                 <span className="slds-checkbox_faux"></span>
                 <span className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })}>{label}</span>
               </label>
-              {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
+              {labelHelp && <HelpText id={labelHelpId} content={labelHelp} />}
             </Fragment>
           )}
         </div>
       </div>
-      {helpText && <div className="slds-form-element__help">{helpText}</div>}
+      {helpText && (
+        <div className="slds-form-element__help" id={helpTextId}>
+          {helpText}
+        </div>
+      )}
       {hasError && errorMessage && (
         <div className="slds-form-element__help" id={errorMessageId}>
           {errorMessage}

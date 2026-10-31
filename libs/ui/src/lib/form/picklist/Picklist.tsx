@@ -132,13 +132,14 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
     ref,
   ) => {
     const inputRef = useRef<HTMLInputElement>(null);
-    const popoverRef = useRef<HTMLDivElement>(null);
+    // State rather than a ref: a portal moves the list outside of this component's DOM, so the outside-click
+    // handler needs the rendered list element to tell clicks inside it (an option, the padding, the scrollbar) apart
+    const [popoverEl, setPopoverEl] = useState<HTMLElement | null>(null);
     const keyBuffer = useRef(new KeyBuffer());
     const [comboboxId] = useState(() => uniqueId(id || 'picklist'));
     const [listboxId] = useState(() => uniqueId('listbox'));
+    const helpTextId = helpText ? `${comboboxId}-help-text` : undefined;
     const [isOpen, setIsOpen] = useState(false);
-    // A portal moves the list outside of this component's DOM, so clicks inside it must not count as outside clicks
-    const [portalContentEl, setPortalContentEl] = useState<HTMLElement | null>(null);
     const [selectedItemsIdsSet, setSelectedItemsIdsSet] = useState<Set<unknown>>(() => {
       let selectedItemIdsSet = new Set();
       if (selectedItems?.length > 0) {
@@ -410,7 +411,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
      */
     function handleFocusLeft(event: FocusEvent<HTMLElement>) {
       const nextFocus = event.relatedTarget as Node | null;
-      if (divContainerEl.current?.contains(nextFocus) || popoverRef.current?.contains(nextFocus)) {
+      if (divContainerEl.current?.contains(nextFocus) || popoverEl?.contains(nextFocus)) {
         return;
       }
       if (isOpen) {
@@ -421,7 +422,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
     return (
       <OutsideClickHandler
         display={containerDisplay}
-        additionalParentRef={usePortal ? portalContentEl : undefined}
+        additionalParentRef={usePortal ? popoverEl : undefined}
         onOutsideClick={() => handleClose()}
       >
         <div data-testid={`dropdown-${label || id}`} className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
@@ -461,8 +462,9 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                     // Point at the listbox (not the input) and only while it is mounted (popover renders when open)
                     aria-controls={isOpen ? listboxId : undefined}
                     aria-describedby={
-                      [labelHelp && !hideLabel ? `${comboboxId}-label-help-text` : undefined, errorMessageId].filter(Boolean).join(' ') ||
-                      undefined
+                      [labelHelp && !hideLabel ? `${comboboxId}-label-help-text` : undefined, helpTextId, errorMessageId]
+                        .filter(Boolean)
+                        .join(' ') || undefined
                     }
                     autoComplete="off"
                     placeholder={placeholder}
@@ -488,7 +490,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                   </span>
                 </div>
                 <PopoverContainer
-                  ref={popoverRef}
+                  ref={setPopoverEl}
                   id={listboxId}
                   isOpen={isOpen}
                   className={classNames('slds-dropdown_fluid', scrollLengthClass)}
@@ -505,7 +507,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                   aria-multiselectable={multiSelection || undefined}
                   onKeyDown={handleKeyDown}
                 >
-                  <div ref={setPortalContentEl} style={{ display: 'contents' }}>
+                  <>
                     {Array.isArray(items) && (
                       <ul className="slds-listbox slds-listbox_vertical" role="presentation">
                         {items.length === 0 && (
@@ -562,7 +564,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                           ))}
                         </ul>
                       ))}
-                  </div>
+                  </>
                 </PopoverContainer>
               </div>
             </div>
@@ -587,7 +589,11 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
               </div>
             )}
           </div>
-          {helpText && <div className="slds-form-element__help">{helpText}</div>}
+          {helpText && (
+            <div className="slds-form-element__help" id={helpTextId}>
+              {helpText}
+            </div>
+          )}
           {hasError && errorMessage && (
             <div className="slds-form-element__help" id={errorMessageId}>
               {errorMessage}

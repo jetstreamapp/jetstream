@@ -1,5 +1,15 @@
+import { axeScan } from '@jetstream/test-utils';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { Checkbox } from '../Checkbox';
+
+/** The text a screen reader reads as the element's description (its aria-describedby targets, in order) */
+function getDescription(element: HTMLElement) {
+  return (element.getAttribute('aria-describedby') ?? '')
+    .split(' ')
+    .filter(Boolean)
+    .map((id) => document.getElementById(id)?.textContent ?? '')
+    .join(' ');
+}
 
 describe('Checkbox', () => {
   test('renders label text', () => {
@@ -70,5 +80,28 @@ describe('Checkbox', () => {
     expect(input.getAttribute('id')).toBe('my-checkbox');
     const label = document.querySelector('label[for="my-checkbox"]');
     expect(label).toBeTruthy();
+  });
+
+  test('describes the checkbox with its help text so it is read when the checkbox takes focus', async () => {
+    const { baseElement } = render(
+      <Checkbox
+        id="cb-1"
+        checked={false}
+        label="Label"
+        helpText="Helpful hint"
+        hasError
+        errorMessageId="cb-1-error"
+        errorMessage="This field is required"
+        onChange={() => {}}
+      />,
+    );
+    const input = screen.getByRole('checkbox', { name: 'Label' });
+    expect(getDescription(input)).toBe('Helpful hint This field is required');
+    await axeScan(baseElement);
+  });
+
+  test('has no description when there is no help text', () => {
+    render(<Checkbox id="cb-1" checked={false} label="Label" onChange={() => {}} />);
+    expect(screen.getByRole('checkbox').hasAttribute('aria-describedby')).toBe(false);
   });
 });
