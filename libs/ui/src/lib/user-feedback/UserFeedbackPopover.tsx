@@ -6,15 +6,17 @@ import { getErrorMessage } from '@jetstream/shared/utils';
 import { InputAcceptType, InputReadFileContent } from '@jetstream/types';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { ChangeEvent, ClipboardEvent, KeyboardEvent, useCallback, useRef, useState } from 'react';
+import { ChangeEvent, ClipboardEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { ariaDisabledButtonProps } from '../form/button/aria-disabled-button.utils';
 import { readFileForUpload } from '../form/file-selector/file-selector-utils';
 import Grid from '../grid/Grid';
 import { Popover, PopoverRef } from '../popover/Popover';
 import ScopedNotification from '../scoped-notification/ScopedNotification';
 import { fireToast } from '../toast/AppToast';
 import Icon from '../widgets/Icon';
-import { getModifierKey, KeyboardShortcut } from '../widgets/KeyboardShortcut';
+import { getAriaKeyshortcuts, getModifierKey, getSpokenKeyboardShortcut, KeyboardShortcut } from '../widgets/KeyboardShortcut';
 import Spinner from '../widgets/Spinner';
+import { useAnnouncer } from '../widgets/useAnnouncer';
 
 const MAX_SCREENSHOTS = 5;
 const MAX_SCREENSHOT_SIZE_MB = 10;
@@ -27,6 +29,9 @@ const SCREENSHOT_MIME_TYPE = /^image\/(png|jpg|jpeg|gif)$/;
  * into "More" on common 1280px laptop screens. The label stays as assistive text so the button is still named "Feedback".
  */
 const ICON_ONLY_MAX_WIDTH_PX = 1365;
+
+const OPEN_SHORTCUT_KEYS = [getModifierKey(), 'shift', '.'];
+const SEND_SHORTCUT_KEYS = [getModifierKey(), 'Enter'];
 
 const triggerStyles = css`
   .slds-button {
@@ -67,6 +72,11 @@ const triggerStyles = css`
 export const UserFeedbackPopover = () => {
   const popoverRef = useRef<PopoverRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachButtonRef = useRef<HTMLButtonElement>(null);
+  const screenshotListRef = useRef<HTMLUListElement>(null);
+  // Removing a screenshot unmounts the focused remove button — this holds the index whose button takes focus next
+  const pendingRemoveFocusIndexRef = useRef<number | null>(null);
+  const { announce, announcer } = useAnnouncer();
   const { version: clientVersion } = useAtomValue(fromAppState.appInfoState);
   const [message, setMessage] = useState('');
   const [screenshots, setScreenshots] = useState<InputReadFileContent[]>([]);
@@ -89,6 +99,18 @@ export const UserFeedbackPopover = () => {
   }, []);
 
   useGlobalEventHandler('keydown', handleGlobalKeyDown);
+
+  useEffect(() => {
+    const index = pendingRemoveFocusIndexRef.current;
+    if (index === null) {
+      return;
+    }
+    pendingRemoveFocusIndexRef.current = null;
+    const removeButtons = screenshotListRef.current?.querySelectorAll<HTMLButtonElement>('.slds-pill__remove');
+    // The next screenshot's remove button, else the previous one, else Attach once the last one is gone
+    const nextFocus = removeButtons?.[Math.min(index, removeButtons.length - 1)] ?? attachButtonRef.current;
+    nextFocus?.focus();
+  }, [screenshots]);
 
   async function addScreenshots(files: File[]) {
     if (isSubmitting) {
@@ -114,6 +136,11 @@ export const UserFeedbackPopover = () => {
         }
       }
       setScreenshots((prev) => [...prev, ...newScreenshots]);
+      if (newScreenshots.length === 1) {
+        announce(`Attached ${newScreenshots[0].filename}`);
+      } else if (newScreenshots.length > 1) {
+        announce(`Attached ${newScreenshots.length} screenshots`);
+      }
       if (errors.length) {
         setErrorMessage(errors[0]);
       }
@@ -143,6 +170,8 @@ export const UserFeedbackPopover = () => {
 
   function handleRemoveScreenshot(index: number) {
     claimedScreenshotSlotsRef.current -= 1;
+    pendingRemoveFocusIndexRef.current = index;
+    announce(`Removed ${screenshots[index].filename}`);
     setScreenshots((prev) => prev.filter((_, i) => i !== index));
   }
 
@@ -188,6 +217,7 @@ export const UserFeedbackPopover = () => {
         }
         content={
           <div className="slds-is-relative">
+            {announcer}
             {errorMessage && (
               <ScopedNotification theme="error" className="slds-m-bottom_x-small">
                 {errorMessage}
@@ -210,11 +240,13 @@ export const UserFeedbackPopover = () => {
                   onChange={(event) => setMessage(event.target.value)}
                   onKeyDown={handleMessageKeyDown}
                   onPaste={handlePaste}
+                  aria-keyshortcuts={getAriaKeyshortcuts(SEND_SHORTCUT_KEYS)}
                 />
               </div>
             </div>
             {screenshots.length > 0 && (
               <ul
+                ref={screenshotListRef}
                 className="slds-m-top_x-small"
                 css={css`
                   display: flex;
@@ -234,6 +266,7 @@ export const UserFeedbackPopover = () => {
                       {screenshot.filename}
                     </span>
                     <button
+                      type="button"
                       className="slds-button slds-button_icon slds-pill__remove"
                       title={`Remove ${screenshot.filename}`}
                       disabled={isSubmitting}
@@ -258,9 +291,10 @@ export const UserFeedbackPopover = () => {
             />
             <Grid verticalAlign="center" className="slds-m-top_x-small">
               <button
+                ref={attachButtonRef}
+                type="button"
                 className="slds-button"
-                disabled={isSubmitting || screenshots.length >= MAX_SCREENSHOTS}
-                onClick={() => fileInputRef.current?.click()}
+                {...ariaDisabledButtonProps(isSubmitting || screenshots.length >= MAX_SCREENSHOTS, () => fileInputRef.current?.click())}
               >
                 <Icon type="utility" icon="image" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Attach screenshot
@@ -272,13 +306,20 @@ export const UserFeedbackPopover = () => {
         footer={
           <footer className="slds-popover__footer">
             <Grid align="spread" verticalAlign="center">
-              <KeyboardShortcut
-                className="slds-text-body_small slds-text-color_weak"
-                keys={[getModifierKey(), 'Enter']}
-                postContent="to send"
-              />
-              <button className="slds-button slds-button_brand slds-is-relative" disabled={!canSubmit} onClick={handleSubmit}>
-                {isSubmitting && <Spinner size="x-small" />}
+              <KeyboardShortcut className="slds-text-body_small slds-text-color_weak" keys={SEND_SHORTCUT_KEYS} postContent="to send" />
+              <button
+                type="button"
+                className="slds-button slds-button_brand slds-is-relative"
+                aria-keyshortcuts={getAriaKeyshortcuts(SEND_SHORTCUT_KEYS)}
+                aria-busy={isSubmitting || undefined}
+                {...ariaDisabledButtonProps(!canSubmit, handleSubmit)}
+              >
+                {/* The spinner's own "Loading" status would rename the button; aria-busy carries the state instead */}
+                {isSubmitting && (
+                  <span aria-hidden="true">
+                    <Spinner size="x-small" />
+                  </span>
+                )}
                 Send
               </button>
             </Grid>
@@ -286,7 +327,8 @@ export const UserFeedbackPopover = () => {
         }
         buttonProps={{
           className: 'slds-button slds-button_neutral',
-          title: `Send us feedback (${getModifierKey()}+Shift+.)`,
+          title: `Send us feedback (${getSpokenKeyboardShortcut(OPEN_SHORTCUT_KEYS)})`,
+          'aria-keyshortcuts': getAriaKeyshortcuts(OPEN_SHORTCUT_KEYS),
         }}
         buttonStyle={{ minHeight: '1.75rem', lineHeight: '1.625rem', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}
       >

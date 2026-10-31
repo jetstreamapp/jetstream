@@ -6,6 +6,8 @@ import browser from 'webextension-polyfill';
 import { chromeSyncStorage } from '../utils/extension.store';
 import { ButtonPosition, DEFAULT_BUTTON_POSITION } from '../utils/extension.types';
 
+const TOGGLE_OPTIONS_BUTTON_ID = 'sfdc-button-options-toggle';
+
 export function PopupButtonOptions() {
   const { buttonPosition: _buttonPosition } = useAtomValue(chromeSyncStorage);
 
@@ -43,28 +45,27 @@ export function PopupButtonOptions() {
     setButtonInactiveSize(DEFAULT_BUTTON_POSITION.inactiveSize);
     setButtonActiveScale(DEFAULT_BUTTON_POSITION.activeScale);
     setIsVisible(false);
+    // Reset hides the options (and itself) — land focus on the toggle instead of <body>
+    window.setTimeout(() => document.getElementById(TOGGLE_OPTIONS_BUTTON_ID)?.focus());
   }
 
   return (
     <>
       <p>Salesforce Button Location</p>
-      {!isVisible ? (
-        <button className="slds-button slds-m-top_x-small" onClick={() => setIsVisible(true)}>
-          Show Configuration Options
+      {/* One stable toggle for both states — swapping two buttons dropped keyboard focus to <body> */}
+      <Grid className="slds-m-top_x-small slds-m-bottom_small" align="spread">
+        <button id={TOGGLE_OPTIONS_BUTTON_ID} className="slds-button" aria-expanded={isVisible} onClick={() => setIsVisible(!isVisible)}>
+          {isVisible ? 'Hide' : 'Show'} Configuration Options
         </button>
-      ) : (
-        <Grid className="slds-m-top_x-small slds-m-bottom_small" align="spread">
-          <button className="slds-button" onClick={() => setIsVisible(false)}>
-            Hide Configuration Options
-          </button>
+        {isVisible && (
           <button className="slds-button" onClick={() => handleResetButtonOptions()}>
             Reset to Default
           </button>
-        </Grid>
-      )}
+        )}
+      </Grid>
       {isVisible && (
         <>
-          <RadioGroup label="Name Type" isButtonGroup className="slds-m-bottom_small">
+          <RadioGroup label="Button Location" isButtonGroup className="slds-m-bottom_small">
             <RadioButton
               id="sfdc-button-slider-location-left"
               name="sfdc-button-slider-location"

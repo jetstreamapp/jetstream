@@ -34,7 +34,7 @@ import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsMod
 const TREE_GROUP_BY = ['_treeParentGroupKey'] as const;
 
 const TREE_PARENT_COL = `minmax(160px, min(380px, 1.35fr))`;
-const TREE_TAB_COL = `minmax(180px, 1fr)`;
+const TREE_TAB_COL = `minmax(280px, 1fr)`;
 const TREE_VISIBILITY_COL = `minmax(120px, 0.45fr)`;
 
 const TREE_ROW_HEIGHT_LEAF_PX = 35;
@@ -109,6 +109,7 @@ function renderTabVisibilityGroupCell(
         `}
         onClick={toggleGroup}
         title={exportLabel}
+        aria-expanded={isExpanded}
       >
         <span
           css={css`
@@ -117,6 +118,7 @@ function renderTabVisibilityGroupCell(
             align-items: flex-start;
           `}
         >
+          {/* Decorative: the button's visible text names it and aria-expanded carries the state */}
           <Icon
             type="utility"
             icon={isExpanded ? 'chevrondown' : 'chevronright'}
@@ -126,7 +128,6 @@ function renderTabVisibilityGroupCell(
               margin-top: 0.125rem;
             `}
             omitContainer
-            description={isExpanded ? 'Collapse' : 'Expand'}
           />
           <span
             css={css`

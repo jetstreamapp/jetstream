@@ -33,6 +33,10 @@ function getRowButton(rowNumber: number, title: string) {
   return within(screen.getByRole('group', { name: `Order by row ${rowNumber}` })).getByTitle(title) as HTMLButtonElement;
 }
 
+function isDisabled(button: HTMLButtonElement) {
+  return button.getAttribute('aria-disabled') === 'true';
+}
+
 describe('QueryOrderByContainer reordering', () => {
   it('moves a clause up', () => {
     const setOrderByClauses = renderOrderBy(CLAUSES);
@@ -47,16 +51,22 @@ describe('QueryOrderByContainer reordering', () => {
   });
 
   it('disables moving past either end of the list', () => {
-    renderOrderBy(CLAUSES);
-    expect(getRowButton(1, 'Move Up').disabled).toBe(true);
-    expect(getRowButton(1, 'Move Down').disabled).toBe(false);
-    expect(getRowButton(3, 'Move Up').disabled).toBe(false);
-    expect(getRowButton(3, 'Move Down').disabled).toBe(true);
+    const setOrderByClauses = renderOrderBy(CLAUSES);
+    // aria-disabled, not native disabled, so a button that disables itself keeps focus
+    expect(isDisabled(getRowButton(1, 'Move Up'))).toBe(true);
+    expect(isDisabled(getRowButton(1, 'Move Down'))).toBe(false);
+    expect(isDisabled(getRowButton(3, 'Move Up'))).toBe(false);
+    expect(isDisabled(getRowButton(3, 'Move Down'))).toBe(true);
+    expect(getRowButton(1, 'Move Up').disabled).toBe(false);
+
+    fireEvent.click(getRowButton(1, 'Move Up'));
+    fireEvent.click(getRowButton(3, 'Move Down'));
+    expect(setOrderByClauses).not.toHaveBeenCalled();
   });
 
   it('disables both directions when there is only one clause', () => {
     renderOrderBy([CLAUSES[0]]);
-    expect(getRowButton(1, 'Move Up').disabled).toBe(true);
-    expect(getRowButton(1, 'Move Down').disabled).toBe(true);
+    expect(isDisabled(getRowButton(1, 'Move Up'))).toBe(true);
+    expect(isDisabled(getRowButton(1, 'Move Down'))).toBe(true);
   });
 });

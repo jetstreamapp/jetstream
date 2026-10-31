@@ -91,7 +91,10 @@ export function ConfigureSsoOidcForm({ existingSsoConfig, onSave }: ConfigureSso
                 <strong className="slds-m-bottom_x-small slds-block">Configure this callback URL in your OIDC provider:</strong>
                 <div className="slds-m-top_xx-small">
                   {existingSsoConfig.callbackUrls.oidc}
-                  <CopyToClipboard content={existingSsoConfig.callbackUrls.oidc} />
+                  <CopyToClipboard
+                    content={existingSsoConfig.callbackUrls.oidc}
+                    icon={{ type: 'utility', icon: 'copy', description: 'Copy callback URL' }}
+                  />
                 </div>
               </div>
               {existingSsoConfig.callbackUrls.oidcInitiateLogin && (
@@ -101,7 +104,10 @@ export function ConfigureSsoOidcForm({ existingSsoConfig, onSave }: ConfigureSso
                   </strong>
                   <div className="slds-m-top_xx-small">
                     {existingSsoConfig.callbackUrls.oidcInitiateLogin}
-                    <CopyToClipboard content={existingSsoConfig.callbackUrls.oidcInitiateLogin} />
+                    <CopyToClipboard
+                      content={existingSsoConfig.callbackUrls.oidcInitiateLogin}
+                      icon={{ type: 'utility', icon: 'copy', description: 'Copy Initiate Login URI' }}
+                    />
                   </div>
                 </div>
               )}
@@ -111,6 +117,7 @@ export function ConfigureSsoOidcForm({ existingSsoConfig, onSave }: ConfigureSso
 
         <div className="slds-m-bottom_small">
           <Input
+            id="sso-oidc-issuer"
             label="Issuer URL"
             isRequired
             labelHelp="Only OIDC compliant issuers are supported and a discovery document must be available at {issuer}/.well-known/openid-configuration"
@@ -119,6 +126,7 @@ export function ConfigureSsoOidcForm({ existingSsoConfig, onSave }: ConfigureSso
             errorMessage={errors?.issuer?.message}
           >
             <input
+              id="sso-oidc-issuer"
               className={classNames('slds-input', { 'active-item-yellow-bg': hasExisting && dirtyFields.issuer })}
               placeholder="https://your-idp.com"
               {...register('issuer')}
@@ -130,16 +138,22 @@ export function ConfigureSsoOidcForm({ existingSsoConfig, onSave }: ConfigureSso
         </div>
 
         <Input
+          id="sso-oidc-name"
           className="slds-m-bottom_x-small"
           label="Connection Name"
           isRequired
           hasError={!!errors?.name}
           errorMessage={errors?.name?.message}
         >
-          <input className={classNames('slds-input', { 'active-item-yellow-bg': hasExisting && dirtyFields.name })} {...register('name')} />
+          <input
+            id="sso-oidc-name"
+            className={classNames('slds-input', { 'active-item-yellow-bg': hasExisting && dirtyFields.name })}
+            {...register('name')}
+          />
         </Input>
 
         <Input
+          id="sso-oidc-clientId"
           className="slds-m-bottom_x-small"
           label="Client ID"
           isRequired
@@ -147,12 +161,14 @@ export function ConfigureSsoOidcForm({ existingSsoConfig, onSave }: ConfigureSso
           errorMessage={errors?.clientId?.message}
         >
           <input
+            id="sso-oidc-clientId"
             className={classNames('slds-input', { 'active-item-yellow-bg': hasExisting && dirtyFields.clientId })}
             {...register('clientId')}
           />
         </Input>
 
         <Input
+          id="sso-oidc-clientSecret"
           className="slds-m-bottom_x-small"
           label="Client Secret"
           isRequired={!hasExisting}
@@ -160,6 +176,7 @@ export function ConfigureSsoOidcForm({ existingSsoConfig, onSave }: ConfigureSso
           errorMessage={errors?.clientSecret?.message}
         >
           <input
+            id="sso-oidc-clientSecret"
             className={classNames('slds-input', { 'active-item-yellow-bg': hasExisting && dirtyFields.clientSecret })}
             type="password"
             placeholder={hasExisting ? '(unchanged)' : ''}
@@ -172,21 +189,21 @@ export function ConfigureSsoOidcForm({ existingSsoConfig, onSave }: ConfigureSso
             <p className="slds-text-body_small slds-text-color_weak slds-m-top_small slds-m-bottom_xx-small">
               Discovered from your Issuer URL (read-only).
             </p>
-            <Input label="Authorization Endpoint" isRequired>
-              <input className="slds-input" readOnly {...register('authorizationEndpoint')} />
+            <Input id="sso-oidc-authorizationEndpoint" label="Authorization Endpoint" isRequired>
+              <input id="sso-oidc-authorizationEndpoint" className="slds-input" readOnly {...register('authorizationEndpoint')} />
             </Input>
 
-            <Input label="Token Endpoint" isRequired>
-              <input className="slds-input" readOnly {...register('tokenEndpoint')} />
+            <Input id="sso-oidc-tokenEndpoint" label="Token Endpoint" isRequired>
+              <input id="sso-oidc-tokenEndpoint" className="slds-input" readOnly {...register('tokenEndpoint')} />
             </Input>
 
-            <Input label="JWKS URI" isRequired>
-              <input className="slds-input" readOnly {...register('jwksUri')} />
+            <Input id="sso-oidc-jwksUri" label="JWKS URI" isRequired>
+              <input id="sso-oidc-jwksUri" className="slds-input" readOnly {...register('jwksUri')} />
             </Input>
 
             {userinfoEndpoint && (
-              <Input label="Userinfo Endpoint">
-                <input className="slds-input" readOnly {...register('userinfoEndpoint')} />
+              <Input id="sso-oidc-userinfoEndpoint" label="Userinfo Endpoint">
+                <input id="sso-oidc-userinfoEndpoint" className="slds-input" readOnly {...register('userinfoEndpoint')} />
               </Input>
             )}
           </>
@@ -197,23 +214,27 @@ export function ConfigureSsoOidcForm({ existingSsoConfig, onSave }: ConfigureSso
           <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">Map OIDC claims to Jetstream user attributes</p>
 
           <Input
+            id="sso-oidc-attributeMapping-email"
             label="Email Claim"
             isRequired
             hasError={!!errors?.attributeMapping?.email}
             errorMessage={errors?.attributeMapping?.email?.message}
           >
             <input
+              id="sso-oidc-attributeMapping-email"
               className={classNames('slds-input', { 'active-item-yellow-bg': hasExisting && dirtyFields.attributeMapping?.email })}
               {...register('attributeMapping.email')}
             />
           </Input>
 
           <Input
+            id="sso-oidc-attributeMapping-userName"
             label="Username Claim"
             hasError={!!errors?.attributeMapping?.userName}
             errorMessage={errors?.attributeMapping?.userName?.message}
           >
             <input
+              id="sso-oidc-attributeMapping-userName"
               className={classNames('slds-input', { 'active-item-yellow-bg': hasExisting && dirtyFields.attributeMapping?.userName })}
               placeholder="username"
               {...register('attributeMapping.userName')}
@@ -221,11 +242,13 @@ export function ConfigureSsoOidcForm({ existingSsoConfig, onSave }: ConfigureSso
           </Input>
 
           <Input
+            id="sso-oidc-attributeMapping-firstName"
             label="First Name Claim"
             hasError={!!errors?.attributeMapping?.firstName}
             errorMessage={errors?.attributeMapping?.firstName?.message}
           >
             <input
+              id="sso-oidc-attributeMapping-firstName"
               className={classNames('slds-input', { 'active-item-yellow-bg': hasExisting && dirtyFields.attributeMapping?.firstName })}
               placeholder="given_name"
               {...register('attributeMapping.firstName')}
@@ -233,11 +256,13 @@ export function ConfigureSsoOidcForm({ existingSsoConfig, onSave }: ConfigureSso
           </Input>
 
           <Input
+            id="sso-oidc-attributeMapping-lastName"
             label="Last Name Claim"
             hasError={!!errors?.attributeMapping?.lastName}
             errorMessage={errors?.attributeMapping?.lastName?.message}
           >
             <input
+              id="sso-oidc-attributeMapping-lastName"
               className={classNames('slds-input', { 'active-item-yellow-bg': hasExisting && dirtyFields.attributeMapping?.lastName })}
               placeholder="family_name"
               {...register('attributeMapping.lastName')}

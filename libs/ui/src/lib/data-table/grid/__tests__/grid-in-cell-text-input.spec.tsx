@@ -1,3 +1,4 @@
+import { axeScan } from '@jetstream/test-utils';
 import { fireEvent, render } from '@testing-library/react';
 import { beforeAll, describe, expect, test, vi } from 'vitest';
 import { DataTable, DataTableProps } from '../../DataTable';
@@ -56,6 +57,11 @@ function pasteInto(element: HTMLElement, text: string): boolean {
 }
 
 describe('in-cell text inputs keep their own keyboard and clipboard behavior', () => {
+  test('a grid whose summary row holds a filter input has no axe violations', async () => {
+    const { baseElement } = renderTable();
+    await axeScan(baseElement);
+  });
+
   test('pasting into a summary row filter input is left to the input', () => {
     const onPaste = vi.fn();
     const { getByLabelText } = renderTable({ onPaste });
@@ -81,6 +87,21 @@ describe('in-cell text inputs keep their own keyboard and clipboard behavior', (
       expect(fireEvent.keyDown(input, { key })).toBe(true);
       expect(document.activeElement).toBe(input);
     }
+  });
+
+  // A cell whose only control is the filter input has nothing for Tab to cycle to, so Tab is the way
+  // back to the cell — focus must stay inside the grid instead of escaping to the next page tab stop.
+  test('Tab in actionable mode returns focus to the cell when there is only one control', () => {
+    const { getByLabelText } = renderTable({ onPaste: vi.fn() });
+    const input = getByLabelText('Filter') as HTMLInputElement;
+    const cell = input.closest('[data-row-id]') as HTMLElement;
+
+    fireEvent.mouseDown(cell);
+    fireEvent.keyDown(cell, { key: 'Enter' });
+    input.focus();
+
+    expect(fireEvent.keyDown(input, { key: 'Tab' })).toBe(false);
+    expect(document.activeElement).toBe(cell);
   });
 
   test('pasting into a data cell still reaches the grid', () => {

@@ -6,6 +6,7 @@ const WRITE_LOAD_TYPES: InsertUpdateUpsertDelete[] = ['INSERT', 'UPDATE', 'UPSER
 const DELETE_LOAD_TYPES: InsertUpdateUpsertDelete[] = ['DELETE', 'HARD_DELETE'];
 
 export const LOAD_NOT_ALLOWED_MESSAGE = `Your Jetstream access does not include loading records.`;
+export const LOAD_TYPE_NOT_ALLOWED_MESSAGE = `Your Jetstream access does not include this type of data load.`;
 
 /** Load types the member's team access profile allows, in the order they are shown */
 export function useAllowedLoadTypes(): InsertUpdateUpsertDelete[] {

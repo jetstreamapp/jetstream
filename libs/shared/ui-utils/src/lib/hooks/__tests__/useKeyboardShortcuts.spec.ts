@@ -100,3 +100,49 @@ describe('useGoBackShortcut', () => {
     expect(handler).not.toHaveBeenCalled();
   });
 });
+
+describe('scope', () => {
+  function openModalDialog() {
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    document.body.appendChild(dialog);
+    return dialog;
+  }
+
+  test('a page action stays quiet while a modal dialog is open and fires again once it closes', () => {
+    const dialog = openModalDialog();
+    const handler = vi.fn();
+    renderHook(() => usePrimaryActionShortcut(handler));
+    dispatchKeydown({ key: 'Enter', metaKey: true });
+    expect(handler).not.toHaveBeenCalled();
+
+    dialog.remove();
+    dispatchKeydown({ key: 'Enter', metaKey: true });
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  test('a dialog action keeps firing while its modal is open, and the page action behind it does not', () => {
+    const dialog = openModalDialog();
+    const pageHandler = vi.fn();
+    const dialogHandler = vi.fn();
+    renderHook(() => usePrimaryActionShortcut(pageHandler));
+    renderHook(() => usePrimaryActionShortcut(dialogHandler, { scope: 'dialog' }));
+    dispatchKeydown({ key: 'Enter', metaKey: true });
+    expect(pageHandler).not.toHaveBeenCalled();
+    expect(dialogHandler).toHaveBeenCalledTimes(1);
+    dialog.remove();
+  });
+
+  test('the go-back shortcut applies the same scoping', () => {
+    const dialog = openModalDialog();
+    const pageHandler = vi.fn();
+    const dialogHandler = vi.fn();
+    renderHook(() => useGoBackShortcut(pageHandler));
+    renderHook(() => useGoBackShortcut(dialogHandler, { scope: 'dialog' }));
+    dispatchKeydown({ key: 'Enter', metaKey: true, shiftKey: true });
+    expect(pageHandler).not.toHaveBeenCalled();
+    expect(dialogHandler).toHaveBeenCalledTimes(1);
+    dialog.remove();
+  });
+});

@@ -3,7 +3,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { useAnalytics } from '@jetstream/ui-core';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   AutomationPackage,
   AutomationPackageItem,
@@ -18,6 +18,10 @@ export type AutomationPackageDownload = AutomationPackage & { variant: Automatio
 /**
  * Builds a before/after activation package on demand. The caller renders the download modal for
  * `packageDownload` outside its own modal (and hides its modal meanwhile).
+ *
+ * Hiding the caller's modal unmounts its contents, so pass `packageTriggerRef` to the package menu and
+ * `modalInitialFocus` to the caller's modal: once a download has been shown, the modal re-opens on the menu
+ * that started it instead of its close button.
  */
 export function useAutomationPackageDownload(selectedOrg: SalesforceOrgUi, apiVersion: string, source: 'review' | 'history') {
   const { trackEvent } = useAnalytics();
@@ -25,6 +29,8 @@ export function useAutomationPackageDownload(selectedOrg: SalesforceOrgUi, apiVe
   const [packageDownload, setPackageDownload] = useState<AutomationPackageDownload | null>(null);
   /** Shown inside the caller's modal, a toast would render behind it */
   const [packageError, setPackageError] = useState<string | null>(null);
+  const packageTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const [hasShownPackageDownload, setHasShownPackageDownload] = useState(false);
 
   const preparePackage = useCallback(
     async (items: AutomationPackageItem[], variant: AutomationPackageVariant) => {
@@ -40,6 +46,7 @@ export function useAutomationPackageDownload(selectedOrg: SalesforceOrgUi, apiVe
           return;
         }
         setPackageDownload({ ...automationPackage, variant });
+        setHasShownPackageDownload(true);
         trackEvent(ANALYTICS_KEYS.automation_export, { type: 'activation-package', variant, source, items: items.length });
       } catch (ex) {
         logger.warn('[AUTOMATION][PACKAGE] Error building package', ex);
@@ -53,5 +60,13 @@ export function useAutomationPackageDownload(selectedOrg: SalesforceOrgUi, apiVe
 
   const closePackageDownload = useCallback(() => setPackageDownload(null), []);
 
-  return { preparingVariant, packageDownload, packageError, preparePackage, closePackageDownload };
+  return {
+    preparingVariant,
+    packageDownload,
+    packageError,
+    preparePackage,
+    closePackageDownload,
+    packageTriggerRef,
+    modalInitialFocus: hasShownPackageDownload ? packageTriggerRef : undefined,
+  };
 }

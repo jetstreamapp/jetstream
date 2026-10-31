@@ -51,10 +51,14 @@ export function GridSummaryRow<TRow extends object, TSummaryRow>({
         const summaryCellClass = meta?.column?.summaryCellClass;
         const dynamicClass = typeof summaryCellClass === 'function' ? summaryCellClass(summaryRow as any) : summaryCellClass;
         const isActive = activeColumnId === column.id;
+        // Summary cells host filter and bulk-action controls, never an editor: read-only for the cell hints
         return (
           <div
             key={column.id}
             role="gridcell"
+            // eslint-disable-next-line jsx-a11y/role-supports-aria-props -- gridcell supports aria-readonly (ARIA 1.2); the plugin's table is behind
+            aria-readonly
+            aria-colindex={columnIndex + 1}
             data-row-id={rowId}
             data-col-id={column.id}
             tabIndex={isActive ? 0 : -1}

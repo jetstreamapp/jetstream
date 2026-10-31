@@ -32,7 +32,7 @@ export class FormulaEvaluatorPage {
 
   async selectObject(sobjectName: string) {
     const dropdown = this.page.getByTestId('dropdown-Select an Object');
-    const input = dropdown.getByRole('textbox');
+    const input = dropdown.getByRole('combobox');
     await input.click();
     await input.fill(sobjectName);
     await dropdown.getByRole('option', { name: sobjectName }).first().click();
@@ -40,7 +40,7 @@ export class FormulaEvaluatorPage {
 
   async searchAndSelectRecord(searchTerm: string) {
     const dropdown = this.page.getByTestId('dropdown-Record');
-    const input = dropdown.getByRole('textbox');
+    const input = dropdown.getByRole('combobox');
     await input.click();
     // Use pressSequentially to fire proper keyUp events that the combobox listens for
     await input.pressSequentially(searchTerm, { delay: 50 });
@@ -65,7 +65,7 @@ export class FormulaEvaluatorPage {
 
   async setReturnType(label: string) {
     const dropdown = this.page.getByTestId('dropdown-Output Type');
-    const input = dropdown.getByRole('textbox');
+    const input = dropdown.getByRole('combobox');
     await input.click();
     await dropdown.getByRole('option', { name: label }).click();
   }

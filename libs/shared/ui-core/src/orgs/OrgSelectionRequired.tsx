@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES, AddOrgHandlerFn, Maybe, OrgGroup, SalesforceOrgUi } from '@jetstream/types';
-import { Alert, Card, EmptyState, fireToast, Grid, Icon, NoAccess2Illustration } from '@jetstream/ui';
+import { Alert, ariaDisabledButtonProps, Card, EmptyState, fireToast, Grid, Icon, NoAccess2Illustration } from '@jetstream/ui';
 import { fromAppState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useState } from 'react';
@@ -97,10 +97,10 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
               <Link to={APP_ROUTES.SALESFORCE_ORG_GROUPS.ROUTE} className="slds-button slds-button_neutral slds-m-right_x-small">
                 Manage Orgs
               </Link>
+              {/* Stays focusable while the retry runs, so keyboard focus is not dropped to <body> */}
               <button
                 className="slds-button slds-button_neutral slds-m-right_x-small"
-                onClick={handleRetryOrgConnection}
-                disabled={loadingRetry}
+                {...ariaDisabledButtonProps(loadingRetry, handleRetryOrgConnection)}
               >
                 <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Retry Connection

@@ -1,6 +1,5 @@
 import { css } from '@emotion/react';
-import { formatNumber } from '@jetstream/shared/ui-utils';
-import { multiWordObjectFilter, NOOP, orderValues, pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { multiWordObjectFilter, NOOP, orderValues } from '@jetstream/shared/utils';
 import { ListItem as ListItemType, Maybe, UpDown } from '@jetstream/types';
 import uniqueId from 'lodash/uniqueId';
 import { createRef, Fragment, FunctionComponent, ReactNode, useEffect, useState } from 'react';
@@ -12,6 +11,7 @@ import { FishIllustration } from '../illustrations/FishIllustration';
 import AutoFullHeightContainer, { AutoFullHeightContainerProps } from '../layout/AutoFullHeightContainer';
 import Icon from '../widgets/Icon';
 import ItemSelectionSummary from '../widgets/ItemSelectionSummary';
+import ShowingCountStatus from '../widgets/ShowingCountStatus';
 import Spinner from '../widgets/Spinner';
 import Tooltip from '../widgets/Tooltip';
 import List from './List';
@@ -127,7 +127,13 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
               <h2 className="slds-text-heading_medium slds-grow slds-text-align_center">{labels.listHeading}</h2>
               <div>
                 <Tooltip id={`sobject-list-refresh-tooltip`} content={lastRefreshed || ''}>
-                  <button className="slds-button slds-button_icon slds-button_icon-container" disabled={loading} onClick={onRefresh}>
+                  <button
+                    type="button"
+                    className="slds-button slds-button_icon slds-button_icon-container"
+                    aria-label={`Reload ${labels.descriptorPlural}`}
+                    disabled={loading}
+                    onClick={onRefresh}
+                  >
                     <Icon
                       type="utility"
                       icon="refresh"
@@ -162,7 +168,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
           <p className="slds-p-around_medium slds-text-align_center">
             <span className="slds-text-color_error">There was an error loading {labels.descriptorPlural} for the selected org.</span>
             {errorReattempt && (
-              <button className="slds-button slds-m-left_xx-small" onClick={() => errorReattempt()}>
+              <button type="button" className="slds-button slds-m-left_xx-small" onClick={() => errorReattempt()}>
                 Try Again?
               </button>
             )}
@@ -177,10 +183,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
                 onChange={setSearchTerm}
                 onArrowKeyUpDown={handleSearchKeyboard}
               />
-              <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-                Showing {formatNumber(filteredItems.length)} of {formatNumber(items.length)}{' '}
-                {pluralizeIfMultiple(labels.descriptorSingular, items)}
-              </div>
+              <ShowingCountStatus filteredCount={filteredItems.length} totalCount={items.length} singularNoun={labels.descriptorSingular} />
               {headerContent}
               {allowSelectAll && (
                 <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
@@ -207,6 +210,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
             <AutoFullHeightContainer bottomBuffer={15} {...autoFillContainerProps}>
               <List
                 ref={ulRef}
+                ariaLabel={labels.listHeading || labels.descriptorPlural}
                 items={filteredItems}
                 isMultiSelect
                 isActive={(item: ListItemType) => selectedItemsSet.has(item.id)}
@@ -220,6 +224,13 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
                     // Stop click/keyboard propagation so the trailing action doesn't toggle row selection.
                     trailingHeader: trailing ? (
                       <span
+                        // Trailing controls are reached with the row-local ArrowRight (see List), NOT Tab —
+                        // a per-row popover trigger would otherwise add a tab stop for every list item
+                        ref={(node) => {
+                          node?.querySelectorAll<HTMLElement>('a[href], button, input, select, textarea, [tabindex]').forEach((el) => {
+                            el.tabIndex = -1;
+                          });
+                        }}
                         onClick={(event) => event.stopPropagation()}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {

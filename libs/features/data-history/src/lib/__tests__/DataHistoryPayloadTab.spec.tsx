@@ -82,7 +82,8 @@ describe('DataHistoryPayloadTab copy failures', () => {
     await waitFor(() => expect(screen.getByText(/not in a table format/)).toBeTruthy());
 
     expect(screen.getByRole('button', { name: /Download/ })).not.toHaveProperty('disabled', true);
-    expect(screen.getByRole('button', { name: /Copy to Clipboard/ })).not.toHaveProperty('disabled', true);
+    // Copy disables itself with aria-disabled (it keeps focus), so the native property says nothing
+    expect(screen.getByRole('button', { name: /Copy to Clipboard/ }).getAttribute('aria-disabled')).toBeNull();
   });
 
   /** A payload we read in full and could not tabulate can only be copied as JSON — so only offer that */
@@ -103,5 +104,6 @@ describe('DataHistoryPayloadTab copy failures', () => {
 
     await waitFor(() => expect(screen.getByText(/no longer available on this device/)).toBeTruthy());
     expect(screen.getByRole('button', { name: /Download/ })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: /Copy to Clipboard/ }).getAttribute('aria-disabled')).toBe('true');
   });
 });

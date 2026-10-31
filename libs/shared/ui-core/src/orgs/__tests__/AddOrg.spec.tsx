@@ -1,5 +1,5 @@
 import { SalesforceOrgUi } from '@jetstream/types';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { atom } from 'jotai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -82,6 +82,20 @@ describe('AddOrg', () => {
       );
     });
 
+    it('describes Continue with the fixed login url and why it cannot be changed', () => {
+      canConnectOrgs = false;
+      renderOpen(buildOrg('https://acme.my.salesforce.com'));
+
+      const describedBy = screen.getByRole('button', { name: 'Continue' }).getAttribute('aria-describedby') ?? '';
+      const description = describedBy
+        .split(' ')
+        .map((id) => document.getElementById(id)?.textContent)
+        .join(' ');
+      expect(description).toContain('Salesforce Login URL');
+      expect(description).toContain('https://acme.my.salesforce.com');
+      expect(description).toContain('allows reconnecting orgs you have already added');
+    });
+
     it.each([
       [false, 'https://login.salesforce.com'],
       [true, 'https://test.salesforce.com'],
@@ -110,6 +124,11 @@ describe('AddOrg', () => {
       clickContinue();
 
       expect(onAddOrgHandlerFn).toHaveBeenCalledWith(expect.objectContaining({ loginUrl: instanceUrl }), expect.any(Function));
+    });
+
+    it('does not describe Continue with a fixed login url when the user can pick one', () => {
+      renderOpen(buildOrg('https://acme.my.salesforce.com'));
+      expect(screen.getByRole('button', { name: 'Continue' }).hasAttribute('aria-describedby')).toBe(false);
     });
 
     it('passes the existing username as the login hint', () => {
@@ -173,11 +192,13 @@ describe('AddOrg', () => {
       selectCustom();
       fireEvent.change(getCustomUrlInput(), { target: { value: 'https://evil.com' } });
 
-      expect(getCustomUrlInput().getAttribute('aria-describedby')).toBe('org-custom-url-error');
+      // The label-help association is always present; the error id joins it only while invalid
+      expect(getCustomUrlInput().getAttribute('aria-describedby')).toContain('org-custom-url-error');
       expect(getCustomUrlInput().getAttribute('aria-invalid')).toBe('true');
 
       fireEvent.change(getCustomUrlInput(), { target: { value: 'acme' } });
-      expect(getCustomUrlInput().getAttribute('aria-describedby')).toBeNull();
+      expect(getCustomUrlInput().getAttribute('aria-describedby')).not.toContain('org-custom-url-error');
+      expect(getCustomUrlInput().getAttribute('aria-describedby')).toContain('label-help-text');
     });
 
     it('builds the login url from shorthand', () => {
@@ -190,6 +211,23 @@ describe('AddOrg', () => {
         expect.objectContaining({ loginUrl: 'https://acme--uat.sandbox.my.salesforce.com' }),
         expect.any(Function),
       );
+    });
+  });
+
+  describe('advanced options', () => {
+    // The toggle is a disclosure: a screen reader user hears expanded/collapsed on it and can jump
+    // to the region it controls, which stays in the DOM (empty) while collapsed so the id resolves
+    it('reports its expanded state and controls the region it reveals', () => {
+      renderOpen();
+      const toggle = screen.getByRole('checkbox', { name: /advanced options/i });
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      const region = document.getElementById(toggle.getAttribute('aria-controls') as string) as HTMLElement;
+      expect(region.textContent).toBe('');
+
+      fireEvent.click(toggle);
+
+      expect(toggle.getAttribute('aria-expanded')).toBe('true');
+      expect(within(region).getByLabelText(/login=true/)).toBeTruthy();
     });
   });
 });

@@ -5,7 +5,7 @@ import { AddOrgHandlerFn, SalesforceOrgUi } from '@jetstream/types';
 import { Card, Grid, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { SalesforceOrgCardDraggable } from './SalesforceOrgCardDraggable';
-import { DraggableSfdcCard, SfdcCardDropTarget } from './organization-group.types';
+import { DraggableSfdcCard, SfdcCardDropTarget, UNASSIGNED_ORGS_DROP_LABEL } from './organization-group.types';
 
 interface OrgGroupCardNoOrganizationProps {
   isActive: boolean;
@@ -30,7 +30,7 @@ export function OrgGroupCardNoOrganization({
   const { ref: dropRef, isDropTarget } = useDroppable({
     id: 'unassigned',
     accept: (source) => !!(source.data as DraggableSfdcCard).organizationId,
-    data: { action: 'remove' } satisfies SfdcCardDropTarget,
+    data: { action: 'remove', label: UNASSIGNED_ORGS_DROP_LABEL } satisfies SfdcCardDropTarget,
   });
 
   return (
@@ -42,6 +42,7 @@ export function OrgGroupCardNoOrganization({
       <Card
         ref={dropRef}
         testId={`org-group-card-empty`}
+        ariaLabel="Org group: Unassigned"
         css={css`
           &.slds-drop-zone::after {
             border-radius: var(--slds-c-card-radius-border, var(--slds-g-radius-border-2, 0.5rem));
@@ -72,7 +73,7 @@ export function OrgGroupCardNoOrganization({
         actions={
           <div className="slds-m-right_medium">
             {!isActive && (
-              <button className="slds-button slds-button_neutral" onClick={() => onSelected()}>
+              <button className="slds-button slds-button_neutral" aria-label="Make Active - Unassigned" onClick={() => onSelected()}>
                 Make Active
               </button>
             )}

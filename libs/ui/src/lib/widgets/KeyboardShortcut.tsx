@@ -6,6 +6,55 @@ export function getModifierKey() {
   return typeof navigator === 'object' && /Mac|iPod|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'CTRL';
 }
 
+// The visual glyphs read terribly (or not at all) in screen readers — '⌘' announces as
+// "place of interest sign" at best
+const SPOKEN_KEYS: Record<string, string> = {
+  '⌘': 'Command',
+  CTRL: 'Control',
+  ctrl: 'Control',
+  alt: 'Alt',
+  option: 'Option',
+  shift: 'Shift',
+  enter: 'Enter',
+  esc: 'Escape',
+  'right-click': 'right click',
+  click: 'click',
+};
+
+export function getSpokenKeyboardShortcut(keys: string[]) {
+  return keys.map((key) => SPOKEN_KEYS[key] ?? key).join(' + ');
+}
+
+/**
+ * `aria-keyshortcuts` value for a control whose shortcut is shown visually via <KeyboardShortcut />
+ * (usually in a tooltip, which is announced too late — the attribute is read at focus time). Takes
+ * the same display keys (e.g. `[getModifierKey(), 'enter']`) and maps them to the attribute's
+ * canonical key names so visual and announced shortcuts cannot drift. Only pass real keys (not
+ * 'click' variants).
+ */
+export function getAriaKeyshortcuts(keys: string[]): string {
+  return keys
+    .map((key) => {
+      switch (key.toLowerCase()) {
+        case '⌘':
+        case 'cmd':
+        case 'command':
+          return 'Meta';
+        case 'ctrl':
+        case 'control':
+          return 'Control';
+        case 'option':
+          return 'Alt';
+        case 'esc':
+          return 'Escape';
+        default:
+          // Single characters stay as-is ("k"); words are capitalized ("shift" -> "Shift").
+          return key.length === 1 ? key : key.charAt(0).toUpperCase() + key.slice(1).toLowerCase();
+      }
+    })
+    .join('+');
+}
+
 export interface KeyboardShortcutProps extends GridProps {
   keys: string[];
   preContent?: ReactNode;
@@ -23,9 +72,11 @@ export function KeyboardShortcut({ keys, preContent, postContent, separator = '+
   return (
     <Grid verticalAlign="center" {...rest}>
       {preContent && <span className="slds-m-right_x-small">{preContent}</span>}
+      <span className="slds-assistive-text">{getSpokenKeyboardShortcut(keys)}</span>
       {keys.map((key, i) => (
         <Fragment key={key}>
           <kbd
+            aria-hidden="true"
             className={i === keys.length - 1 ? 'slds-m-right_x-small' : ''}
             css={css`
               align-items: center;
@@ -64,7 +115,11 @@ export function KeyboardShortcut({ keys, preContent, postContent, separator = '+
           >
             {key}
           </kbd>
-          {i !== keys.length - 1 && <span className="slds-m-horizontal_xx-small">{separator}</span>}
+          {i !== keys.length - 1 && (
+            <span aria-hidden="true" className="slds-m-horizontal_xx-small">
+              {separator}
+            </span>
+          )}
         </Fragment>
       ))}
       {postContent}

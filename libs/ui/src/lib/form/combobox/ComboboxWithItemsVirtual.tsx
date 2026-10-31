@@ -41,7 +41,10 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
 }) => {
   const comboboxRef = useRef<ComboboxPropsRef>(null);
   const [filterTextNonDebounced, setFilterText] = useState<string>('');
-  const filterText = useDebounce(filterTextNonDebounced, 300);
+  const debouncedFilterText = useDebounce(filterTextNonDebounced, 300);
+  // Clearing applies immediately (M13): a debounced reset showed the previous search's subset for
+  // 300ms when the list was cleared or reopened — same rule as ComboboxWithItems
+  const filterText = filterTextNonDebounced ? debouncedFilterText : '';
   const [visibleItems, setVisibleItems] = useState(items);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   // Derived during render rather than mirrored into state with effects — see ComboboxWithItems
@@ -126,6 +129,11 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
         break;
       }
       case 'enter': {
+        // A disabled option is announced as disabled and must not activate — mirrors the
+        // pointer guard in ComboboxListItem
+        if (isNumber(focusedIndex) && visibleItems[focusedIndex]?.disabled) {
+          return;
+        }
         if (isNumber(tempFocusedIndex)) {
           tempFocusedIndex = null;
           setFocusedIndex(tempFocusedIndex);
@@ -167,7 +175,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
   };
 
   const onInputEnter = useCallback(() => {
-    const firstItem = visibleItems.find((item) => !item.isGroup);
+    const firstItem = visibleItems.find((item) => !item.isGroup && !item.disabled);
     if (firstItem) {
       handleSelection(firstItem);
     }
@@ -183,6 +191,14 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
       selectedItemTitle={selectedItemTitle}
       isVirtual
       onInputChange={setFilterText}
+      // Same close contract as ComboboxWithItems: reset the filter so reopening doesn't flash the
+      // previous search's subset (the debounce made the stale flash even longer here)
+      onClose={() => {
+        setFilterText('');
+        setFocusedIndex(null);
+        comboboxRef.current?.clearInputText();
+        comboboxProps.onClose?.();
+      }}
       onInputEnter={onInputEnter}
       onKeyboardNavigation={handleKeyboardNavigation}
     >

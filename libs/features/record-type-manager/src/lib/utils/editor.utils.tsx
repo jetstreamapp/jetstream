@@ -48,6 +48,7 @@ export const getAccordionFieldSection = ({
           {recordTypes.map(([recordTypeName, recordTypeValue]) => (
             <RecordTypeManagerEditorFieldItem
               key={recordTypeName}
+              contextLabel={`${recordTypeName} record type — ${titleText} field`}
               label={getNameOrNameAndLabelFromObj(recordTypeValue, 'recordType', 'recordTypeLabel')}
               picklistValues={recordTypeValue.picklistValues}
               recordTypeName={recordTypeName}
@@ -96,6 +97,7 @@ export const getAccordionRecordTypeSection = ({
           {Object.values(picklistValues).map((picklistFieldEntry) => (
             <RecordTypeManagerEditorFieldItem
               key={picklistFieldEntry.fieldName}
+              contextLabel={`${getNameOrNameAndLabelFromObj(picklistFieldEntry, 'fieldName', 'fieldLabel')} field — ${titleText} record type`}
               label={getNameOrNameAndLabelFromObj(picklistFieldEntry, 'fieldName', 'fieldLabel')}
               picklistValues={recordTypeValue.picklistValues}
               recordTypeName={recordTypeValue.recordType}

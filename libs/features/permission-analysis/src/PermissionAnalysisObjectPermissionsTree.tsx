@@ -24,6 +24,7 @@ import {
   objectPermissionFindingRowKey,
   sortObjectPermissionExportRowsForAnalysisTree,
   sortedObjectPermissionBooleanKeys,
+  withFindingDetailsCell,
   type PermissionAnalysisFinding,
   type PermissionExportRow,
   type SobjectExportDetail,
@@ -123,7 +124,9 @@ function renderPermissionSetGroupCell(
       `}
       onClick={toggleGroup}
       title={exportLabel}
+      aria-expanded={isExpanded}
     >
+      {/* Decorative: the button's visible text names it and aria-expanded carries the state */}
       <Icon
         type="utility"
         icon={isExpanded ? 'chevrondown' : 'chevronright'}
@@ -133,7 +136,6 @@ function renderPermissionSetGroupCell(
           margin-top: 0.125rem;
         `}
         omitContainer
-        description={isExpanded ? 'Collapse' : 'Expand'}
       />
       <span
         css={css`
@@ -281,34 +283,34 @@ export const PermissionAnalysisObjectPermissionsTree: FunctionComponent<Permissi
       const fieldType = getRowTypeFromValue(row0[key], false);
       const headerLabel = getExportColumnHeaderLabel(key);
       const columnKey = key;
-      permissionCols.push({
-        ...setColumnFromType<ObjectPermissionTreeRow>(key, fieldType),
-        name: headerLabel,
-        key,
-        field: key,
-        resizable: true,
-        width: TREE_COL_PERMISSION_BOOL,
-        minWidth: TREE_MIN_PERMISSION_BOOL,
-        cellClass: (row: ObjectPermissionTreeRow) => {
-          if (!isObjectPermissionLeafRow(row)) {
-            return undefined;
-          }
-          const parentId = typeof row.ParentId === 'string' ? row.ParentId.trim() : '';
-          const sobjectType = typeof row.SobjectType === 'string' ? row.SobjectType.trim() : '';
-          if (!parentId || !sobjectType) {
-            return undefined;
-          }
-          const rowKey = objectPermissionFindingRowKey(parentId, sobjectType);
-          const severity = findingCellHighlights.get(rowKey)?.get(columnKey);
-          if (severity === 'error') {
-            return 'permission-finding-cell--error permission-finding-cell--clickable';
-          }
-          if (severity === 'warning') {
-            return 'permission-finding-severity-cell--warning permission-finding-cell--clickable';
-          }
+      const baseColumn = setColumnFromType<ObjectPermissionTreeRow>(key, fieldType);
+      const severityForRow = (row: ObjectPermissionTreeRow) => {
+        if (!isObjectPermissionLeafRow(row)) {
           return undefined;
-        },
-      } as ColumnWithFilter<ObjectPermissionTreeRow>);
+        }
+        const parentId = typeof row.ParentId === 'string' ? row.ParentId.trim() : '';
+        const sobjectType = typeof row.SobjectType === 'string' ? row.SobjectType.trim() : '';
+        if (!parentId || !sobjectType) {
+          return undefined;
+        }
+        const rowKey = objectPermissionFindingRowKey(parentId, sobjectType);
+        return findingCellHighlights.get(rowKey)?.get(columnKey);
+      };
+      permissionCols.push(
+        withFindingDetailsCell(
+          {
+            ...baseColumn,
+            name: headerLabel,
+            key,
+            field: key,
+            resizable: true,
+            width: TREE_COL_PERMISSION_BOOL,
+            minWidth: TREE_MIN_PERMISSION_BOOL,
+          } as ColumnWithFilter<ObjectPermissionTreeRow>,
+          severityForRow,
+          { columnLabel: headerLabel },
+        ),
+      );
     }
 
     return [groupPermSetCol, objectCol, ...permissionCols];

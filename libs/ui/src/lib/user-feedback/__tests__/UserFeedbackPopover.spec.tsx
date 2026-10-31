@@ -19,6 +19,7 @@ vi.mock('../../form/file-selector/file-selector-utils', async (importOriginal) =
 });
 
 import { submitUserFeedback } from '@jetstream/shared/data';
+import { axeScan } from '@jetstream/test-utils';
 import { InputReadFileContent } from '@jetstream/types';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -61,12 +62,21 @@ describe('UserFeedbackPopover', () => {
     mockReadFileForUpload.mockReset();
   });
 
+  test('has no axe violations when open', async () => {
+    const user = userEvent.setup();
+    const { baseElement } = render(<UserFeedbackPopover />);
+
+    await openPopover(user);
+
+    await axeScan(baseElement);
+  });
+
   test('sends a quick message and clears the draft', async () => {
     const user = userEvent.setup();
     render(<UserFeedbackPopover />);
 
     const textarea = await openPopover(user);
-    expect(getSendButton().disabled).toBe(true);
+    expect(getSendButton().getAttribute('aria-disabled')).toBe('true');
 
     await user.type(textarea, 'Love the new query builder');
     await user.click(getSendButton());
@@ -160,13 +170,13 @@ describe('UserFeedbackPopover', () => {
     await user.type(textarea, 'See screenshot');
     pasteImages(textarea, [createImage('slow.png')]);
 
-    await waitFor(() => expect(getSendButton().disabled).toBe(true));
+    await waitFor(() => expect(getSendButton().getAttribute('aria-disabled')).toBe('true'));
     await user.keyboard('{Control>}{Enter}{/Control}');
     expect(mockSubmitUserFeedback).not.toHaveBeenCalled();
 
     finishRead({ filename: 'slow.png', extension: '.png', content: new ArrayBuffer(4) });
     expect(await screen.findByText('slow.png')).toBeTruthy();
-    expect(getSendButton().disabled).toBe(false);
+    expect(getSendButton().getAttribute('aria-disabled')).toBeNull();
 
     await user.click(getSendButton());
     await waitFor(() => expect(mockSubmitUserFeedback).toHaveBeenCalledTimes(1));
@@ -231,5 +241,52 @@ describe('UserFeedbackPopover', () => {
 
     expect(await screen.findByText('replacement.png')).toBeTruthy();
     expect(screen.getAllByRole('button', { name: /^Remove / })).toHaveLength(5);
+  });
+
+  test('keeps focus on Send while sending and after a failure', async () => {
+    let rejectSubmit: (error: Error) => void = () => undefined;
+    mockSubmitUserFeedback.mockImplementation(
+      () =>
+        new Promise((_, reject) => {
+          rejectSubmit = reject;
+        }),
+    );
+    const user = userEvent.setup();
+    render(<UserFeedbackPopover />);
+
+    await user.type(await openPopover(user), 'Will fail');
+    await user.click(getSendButton());
+    expect(getSendButton().getAttribute('aria-disabled')).toBe('true');
+    expect(document.activeElement).toBe(getSendButton());
+
+    await act(async () => rejectSubmit(new Error('Network error')));
+    expect(await screen.findByText(/could not be sent/)).toBeTruthy();
+    expect(document.activeElement).toBe(getSendButton());
+  });
+
+  test('removing a screenshot announces it and moves focus to the next remove button, then to Attach', async () => {
+    const user = userEvent.setup();
+    render(<UserFeedbackPopover />);
+
+    const textarea = await openPopover(user);
+    pasteImages(textarea, [createImage('first.png'), createImage('second.png')]);
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /^Remove / })).toHaveLength(2));
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Attached 2 screenshots'));
+
+    await user.click(screen.getByRole('button', { name: 'Remove first.png' }));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Remove second.png' })));
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Removed first.png'));
+
+    await user.click(screen.getByRole('button', { name: 'Remove second.png' }));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: /Attach screenshot/ })));
+  });
+
+  test('exposes the open and send shortcuts to assistive technology', async () => {
+    const user = userEvent.setup();
+    render(<UserFeedbackPopover />);
+
+    expect(screen.getByRole('button', { name: 'Feedback' }).getAttribute('aria-keyshortcuts')).toMatch(/\+Shift\+\.$/);
+    await openPopover(user);
+    expect(getSendButton().getAttribute('aria-keyshortcuts')).toMatch(/\+Enter$/);
   });
 });
