@@ -152,12 +152,9 @@ export async function downloadBulkApiFileAndSaveToDisk({
       downloadPath = result.filePath;
     }
 
-    let resultId: string | undefined;
-    if (isQuery) {
-      resultId = (await jetstreamConn.bulk.getQueryResultsJobIds(jobId, batchId))[0];
-    }
-
-    const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type, resultId);
+    const results = isQuery
+      ? await jetstreamConn.bulk.downloadQueryResults(jobId, batchId)
+      : await jetstreamConn.bulk.downloadRecords(jobId, batchId, type);
 
     // Create write stream for the zip file
     const writeStream = createWriteStream(downloadPath);

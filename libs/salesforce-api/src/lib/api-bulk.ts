@@ -8,6 +8,7 @@ import {
   BulkJobWithBatches,
 } from '@jetstream/types';
 import { ApiConnection } from './connection';
+import { concatenateCsvStreams } from './csv-stream.utils';
 import { SalesforceApi, prepareBulkApiRequestPayload, prepareCloseOrAbortJobPayload } from './utils';
 
 export class ApiBulk extends SalesforceApi {
@@ -111,12 +112,24 @@ export class ApiBulk extends SalesforceApi {
     return results;
   }
 
+  /**
+   * Stream every result file of a Bulk API v1 query batch as a single CSV.
+   *
+   * Salesforce splits large query results into multiple files (up to 15, each up to 1GB), and each file repeats
+   * the CSV header row, so files 2..n have their header line dropped. Files are fetched one at a time, in order,
+   * as the stream is consumed. A batch with no result files produces an empty stream.
+   */
+  async downloadQueryResults(jobId: string, batchId: string): Promise<ReadableStream<Uint8Array>> {
+    const resultIds = await this.getQueryResultsJobIds(jobId, batchId);
+    return concatenateCsvStreams(resultIds.map((resultId) => () => this.downloadRecords(jobId, batchId, 'result', resultId)));
+  }
+
   // Stream results from SFDC to user
   async downloadRecords(
     jobId: string,
     batchId: string,
     type: BulkApiDownloadType,
-    /** For query jobs, an id is required */
+    /** For query jobs, an id is required - prefer `downloadQueryResults`, which includes every result file */
     resultId?: string,
   ) {
     const urlSuffix = resultId ? `/${resultId}` : '';

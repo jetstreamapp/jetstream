@@ -196,13 +196,9 @@ const downloadResultsFile = createRoute(
       res.setHeader(HTTP.HEADERS.CONTENT_TYPE, HTTP.CONTENT_TYPE.CSV);
       res.setHeader(HTTP.HEADERS.CONTENT_DISPOSITION, `attachment; filename="${fileName}"`);
 
-      let resultId: string | undefined;
-
-      if (isQuery) {
-        resultId = (await jetstreamConn.bulk.getQueryResultsJobIds(jobId, batchId))[0];
-      }
-
-      const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type, resultId);
+      const results = isQuery
+        ? await jetstreamConn.bulk.downloadQueryResults(jobId, batchId)
+        : await jetstreamConn.bulk.downloadRecords(jobId, batchId, type);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       Readable.fromWeb(results as any).pipe(res);
     } catch (ex) {
@@ -237,20 +233,13 @@ const downloadResults = createRoute(routeDefinition.downloadResults.validators, 
 
     streamParsedCsvAsJson(res, csvParseStream);
 
-    if (isQuery) {
-      const resultIds = await jetstreamConn.bulk.getQueryResultsJobIds(jobId, batchId);
-      const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type, resultIds[0]);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const readable = Readable.fromWeb(results as any);
-      readable.on('error', (err) => csvParseStream.destroy(err));
-      readable.pipe(csvParseStream);
-    } else {
-      const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const readable = Readable.fromWeb(results as any);
-      readable.on('error', (err) => csvParseStream.destroy(err));
-      readable.pipe(csvParseStream);
-    }
+    const results = isQuery
+      ? await jetstreamConn.bulk.downloadQueryResults(jobId, batchId)
+      : await jetstreamConn.bulk.downloadRecords(jobId, batchId, type);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const readable = Readable.fromWeb(results as any);
+    readable.on('error', (err) => csvParseStream.destroy(err));
+    readable.pipe(csvParseStream);
   } catch (ex) {
     next(new UserFacingError(ex));
   }
