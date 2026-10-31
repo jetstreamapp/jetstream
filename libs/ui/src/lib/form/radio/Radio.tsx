@@ -2,6 +2,8 @@ import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent } from 'react';
 
 export interface RadioProps {
+  /** @deprecated Ignored — radios no longer point aria-describedby at per-radio ids. Remove once no caller passes it. */
+  idPrefix?: string;
   id?: string;
   name: string;
   label: string | React.ReactNode;
