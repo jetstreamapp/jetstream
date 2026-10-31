@@ -164,8 +164,5 @@
   "analytics": false,
   "sync": {
     "applyChanges": true
-  },
-  "affected": {
-    "legacy": true
   }
 }
