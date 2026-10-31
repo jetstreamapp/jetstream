@@ -66,6 +66,31 @@ describe('Modal', () => {
     expect(baseElement).toBeTruthy();
   });
 
+  it('keeps the header Close focused but inert while closing is locked, then closes once unlocked', () => {
+    const onClose = vi.fn();
+    const { rerender } = render(
+      <Modal header="Saving" closeDisabled onClose={onClose}>
+        Content
+      </Modal>,
+    );
+    const closeButton = screen.getByRole('button', { name: 'Close' });
+    closeButton.focus();
+
+    fireEvent.click(closeButton);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(closeButton.getAttribute('aria-disabled')).toBe('true');
+
+    rerender(
+      <Modal header="Saving" closeDisabled={false} onClose={onClose}>
+        Content
+      </Modal>,
+    );
+    // Native disabled would have dropped focus to <body> when the save locked the modal
+    expect(document.activeElement).toBe(closeButton);
+    fireEvent.click(closeButton);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('should have no axe violations', async () => {
     const { baseElement } = renderModal();
     const results = await axeScan(baseElement);
