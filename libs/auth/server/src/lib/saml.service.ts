@@ -134,6 +134,9 @@ export class SamlService {
       // Identity Provider
       entryPoint: config.idpSsoUrl,
       idpCert: config.idpCertificate,
+      // node-saml only enforces idpIssuer on logout messages; authentication assertions are bound to the
+      // configured IdP in validateSamlResponse below.
+      idpIssuer: config.idpEntityId,
 
       // Options
       signatureAlgorithm: 'sha256',
@@ -264,6 +267,7 @@ export class SamlService {
    *
    * Security checks performed:
    * - Assertion signature verification (via idpCert)
+   * - Issuer binding (the assertion's <Issuer> must equal the configured IdP entity ID)
    * - InResponseTo validation (response must match a request we initiated, when present)
    * - One-time-use enforcement (request ID removed from cache after first use)
    * - Mandatory replay check keyed off the verified assertion (consumed assertion cache); fails
@@ -284,6 +288,20 @@ export class SamlService {
       }
       if (!profile) {
         throw new Error('No profile returned in SAML response');
+      }
+
+      // Bind the assertion to the configured IdP. Signature verification only proves the assertion was signed with
+      // the configured certificate; an IdP that signs several tenants with the same certificate could otherwise
+      // present an assertion issued for another tenant. node-saml sets profile.issuer from the assertion's <Issuer>
+      // but does not compare it on the authentication path (its idpIssuer option only covers logout messages), so
+      // it is enforced here. idpEntityId is NOT NULL in the database and required on save, so this is unconditional.
+      // Checked before the replay gate so a rejected assertion does not consume a replay marker.
+      if (!profile.issuer || profile.issuer !== config.idpEntityId) {
+        logger.warn(
+          { teamId, expectedIssuer: config.idpEntityId, actualIssuer: profile.issuer },
+          '[SAML] Assertion issuer does not match the configured IdP entity ID',
+        );
+        throw new Error('SAML assertion was not issued by the configured identity provider');
       }
 
       // MANDATORY replay gate: atomically record the assertion across all workers. For
