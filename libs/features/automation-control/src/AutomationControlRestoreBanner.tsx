@@ -3,7 +3,7 @@ import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { ScopedNotification, Spinner } from '@jetstream/ui';
 import { fromAutomationControlState } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent } from 'react';
-import { formatHistoryDate, getRestoreActionLabel } from './automation-control-history-utils';
+import { formatHistoryDate, getPendingRestoreMessage, getRestoreActionLabel } from './automation-control-history-utils';
 import { StagedHistoryRestore } from './automation-control-types';
 
 const MAX_MISSING_ITEMS_SHOWN = 10;
@@ -14,7 +14,10 @@ export interface AutomationControlRestoreBannerProps {
   onReviewChanges: () => void;
 }
 
-/** Explains a rollback/re-deploy from history while it loads, and what was staged once it has */
+/**
+ * Explains a rollback/re-deploy from history while it loads, and what was staged once it has.
+ * Each banner mounts with its text, which a live region does not announce, so the editor announces both itself.
+ */
 export const AutomationControlRestoreBanner: FunctionComponent<AutomationControlRestoreBannerProps> = ({
   pendingRestore,
   stagedRestore,
@@ -28,8 +31,7 @@ export const AutomationControlRestoreBanner: FunctionComponent<AutomationControl
         className="slds-m-around_x-small"
         icon={<Spinner className="slds-spinner slds-spinner_brand slds-spinner_x-small slds-spinner_inline" hasContainer={false} />}
       >
-        Loading the current state from Salesforce to {getRestoreActionLabel(pendingRestore.action)} the changes deployed{' '}
-        {formatHistoryDate(pendingRestore.entry.createdAt)}...
+        {getPendingRestoreMessage(pendingRestore.action, pendingRestore.entry.createdAt)}...
       </ScopedNotification>
     );
   }

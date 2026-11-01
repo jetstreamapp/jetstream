@@ -4,9 +4,11 @@ import { formatNumber, useGoBackShortcut, usePrimaryActionShortcut, useTitle } f
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { FileExtAllTypes, ListMetadataResult, Maybe, MimeType, RetrievePackageFromListMetadataJob } from '@jetstream/types';
 import {
+  AssistiveStatus,
   AutoFullHeightContainer,
   Badge,
   ButtonGroupContainer,
+  DisabledReasonButton,
   FileDownloadModal,
   FileFauxDownloadModal,
   Grid,
@@ -19,7 +21,9 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
   Tooltip,
+  getAriaKeyshortcuts,
   getModifierKey,
+  useAnnouncer,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, fromAutomationControlState, fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
 import {
@@ -31,7 +35,7 @@ import {
 } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import AutomationControlEditorReviewModal from './AutomationControlEditorReviewModal';
 import AutomationControlEditorTable from './AutomationControlEditorTable';
@@ -50,11 +54,18 @@ import {
   isValidationRecord,
   isWorkflowRuleRecord,
 } from './automation-control-data-utils';
-import { TableRowItem } from './automation-control-types';
+import { getPendingRestoreMessage, getStagedRestoreAnnouncement } from './automation-control-history-utils';
+import { TableRowItem, TableRowOrItemOrChild } from './automation-control-types';
 import { useAutomationControlData } from './useAutomationControlData';
 import { useHistoryRestoreStaging } from './useHistoryRestoreStaging';
 
 const HEIGHT_BUFFER = 170;
+
+/** Object group rows and version children are structure, not items — count only what the user asked to load */
+function getLoadedItemsMessage(rows: TableRowOrItemOrChild[]) {
+  const itemCount = rows.filter(isTableRowItem).length;
+  return `${formatNumber(itemCount)} automation ${pluralizeFromNumber('item', itemCount)} loaded`;
+}
 
 export const AutomationControlEditor = () => {
   useTitle(TITLES.AUTOMATION_CONTROL);
@@ -76,6 +87,10 @@ export const AutomationControlEditor = () => {
 
   const [exportDataModalOpen, setExportDataModalOpen] = useState<boolean>(false);
   const [exportDataModalData, setExportDataModalData] = useState<any[]>([]);
+
+  const { announce, announcer } = useAnnouncer();
+  const historyButtonRef = useRef<HTMLButtonElement>(null);
+  const focusAfterReviewCloseRef = useRef(false);
 
   const [exportMetadataModalOpen, setExportMetadataModalOpen] = useState<boolean>(false);
 
@@ -111,6 +126,37 @@ export const AutomationControlEditor = () => {
     dirtyRows,
   });
 
+  // The restore banners mount with their text, which a live region does not announce
+  useEffect(() => {
+    if (pendingHistoryRestore) {
+      announce(getPendingRestoreMessage(pendingHistoryRestore.action, pendingHistoryRestore.entry.createdAt));
+    }
+  }, [announce, pendingHistoryRestore]);
+
+  useEffect(() => {
+    if (stagedRestore) {
+      announce(getStagedRestoreAnnouncement(stagedRestore));
+    }
+  }, [announce, stagedRestore]);
+
+  // A deploy refreshes the data, which clears a staged restore and unmounts the banner whose Review Changes button
+  // may have opened the modal, so the modal has nothing to return focus to. Two frames lets the modal return focus
+  // to an opener that still exists first (see Modal); only when that left focus on <body> does History take it.
+  useEffect(() => {
+    if (saveModalOpen || !focusAfterReviewCloseRef.current) {
+      return;
+    }
+    focusAfterReviewCloseRef.current = false;
+    let frameId = requestAnimationFrame(() => {
+      frameId = requestAnimationFrame(() => {
+        if (!document.activeElement || document.activeElement === document.body) {
+          historyButtonRef.current?.focus();
+        }
+      });
+    });
+    return () => cancelAnimationFrame(frameId);
+  }, [saveModalOpen]);
+
   function handleResetChanges() {
     resetChanges();
     trackEvent(ANALYTICS_KEYS.automation_toggle_all, { type: 'reset' });
@@ -138,6 +184,7 @@ export const AutomationControlEditor = () => {
     if (refreshData) {
       fetchData();
     }
+    focusAfterReviewCloseRef.current = true;
     setSaveModalOpen(false);
   }
 
@@ -257,6 +304,12 @@ export const AutomationControlEditor = () => {
     trackEvent(ANALYTICS_KEYS.automation_export, { type: 'spreadsheet' });
   }
 
+  /** Toggling all rows gives sighted users flipped checkboxes + the modified-count badge — announce the same outcome */
+  function handleToggleAll(value: boolean) {
+    toggleAll(value);
+    announce(`All visible items marked ${value ? 'active' : 'inactive'}`);
+  }
+
   return (
     <div>
       {exportDataModalOpen && (
@@ -310,6 +363,7 @@ export const AutomationControlEditor = () => {
             <Link
               className="slds-button slds-button_brand"
               title="Go back"
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'shift', 'enter'])}
               to=".."
               // onClick={handleGoBack}
             >
@@ -329,6 +383,7 @@ export const AutomationControlEditor = () => {
         </ToolbarItemGroup>
         <ToolbarItemActions>
           <AutomationControlHistoryButton
+            ref={historyButtonRef}
             className="collapsible-button collapsible-button-xl"
             selectedOrg={selectedOrg}
             hasUnsavedChanges={dirtyCount > 0}
@@ -363,25 +418,23 @@ export const AutomationControlEditor = () => {
               <span>Export as Spreadsheet</span>
             </button>
           </ButtonGroupContainer>
-          <Tooltip
-            openDelay={500}
-            content={
-              deployAccess.deniedReason ?? (
-                <div className="slds-p-bottom_small">
-                  <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
-                </div>
-              )
+          <DisabledReasonButton
+            className="slds-button slds-button_brand slds-m-left_xx-small"
+            tooltipClassName="slds-m-left_x-small"
+            tooltipOpenDelay={500}
+            tooltip={
+              <div className="slds-p-bottom_small">
+                <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+              </div>
             }
+            aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+            disabled={reviewChangesDisabled}
+            disabledReason={deployAccess.deniedReason}
+            onClick={handleReviewChanges}
           >
-            <button
-              className="slds-button slds-button_brand slds-m-left_xx-small"
-              disabled={reviewChangesDisabled}
-              onClick={handleReviewChanges}
-            >
-              <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
-              Review Changes
-            </button>
-          </Tooltip>
+            <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
+            Review Changes
+          </DisabledReasonButton>
         </ToolbarItemActions>
       </Toolbar>
       <AutomationControlRestoreBanner
@@ -393,12 +446,20 @@ export const AutomationControlEditor = () => {
         <Grid>
           <Grid className="slds-grow slds-box_small slds-theme_default slds-is-relative" verticalAlign="center" wrap>
             {loading && <Spinner size="small"></Spinner>}
-            <SearchInput id="quick-filter" placeholder="Filter items..." onChange={setQuickFilterText} />
+            {/* The table mounts with its rows already loaded, so the grid's own count announcement (which
+                reacts to filter changes) never fires for the initial load */}
+            <AssistiveStatus message={loading ? 'Loading automation items' : getLoadedItemsMessage(rows)} />
+            <SearchInput
+              id="quick-filter"
+              ariaLabel="Filter automation items"
+              placeholder="Filter items..."
+              onChange={setQuickFilterText}
+            />
             <ButtonGroupContainer className="slds-m-horizontal_small">
               <button
                 className={classNames('slds-button slds-button_neutral')}
                 title="Enable All"
-                onClick={() => toggleAll(true)}
+                onClick={() => handleToggleAll(true)}
                 disabled={loading}
               >
                 <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
@@ -407,13 +468,14 @@ export const AutomationControlEditor = () => {
               <button
                 className={classNames('slds-button slds-button_neutral')}
                 title="Disable All"
-                onClick={() => toggleAll(false)}
+                onClick={() => handleToggleAll(false)}
                 disabled={loading}
               >
                 <Icon type="utility" icon="dash" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Disable All
               </button>
             </ButtonGroupContainer>
+            {announcer}
             <Badge>
               {formatNumber(dirtyCount)} {pluralizeFromNumber('item', dirtyCount)} modified
             </Badge>
