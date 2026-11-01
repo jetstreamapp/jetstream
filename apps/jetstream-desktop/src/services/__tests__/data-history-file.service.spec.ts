@@ -1,3 +1,4 @@
+import { getDataHistoryUserScopeDirName } from '@jetstream/shared/utils';
 import { promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -13,6 +14,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   userDataDir: '',
   preferences: {} as { dataHistoryFolder?: string },
+  /** The main process's own record of who is signed in — what the scope is derived from */
+  appData: { userProfile: undefined as { id: string } | undefined },
 }));
 
 vi.mock('electron', () => ({
@@ -31,14 +34,21 @@ vi.mock('electron-log', () => ({
 }));
 
 vi.mock('../persistence.service', () => ({
+  getAppData: vi.fn(() => mocks.appData),
   getUserPreferences: vi.fn(() => mocks.preferences),
   updateUserPreferences: vi.fn((changes: { dataHistoryFolder?: string }) => Object.assign(mocks.preferences, changes)),
 }));
 
 const TEXT_ENCODER = new TextEncoder();
 const GZIP_MAGIC = [0x1f, 0x8b];
-/** Stands in for the hashed user id the renderer sends on `init` */
-const SPEC_SCOPE_DIR = 'u-0123456789abcdef';
+const SPEC_USER_ID = 'user-spec-a';
+const OTHER_USER_ID = 'user-spec-b';
+/**
+ * The scope the main process derives for the signed-in user — the renderer sends the same value on
+ * `init` (both sides share `getDataHistoryUserScopeDirName`), and `init` refuses anything else
+ */
+const SPEC_SCOPE_DIR = await getDataHistoryUserScopeDirName(SPEC_USER_ID);
+const OTHER_SCOPE_DIR = await getDataHistoryUserScopeDirName(OTHER_USER_ID);
 /**
  * Every op arrives from SOME renderer window in production (the IPC handler always supplies
  * `event.sender.id`); this is the spec's default window. Tests about cross-window isolation pass
@@ -48,10 +58,15 @@ const CONTEXT = { senderId: 1 };
 
 type DataHistoryFileService = typeof import('../data-history-file.service');
 
+/** Sign a user in (or out, with `null`) as far as the main process is concerned */
+function signIn(userId: string | null) {
+  mocks.appData.userProfile = userId ? { id: userId } : undefined;
+}
+
 /**
- * Import the service and bind it to a user, as the renderer's `init` op does before any other
- * op. Every path op resolves under the scope, so an uninitialized service is unusable by design.
- * `handleDataHistoryOp` is wrapped so the default window context can be omitted.
+ * Import the service and bind it to the signed-in user, as the renderer's `init` op does before
+ * any other op. Every path op resolves under the scope, so an uninitialized service is unusable by
+ * design. `handleDataHistoryOp` is wrapped so the default window context can be omitted.
  */
 async function importService() {
   const module = await import('../data-history-file.service');
@@ -85,6 +100,7 @@ describe('data-history-file.service', () => {
     tempRoot = await fs.mkdtemp(join(tmpdir(), 'jetstream-data-history-test-'));
     mocks.userDataDir = join(tempRoot, 'user-data');
     mocks.preferences = {};
+    signIn(SPEC_USER_ID);
     await fs.mkdir(mocks.userDataDir, { recursive: true });
   });
 
@@ -565,37 +581,107 @@ describe('data-history-file.service', () => {
   // per-user scoping
   // ────────────────────────────────────────────────
   describe('per-user scoping', () => {
-    const OTHER_SCOPE_DIR = 'u-fedcba9876543210';
+    const WRITE_A = {
+      op: 'write-file',
+      path: 'org-1/dh_a/manifest.json',
+      gzip: false,
+      bytes: TEXT_ENCODER.encode('{"user":"a"}'),
+    } as const;
 
     it('refuses every path op until a user is bound', async () => {
       const service = await import('../data-history-file.service');
-      await expect(
-        service.handleDataHistoryOp(
-          { op: 'write-file', path: 'org-1/dh_a/manifest.json', gzip: false, bytes: TEXT_ENCODER.encode('{}') },
-          CONTEXT,
-        ),
-      ).rejects.toThrow(/not been initialized for a user/);
+      await expect(service.handleDataHistoryOp(WRITE_A, CONTEXT)).rejects.toThrow(/not been initialized for a user/);
     });
 
-    it('rejects a scope that tries to escape the history folder', async () => {
+    it('derives the scope from the signed-in user, never from the request', async () => {
+      const service = await importService();
+      await service.handleDataHistoryOp(WRITE_A);
+      // The file landed under the directory derived from app data — `scopedBaseDir()` IS that derivation
+      const written = await fs.readFile(join(scopedBaseDir(), 'org-1', 'dh_a', 'manifest.json'), 'utf8');
+      expect(written).toBe('{"user":"a"}');
+      expect(SPEC_SCOPE_DIR).toMatch(/^u-[0-9a-f]{16}$/);
+    });
+
+    it('rejects an init whose renderer scope names a different user, and binds nothing', async () => {
       const service = await import('../data-history-file.service');
-      await expect(service.handleDataHistoryOp({ op: 'init', scopeDir: '../..' }, CONTEXT)).rejects.toThrow(/Invalid path segment/);
-      await expect(service.handleDataHistoryOp({ op: 'init', scopeDir: 'a/b' }, CONTEXT)).rejects.toThrow(
-        /Invalid data history user scope/,
+      for (const scopeDir of [OTHER_SCOPE_DIR, '../..', 'a/b', '', undefined]) {
+        await expect(service.handleDataHistoryOp({ op: 'init', scopeDir: scopeDir as string }, CONTEXT)).rejects.toThrow(
+          /does not match the signed-in user/,
+        );
+      }
+      await expect(service.handleDataHistoryOp(WRITE_A, CONTEXT)).rejects.toThrow(/not been initialized for a user/);
+      // Nothing was created for the directory the renderer asked for
+      await expect(fs.access(join(defaultBaseDir(), OTHER_SCOPE_DIR))).rejects.toThrow();
+    });
+
+    it('refuses init and every op when no user is signed in', async () => {
+      signIn(null);
+      const service = await import('../data-history-file.service');
+      await expect(service.handleDataHistoryOp({ op: 'init', scopeDir: SPEC_SCOPE_DIR }, CONTEXT)).rejects.toThrow(
+        /requires a signed-in user/,
+      );
+      await expect(service.handleDataHistoryOp(WRITE_A, CONTEXT)).rejects.toThrow(/requires a signed-in user/);
+      await expect(service.handleDataHistoryOp({ op: 'list-entry-dirs' }, CONTEXT)).rejects.toThrow(/requires a signed-in user/);
+    });
+
+    it('refuses every op once the scope is cleared (logout), until a fresh init', async () => {
+      const service = await importService();
+      await service.handleDataHistoryOp(WRITE_A);
+
+      await service.clearDataHistoryScope();
+      await expect(service.handleDataHistoryOp(WRITE_A)).rejects.toThrow(/not been initialized for a user/);
+      await expect(service.handleDataHistoryOp({ op: 'read-file', path: 'org-1/dh_a/manifest.json', gunzip: false })).rejects.toThrow(
+        /not been initialized for a user/,
+      );
+
+      await service.handleDataHistoryOp({ op: 'init', scopeDir: SPEC_SCOPE_DIR });
+      const bytes = (await service.handleDataHistoryOp({ op: 'read-file', path: 'org-1/dh_a/manifest.json', gunzip: false })) as Uint8Array;
+      expect(new TextDecoder().decode(bytes)).toBe('{"user":"a"}');
+    });
+
+    it('clearing the scope tears down every open stream, whichever window owns it', async () => {
+      const service = await importService();
+      const { streamId: streamA } = (await service.handleDataHistoryOp(
+        { op: 'open-stream', path: 'org-1/dh_a/input.csv', gzip: false },
+        { senderId: 1 },
+      )) as { streamId: number };
+      const { streamId: streamB } = (await service.handleDataHistoryOp(
+        { op: 'open-stream', path: 'org-1/dh_b/input.csv', gzip: false },
+        { senderId: 2 },
+      )) as { streamId: number };
+
+      await service.clearDataHistoryScope();
+
+      await service.handleDataHistoryOp({ op: 'init', scopeDir: SPEC_SCOPE_DIR });
+      await expect(service.handleDataHistoryOp({ op: 'stream-close', streamId: streamA }, { senderId: 1 })).rejects.toThrow(
+        /Unknown streamId/,
+      );
+      await expect(service.handleDataHistoryOp({ op: 'stream-close', streamId: streamB }, { senderId: 2 })).rejects.toThrow(
+        /Unknown streamId/,
+      );
+      await expect(fs.access(join(scopedBaseDir(), 'org-1', 'dh_a', 'input.csv'))).rejects.toThrow();
+      await expect(fs.access(join(scopedBaseDir(), 'org-1', 'dh_b', 'input.csv'))).rejects.toThrow();
+    });
+
+    it('a stale binding stops resolving the moment the signed-in user changes', async () => {
+      const service = await importService();
+      await service.handleDataHistoryOp(WRITE_A);
+
+      signIn(OTHER_USER_ID);
+      await expect(service.handleDataHistoryOp({ op: 'list-entry-dirs' })).rejects.toThrow(/not been initialized for a user/);
+      // The previous user's scope cannot be re-bound by replaying their init either
+      await expect(service.handleDataHistoryOp({ op: 'init', scopeDir: SPEC_SCOPE_DIR })).rejects.toThrow(
+        /does not match the signed-in user/,
       );
     });
 
     it('keeps two accounts on one machine in separate trees', async () => {
       const service = await importService();
-      await service.handleDataHistoryOp({
-        op: 'write-file',
-        path: 'org-1/dh_a/manifest.json',
-        gzip: false,
-        bytes: TEXT_ENCODER.encode('{"user":"a"}'),
-      });
+      await service.handleDataHistoryOp(WRITE_A);
 
       // The second account signs in — on desktop this follows an app reload, so the same module
-      // is simply re-initialized with a different scope
+      // is simply re-initialized for the new user
+      signIn(OTHER_USER_ID);
       await service.handleDataHistoryOp({ op: 'init', scopeDir: OTHER_SCOPE_DIR });
       await service.handleDataHistoryOp({
         op: 'write-file',
@@ -609,6 +695,7 @@ describe('data-history-file.service', () => {
       await expect(service.handleDataHistoryOp({ op: 'read-file', path: 'org-1/dh_a/manifest.json', gunzip: false })).rejects.toThrow();
 
       // The first account's files are untouched on disk and still readable once it signs back in
+      signIn(SPEC_USER_ID);
       await service.handleDataHistoryOp({ op: 'init', scopeDir: SPEC_SCOPE_DIR });
       const bytes = (await service.handleDataHistoryOp({ op: 'read-file', path: 'org-1/dh_a/manifest.json', gunzip: false })) as Uint8Array;
       expect(new TextDecoder().decode(bytes)).toBe('{"user":"a"}');
@@ -623,6 +710,7 @@ describe('data-history-file.service', () => {
         bytes: TEXT_ENCODER.encode('{"user":"a"}'),
       });
 
+      signIn(OTHER_USER_ID);
       await service.handleDataHistoryOp({ op: 'init', scopeDir: OTHER_SCOPE_DIR });
       await service.handleDataHistoryOp({ op: 'delete-dir', path: 'org-1/dh_shared' });
 

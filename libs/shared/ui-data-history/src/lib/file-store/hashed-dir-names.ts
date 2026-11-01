@@ -1,4 +1,4 @@
-import { sha1Hex } from '@jetstream/shared/utils';
+import { getDataHistoryUserScopeDirName, sha1Hex } from '@jetstream/shared/utils';
 import trim from 'lodash/trim';
 
 /**
@@ -7,13 +7,6 @@ import trim from 'lodash/trim';
  * `path-utils` is reachable from the OPFS storage worker, whose bundle must stay dependency-free.
  * Nothing here is used by the worker — it resolves paths that were already built on the main thread.
  */
-
-/**
- * Length of the hashed user id in a scope directory name. Full SHA-1 is unnecessarily long for a
- * folder users may browse (native/FSA backends), and 16 hex chars is far past collision risk for
- * the number of accounts that ever share one machine.
- */
-const USER_SCOPE_HASH_LENGTH = 16;
 
 /**
  * Per-user directory every backend roots its history tree under, so accounts sharing a machine
@@ -26,15 +19,11 @@ const USER_SCOPE_HASH_LENGTH = 16;
  * account would silently delete the previous account's history, and `reindex` (native/FSA) would
  * import their entries into its own index.
  *
- * The user id is hashed rather than used verbatim, matching `getScopedDexieDbName` — on canvas the
- * scope id is a Salesforce username, which is email-shaped and does not belong in a folder name.
+ * The derivation itself is shared with the Electron main process (which computes the directory
+ * from the authenticated user instead of trusting the renderer), so it lives in
+ * `@jetstream/shared/utils` and is only re-exported here under the name the stores use.
  */
-export async function getUserScopeDirName(userId: string): Promise<string> {
-  if (!userId) {
-    throw new Error('A user id is required to scope data history storage');
-  }
-  return `u-${(await sha1Hex(userId)).slice(0, USER_SCOPE_HASH_LENGTH)}`;
-}
+export const getUserScopeDirName = getDataHistoryUserScopeDirName;
 
 /**
  * Stable, filesystem-safe folder name for an org. The readable prefix keeps user-visible backends

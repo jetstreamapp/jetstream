@@ -32,11 +32,13 @@ import { ENV } from '../config/environment';
 import { initMainErrorTracker } from '../config/error-tracker';
 import { applySystemCertificateTrust } from '../config/system-certificates';
 import { desktopRoutes } from '../controllers/desktop.routes';
+import { isOpenableFileType, resolveOpenableFile } from '../utils/openable-file-registry';
 import { getOrgFromHeaderOrQuery, initApiConnection } from '../utils/route.utils';
 import { openExternalSafe } from '../utils/url.utils';
 import { AuthResponseSuccess, logout, verifyAuthToken } from './api.service';
 import {
   abortDataHistoryStreamsForSender,
+  clearDataHistoryScope,
   getDataHistoryFolderPath,
   handleDataHistoryOp,
   setDataHistoryFolderPath,
@@ -144,9 +146,38 @@ const handlePickDataHistoryFolder: MainIpcHandler<'pickDataHistoryFolder'> = asy
   return folderPath;
 };
 
+/**
+ * `shell.openPath` launches whatever the OS associates with the file, so the renderer is never
+ * allowed to name the file: only a path the main process itself downloaded (and registered in
+ * `openable-file-registry`) is accepted, resolved to its canonical absolute form.
+ *
+ * The one non-download the renderer may open is the data history folder: it is main-owned (only the
+ * native picker behind `pickDataHistoryFolder` can change it) and the history page / settings "open
+ * folder" buttons pass back exactly the value `getDataHistoryFolder` handed them.
+ */
+function requireOpenableFile(filePath: string): string {
+  if (filePath === getDataHistoryFolderPath()) {
+    return filePath;
+  }
+  const resolvedPath = resolveOpenableFile(filePath);
+  if (!resolvedPath) {
+    logger.warn('[FILE] Refusing to open a path that was not downloaded by the main process', filePath);
+    throw new Error('Only files downloaded by Jetstream can be opened');
+  }
+  return resolvedPath;
+}
+
 const handleOpenFile: MainIpcHandler<'openFile'> = async (_event, filePath: string): Promise<void> => {
+  const resolvedPath = requireOpenableFile(filePath);
+  // A registered download is still named by the renderer (it picks `fileName` when auto-save is on), so the
+  // registry alone would let it register, say, an `.hta` holding Salesforce data and then launch it here.
+  // Revealing in the file manager (`showFileInFolder`) runs nothing, so only opening is restricted by type.
+  if (resolvedPath !== getDataHistoryFolderPath() && !isOpenableFileType(resolvedPath)) {
+    logger.warn('[FILE] Refusing to open a downloaded file whose type Jetstream does not produce', resolvedPath);
+    throw new Error('Only files of a type Jetstream produces can be opened');
+  }
   try {
-    await shell.openPath(filePath);
+    await shell.openPath(resolvedPath);
   } catch (ex) {
     logger.error('Error opening file', ex);
     throw ex;
@@ -154,8 +185,9 @@ const handleOpenFile: MainIpcHandler<'openFile'> = async (_event, filePath: stri
 };
 
 const handleShowFileInFolder: MainIpcHandler<'showFileInFolder'> = async (_event, filePath: string): Promise<void> => {
+  const resolvedPath = requireOpenableFile(filePath);
   try {
-    shell.showItemInFolder(filePath);
+    shell.showItemInFolder(resolvedPath);
   } catch (ex) {
     logger.error('Error showing file in folder', ex);
     throw ex;
@@ -334,6 +366,9 @@ async function doHandleLogout(): Promise<void> {
   });
 
   dataService.clearOrgState();
+  // The history tree is per-account: unbind it (and tear down in-flight captures) so nothing can
+  // keep reading or writing under the signed-out user's directory
+  await clearDataHistoryScope();
 }
 
 const handleAddOrgEvent: MainIpcHandler<'addOrg'> = async (event, payload) => {
