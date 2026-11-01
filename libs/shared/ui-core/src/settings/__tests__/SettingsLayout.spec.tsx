@@ -117,6 +117,15 @@ describe('SettingsLayout search', () => {
               <SettingsGroup>
                 <SettingsRow id="theme" title="Theme" description="Choose light or dark." keywords={['appearance']} />
                 <SettingsRow id="auto-login" title="Log in automatically" />
+                <SettingsRow
+                  id="download"
+                  title="Download location"
+                  description={
+                    <>
+                      Files are saved <strong>without asking</strong>
+                    </>
+                  }
+                />
               </SettingsGroup>
             </SettingsSection>
             <SettingsSection id="query" title="Query">
@@ -190,6 +199,18 @@ describe('SettingsLayout search', () => {
     search('dark');
     expect(getRowTitle('theme').closest('[hidden]')).toBeNull();
     expect(getRowTitle('auto-login').closest('[hidden]')).not.toBeNull();
+  });
+
+  it('searches the text of rich descriptions', () => {
+    renderSearchLayout();
+    search('"saved without asking"');
+
+    expect(getRowTitle('download').closest('[hidden]')).toBeNull();
+    expect(getRowTitle('theme').closest('[hidden]')).not.toBeNull();
+
+    // Highlighting works within each piece of text, so a phrase that spans elements matches without being marked
+    search('asking');
+    expect(document.querySelector('#download-description strong mark')?.textContent).toBe('asking');
   });
 
   it('highlights the matching words', () => {

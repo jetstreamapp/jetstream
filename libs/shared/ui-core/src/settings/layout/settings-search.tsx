@@ -1,6 +1,20 @@
 import { REGEX } from '@jetstream/shared/utils';
 import escapeRegExp from 'lodash/escapeRegExp';
-import { createContext, Fragment, ReactNode, useCallback, useContext, useId, useLayoutEffect, useMemo, useState } from 'react';
+import {
+  Children,
+  cloneElement,
+  createContext,
+  Fragment,
+  isValidElement,
+  ReactElement,
+  ReactNode,
+  useCallback,
+  useContext,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 /**
  * Settings search: every section, group and row checks itself against the search, so pages only describe their
@@ -34,11 +48,47 @@ export function getSettingsSearchTerms(search: string): string[] {
   return normalizedSearch.split(/\s+/).filter(Boolean);
 }
 
-/** Wraps each match of a search term in a `<mark>` - anything other than a string is returned as-is */
-export function highlightSearchTerms(text: ReactNode, terms: string[]): ReactNode {
-  if (typeof text !== 'string' || terms.length === 0) {
-    return text;
+/**
+ * Fragments and HTML elements, whose text can be read without rendering them. Other components are left alone,
+ * since what they show is only known once they render.
+ */
+function isPlainElement(node: ReactNode): node is ReactElement<{ children?: ReactNode }> {
+  return isValidElement(node) && (node.type === Fragment || typeof node.type === 'string');
+}
+
+/** The text a node shows, reaching into fragments and HTML elements (see `isPlainElement`) */
+export function getSearchableText(node: ReactNode): string {
+  if (typeof node === 'string' || typeof node === 'number') {
+    return String(node);
   }
+  if (Array.isArray(node)) {
+    // Joined without a separator, the way adjacent text renders, so quoted phrases match across elements
+    return node.map(getSearchableText).join('');
+  }
+  if (isPlainElement(node)) {
+    return getSearchableText(node.props.children);
+  }
+  return '';
+}
+
+/** Wraps each match of a search term in a `<mark>`, inside fragments and HTML elements too (see `isPlainElement`) */
+export function highlightSearchTerms(node: ReactNode, terms: string[]): ReactNode {
+  if (terms.length === 0) {
+    return node;
+  }
+  if (Array.isArray(node)) {
+    return Children.map(node, (child) => highlightSearchTerms(child, terms));
+  }
+  if (isPlainElement(node)) {
+    return node.props.children == null ? node : cloneElement(node, undefined, highlightSearchTerms(node.props.children, terms));
+  }
+  if (typeof node !== 'string') {
+    return node;
+  }
+  return highlightText(node, terms);
+}
+
+function highlightText(text: string, terms: string[]): ReactNode {
   // Longest first, so a term is not cut short by a shorter term it starts with
   const pattern = [...terms]
     .sort((termA, termB) => termB.length - termA.length)
@@ -105,7 +155,7 @@ export const SettingsSearchScopeProvider = ({ scope, children }: { scope: Settin
 export interface UseSettingsSearchOptions {
   /** Reported to the parent instead of a generated key - sections use their `id` so the navigation can follow them */
   reportKey?: string;
-  /** Text shown for this item, only strings are searched */
+  /** Text shown for this item - the text inside other components is not searched (see `isPlainElement`) */
   text: ReactNode[];
   /** Additional words that find this item without being shown, e.g. "dark" for the theme */
   keywords?: string[];
@@ -123,10 +173,7 @@ export function useSettingsSearch({ reportKey, text, keywords = [] }: UseSetting
   const { visibleKeys, reportVisibility } = useVisibleChildKeys();
 
   // Separate lines so a quoted phrase cannot match across the end of one piece of text and the start of the next
-  const ownText = [...text, ...keywords]
-    .filter((value): value is string => typeof value === 'string')
-    .join('\n')
-    .toLocaleLowerCase();
+  const ownText = [...text, ...keywords].map(getSearchableText).join('\n').toLocaleLowerCase();
   const scopeText = parentScope.text ? `${parentScope.text}\n${ownText}` : ownText;
   const isVisible = terms.every((term) => scopeText.includes(term)) || visibleKeys.size > 0;
 

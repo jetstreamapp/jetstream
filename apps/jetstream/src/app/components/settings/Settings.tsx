@@ -207,7 +207,11 @@ export const Settings = () => {
           </SettingsSection>
 
           {showCanvasOrgs && (
-            <SettingsSection id="integrations" title="Integrations" keywords={['salesforce canvas', 'orgs']}>
+            <SettingsSection
+              id="integrations"
+              title="Integrations"
+              keywords={['managed package', 'authorized orgs', 'my domain', 'canvas']}
+            >
               <SalesforceCanvasOrgs scope={{ type: 'user' }} />
             </SettingsSection>
           )}

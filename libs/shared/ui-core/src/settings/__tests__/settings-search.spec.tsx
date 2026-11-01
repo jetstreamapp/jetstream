@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { getSettingsSearchTerms, highlightSearchTerms } from '../layout/settings-search';
+import { getSearchableText, getSettingsSearchTerms, highlightSearchTerms } from '../layout/settings-search';
 
 describe('getSettingsSearchTerms', () => {
   it('splits a search into lowercase words', () => {
@@ -45,10 +45,52 @@ describe('highlightSearchTerms', () => {
     expect(renderHighlighted('Data & Storage (beta)', ['(beta)']).marks).toEqual(['(beta)']);
   });
 
-  it('leaves text without matches and non-string content unchanged', () => {
+  it('marks matches inside fragments and HTML elements', () => {
+    const { container } = render(
+      <p>
+        {highlightSearchTerms(
+          <>
+            Files are saved <strong>without asking</strong>:
+          </>,
+          ['asking', 'saved'],
+        )}
+      </p>,
+    );
+    expect(container.textContent).toBe('Files are saved without asking:');
+    expect(Array.from(container.querySelectorAll('mark')).map(({ textContent }) => textContent)).toEqual(['saved', 'asking']);
+    expect(container.querySelector('strong mark')?.textContent).toBe('asking');
+  });
+
+  it('leaves text without matches and other components unchanged', () => {
     expect(highlightSearchTerms('Theme', ['query'])).toBe('Theme');
-    const element = <span>Theme</span>;
+    const Component = () => <span>Theme</span>;
+    const element = <Component />;
     expect(highlightSearchTerms(element, ['theme'])).toBe(element);
     expect(highlightSearchTerms('Theme', [])).toBe('Theme');
+  });
+});
+
+describe('getSearchableText', () => {
+  it('reads strings and numbers inside fragments and HTML elements, as they render', () => {
+    expect(
+      getSearchableText(
+        <>
+          Up to <strong>{365}</strong> days, <em>without asking</em>
+        </>,
+      ),
+    ).toBe('Up to 365 days, without asking');
+  });
+
+  it('skips other components and empty nodes', () => {
+    const Component = () => <span>hidden</span>;
+    expect(
+      getSearchableText(
+        <span>
+          Shown {null}
+          <Component />
+        </span>,
+      ),
+    ).toBe('Shown ');
+    expect(getSearchableText(undefined)).toBe('');
   });
 });
