@@ -94,4 +94,7 @@ AUTH_GOOGLE_CLIENT_SECRET
 `),
 );
 
-fs.writeFileSync(outputFilename, newEnvFile);
+// The file holds freshly generated secrets, so it is readable by the owner only. `mode` only applies when the
+// file is created, so an existing file is tightened explicitly as well.
+fs.writeFileSync(outputFilename, newEnvFile, { mode: 0o600 });
+fs.chmodSync(outputFilename, 0o600);

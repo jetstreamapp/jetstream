@@ -5,6 +5,7 @@ import { join } from 'path';
 import webExt from 'web-ext';
 import { z } from 'zod';
 import { chalk, fs } from 'zx';
+import { assertSourceArchiveIsPublishable } from './lib/web-extension-source-archive.mjs';
 
 const ENV = z
   .object({
@@ -80,6 +81,14 @@ if (!fs.existsSync(SOURCE_ZIP)) {
 }
 
 async function main() {
+  // The source archive is uploaded to Mozilla as-is, so check it holds tracked source files and nothing else
+  try {
+    await assertSourceArchiveIsPublishable(process.cwd(), SOURCE_ZIP);
+  } catch (ex) {
+    console.error(chalk.red(ex.message));
+    process.exit(1);
+  }
+
   console.log(chalk.green(`Signing and submitting Firefox extension to AMO (channel: ${channel})...`));
 
   const result = await webExt.cmd.sign(

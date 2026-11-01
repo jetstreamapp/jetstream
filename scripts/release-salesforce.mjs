@@ -55,11 +55,22 @@ const promote = await confirm({
   default: true,
 });
 
+// The workflow runs the remote tip of the ref, so that is the commit the operator is approving. It is
+// captured now and the dispatched run must match it before the deployment is approved.
+let expectedHeadSha;
+try {
+  expectedHeadSha = (await $`git rev-parse --verify ${`origin/${releaseRef}^{commit}`}`.quiet()).stdout.trim();
+} catch {
+  console.error(chalk.red(`\norigin/${releaseRef} was not found. Push the branch first.`));
+  process.exit(1);
+}
+
 // ── Confirm ────────────────────────────────────────────────────────────────
 console.log('');
 console.log(chalk.bold('  Release summary'));
 console.log(chalk.dim('  ─────────────────────────'));
 console.log(`  ${chalk.dim('branch')}   ${chalk.cyan(releaseRef)}${isHotfix ? chalk.dim(' (hotfix)') : ''}`);
+console.log(`  ${chalk.dim('commit')}   ${chalk.cyan(expectedHeadSha.slice(0, 12))}`);
 console.log(`  ${chalk.dim('bump')}     ${chalk.cyan(bump)}`);
 console.log(`  ${chalk.dim('promote')}  ${promote ? chalk.green('yes (released)') : chalk.yellow('no (beta)')}`);
 console.log('');
@@ -71,6 +82,26 @@ if (!ok) {
 }
 
 // ── Trigger workflow ───────────────────────────────────────────────────────
+async function listDispatchedRunIds() {
+  const runs = JSON.parse(
+    (
+      await $`gh run list \
+  --repo ${REPO} \
+  --workflow=${WORKFLOW} \
+  --branch ${releaseRef} \
+  --event workflow_dispatch \
+  --limit 20 \
+  --json databaseId`.quiet()
+    ).stdout,
+  );
+  return runs.map(({ databaseId }) => String(databaseId));
+}
+
+const currentUserLogin = (await $`gh api user --jq .login`.quiet()).stdout.trim();
+// Runs that already exist are never candidates, so a run left waiting for review by an earlier
+// attempt (or dispatched by someone else) cannot be mistaken for this one
+const preexistingRunIds = new Set(await listDispatchedRunIds());
+
 console.log('\n' + chalk.bold('Triggering workflow...'));
 
 await $`gh workflow run ${WORKFLOW} \
@@ -79,30 +110,46 @@ await $`gh workflow run ${WORKFLOW} \
   -f bump=${bump} \
   -f promote=${String(promote)}`;
 
-// Give GitHub a moment to register the run before we query for it
-await new Promise((resolve) => setTimeout(resolve, 4000));
-
 // ── Find the run ID ────────────────────────────────────────────────────────
-process.stdout.write(chalk.dim('Fetching run ID... '));
+process.stdout.write(chalk.dim('Fetching run ID'));
 
-const runId = (
-  await $`gh run list \
-  --repo ${REPO} \
-  --workflow=${WORKFLOW} \
-  --branch ${releaseRef} \
-  --limit 1 \
-  --json databaseId \
-  --jq '.[0].databaseId'`
-).stdout.trim();
+// GitHub registers a dispatched run asynchronously, so poll until a new run shows up
+let newRunIds = [];
+for (let attempt = 0; attempt < 20 && newRunIds.length === 0; attempt++) {
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  process.stdout.write(chalk.dim('.'));
+  newRunIds = (await listDispatchedRunIds()).filter((runId) => !preexistingRunIds.has(runId));
+}
 
-// `gh run list ... --jq '.[0].databaseId'` prints the literal string "null" when no runs match yet, which is truthy
-if (!/^\d+$/.test(runId)) {
-  console.log(chalk.red('failed'));
-  console.error(chalk.red('Could not determine run ID. Approve manually via the GitHub UI.'));
+if (newRunIds.length !== 1) {
+  console.log(chalk.red(' failed'));
+  console.error(
+    chalk.red(
+      newRunIds.length === 0
+        ? 'The dispatched run did not appear. Approve manually via the GitHub UI.'
+        : `Found ${newRunIds.length} new runs (${newRunIds.join(', ')}), so the one this script dispatched is ambiguous. Approve manually via the GitHub UI.`,
+    ),
+  );
   process.exit(1);
 }
 
-console.log(chalk.green(runId));
+const [runId] = newRunIds;
+console.log(' ' + chalk.green(runId));
+
+// Only approve the run this invocation dispatched, for the commit shown in the summary
+const dispatchedRun = JSON.parse((await $`gh api repos/${REPO}/actions/runs/${runId}`.quiet()).stdout);
+const runMismatches = [
+  dispatchedRun.event !== 'workflow_dispatch' && `event is ${dispatchedRun.event}`,
+  dispatchedRun.actor?.login !== currentUserLogin && `dispatched by ${dispatchedRun.actor?.login}`,
+  dispatchedRun.head_sha !== expectedHeadSha &&
+    `commit is ${dispatchedRun.head_sha?.slice(0, 12)}, expected ${expectedHeadSha.slice(0, 12)}`,
+].filter(Boolean);
+
+if (runMismatches.length > 0) {
+  console.error(chalk.red(`\nRun ${runId} does not match this release (${runMismatches.join('; ')}). Not approving it.`));
+  console.log('  ' + chalk.cyan(`https://github.com/${REPO}/actions/runs/${runId}`));
+  process.exit(1);
+}
 
 // ── Wait for the deployment review to appear ───────────────────────────────
 process.stdout.write(chalk.dim('Waiting for deployment review'));

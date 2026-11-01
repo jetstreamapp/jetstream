@@ -46,6 +46,7 @@ if (argv.help) {
 const TARGET_DIR = join(process.cwd(), 'dist/desktop-build');
 const ROOT_PACKAGE_JSON_PATH = join(process.cwd(), 'package.json');
 const ROOT_PNPM_WORKSPACE_PATH = join(process.cwd(), 'pnpm-workspace.yaml');
+const ROOT_PNPM_LOCK_PATH = join(process.cwd(), 'pnpm-lock.yaml');
 const TARGET_PACKAGE_JSON_PATH = join(TARGET_DIR, 'package.json');
 const TARGET_PNPM_WORKSPACE_PATH = join(TARGET_DIR, 'pnpm-workspace.yaml');
 const TARGET_CLIENT_DIR = join(TARGET_DIR, 'client');
@@ -66,14 +67,28 @@ const packageManagerRemoveDeps = () => {
 };
 
 /**
- * Look at root package.json for version of all dependencies to install
- * This enables us to avoid having to keep the version numbers in sync manually
+ * The exact version the root lockfile resolved for each package, as `name@version`. The release build installs
+ * these instead of the root package.json ranges so it ships the same toolchain CI tested rather than whatever
+ * is newest in range at release time, and a package missing from the root project fails the build instead of
+ * silently installing `latest`.
  */
-const packageManagerAddDevDeps = () => {
-  const { devDependencies, dependencies } = JSON.parse(readFileSync(ROOT_PACKAGE_JSON_PATH, 'utf-8'));
-  const allDependencies = { ...devDependencies, ...dependencies };
+const getLockedPackageSpecifiers = (packageNames) => {
+  const lockfile = loadYaml(readFileSync(ROOT_PNPM_LOCK_PATH, 'utf-8'));
+  const rootImporter = lockfile.importers?.['.'] ?? {};
+  const lockedDependencies = { ...rootImporter.devDependencies, ...rootImporter.dependencies };
 
-  return [
+  return packageNames.map((packageName) => {
+    const lockedVersion = lockedDependencies[packageName]?.version;
+    if (!lockedVersion) {
+      throw new Error(`${packageName} is not a dependency of the root project in pnpm-lock.yaml, add it there first`);
+    }
+    // Peer-resolution suffixes such as `26.18.0(supports-color@7.2.0)` are not part of the version
+    return `${packageName}@${String(lockedVersion).replace(/\(.*$/, '')}`;
+  });
+};
+
+const packageManagerAddDevDeps = () =>
+  getLockedPackageSpecifiers([
     // electron-builder and related packages
     'electron-builder',
     '@electron/notarize',
@@ -83,35 +98,39 @@ const packageManagerAddDevDeps = () => {
     'electron',
     'ts-node',
     'typescript',
-  ].map((dep) => {
-    const matchingDependency = Object.entries(allDependencies).find(([packageName]) => packageName === dep);
-    if (!matchingDependency) {
-      // For packages not in root, use latest
-      console.warn(`${dep} not found in root package.json, will install latest version`);
-      return dep;
-    }
-    const [packageName, packageVersion] = matchingDependency;
-    return `${packageName}@${packageVersion}`;
-  });
-};
+  ]);
 
-const packageManagerAddProdDeps = () => {
-  const { devDependencies, dependencies } = JSON.parse(readFileSync(ROOT_PACKAGE_JSON_PATH, 'utf-8'));
-  const allDependencies = { ...devDependencies, ...dependencies };
+const packageManagerAddProdDeps = () => getLockedPackageSpecifiers(['electron-updater']);
 
-  const prodDeps = ['electron-updater'].map((dep) => {
-    const matchingDependency = Object.entries(allDependencies).find(([packageName]) => packageName === dep);
-    if (!matchingDependency) {
-      // For packages not in root, use latest
-      console.warn(`${dep} not found in root package.json, will install latest version`);
-      return dep;
-    }
-    const [packageName, packageVersion] = matchingDependency;
-    return `${packageName}@${packageVersion}`;
-  });
+/**
+ * Signing and publishing credentials. Only electron-builder's package/publish step needs them (it reads them from
+ * the environment or the .env written below), so they are kept out of the environment of the nx build and the
+ * package installs, whose dependency lifecycle scripts have no reason to see them. Without them the build steps
+ * behave exactly like a local unsigned build.
+ */
+const SIGNING_AND_PUBLISH_ENV_KEYS = [
+  'IS_CODESIGNING_ENABLED',
+  'APPLE_TEAM_ID',
+  'APPLE_API_KEY',
+  'APPLE_API_KEY_ID',
+  'APPLE_API_ISSUER',
+  'APPLE_ID',
+  'APPLE_APP_SPECIFIC_PASSWORD',
+  'CSC_LINK',
+  'CSC_KEY_PASSWORD',
+  'CSC_NAME',
+  'WIN_CSC_LINK',
+  'WIN_CSC_KEY_PASSWORD',
+  'AZURE_TENANT_ID',
+  'AZURE_CLIENT_ID',
+  'AZURE_CLIENT_SECRET',
+  'AWS_ACCESS_KEY_ID',
+  'AWS_SECRET_ACCESS_KEY',
+  'AWS_ENDPOINT_URL',
+];
 
-  return prodDeps;
-};
+const getBuildEnvironment = () =>
+  Object.fromEntries(Object.entries(process.env).filter(([key]) => !SIGNING_AND_PUBLISH_ENV_KEYS.includes(key)));
 
 function prepareTargetPackageJson() {
   const rootPackageJson = JSON.parse(readFileSync(ROOT_PACKAGE_JSON_PATH, 'utf-8'));
@@ -136,6 +155,13 @@ function prepareTargetPackageJson() {
 async function build() {
   console.log(chalk.blue(`Building and Preparing output. Target directory:`), TARGET_DIR);
 
+  // Resolve the toolchain versions before anything runs, so a missing package fails fast
+  const devDependencySpecifiers = packageManagerAddDevDeps();
+  const prodDependencySpecifiers = packageManagerAddProdDeps();
+
+  // Every subprocess below runs without the signing and publishing credentials
+  $.env = getBuildEnvironment();
+
   // Build app
   await $`pnpm build:desktop:all`;
 
@@ -159,8 +185,8 @@ async function build() {
   // makes TARGET_DIR its own workspace root, so these installs stay isolated
   // from the root project's lockfile.
   console.log(chalk.blue('Installing dependencies...'));
-  await $`pnpm add -D ${packageManagerAddDevDeps()}`; // this is required to be first because postInstall script depends on it
-  await $`pnpm add ${packageManagerAddProdDeps()}`;
+  await $`pnpm add -D --save-exact ${devDependencySpecifiers}`; // this is required to be first because postInstall script depends on it
+  await $`pnpm add --save-exact ${prodDependencySpecifiers}`;
 
   // Remove extra dependencies
   console.log(chalk.blue('Removing unnecessary dependencies...'));

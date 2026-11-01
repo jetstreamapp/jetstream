@@ -4,6 +4,7 @@ import 'dotenv/config';
 import minimist from 'minimist';
 import { join } from 'path';
 import { $, chalk, fs } from 'zx'; // https://github.com/google/zx
+import { listSourceArchiveFiles } from './lib/web-extension-source-archive.mjs';
 
 const argv = minimist(process.argv.slice(2), {
   boolean: ['help'],
@@ -64,6 +65,7 @@ async function archiveDist() {
 
 async function archiveSource() {
   const sourceDir = process.cwd();
+  const sourceFiles = await listSourceArchiveFiles(sourceDir);
   console.log(chalk.blue(`💾 Saving source output file to:`), SOURCE_OUTPUT_PATH);
 
   const output = fs.createWriteStream(SOURCE_OUTPUT_PATH);
@@ -81,10 +83,9 @@ async function archiveSource() {
 
   archive.pipe(output);
 
-  archive.glob('**/*', {
-    cwd: sourceDir,
-    ignore: ['**/.git/**', '**/node_modules/**', '**/dist/**', '**/.gitignore', '**/tmp/**'],
-  });
+  for (const filePath of sourceFiles) {
+    archive.file(join(sourceDir, filePath), { name: filePath });
+  }
 
   await archive.finalize();
 }
