@@ -23,6 +23,9 @@
       "options": {
         "buildTarget": "admin:build",
         "spa": true
+      },
+      "readyWhen": {
+        "signal": true
       }
     }
   }

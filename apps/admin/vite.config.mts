@@ -1,4 +1,5 @@
 /// <reference types="vitest/config" />
+import { nxReadySignal } from '@nx/vite/plugins/nx-ready-signal.plugin';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
@@ -24,7 +25,7 @@ export default defineConfig(() => ({
     port: 4203,
     host: 'localhost',
   },
-  plugins: [react()],
+  plugins: [react(), nxReadySignal()],
   resolve: { tsconfigPaths: true },
   build: {
     outDir: '../../dist/apps/admin',

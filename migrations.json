@@ -1,15 +1,113 @@
 {
   "migrations": [
     {
-      "version": "23.3.0-beta.8",
-      "requires": {
-        "vitest": ">=5.0.0"
-      },
-      "description": "Migrate workspaces past breaking changes for Vitest 5.",
-      "implementation": "./dist/src/migrations/update-23-3-0/migrate-to-vitest-5",
-      "prompt": "tools/ai-migrations/@nx/vitest/23.3.0/ai-instructions-for-vitest-5.md",
+      "version": "24.0.0-beta.0",
+      "description": "Finds local executors that declare a custom hasher, which is deprecated and will be removed in Nx 25. Rewriting a hasher as target inputs means reading what its code hashes, so the rewrite is driven by an AI prompt; the generator only reports each hasher.",
+      "implementation": "./dist/src/migrations/update-24-0-0/find-custom-hashers",
+      "prompt": "tools/ai-migrations/nx/24.0.2/move-custom-hashers-to-inputs.md",
+      "documentation": "./dist/src/migrations/update-24-0-0/find-custom-hashers.md",
+      "package": "nx",
+      "name": "24-0-0-move-custom-hashers-to-inputs"
+    },
+    {
+      "version": "24.0.0-beta.3",
+      "description": "Sets affected.legacy to true in nx.json so nx affected keeps selecting whole projects. Nx 24 selects individual affected tasks by default.",
+      "implementation": "./dist/src/migrations/update-24-0-0/enable-legacy-affected",
+      "documentation": "./dist/src/migrations/update-24-0-0/enable-legacy-affected.md",
+      "package": "nx",
+      "name": "24-0-0-enable-legacy-affected"
+    },
+    {
+      "version": "24.0.0-beta.3",
+      "description": "Renames the ultracache target options \"ignoredReads\" and \"ignoredWrites\" to \"ignoreReads\" and \"ignoreWrites\", and renames .nx/workflows/sandboxing-config.yaml to ultracache-config.yaml with its \"exclude-reads\" and \"exclude-writes\" keys renamed to \"ignore-reads\" and \"ignore-writes\".",
+      "implementation": "./dist/src/migrations/update-24-0-0/rename-ultracache-ignore-options",
+      "documentation": "./dist/src/migrations/update-24-0-0/rename-ultracache-ignore-options.md",
+      "package": "nx",
+      "name": "24-0-0-rename-ultracache-ignore-options"
+    },
+    {
+      "version": "24.0.0-beta.3",
+      "description": "Converts targets using the removed `@nx/vitest` executors to inferred tasks; an AI prompt finishes the targets the converter cannot convert safely and validates the project graph.",
+      "implementation": "./dist/src/migrations/update-24-0-0/remove-deprecated-executors",
+      "prompt": "tools/ai-migrations/@nx/vitest/24.0.2/finish-inferred-conversion.md",
+      "documentation": "./dist/src/migrations/update-24-0-0/remove-deprecated-executors.md",
       "package": "@nx/vitest",
-      "name": "migrate-to-vitest-5"
+      "name": "remove-deprecated-executors"
+    },
+    {
+      "version": "24.0.0-beta.3",
+      "description": "Converts targets using the removed `@nx/vite` executors, and `@nx/vitest:test` targets, to inferred tasks; an AI prompt finishes the targets the converter cannot convert safely and validates the project graph.",
+      "implementation": "./dist/src/migrations/update-24-0-0/remove-deprecated-executors",
+      "prompt": "tools/ai-migrations/@nx/vite/24.0.2/finish-inferred-conversion.md",
+      "documentation": "./dist/src/migrations/update-24-0-0/remove-deprecated-executors.md",
+      "package": "@nx/vite",
+      "name": "remove-deprecated-executors"
+    },
+    {
+      "version": "24.0.0-beta.3",
+      "description": "Replace `nxViteTsPaths` with Vite's native `resolve.tsconfigPaths`, then migrate the remaining deprecated vite configuration helpers while preserving custom behavior.",
+      "implementation": "./dist/src/migrations/update-24-0-0/migrate-nx-vite-ts-paths",
+      "prompt": "tools/ai-migrations/@nx/vite/24.0.2/migrate-config-helpers.md",
+      "package": "@nx/vite",
+      "name": "update-24-0-0-migrate-config-helpers"
+    },
+    {
+      "version": "24.0.0-beta.3",
+      "description": "Register @nx/js/typescript with its typecheck target in workspaces that use @nx/vite/plugin without it, since @nx/vite/plugin no longer infers typecheck targets except for Vue projects.",
+      "implementation": "./dist/src/migrations/update-24-0-0/register-typescript-plugin-for-typecheck",
+      "documentation": "./dist/src/migrations/update-24-0-0/register-typescript-plugin-for-typecheck.md",
+      "package": "@nx/vite",
+      "name": "update-24-0-0-register-typescript-plugin-for-typecheck"
+    },
+    {
+      "version": "24.0.0-beta.5",
+      "description": "Add the `nxReadySignal()` plugin to the Vite configs of application projects, so that `@nx/vite/plugin` infers `readyWhen: { signal: true }` for their dev and preview targets; an AI prompt finishes the configs the codemod cannot edit safely.",
+      "implementation": "./dist/src/migrations/update-24-0-0/add-ready-signal-plugin",
+      "prompt": "tools/ai-migrations/@nx/vite/24.0.2/finish-ready-signal-plugin.md",
+      "documentation": "./dist/src/migrations/update-24-0-0/add-ready-signal-plugin.md",
+      "package": "@nx/vite",
+      "name": "update-24-0-0-add-ready-signal-plugin"
+    },
+    {
+      "version": "24.0.0-beta.3",
+      "description": "Converts targets using the removed `@nx/next` executors to inferred tasks; an AI prompt finishes the targets the converter cannot convert safely and validates the project graph.",
+      "implementation": "./dist/src/migrations/update-24-0-0/remove-deprecated-executors",
+      "prompt": "tools/ai-migrations/@nx/next/24.0.2/finish-inferred-conversion.md",
+      "documentation": "./dist/src/migrations/update-24-0-0/remove-deprecated-executors.md",
+      "package": "@nx/next",
+      "name": "remove-deprecated-executors"
+    },
+    {
+      "version": "24.0.0-beta.3",
+      "description": "Migrate deprecated next configuration helpers while preserving custom behavior.",
+      "prompt": "tools/ai-migrations/@nx/next/24.0.2/migrate-config-helpers.md",
+      "package": "@nx/next",
+      "name": "update-24-0-0-migrate-config-helpers"
+    },
+    {
+      "version": "24.0.0-beta.5",
+      "description": "Sets `readyWhen: { signal: true }` on `@nx/web:file-server` targets that get no `readyWhen` from their own configuration or `targetDefaults`, so tasks that depend on them with `waitFor: 'ready'` start once the server is listening. Those targets also get their build target as a dependency.",
+      "implementation": "./dist/src/migrations/update-24-0-0/add-ready-when-signal",
+      "documentation": "./dist/src/migrations/update-24-0-0/add-ready-when-signal.md",
+      "package": "@nx/web",
+      "name": "update-24-0-0-add-ready-when-signal"
+    },
+    {
+      "version": "24.0.0-beta.3",
+      "description": "Converts targets using the removed `@nx/playwright` executors to inferred tasks; an AI prompt finishes the targets the converter cannot convert safely and validates the project graph.",
+      "implementation": "./dist/src/migrations/update-24-0-0/remove-deprecated-executors",
+      "prompt": "tools/ai-migrations/@nx/playwright/24.0.2/finish-inferred-conversion.md",
+      "documentation": "./dist/src/migrations/update-24-0-0/remove-deprecated-executors.md",
+      "package": "@nx/playwright",
+      "name": "remove-deprecated-executors"
+    },
+    {
+      "version": "24.0.0-beta.3",
+      "description": "Register @nx/js/typescript with its typecheck target in workspaces that use @nx/react/router-plugin without it, and remove the router plugin's typecheckTargetName option, since @nx/react/router-plugin no longer infers typecheck targets.",
+      "implementation": "./dist/src/migrations/update-24-0-0/register-typescript-plugin-for-typecheck",
+      "documentation": "./dist/src/migrations/update-24-0-0/register-typescript-plugin-for-typecheck.md",
+      "package": "@nx/react",
+      "name": "update-24-0-0-register-typescript-plugin-for-typecheck"
     }
   ]
 }

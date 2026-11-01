@@ -54,9 +54,17 @@
     "e2e-ci": {
       "cache": true
     },
-    "@nx/vitest:test": {
-      "cache": true,
-      "inputs": ["default", "^production"]
+    "typecheck": {
+      "options": { "command": "tsc --build --emitDeclarationOnly" },
+      "dependsOn": ["^typecheck"],
+      "syncGenerators": ["@nx/js:typescript-sync"],
+      "inputs": [
+        "default",
+        "^production",
+        { "dependentTasksOutputFiles": "**/*.{d.ts,d.cts,d.mts,tsbuildinfo}", "transitive": true },
+        { "externalDependencies": ["typescript"] }
+      ],
+      "outputs": ["{projectRoot}/tsconfig.tsbuildinfo", "{workspaceRoot}/dist/out-tsc/{projectRoot}"]
     },
     "@nx/js:tsc": {
       "cache": true,
@@ -118,8 +126,7 @@
         "serveTargetName": "serve",
         "previewTargetName": "preview",
         "serveStaticTargetName": "serve-static",
-        "devTargetName": "dev",
-        "typecheckTargetName": "typecheck"
+        "devTargetName": "dev"
       },
       "include": [
         "apps/admin/**/*",

@@ -1,3 +1,4 @@
+import { nxReadySignal } from '@nx/vite/plugins/nx-ready-signal.plugin';
 import react from '@vitejs/plugin-react';
 import dns from 'dns';
 import { resolve } from 'path';
@@ -37,6 +38,7 @@ export default defineConfig(() => ({
     react({
       jsxImportSource: '@emotion/react',
     }),
+    nxReadySignal(),
   ],
   resolve: { tsconfigPaths: true },
   define: {

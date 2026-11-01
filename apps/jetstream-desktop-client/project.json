@@ -23,6 +23,9 @@
       "options": {
         "buildTarget": "jetstream-desktop-client:build",
         "spa": true
+      },
+      "readyWhen": {
+        "signal": true
       }
     }
   }
