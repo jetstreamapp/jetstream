@@ -255,7 +255,7 @@ export async function commitTeamSeatIncrease({
 }
 
 function toPhaseDiscountParam(
-  discount: Stripe.SubscriptionSchedule.Phase.Discount,
+  discount: Stripe.SubscriptionSchedule.Phase.Discount | Stripe.SubscriptionSchedule.Phase.Item.Discount,
 ): Stripe.SubscriptionScheduleUpdateParams.Phase.Discount | null {
   // Reusing the existing discount keeps its redemption state; otherwise re-apply the source it came from
   const existingDiscountId = getStripeObjectId(discount.discount);
@@ -273,9 +273,42 @@ function toPhaseDiscountParam(
   return null;
 }
 
+/**
+ * Phase and phase item discounts share the same shape, on both the read and the update side
+ */
+function toPhaseDiscountParams(
+  discounts: Array<Stripe.SubscriptionSchedule.Phase.Discount | Stripe.SubscriptionSchedule.Phase.Item.Discount> | null | undefined,
+): Stripe.SubscriptionScheduleUpdateParams.Phase.Discount[] {
+  return (discounts ?? [])
+    .map(toPhaseDiscountParam)
+    .filter((discount): discount is Stripe.SubscriptionScheduleUpdateParams.Phase.Discount => discount !== null);
+}
+
+type PhaseItemSettingsParams = Pick<Stripe.SubscriptionScheduleUpdateParams.Phase.Item, 'tax_rates' | 'discounts' | 'metadata'>;
+
+/**
+ * Item-level settings on a phase item, each included only when set. Like the phase settings, an update
+ * unsets every item field it omits.
+ */
+function toPhaseItemSettingsParams(phaseItem: Stripe.SubscriptionSchedule.Phase.Item): PhaseItemSettingsParams {
+  const settings: PhaseItemSettingsParams = {};
+  const taxRateIds = (phaseItem.tax_rates ?? []).map(getStripeObjectId).filter(isString);
+  if (taxRateIds.length > 0) {
+    settings.tax_rates = taxRateIds;
+  }
+  const discounts = toPhaseDiscountParams(phaseItem.discounts);
+  if (discounts.length > 0) {
+    settings.discounts = discounts;
+  }
+  if (phaseItem.metadata && Object.keys(phaseItem.metadata).length > 0) {
+    settings.metadata = phaseItem.metadata;
+  }
+  return settings;
+}
+
 type PhaseSettingsParams = Pick<
   Stripe.SubscriptionScheduleUpdateParams.Phase,
-  'default_payment_method' | 'default_tax_rates' | 'metadata' | 'collection_method' | 'invoice_settings'
+  'default_payment_method' | 'default_tax_rates' | 'description' | 'metadata' | 'collection_method' | 'invoice_settings'
 >;
 
 /**
@@ -290,6 +323,9 @@ function toPhaseSettingsParams(phase: Stripe.SubscriptionSchedule.Phase): PhaseS
   }
   if (phase.default_tax_rates?.length) {
     settings.default_tax_rates = phase.default_tax_rates.map(({ id }) => id);
+  }
+  if (phase.description) {
+    settings.description = phase.description;
   }
   if (phase.metadata && Object.keys(phase.metadata).length > 0) {
     settings.metadata = phase.metadata;
@@ -309,9 +345,10 @@ function toPhaseSettingsParams(phase: Stripe.SubscriptionSchedule.Phase): PhaseS
  * Build the two-phase schedule for an end-of-period decrease: the current phase copied so nothing
  * changes before renewal, then one interval at the lower quantity, after which the schedule releases
  * the subscription. Discounts are re-sent because an unspecified phase inherits from the customer only.
- * The payment method, tax rates, metadata and collection settings on the phase are re-sent too: an
- * update unsets every phase field it omits, and updating the current phase updates the subscription, so
- * dropping them could leave the renewal invoice with no card to charge.
+ * The payment method, tax rates, description, metadata and collection settings on the phase, and each
+ * item's tax rates, discounts and metadata, are re-sent too: an update unsets every phase field it omits,
+ * and updating the current phase updates the subscription, so dropping them could leave the renewal
+ * invoice with no card to charge.
  */
 export function buildSeatDecreaseScheduleParams({
   teamId,
@@ -332,9 +369,7 @@ export function buildSeatDecreaseScheduleParams({
   if (!recurring) {
     throw new Error(`Subscription item ${item.id} has no recurring interval`);
   }
-  const discounts = currentPhase.discounts
-    .map(toPhaseDiscountParam)
-    .filter((discount): discount is Stripe.SubscriptionScheduleUpdateParams.Phase.Discount => discount !== null);
+  const discounts = toPhaseDiscountParams(currentPhase.discounts);
   const discountParams = discounts.length > 0 ? { discounts } : {};
   const settingsParams = toPhaseSettingsParams(currentPhase);
   // Omitting a trial end would end the trial now and charge for it
@@ -348,7 +383,11 @@ export function buildSeatDecreaseScheduleParams({
       {
         start_date: currentPhase.start_date,
         end_date: currentPhase.end_date,
-        items: currentPhase.items.map((phaseItem) => ({ price: getPriceId(phaseItem.price), quantity: phaseItem.quantity })),
+        items: currentPhase.items.map((phaseItem) => ({
+          price: getPriceId(phaseItem.price),
+          quantity: phaseItem.quantity,
+          ...toPhaseItemSettingsParams(phaseItem),
+        })),
         ...trialParams,
         ...discountParams,
         ...settingsParams,
@@ -358,7 +397,11 @@ export function buildSeatDecreaseScheduleParams({
         // subscription is not silently removed when the phase begins
         items: currentPhase.items.map((phaseItem) => {
           const priceId = getPriceId(phaseItem.price);
-          return { price: priceId, quantity: priceId === item.price.id ? quantity : phaseItem.quantity };
+          return {
+            price: priceId,
+            quantity: priceId === item.price.id ? quantity : phaseItem.quantity,
+            ...toPhaseItemSettingsParams(phaseItem),
+          };
         }),
         // Exactly one billing interval at the lower quantity, then `end_behavior` hands the subscription back
         duration: { interval: recurring.interval, interval_count: recurring.interval_count },

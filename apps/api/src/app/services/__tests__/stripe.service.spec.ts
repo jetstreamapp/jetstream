@@ -446,7 +446,7 @@ describe('buildSeatDecreaseScheduleParams', () => {
     expect(params.phases?.[0].items).toEqual([{ price: 'price_team_monthly', quantity: 5 }]);
   });
 
-  const scheduleWithPhaseSettings = (phaseSettings: Record<string, unknown>): StripeSchedule =>
+  const scheduleWithPhaseSettings = (phaseSettings: Record<string, unknown>, itemSettings: Record<string, unknown> = {}): StripeSchedule =>
     ({
       id: 'sub_sched_1',
       phases: [
@@ -454,28 +454,40 @@ describe('buildSeatDecreaseScheduleParams', () => {
           start_date: 1_760_000_000,
           end_date: 1_762_592_000,
           discounts: [],
-          items: [{ price: { id: 'price_team_monthly' }, quantity: 5 }],
+          items: [{ price: { id: 'price_team_monthly' }, quantity: 5, ...itemSettings }],
           ...phaseSettings,
         },
       ],
     }) as unknown as StripeSchedule;
 
   it.each([
-    ['an id', 'pm_1'],
-    ['an expanded object', { id: 'pm_1', object: 'payment_method' }],
+    ['ids', 'pm_1', 'txr_item_1'],
+    ['expanded objects', { id: 'pm_1', object: 'payment_method' }, { id: 'txr_item_1', object: 'tax_rate' }],
   ])(
-    're-sends the phase payment method (given as %s), tax rates, metadata and invoice collection on both phases',
-    (_label, defaultPaymentMethod) => {
+    're-sends the phase settings and item settings (payment method and item tax rates given as %s) on both phases',
+    (_label, defaultPaymentMethod, itemTaxRate) => {
       const params = buildSeatDecreaseScheduleParams({
         teamId: 'team_1',
-        schedule: scheduleWithPhaseSettings({
-          default_payment_method: defaultPaymentMethod,
-          default_tax_rates: [{ id: 'txr_1', object: 'tax_rate' }, { id: 'txr_2' }],
-          metadata: { source: 'checkout' },
-          collection_method: 'send_invoice',
-          // Only the payment terms are carried; the other invoice settings are left alone
-          invoice_settings: { days_until_due: 30, footer: 'Thank you', account_tax_ids: null, custom_fields: null, description: null },
-        }),
+        schedule: scheduleWithPhaseSettings(
+          {
+            default_payment_method: defaultPaymentMethod,
+            default_tax_rates: [{ id: 'txr_1', object: 'tax_rate' }, { id: 'txr_2' }],
+            description: 'Jetstream Team',
+            metadata: { source: 'checkout' },
+            collection_method: 'send_invoice',
+            // Only the payment terms are carried; the other invoice settings are left alone
+            invoice_settings: { days_until_due: 30, footer: 'Thank you', account_tax_ids: null, custom_fields: null, description: null },
+          },
+          {
+            tax_rates: [itemTaxRate],
+            discounts: [
+              { coupon: 'coupon_item_1', discount: 'di_item_1', promotion_code: null },
+              { coupon: { id: 'coupon_item_2' }, discount: null, promotion_code: null },
+              { coupon: null, discount: null, promotion_code: { id: 'promo_item_3' } },
+            ],
+            metadata: { feature: 'seats' },
+          },
+        ),
         item,
         quantity: 3,
       });
@@ -483,14 +495,25 @@ describe('buildSeatDecreaseScheduleParams', () => {
       const expectedSettings = {
         default_payment_method: 'pm_1',
         default_tax_rates: ['txr_1', 'txr_2'],
+        description: 'Jetstream Team',
         metadata: { source: 'checkout' },
         collection_method: 'send_invoice',
         invoice_settings: { days_until_due: 30 },
       };
+      const expectedItemSettings = {
+        tax_rates: ['txr_item_1'],
+        discounts: [{ discount: 'di_item_1' }, { coupon: 'coupon_item_2' }, { promotion_code: 'promo_item_3' }],
+        metadata: { feature: 'seats' },
+      };
       expect(params.phases).toEqual([
-        { start_date: 1_760_000_000, end_date: 1_762_592_000, items: [{ price: 'price_team_monthly', quantity: 5 }], ...expectedSettings },
         {
-          items: [{ price: 'price_team_monthly', quantity: 3 }],
+          start_date: 1_760_000_000,
+          end_date: 1_762_592_000,
+          items: [{ price: 'price_team_monthly', quantity: 5, ...expectedItemSettings }],
+          ...expectedSettings,
+        },
+        {
+          items: [{ price: 'price_team_monthly', quantity: 3, ...expectedItemSettings }],
           duration: { interval: 'month', interval_count: 1 },
           proration_behavior: 'none',
           ...expectedSettings,
@@ -514,22 +537,35 @@ describe('buildSeatDecreaseScheduleParams', () => {
   });
 
   it.each([
-    ['null', { default_payment_method: null, default_tax_rates: null, metadata: null, collection_method: null, invoice_settings: null }],
+    [
+      'null',
+      {
+        default_payment_method: null,
+        default_tax_rates: null,
+        description: null,
+        metadata: null,
+        collection_method: null,
+        invoice_settings: null,
+      },
+      { tax_rates: null, discounts: [], metadata: null },
+    ],
     [
       'empty',
       // Payment terms without a collection method are not carried on their own
       {
         default_payment_method: null,
         default_tax_rates: [],
+        description: '',
         metadata: {},
         collection_method: null,
         invoice_settings: { days_until_due: 30 },
       },
+      { tax_rates: [], discounts: [{ coupon: null, discount: null, promotion_code: null }], metadata: {} },
     ],
-  ])('leaves out phase settings that are %s', (_label, phaseSettings) => {
+  ])('leaves out phase and item settings that are %s', (_label, phaseSettings, itemSettings) => {
     const params = buildSeatDecreaseScheduleParams({
       teamId: 'team_1',
-      schedule: scheduleWithPhaseSettings(phaseSettings),
+      schedule: scheduleWithPhaseSettings(phaseSettings, itemSettings),
       item,
       quantity: 3,
     });

@@ -11,6 +11,7 @@ import { ENV, SERVER_URL } from '../config/environment';
 import { claimAvailableDownloadPath, releaseDownloadPath } from '../utils/download-path.utils';
 import { getDesktopRequestHeaders } from '../utils/request-headers.utils';
 import { initApiConnection } from '../utils/route.utils';
+import { resolveStaticFilePath } from '../utils/static-path.utils';
 import { getCspPolicy, markDownloadCompleted, toSafeDownloadFileName } from '../utils/utils';
 import { getAppData, getUserPreferences } from './persistence.service';
 
@@ -30,16 +31,24 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 /**
+ * Top-level folders of the bundle the `app://jetstream` protocol may serve. The production client
+ * (`ENV.CLIENT_URL` = `app://jetstream/client/index.html`) lives under `client`, so it needs no
+ * special case — every static request, the client page included, goes through the same guard.
+ */
+const STATIC_SUBDIRS = ['assets', 'client'];
+
+/**
  * Since we are unable to set cookies for file paths, we use a custom URL to load the client application
  */
 export function registerProtocols() {
-  const allowedPaths = ['/assets/', '/client/'];
   protocol.handle('app', (req) => {
     const { hostname, pathname, searchParams } = new URL(req.url);
-    // Fetch files
-    if (hostname === 'jetstream' && (req.url === ENV.CLIENT_URL || allowedPaths.some((path) => pathname.startsWith(path)))) {
-      const pathToServe = join(__dirname, pathname);
-      return net.fetch(pathToFileURL(pathToServe).toString());
+    // Fetch files — `resolveStaticFilePath` refuses anything that would resolve outside the static
+    // folders (including Windows backslash traversal, which the URL parser leaves untouched)
+    const staticFilePath =
+      hostname === 'jetstream' ? resolveStaticFilePath({ rootDir: __dirname, pathname, allowedSubdirs: STATIC_SUBDIRS }) : null;
+    if (staticFilePath) {
+      return net.fetch(pathToFileURL(staticFilePath).toString());
       // Handle streaming file downloads
     } else if (hostname === 'jetstream' && pathname === '/api/file/stream-download') {
       const uniqueId = searchParams.get(HTTP.HEADERS.X_SFDC_ID);

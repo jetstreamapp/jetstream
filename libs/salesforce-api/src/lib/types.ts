@@ -52,6 +52,7 @@ export interface FetchOptions {
   duplex?: ApiRequestOptions['duplex'];
   signal?: AbortSignal;
   cache?: RequestCache;
+  redirect?: RequestRedirect;
 }
 
 export interface FetchResponse<T = unknown> {

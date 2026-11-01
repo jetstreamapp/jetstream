@@ -7,6 +7,7 @@ import { initConnectionFromOAuthResponse } from '../controllers/oauth.controller
 import { enableFeatureFlagForUser } from '../db/feature-flags.db';
 import { grantAnalysisToolsEntitlementForUser } from '../db/subscription.db';
 import { NotAllowedError } from '../utils/error-handler';
+import { isLoopbackAddress } from '../utils/network.utils';
 import { sendJson } from '../utils/response.handlers';
 
 const routes: express.Router = Router();
@@ -17,13 +18,16 @@ routes.use((req, _, next) => {
   const SFDC_CI_CONSUMER_KEY = process.env.SFDC_CI_CONSUMER_KEY;
   const SFDC_CI_PRIVATE_KEY_BASE64 = process.env.SFDC_CI_PRIVATE_KEY_BASE64;
 
+  // Only a caller on this machine may use these routes. The TCP peer address is checked rather than `req.hostname`,
+  // which is taken from the Host / X-Forwarded-Host headers (the app trusts its proxy) and so is client-controlled.
+  // The E2E suite (CI and `pnpm e2e:local`) runs Playwright on the same host as the api server, so it still qualifies.
   if (
     !E2E_LOGIN_URL ||
     !E2E_LOGIN_USERNAME ||
     !SFDC_CI_PRIVATE_KEY_BASE64 ||
     !SFDC_CI_CONSUMER_KEY ||
     !ENV.EXAMPLE_USER ||
-    req.hostname !== 'localhost'
+    !isLoopbackAddress(req.socket?.remoteAddress)
   ) {
     return next(new NotAllowedError('Route not allowed in this environment'));
   }

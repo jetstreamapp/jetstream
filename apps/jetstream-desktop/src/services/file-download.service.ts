@@ -11,6 +11,7 @@ import { basename, join } from 'node:path';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
 import { getCandidateFilePaths, isDownloadPathClaimed } from '../utils/download-path.utils';
+import { registerOpenableFile } from '../utils/openable-file-registry';
 import { markDownloadCompleted, toSafeDownloadFileName } from '../utils/utils';
 import { getUserPreferences } from './persistence.service';
 
@@ -180,7 +181,9 @@ export async function downloadAndZipFilesToDisk(
     logger.info(`Zip file downloaded successfully: ${downloadPath}`);
     markDownloadCompleted(downloadPath);
 
-    return { success: true, filePath: downloadPath };
+    // Registered here, where the file is finalised, so the renderer can later ask to open or reveal
+    // exactly this file and nothing else (see `openable-file-registry`)
+    return { success: true, filePath: registerOpenableFile(downloadPath) };
   } catch (error) {
     logger.error('Error downloading and zipping files', getErrorMessageAndStackObj(error));
     return {
@@ -242,7 +245,7 @@ export async function downloadBulkApiFileAndSaveToDisk({
     logger.info(`File downloaded successfully: ${downloadPath}`);
     markDownloadCompleted(downloadPath);
 
-    return { success: true, filePath: downloadPath };
+    return { success: true, filePath: registerOpenableFile(downloadPath) };
   } catch (error) {
     logger.error('Error downloading and zipping files', getErrorMessageAndStackObj(error));
     return {

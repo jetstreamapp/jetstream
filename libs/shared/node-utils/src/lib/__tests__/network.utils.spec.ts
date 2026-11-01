@@ -130,6 +130,72 @@ describe('assertDomainResolvesToPublicIp', () => {
 
     await expect(assertDomainResolvesToPublicIp('example.com')).resolves.toBeUndefined();
   });
+
+  describe('IPv6 forms that embed or alias a private address', () => {
+    it.each([
+      ['IPv4-mapped loopback, dotted form', '::ffff:127.0.0.1'],
+      ['IPv4-mapped loopback, hex form', '::ffff:7f00:1'],
+      ['IPv4-mapped loopback, fully expanded', '0000:0000:0000:0000:0000:ffff:7f00:0001'],
+      ['IPv4-mapped RFC 1918, hex form', '::ffff:a00:1'],
+      ['IPv4-mapped cloud metadata, hex form', '::ffff:a9fe:a9fe'],
+      ['IPv4-compatible loopback (::/96)', '::7f00:1'],
+      ['NAT64 well-known prefix wrapping loopback', '64:ff9b::7f00:1'],
+      ['NAT64 local-use prefix', '64:ff9b:1::a'],
+      ['6to4 wrapping loopback', '2002:7f00:1::1'],
+      ['documentation range', '2001:db8::1'],
+      ['discard-only range', '100::1'],
+      ['link-local inside fe80::/10 but not starting with fe80', 'fe90::1'],
+      ['link-local at the top of fe80::/10', 'febf::1'],
+      ['unique local fc00::/7', 'fc00::1'],
+      ['multicast', 'ff02::1'],
+      ['unspecified', '::'],
+    ])('rejects %s (%s) as a resolved AAAA record', async (_label, address) => {
+      mockedDns.resolve4.mockRejectedValue(new Error('no A'));
+      mockedDns.resolve6.mockResolvedValue([address]);
+
+      await expect(assertDomainResolvesToPublicIp('evil.com')).rejects.toThrow('private or reserved');
+    });
+
+    it.each([
+      ['IPv4-mapped loopback, hex form', '::ffff:7f00:1'],
+      ['IPv4-compatible loopback', '::7f00:1'],
+      ['link-local fe90::1', 'fe90::1'],
+      ['link-local with a zone id', 'fe80::1%eth0'],
+    ])('rejects %s (%s) as a raw IP literal without a DNS lookup', async (_label, address) => {
+      await expect(assertDomainResolvesToPublicIp(address)).rejects.toThrow('private or reserved');
+      expect(mockedDns.resolve4).not.toHaveBeenCalled();
+      expect(mockedDns.resolve6).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('public addresses are still accepted', () => {
+    it.each([
+      ['Cloudflare DNS IPv6', '2606:4700::1111'],
+      ['Facebook IPv6', '2a03:2880:f12f:83:face:b00c:0:25de'],
+      ['the IPv6 address just past the NAT64 prefix', '64:ff9c::1'],
+      ['the IPv6 address just past the documentation range', '2001:db9::1'],
+      ['site-local (deprecated but not link-local) fec0::1', 'fec0::1'],
+    ])('allows %s (%s) as a resolved AAAA record', async (_label, address) => {
+      mockedDns.resolve4.mockRejectedValue(new Error('no A'));
+      mockedDns.resolve6.mockResolvedValue([address]);
+
+      await expect(assertDomainResolvesToPublicIp('example.com')).resolves.toBeUndefined();
+    });
+
+    it.each([
+      ['Google DNS', '8.8.8.8'],
+      ['IPv4-mapped public address', '::ffff:8.8.8.8'],
+      ['the last address before multicast', '223.255.255.255'],
+      ['the address just past 172.16.0.0/12', '172.32.0.1'],
+    ])('allows %s (%s) as a raw IP literal', async (_label, address) => {
+      await expect(assertDomainResolvesToPublicIp(address)).resolves.toBeUndefined();
+    });
+
+    it('rejects the limited broadcast address and multicast IPv4 addresses', async () => {
+      await expect(assertDomainResolvesToPublicIp('255.255.255.255')).rejects.toThrow('private or reserved');
+      await expect(assertDomainResolvesToPublicIp('224.0.0.1')).rejects.toThrow('private or reserved');
+    });
+  });
 });
 
 describe('resolveHostnameToValidatedPublicIps', () => {

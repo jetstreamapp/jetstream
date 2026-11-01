@@ -1670,131 +1670,127 @@ export async function updateSsoSettings(
 }
 
 export async function deleteSamlConfiguration(teamId: string, userId: string) {
-  const loginConfig = await prisma.loginConfiguration.findUnique({
-    where: { teamId },
-    select: {
-      id: true,
-      ssoEnabled: true,
-      allowedProviders: true,
-      samlConfiguration: {
-        select: { id: true, idpEntityId: true, idpCertificateExpiresAt: true },
-      },
-    },
-  });
-
-  if (!loginConfig) {
-    throw new NotFoundError('Login configuration not found');
-  }
-
-  // Prevent deleting the SSO configuration when it is the only allowed login provider, otherwise the team would be locked out
-  if (loginConfig.ssoEnabled && loginConfig.allowedProviders.length === 0) {
-    throw new UserFacingError(
-      'Cannot delete the SSO configuration because SSO is the only allowed login provider. Enable another login provider first.',
-    );
-  }
-
-  const deletedConfig = loginConfig.samlConfiguration;
-
-  // Delete AuthIdentity records for this provider type for all users in the team
-  // This prevents identity reuse if the team switches to a different SAML provider
-  const teamMembers = await prisma.teamMember.findMany({
-    where: { teamId },
-    select: { userId: true },
-  });
-  const memberUserIds = teamMembers.map(({ userId }) => userId);
-
-  let affectedIdentitiesCount = 0;
-  if (memberUserIds.length > 0) {
-    const result = await prisma.authIdentity.deleteMany({
-      where: {
-        userId: { in: memberUserIds },
-        provider: 'saml',
+  const result = await prisma.$transaction(async (tx) => {
+    const loginConfig = await tx.loginConfiguration.findUnique({
+      where: { teamId },
+      select: {
+        id: true,
+        ssoEnabled: true,
+        ssoProvider: true,
+        allowedProviders: true,
+        samlConfiguration: {
+          select: { id: true, idpEntityId: true, idpCertificateExpiresAt: true },
+        },
       },
     });
-    affectedIdentitiesCount = result.count;
-  }
 
-  await prisma.samlConfiguration.deleteMany({
-    where: { loginConfigId: loginConfig.id },
-  });
+    if (!loginConfig) {
+      throw new NotFoundError('Login configuration not found');
+    }
 
-  // Reset SSO provider to NONE
-  await prisma.loginConfiguration.update({
-    where: { id: loginConfig.id },
-    data: {
-      ssoProvider: 'NONE',
-      ssoEnabled: false,
-      updatedById: userId,
-    },
+    const deletedConfig = loginConfig.samlConfiguration;
+    if (!deletedConfig) {
+      throw new NotFoundError('SAML configuration not found');
+    }
+
+    // SAML and OIDC configurations can coexist - only deleting the active provider changes the team's SSO state
+    const isActiveProvider = loginConfig.ssoProvider === 'SAML';
+
+    // Prevent deleting the SSO configuration when it is the only allowed login provider, otherwise the team would be locked out
+    if (isActiveProvider && loginConfig.ssoEnabled && loginConfig.allowedProviders.length === 0) {
+      throw new UserFacingError(
+        'Cannot delete the SSO configuration because SSO is the only allowed login provider. Enable another login provider first.',
+      );
+    }
+
+    // Identities cascade-delete with the configuration, but are deleted explicitly so the audit log can report how many were removed
+    const { count: affectedIdentitiesCount } = await tx.authIdentity.deleteMany({
+      where: { samlConfigurationId: deletedConfig.id },
+    });
+
+    await tx.samlConfiguration.delete({
+      where: { id: deletedConfig.id },
+    });
+
+    if (isActiveProvider) {
+      await tx.loginConfiguration.update({
+        where: { id: loginConfig.id },
+        data: {
+          ssoProvider: 'NONE',
+          ssoEnabled: false,
+          updatedById: userId,
+        },
+      });
+    }
+
+    return { deletedConfig, affectedIdentitiesCount };
   });
 
   clearLoginConfigurationCacheItem(teamId);
 
-  return { deletedConfig, affectedIdentitiesCount };
+  return result;
 }
 
 export async function deleteOidcConfiguration(teamId: string, userId: string) {
-  const loginConfig = await prisma.loginConfiguration.findUnique({
-    where: { teamId },
-    select: {
-      id: true,
-      ssoEnabled: true,
-      allowedProviders: true,
-      oidcConfiguration: {
-        select: { id: true, issuer: true, clientId: true },
-      },
-    },
-  });
-
-  if (!loginConfig) {
-    throw new NotFoundError('Login configuration not found');
-  }
-
-  // Prevent deleting the SSO configuration when it is the only allowed login provider, otherwise the team would be locked out
-  if (loginConfig.ssoEnabled && loginConfig.allowedProviders.length === 0) {
-    throw new UserFacingError(
-      'Cannot delete the SSO configuration because SSO is the only allowed login provider. Enable another login provider first.',
-    );
-  }
-
-  const deletedConfig = loginConfig.oidcConfiguration;
-
-  // Delete AuthIdentity records for this provider type for all users in the team
-  // This prevents identity reuse if the team switches to a different OIDC provider
-  const teamMembers = await prisma.teamMember.findMany({
-    where: { teamId },
-    select: { userId: true },
-  });
-  const memberUserIds = teamMembers.map(({ userId }) => userId);
-
-  let affectedIdentitiesCount = 0;
-  if (memberUserIds.length > 0) {
-    const result = await prisma.authIdentity.deleteMany({
-      where: {
-        userId: { in: memberUserIds },
-        provider: 'oidc',
+  const result = await prisma.$transaction(async (tx) => {
+    const loginConfig = await tx.loginConfiguration.findUnique({
+      where: { teamId },
+      select: {
+        id: true,
+        ssoEnabled: true,
+        ssoProvider: true,
+        allowedProviders: true,
+        oidcConfiguration: {
+          select: { id: true, issuer: true, clientId: true },
+        },
       },
     });
-    affectedIdentitiesCount = result.count;
-  }
 
-  await prisma.oidcConfiguration.deleteMany({
-    where: { loginConfigId: loginConfig.id },
-  });
+    if (!loginConfig) {
+      throw new NotFoundError('Login configuration not found');
+    }
 
-  // Reset SSO provider to NONE
-  await prisma.loginConfiguration.update({
-    where: { id: loginConfig.id },
-    data: {
-      ssoProvider: 'NONE',
-      ssoEnabled: false,
-      updatedById: userId,
-    },
+    const deletedConfig = loginConfig.oidcConfiguration;
+    if (!deletedConfig) {
+      throw new NotFoundError('OIDC configuration not found');
+    }
+
+    // SAML and OIDC configurations can coexist - only deleting the active provider changes the team's SSO state
+    const isActiveProvider = loginConfig.ssoProvider === 'OIDC';
+
+    // Prevent deleting the SSO configuration when it is the only allowed login provider, otherwise the team would be locked out
+    if (isActiveProvider && loginConfig.ssoEnabled && loginConfig.allowedProviders.length === 0) {
+      throw new UserFacingError(
+        'Cannot delete the SSO configuration because SSO is the only allowed login provider. Enable another login provider first.',
+      );
+    }
+
+    // Identities cascade-delete with the configuration, but are deleted explicitly so the audit log can report how many were removed
+    const { count: affectedIdentitiesCount } = await tx.authIdentity.deleteMany({
+      where: { oidcConfigurationId: deletedConfig.id },
+    });
+
+    await tx.oidcConfiguration.delete({
+      where: { id: deletedConfig.id },
+    });
+
+    if (isActiveProvider) {
+      await tx.loginConfiguration.update({
+        where: { id: loginConfig.id },
+        data: {
+          ssoProvider: 'NONE',
+          ssoEnabled: false,
+          updatedById: userId,
+        },
+      });
+    }
+
+    return { deletedConfig, affectedIdentitiesCount };
   });
 
   clearLoginConfigurationCacheItem(teamId);
 
-  return { deletedConfig, affectedIdentitiesCount };
+  return result;
 }
 
 export const hasVerifiedDomain = async (teamId: string) => {

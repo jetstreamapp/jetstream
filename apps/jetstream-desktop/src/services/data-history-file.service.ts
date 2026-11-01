@@ -1,4 +1,5 @@
 import { DataHistoryFileOpRequest, DataHistoryFileOpResult, DataHistoryFileOpResultByOp } from '@jetstream/desktop/types';
+import { getDataHistoryUserScopeDirName } from '@jetstream/shared/utils';
 import { app } from 'electron';
 import logger from 'electron-log';
 import { createWriteStream, promises as fs, WriteStream } from 'fs';
@@ -6,7 +7,7 @@ import { dirname, isAbsolute, join, resolve, sep } from 'path';
 import { finished } from 'stream/promises';
 import writeFileAtomic from 'write-file-atomic';
 import { createGzip, gunzipSync, Gzip, gzipSync } from 'zlib';
-import { getUserPreferences, updateUserPreferences } from './persistence.service';
+import { getAppData, getUserPreferences, updateUserPreferences } from './persistence.service';
 
 /**
  * Native filesystem backing for Data History (renderer counterpart: `NativeFsFileStore` in
@@ -111,21 +112,51 @@ function getBaseDir(): string {
 }
 
 /**
- * Per-user subfolder of the container, set by the `init` op.
+ * Per-user subfolder of the container, bound by the `init` op to the user the MAIN process knows is
+ * signed in (`getAppData().userProfile`) — never to a name the renderer supplies, since a renderer
+ * that could pick the directory could read and delete another account's history.
  *
  * `<userData>` is per-OS-user but NOT per Jetstream account, so several accounts signing in on one
  * machine would otherwise share a single history tree — where each one's retention sweep deletes
- * the others' entries as orphans and `reindex` imports their manifests into its own index. Held in
- * a module variable because a user switch reloads the whole desktop app, so a single active account
- * per main process is an invariant, not an assumption about timing.
+ * the others' entries as orphans and `reindex` imports their manifests into its own index.
+ *
+ * The binding remembers WHICH user it was derived for, and every op re-checks that against the
+ * currently signed-in user: a logout clears the binding explicitly, but even without that, a stale
+ * binding stops resolving the moment the signed-in user changes or disappears.
  */
-let currentScopeDir: string | null = null;
+interface BoundUserScope {
+  userId: string;
+  dirName: string;
+}
+
+let boundUserScope: BoundUserScope | null = null;
+
+function getSignedInUserId(): string | null {
+  return getAppData().userProfile?.id || null;
+}
 
 function requireScopeDir(): string {
-  if (!currentScopeDir) {
+  const userId = getSignedInUserId();
+  if (!userId) {
+    throw new Error('Data history storage requires a signed-in user');
+  }
+  if (!boundUserScope || boundUserScope.userId !== userId) {
     throw new Error('Data history storage has not been initialized for a user');
   }
-  return currentScopeDir;
+  return boundUserScope.dirName;
+}
+
+/**
+ * Unbind storage (logout / user switch) and tear down every open write stream, whichever window
+ * owns it: an in-flight capture belongs to the departing account, and nothing may keep writing into
+ * that account's tree once it is signed out.
+ */
+export async function clearDataHistoryScope(): Promise<void> {
+  boundUserScope = null;
+  for (const [streamId, state] of Array.from(openStreams.entries())) {
+    await discardStream(streamId, state);
+  }
+  erroredStreams.clear();
 }
 
 function getScopedBaseDir(): string {
@@ -222,13 +253,20 @@ const opHandlers: {
   ) => Promise<DataHistoryFileOpResultByOp[K]>;
 } = {
   init: async (request) => {
-    // Validated like any other path segment — it arrives from the renderer and is joined onto the
-    // history folder, so a crafted value must not be able to escape it.
-    const segments = splitRelativePath(request.scopeDir);
-    if (segments.length !== 1) {
-      throw new Error(`Invalid data history user scope: ${request.scopeDir}`);
+    const userId = getSignedInUserId();
+    if (!userId) {
+      throw new Error('Data history storage requires a signed-in user');
     }
-    currentScopeDir = segments[0];
+    // Derived here from the authenticated user with the same shared function the renderer uses for
+    // its own stores. The renderer's `scopeDir` is only ever compared against it, never used: a
+    // mismatch means the two sides disagree about who is signed in, and failing loudly beats
+    // silently writing under a tree the renderer's index does not expect.
+    const dirName = await getDataHistoryUserScopeDirName(userId);
+    if (request.scopeDir !== dirName) {
+      logger.warn('[DATA_HISTORY] Rejected init: renderer scope does not match the signed-in user');
+      throw new Error('Data history scope does not match the signed-in user');
+    }
+    boundUserScope = { userId, dirName };
     await fs.mkdir(getScopedBaseDir(), { recursive: true });
   },
   'write-file': (request) =>

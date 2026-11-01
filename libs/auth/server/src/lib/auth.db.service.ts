@@ -1133,28 +1133,34 @@ export const resetUserPassword = async (email: string, token: string, password: 
   return userId;
 };
 
+/**
+ * Remove the password from a user, as long as they have an OAuth identity to log in with instead.
+ * SSO identities do not count as an alternative because SSO login depends on the team's configuration.
+ * The check and update run in one transaction so this cannot race with unlinking the last OAuth identity.
+ */
 export const removePasswordFromUser = async (id: string) => {
-  const UNSAFE_userWithPassword = await prisma.user.findUniqueOrThrow({
-    select: { id: true, password: true, identities: { select: { provider: true, type: true } } },
-    where: { id },
-  });
+  return prisma.$transaction(async (tx) => {
+    const UNSAFE_userWithPassword = await tx.user.findUniqueOrThrow({
+      select: { id: true, password: true, identities: { select: { provider: true, type: true } } },
+      where: { id },
+    });
 
-  if (!UNSAFE_userWithPassword.password) {
-    return { error: new Error('Password is not set') };
-  }
+    if (!UNSAFE_userWithPassword.password) {
+      return { error: new Error('Password is not set') };
+    }
 
-  // FIXME: should we allow using magic link to login? in which case we can remove the password without oauth provider
-  if (UNSAFE_userWithPassword.identities.some(({ type }) => type !== 'oauth')) {
-    return { error: new Error('Your password cannot be removed without an alternative login method, such as a social provider') };
-  }
+    // FIXME: should we allow using magic link to login? in which case we can remove the password without oauth provider
+    if (!UNSAFE_userWithPassword.identities.some(({ type }) => type === 'oauth')) {
+      return { error: new Error('Your password cannot be removed without an alternative login method, such as a social provider') };
+    }
 
-  return prisma.user
-    .update({
+    const user = await tx.user.update({
       select: AuthenticatedUserSelect,
       data: { password: null, passwordUpdatedAt: new Date() },
       where: { id },
-    })
-    .then((user) => AuthenticatedUserSchema.parse(user));
+    });
+    return AuthenticatedUserSchema.parse(user);
+  });
 };
 
 function convertSessionToUserSession(session: { sid: string; sess: unknown; expire: Date; createdAt: Date; userId: string }): UserSession {

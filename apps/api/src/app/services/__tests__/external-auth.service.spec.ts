@@ -12,6 +12,7 @@ import {
   findDeviceEnvironmentChange,
   getDeviceId,
   getExternalAuthMiddleware,
+  invalidateCacheEntry,
   issueAccessToken,
   isTokenWithinRefreshWindow,
   logDeviceEnvironmentChange,
@@ -363,15 +364,62 @@ describe('external-auth.service', () => {
   });
 
   describe('getExternalAuthMiddleware', () => {
-    // A unique token per test keeps the middleware's in-process cache from leaking results between tests
-    async function runMiddleware(accessToken: string) {
+    // A unique token per test keeps the middleware's in-process cache from leaking results between tests.
+    // Resolves to the error passed to next(), or undefined when the request was authorized.
+    async function runMiddleware(accessToken: string, audience: Audience = AUDIENCE_WEB_EXT) {
       const next = vi.fn();
       const request = buildRequest({
         headers: { Authorization: `Bearer ${accessToken}`, [HTTP.HEADERS.X_EXT_DEVICE_ID]: 'device-abc' },
       });
-      await getExternalAuthMiddleware(AUDIENCE_WEB_EXT)(request, buildResponse(), next);
+      await getExternalAuthMiddleware(audience)(request, buildResponse(), next);
       return next.mock.calls[0][0];
     }
+
+    describe('token cache', () => {
+      /** An active user entitled to both applications, so only the token's audience decides which routes accept it */
+      const tokenRecord = {
+        userId: mockUserProfile.id,
+        user: { entitlements: { chromeExtension: true, googleDrive: false, recordSync: false, desktop: true }, teamMembership: null },
+      };
+
+      beforeEach(() => {
+        mockWebExtDb.findByAccessTokenAndDeviceId.mockResolvedValue(tokenRecord);
+      });
+
+      it('serves a repeated request for the same audience from cache', async () => {
+        const token = await issueAccessToken(mockUserProfile, AUDIENCE_WEB_EXT);
+
+        expect(await runMiddleware(token, AUDIENCE_WEB_EXT)).toBeUndefined();
+        expect(await runMiddleware(token, AUDIENCE_WEB_EXT)).toBeUndefined();
+
+        expect(mockWebExtDb.findByAccessTokenAndDeviceId).toHaveBeenCalledTimes(1);
+      });
+
+      it('does not serve a token cached for the browser extension to a desktop route', async () => {
+        const token = await issueAccessToken(mockUserProfile, AUDIENCE_WEB_EXT);
+        expect(await runMiddleware(token, AUDIENCE_WEB_EXT)).toBeUndefined();
+
+        const error = await runMiddleware(token, AUDIENCE_DESKTOP);
+
+        // Verified again in full, and rejected because the token's audience is the browser extension
+        expect(mockWebExtDb.findByAccessTokenAndDeviceId).toHaveBeenCalledTimes(2);
+        expect(error).toBeInstanceOf(AuthenticationError);
+        expect(error.status).toBe(401);
+      });
+
+      it.each([
+        ['browser extension', AUDIENCE_WEB_EXT],
+        ['desktop', AUDIENCE_DESKTOP],
+      ] as const)('invalidateCacheEntry evicts a %s token without being told which audience cached it', async (_name, audience) => {
+        const token = await issueAccessToken(mockUserProfile, audience);
+        expect(await runMiddleware(token, audience)).toBeUndefined();
+
+        invalidateCacheEntry(token, 'device-abc');
+
+        expect(await runMiddleware(token, audience)).toBeUndefined();
+        expect(mockWebExtDb.findByAccessTokenAndDeviceId).toHaveBeenCalledTimes(2);
+      });
+    });
 
     it('rejects with a 401 when the token is not on record for the device', async () => {
       mockWebExtDb.findByAccessTokenAndDeviceId.mockResolvedValue(null);
