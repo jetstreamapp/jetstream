@@ -34,6 +34,7 @@ import {
   AutoFullHeightContainer,
   ColumnWithFilter,
   ConfirmationModalPromise,
+  DisabledReasonButton,
   FileFauxDownloadModal,
   FileFauxDownloadModalProps,
   Icon,
@@ -47,6 +48,7 @@ import {
   ToolbarItemGroup,
   Tooltip,
   fireToast,
+  getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
 import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState, useAnalytics } from '@jetstream/ui-core';
@@ -869,7 +871,12 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
               </div>
             }
           >
-            <Link className="slds-button slds-button_brand" to=".." onClick={handleGoBack}>
+            <Link
+              className="slds-button slds-button_brand"
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'shift', 'enter'])}
+              to=".."
+              onClick={handleGoBack}
+            >
               <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
               Go Back
             </Link>
@@ -886,6 +893,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           )}
           <button
             className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
+            title="Reload All Permissions"
             onClick={reloadPermissions}
             disabled={loading}
           >
@@ -894,6 +902,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           </button>
           <button
             className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
+            title="Reset Changes"
             onClick={resetChanges}
             disabled={
               loading ||
@@ -919,21 +928,22 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
             <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" />
             <span>Export</span>
           </button>
-          <Tooltip
-            openDelay={500}
-            content={
-              deployAccess.deniedReason ?? (
-                <div className="slds-p-bottom_small">
-                  <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
-                </div>
-              )
+          <DisabledReasonButton
+            className="slds-button slds-button_brand slds-m-left_xx-small"
+            aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+            disabled={saveDisabled}
+            disabledReason={deployAccess.allowed ? null : deployAccess.deniedReason}
+            tooltipOpenDelay={500}
+            tooltip={
+              <div className="slds-p-bottom_small">
+                <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+              </div>
             }
+            onClick={saveChanges}
           >
-            <button className="slds-button slds-button_brand slds-m-left_xx-small" onClick={saveChanges} disabled={saveDisabled}>
-              <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
-              Save
-            </button>
-          </Tooltip>
+            <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
+            Save
+          </DisabledReasonButton>
         </ToolbarItemActions>
       </Toolbar>
       <AutoFullHeightContainer
@@ -955,6 +965,8 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         {hasLoaded && (
           <Tabs
             initialActiveId={FIELD_PERMISSIONS_TAB_ID}
+            // Each tab is a full permissions grid, too costly to build for every tab the arrow keys pass
+            activationMode="manual"
             onChange={setActiveTabId}
             tabs={[
               {
