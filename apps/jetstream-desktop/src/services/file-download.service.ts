@@ -10,13 +10,16 @@ import { link, open, rename, rm } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
-import { getCandidateFilePaths, isDownloadPathClaimed } from '../utils/download-path.utils';
+import {
+  getCandidateFilePaths,
+  MAX_FILE_NAME_BYTES,
+  releaseDownloadPath,
+  truncateToByteLength,
+  tryClaimDownloadPath,
+} from '../utils/download-path.utils';
 import { registerOpenableFile } from '../utils/openable-file-registry';
 import { markDownloadCompleted, toSafeDownloadFileName } from '../utils/utils';
 import { getUserPreferences } from './persistence.service';
-
-/** Most file systems (APFS, NTFS, ext4) limit a single file name to 255 bytes or characters */
-const MAX_FILE_NAME_BYTES = 255;
 
 interface DownloadTarget {
   filePath: string;
@@ -62,11 +65,8 @@ async function copyToNewPath(sourcePath: string, targetPath: string) {
  */
 function getTempFilePath(filePath: string) {
   const suffix = `.${randomUUID().slice(0, 8)}.partial`;
-  const nameCharacters = Array.from(basename(filePath));
-  while (nameCharacters.length > 0 && Buffer.byteLength(`${nameCharacters.join('')}${suffix}`) > MAX_FILE_NAME_BYTES) {
-    nameCharacters.pop();
-  }
-  return join(dirname(filePath), `${nameCharacters.join('')}${suffix}`);
+  const name = truncateToByteLength(basename(filePath), MAX_FILE_NAME_BYTES - Buffer.byteLength(suffix));
+  return join(dirname(filePath), `${name}${suffix}`);
 }
 
 /**
@@ -75,8 +75,9 @@ function getTempFilePath(filePath: string) {
  */
 async function moveToAvailablePath(tempFilePath: string, filePath: string): Promise<string> {
   for (const candidatePath of getCandidateFilePaths(filePath)) {
-    // claimed by a Chromium download that has not created its file yet
-    if (isDownloadPathClaimed(candidatePath)) {
+    // Claimed before the copy starts so a Chromium download (`will-download`) can't pick the name while the file is
+    // not on disk yet. Skipped if a Chromium download in progress already claimed it.
+    if (!tryClaimDownloadPath(candidatePath)) {
       continue;
     }
     try {
@@ -87,6 +88,9 @@ async function moveToAvailablePath(tempFilePath: string, filePath: string): Prom
       if (!isFileExistsError(ex)) {
         throw ex;
       }
+    } finally {
+      // the file is on disk now (or the copy failed), so the claim is no longer needed
+      releaseDownloadPath(candidatePath);
     }
   }
   throw new Error(`Unable to find an available file name for ${basename(filePath)}`);

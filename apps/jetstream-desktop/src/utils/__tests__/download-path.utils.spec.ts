@@ -6,8 +6,10 @@ import {
   claimAvailableDownloadPath,
   getNumberedFilePath,
   isDownloadPathClaimed,
+  MAX_FILE_NAME_BYTES,
   MAX_NUMBERED_FILE_NAME_ATTEMPTS,
   releaseDownloadPath,
+  tryClaimDownloadPath,
 } from '../download-path.utils';
 
 describe('getNumberedFilePath', () => {
@@ -18,6 +20,45 @@ describe('getNumberedFilePath', () => {
 
   it('appends the number when there is no extension', () => {
     expect(getNumberedFilePath('/downloads/download', 1)).toBe('/downloads/download (1)');
+  });
+
+  it('shortens a name close to the length limit so the numbered name still fits', () => {
+    const numberedPath = getNumberedFilePath(`/downloads/${'a'.repeat(250)}.csv`, 12);
+    const numberedName = numberedPath.slice('/downloads/'.length);
+
+    expect(Buffer.byteLength(numberedName)).toBe(MAX_FILE_NAME_BYTES);
+    expect(numberedName).toBe(`${'a'.repeat(MAX_FILE_NAME_BYTES - ' (12).csv'.length)} (12).csv`);
+  });
+
+  it('never splits a multi-byte character when shortening a name', () => {
+    // 3 bytes per character: 83 characters + `.csv` = 253 bytes, leaving room for 82 characters + ` (1).csv`
+    const numberedPath = getNumberedFilePath(`/downloads/${'界'.repeat(83)}.csv`, 1);
+    const numberedName = numberedPath.slice('/downloads/'.length);
+
+    expect(Buffer.byteLength(numberedName)).toBeLessThanOrEqual(MAX_FILE_NAME_BYTES);
+    expect(numberedName).toBe(`${'界'.repeat(82)} (1).csv`);
+  });
+
+  it('shortens the whole name when the extension alone leaves no room for the number', () => {
+    const numberedPath = getNumberedFilePath(`/downloads/a.${'b'.repeat(253)}`, 1);
+    const numberedName = numberedPath.slice('/downloads/'.length);
+
+    expect(Buffer.byteLength(numberedName)).toBe(MAX_FILE_NAME_BYTES);
+    expect(numberedName.endsWith(' (1)')).toBe(true);
+  });
+});
+
+describe('tryClaimDownloadPath', () => {
+  it('claims a path only once until it is released', () => {
+    const filePath = join(tmpdir(), 'jetstream-try-claim', 'results.csv');
+    try {
+      expect(tryClaimDownloadPath(filePath)).toBe(true);
+      expect(tryClaimDownloadPath(filePath)).toBe(false);
+      releaseDownloadPath(filePath);
+      expect(tryClaimDownloadPath(filePath)).toBe(true);
+    } finally {
+      releaseDownloadPath(filePath);
+    }
   });
 });
 

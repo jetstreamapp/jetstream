@@ -171,6 +171,27 @@ describe('file-download.service', () => {
     }
   });
 
+  it('keeps a name it is moving a download into away from a browser download that starts at the same time', async () => {
+    const actualFs = await vi.importActual<typeof import('node:fs/promises')>('node:fs/promises');
+    let browserClaimedPath: string | null = null;
+    vi.mocked(link).mockImplementation(async (sourcePath, targetPath) => {
+      // a Chromium `will-download` fires while the native save is still creating its file
+      browserClaimedPath = claimAvailableDownloadPath(join(mocks.downloadDir, 'results.csv'));
+      return actualFs.link(sourcePath, targetPath);
+    });
+
+    try {
+      const result = await downloadResultsCsv(createBulkConn(async () => new Response('Id\n001A\n').body));
+
+      expect(result).toEqual({ success: true, filePath: join(mocks.downloadDir, 'results.csv') });
+      expect(browserClaimedPath).toBe(join(mocks.downloadDir, 'results (1).csv'));
+    } finally {
+      if (browserClaimedPath) {
+        releaseDownloadPath(browserClaimedPath);
+      }
+    }
+  });
+
   it('gives concurrent downloads of the same file their own names, and a failure does not touch the other file', async () => {
     const first = streamThatWaits('Id\n', '001A\n');
     const second = streamThatWaits('Id\n', '001B\n');
@@ -257,5 +278,25 @@ describe('file-download.service', () => {
     expect(result).toEqual({ success: true, filePath });
     expect(await fs.readFile(filePath, 'utf8')).toBe('Id\n001A\n');
     expect(await fs.readdir(mocks.downloadDir)).toEqual([fileName]);
+  });
+
+  it('adds a number to a name close to the file system name length limit without making it too long', async () => {
+    const fileName = `${'a'.repeat(250)}.csv`;
+    await fs.writeFile(join(mocks.downloadDir, fileName), 'existing');
+    const jetstreamConn = createBulkConn(async () => new Response('Id\n001A\n').body);
+
+    const result = await downloadBulkApiFileAndSaveToDisk({
+      jetstreamConn,
+      fileName,
+      jobId: 'job-1',
+      batchId: 'batch-1',
+      isQuery: false,
+      type: 'result',
+    });
+
+    const numberedFileName = `${'a'.repeat(247)} (1).csv`;
+    expect(result).toEqual({ success: true, filePath: join(mocks.downloadDir, numberedFileName) });
+    expect(await fs.readFile(join(mocks.downloadDir, numberedFileName), 'utf8')).toBe('Id\n001A\n');
+    expect(await fs.readFile(join(mocks.downloadDir, fileName), 'utf8')).toBe('existing');
   });
 });
