@@ -7,7 +7,7 @@ import { Readable } from 'stream';
 import { z } from 'zod';
 import type { Response } from '../types/route.types';
 import { UserFacingError } from '../utils/error-handler';
-import { pipeWebStreamToResponse, sendJson, streamParsedCsvAsJson } from '../utils/response.handlers';
+import { cancelIfClientDisconnected, pipeWebStreamToResponse, sendJson, streamParsedCsvAsJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
@@ -198,6 +198,10 @@ function createBulkCsvParseStream() {
  * A source failure errors the parser (see `streamParsedCsvAsJson`), and a client disconnect cancels the source.
  */
 function streamBulkCsvAsJson(res: Response, csvStream: ReadableStream<Uint8Array>) {
+  // Otherwise the parser would keep pulling (and Download All keep fetching every batch) for a client that is gone
+  if (cancelIfClientDisconnected(res, csvStream)) {
+    return;
+  }
   const csvParseStream = createBulkCsvParseStream();
   streamParsedCsvAsJson(res, csvParseStream);
 
@@ -298,6 +302,10 @@ const downloadAllResults = createRoute(
       const [firstBatchId, ...remainingBatchIds] = Array.from(batchIds);
       // Requested before the response starts so a failure here is still reported with a proper error response
       const firstBatchResults = await jetstreamConn.bulk.downloadRecords(jobId, firstBatchId, 'result');
+      // Checked here because cancelling the combined stream before its first read never reaches this response
+      if (cancelIfClientDisconnected(res, firstBatchResults)) {
+        return;
+      }
 
       // Every batch result file starts with the same header row, which is only kept for the first batch
       const combinedResults = concatenateCsvStreams([

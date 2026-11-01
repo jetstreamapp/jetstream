@@ -122,6 +122,20 @@ export function sendJson<ResponseType = unknown>(res: Response, content?: Respon
 }
 
 /**
+ * The client can disconnect while a route is still awaiting Salesforce. The response's `close` event has then
+ * already fired, so a listener added afterwards never runs - check up front and cancel the source instead.
+ *
+ * @returns true if the client was already gone and the source was cancelled
+ */
+export function cancelIfClientDisconnected(res: express.Response, webStream: ReadableStream<Uint8Array>): boolean {
+  if (!res.destroyed) {
+    return false;
+  }
+  webStream.cancel('client disconnected').catch(() => undefined);
+  return true;
+}
+
+/**
  * Stream a web ReadableStream (e.x. a Salesforce response body) to the client.
  *
  * A source failure before anything was sent becomes a normal error response. Once headers are sent the status
@@ -129,6 +143,9 @@ export function sendJson<ResponseType = unknown>(res: Response, content?: Respon
  * file that looks complete. If the client goes away first, the source is cancelled so the upstream request stops.
  */
 export function pipeWebStreamToResponse(res: express.Response, webStream: ReadableStream<Uint8Array>, next: express.NextFunction) {
+  if (cancelIfClientDisconnected(res, webStream)) {
+    return;
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const source = Readable.fromWeb(webStream as any);
 

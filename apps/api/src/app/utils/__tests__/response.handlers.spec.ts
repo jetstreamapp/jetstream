@@ -536,6 +536,25 @@ describe('pipeWebStreamToResponse', () => {
 
     await vi.waitFor(() => expect(onCancel).toHaveBeenCalled());
   });
+
+  it('cancels the source without piping when the client left before the source was ready', async () => {
+    const res = createWritableRes();
+    const next = vi.fn();
+    const onCancel = vi.fn();
+    const source = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode('a,b\n'));
+      },
+      cancel: onCancel,
+    });
+    res.destroy();
+
+    pipeWebStreamToResponse(res as any, source, next);
+
+    await vi.waitFor(() => expect(onCancel).toHaveBeenCalledWith('client disconnected'));
+    expect(res.chunks).toHaveLength(0);
+    expect(next).not.toHaveBeenCalled();
+  });
 });
 
 describe('streamParsedCsvAsJson errors', () => {

@@ -156,6 +156,31 @@ describe('downloadAllResults', () => {
     await expect(response.text()).rejects.toThrow();
   });
 
+  it('stops fetching batches when the client disconnects while the first batch is being requested', async () => {
+    const abortController = new AbortController();
+    const onFirstBatchCancel = vi.fn();
+    const jetstreamConn = createJetstreamConn(async (batchId) => {
+      if (batchId === 'batch-1') {
+        // the client leaves while Salesforce is still responding to the first request
+        abortController.abort();
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(encoder.encode(`${CSV_HEADER}"001A","true","true",""\n`));
+          },
+          cancel: onFirstBatchCancel,
+        });
+      }
+      return csvStream([CSV_HEADER, '"001B","true","true",""\n']);
+    });
+    const url = await startServer(jetstreamConn);
+
+    await expect(fetch(url, { signal: abortController.signal })).rejects.toThrow();
+
+    await vi.waitFor(() => expect(onFirstBatchCancel).toHaveBeenCalled());
+    expect(jetstreamConn.bulk.downloadRecords).toHaveBeenCalledTimes(1);
+  });
+
   it('returns an error status when the first batch cannot be downloaded', async () => {
     const url = await startServer(
       createJetstreamConn(async () => {
