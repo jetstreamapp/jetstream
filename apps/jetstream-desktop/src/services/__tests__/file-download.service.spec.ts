@@ -224,4 +224,38 @@ describe('file-download.service', () => {
     expect(await fs.readFile(join(mocks.downloadDir, 'results.csv'), 'utf8')).toBe('existing');
     expect((await fs.readdir(mocks.downloadDir)).sort()).toEqual(['results (1).csv', 'results.csv']);
   });
+
+  it('never deletes an existing file when the copy fallback fails', async () => {
+    await fs.writeFile(join(mocks.downloadDir, 'results.csv'), 'existing');
+    // the temporary file disappears (e.g. removed by another process) on a file system without hard links
+    vi.mocked(link).mockImplementation(async (sourcePath) => {
+      await fs.rm(sourcePath, { force: true });
+      throw Object.assign(new Error('operation not supported'), { code: 'ENOTSUP' });
+    });
+
+    const result = await downloadResultsCsv(createBulkConn(async () => new Response('Id\n001A\n').body));
+
+    expect(result.success).toBe(false);
+    expect(await fs.readFile(join(mocks.downloadDir, 'results.csv'), 'utf8')).toBe('existing');
+    expect(await fs.readdir(mocks.downloadDir)).toEqual(['results.csv']);
+  });
+
+  it('saves a file whose name is close to the file system name length limit', async () => {
+    const fileName = `${'a'.repeat(250)}.csv`;
+    const jetstreamConn = createBulkConn(async () => new Response('Id\n001A\n').body);
+
+    const result = await downloadBulkApiFileAndSaveToDisk({
+      jetstreamConn,
+      fileName,
+      jobId: 'job-1',
+      batchId: 'batch-1',
+      isQuery: false,
+      type: 'result',
+    });
+
+    const filePath = join(mocks.downloadDir, fileName);
+    expect(result).toEqual({ success: true, filePath });
+    expect(await fs.readFile(filePath, 'utf8')).toBe('Id\n001A\n');
+    expect(await fs.readdir(mocks.downloadDir)).toEqual([fileName]);
+  });
 });

@@ -5,15 +5,18 @@ import { Maybe } from '@jetstream/types';
 import { app, dialog, WebContents } from 'electron';
 import logger from 'electron-log';
 import { randomUUID } from 'node:crypto';
-import { constants, createWriteStream, existsSync } from 'node:fs';
-import { copyFile, link, rename, rm } from 'node:fs/promises';
-import { basename, join } from 'node:path';
+import { createReadStream, createWriteStream, existsSync } from 'node:fs';
+import { link, open, rename, rm } from 'node:fs/promises';
+import { basename, dirname, join } from 'node:path';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
 import { getCandidateFilePaths, isDownloadPathClaimed } from '../utils/download-path.utils';
 import { registerOpenableFile } from '../utils/openable-file-registry';
 import { markDownloadCompleted, toSafeDownloadFileName } from '../utils/utils';
 import { getUserPreferences } from './persistence.service';
+
+/** Most file systems (APFS, NTFS, ext4) limit a single file name to 255 bytes or characters */
+const MAX_FILE_NAME_BYTES = 255;
 
 interface DownloadTarget {
   filePath: string;
@@ -43,15 +46,27 @@ async function copyToNewPath(sourcePath: string, targetPath: string) {
     }
     // Some file systems (e.g. FAT/exFAT drives) do not support hard links - fall back to an exclusive copy
   }
+  // Created exclusively (`wx`) before copying, so a failed copy only ever removes a file this download created
+  const targetFile = await open(targetPath, 'wx');
   try {
-    await copyFile(sourcePath, targetPath, constants.COPYFILE_EXCL);
+    await pipeline(createReadStream(sourcePath), targetFile.createWriteStream());
   } catch (ex) {
-    if (!isFileExistsError(ex)) {
-      // the copy created the file before failing, don't leave a partial copy under the final name
-      await rm(targetPath, { force: true }).catch(() => undefined);
-    }
+    await rm(targetPath, { force: true }).catch(() => undefined);
     throw ex;
   }
+}
+
+/**
+ * `<name>.<id>.partial` next to the destination, with the name shortened if needed so the temporary file name
+ * stays within the 255 byte limit most file systems have (the destination name itself may already be close to it)
+ */
+function getTempFilePath(filePath: string) {
+  const suffix = `.${randomUUID().slice(0, 8)}.partial`;
+  const nameCharacters = Array.from(basename(filePath));
+  while (nameCharacters.length > 0 && Buffer.byteLength(`${nameCharacters.join('')}${suffix}`) > MAX_FILE_NAME_BYTES) {
+    nameCharacters.pop();
+  }
+  return join(dirname(filePath), `${nameCharacters.join('')}${suffix}`);
 }
 
 /**
@@ -85,7 +100,7 @@ async function moveToAvailablePath(tempFilePath: string, filePath: string): Prom
  * @returns the path the file was saved to, which has a number added if the name was taken and `overwrite` is false
  */
 async function writeDownloadToFile(source: Readable, { filePath, overwrite }: DownloadTarget): Promise<string> {
-  const tempFilePath = `${filePath}.${randomUUID().slice(0, 8)}.partial`;
+  const tempFilePath = getTempFilePath(filePath);
   try {
     await pipeline(source, createWriteStream(tempFilePath));
     if (overwrite) {
