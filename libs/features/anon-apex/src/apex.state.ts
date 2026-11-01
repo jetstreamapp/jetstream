@@ -3,7 +3,7 @@ import { DATE_FORMATS, INDEXED_DB } from '@jetstream/shared/constants';
 import { getLocalStore } from '@jetstream/shared/data';
 import { groupByFlat, hashString, pluralizeFromNumber, truncate } from '@jetstream/shared/utils';
 import { ApexHistoryItem, SalesforceOrgUi } from '@jetstream/types';
-import { selectedOrgState } from '@jetstream/ui/app-state';
+import { selectedOrgState, STORAGE_KEYS } from '@jetstream/ui/app-state';
 import { addDays } from 'date-fns/addDays';
 import { formatDate } from 'date-fns/format';
 import { isBefore } from 'date-fns/isBefore';
@@ -13,6 +13,46 @@ import { atomWithLazy } from 'jotai/utils';
 import orderBy from 'lodash/orderBy';
 
 let didRunCleanup = false;
+
+/**
+ * Reads and removes the draft from where it lived before it was kept per user: plain localStorage, shared by every
+ * account that signs in on the same browser profile or machine.
+ */
+function takeLegacyAnonymousApexDraft(): string | null {
+  try {
+    const legacyDraft = localStorage.getItem(STORAGE_KEYS.ANONYMOUS_APEX_STORAGE_KEY);
+    if (legacyDraft !== null) {
+      localStorage.removeItem(STORAGE_KEYS.ANONYMOUS_APEX_STORAGE_KEY);
+    }
+    return legacyDraft;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The current user's editor draft. The first account to open Anonymous Apex after the draft moved to the per-user
+ * store adopts the old shared draft (if it has none of its own), and the shared copy is removed so no later account
+ * on the machine sees it.
+ */
+export async function loadAnonymousApexDraft(): Promise<string | null> {
+  const localStore = getLocalStore();
+  const draft = await localStore.getItem<string>(INDEXED_DB.KEYS.anonymousApexDraft);
+  const legacyDraft = takeLegacyAnonymousApexDraft();
+  if (draft === null && legacyDraft) {
+    await localStore.setItem<string>(INDEXED_DB.KEYS.anonymousApexDraft, legacyDraft);
+    return legacyDraft;
+  }
+  return draft;
+}
+
+export async function saveAnonymousApexDraft(apex: string): Promise<void> {
+  try {
+    await getLocalStore().setItem<string>(INDEXED_DB.KEYS.anonymousApexDraft, apex);
+  } catch (ex) {
+    logger.warn('[ANON-APEX]', 'Error saving the editor draft', ex);
+  }
+}
 
 /**
  * If history grows to a very large size,

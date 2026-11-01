@@ -187,6 +187,7 @@ export const INDEXED_DB = {
     queryHistory: 'HISTORY:QUERY',
     loadSavedMapping: 'LOAD:SAVED_MAPPING',
     apexHistory: 'HISTORY:APEX',
+    anonymousApexDraft: 'DRAFT:ANONYMOUS_APEX',
     apexTestClassCache: 'CACHE:APEX_TEST_CLASSES',
     deployHistory: 'HISTORY:DEPLOY',
     salesforceApiHistory: 'HISTORY:SALESFORCE_API',
