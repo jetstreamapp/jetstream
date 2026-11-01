@@ -1,6 +1,7 @@
 export * from './lib/bulk-api-errors';
 export * from './lib/bulk-result-rows';
 export * from './lib/compression';
+export * from './lib/csv-formula-escape';
 export * from './lib/custom-field-tooling-names';
 export * from './lib/dedupe-field-usage-where-used';
 export * from './lib/hash.utils';

@@ -101,6 +101,16 @@ describe('generateFieldCsv', () => {
     // Plain text is left alone
     expect(dataRow[1]).toBe('Custom__c');
   });
+
+  it('should neutralize formula text that contains a line break', () => {
+    const trailingBreakLabel = '=HYPERLINK("https://example.com","x")\n';
+    const embeddedBreakName = '=1+1\nsecond line';
+    const formulaRow = buildRow({ label: trailingBreakLabel, createdBy: embeddedBreakName });
+    const [, , dataRow] = parse<string[]>(generateFieldCsv(columns, [formulaRow])).data;
+
+    expect(dataRow[2]).toBe(`'${trailingBreakLabel}`);
+    expect(dataRow[4]).toBe(`'${embeddedBreakName}`);
+  });
 });
 
 describe('generateFieldWorksheet', () => {
