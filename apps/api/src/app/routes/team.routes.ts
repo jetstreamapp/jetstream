@@ -1,10 +1,11 @@
-import { getLogger } from '@jetstream/api-config';
+import { createRateLimit, getLogger } from '@jetstream/api-config';
 import { TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING, TeamMemberRole, TeamMemberRoleSchema } from '@jetstream/types';
 import express, { Router } from 'express';
 import { routeDefinition as teamController } from '../controllers/team.controller';
 import { checkFeatureFlag } from '../db/feature-flags.db';
 import { findActiveTeamMembershipForRoles } from '../db/team.db';
 import { Request, Response } from '../types/route.types';
+import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
 import { checkAuth, validateDoubleCSRF } from './route.middleware';
 
 /**
@@ -12,6 +13,16 @@ import { checkAuth, validateDoubleCSRF } from './route.middleware';
  */
 
 const routes: express.Router = Router();
+
+/**
+ * Parsing IdP metadata fetches a URL and parses an XML document, both far heavier than a normal request. An admin
+ * setting up SSO calls it a handful of times, so the limit only stops repeated calls.
+ */
+const samlMetadataRateLimit = createRateLimit('team_sso_metadata', {
+  windowMs: 1000 * 60 * 1, // 1 minute
+  limit: rateLimitGetMaxRequests(20),
+  keyGenerator: rateLimitGetKeyGenerator(),
+});
 
 function validateTeamRoleMiddlewareFn(roles: TeamMemberRole[]) {
   return async (req: Request, res: Response, next: express.NextFunction) => {
@@ -184,6 +195,7 @@ routes.get(
 // SAML Configuration
 routes.post(
   '/:teamId/sso/saml/parse-metadata',
+  samlMetadataRateLimit,
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN]),
   teamController.parseSamlMetadata.controllerFn(),
 );

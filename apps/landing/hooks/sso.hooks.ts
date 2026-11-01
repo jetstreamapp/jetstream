@@ -8,7 +8,8 @@ const SsoDiscoveryResponseSchema = z.object({
 });
 
 const SsoStartResponseSchema = z.object({
-  data: z.object({ redirectUrl: z.string().min(1) }),
+  // The identity provider's sign-in page, so only a web URL is ever navigated to
+  data: z.object({ redirectUrl: z.url({ protocol: /^https?$/ }) }),
 });
 
 const SsoErrorResponseSchema = z.object({

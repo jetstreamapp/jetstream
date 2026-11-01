@@ -1,8 +1,8 @@
 import { ENV, getLogger } from '@jetstream/api-config';
 import { AuditLogAction, AuditLogResource, createTeamAuditLog } from '@jetstream/audit-logs';
 import * as authService from '@jetstream/auth/server';
-import { DiscoveredOidcConfig, encryptSecret, oidcService, samlService } from '@jetstream/auth/server';
-import { OidcConfigurationRequestSchema, SamlConfigurationRequestSchema } from '@jetstream/auth/types';
+import { DiscoveredOidcConfig, encryptSecret, isAllowedIdpUrl, oidcService, samlService } from '@jetstream/auth/server';
+import { OidcConfigurationRequestSchema, SAML_METADATA_MAX_LENGTH, SamlConfigurationRequestSchema } from '@jetstream/auth/types';
 import { BLOCKED_PUBLIC_EMAIL_DOMAINS } from '@jetstream/shared/constants';
 import { assertDomainResolvesToPublicIp, fetchWithPinnedPublicIp } from '@jetstream/shared/node-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
@@ -104,6 +104,39 @@ async function withSeatBlockAudit<T>(
 
 const SAML_METADATA_MAX_REDIRECTS = 5;
 const SAML_METADATA_TIMEOUT_MS = 10_000;
+
+/**
+ * Read a fetched SAML metadata document as text, giving up once it is larger than any real IdP metadata
+ * (SAML_METADATA_MAX_LENGTH bytes) instead of buffering whatever the host sends until the timeout.
+ */
+export async function readSamlMetadataResponse(response: Response): Promise<string> {
+  const tooLargeMessage = 'Failed to fetch metadata URL: the document is too large';
+  const declaredLength = Number(response.headers.get('content-length'));
+  if (Number.isFinite(declaredLength) && declaredLength > SAML_METADATA_MAX_LENGTH) {
+    await response.body?.cancel().catch(() => undefined);
+    throw new Error(tooLargeMessage);
+  }
+  if (!response.body) {
+    return '';
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let receivedBytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    receivedBytes += value.byteLength;
+    if (receivedBytes > SAML_METADATA_MAX_LENGTH) {
+      await reader.cancel().catch(() => undefined);
+      throw new Error(tooLargeMessage);
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
 
 /**
  * Fetch a SAML metadata URL while defending against SSRF on both the initial hostname and
@@ -439,7 +472,10 @@ export const routeDefinition = {
       hasSourceOrg: false,
       params: z.object({ teamId: z.uuid() }),
       body: z
-        .object({ metadataXml: z.string().optional(), metadataUrl: z.url().optional() })
+        .object({
+          metadataXml: z.string().max(SAML_METADATA_MAX_LENGTH, 'The IdP metadata is too large').optional(),
+          metadataUrl: z.url().optional(),
+        })
         .refine((data) => data.metadataXml || data.metadataUrl, {
           message: 'Either metadataXml or metadataUrl is required',
         }),
@@ -1167,7 +1203,7 @@ const parseSamlMetadata = createRoute(routeDefinition.parseSamlMetadata.validato
         throw new Error(`Failed to fetch metadata URL: HTTP ${response.status}`);
       }
 
-      xml = await response.text();
+      xml = await readSamlMetadataResponse(response);
     } else {
       // body.metadataXml is guaranteed by the refine validator
       xml = body.metadataXml!;
@@ -1202,6 +1238,11 @@ const createOrUpdateSamlConfig = createRoute(
           idpSsoUrl: parsed.ssoUrl,
           idpCertificate: parsed.certificate,
         };
+      }
+
+      // Checked after the metadata is applied, since its SSO URL replaces the one in the request
+      if (!isAllowedIdpUrl(configData.idpSsoUrl)) {
+        throw new UserFacingError('The IdP SSO URL must be an https URL.');
       }
 
       const {
