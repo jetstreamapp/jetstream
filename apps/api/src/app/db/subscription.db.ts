@@ -128,6 +128,23 @@ export const updateTeamEntitlements = async (customerId: string, entitlementAcce
 };
 
 /**
+ * Matches the rows Stripe no longer reports, by exact (subscriptionId, priceId) pair.
+ *
+ * Moving a billing account to another customer cascades the previous customer's rows onto the new `customerId` while
+ * they keep their own `subscriptionId`, so matching on price alone kept them whenever both customers were on the same
+ * price, leaving two rows for one subscription that never matched the count the sync compares against. Matching each
+ * identifier on its own instead keeps a row whose subscription moved to a price another subscription still holds.
+ */
+function notCurrentSubscriptionItems(subscriptions: Stripe.Subscription[]) {
+  const currentSubscriptionItems = subscriptions.flatMap((subscription) =>
+    subscription.items.data.map((item) => ({ subscriptionId: subscription.id, priceId: item.price.id })),
+  );
+  // With nothing current every row is stale (as before), so the filter is left off rather than relying on how Prisma
+  // reads an empty `NOT`
+  return currentSubscriptionItems.length > 0 ? { NOT: currentSubscriptionItems } : {};
+}
+
+/**
  * Given a customer's current subscriptions, cancel all other subscriptions, create any needed subscriptions, and update the subscription state
  * In addition, entitlements are also updated to reflect the user's current subscription state
  */
@@ -140,12 +157,10 @@ export const updateSubscriptionStateForCustomer = async ({
   customerId: string;
   subscriptions: Stripe.Subscription[];
 }) => {
-  const priceIds = subscriptions.flatMap((subscription) => subscription.items.data.map((item) => item.price.id));
-
   await prisma.$transaction([
     // Delete all subscriptions that are no longer active in Stripe
     prisma.subscription.deleteMany({
-      where: { userId, customerId, priceId: { notIn: priceIds } },
+      where: { userId, customerId, ...notCurrentSubscriptionItems(subscriptions) },
     }),
     // Create/Update all current subscriptions from Stripe
     ...subscriptions.flatMap((subscription) =>
@@ -293,8 +308,6 @@ export const updateTeamSubscriptionStateForCustomer = async ({
   subscriptions: Stripe.Subscription[];
   seatState: TeamSeatState | null;
 }) => {
-  const priceIds = subscriptions.flatMap((subscription) => subscription.items.data.map((item) => item.price.id));
-
   /**
    * Calculate team billing status and update it
    * ACTIVE = has active subscriptions and none are past_due
@@ -328,9 +341,10 @@ export const updateTeamSubscriptionStateForCustomer = async ({
       teamBillingStatus = 'PAST_DUE';
     }
 
-    // Delete all subscriptions that are no longer active in Stripe
+    // Delete all subscriptions that are no longer active in Stripe. A team rebound from a deleted customer carries
+    // that customer's rows across the same way a user's billing account does.
     await tx.teamSubscription.deleteMany({
-      where: { teamId, customerId, priceId: { notIn: priceIds } },
+      where: { teamId, customerId, ...notCurrentSubscriptionItems(subscriptions) },
     });
     // Create/Update all current subscriptions from Stripe
     for (const subscription of subscriptions) {

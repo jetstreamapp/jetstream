@@ -375,12 +375,110 @@ export async function findBillingAccountByCustomerId({ customerId }: { customerI
   return billingAccount;
 }
 
-export async function upsertBillingAccount({ userId, customerId }: { userId: string; customerId: string }) {
-  const existingCustomer = await prisma.billingAccount.findUnique({ where: { uniqueCustomer: { customerId, userId } } });
-  if (existingCustomer) {
-    return existingCustomer;
-  }
-  return await prisma.billingAccount.create({
-    data: { customerId, userId },
+/** Subscription rows (stored upper-cased from Stripe) that mean the customer is still being paid for */
+const PAID_SUBSCRIPTION_STATUSES = ['ACTIVE', 'TRIALING'];
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+}
+
+/**
+ * Points the user's billing account at `customerId`, creating it when there is none, and returns the customer that
+ * holds the account afterwards. A caller compares it with `customerId` to learn whether this customer was bound.
+ *
+ * A user has one billing account (`userId` is unique), so it is looked up by `userId` alone. Looking it up by the
+ * (userId, customerId) pair sent a checkout completing on a second customer into a create that hit that constraint,
+ * so the user was charged and the webhook retried forever with nothing recorded.
+ *
+ * The account only moves to another customer when `canRepoint` (that customer's subscription is being paid for) and
+ * the current customer has no paid subscription recorded. `subscription.customerId` follows the account
+ * (ON UPDATE CASCADE) and the next sync deletes the rows that are not current, so an event from an abandoned customer
+ * must not take the account, and two paid customers is a double charge for a human to refund rather than an account
+ * that flips between them on every event.
+ */
+export async function upsertBillingAccount({
+  userId,
+  customerId,
+  canRepoint,
+}: {
+  userId: string;
+  customerId: string;
+  canRepoint: boolean;
+}): Promise<{ customerId: string }> {
+  const billingAccount = await prisma.billingAccount.findUnique({
+    where: { userId },
+    select: {
+      customerId: true,
+      subscriptions: { where: { status: { in: PAID_SUBSCRIPTION_STATUSES } }, select: { subscriptionId: true } },
+    },
   });
+
+  if (!billingAccount) {
+    try {
+      return await prisma.billingAccount.create({ data: { customerId, userId }, select: { customerId: true } });
+    } catch (ex) {
+      // A concurrent event for the same user created it first, possibly for an unpaid customer this one may replace.
+      // The same error comes from another user's account already holding this customer, which must fail, not retry.
+      if (isUniqueConstraintError(ex) && (await prisma.billingAccount.findUnique({ where: { userId }, select: { userId: true } }))) {
+        return await upsertBillingAccount({ userId, customerId, canRepoint });
+      }
+      throw ex;
+    }
+  }
+
+  if (billingAccount.customerId === customerId) {
+    return { customerId };
+  }
+
+  if (!canRepoint) {
+    logger.warn(
+      { userId, customerId, billingAccountCustomerId: billingAccount.customerId },
+      '[BILLING]: Not moving the billing account to a customer without a paid subscription',
+    );
+    return { customerId: billingAccount.customerId };
+  }
+
+  if (billingAccount.subscriptions.length > 0) {
+    logger.error(
+      {
+        userId,
+        customerId,
+        billingAccountCustomerId: billingAccount.customerId,
+        billingAccountSubscriptionIds: billingAccount.subscriptions.map(({ subscriptionId }) => subscriptionId),
+      },
+      '[BILLING]: A user is paying on two Stripe customers, the billing account stays on the first, review for a refund',
+    );
+    return { customerId: billingAccount.customerId };
+  }
+
+  // Both conditions are repeated inside the write so a concurrent event that moved the account, or recorded a
+  // payment on the current customer, is not overwritten
+  const { count } = await prisma.billingAccount.updateMany({
+    where: {
+      userId,
+      customerId: billingAccount.customerId,
+      subscriptions: { none: { status: { in: PAID_SUBSCRIPTION_STATUSES } } },
+    },
+    data: { customerId },
+  });
+  if (count === 0) {
+    const currentAccount = await prisma.billingAccount.findUniqueOrThrow({ where: { userId }, select: { customerId: true } });
+    if (currentAccount.customerId !== billingAccount.customerId) {
+      // Only a paid customer can move the account, so losing to a different one means both were paid for
+      if (currentAccount.customerId !== customerId) {
+        logger.error(
+          { userId, customerId, billingAccountCustomerId: currentAccount.customerId },
+          '[BILLING]: A user is paying on two Stripe customers, another claimed the billing account first, review for a refund',
+        );
+      }
+      return currentAccount;
+    }
+    // Still on the same customer, so a payment was recorded on it meanwhile; re-running reports the double charge
+    return await upsertBillingAccount({ userId, customerId, canRepoint });
+  }
+  logger.info(
+    { userId, customerId, previousCustomerId: billingAccount.customerId },
+    '[BILLING]: Moved the billing account to the customer being paid for',
+  );
+  return { customerId };
 }

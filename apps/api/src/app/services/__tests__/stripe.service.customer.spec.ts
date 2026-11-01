@@ -1,0 +1,542 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type * as StripeService from '../stripe.service';
+
+const mocks = vi.hoisted(() => ({
+  customersSearch: vi.fn(),
+  customersCreate: vi.fn(),
+  customersUpdate: vi.fn(),
+  customersRetrieve: vi.fn(),
+  createFundingInstructions: vi.fn(async () => ({})),
+  sessionsCreate: vi.fn(async () => ({ id: 'cs_new', url: 'https://checkout.stripe.test/cs_new' })),
+  sessionsRetrieve: vi.fn(),
+  sessionsList: vi.fn(),
+  sessionsExpire: vi.fn(),
+  upsertBillingAccount: vi.fn(),
+  findTeamBillingCustomerIds: vi.fn(async () => new Set<string>()),
+  updateSubscriptionStateForCustomer: vi.fn(async () => undefined),
+  updateUserEntitlements: vi.fn(async () => undefined),
+  loggerWarn: vi.fn(),
+  loggerError: vi.fn(),
+}));
+
+vi.mock('stripe', () => ({
+  default: class {
+    customers = {
+      search: mocks.customersSearch,
+      create: mocks.customersCreate,
+      createFundingInstructions: mocks.createFundingInstructions,
+      retrieve: mocks.customersRetrieve,
+      update: mocks.customersUpdate,
+    };
+    checkout = {
+      sessions: {
+        create: mocks.sessionsCreate,
+        retrieve: mocks.sessionsRetrieve,
+        list: mocks.sessionsList,
+        expire: mocks.sessionsExpire,
+      },
+    };
+    entitlements = { activeEntitlements: { list: vi.fn(async () => ({ data: [] })) } };
+  },
+}));
+
+vi.mock('@jetstream/api-config', () => ({
+  ENV: { STRIPE_API_KEY: 'sk_test_x', JETSTREAM_SERVER_URL: 'https://jetstream.test' },
+  logger: { error: mocks.loggerError, warn: mocks.loggerWarn, info: vi.fn(), debug: vi.fn() },
+  prisma: {},
+}));
+vi.mock('@jetstream/email', () => ({ sendWelcomeToProEmail: vi.fn(async () => undefined) }));
+vi.mock('../../db/subscription.db', () => ({
+  updateSubscriptionStateForCustomer: mocks.updateSubscriptionStateForCustomer,
+  updateUserEntitlements: mocks.updateUserEntitlements,
+}));
+vi.mock('../../db/team.db', () => ({ findTeamBillingCustomerIds: mocks.findTeamBillingCustomerIds }));
+vi.mock('../../db/user.db', () => ({
+  upsertBillingAccount: mocks.upsertBillingAccount,
+  findById: vi.fn(async () => ({ id: 'user-1', email: 'user@example.com' })),
+}));
+
+const user = { id: 'user-1', name: 'Test User', email: 'user@example.com' };
+
+const customer = ({
+  id,
+  created,
+  email = user.email,
+  subscriptions = [],
+  metadata = {},
+}: {
+  id: string;
+  created: number;
+  email?: string;
+  subscriptions?: { id: string; status: string; items?: unknown }[];
+  metadata?: Record<string, string>;
+}) => ({
+  id,
+  created,
+  email,
+  metadata: { userId: user.id, type: 'USER', ...metadata },
+  subscriptions: { object: 'list', data: subscriptions },
+});
+
+const subscriptionWithStatus = (status: string) => ({ id: `sub_${status}`, status });
+
+const searchReturns = (...customers: ReturnType<typeof customer>[]) =>
+  mocks.customersSearch.mockResolvedValue({ data: customers, has_more: false });
+
+let stripeService: typeof StripeService;
+
+beforeEach(async () => {
+  vi.resetModules();
+  vi.clearAllMocks();
+  mocks.customersCreate.mockResolvedValue({ id: 'cus_created' });
+  mocks.customersUpdate.mockImplementation(async (customerId: string, params: Record<string, unknown>) => ({
+    id: customerId,
+    metadata: {},
+    ...params,
+  }));
+  mocks.sessionsList.mockResolvedValue({ data: [] });
+  mocks.sessionsExpire.mockImplementation(async (sessionId: string) => ({ id: sessionId, status: 'expired' }));
+  mocks.upsertBillingAccount.mockImplementation(async ({ customerId }: { customerId: string }) => ({ customerId }));
+  stripeService = await import('../stripe.service');
+});
+
+describe('findReusableCustomerForUser', () => {
+  it('reuses the customer stamped with the user id', async () => {
+    searchReturns(customer({ id: 'cus_existing', created: 100 }));
+
+    const result = await stripeService.findReusableCustomerForUser({ user });
+
+    expect(result?.id).toBe('cus_existing');
+    expect(mocks.customersSearch).toHaveBeenCalledWith(
+      expect.objectContaining({ query: `metadata["userId"]:"user-1"`, expand: ['data.subscriptions'] }),
+    );
+  });
+
+  it('returns null when the user has no customer', async () => {
+    searchReturns();
+
+    await expect(stripeService.findReusableCustomerForUser({ user })).resolves.toBeNull();
+  });
+
+  // Checkout sets the name to the legal business name it collects, so writing the profile name here would
+  // replace it whenever the user came back and abandoned checkout
+  it('refreshes only the email on the reused customer', async () => {
+    searchReturns(customer({ id: 'cus_existing', created: 100, email: 'old@example.com' }));
+
+    const result = await stripeService.findReusableCustomerForUser({ user });
+
+    expect(mocks.customersUpdate).toHaveBeenCalledTimes(1);
+    expect(mocks.customersUpdate).toHaveBeenCalledWith('cus_existing', { email: user.email });
+    expect(result?.email).toBe(user.email);
+  });
+
+  it('does not write to the customer when its email is already current', async () => {
+    searchReturns(customer({ id: 'cus_existing', created: 100 }));
+
+    await stripeService.findReusableCustomerForUser({ user });
+
+    expect(mocks.customersUpdate).not.toHaveBeenCalled();
+  });
+
+  // A team's customer carries its purchaser's user id too, and must never become anyone's personal customer
+  it('never reuses, or writes to, a customer a team is attached to', async () => {
+    const teamCustomer = customer({
+      id: 'cus_team',
+      created: 50,
+      email: 'billing@acme.test',
+      subscriptions: [subscriptionWithStatus('active')],
+      metadata: { teamId: 'team-1', type: 'TEAM' },
+    });
+    searchReturns(teamCustomer);
+
+    await expect(stripeService.findReusableCustomerForUser({ user })).resolves.toBeNull();
+    expect(mocks.customersUpdate).not.toHaveBeenCalled();
+
+    searchReturns(teamCustomer, customer({ id: 'cus_personal', created: 200 }));
+
+    await expect(stripeService.findReusableCustomerForUser({ user })).resolves.toEqual(expect.objectContaining({ id: 'cus_personal' }));
+  });
+
+  // Admin provisioning binds the team billing account before writing `teamId` to Stripe, and that write can fail
+  it('never reuses a customer bound to a team billing account even without a teamId in its metadata', async () => {
+    searchReturns(customer({ id: 'cus_provisioned', created: 50 }), customer({ id: 'cus_personal', created: 200 }));
+    mocks.findTeamBillingCustomerIds.mockResolvedValueOnce(new Set(['cus_provisioned']));
+
+    await expect(stripeService.findReusableCustomerForUser({ user })).resolves.toEqual(expect.objectContaining({ id: 'cus_personal' }));
+    expect(mocks.findTeamBillingCustomerIds).toHaveBeenCalledWith(['cus_provisioned', 'cus_personal']);
+  });
+
+  it('returns null rather than blocking checkout when the search fails', async () => {
+    mocks.customersSearch.mockRejectedValue(new Error('search unavailable'));
+
+    await expect(stripeService.findReusableCustomerForUser({ user })).resolves.toBeNull();
+    expect(mocks.loggerWarn).toHaveBeenCalled();
+  });
+
+  it('flags a user whose customers do not fit one search page', async () => {
+    mocks.customersSearch.mockResolvedValue({ data: [customer({ id: 'cus_1', created: 100 })], has_more: true });
+
+    await stripeService.findReusableCustomerForUser({ user });
+
+    expect(mocks.loggerError).toHaveBeenCalledWith(expect.objectContaining({ userId: user.id }), expect.any(String));
+  });
+
+  describe('when a user already has duplicate customers', () => {
+    it('prefers the customer being paid for over an older one waiting on payment', async () => {
+      searchReturns(
+        customer({ id: 'cus_incomplete', created: 100, subscriptions: [subscriptionWithStatus('incomplete')] }),
+        customer({ id: 'cus_paid', created: 300, subscriptions: [subscriptionWithStatus('trialing')] }),
+      );
+
+      await expect(stripeService.findReusableCustomerForUser({ user })).resolves.toEqual(expect.objectContaining({ id: 'cus_paid' }));
+    });
+
+    it('prefers a customer with a current subscription over an older one whose subscription ended', async () => {
+      searchReturns(
+        customer({ id: 'cus_ended', created: 100, subscriptions: [subscriptionWithStatus('incomplete_expired')] }),
+        customer({ id: 'cus_past_due', created: 200, subscriptions: [subscriptionWithStatus('past_due')] }),
+      );
+
+      await expect(stripeService.findReusableCustomerForUser({ user })).resolves.toEqual(expect.objectContaining({ id: 'cus_past_due' }));
+    });
+
+    it('resolves to the oldest customer when none has a subscription', async () => {
+      searchReturns(customer({ id: 'cus_second', created: 200 }), customer({ id: 'cus_first', created: 100 }));
+
+      await expect(stripeService.findReusableCustomerForUser({ user })).resolves.toEqual(expect.objectContaining({ id: 'cus_first' }));
+    });
+
+    // Stripe search does not guarantee an order, so an unstable tie-break could alternate between customers
+    it('resolves to the same customer regardless of search order when created timestamps tie', async () => {
+      const first = customer({ id: 'cus_aaa', created: 100 });
+      const second = customer({ id: 'cus_bbb', created: 100 });
+
+      searchReturns(first, second);
+      const forwards = await stripeService.findReusableCustomerForUser({ user });
+      searchReturns(second, first);
+      const backwards = await stripeService.findReusableCustomerForUser({ user });
+
+      expect(forwards?.id).toBe('cus_aaa');
+      expect(backwards?.id).toBe('cus_aaa');
+    });
+  });
+});
+
+describe('createCheckoutSession without a customer', () => {
+  const createSession = (overrides: { type?: 'USER' | 'TEAM'; teamId?: string; user?: typeof user } = {}) =>
+    stripeService.createCheckoutSession({
+      mode: 'subscription',
+      priceId: 'price_1',
+      user: overrides.user ?? user,
+      type: overrides.type ?? 'USER',
+      teamId: overrides.teamId,
+    });
+
+  // The seconds-apart double submission happens inside the search index's lag window, so the key rather than the
+  // search is what stops it from minting a second customer
+  it('creates the customer from the user id alone under a per-user idempotency key', async () => {
+    await createSession();
+    await createSession({ user: { ...user, name: 'Renamed User', email: 'renamed@example.com' }, type: 'TEAM' });
+
+    expect(mocks.customersCreate).toHaveBeenCalledTimes(2);
+    for (const [params, options] of mocks.customersCreate.mock.calls) {
+      expect(params).toEqual({ metadata: { userId: user.id } });
+      expect(options).toEqual({ idempotencyKey: 'customer-create:user-1' });
+    }
+  });
+
+  it('applies the email, name and plan type in a follow-up update without clearing a team id', async () => {
+    await createSession();
+
+    expect(mocks.customersUpdate).toHaveBeenCalledWith('cus_created', {
+      email: user.email,
+      name: user.name,
+      metadata: { userId: user.id, type: 'USER' },
+    });
+    expect(mocks.sessionsCreate).toHaveBeenCalledWith(expect.objectContaining({ customer: 'cus_created' }));
+    expect(mocks.createFundingInstructions).not.toHaveBeenCalled();
+  });
+
+  it('sets up bank transfer funding for a new team customer', async () => {
+    await createSession({ type: 'TEAM' });
+
+    expect(mocks.createFundingInstructions).toHaveBeenCalledWith('cus_created', expect.objectContaining({ currency: 'usd' }));
+  });
+
+  // Stripe replays the saved response for 24 hours, so a customer deleted since then comes back as a dead id
+  // The replacement is keyed too, so concurrent checkouts after the deletion still share one customer
+  it('creates the replacement under a key derived from the deleted customer when the replayed customer was deleted', async () => {
+    mocks.customersCreate.mockResolvedValueOnce({ id: 'cus_deleted' }).mockResolvedValueOnce({ id: 'cus_fresh' });
+    mocks.customersUpdate.mockRejectedValueOnce({
+      type: 'StripeInvalidRequestError',
+      code: 'resource_missing',
+      message: 'No such customer',
+    });
+    mocks.customersUpdate.mockResolvedValueOnce({ id: 'cus_fresh', metadata: { userId: user.id, type: 'TEAM' } });
+
+    await createSession({ type: 'TEAM' });
+
+    expect(mocks.customersCreate).toHaveBeenCalledTimes(2);
+    expect(mocks.customersCreate.mock.calls[1]).toEqual([
+      { metadata: { userId: user.id } },
+      { idempotencyKey: 'customer-create:user-1:replacing:cus_deleted' },
+    ]);
+    expect(mocks.createFundingInstructions).toHaveBeenCalledTimes(1);
+    expect(mocks.createFundingInstructions).toHaveBeenCalledWith('cus_fresh', expect.anything());
+    expect(mocks.sessionsCreate).toHaveBeenCalledWith(expect.objectContaining({ customer: 'cus_fresh' }));
+  });
+
+  it('fails checkout on any other error updating the created customer', async () => {
+    mocks.customersUpdate.mockRejectedValueOnce({ type: 'StripeAPIError', message: 'Stripe is down' });
+
+    await expect(createSession()).rejects.toMatchObject({ message: 'Stripe is down' });
+
+    expect(mocks.customersCreate).toHaveBeenCalledTimes(1);
+    expect(mocks.sessionsCreate).not.toHaveBeenCalled();
+  });
+
+  // The per-user key could replay the buyer's personal customer, and an existing team must bill on its own
+  it("creates an existing team's replacement customer without the per-user idempotency key", async () => {
+    mocks.customersCreate.mockResolvedValue({ id: 'cus_team_new', metadata: {} });
+
+    await createSession({ type: 'TEAM', teamId: 'team-1' });
+
+    expect(mocks.customersCreate).toHaveBeenCalledTimes(1);
+    expect(mocks.customersCreate.mock.calls[0]).toHaveLength(1);
+    expect(mocks.sessionsCreate).toHaveBeenCalledWith(expect.objectContaining({ customer: 'cus_team_new' }));
+  });
+
+  it('never searches for a customer itself', async () => {
+    await createSession();
+
+    expect(mocks.customersSearch).not.toHaveBeenCalled();
+  });
+});
+
+describe('recording a checkout that completed on a second customer', () => {
+  const proSubscription = (status: string) => ({
+    id: `sub_${status}`,
+    status,
+    items: { data: [{ price: { id: 'price_PRO_MONTHLY', lookup_key: 'PRO_MONTHLY' } }] },
+  });
+
+  const completeCheckout = (subscriptionStatus: string | null) => {
+    mocks.sessionsRetrieve.mockResolvedValue({
+      id: 'cs_1',
+      status: 'complete',
+      customer: 'cus_new',
+      client_reference_id: user.id,
+      metadata: { userId: user.id, type: 'USER' },
+      subscription: subscriptionStatus ? proSubscription(subscriptionStatus) : null,
+      custom_fields: [],
+    });
+    mocks.customersRetrieve.mockResolvedValue({
+      ...customer({ id: 'cus_new', created: 200, subscriptions: subscriptionStatus ? [proSubscription(subscriptionStatus)] : [] }),
+    });
+    return stripeService.saveSubscriptionFromCompletedSession({ sessionId: 'cs_1' });
+  };
+
+  it('records the subscription on the customer the payment belongs to', async () => {
+    const result = await completeCheckout('active');
+
+    expect(mocks.upsertBillingAccount).toHaveBeenCalledWith({ userId: user.id, customerId: 'cus_new', canRepoint: true });
+    expect(mocks.updateSubscriptionStateForCustomer).toHaveBeenCalledWith(expect.objectContaining({ customerId: 'cus_new' }));
+    expect(mocks.updateUserEntitlements).toHaveBeenCalledWith('cus_new', expect.anything());
+    expect(result).toEqual({ userId: user.id, teamId: null, type: 'USER' });
+  });
+
+  it('does not let a subscription still waiting on payment take the billing account', async () => {
+    await completeCheckout('incomplete');
+
+    expect(mocks.upsertBillingAccount).toHaveBeenCalledWith(expect.objectContaining({ canRepoint: false }));
+  });
+
+  // Throwing here would make the webhook retry forever, which is how the unique violation used to strand the payment
+  it('finishes without recording anything when the billing account stays on another customer', async () => {
+    mocks.upsertBillingAccount.mockResolvedValue({ customerId: 'cus_old' });
+
+    const result = await completeCheckout('active');
+
+    expect(result).toEqual({ userId: user.id, teamId: null, type: 'USER' });
+    expect(mocks.customersUpdate).toHaveBeenCalledWith('cus_new', { metadata: { userId: user.id, teamId: null, type: 'USER' } });
+    expect(mocks.updateSubscriptionStateForCustomer).not.toHaveBeenCalled();
+    expect(mocks.updateUserEntitlements).not.toHaveBeenCalled();
+  });
+
+  it('skips a subscription event from a customer that does not hold the billing account', async () => {
+    mocks.upsertBillingAccount.mockResolvedValue({ customerId: 'cus_old' });
+    const eventCustomer = customer({ id: 'cus_abandoned', created: 100, subscriptions: [proSubscription('incomplete')] });
+
+    await stripeService.saveOrUpdateSubscription({ customer: eventCustomer as never, sendWelcomeEmail: false });
+
+    expect(mocks.upsertBillingAccount).toHaveBeenCalledWith({ userId: user.id, customerId: 'cus_abandoned', canRepoint: false });
+    expect(mocks.updateSubscriptionStateForCustomer).not.toHaveBeenCalled();
+  });
+
+  it('lets a subscription event from a paid customer claim the billing account', async () => {
+    const eventCustomer = customer({ id: 'cus_paid', created: 100, subscriptions: [proSubscription('active')] });
+
+    await stripeService.saveOrUpdateSubscription({ customer: eventCustomer as never, sendWelcomeEmail: false });
+
+    expect(mocks.upsertBillingAccount).toHaveBeenCalledWith({ userId: user.id, customerId: 'cus_paid', canRepoint: true });
+    expect(mocks.updateSubscriptionStateForCustomer).toHaveBeenCalledWith(expect.objectContaining({ customerId: 'cus_paid' }));
+  });
+});
+
+describe('createCheckoutSession expires older open checkout sessions', () => {
+  const NOW = new Date('2026-10-31T12:00:00.000Z');
+
+  const createSession = (customerId?: string, teamId?: string) =>
+    stripeService.createCheckoutSession({
+      customerId,
+      mode: 'subscription',
+      priceId: 'price_1',
+      user,
+      type: teamId ? 'TEAM' : 'USER',
+      teamId,
+    });
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(NOW);
+    mocks.customersRetrieve.mockResolvedValue(customer({ id: 'cus_1', created: 100 }));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('expires only the open subscription sessions of the customer, before creating the new one', async () => {
+    mocks.sessionsList.mockResolvedValue({
+      data: [
+        { id: 'cs_old_subscription', mode: 'subscription' },
+        { id: 'cs_setup', mode: 'setup' },
+        { id: 'cs_payment', mode: 'payment' },
+        { id: 'cs_other_tab', mode: 'subscription' },
+      ],
+    });
+
+    await createSession('cus_1');
+
+    expect(mocks.sessionsList).toHaveBeenCalledWith({ customer: 'cus_1', status: 'open', limit: 100 });
+    expect(mocks.sessionsExpire.mock.calls.map(([sessionId]) => sessionId)).toEqual(['cs_old_subscription', 'cs_other_tab']);
+    const lastExpireOrder = Math.max(...mocks.sessionsExpire.mock.invocationCallOrder);
+    expect(lastExpireOrder).toBeLessThan(mocks.sessionsCreate.mock.invocationCallOrder[0]);
+  });
+
+  it('still creates the session when a session cannot be expired', async () => {
+    mocks.sessionsList.mockResolvedValue({
+      data: [
+        { id: 'cs_completed_meanwhile', mode: 'subscription' },
+        { id: 'cs_still_open', mode: 'subscription' },
+      ],
+    });
+    mocks.sessionsExpire.mockRejectedValueOnce(new Error('Only Checkout Sessions with a status of open can be expired'));
+
+    await expect(createSession('cus_1')).resolves.toEqual(expect.objectContaining({ id: 'cs_new' }));
+    expect(mocks.sessionsExpire).toHaveBeenCalledWith('cs_still_open');
+    expect(mocks.loggerWarn).toHaveBeenCalledWith(expect.objectContaining({ sessionId: 'cs_completed_meanwhile' }), expect.any(String));
+  });
+
+  it('still creates the session when the open sessions cannot be listed', async () => {
+    mocks.sessionsList.mockRejectedValue(new Error('Stripe is unavailable'));
+
+    await expect(createSession('cus_1')).resolves.toEqual(expect.objectContaining({ id: 'cs_new' }));
+    expect(mocks.sessionsExpire).not.toHaveBeenCalled();
+  });
+
+  // The per-user idempotency key hands a double click the customer the first click created, along with its session
+  it('expires the open sessions of a customer the per-user idempotency key returned', async () => {
+    await createSession();
+
+    expect(mocks.sessionsList).toHaveBeenCalledWith(expect.objectContaining({ customer: 'cus_created' }));
+  });
+
+  it("skips the lookup for an existing team's brand-new replacement customer", async () => {
+    mocks.customersCreate.mockResolvedValue({ id: 'cus_team_new', metadata: {} });
+
+    await createSession(undefined, 'team-1');
+
+    expect(mocks.sessionsList).not.toHaveBeenCalled();
+  });
+
+  it('expires the new session an hour after it is created', async () => {
+    await createSession('cus_1');
+
+    expect(mocks.sessionsCreate).toHaveBeenCalledWith(expect.objectContaining({ expires_at: NOW.getTime() / 1000 + 60 * 60 }));
+  });
+});
+
+describe('duplicate plan subscription detection', () => {
+  const planSubscription = (id: string, lookupKey: string, status = 'active') => ({
+    id,
+    status,
+    items: { data: [{ price: { id: `price_${lookupKey}`, lookup_key: lookupKey } }] },
+  });
+
+  const sync = (...subscriptions: ReturnType<typeof planSubscription>[]) =>
+    stripeService.saveOrUpdateSubscription({
+      customer: customer({ id: 'cus_1', created: 100, subscriptions }) as never,
+      sendWelcomeEmail: false,
+    });
+
+  const duplicateLogs = () =>
+    mocks.loggerError.mock.calls.filter(([, message]) => typeof message === 'string' && message.includes('review for a refund'));
+
+  it('logs one error naming every current individual subscription when there is more than one', async () => {
+    await sync(planSubscription('sub_monthly', 'PRO_MONTHLY'), planSubscription('sub_annual', 'PRO_ANNUAL', 'past_due'));
+
+    expect(duplicateLogs()).toHaveLength(1);
+    expect(duplicateLogs()[0][0]).toEqual(
+      expect.objectContaining({
+        customerId: 'cus_1',
+        userId: user.id,
+        personalPlanSubscriptionIds: ['sub_monthly', 'sub_annual'],
+        teamPlanSubscriptionIds: [],
+      }),
+    );
+  });
+
+  it('logs when a customer has more than one current team subscription', async () => {
+    const teamCustomer = customer({
+      id: 'cus_team',
+      created: 100,
+      metadata: { teamId: 'team-1', type: 'TEAM' },
+      subscriptions: [planSubscription('sub_team_1', 'TEAM_MONTHLY'), planSubscription('sub_team_2', 'TEAM_ANNUAL')],
+    });
+
+    // Recording the team needs the team db, which is out of scope here; the detector runs before it
+    await stripeService.saveOrUpdateSubscription({ customer: teamCustomer as never, sendWelcomeEmail: false }).catch(() => undefined);
+
+    expect(duplicateLogs()).toHaveLength(1);
+    expect(duplicateLogs()[0][0]).toEqual(
+      expect.objectContaining({ customerId: 'cus_team', teamPlanSubscriptionIds: ['sub_team_1', 'sub_team_2'] }),
+    );
+  });
+
+  it.each([
+    [
+      'one individual and one team subscription',
+      [planSubscription('sub_pro', 'PRO_MONTHLY'), planSubscription('sub_team', 'TEAM_MONTHLY')],
+    ],
+    [
+      'a current subscription next to an ended one',
+      [planSubscription('sub_new', 'PRO_MONTHLY'), planSubscription('sub_old', 'PRO_MONTHLY', 'canceled')],
+    ],
+    ['a single subscription', [planSubscription('sub_pro', 'PRO_MONTHLY')]],
+  ])('stays quiet for %s', async (_, subscriptions) => {
+    await sync(...subscriptions).catch(() => undefined);
+
+    expect(duplicateLogs()).toHaveLength(0);
+  });
+
+  it('only logs, leaving both subscriptions to be recorded as they are', async () => {
+    await sync(planSubscription('sub_monthly', 'PRO_MONTHLY'), planSubscription('sub_annual', 'PRO_ANNUAL'));
+
+    expect(mocks.updateSubscriptionStateForCustomer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subscriptions: [expect.objectContaining({ id: 'sub_monthly' }), expect.objectContaining({ id: 'sub_annual' })],
+      }),
+    );
+  });
+});

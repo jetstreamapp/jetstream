@@ -126,6 +126,30 @@ async function resolveUsableTeamCustomer(customerId: string | undefined): Promis
   return customer;
 }
 
+/**
+ * The buyer's own customer: the one on their billing account, or when they have none yet, one an earlier checkout
+ * created but never completed, so repeat visits stop minting a new customer each time. A deleted customer cannot
+ * open Checkout, so it counts as none and the same search runs: the account keeps pointing at the deleted customer
+ * until a replacement's checkout completes, and without the search every visit after the idempotency key expires
+ * would create another replacement.
+ */
+async function resolvePersonalCustomer(user: {
+  id: string;
+  email: string;
+  billingAccount?: { customerId: string } | null;
+}): Promise<Stripe.Customer | undefined> {
+  const customerId = user.billingAccount?.customerId;
+  if (!customerId) {
+    return (await stripeService.findReusableCustomerForUser({ user })) ?? undefined;
+  }
+  const customer = await stripeService.fetchCustomerWithSubscriptionsById({ customerId });
+  if (customer.deleted) {
+    getLogger().warn({ customerId }, 'Billing account points at a deleted Stripe customer; checkout will use a replacement');
+    return (await stripeService.findReusableCustomerForUser({ user })) ?? undefined;
+  }
+  return customer;
+}
+
 const createCheckoutSessionHandler = createRoute(
   routeDefinition.createCheckoutSession.validators,
   async ({ user: sessionUser, body }, req, res) => {
@@ -141,6 +165,9 @@ const createCheckoutSessionHandler = createRoute(
     const user = await userDbService.findByIdWithSubscriptions(sessionUser.id);
     const team = await teamDbService.findByUserIdWithSubscriptions({ userId: sessionUser.id });
     const teamMember = team?.members.find(({ userId }) => userId === sessionUser.id);
+    // Membership is returned regardless of status, so a deactivated admin would otherwise keep the
+    // ability to open checkout against the team's Stripe customer
+    const isActiveTeamMember = team?.status === TEAM_STATUS_ACTIVE && teamMember?.status === TEAM_MEMBER_STATUS_ACTIVE;
     // The pre-fill is only a convenience, so a failed lookup must never block checkout
     const productionOrgId = await salesforceOrgsDb.findProductionOrganizationId(sessionUser.id).catch((ex) => {
       getLogger().warn(
@@ -154,9 +181,6 @@ const createCheckoutSessionHandler = createRoute(
     let session: Stripe.Response<Stripe.Checkout.Session> | null = null;
 
     if (type === 'TEAM') {
-      // Membership is returned regardless of status, so a deactivated admin would otherwise keep the
-      // ability to open checkout against the team's Stripe customer
-      const isActiveTeamMember = team?.status === TEAM_STATUS_ACTIVE && teamMember?.status === TEAM_MEMBER_STATUS_ACTIVE;
       const hasBillingRole = teamMember?.role === 'ADMIN' || teamMember?.role === 'BILLING';
       if (team && (!isActiveTeamMember || !hasBillingRole)) {
         throw new UserFacingError(`You do not have permission to create a billing session for this team`);
@@ -171,13 +195,21 @@ const createCheckoutSessionHandler = createRoute(
           code: 'SEATS_MANUAL_BILLING',
         });
       }
-      const teamCustomer = team ? await resolveUsableTeamCustomer(team.billingAccount?.customerId) : undefined;
+      // An existing team always bills against its own customer, never the buyer's personal one, so a
+      // team whose billing account is not set up yet gets a dedicated TEAM customer. A brand-new team
+      // starts from the buyer's own customer when they have one.
+      const checkoutCustomer = team
+        ? await resolveUsableTeamCustomer(team.billingAccount?.customerId)
+        : await resolvePersonalCustomer(user);
       // Read from Stripe rather than the database so a checkout that just completed counts before its
       // webhook lands. The billing page never offers checkout in this state, so this catches direct
-      // calls and a stale second tab.
-      if (teamCustomer && stripeService.hasCurrentTeamPlanSubscription(teamCustomer)) {
+      // calls and a stale second tab. A buyer without a team yet is checked too: their own customer can
+      // already carry a Team subscription whose team was never created or that they have since left.
+      if (checkoutCustomer && stripeService.hasCurrentTeamPlanSubscription(checkoutCustomer)) {
         throw new UserFacingError(
-          'Your team already has a subscription. Change seats from the team dashboard, or manage your plan from the billing portal.',
+          team
+            ? 'Your team already has a subscription. Change seats from the team dashboard, or manage your plan from the billing portal.'
+            : 'You already have a Team subscription. Manage your plan from the billing portal, or contact support for help.',
           { code: 'SEATS_ALREADY_SUBSCRIBED' },
         );
       }
@@ -187,11 +219,8 @@ const createCheckoutSessionHandler = createRoute(
       session = await stripeService.createCheckoutSession({
         mode: 'subscription',
         priceId,
-        // An existing team always bills against its own customer, never the buyer's personal one, so a
-        // team whose billing account is not set up yet gets a dedicated TEAM customer. A brand-new team
-        // starts from the buyer's own customer when they have one.
         // Customer will be created if it doesn't exist
-        customerId: team ? teamCustomer?.id : user.billingAccount?.customerId,
+        customerId: checkoutCustomer?.id,
         user,
         type: 'TEAM',
         teamId: team?.id,
@@ -200,11 +229,26 @@ const createCheckoutSessionHandler = createRoute(
         teamName,
       });
     } else {
+      // The billing page disables personal plans for team members; hold the same line here so a direct API call
+      // cannot add a personal subscription alongside the team's
+      if (isActiveTeamMember) {
+        throw new UserFacingError(
+          'You are currently part of a team, contact support if you would like to downgrade to an individual plan.',
+        );
+      }
+      const personalCustomer = await resolvePersonalCustomer(user);
+      // Only the billing page hides the plan picker while a subscription is active, so a direct call, a stale
+      // second tab, or a past due subscription would otherwise start a second one and charge the user twice
+      if (personalCustomer && stripeService.hasCurrentPersonalPlanSubscription(personalCustomer)) {
+        throw new UserFacingError('You already have an individual subscription. Manage your plan from the billing portal.', {
+          code: 'PRO_ALREADY_SUBSCRIBED',
+        });
+      }
       session = await stripeService.createCheckoutSession({
         mode: 'subscription',
         priceId,
         // Customer will be created if it doesn't exist
-        customerId: user.billingAccount?.customerId,
+        customerId: personalCustomer?.id,
         user,
         type: 'USER',
         productionOrgId,

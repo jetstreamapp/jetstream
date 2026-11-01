@@ -31,7 +31,7 @@ const mocks = vi.hoisted(() => ({
     id: 'team_new',
     customerId: billingAccountCustomerId,
   })),
-  upsertBillingAccount: vi.fn(async () => ({})),
+  upsertBillingAccount: vi.fn(async ({ customerId }: { userId: string; customerId: string; canRepoint: boolean }) => ({ customerId })),
   checkoutSessionsRetrieve: vi.fn(),
   // An existing billing account keeps its customer, which is what the team sync compares against
   createBillingAccountIfNotExists: vi.fn(async ({ customerId }: { teamId: string; customerId: string }) => ({ customerId })),
@@ -59,7 +59,14 @@ vi.mock('stripe', () => ({
     entitlements = { activeEntitlements: { list: mocks.activeEntitlementsList } };
     webhooks = { constructEvent: mocks.webhooksConstructEvent };
     prices = { list: mocks.pricesList, retrieve: mocks.pricesRetrieve };
-    checkout = { sessions: { create: mocks.checkoutSessionsCreate, retrieve: mocks.checkoutSessionsRetrieve } };
+    checkout = {
+      sessions: {
+        create: mocks.checkoutSessionsCreate,
+        retrieve: mocks.checkoutSessionsRetrieve,
+        list: vi.fn(async () => ({ data: [] })),
+        expire: vi.fn(),
+      },
+    };
     subscriptionItems = { update: mocks.subscriptionItemsUpdate };
     subscriptionSchedules = {
       create: mocks.schedulesCreate,
@@ -334,7 +341,7 @@ describe('personal -> team plan upgrade', () => {
       const result = await stripeService.saveSubscriptionFromCompletedSession({ sessionId: 'cs_1' });
 
       expect(mocks.upsertTeamWithBillingAccount).toHaveBeenCalledWith(expect.objectContaining({ rebindCustomerForTeamId: undefined }));
-      expect(mocks.upsertBillingAccount).toHaveBeenCalledWith({ userId: 'user_1', customerId: 'cus_1' });
+      expect(mocks.upsertBillingAccount).toHaveBeenCalledWith({ userId: 'user_1', customerId: 'cus_1', canRepoint: true });
       expect(mocks.customersUpdate).toHaveBeenCalledWith('cus_1', { metadata: { userId: 'user_1', teamId: null, type: 'USER' } });
       expect(mocks.updateTeamSubscriptionStateForCustomer).not.toHaveBeenCalled();
       expect(result).toEqual({ userId: 'user_1', teamId: null, type: 'USER' });
@@ -456,6 +463,41 @@ describe('hasCurrentTeamPlanSubscription', () => {
 
   it('returns false for a customer with no subscriptions', () => {
     expect(stripeService.hasCurrentTeamPlanSubscription(customerWithSubscriptions())).toBe(false);
+  });
+});
+
+describe('hasCurrentPersonalPlanSubscription', () => {
+  const customerWithSubscriptions = (...subscriptions: ReturnType<typeof subscriptionWithPrice>[]) =>
+    ({ ...customerWithPlan('PRO_MONTHLY'), subscriptions: { object: 'list', data: subscriptions } }) as unknown as LiveStripeCustomer;
+
+  it.each(['active', 'trialing', 'incomplete', 'past_due', 'unpaid', 'paused'])(
+    'counts a %s individual subscription as current so a second checkout is refused',
+    (status) => {
+      const customer = customerWithSubscriptions({ ...subscriptionWithPrice('PRO_ANNUAL'), status });
+
+      expect(stripeService.hasCurrentPersonalPlanSubscription(customer)).toBe(true);
+    },
+  );
+
+  it.each(['canceled', 'incomplete_expired'])('lets a user whose subscription is %s subscribe again', (status) => {
+    const customer = customerWithSubscriptions({ ...subscriptionWithPrice('PRO_MONTHLY'), status });
+
+    expect(stripeService.hasCurrentPersonalPlanSubscription(customer)).toBe(false);
+  });
+
+  it('counts a legacy price without a lookup key as an individual plan', () => {
+    const subscription = subscriptionWithPrice('LEGACY');
+    subscription.items.data[0].price.lookup_key = null as unknown as string;
+
+    expect(stripeService.hasCurrentPersonalPlanSubscription(customerWithSubscriptions(subscription))).toBe(true);
+  });
+
+  it('ignores team plan subscriptions', () => {
+    expect(stripeService.hasCurrentPersonalPlanSubscription(customerWithSubscriptions(subscriptionWithPrice('TEAM_MONTHLY')))).toBe(false);
+  });
+
+  it('returns false for a customer with no subscriptions', () => {
+    expect(stripeService.hasCurrentPersonalPlanSubscription(customerWithSubscriptions())).toBe(false);
   });
 });
 
