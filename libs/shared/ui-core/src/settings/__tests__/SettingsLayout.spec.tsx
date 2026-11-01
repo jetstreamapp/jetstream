@@ -117,6 +117,9 @@ describe('SettingsLayout search', () => {
               <SettingsGroup>
                 <SettingsRow id="theme" title="Theme" description="Choose light or dark." keywords={['appearance']} />
                 <SettingsRow id="auto-login" title="Log in automatically" />
+                <SettingsRow id="updates" title="Updates" details={<p>Managed by your organization</p>}>
+                  <button>Check Now</button>
+                </SettingsRow>
                 <SettingsRow
                   id="download"
                   title="Download location"
@@ -135,7 +138,9 @@ describe('SettingsLayout search', () => {
               </SettingsGroup>
             </SettingsSection>
             <SettingsSection id="privacy" title="Privacy" keywords={['cookies']}>
-              <p>Custom content</p>
+              <SettingsGroup searchText={[<button key="export">Export Data</button>]}>
+                <p>Custom content</p>
+              </SettingsGroup>
             </SettingsSection>
           </SettingsLayout>
         </div>
@@ -211,6 +216,21 @@ describe('SettingsLayout search', () => {
     // Highlighting works within each piece of text, so a phrase that spans elements matches without being marked
     search('asking');
     expect(document.querySelector('#download-description strong mark')?.textContent).toBe('asking');
+  });
+
+  it('matches the text of row details and controls, and extra group text, without highlighting it', () => {
+    renderSearchLayout();
+    search('organization');
+    expect(getRowTitle('updates').closest('[hidden]')).toBeNull();
+    expect(getRowTitle('theme').closest('[hidden]')).not.toBeNull();
+
+    search('check now');
+    expect(getRowTitle('updates').closest('[hidden]')).toBeNull();
+    expect(document.querySelectorAll('mark')).toHaveLength(0);
+
+    search('export');
+    expect(navItems()).toEqual(['Privacy']);
+    expect(isShown('Custom content')).toBe(true);
   });
 
   it('highlights the matching words', () => {

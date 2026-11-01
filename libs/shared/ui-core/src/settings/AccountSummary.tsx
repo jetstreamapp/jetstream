@@ -50,7 +50,12 @@ export const AccountSummary = ({ userProfile, actions }: AccountSummaryProps) =>
   const activeTeam = teamMembership?.status === TeamMemberStatusSchema.enum.ACTIVE ? teamMembership : null;
 
   return (
-    <SettingsGroup testId="account-summary" keywords={['profile', 'team', 'email']}>
+    // The actions' labels are searched too, but a router link's text cannot be read without rendering it - hence the keywords
+    <SettingsGroup
+      testId="account-summary"
+      searchText={[name, email, actions]}
+      keywords={['email', 'edit profile', 'manage account', 'team dashboard']}
+    >
       <div css={summaryCss}>
         <div css={identityCss}>
           <span className="slds-avatar slds-avatar_circle slds-avatar_large">

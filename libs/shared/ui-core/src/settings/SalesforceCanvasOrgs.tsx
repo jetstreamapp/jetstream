@@ -21,6 +21,11 @@ import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { OrgsCombobox } from '../orgs/OrgsCombobox';
+import { useSettingsSearch } from './layout/settings-search';
+
+const CARD_TITLE = 'Salesforce Managed Package Authorized Orgs';
+const CARD_DESCRIPTION =
+  'Authorize your production org id and My Domain so it can load the Jetstream Managed Package. All sandboxes that share the same My Domain are covered automatically.';
 
 /**
  * Best-effort parse of the "My Domain" base from a connected org's instance URL, so we can prefill the
@@ -53,6 +58,8 @@ interface SalesforceCanvasOrgsProps {
  * data functions are selected from `scope`.
  */
 export function SalesforceCanvasOrgs({ scope, canManage = true }: SalesforceCanvasOrgsProps) {
+  // Lets the settings page search find this card by its own wording - elsewhere, such as the Team Dashboard, there is no search
+  const { highlight } = useSettingsSearch({ text: [CARD_TITLE, CARD_DESCRIPTION, 'Authorize Org'] });
   const teamId = scope.type === 'team' ? scope.teamId : null;
   const [loading, setLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
@@ -110,7 +117,7 @@ export function SalesforceCanvasOrgs({ scope, canManage = true }: SalesforceCanv
 
   return (
     <Card
-      title="Salesforce Managed Package Authorized Orgs"
+      title={<span className="slds-truncate">{highlight(CARD_TITLE)}</span>}
       className="slds-m-bottom_medium slds-card_boundary"
       icon={{ type: 'standard', icon: 'connected_apps' }}
       actions={
@@ -135,10 +142,7 @@ export function SalesforceCanvasOrgs({ scope, canManage = true }: SalesforceCanv
       )}
       {!loading && !loadingError && (
         <>
-          <p className="slds-text-color_weak slds-m-bottom_small">
-            Authorize your production org id and My Domain so it can load the Jetstream Managed Package. All sandboxes that share the same
-            My Domain are covered automatically.
-          </p>
+          <p className="slds-text-color_weak slds-m-bottom_small">{highlight(CARD_DESCRIPTION)}</p>
           {orgs.length === 0 ? (
             <p className="slds-text-color_weak">No orgs are authorized yet.</p>
           ) : (

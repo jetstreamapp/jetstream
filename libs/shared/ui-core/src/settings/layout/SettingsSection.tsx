@@ -156,14 +156,25 @@ export interface SettingsGroupProps {
   actions?: ReactNode;
   variant?: 'default' | 'danger';
   testId?: string;
+  /** Content shown in the group outside of its rows that the settings search should also match (it is not highlighted) */
+  searchText?: ReactNode[];
   /** Words that find this group in the settings search without being shown */
   keywords?: string[];
   children: ReactNode;
 }
 
 /** Bordered card of `SettingsRow`s, with an optional header */
-export const SettingsGroup = ({ title, description, actions, variant = 'default', testId, keywords, children }: SettingsGroupProps) => {
-  const { isVisible, scope, highlight } = useSettingsSearch({ text: [title, description], keywords });
+export const SettingsGroup = ({
+  title,
+  description,
+  actions,
+  variant = 'default',
+  testId,
+  searchText = [],
+  keywords,
+  children,
+}: SettingsGroupProps) => {
+  const { isVisible, scope, highlight } = useSettingsSearch({ text: [title, description, ...searchText], keywords });
   return (
     <div css={[groupCss, variant === 'danger' && dangerGroupCss]} data-testid={testId} hidden={!isVisible}>
       {(title || actions) && (
@@ -204,7 +215,8 @@ export interface SettingsRowProps {
 /** One setting: title and description on the left, its controls on the right */
 export const SettingsRow = ({ id, title, labelFor, description, details, stacked = false, keywords, children }: SettingsRowProps) => {
   const { titleId, descriptionId } = getSettingsRowIds(id);
-  const { isVisible, highlight } = useSettingsSearch({ text: [title, description], keywords });
+  // Details and control labels count towards a match but are left unhighlighted, so a search never re-renders the controls
+  const { isVisible, highlight } = useSettingsSearch({ text: [title, description, details, children], keywords });
   return (
     <div css={[rowCss, stacked && stackedRowCss]} hidden={!isVisible}>
       <div css={rowTextCss}>
