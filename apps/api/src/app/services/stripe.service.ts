@@ -304,7 +304,8 @@ function getCustomerReuseRank(customer: Stripe.Customer): number {
  * each minted another one.
  *
  * Customers carrying a `teamId` are never reused: a team's customer also carries its purchaser's `userId`, and
- * neither a personal plan nor a new team may land on it. Duplicates resolve deterministically (see
+ * neither a personal plan nor a new team may land on it. A customer bound to a team billing account is skipped too,
+ * since admin provisioning binds the account before it writes `teamId` to Stripe and that write can fail. Duplicates resolve deterministically (see
  * `getCustomerReuseRank`, then the oldest, then the id), because Stripe search does not guarantee an order.
  *
  * Only the email is refreshed on the customer that is reused: checkout never corrects it once a customer is
@@ -332,8 +333,12 @@ export async function findReusableCustomerForUser({ user }: { user: Pick<UserPro
     );
   }
 
-  const customers = searchResult.data
-    .filter(({ metadata }) => !metadata.teamId)
+  const candidates = searchResult.data.filter(({ metadata }) => !metadata.teamId);
+  const teamBillingCustomerIds = candidates.length
+    ? await teamDbService.findTeamBillingCustomerIds(candidates.map(({ id }) => id))
+    : new Set<string>();
+  const customers = candidates
+    .filter(({ id }) => !teamBillingCustomerIds.has(id))
     .sort(
       (left, right) =>
         getCustomerReuseRank(left) - getCustomerReuseRank(right) || left.created - right.created || left.id.localeCompare(right.id),

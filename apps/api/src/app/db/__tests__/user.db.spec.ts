@@ -352,7 +352,10 @@ describe('upsertBillingAccount', () => {
   });
 
   it('reports the customer of an account a concurrent event created first when this one may not replace it', async () => {
-    prismaMock.billingAccount.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({ customerId: 'cus_other', subscriptions: [] });
+    prismaMock.billingAccount.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ userId: USER_ID })
+      .mockResolvedValueOnce({ customerId: 'cus_other', subscriptions: [] });
     prismaMock.billingAccount.create.mockRejectedValue(uniqueConstraintError());
 
     await expect(upsertBillingAccount({ userId: USER_ID, customerId: 'cus_new', canRepoint: false })).resolves.toEqual({
@@ -363,7 +366,10 @@ describe('upsertBillingAccount', () => {
 
   // An unpaid customer's event can win the create; the paid customer's event must still take the account
   it('moves an account a concurrent event created for an unpaid customer to the paid one', async () => {
-    prismaMock.billingAccount.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({ customerId: 'cus_unpaid', subscriptions: [] });
+    prismaMock.billingAccount.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ userId: USER_ID })
+      .mockResolvedValueOnce({ customerId: 'cus_unpaid', subscriptions: [] });
     prismaMock.billingAccount.create.mockRejectedValue(uniqueConstraintError());
 
     await expect(upsertBillingAccount({ userId: USER_ID, customerId: 'cus_paid', canRepoint: true })).resolves.toEqual({
@@ -372,6 +378,30 @@ describe('upsertBillingAccount', () => {
     expect(prismaMock.billingAccount.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ customerId: 'cus_unpaid' }), data: { customerId: 'cus_paid' } }),
     );
+  });
+
+  it('flags the double charge when another paid customer claims the account between the read and the write', async () => {
+    existingAccount({ customerId: 'cus_unpaid' });
+    prismaMock.billingAccount.updateMany.mockResolvedValueOnce({ count: 0 });
+    prismaMock.billingAccount.findUniqueOrThrow.mockResolvedValue({ customerId: 'cus_other_paid' });
+
+    await expect(upsertBillingAccount({ userId: USER_ID, customerId: 'cus_new', canRepoint: true })).resolves.toEqual({
+      customerId: 'cus_other_paid',
+    });
+    expect(loggerMock.error).toHaveBeenCalledWith(
+      expect.objectContaining({ customerId: 'cus_new', billingAccountCustomerId: 'cus_other_paid' }),
+      expect.stringContaining('review for a refund'),
+    );
+  });
+
+  // `customerId` is unique too, so the same error means another user's account holds this customer
+  it('rethrows a unique violation when no account exists for the user instead of retrying forever', async () => {
+    prismaMock.billingAccount.create.mockRejectedValue(uniqueConstraintError());
+
+    await expect(upsertBillingAccount({ userId: USER_ID, customerId: 'cus_taken', canRepoint: true })).rejects.toMatchObject({
+      code: 'P2002',
+    });
+    expect(prismaMock.billingAccount.findUnique).toHaveBeenCalledTimes(2);
   });
 
   it('rethrows any other database error', async () => {

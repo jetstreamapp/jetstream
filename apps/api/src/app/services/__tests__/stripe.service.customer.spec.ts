@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   sessionsList: vi.fn(),
   sessionsExpire: vi.fn(),
   upsertBillingAccount: vi.fn(),
+  findTeamBillingCustomerIds: vi.fn(async () => new Set<string>()),
   updateSubscriptionStateForCustomer: vi.fn(async () => undefined),
   updateUserEntitlements: vi.fn(async () => undefined),
   loggerWarn: vi.fn(),
@@ -49,7 +50,7 @@ vi.mock('../../db/subscription.db', () => ({
   updateSubscriptionStateForCustomer: mocks.updateSubscriptionStateForCustomer,
   updateUserEntitlements: mocks.updateUserEntitlements,
 }));
-vi.mock('../../db/team.db', () => ({}));
+vi.mock('../../db/team.db', () => ({ findTeamBillingCustomerIds: mocks.findTeamBillingCustomerIds }));
 vi.mock('../../db/user.db', () => ({
   upsertBillingAccount: mocks.upsertBillingAccount,
   findById: vi.fn(async () => ({ id: 'user-1', email: 'user@example.com' })),
@@ -154,6 +155,15 @@ describe('findReusableCustomerForUser', () => {
     searchReturns(teamCustomer, customer({ id: 'cus_personal', created: 200 }));
 
     await expect(stripeService.findReusableCustomerForUser({ user })).resolves.toEqual(expect.objectContaining({ id: 'cus_personal' }));
+  });
+
+  // Admin provisioning binds the team billing account before writing `teamId` to Stripe, and that write can fail
+  it('never reuses a customer bound to a team billing account even without a teamId in its metadata', async () => {
+    searchReturns(customer({ id: 'cus_provisioned', created: 50 }), customer({ id: 'cus_personal', created: 200 }));
+    mocks.findTeamBillingCustomerIds.mockResolvedValueOnce(new Set(['cus_provisioned']));
+
+    await expect(stripeService.findReusableCustomerForUser({ user })).resolves.toEqual(expect.objectContaining({ id: 'cus_personal' }));
+    expect(mocks.findTeamBillingCustomerIds).toHaveBeenCalledWith(['cus_provisioned', 'cus_personal']);
   });
 
   it('returns null rather than blocking checkout when the search fails', async () => {

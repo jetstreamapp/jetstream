@@ -417,8 +417,9 @@ export async function upsertBillingAccount({
     try {
       return await prisma.billingAccount.create({ data: { customerId, userId }, select: { customerId: true } });
     } catch (ex) {
-      // A concurrent event for the same user created it first, possibly for an unpaid customer this one may replace
-      if (isUniqueConstraintError(ex)) {
+      // A concurrent event for the same user created it first, possibly for an unpaid customer this one may replace.
+      // The same error comes from another user's account already holding this customer, which must fail, not retry.
+      if (isUniqueConstraintError(ex) && (await prisma.billingAccount.findUnique({ where: { userId }, select: { userId: true } }))) {
         return await upsertBillingAccount({ userId, customerId, canRepoint });
       }
       throw ex;
@@ -463,6 +464,13 @@ export async function upsertBillingAccount({
   if (count === 0) {
     const currentAccount = await prisma.billingAccount.findUniqueOrThrow({ where: { userId }, select: { customerId: true } });
     if (currentAccount.customerId !== billingAccount.customerId) {
+      // Only a paid customer can move the account, so losing to a different one means both were paid for
+      if (currentAccount.customerId !== customerId) {
+        logger.error(
+          { userId, customerId, billingAccountCustomerId: currentAccount.customerId },
+          '[BILLING]: A user is paying on two Stripe customers, another claimed the billing account first, review for a refund',
+        );
+      }
       return currentAccount;
     }
     // Still on the same customer, so a payment was recorded on it meanwhile; re-running reports the double charge

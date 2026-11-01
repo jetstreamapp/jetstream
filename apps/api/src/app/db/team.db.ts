@@ -1043,6 +1043,15 @@ export async function createBillingAccountIfNotExists({ teamId, customerId }: { 
   });
 }
 
+/** The subset of `customerIds` that bill a team, whatever the customer's Stripe metadata says */
+export async function findTeamBillingCustomerIds(customerIds: string[]): Promise<Set<string>> {
+  const billingAccounts = await prisma.teamBillingAccount.findMany({
+    where: { customerId: { in: customerIds } },
+    select: { customerId: true },
+  });
+  return new Set(billingAccounts.map(({ customerId }) => customerId));
+}
+
 export async function getTeamInvitations({ teamId }: { teamId: string }) {
   return await prisma.teamMemberInvitation
     .findMany({
