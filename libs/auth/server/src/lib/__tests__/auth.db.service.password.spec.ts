@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { removePasswordFromUser, verifyPasswordForUserId } from '../auth.db.service';
+import { removeIdentityFromUser, removePasswordFromUser, verifyPasswordForUserId } from '../auth.db.service';
 import { AccountLocked, InvalidCredentials, PasswordResetRequired } from '../auth.errors';
 
 /**
@@ -21,7 +21,10 @@ const prismaMock = vi.hoisted(() => ({
     update: vi.fn(),
   },
   authFactors: { findFirstOrThrow: vi.fn() },
+  authIdentity: { delete: vi.fn() },
   emailChangeRequest: { updateMany: vi.fn() },
+  sessions: { findMany: vi.fn(), deleteMany: vi.fn() },
+  webExtensionToken: { findMany: vi.fn(), deleteMany: vi.fn() },
   $queryRaw: vi.fn(),
   // recordFailedLoginAttempt wraps its read-modify-write; run the callback against the same mock.
   $transaction: vi.fn(async (callback: (tx: unknown) => unknown) => callback(prismaMock)),
@@ -243,5 +246,40 @@ describe('removePasswordFromUser', () => {
 
     expect(result).toEqual(AUTHENTICATED_USER);
     expect(prismaMock.user.update).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('removeIdentityFromUser', () => {
+  beforeEach(() => {
+    prismaMock.sessions.findMany.mockResolvedValue([]);
+    prismaMock.webExtensionToken.findMany.mockResolvedValue([]);
+  });
+
+  it('should reject removing the last identity when no password is set', async () => {
+    prismaMock.user.findFirstOrThrow.mockResolvedValueOnce({
+      hasPasswordSet: false,
+      identities: [{ provider: 'google', providerAccountId: 'google-a' }],
+    });
+
+    await expect(removeIdentityFromUser(USER_A, 'google', 'google-a')).rejects.toThrow(
+      'Cannot remove the last identity without a password set',
+    );
+    expect(prismaMock.authIdentity.delete).not.toHaveBeenCalled();
+  });
+
+  it('should take the user row lock before checking the remaining login methods', async () => {
+    prismaMock.user.findFirstOrThrow.mockResolvedValueOnce({
+      hasPasswordSet: true,
+      identities: [{ provider: 'google', providerAccountId: 'google-a' }],
+    });
+
+    await removeIdentityFromUser(USER_A, 'google', 'google-a');
+
+    // Without the lock held first, a concurrent password removal can pass its own check and leave no login method
+    expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(prismaMock.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(prismaMock.user.findFirstOrThrow.mock.invocationCallOrder[0]);
+    expect(prismaMock.authIdentity.delete).toHaveBeenCalledWith({
+      where: { userId: USER_A, provider_providerAccountId: { provider: 'google', providerAccountId: 'google-a' } },
+    });
   });
 });
