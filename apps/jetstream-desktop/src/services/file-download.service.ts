@@ -20,14 +20,23 @@ function emitProgress(sender: Maybe<WebContents>, progress: DownloadZipProgress)
 /**
  * Write a download to disk. If the download fails part way, the partial file is removed so a truncated file
  * is never left behind looking like a complete download.
+ * The file is only removed if it was actually opened - if opening fails (e.g. an existing read-only file),
+ * nothing was written and the existing file must be left alone.
  */
 async function writeDownloadToFile(source: Readable, filePath: string) {
+  const fileStream = createWriteStream(filePath);
+  let isFileOpened = false;
+  fileStream.once('open', () => {
+    isFileOpened = true;
+  });
   try {
-    await pipeline(source, createWriteStream(filePath));
+    await pipeline(source, fileStream);
   } catch (ex) {
-    await rm(filePath, { force: true }).catch((removeError) => {
-      logger.warn('Unable to remove partial download', getErrorMessageAndStackObj(removeError));
-    });
+    if (isFileOpened) {
+      await rm(filePath, { force: true }).catch((removeError) => {
+        logger.warn('Unable to remove partial download', getErrorMessageAndStackObj(removeError));
+      });
+    }
     throw ex;
   }
 }

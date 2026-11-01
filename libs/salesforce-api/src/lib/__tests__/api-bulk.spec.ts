@@ -560,6 +560,19 @@ describe('ApiBulk.downloadQueryResults', () => {
     expect(csv).toBe('"Id"\n"001A"\n"001B"\n');
   });
 
+  it('adds a line break between files when the next header arrives in a chunk of its own', async () => {
+    const apiBulk = createApiBulk();
+    mockResultFiles(apiBulk, {
+      result1: streamFromChunks(['"Id"\n"001A"']),
+      result2: streamFromChunks(['"Id"\n']),
+      result3: streamFromChunks(['"Id"\n', '"001B"\n']),
+    });
+
+    const csv = await new Response(await apiBulk.downloadQueryResults(JOB_ID, BATCH_ID)).text();
+
+    expect(csv).toBe('"Id"\n"001A"\n"001B"\n');
+  });
+
   it('only opens the next result file once the previous one is consumed', async () => {
     const apiBulk = createApiBulk();
     const downloadRecordsSpy = mockResultFiles(apiBulk, {

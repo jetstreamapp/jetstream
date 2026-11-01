@@ -80,6 +80,30 @@ describe('file-download.service', () => {
     expect(existsSync(join(mocks.downloadDir, 'files.zip'))).toBe(false);
   });
 
+  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
+    'does not delete an existing file that could not be opened for writing',
+    async () => {
+      const filePath = join(mocks.downloadDir, 'results.csv');
+      await fs.writeFile(filePath, 'existing');
+      await fs.chmod(filePath, 0o444);
+      const jetstreamConn = {
+        bulk: { downloadRecords: vi.fn(async () => new Response('Id\n001A\n').body) },
+      } as unknown as ApiConnection;
+
+      const result = await downloadBulkApiFileAndSaveToDisk({
+        jetstreamConn,
+        fileName: 'results.csv',
+        jobId: 'job-1',
+        batchId: 'batch-1',
+        isQuery: false,
+        type: 'result',
+      });
+
+      expect(result.success).toBe(false);
+      expect(await fs.readFile(filePath, 'utf8')).toBe('existing');
+    },
+  );
+
   it('keeps the file when the download succeeds', async () => {
     const jetstreamConn = {
       bulk: { downloadRecords: vi.fn(async () => new Response('Id\n001A\n').body) },

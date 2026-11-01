@@ -17,6 +17,7 @@ export function concatenateCsvStreams(sources: CsvStreamSource[]): ReadableStrea
   let currentReader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   let isCurrentSourceHeaderPending = false;
   let lastEmittedByte: number | undefined;
+  let isRowSeparatorPending = false;
   let isCancelled = false;
 
   return new ReadableStream<Uint8Array>({
@@ -53,13 +54,16 @@ export function concatenateCsvStreams(sources: CsvStreamSource[]): ReadableStrea
           }
           isCurrentSourceHeaderPending = false;
           chunk = chunk.subarray(newlineIndex + 1);
-          // Guard against a previous source that did not end with a newline, which would merge two rows
-          if (chunk.byteLength > 0 && lastEmittedByte !== undefined && lastEmittedByte !== NEWLINE_BYTE) {
-            controller.enqueue(new Uint8Array([NEWLINE_BYTE]));
-          }
+          // Guard against a previous source that did not end with a newline, which would merge two rows.
+          // Deferred until data is actually emitted, since the header may arrive in a chunk of its own.
+          isRowSeparatorPending = lastEmittedByte !== undefined && lastEmittedByte !== NEWLINE_BYTE;
         }
 
         if (chunk.byteLength > 0 && !isCancelled) {
+          if (isRowSeparatorPending) {
+            isRowSeparatorPending = false;
+            controller.enqueue(new Uint8Array([NEWLINE_BYTE]));
+          }
           lastEmittedByte = chunk[chunk.byteLength - 1];
           controller.enqueue(chunk);
           return;
