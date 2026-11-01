@@ -1,7 +1,7 @@
 import { LoginConfigurationWithCallbacks } from '@jetstream/auth/types';
 import { saveOidcConfig, saveSamlConfig } from '@jetstream/shared/data';
 import { getErrorMessage, nullifyEmptyStrings } from '@jetstream/shared/utils';
-import { fireToast, Modal, Radio, RadioGroup, ScopedNotification, Spinner, ViewDocsLink } from '@jetstream/ui';
+import { ariaDisabledButtonProps, fireToast, Modal, Radio, RadioGroup, ScopedNotification, Spinner, ViewDocsLink } from '@jetstream/ui';
 import { useState } from 'react';
 import { ConfigureSsoOidcForm, ConfigureSsoOidcFormProps } from './ConfigureSsoOidcForm';
 import { ConfigureSsoSamlForm, ConfigureSsoSamlFormProps } from './ConfigureSsoSamlForm';
@@ -24,6 +24,10 @@ export function ConfigureSsoModal({ teamId, existingSsoConfig, onClose }: Config
       | { type: 'OIDC'; data: Parameters<ConfigureSsoOidcFormProps['onSave']>[0] }
       | { type: 'SAML'; data: Parameters<ConfigureSsoSamlFormProps['onSave']>[0] },
   ) {
+    // Enter in a field submits the form without going through the aria-disabled button's guarded click
+    if (loading) {
+      return;
+    }
     try {
       setLoading(true);
       setTestResult(null);
@@ -66,7 +70,13 @@ export function ConfigureSsoModal({ teamId, existingSsoConfig, onClose }: Config
           <button className="slds-button slds-button_neutral" disabled={loading} onClick={() => onClose()}>
             Cancel
           </button>
-          <button form="sso-form" className="slds-button slds-button_brand slds-is-relative" disabled={loading} type="submit">
+          {/* aria-disabled keeps focus on the button while the submit disables it; the guarded click blocks re-submits */}
+          <button
+            form="sso-form"
+            className="slds-button slds-button_brand slds-is-relative"
+            type="submit"
+            {...ariaDisabledButtonProps(loading, () => {})}
+          >
             {loading && <Spinner size="x-small" />}
             Save Configuration
           </button>

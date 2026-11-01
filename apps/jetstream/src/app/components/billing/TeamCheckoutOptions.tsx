@@ -81,6 +81,7 @@ export function TeamCheckoutOptions({
               errorMessage={teamNameError}
               errorMessageId="team-name-error"
               helpText="You can change this later from the team dashboard."
+              helpTextId="team-name-help"
             >
               <input
                 id="team-name"
@@ -92,7 +93,7 @@ export function TeamCheckoutOptions({
                 maxLength={255}
                 autoComplete="organization"
                 aria-invalid={!!teamNameError}
-                aria-describedby={teamNameError ? 'team-name-error' : undefined}
+                aria-describedby={teamNameError ? 'team-name-help team-name-error' : 'team-name-help'}
                 onChange={(event) => onTeamNameChange(event.target.value)}
               />
             </Input>
@@ -122,10 +123,11 @@ export function TeamCheckoutOptions({
             )}
           </>
         )}
-        <p className="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
-          The final amount is shown at checkout. You can add or remove seats later from the Team Dashboard.
-        </p>
       </div>
+      {/* Outside the live region so the disclaimer is not re-read on every seat change */}
+      <p className="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+        The final amount is shown at checkout. You can add or remove seats later from the Team Dashboard.
+      </p>
     </div>
   );
 }
