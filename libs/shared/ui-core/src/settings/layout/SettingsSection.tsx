@@ -174,7 +174,8 @@ export const SettingsGroup = ({
   keywords,
   children,
 }: SettingsGroupProps) => {
-  const { isVisible, scope, highlight } = useSettingsSearch({ text: [title, description, ...searchText], keywords });
+  // Header actions count towards a match but are left unhighlighted, like a row's controls
+  const { isVisible, scope, highlight } = useSettingsSearch({ text: [title, description, actions, ...searchText], keywords });
   return (
     <div css={[groupCss, variant === 'danger' && dangerGroupCss]} data-testid={testId} hidden={!isVisible}>
       {(title || actions) && (

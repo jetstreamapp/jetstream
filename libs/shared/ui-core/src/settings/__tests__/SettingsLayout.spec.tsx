@@ -132,7 +132,7 @@ describe('SettingsLayout search', () => {
               </SettingsGroup>
             </SettingsSection>
             <SettingsSection id="query" title="Query">
-              <SettingsGroup title="SOQL formatting">
+              <SettingsGroup title="SOQL formatting" actions={<button>Reset to Defaults</button>}>
                 <SettingsRow id="indent" title="Indent size" description="Number of tabs." />
                 <SettingsRow id="line-length" title="Max characters per line" />
               </SettingsGroup>
@@ -227,6 +227,10 @@ describe('SettingsLayout search', () => {
     search('check now');
     expect(getRowTitle('updates').closest('[hidden]')).toBeNull();
     expect(document.querySelectorAll('mark')).toHaveLength(0);
+
+    search('reset defaults');
+    expect(getRowTitle('indent').closest('[hidden]')).toBeNull();
+    expect(navItems()).toEqual(['Query']);
 
     search('export');
     expect(navItems()).toEqual(['Privacy']);
