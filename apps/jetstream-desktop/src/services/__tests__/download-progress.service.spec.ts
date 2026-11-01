@@ -35,7 +35,7 @@ describe('download-progress.service', () => {
     vi.clearAllMocks();
   });
 
-  describe.each<NodeJS.Platform>(['win32', 'darwin'])('on %s', (platform) => {
+  describe.each<NodeJS.Platform>(['win32', 'darwin', 'linux'])('on %s', (platform) => {
     it('shows the percent received and clears the bar when the download finishes', () => {
       const window = createFakeWindow();
       const download = createTracker(platform).start(window, 1000);
@@ -167,11 +167,13 @@ describe('download-progress.service', () => {
         [-1, undefined],
       ]);
     });
+  });
 
-    it('combines downloads from every window because there is one Dock icon', () => {
+  describe.each<NodeJS.Platform>(['darwin', 'linux'])('app-wide bar on %s', (platform) => {
+    it('combines downloads from every window because there is one app icon', () => {
       const firstWindow = createFakeWindow();
       const secondWindow = createFakeWindow();
-      const tracker = createTracker('darwin');
+      const tracker = createTracker(platform);
       const firstDownload = tracker.start(firstWindow, 100);
       const secondDownload = tracker.start(secondWindow, 100);
 
@@ -184,10 +186,10 @@ describe('download-progress.service', () => {
       expect(secondWindow.setProgressBar).toHaveBeenLastCalledWith(-1, undefined);
     });
 
-    it('clears the Dock bar through another window when the downloading window was closed', () => {
+    it('clears the bar through another window when the downloading window was closed', () => {
       const closedWindow = createFakeWindow();
       const fallbackWindow = createFakeWindow();
-      const download = createTracker('darwin', fallbackWindow).start(closedWindow, 100);
+      const download = createTracker(platform, fallbackWindow).start(closedWindow, 100);
       closedWindow.destroy();
 
       download.finish();
@@ -195,6 +197,52 @@ describe('download-progress.service', () => {
       expect(getProgressValues(closedWindow)).toEqual([0]);
       expect(getProgressValues(fallbackWindow)).toEqual([-1]);
     });
+
+    it('clears the bar through the next window when a download finished while no window was open', () => {
+      const closedWindow = createFakeWindow();
+      const tracker = createTracker(platform);
+      const download = tracker.start(closedWindow, 100);
+      download.update(50);
+      closedWindow.destroy();
+      download.finish();
+
+      const reopenedWindow = createFakeWindow();
+      tracker.renderPending(reopenedWindow);
+      tracker.renderPending(reopenedWindow);
+
+      expect(getProgressValues(closedWindow)).toEqual([0, 0.5]);
+      expect(getProgressValues(reopenedWindow)).toEqual([-1]);
+    });
+
+    it('shows the current progress through the next window when it changed while no window was open', () => {
+      const closedWindow = createFakeWindow();
+      const reopenedWindow = createFakeWindow();
+      let openWindow: ProgressBarWindow | null = null;
+      const tracker = createDownloadProgressTracker({ platform, getFallbackWindow: () => openWindow });
+      const download = tracker.start(closedWindow, 100);
+      closedWindow.destroy();
+      download.update(75);
+
+      openWindow = reopenedWindow;
+      tracker.renderPending(reopenedWindow);
+      download.finish();
+
+      expect(getProgressValues(reopenedWindow)).toEqual([0.75, -1]);
+    });
+  });
+
+  it("does not replay one window's taskbar progress on another window on Windows", () => {
+    const closedWindow = createFakeWindow();
+    const tracker = createTracker('win32');
+    const download = tracker.start(closedWindow, 100);
+    closedWindow.destroy();
+    download.update(50);
+    download.finish();
+
+    const newWindow = createFakeWindow();
+    tracker.renderPending(newWindow);
+
+    expect(newWindow.setProgressBar).not.toHaveBeenCalled();
   });
 
   describe('startDownloadProgress', () => {

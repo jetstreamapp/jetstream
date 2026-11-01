@@ -13,7 +13,7 @@ import { getDesktopRequestHeaders } from '../utils/request-headers.utils';
 import { initApiConnection } from '../utils/route.utils';
 import { resolveStaticFilePath } from '../utils/static-path.utils';
 import { getCspPolicy, markDownloadCompleted, toSafeDownloadFileName } from '../utils/utils';
-import { startDownloadProgress } from './download-progress.service';
+import { DownloadProgress, startDownloadProgress } from './download-progress.service';
 import { getAppData, getUserPreferences } from './persistence.service';
 
 const cspPolicy = getCspPolicy();
@@ -143,13 +143,21 @@ export function registerWebRequestHandlers() {
 export function registerDownloadHandler() {
   session.defaultSession.on('will-download', (_, item, webContents) => {
     let claimedDownloadPath: string | null = null;
-    // getTotalBytes() is 0 when the size is unknown, which shows as indeterminate
-    const iconProgress = startDownloadProgress(webContents, item.getTotalBytes());
+    // Chromium starts downloading while its save dialog is still open, so the icon only shows the download once a
+    // destination is set - the auto-save path below, or the one accepted in the dialog (getSavePath() is '' until then)
+    let iconProgress: DownloadProgress | null = null;
+    const startIconProgressOnceSaving = () => {
+      if (!iconProgress && item.getSavePath()) {
+        // getTotalBytes() is 0 when the size is unknown, which shows as indeterminate
+        iconProgress = startDownloadProgress(webContents, item.getTotalBytes());
+      }
+    };
     item.on('updated', () => {
-      iconProgress.update(item.getReceivedBytes(), item.getTotalBytes());
+      startIconProgressOnceSaving();
+      iconProgress?.update(item.getReceivedBytes(), item.getTotalBytes());
     });
     item.once('done', (_, state) => {
-      iconProgress.finish();
+      iconProgress?.finish();
       if (claimedDownloadPath) {
         releaseDownloadPath(claimedDownloadPath);
       }
@@ -181,6 +189,7 @@ export function registerDownloadHandler() {
       return;
     }
     item.setSavePath(claimedDownloadPath);
+    startIconProgressOnceSaving();
   });
 }
 
