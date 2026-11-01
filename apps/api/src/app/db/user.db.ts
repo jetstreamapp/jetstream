@@ -417,9 +417,9 @@ export async function upsertBillingAccount({
     try {
       return await prisma.billingAccount.create({ data: { customerId, userId }, select: { customerId: true } });
     } catch (ex) {
-      // A concurrent event for the same user created it first
+      // A concurrent event for the same user created it first, possibly for an unpaid customer this one may replace
       if (isUniqueConstraintError(ex)) {
-        return await prisma.billingAccount.findUniqueOrThrow({ where: { userId }, select: { customerId: true } });
+        return await upsertBillingAccount({ userId, customerId, canRepoint });
       }
       throw ex;
     }
@@ -450,13 +450,23 @@ export async function upsertBillingAccount({
     return { customerId: billingAccount.customerId };
   }
 
-  // Compared inside the write so a concurrent event that already moved the account is not overwritten
+  // Both conditions are repeated inside the write so a concurrent event that moved the account, or recorded a
+  // payment on the current customer, is not overwritten
   const { count } = await prisma.billingAccount.updateMany({
-    where: { userId, customerId: billingAccount.customerId },
+    where: {
+      userId,
+      customerId: billingAccount.customerId,
+      subscriptions: { none: { status: { in: PAID_SUBSCRIPTION_STATUSES } } },
+    },
     data: { customerId },
   });
   if (count === 0) {
-    return await prisma.billingAccount.findUniqueOrThrow({ where: { userId }, select: { customerId: true } });
+    const currentAccount = await prisma.billingAccount.findUniqueOrThrow({ where: { userId }, select: { customerId: true } });
+    if (currentAccount.customerId !== billingAccount.customerId) {
+      return currentAccount;
+    }
+    // Still on the same customer, so a payment was recorded on it meanwhile; re-running reports the double charge
+    return await upsertBillingAccount({ userId, customerId, canRepoint });
   }
   logger.info(
     { userId, customerId, previousCustomerId: billingAccount.customerId },

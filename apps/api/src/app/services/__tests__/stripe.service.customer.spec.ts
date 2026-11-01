@@ -254,21 +254,22 @@ describe('createCheckoutSession without a customer', () => {
   });
 
   // Stripe replays the saved response for 24 hours, so a customer deleted since then comes back as a dead id
-  it('creates a new customer without the key when the replayed customer was deleted', async () => {
-    mocks.customersCreate
-      .mockResolvedValueOnce({ id: 'cus_deleted' })
-      .mockResolvedValueOnce({ id: 'cus_fresh', metadata: { userId: user.id, type: 'TEAM' } });
+  // The replacement is keyed too, so concurrent checkouts after the deletion still share one customer
+  it('creates the replacement under a key derived from the deleted customer when the replayed customer was deleted', async () => {
+    mocks.customersCreate.mockResolvedValueOnce({ id: 'cus_deleted' }).mockResolvedValueOnce({ id: 'cus_fresh' });
     mocks.customersUpdate.mockRejectedValueOnce({
       type: 'StripeInvalidRequestError',
       code: 'resource_missing',
       message: 'No such customer',
     });
+    mocks.customersUpdate.mockResolvedValueOnce({ id: 'cus_fresh', metadata: { userId: user.id, type: 'TEAM' } });
 
     await createSession({ type: 'TEAM' });
 
     expect(mocks.customersCreate).toHaveBeenCalledTimes(2);
     expect(mocks.customersCreate.mock.calls[1]).toEqual([
-      { email: user.email, name: user.name, metadata: { userId: user.id, teamId: null, type: 'TEAM' } },
+      { metadata: { userId: user.id } },
+      { idempotencyKey: 'customer-create:user-1:replacing:cus_deleted' },
     ]);
     expect(mocks.createFundingInstructions).toHaveBeenCalledTimes(1);
     expect(mocks.createFundingInstructions).toHaveBeenCalledWith('cus_fresh', expect.anything());

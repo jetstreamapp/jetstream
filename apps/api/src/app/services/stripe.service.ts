@@ -453,17 +453,15 @@ export async function createCustomer(
  * that can change between attempts (email, name, plan type) is applied by a follow-up update.
  *
  * A replayed key returns the saved response even when that customer has since been deleted (e.g. a duplicate
- * cleaned up by hand), so a missing customer falls back to an unkeyed create rather than failing checkout for the
- * rest of the day.
+ * cleaned up by hand), so a missing customer is replaced under a key derived from the deleted one. Concurrent
+ * checkouts then still share a single replacement instead of failing checkout for the rest of the day.
  */
 async function createCustomerForUser(
   user: Pick<UserProfile, 'id' | 'name' | 'email'>,
   type: 'TEAM' | 'USER',
+  idempotencyKey = `customer-create:${user.id}`,
 ): Promise<Stripe.Response<Stripe.Customer>> {
-  const { id: customerId } = await stripe.customers.create(
-    { metadata: { userId: user.id } },
-    { idempotencyKey: `customer-create:${user.id}` },
-  );
+  const { id: customerId } = await stripe.customers.create({ metadata: { userId: user.id } }, { idempotencyKey });
   let customer: Stripe.Response<Stripe.Customer>;
   try {
     // `teamId` is left out rather than nulled: a replayed key returns the customer an earlier attempt created, and
@@ -477,11 +475,8 @@ async function createCustomerForUser(
     if (!isStripeResourceMissingError(ex)) {
       throw ex;
     }
-    logger.warn(
-      { userId: user.id, customerId },
-      '[STRIPE]: The idempotency key replayed a deleted customer, creating a new one without the key',
-    );
-    return await createCustomer(user, type);
+    logger.warn({ userId: user.id, customerId }, '[STRIPE]: The idempotency key replayed a deleted customer, creating a replacement');
+    return await createCustomerForUser(user, type, `customer-create:${user.id}:replacing:${customerId}`);
   }
   if (type === 'TEAM') {
     await createBankTransferFundingInstructions(customer.id);
