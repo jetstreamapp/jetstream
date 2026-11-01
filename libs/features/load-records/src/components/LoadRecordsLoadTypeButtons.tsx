@@ -87,7 +87,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
               {visibleLoadTypeOptions.map(({ value, label }) => (
                 <RadioButton
                   key={value}
-                  name={value}
+                  name="load-type"
                   label={label}
                   value={value}
                   checked={selectedType === value}
