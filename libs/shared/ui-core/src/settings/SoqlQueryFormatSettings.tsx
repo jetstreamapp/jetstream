@@ -116,6 +116,8 @@ export const SoqlQueryFormatSettings = ({ location = 'Settings', value, onChange
   }
 
   function handleResetToDefaults() {
+    // The button unmounts once the options are back at their defaults - keep keyboard focus in the group
+    document.getElementById('setting-soql-format-fieldMaxLineLength')?.focus();
     setNumericDrafts({});
     save(DEFAULT_OPTIONS);
     trackEvent(ANALYTICS_KEYS.soql_format_reset, { location, values: value });

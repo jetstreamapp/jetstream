@@ -5,13 +5,15 @@ import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { isEscapeKey, useGlobalEventHandler, useTitle } from '@jetstream/shared/ui-utils';
 import { SoqlQueryFormatOptionsSchema } from '@jetstream/types';
-import { AutoFullHeightContainer, BreakablePath, fireToast, Icon, Page } from '@jetstream/ui';
+import { ariaDisabledButtonProps, AutoFullHeightContainer, BreakablePath, fireToast, Icon, Page } from '@jetstream/ui';
 import {
   AccountSummary,
   AppearanceSetting,
   DataHistorySettingsSection,
   DiagnosticLoggingSetting,
+  EditorSettingsSection,
   getPreferencesToRestore,
+  getSettingsRowIds,
   HistorySyncSettings,
   RecentObjectsSetting,
   SalesforceAutoLoginSetting,
@@ -39,6 +41,9 @@ const SECTIONS: SettingsNavItem[] = [
   { id: 'data-storage', label: 'Data & Storage' },
   { id: 'diagnostics', label: 'Diagnostics' },
 ];
+
+const DOWNLOAD_LOCATION_ROW_ID = 'setting-download-location';
+const CHOOSE_FOLDER_BUTTON_ID = `${DOWNLOAD_LOCATION_ROW_ID}-choose-folder`;
 
 const downloadPathCss = css`
   display: block;
@@ -206,6 +211,8 @@ export const Settings = () => {
 
   return (
     <Page testId="settings-page">
+      {/* The window's native title bar names the page, but screen reader users still need a heading to land on */}
+      <h1 className="slds-assistive-text">Settings</h1>
       <AutoFullHeightContainer className="slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
         <SettingsLayout sections={SECTIONS}>
           <SettingsSection id="account" title="Account">
@@ -253,39 +260,12 @@ export const Settings = () => {
                 disabled={updatePolicy?.managed ?? false}
                 onChange={(autoUpdateEnabled) => savePreferences({ autoUpdateEnabled })}
               />
-              <SettingsRow
-                id="setting-download-location"
-                title="Download location"
-                description={
-                  downloadPath ? (
-                    <>
-                      Files are saved to this folder without asking:
-                      <span css={downloadPathCss}>
-                        <BreakablePath path={downloadPath} />
-                      </span>
-                    </>
-                  ) : (
-                    'You are asked where to save each download.'
-                  )
-                }
-              >
-                <button
-                  className="slds-button slds-button_neutral"
-                  disabled={isChoosingDownloadFolder}
-                  onClick={handleChooseDownloadFolder}
-                >
-                  {downloadPath ? 'Change Folder…' : 'Choose Folder…'}
-                </button>
-                {downloadPath && (
-                  <button
-                    className="slds-button slds-button_neutral"
-                    disabled={isChoosingDownloadFolder}
-                    onClick={() => savePreferences({ fileDownload: { omitPrompt: false, downloadPath: '' } })}
-                  >
-                    Ask Every Time
-                  </button>
-                )}
-              </SettingsRow>
+              <DownloadLocationSetting
+                downloadPath={downloadPath}
+                isChoosingFolder={isChoosingDownloadFolder}
+                onChooseFolder={handleChooseDownloadFolder}
+                onAskEveryTime={() => savePreferences({ fileDownload: { omitPrompt: false, downloadPath: '' } })}
+              />
             </SettingsGroup>
             <SettingsGroup title="Network">
               <SettingsToggleRow
@@ -296,6 +276,7 @@ export const Settings = () => {
                 onChange={(trustSystemCertificates) => savePreferences({ trustSystemCertificates })}
               />
             </SettingsGroup>
+            <EditorSettingsSection />
           </SettingsSection>
 
           <SettingsSection id="query" title="Query">
@@ -331,6 +312,70 @@ export const Settings = () => {
         </SettingsLayout>
       </AutoFullHeightContainer>
     </Page>
+  );
+};
+
+export interface DownloadLocationSettingProps {
+  downloadPath?: string;
+  /** The folder dialog is open - both buttons wait for it, see `handleChooseDownloadFolder` */
+  isChoosingFolder: boolean;
+  onChooseFolder: () => void;
+  onAskEveryTime: () => void;
+}
+
+export const DownloadLocationSetting = ({
+  downloadPath,
+  isChoosingFolder,
+  onChooseFolder,
+  onAskEveryTime,
+}: DownloadLocationSettingProps) => {
+  const { titleId, descriptionId } = getSettingsRowIds(DOWNLOAD_LOCATION_ROW_ID);
+  // The button names alone do not say what they change, or which folder is in use
+  const ariaDescribedBy = `${titleId} ${descriptionId}`;
+
+  function handleAskEveryTime() {
+    onAskEveryTime();
+    // Ask Every Time removes itself, the folder button stays (relabeled Choose Folder…) so focus moves there
+    // (looked up by id: a ref read in a handler passed to ariaDisabledButtonProps trips the react/refs lint)
+    document.getElementById(CHOOSE_FOLDER_BUTTON_ID)?.focus();
+  }
+
+  // Both buttons stay focusable while the folder dialog is open (aria-disabled) so focus is not dropped to <body>
+  return (
+    <SettingsRow
+      id={DOWNLOAD_LOCATION_ROW_ID}
+      title="Download location"
+      description={
+        downloadPath ? (
+          <>
+            Files are saved to this folder without asking:
+            <span css={downloadPathCss}>
+              <BreakablePath path={downloadPath} />
+            </span>
+          </>
+        ) : (
+          'You are asked where to save each download.'
+        )
+      }
+    >
+      <button
+        id={CHOOSE_FOLDER_BUTTON_ID}
+        className="slds-button slds-button_neutral"
+        aria-describedby={ariaDescribedBy}
+        {...ariaDisabledButtonProps(isChoosingFolder, onChooseFolder)}
+      >
+        {downloadPath ? 'Change Folder…' : 'Choose Folder…'}
+      </button>
+      {downloadPath && (
+        <button
+          className="slds-button slds-button_neutral"
+          aria-describedby={ariaDescribedBy}
+          {...ariaDisabledButtonProps(isChoosingFolder, handleAskEveryTime)}
+        >
+          Ask Every Time
+        </button>
+      )}
+    </SettingsRow>
   );
 };
 

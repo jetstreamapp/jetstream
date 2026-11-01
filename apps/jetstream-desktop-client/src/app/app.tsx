@@ -1,8 +1,9 @@
 import { css } from '@emotion/react';
 import { Announcement } from '@jetstream/types';
-import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
+import { AppToast, ConfirmationServiceProvider, SkipToContent } from '@jetstream/ui';
 import {
   AppLoading,
+  AppMainContent,
   ErrorBoundaryFallback,
   HeaderNavbar,
   NotificationsRequestModal,
@@ -41,19 +42,24 @@ export const App = () => {
           {({ onLogout, authInfo }) => (
             <AppInitializer authInfo={authInfo} onAnnouncements={setAnnouncements}>
               <ThemeApplier />
+              {/* First in DOM order so it is the first tab stop even while a toast or modal is mounted.
+                  The Settings window has no header to skip past. */}
+              {!isSettingsWindow() && <SkipToContent className="desktop-skip-to-content" />}
               <ModalContainer />
               <LogInitializer />
               <DesktopPreferencesSync />
               {isSettingsWindow() ? (
                 // The Settings window has a native title bar and only ever shows the Settings page. It does not use
-                // `app-container`, whose top margin makes room for the main window's fixed header.
-                <div className="slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
+                // `app-container`, whose top margin makes room for the main window's fixed header. The route never
+                // changes in this window, so the main content only takes focus for a `#section` deep link - the same
+                // section SettingsLayout scrolls to.
+                <AppMainContent className="slds-p-horizontal_xx-small slds-p-vertical_xx-small">
                   <Suspense fallback={<AppLoading />}>
                     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
                       <Settings />
                     </ErrorBoundary>
                   </Suspense>
-                </div>
+                </AppMainContent>
               ) : (
                 <>
                   <AppStateResetOnOrgChange />
@@ -77,14 +83,14 @@ export const App = () => {
                         onLogoutHandlerFn={onLogout}
                       />
                     </div>
-                    <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
+                    <AppMainContent>
                       <AnnouncementAlerts announcements={announcements} />
                       <Suspense fallback={<AppLoading />}>
                         <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
                           <AppRoutes />
                         </ErrorBoundary>
                       </Suspense>
-                    </div>
+                    </AppMainContent>
                   </div>
                 </>
               )}
