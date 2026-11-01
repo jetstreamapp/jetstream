@@ -21,6 +21,7 @@ export const AnalyticsTrackingSetting = () => {
       id="setting-analytics"
       title="Share usage analytics"
       description="Allow analytics cookies that help us understand how Jetstream is used. This is the same choice as the cookie banner."
+      keywords={['tracking', 'privacy']}
       checked={analytics === 'accepted'}
       onChange={handleChange}
     />

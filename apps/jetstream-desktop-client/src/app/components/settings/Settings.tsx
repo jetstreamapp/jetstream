@@ -251,11 +251,13 @@ export const Settings = () => {
                 // A managed policy can pin updates on as well as off, so show what it decided rather than the stored preference
                 checked={updatePolicy?.managed ? updatePolicy.autoUpdateEnabled : (preferences?.autoUpdateEnabled ?? true)}
                 disabled={updatePolicy?.managed ?? false}
+                keywords={['version', 'upgrade']}
                 onChange={(autoUpdateEnabled) => savePreferences({ autoUpdateEnabled })}
               />
               <SettingsRow
                 id="setting-download-location"
                 title="Download location"
+                keywords={['folder', 'save', 'files']}
                 description={
                   downloadPath ? (
                     <>
@@ -292,6 +294,7 @@ export const Settings = () => {
                 id="trust-system-certificates-toggle"
                 title="Trust certificates installed on this computer"
                 description="Turn this on if your company inspects network traffic and connecting to Salesforce fails with a certificate error. Jetstream will also trust the certificate authorities your IT team installed on this computer, the same way your browser does."
+                keywords={['proxy', 'ssl', 'tls']}
                 checked={preferences?.trustSystemCertificates ?? false}
                 onChange={(trustSystemCertificates) => savePreferences({ trustSystemCertificates })}
               />

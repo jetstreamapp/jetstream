@@ -1,9 +1,10 @@
-import { css } from '@emotion/react';
 import { AutoFullHeightContainer, Page, PageHeader, PageHeaderRow, PageHeaderTitle, ScopedNotification } from '@jetstream/ui';
 import {
   DataHistorySettingsSection,
   HistorySyncSettings,
   SettingsGroup,
+  SettingsLayout,
+  SettingsNavItem,
   SettingsSection,
   SettingsToggleRow,
   SoqlQueryFormatSettings,
@@ -21,15 +22,6 @@ applyExtensionThemeBeforeMount().finally(() => {
   );
 });
 
-const contentCss = css`
-  display: flex;
-  flex-direction: column;
-  gap: 2.5rem;
-  max-width: 52rem;
-  margin: 0 auto;
-  padding: 1rem 0 3rem;
-`;
-
 export function AdditionalSettings() {
   const {
     authTokens,
@@ -46,6 +38,17 @@ export function AdditionalSettings() {
     authError,
   } = useExtensionSettings();
 
+  const showAccountSettings = loggedIn && !!authTokens;
+  const sections: SettingsNavItem[] = [
+    ...(showAccountSettings
+      ? [
+          { id: 'extension', label: 'Extension' },
+          { id: 'query', label: 'Query' },
+        ]
+      : []),
+    { id: 'data-storage', label: 'Data & Storage' },
+  ];
+
   return (
     <div className="slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
       <Page testId="billing-page">
@@ -60,8 +63,8 @@ export function AdditionalSettings() {
               {authError}
             </ScopedNotification>
           )}
-          <div css={contentCss}>
-            {loggedIn && authTokens && (
+          <SettingsLayout sections={sections}>
+            {showAccountSettings && (
               <>
                 <SettingsSection id="extension" title="Extension">
                   <SettingsGroup>
@@ -102,7 +105,7 @@ export function AdditionalSettings() {
                 <HistorySyncSettings enabled={recordSyncEnabled} onChange={(value) => setRecordSyncEnabled(value)} />
               </SettingsGroup>
             </SettingsSection>
-          </div>
+          </SettingsLayout>
         </AutoFullHeightContainer>
       </Page>
     </div>

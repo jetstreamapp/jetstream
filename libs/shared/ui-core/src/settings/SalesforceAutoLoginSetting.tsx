@@ -15,6 +15,7 @@ export const SalesforceAutoLoginSetting = ({ skipFrontdoorLogin, onChange }: Sal
       id="setting-salesforce-auto-login"
       title="Log in automatically when opening Salesforce links"
       description="Jetstream signs you in to Salesforce when you open a Salesforce link. Turn this off if links ask for multi-factor authentication or send you through SSO again - links also open faster when you are already logged in to Salesforce."
+      keywords={['login', 'frontdoor', 'mfa']}
       checked={!skipFrontdoorLogin}
       onChange={(autoLogin) => onChange(!autoLogin)}
     />

@@ -1,11 +1,17 @@
 import { css } from '@emotion/react';
 import { CheckboxToggle } from '@jetstream/ui';
 import { ReactNode } from 'react';
+import { SettingsSearchScopeProvider, useSettingsSearch } from './settings-search';
 
 // Sections receive focus when picked from the settings navigation - the outline only shows for keyboard focus
 const sectionCss = css`
   scroll-margin-top: 1rem;
   border-radius: 0.5rem;
+
+  /* Hidden by the settings search - the SLDS reset gives sections display: block, which would otherwise win */
+  &[hidden] {
+    display: none;
+  }
 
   &:focus:not(:focus-visible) {
     outline: none;
@@ -29,7 +35,12 @@ const groupCss = css`
   border-radius: 0.5rem;
   background-color: var(--slds-g-color-surface-container-1, #fff);
 
-  & > * + * {
+  &[hidden] {
+    display: none;
+  }
+
+  /* Rows hidden by the settings search are skipped, so the first visible row never gets a divider */
+  & > :not([hidden]) ~ :not([hidden]) {
     border-top: 1px solid var(--slds-g-color-border-1, #e5e5e5);
   }
 `;
@@ -52,6 +63,10 @@ const rowCss = css`
   justify-content: space-between;
   gap: 0.75rem 2rem;
   padding: 0.875rem 1.25rem;
+
+  &[hidden] {
+    display: none;
+  }
 
   @media (max-width: 40em) {
     flex-direction: column;
@@ -111,20 +126,25 @@ export interface SettingsSectionProps {
   id: string;
   title: string;
   description?: ReactNode;
+  /** Words that find this section in the settings search without being shown */
+  keywords?: string[];
   children: ReactNode;
 }
 
 /** Top level settings category - one entry in the settings navigation, holding one or more `SettingsGroup`s */
-export const SettingsSection = ({ id, title, description, children }: SettingsSectionProps) => {
+export const SettingsSection = ({ id, title, description, keywords, children }: SettingsSectionProps) => {
   const headingId = `${id}-heading`;
+  const { isVisible, scope, highlight } = useSettingsSearch({ reportKey: id, text: [title, description], keywords });
   return (
     // Focusable so navigating to a section moves focus into it (see SettingsLayout)
-    <section id={id} aria-labelledby={headingId} tabIndex={-1} css={sectionCss}>
+    <section id={id} aria-labelledby={headingId} tabIndex={-1} css={sectionCss} hidden={!isVisible}>
       <h2 id={headingId} className="slds-text-heading_medium">
-        {title}
+        {highlight(title)}
       </h2>
-      {description && <p className="slds-text-color_weak slds-m-top_xx-small">{description}</p>}
-      <div css={groupStackCss}>{children}</div>
+      {description && <p className="slds-text-color_weak slds-m-top_xx-small">{highlight(description)}</p>}
+      <SettingsSearchScopeProvider scope={scope}>
+        <div css={groupStackCss}>{children}</div>
+      </SettingsSearchScopeProvider>
     </section>
   );
 };
@@ -136,27 +156,30 @@ export interface SettingsGroupProps {
   actions?: ReactNode;
   variant?: 'default' | 'danger';
   testId?: string;
+  /** Words that find this group in the settings search without being shown */
+  keywords?: string[];
   children: ReactNode;
 }
 
 /** Bordered card of `SettingsRow`s, with an optional header */
-export const SettingsGroup = ({ title, description, actions, variant = 'default', testId, children }: SettingsGroupProps) => {
+export const SettingsGroup = ({ title, description, actions, variant = 'default', testId, keywords, children }: SettingsGroupProps) => {
+  const { isVisible, scope, highlight } = useSettingsSearch({ text: [title, description], keywords });
   return (
-    <div css={[groupCss, variant === 'danger' && dangerGroupCss]} data-testid={testId}>
+    <div css={[groupCss, variant === 'danger' && dangerGroupCss]} data-testid={testId} hidden={!isVisible}>
       {(title || actions) && (
         <div css={groupHeaderCss}>
           <div>
             {title && (
               <h3 className={variant === 'danger' ? 'slds-text-heading_small slds-text-color_destructive' : 'slds-text-heading_small'}>
-                {title}
+                {highlight(title)}
               </h3>
             )}
-            {description && <p className="slds-text-color_weak slds-m-top_xxx-small">{description}</p>}
+            {description && <p className="slds-text-color_weak slds-m-top_xxx-small">{highlight(description)}</p>}
           </div>
           {actions && <div css={rowControlCss}>{actions}</div>}
         </div>
       )}
-      {children}
+      <SettingsSearchScopeProvider scope={scope}>{children}</SettingsSearchScopeProvider>
     </div>
   );
 };
@@ -172,28 +195,31 @@ export interface SettingsRowProps {
   details?: ReactNode;
   /** Places the controls under the text instead of beside it, for wide content */
   stacked?: boolean;
+  /** Words that find this setting in the settings search without being shown, e.g. "dark" for the theme */
+  keywords?: string[];
   /** The row's controls */
   children?: ReactNode;
 }
 
 /** One setting: title and description on the left, its controls on the right */
-export const SettingsRow = ({ id, title, labelFor, description, details, stacked = false, children }: SettingsRowProps) => {
+export const SettingsRow = ({ id, title, labelFor, description, details, stacked = false, keywords, children }: SettingsRowProps) => {
   const { titleId, descriptionId } = getSettingsRowIds(id);
+  const { isVisible, highlight } = useSettingsSearch({ text: [title, description], keywords });
   return (
-    <div css={[rowCss, stacked && stackedRowCss]}>
+    <div css={[rowCss, stacked && stackedRowCss]} hidden={!isVisible}>
       <div css={rowTextCss}>
         {labelFor ? (
           <label id={titleId} htmlFor={labelFor} css={rowTitleCss}>
-            {title}
+            {highlight(title)}
           </label>
         ) : (
           <span id={titleId} css={rowTitleCss}>
-            {title}
+            {highlight(title)}
           </span>
         )}
         {description && (
           <div id={descriptionId} className="slds-text-color_weak slds-m-top_xxx-small">
-            {description}
+            {highlight(description)}
           </div>
         )}
         {details && <div className="slds-m-top_x-small">{details}</div>}
@@ -208,15 +234,16 @@ export interface SettingsToggleRowProps {
   title: string;
   description?: ReactNode;
   details?: ReactNode;
+  keywords?: string[];
   checked: boolean;
   disabled?: boolean;
   onChange: (value: boolean) => void;
 }
 
-export const SettingsToggleRow = ({ id, title, description, details, checked, disabled, onChange }: SettingsToggleRowProps) => {
+export const SettingsToggleRow = ({ id, title, description, details, keywords, checked, disabled, onChange }: SettingsToggleRowProps) => {
   const { descriptionId } = getSettingsRowIds(id);
   return (
-    <SettingsRow id={id} title={title} description={description} details={details}>
+    <SettingsRow id={id} title={title} description={description} details={details} keywords={keywords}>
       {/* The row already shows the title and state, so the toggle's own label and captions are screen reader only */}
       <CheckboxToggle
         id={id}

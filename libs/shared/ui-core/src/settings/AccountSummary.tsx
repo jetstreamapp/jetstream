@@ -50,7 +50,7 @@ export const AccountSummary = ({ userProfile, actions }: AccountSummaryProps) =>
   const activeTeam = teamMembership?.status === TeamMemberStatusSchema.enum.ACTIVE ? teamMembership : null;
 
   return (
-    <SettingsGroup testId="account-summary">
+    <SettingsGroup testId="account-summary" keywords={['profile', 'team', 'email']}>
       <div css={summaryCss}>
         <div css={identityCss}>
           <span className="slds-avatar slds-avatar_circle slds-avatar_large">

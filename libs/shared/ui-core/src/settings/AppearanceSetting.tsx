@@ -25,7 +25,12 @@ export const AppearanceSetting = () => {
   }
 
   return (
-    <SettingsRow id={ROW_ID} title="Theme" description="Dark mode is in beta. Your theme is saved on this device.">
+    <SettingsRow
+      id={ROW_ID}
+      title="Theme"
+      description="Dark mode is in beta. Your theme is saved on this device."
+      keywords={['appearance', 'color scheme', 'light', 'dark']}
+    >
       <RadioGroup idPrefix={ROW_ID} label="Theme" hideLabel ariaDescribedBy={getSettingsRowIds(ROW_ID).descriptionId} isButtonGroup>
         {COLOR_SCHEME_OPTIONS.map(({ value, label }) => (
           <RadioButton
