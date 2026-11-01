@@ -7,6 +7,8 @@ import { extensionRoutes } from '../controllers/canvas.routes';
 import { initApiClient } from './api-client';
 import { getCanvasOrg } from './canvas.utils';
 
+const TARGET_ORG_NOT_SUPPORTED_MESSAGE = 'Deploying to a different org is not supported here.';
+
 export async function canvasAppAxiosAdapter(config: InternalAxiosRequestConfig): Promise<AxiosResponse> {
   const { headers, data, method } = config;
 
@@ -57,6 +59,15 @@ export async function canvasAppAxiosAdapter(config: InternalAxiosRequestConfig):
       return getAxiosResponse(config, request, response, axiosResponse);
     }
 
+    /**
+     * Only the current org can be a target here (e.g. Add to Changeset sends the source org as the target).
+     * Never fall back to the source when a different target was requested.
+     */
+    const targetUniqueId = config.headers.get(HTTP.HEADERS.X_SFDC_ID_TARGET);
+    if (targetUniqueId && targetUniqueId !== org.uniqueId) {
+      return throwAxiosBadRequestResponse(config, request, axiosResponse, TARGET_ORG_NOT_SUPPORTED_MESSAGE);
+    }
+
     const apiConnection = initApiClient();
 
     const response = await route.handler({
@@ -64,6 +75,7 @@ export async function canvasAppAxiosAdapter(config: InternalAxiosRequestConfig):
       params: route.params,
       jetstreamConn: apiConnection,
       org,
+      ...(targetUniqueId ? { targetJetstreamConn: apiConnection, targetOrg: org } : {}),
     });
 
     return getAxiosResponse(config, request, response, axiosResponse);
@@ -125,6 +137,19 @@ async function throwAxiosNotFoundResponse(
   axiosResponse.status = 404;
   axiosResponse.statusText = 'Not Found';
   throw new AxiosError('Request failed with status code ' + 404, 'ERR_BAD_REQUEST', config, request, axiosResponse as AxiosResponse);
+}
+
+async function throwAxiosBadRequestResponse(
+  config: InternalAxiosRequestConfig,
+  request: Request,
+  axiosResponse: Partial<AxiosResponse>,
+  message: string,
+): Promise<AxiosResponse> {
+  axiosResponse.status = 400;
+  axiosResponse.statusText = 'Bad Request';
+  // Same body shape as handleErrorResponse so the client surfaces the message
+  axiosResponse.data = { error: true, message };
+  throw new AxiosError(message, 'ERR_BAD_REQUEST', config, request, axiosResponse as AxiosResponse);
 }
 
 async function getResponseBody(response: Response) {

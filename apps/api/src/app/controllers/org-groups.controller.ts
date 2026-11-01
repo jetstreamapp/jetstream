@@ -3,6 +3,7 @@ import * as orgGroupsDb from '../db/organization.db';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
+import { createOrgDeletedAuditLogs } from './orgs.controller';
 
 export const routeDefinition = {
   getOrganizations: {
@@ -101,11 +102,13 @@ const deleteOrgGroup = createRoute(routeDefinition.deleteOrganization.validators
 
 const deleteOrgGroupAndAllOrgs = createRoute(
   routeDefinition.deleteOrganizationWithOrgs.validators,
-  async ({ params, user }, _, res, next) => {
+  async ({ params, user }, req, res, next) => {
     try {
-      await orgGroupsDb.deleteOrgGroupAndAllOrgs(user.id, params.id);
+      const { deletedOrgs } = await orgGroupsDb.deleteOrgGroupAndAllOrgs(user.id, params.id);
 
       sendJson(res, undefined, 204);
+
+      createOrgDeletedAuditLogs({ user, req, res, deletedOrgs });
     } catch (ex) {
       next(new UserFacingError(ex));
     }

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { verifyPasswordForUserId } from '../auth.db.service';
+import { removePasswordFromUser, verifyPasswordForUserId } from '../auth.db.service';
 import { AccountLocked, InvalidCredentials, PasswordResetRequired } from '../auth.errors';
 
 /**
@@ -15,6 +15,7 @@ import { AccountLocked, InvalidCredentials, PasswordResetRequired } from '../aut
 const prismaMock = vi.hoisted(() => ({
   user: {
     findUnique: vi.fn(),
+    findUniqueOrThrow: vi.fn(),
     findFirst: vi.fn(),
     findFirstOrThrow: vi.fn(),
     update: vi.fn(),
@@ -162,5 +163,81 @@ describe('verifyPasswordForUserId', () => {
 
     expect(error).toBeInstanceOf(PasswordResetRequired);
     expect(authUtilsMock.verifyPassword).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Only an OAuth identity counts as an alternative login method. Credentials users have no AuthIdentity
+ * rows at all, and SSO identities depend on the team's SSO configuration, so neither may be left
+ * without a password.
+ */
+describe('removePasswordFromUser', () => {
+  const AUTHENTICATED_USER = {
+    id: USER_A,
+    userId: 'jetstream|a',
+    name: 'User A',
+    email: 'a@example.com',
+    emailVerified: true,
+    tosAcceptedVersion: null,
+    authFactors: [],
+    teamMembership: null,
+  };
+
+  function mockUser({ password = 'hash-for-a', identityTypes }: { password?: string | null; identityTypes: ('oauth' | 'sso')[] }) {
+    prismaMock.user.findUniqueOrThrow.mockResolvedValueOnce({
+      id: USER_A,
+      password,
+      identities: identityTypes.map((type) => ({ type, provider: type === 'oauth' ? 'google' : 'saml' })),
+    });
+  }
+
+  it('should reject removing the password when the user has no identities', async () => {
+    mockUser({ identityTypes: [] });
+
+    const result = await removePasswordFromUser(USER_A);
+
+    expect(result).toEqual({ error: expect.any(Error) });
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it('should reject removing the password when the user only has an SSO identity', async () => {
+    mockUser({ identityTypes: ['sso'] });
+
+    const result = await removePasswordFromUser(USER_A);
+
+    expect(result).toEqual({ error: expect.any(Error) });
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it('should reject when the user has no password set', async () => {
+    mockUser({ password: null, identityTypes: ['oauth'] });
+
+    const result = await removePasswordFromUser(USER_A);
+
+    expect(result).toEqual({ error: new Error('Password is not set') });
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it('should remove the password when the user has an OAuth identity', async () => {
+    mockUser({ identityTypes: ['oauth'] });
+    prismaMock.user.update.mockResolvedValueOnce(AUTHENTICATED_USER);
+
+    const result = await removePasswordFromUser(USER_A);
+
+    expect(result).toEqual(AUTHENTICATED_USER);
+    expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+    expect(prismaMock.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: USER_A }, data: expect.objectContaining({ password: null }) }),
+    );
+  });
+
+  it('should remove the password when the user has both OAuth and SSO identities', async () => {
+    mockUser({ identityTypes: ['oauth', 'sso'] });
+    prismaMock.user.update.mockResolvedValueOnce(AUTHENTICATED_USER);
+
+    const result = await removePasswordFromUser(USER_A);
+
+    expect(result).toEqual(AUTHENTICATED_USER);
+    expect(prismaMock.user.update).toHaveBeenCalledTimes(1);
   });
 });

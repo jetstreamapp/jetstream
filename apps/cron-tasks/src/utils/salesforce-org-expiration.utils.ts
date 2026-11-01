@@ -181,7 +181,17 @@ export async function manageOrgExpiration(prisma: PrismaClient, initialDate = ne
     // endOfDay collapses the group key to a calendar day, so steady state is a single statement per run
     for (const { expirationDate, activityBaseDate, needsActivityBackfill, orgIds } of scheduleGroups.values()) {
       await prisma.salesforceOrg.updateMany({
-        where: { id: { in: orgIds } },
+        /**
+         * Re-check the candidate predicate and the shrink-only rule at write time, so an org that was
+         * reconnected or used between the read above and this write is left alone.
+         */
+        where: {
+          AND: [
+            scheduleCandidateWhere,
+            { id: { in: orgIds } },
+            { OR: [{ expirationScheduledFor: null }, { expirationScheduledFor: { gt: expirationDate } }] },
+          ],
+        },
         data: {
           expirationScheduledFor: expirationDate,
           // The deadline just changed, so notify on this run rather than waiting for the next threshold
@@ -366,48 +376,57 @@ export async function manageOrgExpiration(prisma: PrismaClient, initialDate = ne
     connectionError: null,
   };
 
-  const orgsToExpire = await prisma.salesforceOrg.findMany({
-    where: orgsToExpireWhere,
-  });
+  const orgsToExpireSelect = {
+    id: true,
+    uniqueId: true,
+    username: true,
+    orgName: true,
+    jetstreamUserId2: true,
+  } satisfies Prisma.SalesforceOrgSelect;
 
-  if (orgsToExpire.length > 0) {
+  if (testMode) {
+    const orgsToExpire = await prisma.salesforceOrg.findMany({
+      where: orgsToExpireWhere,
+      select: orgsToExpireSelect,
+    });
     result.expired = orgsToExpire.length;
-    if (testMode) {
-      testModeData.expiredOrgs = orgsToExpire.map((org) => ({
-        orgId: org.id,
-        uniqueId: org.uniqueId,
-        username: org.username,
-        orgName: org.orgName,
-      }));
+    testModeData.expiredOrgs = orgsToExpire.map(({ id, uniqueId, username, orgName }) => ({ orgId: id, uniqueId, username, orgName }));
+    if (orgsToExpire.length > 0) {
       logger.info(`[TEST MODE] Would expire ${orgsToExpire.length} org credentials`);
-    } else {
-      await prisma.salesforceOrg.updateMany({
-        where: {
-          id: { in: orgsToExpire.map(({ id }) => id) },
-        },
-        data: {
-          accessToken: EXPIRED_TOKEN_PLACEHOLDER,
-          connectionError: ORG_EXPIRATION_CONNECTION_ERROR,
-        },
-      });
+    }
+  } else {
+    /**
+     * Filter on the full predicate in the write itself (not a previously read list of ids) so an org
+     * reconnected after this run started keeps its fresh token. Only the rows actually scrubbed are returned.
+     */
+    const expiredOrgs = await prisma.salesforceOrg.updateManyAndReturn({
+      where: orgsToExpireWhere,
+      data: {
+        accessToken: EXPIRED_TOKEN_PLACEHOLDER,
+        connectionError: ORG_EXPIRATION_CONNECTION_ERROR,
+      },
+      select: orgsToExpireSelect,
+    });
+    result.expired = expiredOrgs.length;
 
-      logger.info(`Expired ${orgsToExpire.length} org credentials`);
+    if (expiredOrgs.length > 0) {
+      logger.info(`Expired ${expiredOrgs.length} org credentials`);
+    }
 
-      for (const org of orgsToExpire) {
-        if (org.jetstreamUserId2) {
-          await createAuditLog({
-            userId: org.jetstreamUserId2,
-            action: AuditLogAction.ORG_CREDENTIALS_EXPIRED,
-            resource: AuditLogResource.SALESFORCE_ORG,
-            resourceId: org.id.toString(),
-            metadata: {
-              orgId: org.id,
-              uniqueId: org.uniqueId,
-              username: org.username,
-              orgName: org.orgName,
-            },
-          });
-        }
+    for (const org of expiredOrgs) {
+      if (org.jetstreamUserId2) {
+        await createAuditLog({
+          userId: org.jetstreamUserId2,
+          action: AuditLogAction.ORG_CREDENTIALS_EXPIRED,
+          resource: AuditLogResource.SALESFORCE_ORG,
+          resourceId: org.id.toString(),
+          metadata: {
+            orgId: org.id,
+            uniqueId: org.uniqueId,
+            username: org.username,
+            orgName: org.orgName,
+          },
+        });
       }
     }
   }

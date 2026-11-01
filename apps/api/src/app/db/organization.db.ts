@@ -63,24 +63,26 @@ export const deleteOrgGroup = async (userId, id) => {
   });
 };
 
+/**
+ * Delete an org group along with every org in it, atomically.
+ * Returns the deleted orgs so the caller can record an audit log entry for each one.
+ */
 export const deleteOrgGroupAndAllOrgs = async (userId: string, id: string) => {
-  // First get the organization to get all org IDs
-  const organization = await prisma.jetstreamOrganization.findFirstOrThrow({
-    where: { userId, id },
-    select: { id: true, orgs: { select: { id: true, uniqueId: true } } },
-  });
+  return await prisma.$transaction(async (tx) => {
+    const orgsInGroupWhere = { jetstreamOrganizationId: id, jetstreamUserId2: userId } satisfies Prisma.SalesforceOrgWhereInput;
 
-  // Delete all salesforce orgs associated with this organization
-  await prisma.salesforceOrg.deleteMany({
-    where: {
-      id: { in: organization.orgs.map((org) => org.id) },
-      jetstreamUserId2: userId,
-    },
-  });
+    const deletedOrgs = await tx.salesforceOrg.findMany({
+      select: { uniqueId: true, username: true, label: true, orgName: true, loginUrl: true, instanceUrl: true, orgIsSandbox: true },
+      where: orgsInGroupWhere,
+    });
 
-  // Delete the organization
-  return await prisma.jetstreamOrganization.delete({
-    select: SELECT,
-    where: { userId, id },
+    await tx.salesforceOrg.deleteMany({ where: orgsInGroupWhere });
+
+    const orgGroup = await tx.jetstreamOrganization.delete({
+      select: SELECT,
+      where: { userId, id },
+    });
+
+    return { orgGroup, deletedOrgs };
   });
 };

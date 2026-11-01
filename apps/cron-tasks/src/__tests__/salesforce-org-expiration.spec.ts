@@ -570,6 +570,46 @@ describe('Org Expiration Integration Tests', () => {
       expect(result.expired).toBe(0);
     });
 
+    it('should not scrub an org that was reconnected after the cron read it', async () => {
+      const now = new Date();
+
+      const org = await createOrg({
+        userId: testUser.id,
+        lastActivityAt: subDays(now, 200),
+        accessToken: 'stale_token',
+      });
+
+      // Simulate the user reconnecting the org right after step 1 reads its candidates
+      const originalFindMany = prisma.salesforceOrg.findMany.bind(prisma.salesforceOrg);
+      const findManySpy = vi.spyOn(prisma.salesforceOrg, 'findMany').mockImplementationOnce((async (args: unknown) => {
+        const rows = await originalFindMany(args as Parameters<typeof originalFindMany>[0]);
+        await prisma.salesforceOrg.update({
+          where: { id: org.id },
+          data: {
+            accessToken: 'fresh_token',
+            connectionError: null,
+            lastActivityAt: now,
+            expirationScheduledFor: null,
+            nextExpirationNotificationDate: null,
+          },
+        });
+        return rows;
+      }) as unknown as typeof prisma.salesforceOrg.findMany);
+
+      try {
+        const result = await manageOrgExpiration(prisma, now);
+        expect(result.expired).toBe(0);
+      } finally {
+        findManySpy.mockRestore();
+      }
+
+      const updatedOrg = await prisma.salesforceOrg.findUnique({ where: { id: org.id } });
+      expect(updatedOrg?.accessToken).toBe('fresh_token');
+      expect(updatedOrg?.connectionError).toBeNull();
+      expect(updatedOrg?.expirationScheduledFor).toBeNull();
+      expect(mockCreateAuditLog).not.toHaveBeenCalledWith(expect.objectContaining({ action: 'ORG_CREDENTIALS_EXPIRED' }));
+    });
+
     it('should create audit log for expired orgs', async () => {
       const now = new Date();
 

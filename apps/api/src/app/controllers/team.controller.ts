@@ -1445,18 +1445,16 @@ const deleteSamlConfig = createRoute(routeDefinition.deleteSamlConfig.validators
     clearSsoCertificateAnnouncementCache(teamId);
     sendJson(res, { success: true });
 
-    if (deletedConfig) {
-      createTeamAuditLog({
-        userId: user.id,
-        teamId,
-        action: AuditLogAction.SSO_SAML_CONFIG_DELETED,
-        resource: AuditLogResource.TEAM_SSO_CONFIG,
-        resourceId: deletedConfig.id,
-        metadata: { provider: 'SAML', idpEntityId: deletedConfig.idpEntityId, affectedIdentitiesCount },
-        ipAddress: req.ip,
-        userAgent: req.headers['user-agent'] as string,
-      });
-    }
+    createTeamAuditLog({
+      userId: user.id,
+      teamId,
+      action: AuditLogAction.SSO_SAML_CONFIG_DELETED,
+      resource: AuditLogResource.TEAM_SSO_CONFIG,
+      resourceId: deletedConfig.id,
+      metadata: { provider: 'SAML', idpEntityId: deletedConfig.idpEntityId, affectedIdentitiesCount },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] as string,
+    });
   } catch (ex) {
     getLogger().error(getErrorMessageAndStackObj(ex), 'Failed to delete SAML configuration');
     next(ex);
@@ -1469,18 +1467,16 @@ const deleteOidcConfig = createRoute(routeDefinition.deleteOidcConfig.validators
     const { deletedConfig, affectedIdentitiesCount } = await teamDb.deleteOidcConfiguration(teamId, user.id);
     sendJson(res, { success: true });
 
-    if (deletedConfig) {
-      createTeamAuditLog({
-        userId: user.id,
-        teamId,
-        action: AuditLogAction.SSO_OIDC_CONFIG_DELETED,
-        resource: AuditLogResource.TEAM_SSO_CONFIG,
-        resourceId: deletedConfig.id,
-        metadata: { provider: 'OIDC', issuer: deletedConfig.issuer, clientId: deletedConfig.clientId, affectedIdentitiesCount },
-        ipAddress: req.ip,
-        userAgent: req.headers['user-agent'] as string,
-      });
-    }
+    createTeamAuditLog({
+      userId: user.id,
+      teamId,
+      action: AuditLogAction.SSO_OIDC_CONFIG_DELETED,
+      resource: AuditLogResource.TEAM_SSO_CONFIG,
+      resourceId: deletedConfig.id,
+      metadata: { provider: 'OIDC', issuer: deletedConfig.issuer, clientId: deletedConfig.clientId, affectedIdentitiesCount },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] as string,
+    });
   } catch (ex) {
     getLogger().error(getErrorMessageAndStackObj(ex), 'Failed to delete OIDC configuration');
     next(ex);

@@ -18,22 +18,20 @@ const prismaMock = vi.hoisted(() => ({
     upsert: vi.fn(),
     update: vi.fn(),
   },
-  teamMember: {
-    findMany: vi.fn(),
-  },
   authIdentity: {
     deleteMany: vi.fn(),
   },
   samlConfiguration: {
-    deleteMany: vi.fn(),
+    delete: vi.fn(),
   },
   oidcConfiguration: {
-    deleteMany: vi.fn(),
+    delete: vi.fn(),
   },
   sessions: {
     findMany: vi.fn(),
     deleteMany: vi.fn(),
   },
+  $transaction: vi.fn(),
 }));
 
 vi.mock('@jetstream/api-config', () => ({
@@ -71,6 +69,7 @@ const BASE_LOGIN_CONFIG_REQUEST = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  prismaMock.$transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => callback(prismaMock));
 });
 
 describe('updateLoginConfiguration — empty allowedProviders guard', () => {
@@ -188,53 +187,129 @@ describe('updateSsoSettings — only-login-provider guard', () => {
   });
 });
 
-describe('deleteSamlConfiguration / deleteOidcConfiguration — only-login-provider guard', () => {
-  it('rejects deleting the SAML configuration when SSO is the only allowed login provider', async () => {
+describe('deleteSamlConfiguration / deleteOidcConfiguration', () => {
+  const SAML_CONFIG = { id: 'saml-config-id', idpEntityId: 'entity-id', idpCertificateExpiresAt: null };
+  const OIDC_CONFIG = { id: 'oidc-config-id', issuer: 'https://example.com', clientId: 'client-id' };
+
+  function mockLoginConfig({
+    ssoProvider,
+    ssoEnabled = true,
+    allowedProviders = ['credentials'],
+    samlConfiguration = SAML_CONFIG,
+    oidcConfiguration = OIDC_CONFIG,
+  }: {
+    ssoProvider: 'NONE' | 'SAML' | 'OIDC';
+    ssoEnabled?: boolean;
+    allowedProviders?: string[];
+    samlConfiguration?: typeof SAML_CONFIG | null;
+    oidcConfiguration?: typeof OIDC_CONFIG | null;
+  }) {
     prismaMock.loginConfiguration.findUnique.mockResolvedValueOnce({
       id: 'login-config-id',
-      ssoEnabled: true,
-      allowedProviders: [],
-      samlConfiguration: { id: 'saml-config-id', idpEntityId: 'entity-id', idpCertificateExpiresAt: null },
+      ssoEnabled,
+      ssoProvider,
+      allowedProviders,
+      samlConfiguration,
+      oidcConfiguration,
     });
+  }
+
+  it('rejects deleting the active SAML configuration when SSO is the only allowed login provider', async () => {
+    mockLoginConfig({ ssoProvider: 'SAML', allowedProviders: [] });
 
     await expect(teamDb.deleteSamlConfiguration('team-id', 'admin-id')).rejects.toThrow(
       'Cannot delete the SSO configuration because SSO is the only allowed login provider.',
     );
-    expect(prismaMock.samlConfiguration.deleteMany).not.toHaveBeenCalled();
+    expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+    expect(prismaMock.authIdentity.deleteMany).not.toHaveBeenCalled();
+    expect(prismaMock.samlConfiguration.delete).not.toHaveBeenCalled();
   });
 
-  it('rejects deleting the OIDC configuration when SSO is the only allowed login provider', async () => {
-    prismaMock.loginConfiguration.findUnique.mockResolvedValueOnce({
-      id: 'login-config-id',
-      ssoEnabled: true,
-      allowedProviders: [],
-      oidcConfiguration: { id: 'oidc-config-id', issuer: 'https://example.com', clientId: 'client-id' },
-    });
+  it('rejects deleting the active OIDC configuration when SSO is the only allowed login provider', async () => {
+    mockLoginConfig({ ssoProvider: 'OIDC', allowedProviders: [] });
 
     await expect(teamDb.deleteOidcConfiguration('team-id', 'admin-id')).rejects.toThrow(
       'Cannot delete the SSO configuration because SSO is the only allowed login provider.',
     );
-    expect(prismaMock.oidcConfiguration.deleteMany).not.toHaveBeenCalled();
+    expect(prismaMock.authIdentity.deleteMany).not.toHaveBeenCalled();
+    expect(prismaMock.oidcConfiguration.delete).not.toHaveBeenCalled();
   });
 
-  it('allows deleting the SAML configuration when SSO is not the only allowed login provider', async () => {
-    prismaMock.loginConfiguration.findUnique.mockResolvedValueOnce({
-      id: 'login-config-id',
-      ssoEnabled: true,
-      allowedProviders: ['credentials'],
-      samlConfiguration: { id: 'saml-config-id', idpEntityId: 'entity-id', idpCertificateExpiresAt: null },
-    });
-    prismaMock.teamMember.findMany.mockResolvedValueOnce([]);
-    prismaMock.samlConfiguration.deleteMany.mockResolvedValueOnce({ count: 1 });
+  it('deletes the active SAML configuration, its identities, and resets the SSO provider inside a transaction', async () => {
+    mockLoginConfig({ ssoProvider: 'SAML' });
+    prismaMock.authIdentity.deleteMany.mockResolvedValueOnce({ count: 3 });
+    prismaMock.samlConfiguration.delete.mockResolvedValueOnce({});
     prismaMock.loginConfiguration.update.mockResolvedValueOnce({});
 
     const result = await teamDb.deleteSamlConfiguration('team-id', 'admin-id');
 
-    expect(result.affectedIdentitiesCount).toBe(0);
-    expect(prismaMock.samlConfiguration.deleteMany).toHaveBeenCalled();
+    expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ deletedConfig: SAML_CONFIG, affectedIdentitiesCount: 3 });
+    expect(prismaMock.authIdentity.deleteMany).toHaveBeenCalledWith({ where: { samlConfigurationId: 'saml-config-id' } });
+    expect(prismaMock.samlConfiguration.delete).toHaveBeenCalledWith({ where: { id: 'saml-config-id' } });
     expect(prismaMock.loginConfiguration.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ ssoProvider: 'NONE', ssoEnabled: false }) }),
     );
+  });
+
+  it('deletes the active OIDC configuration and scopes identity cleanup to that configuration', async () => {
+    mockLoginConfig({ ssoProvider: 'OIDC' });
+    prismaMock.authIdentity.deleteMany.mockResolvedValueOnce({ count: 2 });
+    prismaMock.oidcConfiguration.delete.mockResolvedValueOnce({});
+    prismaMock.loginConfiguration.update.mockResolvedValueOnce({});
+
+    const result = await teamDb.deleteOidcConfiguration('team-id', 'admin-id');
+
+    expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ deletedConfig: OIDC_CONFIG, affectedIdentitiesCount: 2 });
+    expect(prismaMock.authIdentity.deleteMany).toHaveBeenCalledWith({ where: { oidcConfigurationId: 'oidc-config-id' } });
+    expect(prismaMock.oidcConfiguration.delete).toHaveBeenCalledWith({ where: { id: 'oidc-config-id' } });
+    expect(prismaMock.loginConfiguration.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ ssoProvider: 'NONE', ssoEnabled: false }) }),
+    );
+  });
+
+  it('deletes an inactive SAML configuration without changing the active OIDC provider', async () => {
+    // allowedProviders is empty, but SAML is not the active provider so the lockout guard does not apply
+    mockLoginConfig({ ssoProvider: 'OIDC', allowedProviders: [] });
+    prismaMock.authIdentity.deleteMany.mockResolvedValueOnce({ count: 0 });
+    prismaMock.samlConfiguration.delete.mockResolvedValueOnce({});
+
+    const result = await teamDb.deleteSamlConfiguration('team-id', 'admin-id');
+
+    expect(result.affectedIdentitiesCount).toBe(0);
+    expect(prismaMock.authIdentity.deleteMany).toHaveBeenCalledWith({ where: { samlConfigurationId: 'saml-config-id' } });
+    expect(prismaMock.samlConfiguration.delete).toHaveBeenCalledWith({ where: { id: 'saml-config-id' } });
+    expect(prismaMock.loginConfiguration.update).not.toHaveBeenCalled();
+  });
+
+  it('deletes an inactive OIDC configuration without changing the active SAML provider', async () => {
+    mockLoginConfig({ ssoProvider: 'SAML' });
+    prismaMock.authIdentity.deleteMany.mockResolvedValueOnce({ count: 0 });
+    prismaMock.oidcConfiguration.delete.mockResolvedValueOnce({});
+
+    await teamDb.deleteOidcConfiguration('team-id', 'admin-id');
+
+    expect(prismaMock.oidcConfiguration.delete).toHaveBeenCalledWith({ where: { id: 'oidc-config-id' } });
+    expect(prismaMock.loginConfiguration.update).not.toHaveBeenCalled();
+  });
+
+  it('throws when there is no SAML configuration to delete and leaves the login configuration untouched', async () => {
+    mockLoginConfig({ ssoProvider: 'NONE', ssoEnabled: false, samlConfiguration: null });
+
+    await expect(teamDb.deleteSamlConfiguration('team-id', 'admin-id')).rejects.toThrow('SAML configuration not found');
+    expect(prismaMock.authIdentity.deleteMany).not.toHaveBeenCalled();
+    expect(prismaMock.samlConfiguration.delete).not.toHaveBeenCalled();
+    expect(prismaMock.loginConfiguration.update).not.toHaveBeenCalled();
+  });
+
+  it('throws when there is no OIDC configuration to delete and leaves the login configuration untouched', async () => {
+    mockLoginConfig({ ssoProvider: 'NONE', ssoEnabled: false, oidcConfiguration: null });
+
+    await expect(teamDb.deleteOidcConfiguration('team-id', 'admin-id')).rejects.toThrow('OIDC configuration not found');
+    expect(prismaMock.authIdentity.deleteMany).not.toHaveBeenCalled();
+    expect(prismaMock.oidcConfiguration.delete).not.toHaveBeenCalled();
+    expect(prismaMock.loginConfiguration.update).not.toHaveBeenCalled();
   });
 });
 
