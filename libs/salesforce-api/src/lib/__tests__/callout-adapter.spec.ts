@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   ApiRequestError,
+  exchangeRefreshToken,
   getApiRequestFactoryFn,
   getUntrustedCertificateErrorMessage,
+  MAX_REDIRECT_HOPS,
   resolveSameOriginRequestUrl,
   sanitizeCallerHeaders,
 } from '../callout-adapter';
@@ -1123,6 +1125,248 @@ describe('callout-adapter XML parsing', () => {
       expect(mockLogger.trace).toHaveBeenCalledWith('[API RESPONSE]: 200');
       expect(mockLogger.trace).toHaveBeenCalledWith({ responseBody: 'ok' });
       expect(mockLogger.debug).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe('callout-adapter redirect handling', () => {
+  const instanceUrl = 'https://test.salesforce.com';
+  const mockSessionInfo = {
+    accessToken: 'test-token',
+    instanceUrl,
+    apiVersion: '65.0',
+    userId: 'test-user-id',
+    organizationId: 'test-org-id',
+  };
+
+  interface MockResponseSpec {
+    status: number;
+    body?: string;
+    headers?: Record<string, string>;
+    type?: ResponseType;
+  }
+
+  const makeResponse = ({ status, body = '', headers = {}, type = 'basic' }: MockResponseSpec) =>
+    ({
+      ok: status >= 200 && status < 300,
+      status,
+      statusText: '',
+      headers: new Headers(headers),
+      type,
+      text: () => Promise.resolve(body),
+      json: () => Promise.resolve(JSON.parse(body)),
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+      clone() {
+        return this;
+      },
+    }) as any;
+
+  /** Mock fetch that answers each call in order, so a redirect chain can be scripted hop by hop. */
+  const createSequencedFetch = (responses: MockResponseSpec[]) => {
+    const queue = [...responses];
+    return vi.fn<FetchFn>(() => {
+      const next = queue.shift();
+      if (!next) {
+        throw new Error('fetch called more times than scripted');
+      }
+      return Promise.resolve(makeResponse(next));
+    });
+  };
+
+  it('always asks the runtime not to follow redirects on its own', async () => {
+    const mockFetch = createSequencedFetch([{ status: 200, body: '{}' }]);
+    const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+    await apiRequest({ url: '/services/data/v65.0/sobjects', sessionInfo: mockSessionInfo });
+
+    expect(mockFetch.mock.calls[0][1].redirect).toBe('manual');
+  });
+
+  it('follows a same-origin redirect and returns the final response with the credentials still attached', async () => {
+    const mockFetch = createSequencedFetch([
+      { status: 302, headers: { Location: '/services/data/v65.0/sobjects/Account/describe' } },
+      { status: 200, body: JSON.stringify({ name: 'Account' }) },
+    ]);
+    const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+    const result = await apiRequest({
+      url: '/services/data/v65.0/sobjects/Account/describe-old',
+      method: 'GET',
+      sessionInfo: mockSessionInfo,
+      outputType: 'json',
+    });
+
+    expect(result).toEqual({ name: 'Account' });
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    const [redirectedUrl, redirectedOptions] = mockFetch.mock.calls[1];
+    expect(redirectedUrl).toBe('https://test.salesforce.com/services/data/v65.0/sobjects/Account/describe');
+    expect(redirectedOptions.redirect).toBe('manual');
+    expect(redirectedOptions.headers).toMatchObject({ Authorization: 'Bearer test-token', 'X-SFDC-SESSION': 'test-token' });
+  });
+
+  it('resolves a relative Location against the URL that was redirected, not the instance root', async () => {
+    const mockFetch = createSequencedFetch([
+      { status: 301, headers: { Location: 'describe' } },
+      { status: 200, body: '{}' },
+    ]);
+    const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+    await apiRequest({ url: '/services/data/v65.0/sobjects/Account/old', method: 'GET', sessionInfo: mockSessionInfo });
+
+    expect(mockFetch.mock.calls[1][0]).toBe('https://test.salesforce.com/services/data/v65.0/sobjects/Account/describe');
+  });
+
+  it.each([
+    ['a 303', 303],
+    ['a 302 of a POST', 302],
+    ['a 301 of a POST', 301],
+  ])('turns %s into a body-less GET without the body headers, as the Fetch standard does', async (_label, status) => {
+    const mockFetch = createSequencedFetch([
+      { status, headers: { Location: '/services/data/v65.0/next' } },
+      { status: 200, body: '{}' },
+    ]);
+    const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+    await apiRequest({
+      url: '/services/data/v65.0/composite',
+      method: 'POST',
+      body: { records: [] },
+      headers: { 'Content-Length': '14', 'X-Custom': 'kept' },
+      sessionInfo: mockSessionInfo,
+    });
+
+    const [, redirectedOptions] = mockFetch.mock.calls[1];
+    expect(redirectedOptions.method).toBe('GET');
+    expect(redirectedOptions.body).toBeUndefined();
+    expect(redirectedOptions.headers).not.toHaveProperty('Content-Type');
+    expect(redirectedOptions.headers).not.toHaveProperty('Content-Length');
+    expect(redirectedOptions.headers).toMatchObject({ 'X-Custom': 'kept', Authorization: 'Bearer test-token' });
+  });
+
+  it.each([
+    ['a 307', 307],
+    ['a 308', 308],
+  ])('re-sends the same method and body for %s', async (_label, status) => {
+    const mockFetch = createSequencedFetch([
+      { status, headers: { Location: '/services/data/v65.0/next' } },
+      { status: 200, body: '{}' },
+    ]);
+    const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+    await apiRequest({ url: '/services/data/v65.0/composite', method: 'POST', body: { records: [] }, sessionInfo: mockSessionInfo });
+
+    const [, redirectedOptions] = mockFetch.mock.calls[1];
+    expect(redirectedOptions.method).toBe('POST');
+    expect(redirectedOptions.body).toBe('{"records":[]}');
+    expect(redirectedOptions.headers).toHaveProperty('Content-Type');
+  });
+
+  it.each([
+    ['another host', 'https://evil.example.com/collect'],
+    ['a protocol-relative URL', '//evil.example.com/collect'],
+    ['plain HTTP on the instance host', 'http://test.salesforce.com/collect'],
+    ['a different Salesforce domain', 'https://other.my.salesforce.com/services/data/v65.0/query'],
+  ])('refuses a redirect to %s and never sends the credentials there', async (_label, location) => {
+    const mockFetch = createSequencedFetch([{ status: 302, headers: { Location: location } }]);
+    const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+    await expect(
+      apiRequest({ url: '/apex/RedirectingPage', method: 'GET', sessionInfo: mockSessionInfo, outputType: 'text' }),
+    ).rejects.toThrow(/Salesforce instance origin/);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives up after the maximum number of hops on a redirect loop', async () => {
+    const mockFetch = vi.fn<FetchFn>(() => Promise.resolve(makeResponse({ status: 302, headers: { Location: '/loop' } })));
+    const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+    await expect(apiRequest({ url: '/loop', method: 'GET', sessionInfo: mockSessionInfo })).rejects.toThrow(
+      `Salesforce redirected more than ${MAX_REDIRECT_HOPS} times`,
+    );
+
+    expect(mockFetch).toHaveBeenCalledTimes(MAX_REDIRECT_HOPS + 1);
+  });
+
+  it('refuses an opaque redirect from a browser fetch, whose Location cannot be inspected', async () => {
+    const mockFetch = createSequencedFetch([{ status: 0, type: 'opaqueredirect' }]);
+    const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+    await expect(apiRequest({ url: '/apex/RedirectingPage', method: 'GET', sessionInfo: mockSessionInfo })).rejects.toThrow(
+      'Salesforce responded with a redirect that cannot be followed securely',
+    );
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('hands a 3xx without a Location header back as an ordinary non-ok response', async () => {
+    const mockFetch = createSequencedFetch([{ status: 304, body: '' }]);
+    const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+    const request = apiRequest({ url: '/services/data/v65.0/sobjects', method: 'GET', sessionInfo: mockSessionInfo });
+    await expect(request).rejects.toBeInstanceOf(ApiRequestError);
+    await expect(request).rejects.toMatchObject({ status: 304 });
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('still refreshes an expired token when the 401 arrives at the end of a redirect', async () => {
+    const refreshTokens = vi.fn(async () => ({ accessToken: 'new-access-token', refreshToken: 'new-refresh-token' }));
+    const mockFetch = vi.fn<FetchFn>((url, options) => {
+      if (url.endsWith('/old')) {
+        return Promise.resolve(makeResponse({ status: 302, headers: { Location: '/services/data/v65.0/new' } }));
+      }
+      if (options.headers && (options.headers as Record<string, string>).Authorization === 'Bearer stale-access-token') {
+        return Promise.resolve(makeResponse({ status: 401, body: JSON.stringify({ message: 'Session expired or invalid' }) }));
+      }
+      return Promise.resolve(makeResponse({ status: 200, body: JSON.stringify({ ok: true }) }));
+    });
+    const apiRequest = getApiRequestFactoryFn(mockFetch)({ refreshTokens });
+
+    const result = await apiRequest({
+      url: '/services/data/v65.0/old',
+      method: 'GET',
+      sessionInfo: { ...mockSessionInfo, accessToken: 'stale-access-token', refreshToken: 'stale-refresh-token', sfdcClientId: 'client' },
+      outputType: 'json',
+    });
+
+    expect(result).toEqual({ ok: true });
+    expect(refreshTokens).toHaveBeenCalledTimes(1);
+    // old -> new (401), then after the refresh old -> new (200)
+    expect(mockFetch.mock.calls.map(([url]) => url)).toEqual([
+      'https://test.salesforce.com/services/data/v65.0/old',
+      'https://test.salesforce.com/services/data/v65.0/new',
+      'https://test.salesforce.com/services/data/v65.0/old',
+      'https://test.salesforce.com/services/data/v65.0/new',
+    ]);
+    expect((mockFetch.mock.calls[3][1].headers as Record<string, string>).Authorization).toBe('Bearer new-access-token');
+  });
+
+  it('reports a connection failure on a redirected hop the same way as on the first request', async () => {
+    const mockFetch = vi.fn<FetchFn>((url) => {
+      if (url.endsWith('/old')) {
+        return Promise.resolve(makeResponse({ status: 302, headers: { Location: '/services/data/v65.0/new' } }));
+      }
+      return Promise.reject(new TypeError('fetch failed', { cause: Object.assign(new Error('reset'), { code: 'ECONNRESET' }) }));
+    });
+    const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+    await expect(apiRequest({ url: '/services/data/v65.0/old', method: 'GET', sessionInfo: mockSessionInfo })).rejects.toMatchObject({
+      status: 502,
+      message: 'The connection to Salesforce failed (ECONNRESET). This is usually temporary - please try again.',
+    });
+  });
+
+  describe('exchangeRefreshToken', () => {
+    it('tells the runtime to fail on any redirect from the token endpoint', async () => {
+      const mockFetch = createSequencedFetch([{ status: 200, body: JSON.stringify({ access_token: 'a', refresh_token: 'r' }) }]);
+
+      await expect(
+        exchangeRefreshToken(mockFetch, { ...mockSessionInfo, refreshToken: 'r', sfdcClientId: 'id', sfdcClientSecret: 'secret' }),
+      ).resolves.toEqual({ access_token: 'a', refresh_token: 'r' });
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockFetch.mock.calls[0][0]).toBe('https://test.salesforce.com/services/oauth2/token');
+      expect(mockFetch.mock.calls[0][1].redirect).toBe('error');
     });
   });
 });
