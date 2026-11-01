@@ -55,6 +55,10 @@ routes.use('/', async (req: express.Request, res: express.Response, next: expres
     if (!result) {
       throw new Error('A valid salesforce org must be included with the request');
     }
+    // The client may have left during the org lookup, after `close` already fired - don't start a long-poll for it
+    if (res.destroyed) {
+      return;
+    }
     const jetstreamConn = result.jetstreamConn;
     const proxyPath = req.originalUrl.replace('/platform-event', `/cometd/${ENV.SFDC_API_VERSION}`);
     const proxyUrl = `${jetstreamConn.sessionInfo.instanceUrl}${proxyPath}`;

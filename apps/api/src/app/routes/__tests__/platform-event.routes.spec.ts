@@ -7,6 +7,7 @@ import platformEventRoutes from '../platform-event.routes';
 const mocks = vi.hoisted(() => ({
   proxyRequests: [] as Array<import('node:stream').PassThrough & { destroy: ReturnType<typeof vi.fn> }>,
   logger: { trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+  onOrgLookup: async () => undefined,
 }));
 
 vi.mock('@jetstream/api-config', () => ({
@@ -20,9 +21,10 @@ vi.mock('@jetstream/api-config', () => ({
 
 vi.mock('../route.middleware', () => ({
   checkAuth: (_req: express.Request, _res: express.Response, next: express.NextFunction) => next(),
-  getOrgFromHeaderOrQuery: vi.fn(async () => ({
-    jetstreamConn: { sessionInfo: { instanceUrl: 'https://example.my.salesforce.com', accessToken: 'token' } },
-  })),
+  getOrgFromHeaderOrQuery: vi.fn(async () => {
+    await mocks.onOrgLookup();
+    return { jetstreamConn: { sessionInfo: { instanceUrl: 'https://example.my.salesforce.com', accessToken: 'token' } } };
+  }),
 }));
 
 // A CometD long-poll: Salesforce accepts the request and holds it open without responding
@@ -45,15 +47,20 @@ describe('platform-event proxy', () => {
     await new Promise((resolve) => server?.close(resolve));
     server = undefined;
     mocks.proxyRequests.length = 0;
+    mocks.onOrgLookup = async () => undefined;
     vi.clearAllMocks();
   });
 
-  it('destroys the upstream long-poll when the client disconnects before Salesforce responds', async () => {
+  async function startServer() {
     const app = express();
     app.use('/platform-event', platformEventRoutes);
     server = app.listen(0);
     await new Promise((resolve) => server?.once('listening', resolve));
-    const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/platform-event/connect`;
+    return `http://127.0.0.1:${(server.address() as AddressInfo).port}/platform-event/connect`;
+  }
+
+  it('destroys the upstream long-poll when the client disconnects before Salesforce responds', async () => {
+    const url = await startServer();
 
     const abortController = new AbortController();
     const response = fetch(url, { method: 'POST', body: '[]', signal: abortController.signal });
@@ -63,5 +70,25 @@ describe('platform-event proxy', () => {
     await expect(response).rejects.toThrow();
     await vi.waitFor(() => expect(mocks.proxyRequests[0].destroy).toHaveBeenCalled());
     expect(mocks.logger.error).not.toHaveBeenCalled();
+  });
+
+  it('does not start a long-poll when the client disconnects during the org lookup', async () => {
+    const url = await startServer();
+    const abortController = new AbortController();
+    let resolveLookupFinished: () => void = () => undefined;
+    const isLookupFinished = new Promise<void>((resolve) => {
+      resolveLookupFinished = resolve;
+    });
+    mocks.onOrgLookup = async () => {
+      abortController.abort();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      resolveLookupFinished();
+    };
+
+    await expect(fetch(url, { method: 'POST', body: '[]', signal: abortController.signal })).rejects.toThrow();
+    await isLookupFinished;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(mocks.proxyRequests).toHaveLength(0);
   });
 });
