@@ -22,6 +22,7 @@ const prismaMock = vi.hoisted(() => ({
   },
   authFactors: { findFirstOrThrow: vi.fn() },
   emailChangeRequest: { updateMany: vi.fn() },
+  $queryRaw: vi.fn(),
   // recordFailedLoginAttempt wraps its read-modify-write; run the callback against the same mock.
   $transaction: vi.fn(async (callback: (tx: unknown) => unknown) => callback(prismaMock)),
 }));
@@ -226,6 +227,9 @@ describe('removePasswordFromUser', () => {
 
     expect(result).toEqual(AUTHENTICATED_USER);
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+    // The user row lock must be held before the login methods are checked, or a concurrent unlink can slip in
+    expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(prismaMock.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(prismaMock.user.findUniqueOrThrow.mock.invocationCallOrder[0]);
     expect(prismaMock.user.update).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: USER_A }, data: expect.objectContaining({ password: null }) }),
     );

@@ -1134,12 +1134,21 @@ export const resetUserPassword = async (email: string, token: string, password: 
 };
 
 /**
+ * Serializes changes to a user's login methods on their row lock. Removing the password and unlinking an
+ * identity each check that the other login method still exists before removing their own; without the lock,
+ * concurrent requests could both pass that check and leave the user with no way to log in.
+ */
+async function lockUserForLoginMethodChange(tx: Prisma.TransactionClient, userId: string) {
+  await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId}::uuid FOR UPDATE`;
+}
+
+/**
  * Remove the password from a user, as long as they have an OAuth identity to log in with instead.
  * SSO identities do not count as an alternative because SSO login depends on the team's configuration.
- * The check and update run in one transaction so this cannot race with unlinking the last OAuth identity.
  */
 export const removePasswordFromUser = async (id: string) => {
   return prisma.$transaction(async (tx) => {
+    await lockUserForLoginMethodChange(tx, id);
     const UNSAFE_userWithPassword = await tx.user.findUniqueOrThrow({
       select: { id: true, password: true, identities: { select: { provider: true, type: true } } },
       where: { id },
@@ -1345,6 +1354,7 @@ export async function removeIdentityFromUser(
   currentSessionId?: Maybe<string>,
 ): Promise<void> {
   const revoked = await prisma.$transaction(async (tx) => {
+    await lockUserForLoginMethodChange(tx, userId);
     const { hasPasswordSet, identities } = await tx.user.findFirstOrThrow({
       where: { id: userId },
       select: {
