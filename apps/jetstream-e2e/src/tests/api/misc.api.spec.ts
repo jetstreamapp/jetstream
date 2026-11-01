@@ -12,11 +12,35 @@ test.describe('API - Misc', () => {
     const file = await apiRequestUtils.makeRequestRaw(
       'GET',
       `/api/file/stream-download?${new URLSearchParams({
-        url: '/services/data/v60.0/sobjects/ContentVersion/068Dn00000BSXTsIAP/VersionData&X-SFDC-ID=00DDn000006Cfm2MAC-005Dn000003DuJgIAK',
+        url: '/services/data/v60.0/sobjects/ContentVersion/068Dn00000BSXTsIAP/VersionData',
       }).toString()}`,
     );
 
     expect(file).toBeTruthy();
+    // The record may not exist in the test org, but a blob field path must at least pass validation
+    expect(file.status()).not.toBe(400);
+  });
+
+  test('Stream file download refuses paths that are not a record blob field', async ({ apiRequestUtils }) => {
+    const response = await apiRequestUtils.makeRequestRaw(
+      'GET',
+      `/api/file/stream-download?${new URLSearchParams({
+        url: '/services/data/v60.0/tooling/executeAnonymous/?anonymousBody=System.debug(1)',
+      }).toString()}`,
+    );
+
+    expect(response.status()).toBe(400);
+  });
+
+  test('Org id is not accepted from the query string on API routes', async ({ apiRequestUtils }) => {
+    const response = await apiRequestUtils.makeRequestRaw(
+      'GET',
+      `/api/describe?${new URLSearchParams({ 'X-SFDC-ID': apiRequestUtils.selectedOrgId }).toString()}`,
+      undefined,
+      { 'X-SFDC-ID': '' },
+    );
+
+    expect(response.status()).toBe(400);
   });
 
   test('Request - POST', async ({ apiRequestUtils }) => {

@@ -1,4 +1,4 @@
-import { SalesforceApiRequestSchema, SalesforceRequestManualRequestSchema } from '@jetstream/api-types';
+import { SalesforceApiRequestSchema, SalesforceRequestManualRequestSchema, SObjectBlobFieldUrlSchema } from '@jetstream/api-types';
 import { FetchResponse } from '@jetstream/salesforce-api';
 import { type ManualRequestResponse } from '@jetstream/types';
 import { z } from 'zod';
@@ -9,7 +9,7 @@ export const routeDefinition = {
     controllerFn: () => streamFileDownload,
     validators: {
       query: z.object({
-        url: z.string().min(1),
+        url: SObjectBlobFieldUrlSchema,
       }),
     } satisfies RouteValidator,
   },

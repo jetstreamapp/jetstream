@@ -134,4 +134,16 @@ test.describe('API - Query', () => {
 
     expect(queryMore.queryResults.done).toBeTruthy();
   });
+
+  test('Query more refuses a cursor that is not a query locator', async ({ apiRequestUtils }) => {
+    const response = await apiRequestUtils.makeRequestRaw(
+      'GET',
+      `/api/query-more?${new URLSearchParams({
+        isTooling: 'false',
+        nextRecordsUrl: '/services/data/v60.0/tooling/executeAnonymous/?anonymousBody=System.debug(1)',
+      }).toString()}`,
+    );
+
+    expect(response.status()).toBe(400);
+  });
 });
