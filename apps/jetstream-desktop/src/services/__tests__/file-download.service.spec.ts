@@ -5,6 +5,7 @@ import { link } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { claimAvailableDownloadPath, releaseDownloadPath } from '../../utils/download-path.utils';
 import { downloadAndZipFilesToDisk, downloadBulkApiFileAndSaveToDisk } from '../file-download.service';
 import { getUserPreferences } from '../persistence.service';
 
@@ -26,7 +27,7 @@ vi.mock('../persistence.service', () => ({
 }));
 
 vi.mock('../../utils/utils', () => ({
-  setRecentDocument: vi.fn(),
+  markDownloadCompleted: vi.fn(),
   toSafeDownloadFileName: (fileName: string) => fileName,
 }));
 
@@ -156,6 +157,18 @@ describe('file-download.service', () => {
     expect(await fs.readFile(filePath, 'utf8')).toBe('Id\n001A\n');
     expect(await fs.readFile(join(mocks.downloadDir, 'results.csv'), 'utf8')).toBe('existing');
     expect(await fs.readFile(join(mocks.downloadDir, 'results (1).csv'), 'utf8')).toBe('existing 1');
+  });
+
+  it('skips a name claimed by a browser download that has not finished yet', async () => {
+    const claimedPath = claimAvailableDownloadPath(join(mocks.downloadDir, 'results.csv'));
+    try {
+      const result = await downloadResultsCsv(createBulkConn(async () => new Response('Id\n001A\n').body));
+
+      expect(claimedPath).toBe(join(mocks.downloadDir, 'results.csv'));
+      expect(result).toEqual({ success: true, filePath: join(mocks.downloadDir, 'results (1).csv') });
+    } finally {
+      releaseDownloadPath(claimedPath as string);
+    }
   });
 
   it('gives concurrent downloads of the same file their own names, and a failure does not touch the other file', async () => {

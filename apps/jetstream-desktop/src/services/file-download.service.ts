@@ -7,13 +7,12 @@ import logger from 'electron-log';
 import { randomUUID } from 'node:crypto';
 import { constants, createWriteStream, existsSync } from 'node:fs';
 import { copyFile, link, rename, rm } from 'node:fs/promises';
-import { basename, extname, join } from 'node:path';
+import { basename, join } from 'node:path';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
-import { setRecentDocument, toSafeDownloadFileName } from '../utils/utils';
+import { getCandidateFilePaths, isDownloadPathClaimed } from '../utils/download-path.utils';
+import { markDownloadCompleted, toSafeDownloadFileName } from '../utils/utils';
 import { getUserPreferences } from './persistence.service';
-
-const MAX_NUMBERED_FILE_NAME_ATTEMPTS = 1000;
 
 interface DownloadTarget {
   filePath: string;
@@ -28,12 +27,6 @@ function emitProgress(sender: Maybe<WebContents>, progress: DownloadZipProgress)
 
 function isFileExistsError(ex: unknown) {
   return (ex as NodeJS.ErrnoException)?.code === 'EEXIST';
-}
-
-/** `results.csv` -> `results (2).csv` */
-function getNumberedFilePath(filePath: string, number: number) {
-  const extension = extname(filePath);
-  return `${filePath.slice(0, filePath.length - extension.length)} (${number})${extension}`;
 }
 
 /**
@@ -65,8 +58,11 @@ async function copyToNewPath(sourcePath: string, targetPath: string) {
  * like a browser does. Each name is claimed exclusively, so two downloads finishing together never get the same one.
  */
 async function moveToAvailablePath(tempFilePath: string, filePath: string): Promise<string> {
-  for (let attempt = 0; attempt < MAX_NUMBERED_FILE_NAME_ATTEMPTS; attempt++) {
-    const candidatePath = attempt === 0 ? filePath : getNumberedFilePath(filePath, attempt);
+  for (const candidatePath of getCandidateFilePaths(filePath)) {
+    // claimed by a Chromium download that has not created its file yet
+    if (isDownloadPathClaimed(candidatePath)) {
+      continue;
+    }
     try {
       await copyToNewPath(tempFilePath, candidatePath);
       await rm(tempFilePath, { force: true });
@@ -182,7 +178,7 @@ export async function downloadAndZipFilesToDisk(
     const downloadPath = await writeDownloadToFile(nodeStream, downloadTarget);
 
     logger.info(`Zip file downloaded successfully: ${downloadPath}`);
-    setRecentDocument(downloadPath);
+    markDownloadCompleted(downloadPath);
 
     return { success: true, filePath: downloadPath };
   } catch (error) {
@@ -244,7 +240,7 @@ export async function downloadBulkApiFileAndSaveToDisk({
     const downloadPath = await writeDownloadToFile(Readable.fromWeb(results as any), downloadTarget);
 
     logger.info(`File downloaded successfully: ${downloadPath}`);
-    setRecentDocument(downloadPath);
+    markDownloadCompleted(downloadPath);
 
     return { success: true, filePath: downloadPath };
   } catch (error) {
