@@ -3,9 +3,8 @@ import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { Field, FieldType, SalesforceOrgUi } from '@jetstream/types';
-import { AxeIllustration, EmptyState, Grid, GridCol, Icon, Modal, Spinner } from '@jetstream/ui';
+import { AxeIllustration, CopyToClipboard, EmptyState, Grid, GridCol, Modal, Spinner } from '@jetstream/ui';
 import { MonacoEditor } from '@jetstream/ui-core';
-import copyToClipboard from 'copy-to-clipboard';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { RecordToApexOptionsInitialOptions, recordToApex, recordsToApex } from '../utils/query-apex-utils';
 import QueryResultsGetRecAsApexFieldOptions from './QueryResultsGetRecAsApexFieldOptions';
@@ -81,14 +80,6 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
     setOptions((options) => ({ ...options, ...partialOptions }));
   }, []);
 
-  async function handleCopyToClipboard() {
-    try {
-      await copyToClipboard(apex, { format: 'text/plain' });
-    } catch (ex) {
-      logger.warn('[COPY TO CLIPBOARD ERROR]', ex);
-    }
-  }
-
   function handleEditorChange(value?: string, _event?: unknown) {
     setApex(value || '');
   }
@@ -131,10 +122,14 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
               {/* Generation Options */}
               <QueryResultsGetRecAsApexGenerateOptions isList={hasMultipleRecords} onChange={handleOptionsChange} />
               <hr className="slds-m-vertical_medium" />
-              <button className="slds-button slds-button_neutral" onClick={handleCopyToClipboard} disabled={loading}>
-                <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                Copy to Clipboard
-              </button>
+              {/* The shared control keeps focus after copying and announces the success */}
+              <CopyToClipboard
+                type="button"
+                buttonText="Copy to Clipboard"
+                className="slds-button_neutral"
+                content={apex}
+                disabled={loading}
+              />
             </GridCol>
             <GridCol
               css={css`

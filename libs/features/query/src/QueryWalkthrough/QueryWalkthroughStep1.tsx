@@ -1,9 +1,9 @@
 export const QueryWalkthroughStep1 = () => {
   return (
     <div>
-      <p className="slds-text-heading_small">
+      <h3 className="slds-text-heading_small">
         Jetstream helps you easily create powerful queries (searches) to fetch records from your Salesforce org.
-      </p>
+      </h3>
       <p className="slds-m-top_small">The main flow is simple:</p>
       <ol className="slds-list_ordered slds-m-vertical_small">
         <li>Search for and select an object from the list on the left.</li>
