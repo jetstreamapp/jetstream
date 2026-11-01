@@ -1,21 +1,19 @@
-import { ENV, getLogger, httpLogger, installProcessErrorHandlers, logger, requestContextMiddleware } from '@jetstream/api-config';
+import {
+  createRateLimit,
+  ENV,
+  getLogger,
+  httpLogger,
+  installProcessErrorHandlers,
+  logger,
+  requestContextMiddleware,
+} from '@jetstream/api-config';
 import { GeoIpLookupResult } from '@jetstream/types';
-import { json, urlencoded } from 'body-parser';
+import { json } from 'body-parser';
 import express from 'express';
-import { createHash, timingSafeEqual } from 'node:crypto';
 import { z, ZodError } from 'zod';
+import { hasValidBasicAuthCredentials } from './basic-auth';
 import { downloadMaxMindDb, initMaxMind, lookupIpAddress, validateIpAddress } from './maxmind.service';
 import { createRoute } from './route.utils';
-
-/**
- * Constant-time credential comparison. Both values are hashed to a fixed-length digest first so the
- * comparison does not leak length and does not throw on mismatched lengths.
- */
-function timingSafeStringCompare(providedValue: string, expectedValue: string): boolean {
-  const providedHash = createHash('sha256').update(String(providedValue)).digest();
-  const expectedHash = createHash('sha256').update(String(expectedValue)).digest();
-  return timingSafeEqual(providedHash, expectedHash);
-}
 
 installProcessErrorHandlers();
 
@@ -26,10 +24,16 @@ if (ENV.ENVIRONMENT !== 'development' && (!ENV.GEO_IP_API_USERNAME || !ENV.GEO_I
   process.exit(1);
 }
 
+/**
+ * The only request body is a lookup batch of at most 1000 IP strings (about 50 KB), parsed per route and only
+ * after the request is authenticated.
+ */
+const LOOKUP_BODY_LIMIT = '256kb';
+/** Longer than any textual IPv4 or IPv6 address, including a zone index. */
+const MAX_IP_ADDRESS_LENGTH = 100;
+
 const app = express();
 
-app.use(json({ limit: '20mb', inflate: false }));
-app.use(urlencoded({ extended: true, inflate: false }));
 app.use(httpLogger);
 app.use(requestContextMiddleware);
 
@@ -41,43 +45,31 @@ app.use('/healthz', (_, res) => {
   });
 });
 
+const hasValidCredentials = (req: express.Request) =>
+  hasValidBasicAuthCredentials(req.headers.authorization, ENV.GEO_IP_API_USERNAME, ENV.GEO_IP_API_PASSWORD);
+
+// Throttles requests without valid credentials. Authenticated callers skip the limiter entirely, so a flood of bad
+// requests can never use up the limit of the services that call this one. It keys on the connecting address (this
+// app does not trust proxy headers), which may be a shared proxy address; that only groups unauthenticated callers.
+app.use(
+  createRateLimit('geo_ip_unauthenticated', {
+    windowMs: 1000 * 60 * 1, // 1 minute
+    limit: 30,
+    skip: hasValidCredentials,
+    validate: { xForwardedForHeader: false },
+  }),
+);
+
 app.use((req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (typeof authHeader !== 'string') {
-      throw new Error('Unauthorized');
-    }
-    const [type, token] = authHeader.split(' ');
-    if (type !== 'Basic') {
-      throw new Error('Unauthorized');
-    }
-    // Fail closed: if the expected credentials aren't configured, reject rather than letting the
-    // empty-string default match an empty `:` Basic header (a bypass reachable in development).
-    const expectedUsername = ENV.GEO_IP_API_USERNAME;
-    const expectedPassword = ENV.GEO_IP_API_PASSWORD;
-    if (!expectedUsername || !expectedPassword) {
-      throw new Error('Unauthorized');
-    }
-    // Per RFC 7617 the userid cannot contain a colon but the password may, so split on the first colon only.
-    const decodedCredentials = Buffer.from(token, 'base64').toString();
-    const separatorIndex = decodedCredentials.indexOf(':');
-    const username = separatorIndex === -1 ? decodedCredentials : decodedCredentials.slice(0, separatorIndex);
-    const password = separatorIndex === -1 ? '' : decodedCredentials.slice(separatorIndex + 1);
-    // Evaluate both comparisons (no short-circuit) with a constant-time compare so response time
-    // does not reveal whether the username alone was correct.
-    const usernameMatches = timingSafeStringCompare(username ?? '', expectedUsername);
-    const passwordMatches = timingSafeStringCompare(password ?? '', expectedPassword);
-    if (!usernameMatches || !passwordMatches) {
-      throw new Error('Unauthorized');
-    }
+  if (hasValidCredentials(req)) {
     next();
-  } catch {
-    res.header('WWW-Authenticate', 'Basic realm="Geo IP API"');
-    res.status(401).json({
-      success: false,
-      message: 'Unauthorized',
-    });
+    return;
   }
+  res.header('WWW-Authenticate', 'Basic realm="Geo IP API"');
+  res.status(401).json({
+    success: false,
+    message: 'Unauthorized',
+  });
 });
 
 app.post(
@@ -104,7 +96,7 @@ app.post(
  */
 app.get(
   '/api/lookup',
-  createRoute({ query: z.object({ ip: z.string() }) }, async ({ query }, _, res, next) => {
+  createRoute({ query: z.object({ ip: z.string().max(MAX_IP_ADDRESS_LENGTH) }) }, async ({ query }, _, res, next) => {
     try {
       const ipAddress = query.ip;
       await initMaxMind(DISK_PATH);
@@ -129,7 +121,8 @@ app.get(
  */
 app.post(
   '/api/lookup',
-  createRoute({ body: z.object({ ips: z.string().array().max(1000) }) }, async ({ body }, _, res, next) => {
+  json({ limit: LOOKUP_BODY_LIMIT, inflate: false }),
+  createRoute({ body: z.object({ ips: z.string().max(MAX_IP_ADDRESS_LENGTH).array().max(1000) }) }, async ({ body }, _, res, next) => {
     try {
       const ipAddresses = body.ips;
       await initMaxMind(DISK_PATH);
