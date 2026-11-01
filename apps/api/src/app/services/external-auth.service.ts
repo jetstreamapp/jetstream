@@ -33,6 +33,17 @@ const SECONDS_PER_DAY = 60 * 60 * 24;
 
 export type Audience = typeof AUDIENCE_WEB_EXT | typeof AUDIENCE_DESKTOP;
 
+const ALL_AUDIENCES: Audience[] = [AUDIENCE_WEB_EXT, AUDIENCE_DESKTOP];
+
+/**
+ * The cache is shared by the browser-extension and desktop middlewares, so the audience is part of the key: a token
+ * verified for one audience must never be served from cache to a route enforcing the other one, since that would
+ * skip the audience, entitlement and access-profile checks that verifyToken performs per audience.
+ */
+function getCacheKey(audience: Audience, accessToken: string, deviceId: string): string {
+  return `${audience}|${accessToken}-${deviceId}`;
+}
+
 function getSurfaceForAudience(audience: Audience): AccessProfileSurfaceKey {
   return audience === AUDIENCE_DESKTOP ? 'desktop' : 'browser-extension';
 }
@@ -98,9 +109,9 @@ export async function issueAccessToken(payload: UserProfileUi, audience: Audienc
   return await generateJwt({ payload, durationMs: durationMs ?? TOKEN_EXPIRATION }, audience);
 }
 
+/** Evicts the token for every audience, so a rotated or revoked token cannot linger in the cache under either one */
 export function invalidateCacheEntry(accessToken: string, deviceId: string): void {
-  const cacheKey = `${accessToken}-${deviceId}`;
-  cache.delete(cacheKey);
+  ALL_AUDIENCES.forEach((audience) => cache.delete(getCacheKey(audience, accessToken, deviceId)));
 }
 
 /**
@@ -334,9 +345,11 @@ export async function getUserAndDeviceIdForExternalAuth(
 
     let user: UserProfileSession | null = null;
     if (accessToken && deviceId) {
-      const cacheKey = `${accessToken}-${deviceId}`;
+      const cacheKey = getCacheKey(audience, accessToken, deviceId);
       const userFromCache = skipCache ? undefined : cache.get(cacheKey);
-      if (!userFromCache || userFromCache.exp < Date.now() / 1000) {
+      // The audience is already part of the key; comparing it again on a hit guards against any future keying change
+      // re-opening cross-audience reuse. A mismatch falls through to full verification, which rejects the token.
+      if (!userFromCache || userFromCache.aud !== audience || userFromCache.exp < Date.now() / 1000) {
         try {
           const decodedJwtToken = await verifyToken({ token: accessToken, deviceId }, audience);
           user = convertUserProfileToSession_External(decodedJwtToken.userProfile);

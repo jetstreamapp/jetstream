@@ -105,6 +105,9 @@ const callbackHandler = createRoute(routeDefinition.callbackHandler.validators, 
 
 const appHandler = createRoute(routeDefinition.appHandler.validators, async ({ body = {}, query }, _req, res) => {
   try {
+    // Every branch below relies on the Canvas credentials: the signed-request branch verifies the HMAC with
+    // clientSecret, so a missing secret must fail closed here rather than fall back to the placeholder value.
+    throwIfEnvNotConfigured();
     const { signed_request } = body;
     // eslint-disable-next-line prefer-const
     let { _sfdc_canvas_auth, loginUrl } = query;
@@ -115,7 +118,6 @@ const appHandler = createRoute(routeDefinition.appHandler.validators, async ({ b
      * The user will login using OAuth
      */
     if (_sfdc_canvas_auth === 'user_approval_required') {
-      throwIfEnvNotConfigured();
       // Express has already decoded the query string once, and the Canvas SDK in the browser decodes the
       // page's `?loginUrl=` exactly once too. Decoding a second time here would validate a different string
       // than the one the SDK ends up using, so an encoded `%2F` could pass the host check and still point

@@ -6,6 +6,7 @@ const loggerMock = vi.hoisted(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.f
 // true on the first time a key is seen and false thereafter, mirroring the atomic INSERT semantics.
 const consumedKeys = vi.hoisted(() => new Set<string>());
 const validatePostResponseAsyncMock = vi.hoisted(() => vi.fn());
+const samlConstructorMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@jetstream/api-config', () => ({
   ENV: {},
@@ -27,6 +28,9 @@ vi.mock('@jetstream/api-config', () => ({
 
 vi.mock('@node-saml/node-saml', () => ({
   SAML: class {
+    constructor(options: unknown) {
+      samlConstructorMock(options);
+    }
     validatePostResponseAsync = validatePostResponseAsyncMock;
   },
   ValidateInResponseTo: { never: 'never', ifPresent: 'ifPresent', always: 'always' },
@@ -52,9 +56,12 @@ const sampleMetadata = `
 </EntityDescriptor>
 `;
 
+const IDP_ENTITY_ID = 'https://idp.example.com/metadata';
+
 const samlConfig = {
   entityId: 'https://sp.example.com',
   acsUrl: 'https://sp.example.com/acs',
+  idpEntityId: IDP_ENTITY_ID,
   idpSsoUrl: 'https://idp.example.com/sso',
   idpCertificate: 'CERT',
   nameIdFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
@@ -64,7 +71,9 @@ const samlConfig = {
   spCertificate: null,
 } as any;
 
-const buildProfile = (assertionId: string, overrides: { issueInstant?: string; nameID?: string } = {}) => ({
+/** A verified profile as node-saml returns it; `issuer: null` builds an assertion that carries no <Issuer> */
+const buildProfile = (assertionId: string, overrides: { issueInstant?: string; nameID?: string; issuer?: string | null } = {}) => ({
+  ...(overrides.issuer === null ? {} : { issuer: overrides.issuer ?? IDP_ENTITY_ID }),
   nameID: overrides.nameID ?? 'user@example.com',
   nameIDFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
   getAssertion: () => ({
@@ -107,12 +116,49 @@ describe('samlService', () => {
     ).toThrow(/Email not found/i);
   });
 
-  it('accepts a valid SAML assertion on first use', async () => {
-    validatePostResponseAsyncMock.mockResolvedValue({ profile: buildProfile('assertion-abc'), loggedOut: false });
+  it('accepts a valid SAML assertion issued by the configured IdP on first use', async () => {
+    validatePostResponseAsyncMock.mockResolvedValue({
+      profile: buildProfile('assertion-abc', { issuer: IDP_ENTITY_ID }),
+      loggedOut: false,
+    });
 
     const profile = await samlService.validateSamlResponse('<SAMLResponse/>', samlConfig, 'team-1');
 
     expect(profile.nameID).toBe('user@example.com');
+  });
+
+  it('passes the configured IdP entity ID to node-saml as idpIssuer', async () => {
+    validatePostResponseAsyncMock.mockResolvedValue({ profile: buildProfile('assertion-idp-issuer'), loggedOut: false });
+
+    await samlService.validateSamlResponse('<SAMLResponse/>', samlConfig, 'team-1');
+
+    expect(samlConstructorMock).toHaveBeenCalledWith(expect.objectContaining({ idpIssuer: IDP_ENTITY_ID }));
+  });
+
+  it('rejects an assertion issued by a different IdP, even though its signature verified', async () => {
+    validatePostResponseAsyncMock.mockResolvedValue({
+      profile: buildProfile('assertion-other-tenant', { issuer: 'https://idp.example.com/other-tenant' }),
+      loggedOut: false,
+    });
+
+    await expect(samlService.validateSamlResponse('<SAMLResponse/>', samlConfig, 'team-1')).rejects.toThrow(
+      /not issued by the configured identity provider/i,
+    );
+    // Rejected before the replay gate, so nothing was recorded as consumed
+    expect(consumedKeys.size).toBe(0);
+    expect(loggerMock.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ teamId: 'team-1', expectedIssuer: IDP_ENTITY_ID, actualIssuer: 'https://idp.example.com/other-tenant' }),
+      expect.any(String),
+    );
+  });
+
+  it('rejects an assertion that carries no issuer', async () => {
+    validatePostResponseAsyncMock.mockResolvedValue({ profile: buildProfile('assertion-no-issuer', { issuer: null }), loggedOut: false });
+
+    await expect(samlService.validateSamlResponse('<SAMLResponse/>', samlConfig, 'team-1')).rejects.toThrow(
+      /not issued by the configured identity provider/i,
+    );
+    expect(consumedKeys.size).toBe(0);
   });
 
   it('rejects replaying the same assertion a second time', async () => {
@@ -126,7 +172,7 @@ describe('samlService', () => {
 
   it('fails closed when no assertion identifier can be derived', async () => {
     validatePostResponseAsyncMock.mockResolvedValue({
-      profile: { nameID: 'user@example.com', getAssertion: () => ({ Assertion: { $: {} } }) },
+      profile: { issuer: IDP_ENTITY_ID, nameID: 'user@example.com', getAssertion: () => ({ Assertion: { $: {} } }) },
       loggedOut: false,
     });
 

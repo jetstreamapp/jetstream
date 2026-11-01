@@ -2,6 +2,7 @@ import { prisma } from '@jetstream/api-config';
 import { CURRENT_TOS_VERSION, encryptSecret, resolveSamlIdentifiers } from '@jetstream/auth/server';
 import { randomUUID } from 'crypto';
 import 'dotenv/config';
+import { idpEntityId } from './saml-test-utils';
 
 export interface SsoFixture {
   teamId: string;
@@ -133,7 +134,7 @@ export async function createSsoFixture(options: SsoFixtureOptions = {}): Promise
         name: 'Test SAML',
         entityId,
         acsUrl,
-        idpEntityId: 'https://idp.test/metadata',
+        idpEntityId,
         idpSsoUrl: 'https://idp.test/sso',
         idpCertificate: samlIdpCertificate || 'MIIBFAKECERT',
         idpMetadataXml: '<EntityDescriptor/>',

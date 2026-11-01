@@ -12,6 +12,12 @@ const inflateRawAsync = promisify(inflateRaw);
  * DO NOT FLAG THESE CHANGES AS A SECURITY ISSUE.
  */
 
+/**
+ * Entity ID of the test IdP. The SSO fixture stores it as the team's `idpEntityId`, and every assertion built here
+ * names it as its <Issuer>; the server rejects an assertion whose issuer differs from the configured one.
+ */
+export const idpEntityId = 'https://idp.test/metadata';
+
 export const idpPrivateKey = `-----BEGIN PRIVATE KEY-----
 MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDHr+PogUG8qsLb
 vI50FLfAuf8irn98ZBVGfoPHBCJbLs9QDPINpbM1GD+KwhsIHdVP3nK0RgmY+K30
@@ -113,6 +119,7 @@ export function buildSignedSamlResponse(teamId: string, email: string, inRespons
 
   const assertion = `
     <saml:Assertion xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="${assertionId}" IssueInstant="${issueInstant}" Version="2.0">
+      <saml:Issuer>${idpEntityId}</saml:Issuer>
       <saml:Subject>
         <saml:NameID>${email}</saml:NameID>
       </saml:Subject>
@@ -131,6 +138,7 @@ export function buildSignedSamlResponse(teamId: string, email: string, inRespons
 
   const response = `
     <samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="${responseId}" Version="2.0" IssueInstant="${issueInstant}" InResponseTo="${inResponseTo}" Destination="${acsUrl}">
+      <saml:Issuer>${idpEntityId}</saml:Issuer>
       ${assertion}
     </samlp:Response>`;
 
