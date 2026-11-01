@@ -129,7 +129,9 @@ async function resolveUsableTeamCustomer(customerId: string | undefined): Promis
 /**
  * The buyer's own customer: the one on their billing account, or when they have none yet, one an earlier checkout
  * created but never completed, so repeat visits stop minting a new customer each time. A deleted customer cannot
- * open Checkout, so it counts as none and checkout creates a fresh one, which the completed session then binds.
+ * open Checkout, so it counts as none and the same search runs: the account keeps pointing at the deleted customer
+ * until a replacement's checkout completes, and without the search every visit after the idempotency key expires
+ * would create another replacement.
  */
 async function resolvePersonalCustomer(user: {
   id: string;
@@ -142,8 +144,8 @@ async function resolvePersonalCustomer(user: {
   }
   const customer = await stripeService.fetchCustomerWithSubscriptionsById({ customerId });
   if (customer.deleted) {
-    getLogger().warn({ customerId }, 'Billing account points at a deleted Stripe customer; checkout will create a new one');
-    return undefined;
+    getLogger().warn({ customerId }, 'Billing account points at a deleted Stripe customer; checkout will use a replacement');
+    return (await stripeService.findReusableCustomerForUser({ user })) ?? undefined;
   }
   return customer;
 }

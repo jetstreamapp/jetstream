@@ -430,8 +430,20 @@ describe('billing.controller - createCheckoutSession', () => {
       const { next } = await runCheckout({ priceLookupKey: 'PRO_MONTHLY' });
 
       expect(next).not.toHaveBeenCalled();
-      expect(mocks.findReusableCustomerForUser).not.toHaveBeenCalled();
       expect(getCheckoutSessionArgs().customerId).toBeUndefined();
+    });
+
+    // The account keeps pointing at the deleted customer until a replacement's checkout completes, so a later visit
+    // must find that replacement rather than mint another one once the idempotency key expires
+    it('reuses the replacement an earlier checkout created when the billing account customer was deleted', async () => {
+      mocks.fetchCustomerWithSubscriptionsById.mockResolvedValue({ id: PERSONAL_CUSTOMER_ID, deleted: true });
+      mocks.findReusableCustomerForUser.mockResolvedValue({ id: 'cus_replacement', subscriptions: { data: [] } });
+
+      const { next } = await runCheckout({ priceLookupKey: 'PRO_MONTHLY' });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(mocks.findReusableCustomerForUser).toHaveBeenCalledWith({ user: expect.objectContaining({ id: USER_ID }) });
+      expect(getCheckoutSessionArgs()).toMatchObject({ customerId: 'cus_replacement', type: 'USER' });
     });
 
     it('rejects a buyer whose customer already has a current individual subscription', async () => {
