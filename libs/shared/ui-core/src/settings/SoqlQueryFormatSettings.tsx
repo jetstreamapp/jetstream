@@ -24,7 +24,8 @@ const columnsCss = css`
 `;
 
 const optionsCss = css`
-  & > * + * {
+  /* Rows hidden by the settings search are skipped, so the first visible row never gets a divider */
+  & > :not([hidden]) ~ :not([hidden]) {
     border-top: 1px solid var(--slds-g-color-border-1, #e5e5e5);
   }
 `;

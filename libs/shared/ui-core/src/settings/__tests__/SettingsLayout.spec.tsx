@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SettingsLayout } from '../layout/SettingsLayout';
-import { SettingsSection } from '../layout/SettingsSection';
+import { SettingsGroup, SettingsRow, SettingsSection } from '../layout/SettingsSection';
 
 const SECTIONS = [
   { id: 'one', label: 'One' },
@@ -94,5 +94,185 @@ describe('SettingsLayout', () => {
 
     scrollTo({ one: -500, two: 0, three: 500 }, scrollContainer);
     await waitFor(() => expect(currentNavItem()).toBe('Two'));
+  });
+});
+
+describe('SettingsLayout search', () => {
+  const SEARCH_SECTIONS = [
+    { id: 'general', label: 'General' },
+    { id: 'query', label: 'Query' },
+    { id: 'privacy', label: 'Privacy' },
+  ];
+
+  beforeEach(() => {
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  function renderSearchLayout() {
+    render(
+      <MemoryRouter>
+        <div style={{ overflowY: 'auto' }}>
+          <SettingsLayout sections={SEARCH_SECTIONS}>
+            <SettingsSection id="general" title="General">
+              <SettingsGroup>
+                <SettingsRow id="theme" title="Theme" description="Choose light or dark." keywords={['appearance']} />
+                <SettingsRow id="auto-login" title="Log in automatically" />
+                <SettingsRow id="updates" title="Updates" details={<p>Managed by your organization</p>}>
+                  <button>Check Now</button>
+                </SettingsRow>
+                <SettingsRow
+                  id="download"
+                  title="Download location"
+                  description={
+                    <>
+                      Files are saved <strong>without asking</strong>
+                    </>
+                  }
+                />
+              </SettingsGroup>
+            </SettingsSection>
+            <SettingsSection id="query" title="Query">
+              <SettingsGroup title="SOQL formatting" actions={<button>Reset to Defaults</button>}>
+                <SettingsRow id="indent" title="Indent size" description="Number of tabs." />
+                <SettingsRow id="line-length" title="Max characters per line" />
+              </SettingsGroup>
+            </SettingsSection>
+            <SettingsSection id="privacy" title="Privacy" keywords={['cookies']}>
+              <SettingsGroup searchText={[<button key="export">Export Data</button>]}>
+                <p>Custom content</p>
+              </SettingsGroup>
+            </SettingsSection>
+          </SettingsLayout>
+        </div>
+      </MemoryRouter>,
+    );
+  }
+
+  const searchInput = () => screen.getByRole('searchbox', { name: 'Search settings' });
+  const search = (value: string) => fireEvent.change(searchInput(), { target: { value } });
+  const isShown = (text: string) => !screen.getByText(text, { ignore: 'mark' }).closest('[hidden]');
+  const navItems = () =>
+    Array.from(screen.getByRole('navigation', { name: 'Settings sections' }).querySelectorAll('a')).map(({ textContent }) => textContent);
+
+  function getRowTitle(id: string) {
+    return document.getElementById(`${id}-title`) as HTMLElement;
+  }
+
+  it('shows only the settings that match, and the sections that hold them', () => {
+    renderSearchLayout();
+    search('indent');
+
+    expect(getRowTitle('indent').closest('[hidden]')).toBeNull();
+    expect(getRowTitle('line-length').closest('[hidden]')).not.toBeNull();
+    expect(getRowTitle('theme').closest('[hidden]')).not.toBeNull();
+    expect(document.getElementById('general')).toHaveProperty('hidden', true);
+    expect(document.getElementById('privacy')).toHaveProperty('hidden', true);
+    expect(navItems()).toEqual(['Query']);
+  });
+
+  it('requires every word to match, counting the group and section headings above a setting', () => {
+    renderSearchLayout();
+    search('query  CHARACTERS');
+
+    expect(getRowTitle('line-length').closest('[hidden]')).toBeNull();
+    expect(getRowTitle('indent').closest('[hidden]')).not.toBeNull();
+
+    search('soql tabs');
+    expect(getRowTitle('indent').closest('[hidden]')).toBeNull();
+    expect(getRowTitle('line-length').closest('[hidden]')).not.toBeNull();
+  });
+
+  it('shows everything in a section whose title matches', () => {
+    renderSearchLayout();
+    search('general');
+
+    expect(getRowTitle('theme').closest('[hidden]')).toBeNull();
+    expect(getRowTitle('auto-login').closest('[hidden]')).toBeNull();
+    expect(navItems()).toEqual(['General']);
+  });
+
+  it('matches keywords and the descriptions of settings', () => {
+    renderSearchLayout();
+    search('appearance');
+    expect(navItems()).toEqual(['General']);
+    expect(getRowTitle('theme').closest('[hidden]')).toBeNull();
+
+    search('cookies');
+    expect(navItems()).toEqual(['Privacy']);
+    expect(isShown('Custom content')).toBe(true);
+
+    search('dark');
+    expect(getRowTitle('theme').closest('[hidden]')).toBeNull();
+    expect(getRowTitle('auto-login').closest('[hidden]')).not.toBeNull();
+  });
+
+  it('searches the text of rich descriptions', () => {
+    renderSearchLayout();
+    search('"saved without asking"');
+
+    expect(getRowTitle('download').closest('[hidden]')).toBeNull();
+    expect(getRowTitle('theme').closest('[hidden]')).not.toBeNull();
+
+    // Highlighting works within each piece of text, so a phrase that spans elements matches without being marked
+    search('asking');
+    expect(document.querySelector('#download-description strong mark')?.textContent).toBe('asking');
+  });
+
+  it('matches the text of row details and controls, and extra group text, without highlighting it', () => {
+    renderSearchLayout();
+    search('organization');
+    expect(getRowTitle('updates').closest('[hidden]')).toBeNull();
+    expect(getRowTitle('theme').closest('[hidden]')).not.toBeNull();
+
+    search('check now');
+    expect(getRowTitle('updates').closest('[hidden]')).toBeNull();
+    expect(document.querySelectorAll('mark')).toHaveLength(0);
+
+    search('reset defaults');
+    expect(getRowTitle('indent').closest('[hidden]')).toBeNull();
+    expect(navItems()).toEqual(['Query']);
+
+    search('export');
+    expect(navItems()).toEqual(['Privacy']);
+    expect(isShown('Custom content')).toBe(true);
+  });
+
+  it('highlights the matching words', () => {
+    renderSearchLayout();
+    search('tabs indent');
+
+    const marks = Array.from(document.querySelectorAll('mark')).map(({ textContent }) => textContent);
+    expect(marks).toEqual(['Indent', 'tabs']);
+    expect(getRowTitle('indent').textContent).toBe('Indent size');
+  });
+
+  it('says when nothing matches and clears the search from there', () => {
+    renderSearchLayout();
+    search('nothing here');
+
+    expect(screen.getByRole('status').textContent).toContain('No settings match “nothing here”');
+    expect(navItems()).toEqual([]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear Search' }));
+    expect(searchInput()).toHaveProperty('value', '');
+    expect(document.activeElement).toBe(searchInput());
+    expect(navItems()).toEqual(['General', 'Query', 'Privacy']);
+    expect(document.querySelectorAll('[hidden]')).toHaveLength(0);
+  });
+
+  it('clears the search on Escape without letting the key reach the page', () => {
+    const pageKeyDown = vi.fn();
+    window.addEventListener('keydown', pageKeyDown);
+    renderSearchLayout();
+    search('indent');
+
+    fireEvent.keyDown(searchInput(), { key: 'Escape' });
+    expect(searchInput()).toHaveProperty('value', '');
+    expect(pageKeyDown).not.toHaveBeenCalled();
+
+    // With nothing to clear, Escape is left to the page
+    fireEvent.keyDown(searchInput(), { key: 'Escape' });
+    expect(pageKeyDown).toHaveBeenCalledTimes(1);
+    window.removeEventListener('keydown', pageKeyDown);
   });
 });

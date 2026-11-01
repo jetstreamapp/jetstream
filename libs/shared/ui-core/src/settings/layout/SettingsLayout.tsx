@@ -1,7 +1,9 @@
 import { css } from '@emotion/react';
+import { Input } from '@jetstream/ui';
 import classNames from 'classnames';
-import { MouseEvent, ReactNode, useEffect, useRef, useState } from 'react';
+import { KeyboardEvent, MouseEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router';
+import { getSettingsSearchTerms, SettingsSearchProvider, useVisibleChildKeys } from './settings-search';
 
 export interface SettingsNavItem {
   /** Must match the `id` of a rendered `SettingsSection` */
@@ -38,11 +40,21 @@ const layoutCss = css`
   }
 `;
 
-const navCss = css`
+const sidebarCss = css`
   position: sticky;
   top: 1.5rem;
   align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 
+  /* Single column: the search stays at the top of the page and the section list is dropped */
+  @media (max-width: 48em) {
+    position: static;
+  }
+`;
+
+const navCss = css`
   @media (max-width: 48em) {
     display: none;
   }
@@ -89,10 +101,21 @@ export const SettingsLayout = ({ sections, children }: SettingsLayoutProps) => {
   // Set when a section is picked from the navigation - holds that section as active while the smooth
   // scroll runs, and afterwards if a short section near the bottom can never reach the top of the page
   const pickedSectionIdRef = useRef<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [search, setSearch] = useState('');
+  const { visibleKeys: visibleSectionIds, reportVisibility } = useVisibleChildKeys();
+
+  const searchTerms = getSettingsSearchTerms(search);
+  const isSearching = searchTerms.length > 0;
+  // While searching, the navigation only lists the sections that have a match
+  const navSections = isSearching ? sections.filter(({ id }) => visibleSectionIds.has(id)) : sections;
+  const hasNoMatches = isSearching && navSections.length === 0;
+
   const [activeId, setActiveId] = useState(sections[0]?.id);
 
   // Callers usually pass an inline array, so the effects key on the ids rather than the array identity
   const sectionIdsKey = sections.map(({ id }) => id).join('|');
+  const navSectionIdsKey = navSections.map(({ id }) => id).join('|');
   const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
   useEffect(() => {
@@ -100,7 +123,7 @@ export const SettingsLayout = ({ sections, children }: SettingsLayoutProps) => {
     if (!scrollParent) {
       return;
     }
-    const sectionIds = sectionIdsKey.split('|');
+    const sectionIds = navSectionIdsKey.split('|');
     let animationFrame = 0;
 
     function updateActiveSection() {
@@ -148,7 +171,7 @@ export const SettingsLayout = ({ sections, children }: SettingsLayoutProps) => {
       scrollParent.removeEventListener('scroll', handleScroll);
       USER_SCROLL_EVENTS.forEach((eventName) => scrollParent.removeEventListener(eventName, releasePickedSection));
     };
-  }, [sectionIdsKey]);
+  }, [navSectionIdsKey]);
 
   // Deep links such as /settings#data-storage - the scroll listener picks up the highlight from the ref
   useEffect(() => {
@@ -159,6 +182,31 @@ export const SettingsLayout = ({ sections, children }: SettingsLayoutProps) => {
     }
   }, [location.hash, sectionIdsKey]);
 
+  function handleSearchChange(value: string) {
+    setSearch(value);
+    pickedSectionIdRef.current = null;
+    // Results start at the top of the page - otherwise they can end up above the part of the page in view
+    const scrollParent = getScrollParent(rootRef.current);
+    if (scrollParent) {
+      scrollParent.scrollTop = 0;
+    }
+  }
+
+  // The clear buttons disappear once clicked, so focus goes back to the search instead of being lost
+  function clearSearch() {
+    handleSearchChange('');
+    searchInputRef.current?.focus();
+  }
+
+  function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    // Escape clears the search first - left alone it can close the page (the desktop settings window closes on Escape)
+    if (event.key === 'Escape' && search) {
+      event.preventDefault();
+      event.stopPropagation();
+      clearSearch();
+    }
+  }
+
   function handleNavClick(event: MouseEvent<HTMLAnchorElement>, id: string) {
     event.preventDefault();
     pickedSectionIdRef.current = id;
@@ -168,25 +216,65 @@ export const SettingsLayout = ({ sections, children }: SettingsLayoutProps) => {
 
   return (
     <div ref={rootRef} css={layoutCss}>
-      <nav css={navCss} className="slds-nav-vertical slds-nav-vertical_compact" aria-label="Settings sections">
-        <div className="slds-nav-vertical__section">
-          <ul>
-            {sections.map(({ id, label }) => (
-              <li key={id} className={classNames('slds-nav-vertical__item', { 'slds-is-active': id === activeId })}>
-                <a
-                  href={`#${id}`}
-                  className="slds-nav-vertical__action"
-                  aria-current={id === activeId ? 'location' : undefined}
-                  onClick={(event) => handleNavClick(event, id)}
-                >
-                  {label}
-                </a>
-              </li>
-            ))}
-          </ul>
+      <div css={sidebarCss}>
+        <div role="search">
+          <Input
+            id="settings-search"
+            label="Search settings"
+            hideLabel
+            iconLeft="search"
+            iconLeftType="utility"
+            clearButton={!!search}
+            onClear={clearSearch}
+          >
+            <input
+              ref={searchInputRef}
+              id="settings-search"
+              className="slds-input"
+              type="search"
+              placeholder="Search settings"
+              autoComplete="off"
+              value={search}
+              onChange={(event) => handleSearchChange(event.target.value)}
+              onKeyDown={handleSearchKeyDown}
+            />
+          </Input>
         </div>
-      </nav>
-      <div css={contentCss}>{children}</div>
+        <nav css={navCss} className="slds-nav-vertical slds-nav-vertical_compact" aria-label="Settings sections">
+          <div className="slds-nav-vertical__section">
+            <ul>
+              {navSections.map(({ id, label }) => (
+                <li key={id} className={classNames('slds-nav-vertical__item', { 'slds-is-active': id === activeId })}>
+                  <a
+                    href={`#${id}`}
+                    className="slds-nav-vertical__action"
+                    aria-current={id === activeId ? 'location' : undefined}
+                    onClick={(event) => handleNavClick(event, id)}
+                  >
+                    {label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </nav>
+      </div>
+      <div css={contentCss}>
+        <SettingsSearchProvider terms={searchTerms} reportVisibility={reportVisibility}>
+          {children}
+        </SettingsSearchProvider>
+        {/* Always rendered so screen readers announce the message when it appears */}
+        <div role="status">
+          {hasNoMatches && (
+            <div className="slds-text-align_center slds-p-vertical_large">
+              <p className="slds-text-heading_small">No settings match “{search.trim()}”</p>
+              <button className="slds-button slds-m-top_x-small" onClick={clearSearch}>
+                Clear Search
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

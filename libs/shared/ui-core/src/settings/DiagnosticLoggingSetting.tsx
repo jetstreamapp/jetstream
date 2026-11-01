@@ -26,6 +26,7 @@ export const DiagnosticLoggingSetting = () => {
       id={ROW_ID}
       title="Diagnostic logging"
       description="Write detailed logs to the developer console. Only needed when Jetstream Support asks for them."
+      keywords={['debug', 'troubleshoot']}
     >
       {isEnabled && (
         <button className="slds-button slds-button_neutral" onClick={handlePrintPriorLogs}>

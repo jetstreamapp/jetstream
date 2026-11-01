@@ -48,9 +48,15 @@ export interface AccountSummaryProps {
 export const AccountSummary = ({ userProfile, actions }: AccountSummaryProps) => {
   const { name, email, picture, teamMembership } = userProfile;
   const activeTeam = teamMembership?.status === TeamMemberStatusSchema.enum.ACTIVE ? teamMembership : null;
+  const teamSummary = activeTeam ? `${activeTeam.team.name} · ${TEAM_ROLE_LABELS[activeTeam.role] ?? activeTeam.role}` : null;
 
   return (
-    <SettingsGroup testId="account-summary">
+    // The actions' labels are searched too, but a router link's text cannot be read without rendering it - hence the keywords
+    <SettingsGroup
+      testId="account-summary"
+      searchText={[name, email, teamSummary, actions]}
+      keywords={['email', 'edit profile', 'manage account', 'team dashboard']}
+    >
       <div css={summaryCss}>
         <div css={identityCss}>
           <span className="slds-avatar slds-avatar_circle slds-avatar_large">
@@ -73,7 +79,7 @@ export const AccountSummary = ({ userProfile, actions }: AccountSummaryProps) =>
             </p>
             {activeTeam && (
               <p className="slds-text-color_weak slds-truncate" title={activeTeam.team.name}>
-                {`${activeTeam.team.name} · ${TEAM_ROLE_LABELS[activeTeam.role] ?? activeTeam.role}`}
+                {teamSummary}
               </p>
             )}
           </div>
