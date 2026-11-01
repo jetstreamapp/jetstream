@@ -1,4 +1,4 @@
-import { BooleanQueryParamSchema } from '@jetstream/api-types';
+import { BooleanQueryParamSchema, QueryLocatorUrlSchema } from '@jetstream/api-types';
 import { z } from 'zod';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
@@ -37,7 +37,7 @@ export const routeDefinition = {
     responseType: z.any(),
     validators: {
       query: z.object({
-        nextRecordsUrl: z.string().min(1),
+        nextRecordsUrl: QueryLocatorUrlSchema,
       }),
     } satisfies RouteValidator,
   },

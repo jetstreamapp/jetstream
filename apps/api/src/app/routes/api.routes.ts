@@ -25,6 +25,7 @@ import { sendJson } from '../utils/response.handlers';
 import {
   accountManagementRateLimit,
   addOrgsToLocal,
+  addOrgsToLocalFromHeaderOrQuery,
   basicAuthMiddleware,
   checkAuth,
   emailChangeRequestRateLimit,
@@ -32,6 +33,7 @@ import {
   ensureTargetOrgExists,
   feedbackRateLimit,
   feedbackUploadMiddleware,
+  logCrossSiteRequest,
   passwordResetEmailRateLimit,
   requireStepUpAuth,
   stepUpChallengeRateLimit,
@@ -44,6 +46,7 @@ import {
 const routes: express.Router = Router();
 
 routes.use(checkAuth);
+routes.use(logCrossSiteRequest);
 routes.use(validateDoubleCSRF);
 routes.use(addOrgsToLocal);
 
@@ -216,7 +219,8 @@ routes.get('/apex/completions/:type', dfr, metadataToolingController.apexComplet
  * ************************************
  */
 routes.get('/file/stream-download', miscController.streamFileDownload.controllerFn());
-routes.post('/file/stream-download/zip', miscController.streamFileDownloadToZip.controllerFn());
+// Submitted as a form post so the browser streams the file; a form cannot set headers, so the org id arrives in the query string
+routes.post('/file/stream-download/zip', addOrgsToLocalFromHeaderOrQuery, miscController.streamFileDownloadToZip.controllerFn());
 routes.post('/request', dfr, miscController.salesforceRequest.controllerFn());
 routes.post('/request-manual', dfr, miscController.salesforceRequestManual.controllerFn());
 

@@ -1,3 +1,4 @@
+import { isSObjectBlobFieldUrl } from '@jetstream/shared/utils';
 import { Maybe, SalesforceUserIdentity } from '@jetstream/types';
 import isString from 'lodash/isString';
 import { ApiConnection } from './connection';
@@ -17,7 +18,15 @@ export class ApiOrg extends SalesforceApi {
     return url.toString();
   }
 
+  /**
+   * The download proxies accept this path from the caller and request it with the org's credentials, so
+   * only record blob fields (`/sobjects/<SObject>/<id>/<Field>`) are allowed. The proxies validate at
+   * their edge as well; this is the backstop for callers that bypass them (e.g. the desktop `app://` handler).
+   */
   async streamDownload(url: string) {
+    if (!isSObjectBlobFieldUrl(url)) {
+      throw new Error('url must be a record blob field path, e.g. /services/data/v62.0/sobjects/ContentVersion/<id>/VersionData');
+    }
     return await this.apiRequest<ReadableStream<Uint8Array>>({
       sessionInfo: this.sessionInfo,
       url,

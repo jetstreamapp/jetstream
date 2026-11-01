@@ -1,4 +1,4 @@
-import { SalesforceApiRequestSchema, SalesforceRequestManualRequestSchema } from '@jetstream/api-types';
+import { SalesforceApiRequestSchema, SalesforceRequestManualRequestSchema, SObjectBlobFieldUrlSchema } from '@jetstream/api-types';
 import { FetchResponse, getBinaryFileRecordQueryMap } from '@jetstream/salesforce-api';
 import { MAX_BINARY_DOWNLOAD_RECORDS_FREE_USER, MAX_BINARY_DOWNLOAD_RECORDS_PAID_USER } from '@jetstream/shared/constants';
 import { ensureArray } from '@jetstream/shared/utils';
@@ -10,11 +10,12 @@ import { pipeWebStreamToResponse, sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
 
 /**
- * Defense-in-depth for the SSRF sinks (`streamFileDownload` / `salesforceRequestManual`): the
- * `url` is forwarded to Salesforce with the org's session credentials, so we require a host-relative
- * path. The callout adapter still pins the resolved request to the instance origin, but rejecting
- * authority-override (`@host`), protocol-relative (`//host`), backslash, whitespace, and control-char
- * tricks at the edge keeps malicious input from ever reaching the credentialed request.
+ * Defense-in-depth for the `salesforceRequestManual` SSRF sink: the `url` is forwarded to Salesforce
+ * with the org's session credentials, so we require a host-relative path. The callout adapter still
+ * pins the resolved request to the instance origin, but rejecting authority-override (`@host`),
+ * protocol-relative (`//host`), backslash, whitespace, and control-char tricks at the edge keeps
+ * malicious input from ever reaching the credentialed request. (`streamFileDownload` is a GET and is
+ * held to the stricter `SObjectBlobFieldUrlSchema` instead.)
  */
 const HostRelativeUrlSchema = z
   .string()
@@ -37,7 +38,8 @@ export const routeDefinition = {
     responseType: z.any(),
     validators: {
       query: z.object({
-        url: HostRelativeUrlSchema,
+        // A GET with a cookie session, so the path is restricted to the one resource type this route serves
+        url: SObjectBlobFieldUrlSchema,
       }),
     } satisfies RouteValidator,
   },

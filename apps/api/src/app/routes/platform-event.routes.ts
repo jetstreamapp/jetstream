@@ -51,7 +51,9 @@ routes.use((req: express.Request, res: express.Response, next: express.NextFunct
  */
 routes.use('/', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
-    const result = await getOrgFromHeaderOrQuery(req, res, HTTP.HEADERS.X_SFDC_ID, HTTP.HEADERS.X_SFDC_API_VERSION);
+    const result = await getOrgFromHeaderOrQuery(req, res, HTTP.HEADERS.X_SFDC_ID, HTTP.HEADERS.X_SFDC_API_VERSION, undefined, {
+      allowQueryParam: true,
+    });
     if (!result) {
       throw new Error('A valid salesforce org must be included with the request');
     }

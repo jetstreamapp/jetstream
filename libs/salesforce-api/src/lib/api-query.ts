@@ -1,4 +1,4 @@
-import { flattenQueryColumn, getErrorMessage } from '@jetstream/shared/utils';
+import { flattenQueryColumn, getErrorMessage, isQueryLocatorUrl } from '@jetstream/shared/utils';
 import { CompositeResponse, Maybe, QueryColumnsSfdc, QueryResult, QueryResults, QueryResultsColumns } from '@jetstream/types';
 import { Query, parseQuery } from '@jetstreamapp/soql-parser-js';
 import { ApiConnection } from './connection';
@@ -123,7 +123,15 @@ export class ApiQuery extends SalesforceApi {
     return { queryResults, columns, parsedQuery };
   }
 
+  /**
+   * `nextRecordsUrl` is whatever the caller hands back, and it is requested with the org's credentials,
+   * so it is refused unless it is a query locator path. Every proxy validates this at its edge as well;
+   * this check is the backstop for any caller that does not.
+   */
   async queryMore<T = unknown>(nextRecordsUrl: string): Promise<QueryResults<T>> {
+    if (!isQueryLocatorUrl(nextRecordsUrl)) {
+      throw new Error('nextRecordsUrl must be the query locator path returned by Salesforce');
+    }
     const queryResults = await this.apiRequest<QueryResult<T>>({
       sessionInfo: this.sessionInfo,
       url: nextRecordsUrl,
