@@ -1,13 +1,16 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+
+/** Random per process: the digests below only exist to be compared to each other, never stored. */
+const COMPARISON_KEY = randomBytes(32);
 
 /**
- * Constant-time credential comparison. Both values are hashed to a fixed-length digest first so the
+ * Constant-time credential comparison. Both values are reduced to a fixed-length HMAC first so the
  * comparison does not leak length and does not throw on mismatched lengths.
  */
 function timingSafeStringCompare(providedValue: string, expectedValue: string): boolean {
-  const providedHash = createHash('sha256').update(String(providedValue)).digest();
-  const expectedHash = createHash('sha256').update(String(expectedValue)).digest();
-  return timingSafeEqual(providedHash, expectedHash);
+  const providedDigest = createHmac('sha256', COMPARISON_KEY).update(String(providedValue)).digest();
+  const expectedDigest = createHmac('sha256', COMPARISON_KEY).update(String(expectedValue)).digest();
+  return timingSafeEqual(providedDigest, expectedDigest);
 }
 
 /**
