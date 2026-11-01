@@ -7,6 +7,7 @@ import {
   isCanvasApp,
   isDesktop,
   isEnterKey,
+  isImeComposing,
   prepareCsvFile,
   prepareExcelFile,
   prepareJsonFile,
@@ -292,8 +293,13 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
     onModalClose();
   }
 
-  function handleKeyUp(event: KeyboardEvent<HTMLElement>) {
-    if (isEnterKey(event) && !filenameEmpty) {
+  // Enter in the filename input downloads — on keydown, never keyup: the modal opens with this input
+  // focused, so the keyup of the Enter that activated the opening button lands here and used to
+  // download and close the modal before it was ever seen. An Enter that commits an IME conversion is
+  // part of typing the name, not a request to download.
+  function handleFilenameKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (isEnterKey(event) && !isImeComposing(event.nativeEvent) && !filenameEmpty) {
+      event.preventDefault();
       handleDownload();
     }
   }
@@ -326,7 +332,12 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
       onClose={() => onModalClose(true)}
     >
       <div>
-        <RadioGroup label="File Format" required className="slds-m-bottom_small">
+        <RadioGroup
+          label="File Format"
+          required
+          className="slds-m-bottom_small"
+          hasNonRadioControls={!googleIntegrationEnabled && googleShowUpgradeToPro}
+        >
           {allowedTypesSet.has('xlsx') && (
             <Radio
               name="radio-download-file-format"
@@ -410,7 +421,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
             minLength={1}
             maxLength={250}
             onChange={(event) => setFileName(event.target.value)}
-            onKeyUp={handleKeyUp}
+            onKeyDown={handleFilenameKeyDown}
           />
         </Input>
         {fileFormat !== RADIO_FORMAT_GDRIVE && <DesktopDownloadLocationNote />}
