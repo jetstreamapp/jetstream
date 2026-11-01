@@ -3,11 +3,10 @@ import { FetchResponse, getBinaryFileRecordQueryMap } from '@jetstream/salesforc
 import { MAX_BINARY_DOWNLOAD_RECORDS_FREE_USER, MAX_BINARY_DOWNLOAD_RECORDS_PAID_USER } from '@jetstream/shared/constants';
 import { ensureArray } from '@jetstream/shared/utils';
 import { BinaryDownloadCompatibleObjectsSchema, FileNameFormatSchema, ManualRequestResponse } from '@jetstream/types';
-import { Readable } from 'stream';
 import { z } from 'zod';
 import { isPaidUser } from '../db/user.db';
 import { UserFacingError } from '../utils/error-handler';
-import { sendJson } from '../utils/response.handlers';
+import { pipeWebStreamToResponse, sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
 
 /**
@@ -100,8 +99,7 @@ const streamFileDownload = createRoute(routeDefinition.streamFileDownload.valida
     const { url } = query;
 
     const results = await jetstreamConn.org.streamDownload(url);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    Readable.fromWeb(results as any).pipe(res);
+    pipeWebStreamToResponse(res, results, next);
   } catch (ex) {
     next(new UserFacingError(ex));
   }
@@ -112,7 +110,7 @@ const streamFileDownload = createRoute(routeDefinition.streamFileDownload.valida
  */
 const streamFileDownloadToZip = createRoute(
   routeDefinition.streamFileDownloadToZip.validators,
-  async ({ query, body, jetstreamConn, user, teamMembership }, req, res, next) => {
+  async ({ query, body, jetstreamConn, user, teamMembership }, _, res, next) => {
     try {
       const { recordIds } = body;
       const { sobject, nameFormat, fileName } = query;
@@ -143,25 +141,9 @@ const streamFileDownloadToZip = createRoute(
       res.setHeader('Content-Disposition', `attachment; filename="${results.fileName}"`);
       res.setHeader('Content-Length', results.size.toString());
 
-      // Convert web stream to Node.js stream and pipe to response
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const nodeStream = Readable.fromWeb(results.stream as any);
-
-      // Handle client disconnect/abort
-      req.on('close', () => {
-        if (!res.writableEnded) {
-          nodeStream.destroy();
-        }
-      });
-
-      // Handle pipe errors
-      nodeStream.on('error', (err) => {
-        if (!res.headersSent) {
-          next(err);
-        }
-      });
-
-      nodeStream.pipe(res);
+      // A file that fails part way errors the zip stream - the response is destroyed so the client
+      // sees a failed download instead of one stalled short of Content-Length
+      pipeWebStreamToResponse(res, results.stream, next);
     } catch (ex) {
       next(ex);
     }
