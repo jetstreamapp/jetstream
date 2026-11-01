@@ -17,7 +17,19 @@ import { DropDownItemLength, ListItem, ListItemGroup } from '@jetstream/types';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import uniqueId from 'lodash/uniqueId';
-import React, { createRef, forwardRef, KeyboardEvent, RefObject, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import React, {
+  createRef,
+  FocusEvent,
+  forwardRef,
+  KeyboardEvent,
+  RefObject,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { useEscapeToCloseLayer } from '../../hooks/useEscapeToCloseLayer';
 import PopoverContainer from '../../popover/PopoverContainer';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import HelpText from '../../widgets/HelpText';
@@ -120,12 +132,14 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
     ref,
   ) => {
     const inputRef = useRef<HTMLInputElement>(null);
+    // State rather than a ref: a portal moves the list outside of this component's DOM, so the outside-click
+    // handler needs the rendered list element to tell clicks inside it (an option, the padding, the scrollbar) apart
+    const [popoverEl, setPopoverEl] = useState<HTMLElement | null>(null);
     const keyBuffer = useRef(new KeyBuffer());
     const [comboboxId] = useState(() => uniqueId(id || 'picklist'));
     const [listboxId] = useState(() => uniqueId('listbox'));
+    const helpTextId = helpText ? `${comboboxId}-help-text` : undefined;
     const [isOpen, setIsOpen] = useState(false);
-    // A portal moves the list outside of this component's DOM, so clicks inside it must not count as outside clicks
-    const [portalContentEl, setPortalContentEl] = useState<HTMLElement | null>(null);
     const [selectedItemsIdsSet, setSelectedItemsIdsSet] = useState<Set<unknown>>(() => {
       let selectedItemIdsSet = new Set();
       if (selectedItems?.length > 0) {
@@ -243,11 +257,50 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
         setSelectedItemsIdsSet(new Set([item.id]));
       }
     }
+    // Escape closes ONLY this menu (and returns focus to the input) — consumed at document capture
+    // so an ancestor modal/popover cannot also close on the same press
+    useEscapeToCloseLayer(isOpen, () => {
+      setIsOpen(false);
+      inputRef.current?.focus();
+    });
+
+    // Enter/Space on an option (keydown, in the list) selects it, closes the list and focuses the input —
+    // and the same key's keyup then lands on the input, whose "closed: Enter/Space opens" branch would
+    // pop the list straight back open. The keyup that completes a selection is skipped.
+    const ignoreNextInputKeyUpRef = useRef(false);
+
+    /**
+     * Enter/Space on the CLOSED input open the list on keydown (APG select-only combobox) and never
+     * reach a wrapping form; that press's keyup is skipped so it cannot act on the list. While open,
+     * Enter is acted on at keyup (below) but its keydown is still marked handled so the form does not
+     * submit and page-level Cmd/Ctrl+Enter shortcuts (which honour defaultPrevented) stay quiet.
+     */
+    function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+      const isPlainEnter = isEnterKey(event) && !event.metaKey && !event.ctrlKey && !event.altKey;
+      if (!disabled && (isPlainEnter || isSpaceKey(event))) {
+        event.preventDefault();
+        if (!isOpen) {
+          ignoreNextInputKeyUpRef.current = true;
+          setIsOpen(true);
+        }
+      }
+    }
+
+    function handleInputKeyUp(event: KeyboardEvent<HTMLInputElement>) {
+      if (ignoreNextInputKeyUpRef.current) {
+        ignoreNextInputKeyUpRef.current = false;
+        return;
+      }
+      handleKeyDown(event);
+    }
 
     function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
       let newFocusedItem = focusedItem;
 
-      if (isTabKey(event) || isEscapeKey(event)) {
+      // While open, Escape never reaches here (useEscapeToCloseLayer consumes it at document
+      // capture); the isEscapeKey half guards the CLOSED state, where falling through would hit
+      // the open-on-any-key branch at the bottom and pop the list open on Escape.
+      if (isEscapeKey(event)) {
         event.preventDefault();
         event.stopPropagation();
         setIsOpen(false);
@@ -255,12 +308,29 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
         return;
       }
 
+      // Tab leaves the picklist. From a focused option (keydown, via the list container) hand focus
+      // back to the input WITHOUT preventDefault so the browser's sequential navigation continues from
+      // the input in one press; from the input itself (keyup) focus has already moved on — just close
+      if (isTabKey(event)) {
+        if (event.type === 'keydown') {
+          inputRef.current?.focus();
+        }
+        handleClose();
+        return;
+      }
+
       if (isEnterKey(event) || isSpaceKey(event)) {
         event.preventDefault();
+        // Closed: the input's keydown opens the list — a keyup arriving here on its own (focus moved
+        // onto the input mid-press) must not
+        if (!isOpen) {
+          return;
+        }
         const item = items[focusedItem ?? -1];
         if (item) {
           handleKeyboardSelection(item);
           if (!multiSelection) {
+            ignoreNextInputKeyUpRef.current = event.type === 'keydown';
             setIsOpen(false);
             inputRef.current?.focus();
           }
@@ -326,14 +396,41 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
       onClose?.();
     }
 
+    // A closed list has no focused option: otherwise Enter after reopening selected the row the arrows
+    // had left off on, which is not the one shown as focused
+    useEffect(() => {
+      if (!isOpen) {
+        setFocusedItem(null);
+      }
+    }, [isOpen]);
+
+    /**
+     * Close when focus leaves the widget (Tab out of the input, focus pulled elsewhere). Focus moving
+     * between the input and its option list stays inside the widget. Without this, a list left open
+     * after Tab kept its Escape layer registered and stole the next Escape from the hosting modal.
+     */
+    function handleFocusLeft(event: FocusEvent<HTMLElement>) {
+      const nextFocus = event.relatedTarget as Node | null;
+      if (divContainerEl.current?.contains(nextFocus) || popoverEl?.contains(nextFocus)) {
+        return;
+      }
+      if (isOpen) {
+        handleClose();
+      }
+    }
+
     return (
       <OutsideClickHandler
         display={containerDisplay}
-        additionalParentRef={usePortal ? portalContentEl : undefined}
+        additionalParentRef={usePortal ? popoverEl : undefined}
         onOutsideClick={() => handleClose()}
       >
         <div data-testid={`dropdown-${label || id}`} className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
-          <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={comboboxId}>
+          <label
+            id={`${comboboxId}-label`}
+            className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })}
+            htmlFor={comboboxId}
+          >
             {isRequired && (
               <abbr className="slds-required" title="required">
                 *{' '}
@@ -344,31 +441,44 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
           {labelHelp && !hideLabel && <HelpText id={`${comboboxId}-label-help-text`} content={labelHelp} />}
           <div className="slds-form-element__control" ref={divContainerEl}>
             <div className={containerClassName || 'slds-combobox_container'}>
+              {/* ARIA 1.2: the combobox role and expanded state live on the focused input below, not
+                  this wrapper — screen readers only announce expand/collapse for the focused element */}
               <div
                 className={classNames('slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen })}
-                aria-expanded={isOpen}
-                aria-controls={comboboxId}
-                aria-haspopup="listbox"
-                role="combobox"
+                // Only catches clicks bubbling from the input/icon area; the keyboard path is the input
+                role="presentation"
                 onClick={handleInputClick}
               >
                 <div className="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
                   <input
                     ref={inputRef}
+                    role="combobox"
+                    aria-expanded={isOpen}
+                    aria-haspopup="listbox"
+                    aria-invalid={hasError || undefined}
                     type="text"
                     className={classNames('slds-input slds-combobox__input slds-combobox__input-value', { 'slds-has-focus': isOpen })}
                     id={comboboxId}
-                    aria-controls={listboxId}
-                    aria-describedby={errorMessageId}
+                    // Point at the listbox (not the input) and only while it is mounted (popover renders when open)
+                    aria-controls={isOpen ? listboxId : undefined}
+                    aria-describedby={
+                      [labelHelp && !hideLabel ? `${comboboxId}-label-help-text` : undefined, helpTextId, errorMessageId]
+                        .filter(Boolean)
+                        .join(' ') || undefined
+                    }
                     autoComplete="off"
                     placeholder={placeholder}
                     readOnly
                     value={selectedItemText || ''}
                     title={selectedItemText}
                     disabled={disabled}
-                    onKeyUp={handleKeyDown}
-                    onBlur={onBlur}
+                    onKeyUp={handleInputKeyUp}
+                    onBlur={(event) => {
+                      handleFocusLeft(event);
+                      onBlur?.();
+                    }}
                     {...inputProps}
+                    onKeyDown={handleInputKeyDown}
                   />
                   <span className="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right">
                     <Icon
@@ -380,6 +490,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                   </span>
                 </div>
                 <PopoverContainer
+                  ref={setPopoverEl}
                   id={listboxId}
                   isOpen={isOpen}
                   className={classNames('slds-dropdown_fluid', scrollLengthClass)}
@@ -387,10 +498,16 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                   usePortal={usePortal}
                   // A portal is not constrained by the input's container, so match the input width explicitly
                   width={usePortal && inputRef.current ? `${inputRef.current.offsetWidth}px` : undefined}
+                  // Keep focus in the input when the list's scrollbar or an option is clicked, so the
+                  // blur-close above does not fire mid-interaction (same as Combobox)
+                  onMouseDown={(event) => event.preventDefault()}
+                  onBlur={handleFocusLeft}
                   role="listbox"
+                  aria-labelledby={`${comboboxId}-label`}
+                  aria-multiselectable={multiSelection || undefined}
                   onKeyDown={handleKeyDown}
                 >
-                  <div ref={setPortalContentEl} style={{ display: 'contents' }}>
+                  <>
                     {Array.isArray(items) && (
                       <ul className="slds-listbox slds-listbox_vertical" role="presentation">
                         {items.length === 0 && (
@@ -447,7 +564,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                           ))}
                         </ul>
                       ))}
-                  </div>
+                  </>
                 </PopoverContainer>
               </div>
             </div>
@@ -463,7 +580,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                     .filter((item) => selectedItemsIdsSet.has(item.id))
                     .map((item) => (
                       <li key={item.id} className="slds-listbox-item" role="presentation">
-                        <Pill title={item.label} onRemove={() => handleSelection(item)}>
+                        <Pill listboxOption title={item.label} onRemove={() => handleSelection(item)}>
                           {item.label}
                         </Pill>
                       </li>
@@ -472,7 +589,11 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
               </div>
             )}
           </div>
-          {helpText && <div className="slds-form-element__help">{helpText}</div>}
+          {helpText && (
+            <div className="slds-form-element__help" id={helpTextId}>
+              {helpText}
+            </div>
+          )}
           {hasError && errorMessage && (
             <div className="slds-form-element__help" id={errorMessageId}>
               {errorMessage}

@@ -1,6 +1,8 @@
 import { css } from '@emotion/react';
 import { ReactNode, useState } from 'react';
 import Icon from '../../widgets/Icon';
+import { useAnnouncer } from '../../widgets/useAnnouncer';
+import { ariaDisabledButtonProps } from '../button/aria-disabled-button.utils';
 import { Input } from './Input';
 
 export interface NumberStepperInputProps {
@@ -74,13 +76,22 @@ export function NumberStepperInput({
   const errorMessageId = `${id}-error`;
   const describedBy =
     [helpText ? helpTextId : null, hasError && errorMessage ? errorMessageId : null].filter(Boolean).join(' ') || undefined;
-  const canDecrement = !disabled && value - step >= min;
-  const canIncrement = !disabled && (max === undefined || value + step <= max);
+  // At a limit the button stays focusable (aria-disabled): it is usually the one being pressed, and a native
+  // disabled would drop focus to the page body. Native disabled is kept for the whole-control `disabled` prop.
+  const isAtMin = value - step < min;
+  const isAtMax = max !== undefined && value + step > max;
+  const { announce, announcer } = useAnnouncer();
 
   function commit(nextValue: number) {
     const clamped = clamp(nextValue, min, max);
     setInputValue(String(clamped));
     onChange(clamped);
+    return clamped;
+  }
+
+  /** Focus stays on the button, so the new value is announced rather than read from the input */
+  function stepTo(nextValue: number) {
+    announce(`${label}: ${commit(nextValue)}`);
   }
 
   function handleInputChange(nextInputValue: string) {
@@ -120,8 +131,8 @@ export function NumberStepperInput({
           type="button"
           className="slds-button slds-button_icon slds-button_icon-border-filled"
           title={decrementLabel}
-          disabled={!canDecrement}
-          onClick={() => commit(value - step)}
+          disabled={disabled}
+          {...ariaDisabledButtonProps(isAtMin, () => stepTo(value - step))}
         >
           <Icon type="utility" icon="dash" className="slds-button__icon" omitContainer />
           <span className="slds-assistive-text">{decrementLabel}</span>
@@ -156,12 +167,13 @@ export function NumberStepperInput({
           type="button"
           className="slds-button slds-button_icon slds-button_icon-border-filled"
           title={incrementLabel}
-          disabled={!canIncrement}
-          onClick={() => commit(value + step)}
+          disabled={disabled}
+          {...ariaDisabledButtonProps(isAtMax, () => stepTo(value + step))}
         >
           <Icon type="utility" icon="add" className="slds-button__icon" omitContainer />
           <span className="slds-assistive-text">{incrementLabel}</span>
         </button>
+        {announcer}
       </div>
     </Input>
   );
