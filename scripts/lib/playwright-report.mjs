@@ -11,7 +11,7 @@
  * Those last two usually answer "why did the locator never appear" faster than anything else.
  */
 
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { stripAnsi } from './ci-log-distiller.mjs';
@@ -23,6 +23,25 @@ const EMBEDDED_REPORT = /<template id=["']playwrightReportBase64["']>data:applic
 const MAX_CONSOLE_ENTRIES = 200;
 const MAX_NETWORK_ENTRIES = 200;
 const DEFAULT_SPEC_PREFIX = 'apps/jetstream-e2e/src';
+
+/**
+ * Where an attachment listed in the report lives on disk, or null when it is missing or would resolve
+ * outside the report folder. The report comes from a CI artifact, so its paths are not trusted: a
+ * `../` path or a symlink must never pull an unrelated local file into the bundle.
+ */
+async function resolveAttachmentPath(reportDir, attachmentPath) {
+  try {
+    const reportRoot = await realpath(reportDir);
+    const resolvedPath = await realpath(path.resolve(reportRoot, attachmentPath));
+    const relativePath = path.relative(reportRoot, resolvedPath);
+    if (!relativePath || relativePath === '..' || relativePath.startsWith(`..${path.sep}`) || path.isAbsolute(relativePath)) {
+      return null;
+    }
+    return resolvedPath;
+  } catch {
+    return null;
+  }
+}
 
 /** Filesystem-safe, still-readable folder name for a test title. */
 function slugify(value) {
@@ -243,7 +262,10 @@ export async function extractPlaywrightFailures(reportDir, bundleDir, { includeT
       if (!attachment.path) {
         continue;
       }
-      const source = path.join(reportDir, attachment.path);
+      const source = await resolveAttachmentPath(reportDir, attachment.path);
+      if (!source) {
+        continue;
+      }
       if (attachment.name === 'screenshot') {
         screenshotCount += 1;
         const target = `screenshot-${screenshotCount}.png`;
@@ -256,7 +278,7 @@ export async function extractPlaywrightFailures(reportDir, bundleDir, { includeT
         evidence.push('page-snapshot.md');
       } else if (attachment.name === 'trace' && includeTraces) {
         // The trace is tens of MB and already sits in the report folder — point at it there.
-        failure.tracePath = path.join(reportDir, attachment.path);
+        failure.tracePath = source;
 
         const { consoleMessages, networkFailures, requestCount, unreadable } = await readTraceSignals(source);
         const interesting = consoleMessages.filter(({ level }) => level === 'error' || level === 'warning' || level === 'pageerror');
@@ -280,7 +302,7 @@ export async function extractPlaywrightFailures(reportDir, bundleDir, { includeT
           evidence.push('network-failures.txt');
         }
       } else if (attachment.name === 'video') {
-        failure.videoPath = path.join(reportDir, attachment.path);
+        failure.videoPath = source;
       }
     }
 
@@ -322,14 +344,31 @@ export async function extractFailuresFromJsonSummary(jsonPath, bundleDir) {
   return { stats, topLevelErrors, failures, textOnly: true };
 }
 
+/** Quote a value for a POSIX shell so it is passed through as a single literal word. */
+export function shellQuote(value) {
+  return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
+/** Spec paths are plain repo-relative paths; anything else is left out of the command rather than quoted in. */
+const SAFE_SPEC_PATH = /^[\w@./-]+$/;
+
 /**
  * Repro command for a single failed test. `-g` matches against the full title path, which is what
- * `failure.title` already is.
+ * `failure.title` already is. The title and spec path come from the CI report, so both are quoted
+ * (and the title regex-escaped, since `-g` takes a regular expression) instead of being spliced
+ * into the shell text. The test command is quoted twice because start-server-and-test runs it
+ * through a shell of its own.
  */
 export function playwrightReproCommand(failure) {
-  const grep = failure.title.replace(/["`$]/g, '.');
-  return [
-    `pnpm start-server-and-test --expect 200 'pnpm start:e2e' http://localhost:3333 \\`,
-    `  'pnpm playwright test ${failure.specFile} --config apps/jetstream-e2e/playwright.config.ts -g "${grep}"'`,
-  ].join('\n');
+  const grepPattern = failure.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const specFile = SAFE_SPEC_PATH.test(failure.specFile ?? '') && !failure.specFile.split('/').includes('..') ? failure.specFile : null;
+  const testCommand = [
+    'pnpm playwright test',
+    specFile,
+    '--config apps/jetstream-e2e/playwright.config.ts',
+    `-g ${shellQuote(grepPattern)}`,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return [`pnpm start-server-and-test --expect 200 'pnpm start:e2e' http://localhost:3333 \\`, `  ${shellQuote(testCommand)}`].join('\n');
 }
