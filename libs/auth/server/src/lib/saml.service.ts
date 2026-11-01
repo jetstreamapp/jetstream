@@ -1,10 +1,12 @@
 import { DbCacheProvider, ENV, logger } from '@jetstream/api-config';
+import { SAML_METADATA_MAX_LENGTH } from '@jetstream/auth/types';
 import { SamlConfiguration } from '@jetstream/prisma';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { Profile, SAML, SamlConfig, ValidateInResponseTo } from '@node-saml/node-saml';
 import crypto from 'crypto';
 import { parseStringPromise } from 'xml2js';
 import { decryptSecret } from './sso-crypto.util';
+import { isHttpUrl } from './sso-url.util';
 import { AttributeMapping, ParsedIdpMetadata, SsoUserInfo } from './sso.types';
 
 /** 10 minutes - maximum time between AuthnRequest generation and SAML response */
@@ -210,6 +212,10 @@ export class SamlService {
    */
   async parseIdpMetadata(metadataXml: string): Promise<ParsedIdpMetadata> {
     try {
+      if (metadataXml.length > SAML_METADATA_MAX_LENGTH) {
+        throw new Error('Invalid SAML metadata: the document is too large');
+      }
+
       // Defense-in-depth against XXE: reject XML with DOCTYPE or ENTITY declarations.
       // While xml2js's underlying sax parser doesn't resolve external entities,
       // this guards against parser changes and is an OWASP-recommended practice.
@@ -249,6 +255,10 @@ export class SamlService {
 
       if (!entityId || !ssoUrl || !certificate) {
         throw new Error('Invalid SAML metadata: missing required fields');
+      }
+
+      if (!isHttpUrl(ssoUrl)) {
+        throw new Error('Invalid SAML metadata: the SingleSignOnService Location is not an http(s) URL');
       }
 
       return {
@@ -368,6 +378,13 @@ export class SamlService {
    * Get authorization URL for initiating SAML login
    */
   async getAuthorizationUrl(config: SamlConfiguration, teamId: string, returnUrl?: string): Promise<string> {
+    // The returned URL becomes the browser's navigation target. New configurations are held to https when they are
+    // saved; this re-check of the stored value only refuses schemes that are not web URLs at all.
+    if (!isHttpUrl(config.idpSsoUrl)) {
+      logger.error({ teamId }, '[SAML] Stored IdP SSO URL is not an http(s) URL');
+      throw new Error('The SAML IdP SSO URL for this team is not a valid web address.');
+    }
+
     const saml = this.initializeSamlStrategy(config, teamId);
 
     logger.info(

@@ -22,7 +22,7 @@
  */
 import { Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotAllowedError, UserFacingError } from '../../utils/error-handler';
-import { checkDomainVerification, fetchSamlMetadata, maskSsoSecrets, routeDefinition } from '../team.controller';
+import { checkDomainVerification, fetchSamlMetadata, maskSsoSecrets, readSamlMetadataResponse, routeDefinition } from '../team.controller';
 
 const assertDomainResolvesToPublicIpMock = vi.hoisted(() => vi.fn());
 // fetchSamlMetadata and checkDomainVerification's file fallback fetch each hop via
@@ -80,6 +80,7 @@ vi.mock('@jetstream/audit-logs', () => ({
 vi.mock('@jetstream/auth/server', () => ({
   getApiAddressFromReq: vi.fn(() => '127.0.0.1'),
   encryptSecret: vi.fn(),
+  isAllowedIdpUrl: vi.fn(() => true),
   oidcService: { getDiscoveredConfigForSaving: vi.fn() },
   samlService: { parseIdpMetadata: vi.fn() },
   refreshSessionUser: vi.fn(),
@@ -90,6 +91,7 @@ vi.mock('@jetstream/auth/server', () => ({
 }));
 vi.mock('@jetstream/auth/types', () => ({
   OidcConfigurationRequestSchema: { parse: vi.fn() },
+  SAML_METADATA_MAX_LENGTH: 1_000_000,
   SamlConfigurationRequestSchema: { parse: vi.fn() },
 }));
 vi.mock('@jetstream/shared/node-utils', () => ({
@@ -294,6 +296,41 @@ describe('fetchSamlMetadata', () => {
     expect(response.status).toBe(200);
     expect(fetchWithPinnedPublicIpMock).not.toHaveBeenCalled();
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('readSamlMetadataResponse', () => {
+  const METADATA_MAX_LENGTH = 1_000_000;
+
+  function streamingResponse(chunks: Uint8Array[]) {
+    let pulledChunks = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (pulledChunks < chunks.length) {
+          controller.enqueue(chunks[pulledChunks++]);
+        } else {
+          controller.close();
+        }
+      },
+    });
+    return { response: new Response(stream), getPulledChunks: () => pulledChunks };
+  }
+
+  it('returns the document text', async () => {
+    await expect(readSamlMetadataResponse(new Response('<EntityDescriptor/>'))).resolves.toBe('<EntityDescriptor/>');
+  });
+
+  it('rejects a response that declares a body over the limit without reading it', async () => {
+    const response = new Response('<EntityDescriptor/>', { headers: { 'content-length': String(METADATA_MAX_LENGTH + 1) } });
+    await expect(readSamlMetadataResponse(response)).rejects.toThrow(/too large/);
+  });
+
+  it('stops reading once a body without a declared length passes the limit', async () => {
+    const chunk = new Uint8Array(400_000);
+    const { response, getPulledChunks } = streamingResponse(Array.from({ length: 10 }, () => chunk));
+
+    await expect(readSamlMetadataResponse(response)).rejects.toThrow(/too large/);
+    expect(getPulledChunks()).toBeLessThan(10);
   });
 });
 
