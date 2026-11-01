@@ -54,9 +54,14 @@ export function toSafeDownloadFileName(fileName: string): string | null {
   return safeName;
 }
 
-export function setRecentDocument(path: string) {
-  app.addRecentDocument(path);
+/**
+ * Add a completed download to the recent downloads menu and, on macOS, bounce the Dock's Downloads stack
+ * (which only happens when the file is in the Downloads folder)
+ */
+export function markDownloadCompleted(filePath: string) {
+  app.addRecentDocument(filePath);
   initAppMenu();
+  app.dock?.downloadFinished(filePath);
 }
 
 export function clearRecentDocuments() {

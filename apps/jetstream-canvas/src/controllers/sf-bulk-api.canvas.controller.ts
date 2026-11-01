@@ -156,13 +156,9 @@ const downloadResultsFile = createRoute(routeDefinition.downloadResultsFile.vali
     const isQuery = ensureBoolean(query.isQuery);
     const fileName = query.fileName || `${type}.csv`;
 
-    let resultId: string | undefined;
-
-    if (isQuery) {
-      resultId = (await jetstreamConn!.bulk.getQueryResultsJobIds(jobId, batchId))[0];
-    }
-
-    const results = await jetstreamConn!.bulk.downloadRecords(jobId, batchId, type, resultId);
+    const results = isQuery
+      ? await jetstreamConn!.bulk.downloadQueryResults(jobId, batchId)
+      : await jetstreamConn!.bulk.downloadRecords(jobId, batchId, type);
 
     return new Response(results, {
       headers: {
@@ -185,13 +181,9 @@ const downloadResults = createRoute(routeDefinition.downloadResults.validators, 
     const type = query.type;
     const isQuery = ensureBoolean(query.isQuery);
 
-    let results: ReadableStream<Uint8Array>;
-    if (isQuery) {
-      const resultIds = await jetstreamConn!.bulk.getQueryResultsJobIds(jobId, batchId);
-      results = await jetstreamConn!.bulk.downloadRecords(jobId, batchId, type, resultIds[0]);
-    } else {
-      results = await jetstreamConn!.bulk.downloadRecords(jobId, batchId, type);
-    }
+    const results = isQuery
+      ? await jetstreamConn!.bulk.downloadQueryResults(jobId, batchId)
+      : await jetstreamConn!.bulk.downloadRecords(jobId, batchId, type);
 
     const reader = results.getReader();
     const chunks: Uint8Array[] = [];

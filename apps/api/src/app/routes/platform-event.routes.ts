@@ -55,6 +55,10 @@ routes.use('/', async (req: express.Request, res: express.Response, next: expres
     if (!result) {
       throw new Error('A valid salesforce org must be included with the request');
     }
+    // The client may have left during the org lookup, after `close` already fired - don't start a long-poll for it
+    if (res.destroyed) {
+      return;
+    }
     const jetstreamConn = result.jetstreamConn;
     const proxyPath = req.originalUrl.replace('/platform-event', `/cometd/${ENV.SFDC_API_VERSION}`);
     const proxyUrl = `${jetstreamConn.sessionInfo.instanceUrl}${proxyPath}`;
@@ -76,13 +80,18 @@ routes.use('/', async (req: express.Request, res: express.Response, next: expres
       headers['Content-Type'] = req.headers['content-type'];
     }
 
+    // CometD long-polls can wait ~2 minutes for Salesforce to respond, so the client may leave before any response
+    // arrives - destroying the request also stops a response that is already streaming
+    const proxyRequest = https.request(proxyUrl, { method: req.method, headers });
+    res.on('close', () => {
+      if (!res.writableFinished) {
+        proxyRequest.destroy();
+      }
+    });
+
     // stream request body to Salesforce
     req.pipe(
-      https
-        .request(proxyUrl, {
-          method: req.method,
-          headers,
-        })
+      proxyRequest
         .on('response', (proxyResponse) => {
           // Forward only an allowlist of upstream headers so Salesforce cannot override the
           // security/caching headers Helmet set for our same-origin response.
@@ -98,11 +107,28 @@ routes.use('/', async (req: express.Request, res: express.Response, next: expres
           if (proxyResponse.headers['set-cookie']) {
             responseHeaders['set-cookie'] = proxyResponse.headers['set-cookie'].map(normalizePlatformEventSetCookie);
           }
+          // An upstream reset mid-body would otherwise be an uncaught exception and leave the response hanging
+          proxyResponse.on('error', (err) => {
+            if (res.destroyed) {
+              // expected when the client disconnected and the request was destroyed above
+              return;
+            }
+            getLogger().warn({ err }, '[PROXY][RESPONSE_ERROR]');
+            if (!res.headersSent) {
+              next(err);
+              return;
+            }
+            res.destroy(err);
+          });
           // stream response back to user
           res.writeHead(proxyResponse.statusCode || 500, responseHeaders);
           proxyResponse.pipe(res, { end: true });
         })
         .on('error', (err) => {
+          if (res.destroyed) {
+            // expected "socket hang up" from destroying the request after the client disconnected
+            return;
+          }
           getLogger().error({ err }, '[PROXY][EXCEPTION]');
           next(err);
         }),

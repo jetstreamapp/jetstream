@@ -165,6 +165,13 @@ export async function fetchBulkApiAllBatchResults({
   const results =
     batchIds.length > 0 ? await bulkApiGetRecordsFromAllBatches<BulkJobResultRecord>(selectedOrg, jobInfo.id as string, batchIds) : [];
   const records = alignBatchSourceRecordsToResults(recordsByBatch, results.length, isDeleteLoadType(loadType));
+  // Results are paired with records by position, so a count mismatch would attach every later result to the
+  // wrong record (and "Retry" would resubmit the wrong records) - refuse rather than show misaligned rows
+  if (records.length !== results.length) {
+    throw new Error(
+      `Salesforce returned ${results.length} results for ${records.length} submitted records, so the results could not be matched to your records. Download the results for each batch individually instead.`,
+    );
+  }
   return { results, records, removedBatches };
 }
 

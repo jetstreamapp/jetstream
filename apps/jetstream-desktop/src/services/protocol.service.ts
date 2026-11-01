@@ -8,10 +8,11 @@ import path, { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Browser } from '../browser/browser';
 import { ENV, SERVER_URL } from '../config/environment';
+import { claimAvailableDownloadPath, releaseDownloadPath } from '../utils/download-path.utils';
 import { getDesktopRequestHeaders } from '../utils/request-headers.utils';
 import { initApiConnection } from '../utils/route.utils';
 import { resolveStaticFilePath } from '../utils/static-path.utils';
-import { getCspPolicy, setRecentDocument, toSafeDownloadFileName } from '../utils/utils';
+import { getCspPolicy, markDownloadCompleted, toSafeDownloadFileName } from '../utils/utils';
 import { getAppData, getUserPreferences } from './persistence.service';
 
 const cspPolicy = getCspPolicy();
@@ -140,6 +141,17 @@ export function registerWebRequestHandlers() {
 
 export function registerDownloadHandler() {
   session.defaultSession.on('will-download', (_, item) => {
+    let claimedDownloadPath: string | null = null;
+    item.once('done', (_, state) => {
+      if (claimedDownloadPath) {
+        releaseDownloadPath(claimedDownloadPath);
+      }
+      if (state === 'completed') {
+        logger.info(`Download completed: ${item.getSavePath()}`);
+        markDownloadCompleted(item.getSavePath());
+      }
+    });
+
     const downloadPreferences = getUserPreferences().fileDownload;
     if (
       !downloadPreferences ||
@@ -147,6 +159,7 @@ export function registerDownloadHandler() {
       !downloadPreferences.downloadPath ||
       !existsSync(downloadPreferences.downloadPath)
     ) {
+      // Electron shows a save dialog, which asks before replacing an existing file
       return;
     }
     // A dot-segment filename ('.'/'..') would resolve to a directory and escape the download folder,
@@ -154,14 +167,13 @@ export function registerDownloadHandler() {
     // This keeps the auto-save (omitPrompt) contract deterministic instead of relying on Electron's
     // default download handling.
     const safeFilename = toSafeDownloadFileName(item.getFilename()) ?? 'download';
-    const downloadFilename = join(downloadPreferences.downloadPath, safeFilename);
-    item.setSavePath(downloadFilename);
-    item.once('done', (_, state) => {
-      if (state === 'completed') {
-        logger.info(`Download completed: ${item.getSavePath()}`);
-        setRecentDocument(downloadFilename);
-      }
-    });
+    // Chromium replaces an existing file at the save path, so pick a free name like a browser would
+    claimedDownloadPath = claimAvailableDownloadPath(join(downloadPreferences.downloadPath, safeFilename));
+    if (!claimedDownloadPath) {
+      logger.warn(`No available file name for ${safeFilename}, prompting instead`);
+      return;
+    }
+    item.setSavePath(claimedDownloadPath);
   });
 }
 

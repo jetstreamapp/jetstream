@@ -1,4 +1,4 @@
-import { bulkApiGetRecords } from '@jetstream/shared/data';
+import { bulkApiGetRecords, bulkApiGetRecordsFromAllBatches } from '@jetstream/shared/data';
 import { BULK_RESULTS_BASE_HEADER, buildBulkResultRow } from '@jetstream/shared/utils';
 import {
   BulkJobBatchInfo,
@@ -15,6 +15,7 @@ import {
   buildBatchApiResultRow,
   collectFailedRecordsForRetry,
   createBatchResultsFetcher,
+  fetchBulkApiAllBatchResults,
   getCompletedBatchSourceRecords,
   getLoadResultsHeader,
 } from '../load-results-utils';
@@ -24,6 +25,7 @@ vi.mock('@jetstream/shared/data', () => ({
   bulkApiGetRecordsFromAllBatches: vi.fn(),
 }));
 const bulkApiGetRecordsMock = vi.mocked(bulkApiGetRecords);
+const bulkApiGetRecordsFromAllBatchesMock = vi.mocked(bulkApiGetRecordsFromAllBatches);
 
 describe('getLoadResultsHeader', () => {
   it('prefixes the mapped field headers with the standard result columns', () => {
@@ -208,6 +210,52 @@ describe('bulk result pairing end-to-end (failed batch 1, completed batch 2)', (
       { _id: '001C', _success: true, _errors: '', Id: '001C', Name: 'Batch2-A' },
       { _id: '001D', _success: false, _errors: 'FIELD_INTEGRITY_EXCEPTION', Id: '001D', Name: 'Batch2-B' },
     ]);
+  });
+});
+
+describe('fetchBulkApiAllBatchResults', () => {
+  const org = { uniqueId: 'org-1' } as SalesforceOrgUi;
+  const jobInfo = {
+    id: 'job-1',
+    batches: [
+      { id: 'batch-1', state: 'Completed' },
+      { id: 'batch-2', state: 'Completed' },
+    ],
+  } as unknown as BulkJobWithBatches;
+  const batchSummary = {
+    batchSummary: [
+      { id: 'batch-1', batchNumber: 0, startIndex: 0, recordCount: 2 },
+      { id: 'batch-2', batchNumber: 1, startIndex: 2, recordCount: 1 },
+    ],
+  } as unknown as LoadDataBulkApiStatusPayload;
+  const preparedData = { data: [{ Name: 'A' }, { Name: 'B' }, { Name: 'C' }] } as unknown as PrepareDataResponse;
+
+  beforeEach(() => {
+    bulkApiGetRecordsFromAllBatchesMock.mockReset();
+  });
+
+  it('pairs the combined results with the submitted records', async () => {
+    const results = [
+      { Id: '001A', Success: true, Created: true, Error: null },
+      { Id: '001B', Success: true, Created: true, Error: null },
+      { Id: '001C', Success: true, Created: true, Error: null },
+    ];
+    bulkApiGetRecordsFromAllBatchesMock.mockResolvedValue(results);
+
+    await expect(
+      fetchBulkApiAllBatchResults({ selectedOrg: org, jobInfo, batchSummary, preparedData, loadType: 'INSERT' }),
+    ).resolves.toEqual({ results, records: preparedData.data, removedBatches: false });
+  });
+
+  it('refuses to pair results when the result count does not match the submitted records', async () => {
+    bulkApiGetRecordsFromAllBatchesMock.mockResolvedValue([
+      { Id: '001A', Success: true, Created: true, Error: null },
+      { Id: '001B', Success: true, Created: true, Error: null },
+    ]);
+
+    await expect(
+      fetchBulkApiAllBatchResults({ selectedOrg: org, jobInfo, batchSummary, preparedData, loadType: 'INSERT' }),
+    ).rejects.toThrow('Salesforce returned 2 results for 3 submitted records');
   });
 });
 

@@ -6,6 +6,7 @@ import {
   createRateLimit,
   ENV,
   httpLogger,
+  installProcessErrorHandlers,
   logger,
   pgPool,
   requestContextMiddleware,
@@ -69,6 +70,9 @@ import { healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers
 import { buildAppCspDirectives, buildCspDirectives, buildHstsConfig } from './app/utils/security-headers';
 import { handleWorkerExit, primaryClusterInitSideEffects, shutdownPrimaryGracefully } from './app/utils/server-process.utils';
 import { environment } from './environments/environment';
+
+// Runs in the cluster primary and in every worker, since each one executes this entry point
+installProcessErrorHandlers();
 
 // NOTE: render reports more CPUs than are actually available
 const CPU_COUNT = Math.min(cpus().length, 3);

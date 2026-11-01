@@ -6,7 +6,7 @@ import { getErrorMessage } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { stringifySetCookie } from 'cookie';
 import * as express from 'express';
-import { Duplex } from 'stream';
+import { Duplex, Readable } from 'stream';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import type { Response } from '../types/route.types';
 import { clearDeferredTimers, writeDeferredResponse, type DeferredResponseState } from './deferred-response.middleware';
@@ -122,6 +122,52 @@ export function sendJson<ResponseType = unknown>(res: Response, content?: Respon
 }
 
 /**
+ * The client can disconnect while a route is still awaiting Salesforce. The response's `close` event has then
+ * already fired, so a listener added afterwards never runs - check up front and cancel the source instead.
+ *
+ * @returns true if the client was already gone and the source was cancelled
+ */
+export function cancelIfClientDisconnected(res: express.Response, webStream: ReadableStream<Uint8Array>): boolean {
+  if (!res.destroyed) {
+    return false;
+  }
+  webStream.cancel('client disconnected').catch(() => undefined);
+  return true;
+}
+
+/**
+ * Stream a web ReadableStream (e.x. a Salesforce response body) to the client.
+ *
+ * A source failure before anything was sent becomes a normal error response. Once headers are sent the status
+ * can no longer change, so the response is destroyed and the client sees a network error instead of a truncated
+ * file that looks complete. If the client goes away first, the source is cancelled so the upstream request stops.
+ */
+export function pipeWebStreamToResponse(res: express.Response, webStream: ReadableStream<Uint8Array>, next: express.NextFunction) {
+  if (cancelIfClientDisconnected(res, webStream)) {
+    return;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const source = Readable.fromWeb(webStream as any);
+
+  source.on('error', (err) => {
+    if (!res.headersSent) {
+      next(new UserFacingError(err));
+      return;
+    }
+    getLogger().warn({ err }, 'Error streaming response after headers were sent');
+    res.destroy(err);
+  });
+
+  res.on('close', () => {
+    if (!res.writableFinished) {
+      source.destroy();
+    }
+  });
+
+  source.pipe(res);
+}
+
+/**
  * Given a CSV parse stream, stream as JSON to the client
  */
 export function streamParsedCsvAsJson(res: express.Response, csvParseStream: Duplex) {
@@ -152,7 +198,8 @@ export function streamParsedCsvAsJson(res: express.Response, csvParseStream: Dup
     if (!res.headersSent) {
       res.status(400).json({ error: true, success: false, message: 'Error streaming CSV' });
     } else {
-      res.end();
+      // Ending here would send truncated JSON with a 200 - destroying it makes the client see a network error
+      res.destroy(err);
     }
   });
 }

@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
-import { ApiBulk } from '../api-bulk';
-import { ApiConnection } from '../connection';
-import { getApiRequestFactoryFn } from '../callout-adapter';
 import type { BulkApiCreateJobRequestPayload } from '@jetstream/types';
+import { describe, expect, it, vi } from 'vitest';
+import { ApiBulk } from '../api-bulk';
+import { getApiRequestFactoryFn } from '../callout-adapter';
+import { ApiConnection } from '../connection';
 
 // Real XML responses from Salesforce Bulk API
 const BULK_XML_RESPONSES = {
@@ -486,5 +486,145 @@ describe('ApiBulk XML parsing and type handling', () => {
         expect(Number.isNaN(result[field])).toBe(false);
       });
     });
+  });
+});
+
+describe('ApiBulk.downloadQueryResults', () => {
+  const JOB_ID = '750Kf00000R1wzRIAR';
+  const BATCH_ID = '751Kf000018uaV7IAI';
+  const encoder = new TextEncoder();
+
+  function createApiBulk() {
+    return new ApiBulk(createConnectionWithXmlParsing(vi.fn()));
+  }
+
+  function streamFromChunks(chunks: string[], onCancel?: (reason: unknown) => void) {
+    let chunkIndex = 0;
+    return new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (chunkIndex >= chunks.length) {
+          controller.close();
+          return;
+        }
+        controller.enqueue(encoder.encode(chunks[chunkIndex++]));
+      },
+      cancel(reason) {
+        onCancel?.(reason);
+      },
+    });
+  }
+
+  function mockResultFiles(apiBulk: ApiBulk, filesByResultId: Record<string, ReadableStream<Uint8Array>>) {
+    vi.spyOn(apiBulk, 'getQueryResultsJobIds').mockResolvedValue(Object.keys(filesByResultId));
+    return vi
+      .spyOn(apiBulk, 'downloadRecords')
+      .mockImplementation(async (_jobId, _batchId, _type, resultId) => filesByResultId[resultId as string]);
+  }
+
+  it('concatenates every result file in order with a single header row', async () => {
+    const apiBulk = createApiBulk();
+    const downloadRecordsSpy = mockResultFiles(apiBulk, {
+      result1: streamFromChunks(['"Id","Name"\n"001A","Acme"\n']),
+      result2: streamFromChunks(['"Id","Name"\n"001B","Globex"\n']),
+      result3: streamFromChunks(['"Id","Name"\n"001C","Initech"\n']),
+    });
+
+    const stream = await apiBulk.downloadQueryResults(JOB_ID, BATCH_ID);
+    const csv = await new Response(stream).text();
+
+    expect(csv).toBe('"Id","Name"\n"001A","Acme"\n"001B","Globex"\n"001C","Initech"\n');
+    expect(downloadRecordsSpy.mock.calls.map(([, , , resultId]) => resultId)).toEqual(['result1', 'result2', 'result3']);
+  });
+
+  it('drops a header row that is split across chunks', async () => {
+    const apiBulk = createApiBulk();
+    mockResultFiles(apiBulk, {
+      result1: streamFromChunks(['"Id","Na', 'me"\r\n"001A","Acme"\r\n']),
+      result2: streamFromChunks(['"Id",', '"Na', 'me"\r', '\n"001B",', '"Globex"\r\n']),
+    });
+
+    const csv = await new Response(await apiBulk.downloadQueryResults(JOB_ID, BATCH_ID)).text();
+
+    expect(csv).toBe('"Id","Name"\r\n"001A","Acme"\r\n"001B","Globex"\r\n');
+  });
+
+  it('adds a line break between files when a file does not end with one', async () => {
+    const apiBulk = createApiBulk();
+    mockResultFiles(apiBulk, {
+      result1: streamFromChunks(['"Id"\n"001A"']),
+      result2: streamFromChunks(['"Id"\n"001B"\n']),
+    });
+
+    const csv = await new Response(await apiBulk.downloadQueryResults(JOB_ID, BATCH_ID)).text();
+
+    expect(csv).toBe('"Id"\n"001A"\n"001B"\n');
+  });
+
+  it('adds a line break between files when the next header arrives in a chunk of its own', async () => {
+    const apiBulk = createApiBulk();
+    mockResultFiles(apiBulk, {
+      result1: streamFromChunks(['"Id"\n"001A"']),
+      result2: streamFromChunks(['"Id"\n']),
+      result3: streamFromChunks(['"Id"\n', '"001B"\n']),
+    });
+
+    const csv = await new Response(await apiBulk.downloadQueryResults(JOB_ID, BATCH_ID)).text();
+
+    expect(csv).toBe('"Id"\n"001A"\n"001B"\n');
+  });
+
+  it('only opens the next result file once the previous one is consumed', async () => {
+    const apiBulk = createApiBulk();
+    const downloadRecordsSpy = mockResultFiles(apiBulk, {
+      result1: streamFromChunks(['"Id"\n"001A"\n']),
+      result2: streamFromChunks(['"Id"\n"001B"\n']),
+    });
+
+    const reader = (await apiBulk.downloadQueryResults(JOB_ID, BATCH_ID)).getReader();
+    await reader.read();
+
+    expect(downloadRecordsSpy).toHaveBeenCalledTimes(1);
+    await reader.cancel();
+  });
+
+  it('propagates cancel to the result file being read and does not open the rest', async () => {
+    const apiBulk = createApiBulk();
+    const onCancel = vi.fn();
+    const downloadRecordsSpy = mockResultFiles(apiBulk, {
+      result1: streamFromChunks(['"Id"\n', '"001A"\n', '"001B"\n'], onCancel),
+      result2: streamFromChunks(['"Id"\n"001C"\n']),
+    });
+
+    const reader = (await apiBulk.downloadQueryResults(JOB_ID, BATCH_ID)).getReader();
+    await reader.read();
+    await reader.cancel('client disconnected');
+
+    expect(onCancel).toHaveBeenCalledWith('client disconnected');
+    expect(downloadRecordsSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('errors the stream when a later result file fails', async () => {
+    const apiBulk = createApiBulk();
+    vi.spyOn(apiBulk, 'getQueryResultsJobIds').mockResolvedValue(['result1', 'result2']);
+    vi.spyOn(apiBulk, 'downloadRecords').mockImplementation(async (_jobId, _batchId, _type, resultId) => {
+      if (resultId === 'result2') {
+        throw new Error('Salesforce unavailable');
+      }
+      return streamFromChunks(['"Id"\n"001A"\n']);
+    });
+
+    const stream = await apiBulk.downloadQueryResults(JOB_ID, BATCH_ID);
+
+    await expect(new Response(stream).text()).rejects.toThrow('Salesforce unavailable');
+  });
+
+  it('returns an empty stream when the batch has no result files', async () => {
+    const apiBulk = createApiBulk();
+    const downloadRecordsSpy = mockResultFiles(apiBulk, {});
+
+    const csv = await new Response(await apiBulk.downloadQueryResults(JOB_ID, BATCH_ID)).text();
+
+    expect(csv).toBe('');
+    expect(downloadRecordsSpy).not.toHaveBeenCalled();
   });
 });

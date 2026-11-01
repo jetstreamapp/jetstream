@@ -81,15 +81,16 @@ export class ApiBinaryDownload extends SalesforceApi {
     // AbortController to cancel all downloads if client disconnects
     const abortController = new AbortController();
 
-    // Register abort callback on zip stream cancellation (client disconnect)
+    // Register abort callback on zip stream cancellation (client disconnect) or failure
     zip.onAbort(() => {
-      this.logger.info('Client disconnected, aborting all downloads');
+      this.logger.info('Zip stream aborted, cancelling all downloads');
       abortController.abort();
     });
 
     // Process files sequentially to conserve memory
     // The zip format requires files to be added one at a time
-    (async () => {
+    // Errors are reported to the consumer through the zip stream, so this never rejects
+    void (async () => {
       try {
         this.logger.info(`Starting download of ${files.length} file(s) into zip: ${zipFileName}`);
         for (const { url, fileName } of files) {
@@ -99,19 +100,15 @@ export class ApiBinaryDownload extends SalesforceApi {
             return;
           }
 
+          let timeoutId: ReturnType<typeof setTimeout> | undefined;
           try {
             await zip.startFile(fileName);
 
             // Create timeout promise that rejects after FILE_DOWNLOAD_TIMEOUT_MS
             const timeoutPromise = new Promise<never>((_, reject) => {
-              const timeoutId = setTimeout(() => {
+              timeoutId = setTimeout(() => {
                 reject(new Error(`File download timed out after ${FILE_DOWNLOAD_TIMEOUT_MS / 1000} seconds: ${fileName}`));
               }, FILE_DOWNLOAD_TIMEOUT_MS);
-
-              // Clear timeout if aborted
-              abortController.signal.addEventListener('abort', () => {
-                clearTimeout(timeoutId);
-              });
             });
 
             // Race between actual download and timeout
@@ -136,7 +133,7 @@ export class ApiBinaryDownload extends SalesforceApi {
                 // Check abort signal before each read
                 if (abortController.signal.aborted) {
                   this.logger.info('Download aborted during streaming');
-                  reader.cancel();
+                  reader.cancel().catch(() => undefined);
                   return;
                 }
 
@@ -148,7 +145,7 @@ export class ApiBinaryDownload extends SalesforceApi {
                 // Check abort signal before writing to zip
                 if (abortController.signal.aborted) {
                   this.logger.info('Download aborted during zip writing');
-                  reader.cancel();
+                  reader.cancel().catch(() => undefined);
                   return;
                 }
 
@@ -166,6 +163,8 @@ export class ApiBinaryDownload extends SalesforceApi {
               this.logger.error(getErrorMessageAndStackObj(error), `Failed to download file: ${fileName}`);
             }
             throw error;
+          } finally {
+            clearTimeout(timeoutId);
           }
         }
 
@@ -177,15 +176,14 @@ export class ApiBinaryDownload extends SalesforceApi {
           this.logger.info(`Download aborted for zip: ${zipFileName}`);
         }
       } catch (error) {
-        // Don't log errors if we aborted intentionally
-        if (!abortController.signal.aborted) {
-          this.logger.error(getErrorMessageAndStackObj(error), `Error while creating zip: ${zipFileName}`);
-        } else {
+        if (abortController.signal.aborted) {
+          // The consumer went away, so there is nobody left to report the error to
           this.logger.info(`Download aborted after error for zip: ${zipFileName}`);
+          zip.abort();
+        } else {
+          this.logger.error(getErrorMessageAndStackObj(error), `Error while creating zip: ${zipFileName}`);
+          zip.error(error);
         }
-        // Abort to clean up any pending operations
-        zip.abort();
-        throw error;
       }
     })();
 

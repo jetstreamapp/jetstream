@@ -4,17 +4,120 @@ import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { app, dialog, WebContents } from 'electron';
 import logger from 'electron-log';
-import { createWriteStream, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
+import { createReadStream, createWriteStream, existsSync } from 'node:fs';
+import { link, open, rename, rm } from 'node:fs/promises';
+import { basename, dirname, join } from 'node:path';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
+import {
+  getCandidateFilePaths,
+  MAX_FILE_NAME_BYTES,
+  releaseDownloadPath,
+  truncateToByteLength,
+  tryClaimDownloadPath,
+} from '../utils/download-path.utils';
 import { registerOpenableFile } from '../utils/openable-file-registry';
-import { setRecentDocument, toSafeDownloadFileName } from '../utils/utils';
+import { markDownloadCompleted, toSafeDownloadFileName } from '../utils/utils';
 import { getUserPreferences } from './persistence.service';
+
+interface DownloadTarget {
+  filePath: string;
+  /** True when the user picked the path in a save dialog, which already confirmed replacing an existing file */
+  overwrite: boolean;
+}
 
 function emitProgress(sender: Maybe<WebContents>, progress: DownloadZipProgress) {
   // Send progress update to renderer
   sender?.send('download-progress', progress);
+}
+
+function isFileExistsError(ex: unknown) {
+  return (ex as NodeJS.ErrnoException)?.code === 'EEXIST';
+}
+
+/**
+ * Create `targetPath` with the contents of `sourcePath`, failing with EEXIST instead of replacing an existing file
+ */
+async function copyToNewPath(sourcePath: string, targetPath: string) {
+  try {
+    await link(sourcePath, targetPath);
+    return;
+  } catch (ex) {
+    if (isFileExistsError(ex)) {
+      throw ex;
+    }
+    // Some file systems (e.g. FAT/exFAT drives) do not support hard links - fall back to an exclusive copy
+  }
+  // Created exclusively (`wx`) before copying, so a failed copy only ever removes a file this download created
+  const targetFile = await open(targetPath, 'wx');
+  try {
+    await pipeline(createReadStream(sourcePath), targetFile.createWriteStream());
+  } catch (ex) {
+    await rm(targetPath, { force: true }).catch(() => undefined);
+    throw ex;
+  }
+}
+
+/**
+ * `<name>.<id>.partial` next to the destination, with the name shortened if needed so the temporary file name
+ * stays within the 255 byte limit most file systems have (the destination name itself may already be close to it)
+ */
+function getTempFilePath(filePath: string) {
+  const suffix = `.${randomUUID().slice(0, 8)}.partial`;
+  const name = truncateToByteLength(basename(filePath), MAX_FILE_NAME_BYTES - Buffer.byteLength(suffix));
+  return join(dirname(filePath), `${name}${suffix}`);
+}
+
+/**
+ * Move a completed download into place without replacing an existing file, adding " (1)", " (2)", ... to the name
+ * like a browser does. Each name is claimed exclusively, so two downloads finishing together never get the same one.
+ */
+async function moveToAvailablePath(tempFilePath: string, filePath: string): Promise<string> {
+  for (const candidatePath of getCandidateFilePaths(filePath)) {
+    // Claimed before the copy starts so a Chromium download (`will-download`) can't pick the name while the file is
+    // not on disk yet. Skipped if a Chromium download in progress already claimed it.
+    if (!tryClaimDownloadPath(candidatePath)) {
+      continue;
+    }
+    try {
+      await copyToNewPath(tempFilePath, candidatePath);
+      await rm(tempFilePath, { force: true });
+      return candidatePath;
+    } catch (ex) {
+      if (!isFileExistsError(ex)) {
+        throw ex;
+      }
+    } finally {
+      // the file is on disk now (or the copy failed), so the claim is no longer needed
+      releaseDownloadPath(candidatePath);
+    }
+  }
+  throw new Error(`Unable to find an available file name for ${basename(filePath)}`);
+}
+
+/**
+ * Write a download to a temporary `.partial` file next to the destination and move it into place once complete,
+ * so a file under the real name is always complete - it can't be opened half written, and a failed download only
+ * ever removes its own temporary file.
+ *
+ * @returns the path the file was saved to, which has a number added if the name was taken and `overwrite` is false
+ */
+async function writeDownloadToFile(source: Readable, { filePath, overwrite }: DownloadTarget): Promise<string> {
+  const tempFilePath = getTempFilePath(filePath);
+  try {
+    await pipeline(source, createWriteStream(tempFilePath));
+    if (overwrite) {
+      await rename(tempFilePath, filePath);
+      return filePath;
+    }
+    return await moveToAvailablePath(tempFilePath, filePath);
+  } catch (ex) {
+    await rm(tempFilePath, { force: true }).catch((removeError) => {
+      logger.warn('Unable to remove partial download', getErrorMessageAndStackObj(removeError));
+    });
+    throw ex;
+  }
 }
 
 /**
@@ -31,7 +134,7 @@ export async function downloadAndZipFilesToDisk(
   try {
     // Get download location from user preferences or prompt user
     const downloadPreferences = getUserPreferences().fileDownload;
-    let downloadPath: string;
+    let downloadTarget: DownloadTarget;
 
     const safeZipFileName = toSafeDownloadFileName(zipFileName);
     if (
@@ -40,7 +143,7 @@ export async function downloadAndZipFilesToDisk(
       existsSync(downloadPreferences.downloadPath) &&
       safeZipFileName
     ) {
-      downloadPath = join(downloadPreferences.downloadPath, safeZipFileName);
+      downloadTarget = { filePath: join(downloadPreferences.downloadPath, safeZipFileName), overwrite: false };
     } else {
       const defaultPath = app.getPath('downloads');
       const result = await dialog.showSaveDialog({
@@ -53,7 +156,7 @@ export async function downloadAndZipFilesToDisk(
         return { success: false, error: 'Download canceled by user' };
       }
 
-      downloadPath = result.filePath;
+      downloadTarget = { filePath: result.filePath, overwrite: true };
     }
 
     // Use the downloadAndZipFiles method from the salesforce-api library
@@ -63,9 +166,6 @@ export async function downloadAndZipFilesToDisk(
     let bytesDownloaded = 0;
     const totalBytes = Number(zipResult.size);
     let currentFileIndex = 0;
-
-    // Create write stream for the zip file
-    const writeStream = createWriteStream(downloadPath);
 
     // Convert web stream to Node.js readable stream
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -95,11 +195,10 @@ export async function downloadAndZipFilesToDisk(
       });
     });
 
-    // Pipe the stream to file
-    await pipeline(nodeStream, writeStream);
+    const downloadPath = await writeDownloadToFile(nodeStream, downloadTarget);
 
     logger.info(`Zip file downloaded successfully: ${downloadPath}`);
-    setRecentDocument(downloadPath);
+    markDownloadCompleted(downloadPath);
 
     // Registered here, where the file is finalised, so the renderer can later ask to open or reveal
     // exactly this file and nothing else (see `openable-file-registry`)
@@ -131,7 +230,7 @@ export async function downloadBulkApiFileAndSaveToDisk({
   try {
     // Get download location from user preferences or prompt user
     const downloadPreferences = getUserPreferences().fileDownload;
-    let downloadPath: string;
+    let downloadTarget: DownloadTarget;
 
     const safeFileName = toSafeDownloadFileName(fileName);
     if (
@@ -140,7 +239,7 @@ export async function downloadBulkApiFileAndSaveToDisk({
       existsSync(downloadPreferences.downloadPath) &&
       safeFileName
     ) {
-      downloadPath = join(downloadPreferences.downloadPath, safeFileName);
+      downloadTarget = { filePath: join(downloadPreferences.downloadPath, safeFileName), overwrite: false };
     } else {
       const defaultPath = app.getPath('downloads');
       const result = await dialog.showSaveDialog({
@@ -152,28 +251,18 @@ export async function downloadBulkApiFileAndSaveToDisk({
         return { success: false, error: 'Download canceled by user' };
       }
 
-      downloadPath = result.filePath;
+      downloadTarget = { filePath: result.filePath, overwrite: true };
     }
 
-    let resultId: string | undefined;
-    if (isQuery) {
-      resultId = (await jetstreamConn.bulk.getQueryResultsJobIds(jobId, batchId))[0];
-    }
+    const results = isQuery
+      ? await jetstreamConn.bulk.downloadQueryResults(jobId, batchId)
+      : await jetstreamConn.bulk.downloadRecords(jobId, batchId, type);
 
-    const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type, resultId);
-
-    // Create write stream for the zip file
-    const writeStream = createWriteStream(downloadPath);
-
-    // Convert web stream to Node.js readable stream
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const nodeStream = Readable.fromWeb(results as any);
-
-    // Pipe the stream to file
-    await pipeline(nodeStream, writeStream);
+    const downloadPath = await writeDownloadToFile(Readable.fromWeb(results as any), downloadTarget);
 
     logger.info(`File downloaded successfully: ${downloadPath}`);
-    setRecentDocument(downloadPath);
+    markDownloadCompleted(downloadPath);
 
     return { success: true, filePath: registerOpenableFile(downloadPath) };
   } catch (error) {

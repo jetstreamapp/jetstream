@@ -1,4 +1,4 @@
-import { ENV, getLogger, httpLogger, logger, requestContextMiddleware } from '@jetstream/api-config';
+import { ENV, getLogger, httpLogger, installProcessErrorHandlers, logger, requestContextMiddleware } from '@jetstream/api-config';
 import { GeoIpLookupResult } from '@jetstream/types';
 import { json, urlencoded } from 'body-parser';
 import express from 'express';
@@ -16,6 +16,8 @@ function timingSafeStringCompare(providedValue: string, expectedValue: string): 
   const expectedHash = createHash('sha256').update(String(expectedValue)).digest();
   return timingSafeEqual(providedHash, expectedHash);
 }
+
+installProcessErrorHandlers();
 
 const DISK_PATH = process.env.DISK_PATH ?? __dirname;
 
