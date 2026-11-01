@@ -18,7 +18,7 @@ import Stripe from 'stripe';
 import * as subscriptionDbService from '../db/subscription.db';
 import * as teamDbService from '../db/team.db';
 import * as userDbService from '../db/user.db';
-import { fetchPriceTiers, resolveTeamSeatState } from './stripe-seats.service';
+import { fetchPriceTiers, isStripeResourceMissingError, resolveTeamSeatState } from './stripe-seats.service';
 import { stripe } from './stripe.client';
 
 const priceCache = new WeakMap<
@@ -451,6 +451,10 @@ export async function createCustomer(
  * created and `findReusableCustomerForUser` cannot catch it. Stripe honors an idempotency key for 24 hours but
  * rejects a reused key whose parameters changed, so the create carries only the invariant `userId` and everything
  * that can change between attempts (email, name, plan type) is applied by a follow-up update.
+ *
+ * A replayed key returns the saved response even when that customer has since been deleted (e.g. a duplicate
+ * cleaned up by hand), so a missing customer falls back to an unkeyed create rather than failing checkout for the
+ * rest of the day.
  */
 async function createCustomerForUser(
   user: Pick<UserProfile, 'id' | 'name' | 'email'>,
@@ -460,13 +464,25 @@ async function createCustomerForUser(
     { metadata: { userId: user.id } },
     { idempotencyKey: `customer-create:${user.id}` },
   );
-  // `teamId` is left out rather than nulled: a replayed key returns the customer an earlier attempt created, and
-  // a team bound to it since then must keep its id
-  const customer = await stripe.customers.update(customerId, {
-    email: user.email,
-    name: user.name,
-    metadata: { userId: user.id, type },
-  });
+  let customer: Stripe.Response<Stripe.Customer>;
+  try {
+    // `teamId` is left out rather than nulled: a replayed key returns the customer an earlier attempt created, and
+    // a team bound to it since then must keep its id
+    customer = await stripe.customers.update(customerId, {
+      email: user.email,
+      name: user.name,
+      metadata: { userId: user.id, type },
+    });
+  } catch (ex) {
+    if (!isStripeResourceMissingError(ex)) {
+      throw ex;
+    }
+    logger.warn(
+      { userId: user.id, customerId },
+      '[STRIPE]: The idempotency key replayed a deleted customer, creating a new one without the key',
+    );
+    return await createCustomer(user, type);
+  }
   if (type === 'TEAM') {
     await createBankTransferFundingInstructions(customer.id);
   }

@@ -253,6 +253,37 @@ describe('createCheckoutSession without a customer', () => {
     expect(mocks.createFundingInstructions).toHaveBeenCalledWith('cus_created', expect.objectContaining({ currency: 'usd' }));
   });
 
+  // Stripe replays the saved response for 24 hours, so a customer deleted since then comes back as a dead id
+  it('creates a new customer without the key when the replayed customer was deleted', async () => {
+    mocks.customersCreate
+      .mockResolvedValueOnce({ id: 'cus_deleted' })
+      .mockResolvedValueOnce({ id: 'cus_fresh', metadata: { userId: user.id, type: 'TEAM' } });
+    mocks.customersUpdate.mockRejectedValueOnce({
+      type: 'StripeInvalidRequestError',
+      code: 'resource_missing',
+      message: 'No such customer',
+    });
+
+    await createSession({ type: 'TEAM' });
+
+    expect(mocks.customersCreate).toHaveBeenCalledTimes(2);
+    expect(mocks.customersCreate.mock.calls[1]).toEqual([
+      { email: user.email, name: user.name, metadata: { userId: user.id, teamId: null, type: 'TEAM' } },
+    ]);
+    expect(mocks.createFundingInstructions).toHaveBeenCalledTimes(1);
+    expect(mocks.createFundingInstructions).toHaveBeenCalledWith('cus_fresh', expect.anything());
+    expect(mocks.sessionsCreate).toHaveBeenCalledWith(expect.objectContaining({ customer: 'cus_fresh' }));
+  });
+
+  it('fails checkout on any other error updating the created customer', async () => {
+    mocks.customersUpdate.mockRejectedValueOnce({ type: 'StripeAPIError', message: 'Stripe is down' });
+
+    await expect(createSession()).rejects.toMatchObject({ message: 'Stripe is down' });
+
+    expect(mocks.customersCreate).toHaveBeenCalledTimes(1);
+    expect(mocks.sessionsCreate).not.toHaveBeenCalled();
+  });
+
   // The per-user key could replay the buyer's personal customer, and an existing team must bill on its own
   it("creates an existing team's replacement customer without the per-user idempotency key", async () => {
     mocks.customersCreate.mockResolvedValue({ id: 'cus_team_new', metadata: {} });

@@ -456,6 +456,11 @@ export function isStripeInvalidRequestError(ex: unknown): boolean {
   return error?.type === 'StripeInvalidRequestError' || error?.rawType === 'invalid_request_error';
 }
 
+/** The object no longer exists, e.g. a customer deleted in the Stripe dashboard. */
+export function isStripeResourceMissingError(ex: unknown): boolean {
+  return isStripeInvalidRequestError(ex) && asStripeError(ex)?.code === 'resource_missing';
+}
+
 /** Stripe rejects a proration_date outside the current period, which is what a stale preview looks like. */
 export function isProrationDateError(ex: unknown): boolean {
   const error = asStripeError(ex);
