@@ -69,6 +69,8 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   // Set as soon as the user types or picks a history item, so a draft that finishes loading later never replaces
   // their change — including an editor they have deliberately cleared
   const hasUserEditedRef = useRef(false);
+  const latestApexRef = useRef(apex);
+  latestApexRef.current = apex;
   const [results, setResults] = useState('');
   const [resultsStatus, setResultsStatus] = useState<{ hasResults: boolean; success: boolean; label: string | null }>({
     hasResults: false,
@@ -99,9 +101,16 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     fromApexState
       .loadAnonymousApexDraft()
       .then((draft) => {
-        if (draft && isMounted.current && !hasUserEditedRef.current) {
-          setApex(draft);
+        if (!draft || !isMounted.current) {
+          return;
         }
+        if (!hasUserEditedRef.current) {
+          setApex(draft);
+          return;
+        }
+        // The user edited before the draft arrived. If they cleared the editor, the debounced value never changed
+        // from its initial empty string so nothing would be saved, and this stale draft would return on reopen.
+        fromApexState.saveAnonymousApexDraft(latestApexRef.current);
       })
       .catch((ex) => {
         logger.warn('[ERROR] Could not load the anonymous apex draft', ex);

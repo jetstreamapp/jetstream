@@ -270,25 +270,15 @@ export function ensureLocalStorageReady({ userId, dbName }: LocalStorageScope): 
   return DexieInitializer.getInstance().ensureScopeReady(userId, dbName);
 }
 
-const INIT_SETTLED_TIMEOUT_MS = 5000;
-
 /**
  * Resolve once the legacy-data adoption that follows {@link initDexieDb} has finished, so a reader of
  * data that adoption migrates (e.g. the Anonymous Apex draft) does not read the per-user store before
- * the data lands in it. Bounded by a timeout so surfaces that never run `initDexieDb` are not blocked.
+ * the data lands in it. There is deliberately no timeout: a slow migration must not let the read win
+ * and strand the migrated data. The wait always ends — `init` settles it on success or failure, and
+ * tearing the scope down settles it too — and it is immediate when there is no scope.
  */
-export async function waitForLocalStorageInit(): Promise<void> {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  try {
-    await Promise.race([
-      DexieInitializer.getInstance().whenInitSettled(),
-      new Promise<void>((resolve) => {
-        timeout = setTimeout(resolve, INIT_SETTLED_TIMEOUT_MS);
-      }),
-    ]);
-  } finally {
-    clearTimeout(timeout);
-  }
+export function waitForLocalStorageInit(): Promise<void> {
+  return DexieInitializer.getInstance().whenInitSettled();
 }
 
 /**
