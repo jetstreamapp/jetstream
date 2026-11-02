@@ -10,6 +10,8 @@ type BomEncoding = 'utf-8' | 'utf-16le' | 'utf-16be';
  *
  * - A UTF-8 / UTF-16 LE / UTF-16 BE byte-order mark picks the encoding and is dropped from the result, as readAsText does.
  * - Otherwise the bytes are decoded as UTF-8 when they are valid UTF-8, and as Windows-1252 when they are not.
+ *
+ * Throws when the bytes cannot be decoded at all, e.g. the browser runs out of memory on a very large file.
  */
 export function decodeTextFile(bytes: ArrayBuffer | Uint8Array): string {
   const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
@@ -20,7 +22,12 @@ export function decodeTextFile(bytes: ArrayBuffer | Uint8Array): string {
   }
   try {
     return new TextDecoder('utf-8', { fatal: true }).decode(view);
-  } catch {
+  } catch (ex) {
+    // A strict UTF-8 decode signals invalid bytes with a TypeError. Anything else (out of memory, for one) is not a
+    // sign of a different encoding, and decoding the same bytes again would only fail the same way.
+    if (!(ex instanceof TypeError)) {
+      throw ex;
+    }
     return new TextDecoder('windows-1252').decode(view);
   }
 }

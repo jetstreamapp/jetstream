@@ -1325,7 +1325,13 @@ export function readFile(file: File, type: 'text' | 'array_buffer' | 'data_url' 
     reader.onload = (_event: ProgressEvent<FileReader>) => {
       const result = reader.result || '';
       if (type === 'text' && result instanceof ArrayBuffer) {
-        resolve(decodeTextFile(result));
+        // An error thrown from an event handler is not seen by the promise, which would then never settle
+        try {
+          resolve(decodeTextFile(result));
+        } catch (ex) {
+          logger.error('Unable to decode file', ex);
+          reject(new Error('This file could not be read. It may be too large to open in the browser.'));
+        }
         return;
       }
       resolve(result);
