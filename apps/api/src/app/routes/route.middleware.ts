@@ -216,68 +216,126 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
   next(new AuthenticationError('Unauthorized'));
 }
 
-export async function addOrgsToLocal(req: express.Request, res: express.Response, next: express.NextFunction) {
-  /**
-   * Orgs whose inactivity deadline this request pushed back, published as a response header so the
-   * client can drop an expiration warning it is showing for an org that has just been used. This runs
-   * before the route handler, so the deadline moves even when the handler itself goes on to fail, and
-   * the header is written as each org resolves rather than at the end - resolving the target org can
-   * fail into `next(ex)`, which may commit the response before any later code would run.
-   */
-  const orgsWithActivity: string[] = [];
-  const recordOrgActivity = (uniqueId: string) => {
-    orgsWithActivity.push(uniqueId);
-    res.set(HTTP.HEADERS.X_SFDC_ORG_ACTIVITY, orgsWithActivity.join(','));
-  };
+/**
+ * Where a request may name the org it acts on. Headers are the normal channel. The query string is only
+ * honoured on routes that opt in with `addOrgsToLocalFromHeaderOrQuery`: a navigation such as a form post or
+ * a download link cannot set headers, but a link on another site can set a query string, and the session
+ * cookie travels with top-level navigations. Keeping the query form off every other route means a cross-site
+ * link to an API route cannot select an org at all.
+ */
+interface OrgSourceOptions {
+  allowQueryParam: boolean;
+}
 
-  try {
-    if (req.get(HTTP.HEADERS.X_SFDC_ID) || req.query[HTTP.HEADERS.X_SFDC_ID]) {
-      res.locals = res.locals || {};
-      const results = await getOrgFromHeaderOrQuery(
-        req,
-        res,
-        HTTP.HEADERS.X_SFDC_ID,
-        HTTP.HEADERS.X_SFDC_API_VERSION,
-        res.locals.requestId,
-      );
-      if (results) {
-        const { org, jetstreamConn, activityRecorded } = results;
-        res.locals.org = org;
-        res.locals.jetstreamConn = jetstreamConn;
-        enrichRequestContext({ orgId: org.id });
-        if (activityRecorded) {
-          recordOrgActivity(org.uniqueId);
-        }
-      }
-    }
-    if (req.get(HTTP.HEADERS.X_SFDC_ID_TARGET) || req.query[HTTP.HEADERS.X_SFDC_ID_TARGET]) {
-      res.locals = res.locals || {};
-      const results = await getOrgFromHeaderOrQuery(
-        req,
-        res,
-        HTTP.HEADERS.X_SFDC_ID_TARGET,
-        HTTP.HEADERS.X_SFDC_API_TARGET_VERSION,
-        res.locals.requestId,
-      );
-      if (results) {
-        const { org, jetstreamConn, activityRecorded } = results;
-        res.locals.targetOrg = org;
-        res.locals.targetJetstreamConn = jetstreamConn;
-        if (activityRecorded) {
-          recordOrgActivity(org.uniqueId);
-        }
-      }
-    }
-  } catch (ex) {
-    getLogger().warn({ err: ex }, '[INIT-ORG][ERROR]');
-    if (ex instanceof NotFoundError || ex instanceof NotAllowedError) {
-      return next(ex);
-    }
-    return next(new UserFacingError('There was an error initializing the connection to Salesforce'));
+function readOrgUniqueId(req: express.Request, headerKey: string, { allowQueryParam }: OrgSourceOptions): string | undefined {
+  const fromHeader = req.get(headerKey);
+  if (fromHeader) {
+    return fromHeader;
   }
+  if (allowQueryParam && typeof req.query[headerKey] === 'string') {
+    return req.query[headerKey] as string;
+  }
+  return undefined;
+}
 
+function createAddOrgsToLocal(options: OrgSourceOptions) {
+  return async function addOrgsToLocal(req: express.Request, res: express.Response, next: express.NextFunction) {
+    /**
+     * Orgs whose inactivity deadline this request pushed back, published as a response header so the
+     * client can drop an expiration warning it is showing for an org that has just been used. This runs
+     * before the route handler, so the deadline moves even when the handler itself goes on to fail, and
+     * the header is written as each org resolves rather than at the end - resolving the target org can
+     * fail into `next(ex)`, which may commit the response before any later code would run.
+     */
+    const orgsWithActivity: string[] = [];
+    const recordOrgActivity = (uniqueId: string) => {
+      orgsWithActivity.push(uniqueId);
+      res.set(HTTP.HEADERS.X_SFDC_ORG_ACTIVITY, orgsWithActivity.join(','));
+    };
+
+    try {
+      res.locals = res.locals || {};
+      // A router-level pass may already have resolved an org from the header; a route-level opt-in only adds what is missing
+      if (!res.locals.org && readOrgUniqueId(req, HTTP.HEADERS.X_SFDC_ID, options)) {
+        const results = await getOrgFromHeaderOrQuery(
+          req,
+          res,
+          HTTP.HEADERS.X_SFDC_ID,
+          HTTP.HEADERS.X_SFDC_API_VERSION,
+          res.locals.requestId,
+          options,
+        );
+        if (results) {
+          const { org, jetstreamConn, activityRecorded } = results;
+          res.locals.org = org;
+          res.locals.jetstreamConn = jetstreamConn;
+          enrichRequestContext({ orgId: org.id });
+          if (activityRecorded) {
+            recordOrgActivity(org.uniqueId);
+          }
+        }
+      }
+      if (!res.locals.targetOrg && readOrgUniqueId(req, HTTP.HEADERS.X_SFDC_ID_TARGET, options)) {
+        const results = await getOrgFromHeaderOrQuery(
+          req,
+          res,
+          HTTP.HEADERS.X_SFDC_ID_TARGET,
+          HTTP.HEADERS.X_SFDC_API_TARGET_VERSION,
+          res.locals.requestId,
+          options,
+        );
+        if (results) {
+          const { org, jetstreamConn, activityRecorded } = results;
+          res.locals.targetOrg = org;
+          res.locals.targetJetstreamConn = jetstreamConn;
+          if (activityRecorded) {
+            recordOrgActivity(org.uniqueId);
+          }
+        }
+      }
+    } catch (ex) {
+      getLogger().warn({ err: ex }, '[INIT-ORG][ERROR]');
+      if (ex instanceof NotFoundError || ex instanceof NotAllowedError) {
+        return next(ex);
+      }
+      return next(new UserFacingError('There was an error initializing the connection to Salesforce'));
+    }
+
+    next();
+  };
+}
+
+/**
+ * Observation only, no enforcement: a browser marks a request that another site initiated with
+ * `Sec-Fetch-Site: cross-site`. Nothing in the web application does that on purpose, so a hit is either
+ * an external link into an API route or a flow we have not accounted for. Logged so that rejecting these
+ * outright can be decided on real traffic. Requests without the header (older browsers, non-browser
+ * clients) are not logged.
+ */
+export function logCrossSiteRequest(req: express.Request, _res: express.Response, next: express.NextFunction) {
+  if (req.get('sec-fetch-site') === 'cross-site') {
+    getLogger().warn(
+      {
+        method: req.method,
+        path: req.originalUrl.split('?')[0],
+        secFetchMode: req.get('sec-fetch-mode'),
+        secFetchDest: req.get('sec-fetch-dest'),
+        secFetchUser: req.get('sec-fetch-user'),
+      },
+      '[FETCH-METADATA][CROSS-SITE] Authenticated request initiated by another site',
+    );
+  }
   next();
 }
+
+/** Resolves the source/target org from the `X-SFDC-ID` / `X-SFDC-ID-TARGET` headers only. */
+export const addOrgsToLocal = createAddOrgsToLocal({ allowQueryParam: false });
+
+/**
+ * Also accepts the org ids as query parameters. Only for routes a browser reaches by navigation (form
+ * posts, download links, redirects), which cannot carry headers; everything else must use `addOrgsToLocal`.
+ */
+export const addOrgsToLocalFromHeaderOrQuery = createAddOrgsToLocal({ allowQueryParam: true });
 
 export const WEB_APP_NOT_ALLOWED_MESSAGE = 'Your team access profile does not include the Jetstream web application.';
 
@@ -373,10 +431,11 @@ export async function getOrgFromHeaderOrQuery(
   headerKey: string,
   versionHeaderKey: string,
   requestId?: string,
+  { allowQueryParam }: OrgSourceOptions = { allowQueryParam: false },
 ) {
-  const uniqueId = (req.get(headerKey) || req.query[headerKey]) as string;
+  const uniqueId = readOrgUniqueId(req, headerKey, { allowQueryParam });
   // TODO: not yet implemented on the front-end
-  const apiVersion = (req.get(versionHeaderKey) || req.query[versionHeaderKey]) as string | undefined;
+  const apiVersion = req.get(versionHeaderKey) || (allowQueryParam ? (req.query[versionHeaderKey] as string | undefined) : undefined);
   const includeCallOptions = ensureBoolean(
     req.get(HTTP.HEADERS.X_INCLUDE_CALL_OPTIONS) || (req.query.includeCallOptions as string | undefined),
   );

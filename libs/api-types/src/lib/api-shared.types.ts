@@ -1,3 +1,4 @@
+import { isQueryLocatorUrl, isSObjectBlobFieldUrl } from '@jetstream/shared/utils';
 import { z } from 'zod';
 
 export interface LoggerLike {
@@ -13,6 +14,21 @@ export const BooleanQueryParamSchema = z
   .enum(['true', 'false'])
   .nullish()
   .transform((value) => value === 'true');
+
+/**
+ * A `nextRecordsUrl` handed back from a prior query. The proxy requests this path with the org's
+ * credentials, so it must be a query locator and nothing else.
+ */
+export const QueryLocatorUrlSchema = z
+  .string()
+  .refine(isQueryLocatorUrl, { error: 'nextRecordsUrl must be the query locator path returned by Salesforce' });
+
+/**
+ * A record blob field path for the file download proxy (`/services/data/vXX.X/sobjects/<SObject>/<id>/<Field>`).
+ */
+export const SObjectBlobFieldUrlSchema = z.string().refine(isSObjectBlobFieldUrl, {
+  error: 'url must be a record blob field path, e.g. /services/data/v62.0/sobjects/ContentVersion/<id>/VersionData',
+});
 
 export const DeployOptionsSchema = z
   .object({
