@@ -121,6 +121,37 @@ describe('oidcService', () => {
         /missing required endpoint\(s\): token_endpoint, jwks_uri/i,
       );
     });
+
+    it('rejects a discovery document whose authorization endpoint is not a web URL', async () => {
+      const oauth = await import('oauth4webapi');
+      (oauth.processDiscoveryResponse as any).mockImplementationOnce(async () => ({
+        issuer: 'https://issuer-script.test',
+        authorization_endpoint: 'javascript:alert(1)//',
+        token_endpoint: 'https://issuer-script.test/token',
+        jwks_uri: 'https://issuer-script.test/jwks',
+      }));
+
+      await expect(oidcService.getDiscoveredConfigForSaving('https://issuer-script.test')).rejects.toThrow(
+        /authorization endpoint must be an https URL/,
+      );
+    });
+  });
+
+  it('refuses to build an authorization URL from an endpoint that is not a web URL', async () => {
+    const oauth = await import('oauth4webapi');
+    (oauth.processDiscoveryResponse as any).mockImplementationOnce(async () => ({
+      issuer: 'https://issuer-script-login.test',
+      authorization_endpoint: 'javascript:alert(1)//',
+      token_endpoint: 'https://issuer-script-login.test/token',
+      jwks_uri: 'https://issuer-script-login.test/jwks',
+    }));
+
+    await expect(
+      oidcService.getAuthorizationUrl(
+        { issuer: 'https://issuer-script-login.test', clientId: 'client', scopes: ['openid'] } as any,
+        'team-1',
+      ),
+    ).rejects.toThrow(/not an http\(s\) URL/);
   });
 
   describe('extractUserInfo email_verified handling', () => {

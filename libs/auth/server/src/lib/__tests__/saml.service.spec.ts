@@ -104,6 +104,23 @@ describe('samlService', () => {
     await expect(samlService.parseIdpMetadata(xxePayload)).rejects.toThrow(/DOCTYPE and ENTITY declarations are not allowed/);
   });
 
+  it('rejects metadata whose SSO location is not an http(s) URL', async () => {
+    const scriptLocationMetadata = sampleMetadata.replace('Location="https://idp.example.com/sso"', 'Location="javascript:alert(1)//"');
+    await expect(samlService.parseIdpMetadata(scriptLocationMetadata)).rejects.toThrow(/not an http\(s\) URL/);
+  });
+
+  it('rejects metadata larger than the size limit before parsing it', async () => {
+    const oversizedMetadata = sampleMetadata + ' '.repeat(1_000_001);
+    await expect(samlService.parseIdpMetadata(oversizedMetadata)).rejects.toThrow(/too large/);
+  });
+
+  it('refuses to build a sign-in URL from a stored SSO URL that is not an http(s) URL', async () => {
+    await expect(samlService.getAuthorizationUrl({ ...samlConfig, idpSsoUrl: 'javascript:alert(1)//' }, 'team-1')).rejects.toThrow(
+      /not a valid web address/,
+    );
+    expect(samlConstructorMock).not.toHaveBeenCalledWith(expect.objectContaining({ entryPoint: 'javascript:alert(1)//' }));
+  });
+
   it('rejects metadata containing ENTITY declarations', async () => {
     const entityPayload = `<?xml version="1.0"?>
 <foo><!ENTITY xxe "test"></foo>`;

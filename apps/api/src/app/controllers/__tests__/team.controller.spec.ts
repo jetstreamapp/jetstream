@@ -20,9 +20,10 @@
  *   profile when inviting, resending an invitation or updating a member) are driven through their
  *   route definitions with the team service mocked, to lock in what reaches the service and the audit log.
  */
+import { isAllowedIdpUrl, samlService } from '@jetstream/auth/server';
 import { Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotAllowedError, UserFacingError } from '../../utils/error-handler';
-import { checkDomainVerification, fetchSamlMetadata, maskSsoSecrets, routeDefinition } from '../team.controller';
+import { checkDomainVerification, fetchSamlMetadata, maskSsoSecrets, readSamlMetadataResponse, routeDefinition } from '../team.controller';
 
 const assertDomainResolvesToPublicIpMock = vi.hoisted(() => vi.fn());
 // fetchSamlMetadata and checkDomainVerification's file fallback fetch each hop via
@@ -43,6 +44,8 @@ const routeMocks = vi.hoisted(() => ({
   createAccessProfile: vi.fn(),
   updateAccessProfile: vi.fn(),
   deleteAccessProfile: vi.fn(),
+  hasVerifiedDomain: vi.fn(),
+  createOrUpdateSamlConfiguration: vi.fn(),
 }));
 
 // Mock the transitive import chain of team.controller.ts down to the minimum needed
@@ -73,13 +76,22 @@ vi.mock('@jetstream/audit-logs', () => ({
     TEAM_ACCESS_PROFILE_CREATED: 'TEAM_ACCESS_PROFILE_CREATED',
     TEAM_ACCESS_PROFILE_UPDATED: 'TEAM_ACCESS_PROFILE_UPDATED',
     TEAM_ACCESS_PROFILE_DELETED: 'TEAM_ACCESS_PROFILE_DELETED',
+    SSO_SAML_CONFIG_CREATED: 'SSO_SAML_CONFIG_CREATED',
   },
-  AuditLogResource: { TEAM_MEMBER: 'team_member', TEAM_INVITATION: 'team_invitation', TEAM_ACCESS_PROFILE: 'team_access_profile' },
+  AuditLogResource: {
+    TEAM_MEMBER: 'team_member',
+    TEAM_INVITATION: 'team_invitation',
+    TEAM_ACCESS_PROFILE: 'team_access_profile',
+    TEAM_SSO_CONFIG: 'sso_config',
+  },
   createTeamAuditLog: routeMocks.createTeamAuditLog,
 }));
 vi.mock('@jetstream/auth/server', () => ({
   getApiAddressFromReq: vi.fn(() => '127.0.0.1'),
   encryptSecret: vi.fn(),
+  // The real policy (https, or http only without secure cookies) is covered by sso-url.util.spec; the handler
+  // tests only need the scheme to matter
+  isAllowedIdpUrl: vi.fn((url?: string | null) => typeof url === 'string' && url.startsWith('https://')),
   oidcService: { getDiscoveredConfigForSaving: vi.fn() },
   samlService: { parseIdpMetadata: vi.fn() },
   refreshSessionUser: vi.fn(),
@@ -90,7 +102,9 @@ vi.mock('@jetstream/auth/server', () => ({
 }));
 vi.mock('@jetstream/auth/types', () => ({
   OidcConfigurationRequestSchema: { parse: vi.fn() },
-  SamlConfigurationRequestSchema: { parse: vi.fn() },
+  SAML_METADATA_MAX_LENGTH: 1_000_000,
+  // Pass-through, so the SAML handler tests receive the body they send (schema validation is covered in auth/types)
+  SamlConfigurationRequestSchema: { parse: vi.fn((value: unknown) => value) },
 }));
 vi.mock('@jetstream/shared/node-utils', () => ({
   assertDomainResolvesToPublicIp: assertDomainResolvesToPublicIpMock,
@@ -100,7 +114,11 @@ vi.mock('dns/promises', () => ({ resolveTxt: resolveTxtMock }));
 vi.mock('@jetstream/prisma', () => ({
   Prisma: { PrismaClientKnownRequestError: class extends Error {} },
 }));
-vi.mock('../../db/team.db', () => ({ findTeamInvitationById: routeMocks.findTeamInvitationById }));
+vi.mock('../../db/team.db', () => ({
+  findTeamInvitationById: routeMocks.findTeamInvitationById,
+  hasVerifiedDomain: routeMocks.hasVerifiedDomain,
+  createOrUpdateSamlConfiguration: routeMocks.createOrUpdateSamlConfiguration,
+}));
 vi.mock('../../services/team.service', () => ({
   canRunningUserUpdateTargetUserOrThrow: routeMocks.canRunningUserUpdateTargetUserOrThrow,
   updateTeamMember: routeMocks.updateTeamMember,
@@ -297,6 +315,41 @@ describe('fetchSamlMetadata', () => {
   });
 });
 
+describe('readSamlMetadataResponse', () => {
+  const METADATA_MAX_LENGTH = 1_000_000;
+
+  function streamingResponse(chunks: Uint8Array[]) {
+    let pulledChunks = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (pulledChunks < chunks.length) {
+          controller.enqueue(chunks[pulledChunks++]);
+        } else {
+          controller.close();
+        }
+      },
+    });
+    return { response: new Response(stream), getPulledChunks: () => pulledChunks };
+  }
+
+  it('returns the document text', async () => {
+    await expect(readSamlMetadataResponse(new Response('<EntityDescriptor/>'))).resolves.toBe('<EntityDescriptor/>');
+  });
+
+  it('rejects a response that declares a body over the limit without reading it', async () => {
+    const response = new Response('<EntityDescriptor/>', { headers: { 'content-length': String(METADATA_MAX_LENGTH + 1) } });
+    await expect(readSamlMetadataResponse(response)).rejects.toThrow(/too large/);
+  });
+
+  it('stops reading once a body without a declared length passes the limit', async () => {
+    const chunk = new Uint8Array(400_000);
+    const { response, getPulledChunks } = streamingResponse(Array.from({ length: 10 }, () => chunk));
+
+    await expect(readSamlMetadataResponse(response)).rejects.toThrow(/too large/);
+    expect(getPulledChunks()).toBeLessThan(10);
+  });
+});
+
 describe('checkDomainVerification', () => {
   const DOMAIN = 'example.com';
   const CODE = 'jetstream-verification=abc123';
@@ -443,17 +496,18 @@ const ACCESS_PROFILE_ID = '6b1f8d4e-2c3a-4e5f-9a7b-1c2d3e4f5a6b';
 const OTHER_ACCESS_PROFILE_ID = '0d9c8b7a-6f5e-4d3c-8b2a-1f0e9d8c7b6a';
 const INVITEE_EMAIL = 'invitee@example.com';
 
-type AccessProfileRouteName =
+type TeamRouteName =
   | 'createInvitation'
   | 'resendInvitation'
   | 'updateTeamMember'
   | 'createAccessProfile'
   | 'updateAccessProfile'
-  | 'deleteAccessProfile';
+  | 'deleteAccessProfile'
+  | 'createOrUpdateSamlConfig';
 
 /** Runs a team route handler the way express would after the team role middleware has passed */
 async function invokeTeamRoute(
-  routeName: AccessProfileRouteName,
+  routeName: TeamRouteName,
   {
     role = 'ADMIN',
     params = {},
@@ -807,5 +861,118 @@ describe('access profile routes', () => {
         }),
       );
     });
+  });
+});
+
+describe('createOrUpdateSamlConfig', () => {
+  const SAML_REQUEST = {
+    idpEntityId: 'https://idp.example.com/metadata',
+    idpSsoUrl: 'https://idp.example.com/sso',
+    idpCertificate: 'REQUEST-CERT',
+    signRequests: false,
+    attributeMapping: {},
+  };
+  const HTTP_SSO_URL = 'http://idp.example.com/sso';
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    routeMocks.hasVerifiedDomain.mockResolvedValue(true);
+    routeMocks.createOrUpdateSamlConfiguration.mockImplementation(async (_teamId: string, _userId: string, data: unknown) => ({
+      isNew: true,
+      previous: null,
+      result: { samlConfiguration: { id: 'saml-config-1', ...(data as object) } },
+    }));
+  });
+
+  function expectRejectedIdpUrl(next: Mock) {
+    expect(next).toHaveBeenCalledTimes(1);
+    const [error] = next.mock.calls[0];
+    expect(error).toBeInstanceOf(UserFacingError);
+    expect(error.message).toBe('The IdP SSO URL must be an https URL.');
+    expect(routeMocks.createOrUpdateSamlConfiguration).not.toHaveBeenCalled();
+    expect(routeMocks.sendJson).not.toHaveBeenCalled();
+    expect(routeMocks.createTeamAuditLog).not.toHaveBeenCalled();
+  }
+
+  it('rejects an http SSO URL in the request without writing anything', async () => {
+    const { next } = await invokeTeamRoute('createOrUpdateSamlConfig', { body: { ...SAML_REQUEST, idpSsoUrl: HTTP_SSO_URL } });
+
+    expectRejectedIdpUrl(next);
+    expect(isAllowedIdpUrl).toHaveBeenCalledWith(HTTP_SSO_URL);
+  });
+
+  it('rejects an http SSO URL read from metadata even when the request URL is https', async () => {
+    vi.mocked(samlService.parseIdpMetadata).mockResolvedValue({
+      entityId: 'https://idp.example.com/metadata',
+      ssoUrl: HTTP_SSO_URL,
+      certificate: 'METADATA-CERT',
+    } as never);
+
+    const { next } = await invokeTeamRoute('createOrUpdateSamlConfig', {
+      body: { ...SAML_REQUEST, idpMetadataXml: '<EntityDescriptor/>' },
+    });
+
+    expectRejectedIdpUrl(next);
+    // The metadata URL replaces the one in the request, so it is the one that has to pass
+    expect(isAllowedIdpUrl).toHaveBeenCalledWith(HTTP_SSO_URL);
+    expect(isAllowedIdpUrl).not.toHaveBeenCalledWith(SAML_REQUEST.idpSsoUrl);
+  });
+
+  it('saves an https SSO URL and records the new configuration', async () => {
+    const { next } = await invokeTeamRoute('createOrUpdateSamlConfig', { body: SAML_REQUEST });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(routeMocks.createOrUpdateSamlConfiguration).toHaveBeenCalledWith(TEAM_ID, RUNNING_USER_ID, SAML_REQUEST);
+    expect(routeMocks.sendJson).toHaveBeenCalledTimes(1);
+    expect(findAuditLogEntry('SSO_SAML_CONFIG_CREATED').metadata).toEqual(
+      expect.objectContaining({ provider: 'SAML', idpSsoUrl: SAML_REQUEST.idpSsoUrl, certificateAdded: true }),
+    );
+  });
+
+  it('saves the values from allowed metadata in place of the ones in the request', async () => {
+    vi.mocked(samlService.parseIdpMetadata).mockResolvedValue({
+      entityId: 'https://idp.example.com/metadata-entity',
+      ssoUrl: 'https://idp.example.com/metadata-sso',
+      certificate: 'METADATA-CERT',
+    } as never);
+
+    const { next } = await invokeTeamRoute('createOrUpdateSamlConfig', {
+      body: { ...SAML_REQUEST, idpMetadataXml: '<EntityDescriptor/>' },
+    });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(routeMocks.createOrUpdateSamlConfiguration).toHaveBeenCalledWith(
+      TEAM_ID,
+      RUNNING_USER_ID,
+      expect.objectContaining({
+        idpEntityId: 'https://idp.example.com/metadata-entity',
+        idpSsoUrl: 'https://idp.example.com/metadata-sso',
+        idpCertificate: 'METADATA-CERT',
+      }),
+    );
+  });
+
+  it('defers the scheme policy to isAllowedIdpUrl, so http saves when the policy allows it', async () => {
+    vi.mocked(isAllowedIdpUrl).mockReturnValueOnce(true);
+
+    const { next } = await invokeTeamRoute('createOrUpdateSamlConfig', { body: { ...SAML_REQUEST, idpSsoUrl: HTTP_SSO_URL } });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(routeMocks.createOrUpdateSamlConfiguration).toHaveBeenCalledWith(
+      TEAM_ID,
+      RUNNING_USER_ID,
+      expect.objectContaining({ idpSsoUrl: HTTP_SSO_URL }),
+    );
+  });
+
+  it('requires a verified domain before anything else', async () => {
+    routeMocks.hasVerifiedDomain.mockResolvedValue(false);
+
+    const { next } = await invokeTeamRoute('createOrUpdateSamlConfig', { body: SAML_REQUEST });
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next.mock.calls[0][0].message).toBe('At least one verified domain is required to configure SSO.');
+    expect(isAllowedIdpUrl).not.toHaveBeenCalled();
+    expect(routeMocks.createOrUpdateSamlConfiguration).not.toHaveBeenCalled();
   });
 });

@@ -6,6 +6,7 @@ import { getErrorMessage } from '@jetstream/shared/utils';
 import { LRUCache } from 'lru-cache';
 import * as oauth from 'oauth4webapi';
 import { decryptSecret } from './sso-crypto.util';
+import { assertAllowedIdpUrl, isHttpUrl } from './sso-url.util';
 import { AttributeMapping, DiscoveredOidcConfig, SsoUserInfo } from './sso.types';
 
 const discoveryCache = new LRUCache<string, oauth.AuthorizationServer>({ max: 100, ttl: 1000 * 60 * 60 });
@@ -99,6 +100,11 @@ export class OidcService {
     const state = oauth.generateRandomState();
     const nonce = oauth.generateRandomNonce();
 
+    // Saving a configuration requires https; the endpoint is re-discovered at sign in, so at least make sure it is
+    // still a web URL before it becomes the redirect target
+    if (!isHttpUrl(authServer.authorization_endpoint)) {
+      throw new Error('OIDC discovery document has an authorization endpoint that is not an http(s) URL');
+    }
     const authorizationUrl = new URL(authServer.authorization_endpoint!);
     authorizationUrl.searchParams.set('client_id', client.client_id);
     authorizationUrl.searchParams.set('redirect_uri', `${ENV.JETSTREAM_SERVER_URL}/api/auth/sso/oidc/${teamId}/callback`);
@@ -282,6 +288,9 @@ export class OidcService {
       ].filter(Boolean);
       throw new Error(`OIDC discovery document is missing required endpoint(s): ${missingEndpoints.join(', ')}`);
     }
+
+    // Members' browsers are sent to the authorization endpoint at sign in
+    assertAllowedIdpUrl(authorization_endpoint, 'The OIDC authorization endpoint');
 
     return {
       issuer: authServer.issuer,

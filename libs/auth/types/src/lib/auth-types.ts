@@ -504,6 +504,12 @@ export const SamlConfigurationSchema = z.object({
 
 export type SamlConfiguration = z.infer<typeof SamlConfigurationSchema>;
 
+/**
+ * Upper bound on SAML IdP metadata, in characters. Metadata for a single identity provider is a few KB (large
+ * multi-role documents stay well under 100 KB), so this only bounds what the server is asked to parse.
+ */
+export const SAML_METADATA_MAX_LENGTH = 1_000_000;
+
 export const SamlConfigurationRequestSchema = SamlConfigurationSchema.pick({
   name: true,
   nameIdFormat: true,
@@ -514,6 +520,10 @@ export const SamlConfigurationRequestSchema = SamlConfigurationSchema.pick({
   idpMetadataUrl: true,
   attributeMapping: true,
 }).extend({
+  // The SSO URL becomes the browser's navigation target at sign in, so only web URLs are accepted. The server also
+  // requires https outside local development.
+  idpSsoUrl: z.url({ protocol: /^https?$/ }),
+  idpMetadataXml: z.string().max(SAML_METADATA_MAX_LENGTH, 'The IdP metadata is too large').nullable(),
   // Reserved for future use
   signRequests: z.never().optional(),
   wantAssertionsSigned: z.never().optional(),
