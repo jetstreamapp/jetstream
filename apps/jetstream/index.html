@@ -38,6 +38,14 @@
     <script nonce="__CSP_NONCE__">
       __IS_BROWSER_EXTENSION__ = false;
     </script>
+    <!--
+      Turns on zod's jitless mode before any bundle runs - the first schema zod creates otherwise probes for `new Function`,
+      which the CSP blocks and reports as an eval violation on every page load. This is zod's own shared config object
+      (z.config() writes to it), set here because the shared chunk that creates schemas runs before any code in main.tsx.
+    -->
+    <script nonce="__CSP_NONCE__">
+      globalThis.__zod_globalConfig = { jitless: true };
+    </script>
   </head>
   <body class="slds-color-scheme--light">
     <div id="root"></div>
