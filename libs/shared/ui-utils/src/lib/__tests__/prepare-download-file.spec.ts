@@ -56,6 +56,18 @@ describe('prepareCsvFile', () => {
   it('is typed as CSV', () => {
     expect(prepareCsvFile(buildCsvRecords(1), CSV_HEADER).type).toBe(MIME_TYPES.CSV);
   });
+
+  it('leaves formula-like values alone by default', async () => {
+    const file = prepareCsvFile([{ Id: '1', Name: '=1+1', Description: '-5' }], CSV_HEADER);
+
+    expect(await file.text()).toBe('"Id","Name","Description"\r\n"1","=1+1","-5"');
+  });
+
+  it('escapes formula-like values when asked to, including ones with a line break', async () => {
+    const file = prepareCsvFile([{ Id: '1', Name: '=1+1\nsecond line', Description: '@SUM(1,2)' }], CSV_HEADER, { escapeFormulae: true });
+
+    expect(await file.text()).toBe('"Id","Name","Description"\r\n"1","\'=1+1\nsecond line","\'@SUM(1,2)"');
+  });
 });
 
 describe('prepareJsonFile', () => {

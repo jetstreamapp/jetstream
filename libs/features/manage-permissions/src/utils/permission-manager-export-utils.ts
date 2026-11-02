@@ -1,5 +1,6 @@
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { ensureXlsxCodepageTable, excelWorkbookToArrayBuffer, getMaxWidthFromColumnContent } from '@jetstream/shared/ui-utils';
+import { CSV_FORMULA_ESCAPE_REGEX } from '@jetstream/shared/utils';
 import {
   Maybe,
   PermissionTableFieldCell,
@@ -35,9 +36,10 @@ const WORKSHEET_OPTIONS = { dense: true } as const;
  * Field labels, profile and permission set names and user names come straight from the org, so anyone who
  * can edit those in Salesforce can plant a cell that a spreadsheet would evaluate as a formula when the admin
  * opens the export. Formula triggers are neutralized with a leading quote (the XLSX export is unaffected
- * because it writes string cells).
+ * because it writes string cells). The shared pattern is used rather than `escapeFormulae: true`, which
+ * misses a value containing a line break.
  */
-const CSV_UNPARSE_OPTIONS: UnparseConfig = { escapeFormulae: true };
+const CSV_UNPARSE_OPTIONS: UnparseConfig = { escapeFormulae: CSV_FORMULA_ESCAPE_REGEX };
 
 type PermissionExportColumn =
   | ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>

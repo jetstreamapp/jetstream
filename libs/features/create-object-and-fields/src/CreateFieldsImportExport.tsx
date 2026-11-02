@@ -1,6 +1,6 @@
 import { ANALYTICS_KEYS, INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { parseFile } from '@jetstream/shared/ui-utils';
-import { REGEX, ensureBoolean } from '@jetstream/shared/utils';
+import { REGEX, ensureBoolean, unescapeCsvFormula } from '@jetstream/shared/utils';
 import { InputReadFileContent, SalesforceOrgUi } from '@jetstream/types';
 import {
   ButtonGroupContainer,
@@ -82,10 +82,12 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows, onLo
         duration: 10000,
       });
     }
+    // A CSV export escapes formula-like values with a leading quote, which is removed so an exported file imports unchanged
+    const isCsvFile = typeof content === 'string';
     // ensure all keys are lowercase to match up with expected field names
     data = data.map((row) => {
       return Object.keys(row).reduce((normalizedRow: Record<string, unknown>, key) => {
-        normalizedRow[key.toLowerCase().replace(REGEX.NOT_ALPHA, '')] = row[key];
+        normalizedRow[key.toLowerCase().replace(REGEX.NOT_ALPHA, '')] = isCsvFile ? unescapeCsvFormula(row[key]) : row[key];
         return normalizedRow;
       }, {});
     });
@@ -145,6 +147,7 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows, onLo
           header={allFields}
           fileNameParts={['fields']}
           allowedTypes={['xlsx', 'csv']}
+          escapeCsvFormulas
           onModalClose={() => handleCloseModal()}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
           source="create_fields_import_export_modal"

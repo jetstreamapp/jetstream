@@ -288,6 +288,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
           data={exportData}
           fileNameParts={['metadata']}
           allowedTypes={['xlsx', 'csv', 'json']}
+          escapeCsvFormulas
           onModalClose={() => setExportData(null)}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
           source="deploy_metadata"

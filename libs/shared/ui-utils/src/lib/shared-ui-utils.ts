@@ -11,7 +11,17 @@ import {
   checkMetadataRetrieveResultsAndDeployToTarget,
   isTransientRequestFailure,
 } from '@jetstream/shared/data';
-import { NOOP, REGEX, delay, ensureArray, ensureBoolean, getErrorMessage, orderObjectsBy, orderValues } from '@jetstream/shared/utils';
+import {
+  CSV_FORMULA_ESCAPE_REGEX,
+  NOOP,
+  REGEX,
+  delay,
+  ensureArray,
+  ensureBoolean,
+  getErrorMessage,
+  orderObjectsBy,
+  orderValues,
+} from '@jetstream/shared/utils';
 import type {
   AddOrgHandlerFn,
   AndOr,
@@ -457,8 +467,19 @@ function buildDownloadFile(type: string, writeFile: (write: (text: string) => vo
   return new Blob([...blobs, ...pending], { type });
 }
 
-export function prepareCsvFile(data: Record<string, string>[], header: string[]): Blob {
-  const config: UnparseConfig = { quotes: true, delimiter: detectDelimiter(), newline: CSV_NEWLINE, header: false };
+/**
+ * @param options.escapeFormulae Prefix values a spreadsheet would evaluate as a formula with a single quote. Use it for
+ * exports of org metadata (names, labels, descriptions) that are opened in a spreadsheet rather than loaded back as
+ * record data, where the quote would change the value.
+ */
+export function prepareCsvFile(data: Record<string, string>[], header: string[], options: { escapeFormulae?: boolean } = {}): Blob {
+  const config: UnparseConfig = {
+    quotes: true,
+    delimiter: detectDelimiter(),
+    newline: CSV_NEWLINE,
+    header: false,
+    escapeFormulae: options.escapeFormulae ? CSV_FORMULA_ESCAPE_REGEX : false,
+  };
   return buildDownloadFile(MIME_TYPES.CSV, (write) => {
     // Matches a single unparse call, which ends the header row with a newline even when there are no records
     write(unparse([header], config));

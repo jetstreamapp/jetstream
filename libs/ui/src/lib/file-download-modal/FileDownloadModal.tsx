@@ -103,6 +103,12 @@ export interface FileDownloadModalProps {
    * (e.x. flattened data vs nested data)
    */
   transformData?: (params: TransformDataParams) => any[];
+  /**
+   * Prefix CSV values (including the CSV sent to Google Drive) that a spreadsheet would evaluate as a formula with a
+   * single quote. Enable for exports of org metadata that are opened in a spreadsheet, not for record data that may be
+   * loaded back, where the quote would change the value.
+   */
+  escapeCsvFormulas?: boolean;
 }
 
 const LS_KEY = 'FileDownloadModal';
@@ -129,6 +135,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   emitUploadToGoogleEvent,
   onError,
   transformData,
+  escapeCsvFormulas = false,
 }) => {
   const hasGoogleInputConfigured =
     (isDesktop() ||
@@ -215,7 +222,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
             const headerFields = (header ? header : Object.keys((data as any[])[0])) as string[];
             const _data =
               transformData && Array.isArray(data) ? transformData({ fileFormat, data, header: headerFields }) : (data as any[]);
-            fileData = prepareCsvFile(_data, headerFields);
+            fileData = prepareCsvFile(_data, headerFields, { escapeFormulae: escapeCsvFormulas });
             mimeType = MIME_TYPES.CSV;
             break;
           }
@@ -261,7 +268,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
       const headerFields = (header ? header : Object.keys((data as any[])[0])) as string[];
       const _data =
         transformData && Array.isArray(data) ? transformData({ fileFormat: 'csv', data, header: headerFields }) : (data as any[]);
-      fileData = prepareCsvFile(_data, headerFields);
+      fileData = prepareCsvFile(_data, headerFields, { escapeFormulae: escapeCsvFormulas });
     } else if (allowedTypesSet.has('xlsx')) {
       fileType = 'xlsx';
       if (data instanceof ArrayBuffer) {

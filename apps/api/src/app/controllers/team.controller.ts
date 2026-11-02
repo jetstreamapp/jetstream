@@ -5,7 +5,7 @@ import { DiscoveredOidcConfig, encryptSecret, oidcService, samlService } from '@
 import { OidcConfigurationRequestSchema, SamlConfigurationRequestSchema } from '@jetstream/auth/types';
 import { BLOCKED_PUBLIC_EMAIL_DOMAINS } from '@jetstream/shared/constants';
 import { assertDomainResolvesToPublicIp, fetchWithPinnedPublicIp } from '@jetstream/shared/node-utils';
-import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { CSV_FORMULA_ESCAPE_REGEX, getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { auditSeatLimitRejection, SeatLimitError, SeatLimitRejectionContext } from '@jetstream/team-seats';
 import {
   ACCESS_PROFILE_FULL_ACCESS_ID,
@@ -1786,7 +1786,7 @@ const getTeamAuditLogs = createRoute(routeDefinition.getTeamAuditLogs.validators
       })),
       // Member display names (and anything in metadata) are user-chosen, so a cell starting with
       // `=`, `+`, `-` or `@` would otherwise run as a formula when the admin opens the export
-      { header: true, escapeFormulae: true },
+      { header: true, escapeFormulae: CSV_FORMULA_ESCAPE_REGEX },
     );
 
     res.setHeader('Content-Type', 'text/csv');
