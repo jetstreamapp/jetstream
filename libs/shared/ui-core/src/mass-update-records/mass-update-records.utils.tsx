@@ -4,7 +4,7 @@ import { queryAll, queryAllFromList } from '@jetstream/shared/data';
 import { escapeSoqlString } from '@jetstream/shared/ui-utils';
 import { BULK_RESULTS_BASE_HEADER, buildBulkResultRow } from '@jetstream/shared/utils';
 import { BulkJobResultRecord, DescribeGlobalSObjectResult, ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
-import { Query, composeQuery, getField, isQueryValid } from '@jetstreamapp/soql-parser-js';
+import { FieldType, Query, composeQuery, getField, isQueryValid } from '@jetstreamapp/soql-parser-js';
 import lodashGet from 'lodash/get';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
@@ -159,6 +159,49 @@ export function isValidRow(row: Maybe<MetadataRow>) {
     }
     return true;
   });
+}
+
+/**
+ * Fields for a query, with every "value from another field" source that was picked through a polymorphic lookup
+ * selected with `TYPEOF`. `Who.Email` is valid, but `Who.Linkedin_URL__c` is not, since `Who` only exposes the fields
+ * shared by Contact and Lead.
+ *
+ * The record still carries the value at `Who.Linkedin_URL__c`, so reading it needs no change. It is blank for a
+ * record whose lookup points at a different object than the one that was chosen.
+ */
+export function getQueryFields(fieldPaths: string[], configuration: MetadataRowConfiguration[]): FieldType[] {
+  // relationship name -> object -> fields to read from that object, relative to the relationship
+  const typeofFieldsByRelationship = new Map<string, Map<string, Set<string>>>();
+  const typeofPaths = new Set<string>();
+
+  configuration.forEach(({ transformationOptions: { option, alternateField, alternateFieldTarget } }) => {
+    if (option !== 'anotherField' || !alternateField || !alternateFieldTarget) {
+      return;
+    }
+    const { relationshipName, sobject } = alternateFieldTarget;
+    if (!alternateField.startsWith(`${relationshipName}.`)) {
+      return;
+    }
+    const fieldsBySobject = typeofFieldsByRelationship.get(relationshipName) ?? new Map<string, Set<string>>();
+    const relativeFields = fieldsBySobject.get(sobject) ?? new Set<string>();
+    relativeFields.add(alternateField.slice(relationshipName.length + 1));
+    fieldsBySobject.set(sobject, relativeFields);
+    typeofFieldsByRelationship.set(relationshipName, fieldsBySobject);
+    typeofPaths.add(alternateField);
+  });
+
+  const typeofFields = Array.from(typeofFieldsByRelationship).map(([relationshipName, fieldsBySobject]) =>
+    getField({
+      field: relationshipName,
+      conditions: Array.from(fieldsBySobject).map(([sobject, relativeFields]) => ({
+        type: 'WHEN' as const,
+        objectType: sobject,
+        fieldList: Array.from(relativeFields),
+      })),
+    }),
+  );
+
+  return [...fieldPaths.filter((path) => !typeofPaths.has(path)).map((path) => getField(path)), ...typeofFields];
 }
 
 export function getFieldsToQuery(configuration: MetadataRowConfiguration[]): string[] {
@@ -351,7 +394,7 @@ export function composeSoqlQueryOptionalCustomWhereClause(
   { includeCustom = false }: { includeCustom?: boolean } = {},
 ) {
   const query: Query = {
-    fields: fields.map((field) => getField(field)),
+    fields: getQueryFields(fields, row.configuration),
     sObject: row.sobject,
   };
 
@@ -389,7 +432,7 @@ export function composeSoqlQueryOptionalCustomWhereClause(
 
 export function composeSoqlQueryCustomWhereClause(row: MetadataRow, fields: string[]) {
   const query: Query = {
-    fields: fields.map((field) => getField(field)),
+    fields: getQueryFields(fields, row.configuration),
     sObject: row.sobject,
   };
 
@@ -447,7 +490,7 @@ export async function fetchRecordsWithRequiredFields({
     }
   });
 
-  const fields = Array.from(fieldsRequiredInRecords).map((field) => getField(field));
+  const fields = getQueryFields(Array.from(fieldsRequiredInRecords), configuration);
 
   // Re-fetch only the specific records the user chose, querying by Id instead of the full result set.
   if (idsToInclude) {

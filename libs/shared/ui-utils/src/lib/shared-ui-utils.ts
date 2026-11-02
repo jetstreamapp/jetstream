@@ -1983,6 +1983,45 @@ export function getPolymorphicTargetListItems(field: Field, relationshipPath: st
 const POLYMORPHIC_TARGET_ID_SEPARATOR = '::';
 
 /**
+ * The object chosen for the polymorphic lookup (`Who` -> `Contact`) that a selected drill-in field was reached through.
+ *
+ * Only a lookup on the root object is reported because that is the only place SOQL can select per-object fields
+ * (`TYPEOF` does not accept `Account.Owner`). The generated ids deliberately stay plain relationship paths, so the
+ * choice is only recoverable from where the item sits in the tree.
+ */
+export function getPolymorphicTargetForItem(
+  items: ListItem[],
+  selectedItem: ListItem,
+): Maybe<{ relationshipName: string; sobject: string }> {
+  const ancestors = findItemAncestors(items, selectedItem);
+  for (const ancestor of ancestors || []) {
+    if (isPolymorphicTargetItem(ancestor)) {
+      const { relationshipPath, sobject } = ancestor.meta as PolymorphicTargetMeta;
+      if (!relationshipPath.includes('.')) {
+        return { relationshipName: relationshipPath, sobject };
+      }
+    }
+  }
+  return null;
+}
+
+/** Items from the root down to (not including) the item. Matches on parentId as well as id because ids repeat across polymorphic targets. */
+function findItemAncestors(items: ListItem[], selectedItem: ListItem, ancestors: ListItem[] = []): ListItem[] | null {
+  for (const item of items) {
+    if (item === selectedItem || (item.id === selectedItem.id && item.parentId === selectedItem.parentId)) {
+      return ancestors;
+    }
+    if (item.childItems?.length) {
+      const found = findItemAncestors(item.childItems, selectedItem, [...ancestors, item]);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return null;
+}
+
+/**
  * If there is a change in UI that would make an element take a render ror more
  * to be added to the dom, this will try a {maxAttempts} times to focus the element
  *

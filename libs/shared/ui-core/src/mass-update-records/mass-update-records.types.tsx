@@ -51,9 +51,22 @@ export interface ValidationResults {
 export interface TransformationOptions {
   option: TransformationOption;
   alternateField?: Maybe<string>;
+  /**
+   * Set when `alternateField` is read through a lookup that can point at more than one object (`Who`, `What`, …).
+   * The field path alone cannot be queried then, since the relationship only exposes the fields every target
+   * shares, so the query selects it with `TYPEOF` instead.
+   */
+  alternateFieldTarget?: Maybe<PolymorphicFieldTarget>;
   staticValue: string;
   criteria: TransformationCriteria;
   whereClause: string;
+}
+
+export interface PolymorphicFieldTarget {
+  /** Polymorphic relationship on the object being updated, e.g. `Who` */
+  relationshipName: string;
+  /** Object the field is read from, e.g. `Contact` */
+  sobject: string;
 }
 
 export type TransformationOption = 'staticValue' | 'anotherField' | 'update' | 'null';

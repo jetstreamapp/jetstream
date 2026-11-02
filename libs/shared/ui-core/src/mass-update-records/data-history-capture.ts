@@ -75,6 +75,7 @@ export function startMassUpdateHistory({
         option: transformationOptions.option,
         criteria: transformationOptions.criteria,
         alternateField: transformationOptions.alternateField,
+        alternateFieldTarget: transformationOptions.alternateFieldTarget,
         staticValue: transformationOptions.staticValue,
         whereClause: transformationOptions.whereClause,
       })),
