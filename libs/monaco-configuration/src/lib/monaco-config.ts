@@ -9,6 +9,12 @@ import { getApexLogFoldableRegions } from './monaco-utils';
 type Monaco = typeof monaco;
 
 export function configure(monaco: Monaco) {
+  // Disable auto-fetching schemas from json.schemastore.org — those requests are blocked
+  // by CSP in production and CORS in dev, producing unhandled rejections in the JSON worker.
+  monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+    enableSchemaRequest: false,
+  });
+
   configureSoqlLanguage(monaco);
   configureApexLog(monaco);
   configureSfdcFormulaLanguage(monaco);
