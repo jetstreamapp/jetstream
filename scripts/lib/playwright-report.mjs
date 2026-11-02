@@ -349,8 +349,12 @@ export function shellQuote(value) {
   return `'${String(value).replace(/'/g, `'\\''`)}'`;
 }
 
-/** Spec paths are plain repo-relative paths; anything else is left out of the command rather than quoted in. */
-const SAFE_SPEC_PATH = /^[\w@./-]+$/;
+/**
+ * Spec paths are plain repo-relative paths; anything else is left out of the command rather than quoted in.
+ * A leading hyphen is refused too: quoting keeps the shell from interpreting the value, but Playwright would
+ * still parse a value such as `--update-snapshots` as an option rather than a spec file.
+ */
+const SAFE_SPEC_PATH = /^[\w@.][\w@./-]*$/;
 
 /**
  * Repro command for a single failed test. `-g` matches against the full title path, which is what

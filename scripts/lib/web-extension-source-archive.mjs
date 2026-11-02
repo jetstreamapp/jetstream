@@ -58,10 +58,23 @@ export async function listSourceArchiveFiles(sourceDir) {
 export async function assertSourceArchiveIsPublishable(sourceDir, archivePath) {
   const allowedFiles = new Set(await listSourceArchiveFiles(sourceDir));
   const archive = await JSZip.loadAsync(await readFile(archivePath));
-  const archivedFiles = Object.values(archive.files)
-    .filter(({ dir }) => !dir)
-    .map(({ name }) => name);
+  const archivedEntries = Object.values(archive.files).filter(({ dir }) => !dir);
 
+  // JSZip resolves `.`/`..` segments while loading and keeps the original spelling on the entry, so an
+  // entry such as `../package.json` would otherwise pass the allow-list under its resolved name while the
+  // archive is uploaded as-is. Nothing the zip script builds has a path like that.
+  const normalizedEntries = archivedEntries.filter(({ unsafeOriginalName }) => unsafeOriginalName !== undefined);
+  if (normalizedEntries.length > 0) {
+    const preview = normalizedEntries
+      .slice(0, 20)
+      .map(({ unsafeOriginalName }) => unsafeOriginalName)
+      .join('\n');
+    throw new Error(
+      `${archivePath} contains entries whose paths are not plain relative paths. Rebuild it with \`pnpm build:web-extension:zip\`.\n${preview}`,
+    );
+  }
+
+  const archivedFiles = archivedEntries.map(({ name }) => name);
   const unexpectedFiles = archivedFiles.filter((filePath) => !allowedFiles.has(filePath));
   if (unexpectedFiles.length > 0) {
     const preview = unexpectedFiles.slice(0, 20).join('\n');
