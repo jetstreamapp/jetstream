@@ -4,6 +4,7 @@ import { getLocalStore } from '@jetstream/shared/data';
 import { groupByFlat, hashString, pluralizeFromNumber, truncate } from '@jetstream/shared/utils';
 import { ApexHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import { waitForLocalStorageInit } from '@jetstream/ui/db';
 import { addDays } from 'date-fns/addDays';
 import { formatDate } from 'date-fns/format';
 import { isBefore } from 'date-fns/isBefore';
@@ -19,7 +20,9 @@ let didRunCleanup = false;
  * every account on the machine) is moved into this store at sign-in by the legacy-store adoption in
  * `@jetstream/shared/ui-db`, for the account that owns the rest of the shared data.
  */
-export function loadAnonymousApexDraft(): Promise<string | null> {
+export async function loadAnonymousApexDraft(): Promise<string | null> {
+  // The editor can mount before the adoption has moved the legacy draft in, which would read an empty store
+  await waitForLocalStorageInit();
   return getLocalStore().getItem<string>(INDEXED_DB.KEYS.anonymousApexDraft);
 }
 

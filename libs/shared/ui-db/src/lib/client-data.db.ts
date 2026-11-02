@@ -69,6 +69,9 @@ class DexieInitializer {
   private scopedUserId: string | null = null;
   private scopeReadyPromise: Promise<void> | null = null;
   private initPromise: Promise<void> | null = null;
+  /** Resolves once the current scope's full init (legacy adoption) has finished or been abandoned. */
+  private initSettledPromise: Promise<void> | null = null;
+  private resolveInitSettled: (() => void) | null = null;
 
   /** Tracks whether the current instance has an active sync connection (reset per user). */
   private hasConnectedSync = false;
@@ -96,6 +99,9 @@ class DexieInitializer {
     // connection and full-init promise no longer apply.
     this.clearScope();
     this.scopedUserId = userId;
+    this.initSettledPromise = new Promise<void>((resolve) => {
+      this.resolveInitSettled = resolve;
+    });
     pageSessionUserId = pageSessionUserId ?? userId;
     this.scopeReadyPromise = (async () => {
       try {
@@ -142,6 +148,9 @@ class DexieInitializer {
     if (!this.scopedUserId && !hasDexieDb() && !hasLocalStore()) {
       return;
     }
+    this.resolveInitSettled?.();
+    this.resolveInitSettled = null;
+    this.initSettledPromise = null;
     this.scopedUserId = null;
     this.scopeReadyPromise = null;
     this.initPromise = null;
@@ -150,6 +159,15 @@ class DexieInitializer {
     setLocalStore(null);
     // Per-user state outside the database (data history file stores) unbinds on the same signal
     notifyLocalStorageScopeCleared();
+  }
+
+  /**
+   * Resolves when the current scope's legacy adoption has finished (or the scope was torn down).
+   * Unlike `initPromise` this exists as soon as the scope does, so a reader that mounts before
+   * `initDexieDb` has started can still wait on it.
+   */
+  whenInitSettled(): Promise<void> {
+    return this.initSettledPromise ?? Promise.resolve();
   }
 
   async init(userId: string, dbName: string) {
@@ -168,6 +186,10 @@ class DexieInitializer {
       // later call retry.
       this.initPromise = null;
       logger.error('[DB] Error initializing db', ex);
+    } finally {
+      if (this.scopedUserId === userId) {
+        this.resolveInitSettled?.();
+      }
     }
   }
 
@@ -246,6 +268,27 @@ export function ensureLocalStorageReady({ userId, dbName }: LocalStorageScope): 
     return NOOP_STORAGE_READY;
   }
   return DexieInitializer.getInstance().ensureScopeReady(userId, dbName);
+}
+
+const INIT_SETTLED_TIMEOUT_MS = 5000;
+
+/**
+ * Resolve once the legacy-data adoption that follows {@link initDexieDb} has finished, so a reader of
+ * data that adoption migrates (e.g. the Anonymous Apex draft) does not read the per-user store before
+ * the data lands in it. Bounded by a timeout so surfaces that never run `initDexieDb` are not blocked.
+ */
+export async function waitForLocalStorageInit(): Promise<void> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      DexieInitializer.getInstance().whenInitSettled(),
+      new Promise<void>((resolve) => {
+        timeout = setTimeout(resolve, INIT_SETTLED_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 /**
