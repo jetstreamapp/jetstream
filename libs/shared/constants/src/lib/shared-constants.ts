@@ -198,6 +198,14 @@ export const INDEXED_DB = {
   },
 };
 
+/**
+ * localStorage keys from before local data was kept per user, shared by every account that signs in on the same
+ * browser profile or machine. Only read by the legacy-store adoption in `@jetstream/shared/ui-db`, never written.
+ */
+export const LEGACY_LOCAL_STORAGE_KEYS = {
+  anonymousApexDraft: 'ANONYMOUS_APEX',
+};
+
 export const YYYY_MM_DD = 'YYYY-MM-DD'; // NOT DATE-FN COMPATIBLE
 export const YYYY_MM_DD__HH_mm_ss = 'YYYY-MM-DD HH:mm:ss'; // NOT DATE-FN COMPATIBLE
 export const YYYY_MM_DD_HH_mm_ss_z = 'YYYY-MM-DDTHH:mm:ssZ'; // NOT DATE-FN COMPATIBLE

@@ -1,8 +1,14 @@
+import { INDEXED_DB, LEGACY_LOCAL_STORAGE_KEYS } from '@jetstream/shared/constants';
 import { getLocalStore, hasLocalStore } from '@jetstream/shared/data';
 import { sha1Hex } from '@jetstream/shared/utils';
 import localforage from 'localforage';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { clearLocalStorageScope, ensureLocalStorageReady, isDifferentUserThanPageSession } from '../client-data.db';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  adoptLegacyAnonymousApexDraft,
+  clearLocalStorageScope,
+  ensureLocalStorageReady,
+  isDifferentUserThanPageSession,
+} from '../client-data.db';
 import { getDexieDb, getScopedDexieDbName, hasDexieDb } from '../ui-db';
 
 /**
@@ -81,5 +87,97 @@ describe('ensureLocalStorageReady scope ownership', () => {
     await ensureLocalStorageReady({ userId: 'failing-user', dbName: 'Jetstream' });
     expect(hasLocalStore()).toBe(true);
     expect(hasDexieDb()).toBe(true);
+  });
+});
+
+describe('adoptLegacyAnonymousApexDraft', () => {
+  // The on-disk marker written by the legacy store adoption, keyed by the hashed user id
+  const LEGACY_CLAIM_OWNER_KEY = 'JETSTREAM_LEGACY_STORE_CLAIM_OWNER';
+  const OWNER_USER_ID = 'draft-owner';
+  const OTHER_USER_ID = 'draft-other-user';
+  const SHARED_DRAFT = 'System.debug(1);';
+
+  let userStore: Map<string, unknown>;
+
+  beforeEach(() => {
+    localStorage.clear();
+    userStore = new Map();
+    vi.spyOn(localforage, 'createInstance').mockImplementation(
+      () =>
+        ({
+          ready: () => Promise.resolve(),
+          getItem: (key: string) => Promise.resolve(userStore.has(key) ? userStore.get(key) : null),
+          setItem: (key: string, value: unknown) => {
+            userStore.set(key, value);
+            return Promise.resolve(value);
+          },
+        }) as unknown as ReturnType<typeof localforage.createInstance>,
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    clearLocalStorageScope();
+    localStorage.clear();
+  });
+
+  async function signInWithSharedDraft(userId: string) {
+    localStorage.setItem(LEGACY_CLAIM_OWNER_KEY, await sha1Hex(OWNER_USER_ID));
+    localStorage.setItem(LEGACY_LOCAL_STORAGE_KEYS.anonymousApexDraft, SHARED_DRAFT);
+    await ensureLocalStorageReady({ userId, dbName: 'Jetstream' });
+  }
+
+  it('moves the shared draft into the per-user store of the account that owns the legacy claim', async () => {
+    await signInWithSharedDraft(OWNER_USER_ID);
+
+    await adoptLegacyAnonymousApexDraft(OWNER_USER_ID);
+
+    expect(userStore.get(INDEXED_DB.KEYS.anonymousApexDraft)).toBe(SHARED_DRAFT);
+    expect(localStorage.getItem(LEGACY_LOCAL_STORAGE_KEYS.anonymousApexDraft)).toBeNull();
+  });
+
+  it('never hands the shared draft to an account that does not own the legacy claim', async () => {
+    await signInWithSharedDraft(OTHER_USER_ID);
+
+    await adoptLegacyAnonymousApexDraft(OTHER_USER_ID);
+
+    expect(userStore.has(INDEXED_DB.KEYS.anonymousApexDraft)).toBe(false);
+    // Left in place for the owner's next sign-in
+    expect(localStorage.getItem(LEGACY_LOCAL_STORAGE_KEYS.anonymousApexDraft)).toBe(SHARED_DRAFT);
+  });
+
+  it('does not adopt when no account has claimed the legacy stores', async () => {
+    localStorage.setItem(LEGACY_LOCAL_STORAGE_KEYS.anonymousApexDraft, SHARED_DRAFT);
+    await ensureLocalStorageReady({ userId: OWNER_USER_ID, dbName: 'Jetstream' });
+
+    await adoptLegacyAnonymousApexDraft(OWNER_USER_ID);
+
+    expect(userStore.has(INDEXED_DB.KEYS.anonymousApexDraft)).toBe(false);
+    expect(localStorage.getItem(LEGACY_LOCAL_STORAGE_KEYS.anonymousApexDraft)).toBe(SHARED_DRAFT);
+  });
+
+  it("keeps the owner's own draft and still removes the shared copy", async () => {
+    await signInWithSharedDraft(OWNER_USER_ID);
+    userStore.set(INDEXED_DB.KEYS.anonymousApexDraft, 'mine');
+
+    await adoptLegacyAnonymousApexDraft(OWNER_USER_ID);
+
+    expect(userStore.get(INDEXED_DB.KEYS.anonymousApexDraft)).toBe('mine');
+    expect(localStorage.getItem(LEGACY_LOCAL_STORAGE_KEYS.anonymousApexDraft)).toBeNull();
+  });
+
+  it('keeps the shared draft when the per-user write fails, so the owner retries on their next sign-in', async () => {
+    await signInWithSharedDraft(OWNER_USER_ID);
+    vi.spyOn(getLocalStore(), 'setItem').mockRejectedValueOnce(new Error('QuotaExceededError'));
+
+    await adoptLegacyAnonymousApexDraft(OWNER_USER_ID);
+
+    expect(userStore.has(INDEXED_DB.KEYS.anonymousApexDraft)).toBe(false);
+    expect(localStorage.getItem(LEGACY_LOCAL_STORAGE_KEYS.anonymousApexDraft)).toBe(SHARED_DRAFT);
+
+    await adoptLegacyAnonymousApexDraft(OWNER_USER_ID);
+
+    expect(userStore.get(INDEXED_DB.KEYS.anonymousApexDraft)).toBe(SHARED_DRAFT);
+    expect(localStorage.getItem(LEGACY_LOCAL_STORAGE_KEYS.anonymousApexDraft)).toBeNull();
   });
 });

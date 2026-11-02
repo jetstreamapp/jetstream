@@ -66,6 +66,9 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const selectedOrg = useAtomValue(selectedOrgState);
   // Starts empty and is filled from the current user's stored draft once it has been read
   const [apex, setApex] = useState('');
+  // Set as soon as the user types or picks a history item, so a draft that finishes loading later never replaces
+  // their change — including an editor they have deliberately cleared
+  const hasUserEditedRef = useRef(false);
   const [results, setResults] = useState('');
   const [resultsStatus, setResultsStatus] = useState<{ hasResults: boolean; success: boolean; label: string | null }>({
     hasResults: false,
@@ -96,9 +99,8 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     fromApexState
       .loadAnonymousApexDraft()
       .then((draft) => {
-        if (draft && isMounted.current) {
-          // Never replace anything typed (or picked from history) while the draft was loading
-          setApex((currentApex) => currentApex || draft);
+        if (draft && isMounted.current && !hasUserEditedRef.current) {
+          setApex(draft);
         }
       })
       .catch((ex) => {
@@ -203,7 +205,13 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   );
 
   function handleEditorChange(value?: string, _event?: unknown) {
+    hasUserEditedRef.current = true;
     setApex(value || '');
+  }
+
+  function handleHistorySelected(value: string) {
+    hasUserEditedRef.current = true;
+    setApex(value);
   }
 
   const onSubmitRef = useRef(onSubmit);
@@ -308,7 +316,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
                 >
                   Open developer console
                 </SalesforceLogin>
-                <AnonymousApexHistory onHistorySelected={setApex} />
+                <AnonymousApexHistory onHistorySelected={handleHistorySelected} />
               </Grid>
               <MonacoEditor
                 height="80vh"
