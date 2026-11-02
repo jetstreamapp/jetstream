@@ -129,8 +129,12 @@ const SIGNING_AND_PUBLISH_ENV_KEYS = [
   'AWS_ENDPOINT_URL',
 ];
 
-const getBuildEnvironment = () =>
-  Object.fromEntries(Object.entries(process.env).filter(([key]) => !SIGNING_AND_PUBLISH_ENV_KEYS.includes(key)));
+// The keys are blanked rather than removed: dotenv never overrides a key that is already set, so a removed
+// key would be reloaded from the root .env by Nx or by anything that imports `dotenv/config`
+const getBuildEnvironment = () => ({
+  ...process.env,
+  ...Object.fromEntries(SIGNING_AND_PUBLISH_ENV_KEYS.map((key) => [key, ''])),
+});
 
 function prepareTargetPackageJson() {
   const rootPackageJson = JSON.parse(readFileSync(ROOT_PACKAGE_JSON_PATH, 'utf-8'));

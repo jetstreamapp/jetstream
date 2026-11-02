@@ -82,59 +82,29 @@ if (!ok) {
 }
 
 // ── Trigger workflow ───────────────────────────────────────────────────────
-async function listDispatchedRunIds() {
-  const runs = JSON.parse(
-    (
-      await $`gh run list \
-  --repo ${REPO} \
-  --workflow=${WORKFLOW} \
-  --branch ${releaseRef} \
-  --event workflow_dispatch \
-  --limit 20 \
-  --json databaseId`.quiet()
-    ).stdout,
-  );
-  return runs.map(({ databaseId }) => String(databaseId));
-}
-
 const currentUserLogin = (await $`gh api user --jq .login`.quiet()).stdout.trim();
-// Runs that already exist are never candidates, so a run left waiting for review by an earlier
-// attempt (or dispatched by someone else) cannot be mistaken for this one
-const preexistingRunIds = new Set(await listDispatchedRunIds());
 
 console.log('\n' + chalk.bold('Triggering workflow...'));
 
-await $`gh workflow run ${WORKFLOW} \
-  --repo ${REPO} \
-  --ref ${releaseRef} \
-  -f bump=${bump} \
-  -f promote=${String(promote)}`;
+// Dispatch through the REST API with `return_run_details` so GitHub returns the run this dispatch created.
+// Picking the run out of a run listing could select a concurrent dispatch with different inputs.
+const dispatchRequest = JSON.stringify({
+  ref: releaseRef,
+  inputs: { bump, promote: String(promote) },
+  return_run_details: true,
+});
+const dispatchResponse = (
+  await $({ input: dispatchRequest })`gh api --method POST repos/${REPO}/actions/workflows/${WORKFLOW}/dispatches --input -`.quiet()
+).stdout.trim();
+const runId = dispatchResponse ? String(JSON.parse(dispatchResponse).workflow_run_id ?? '') : '';
 
-// ── Find the run ID ────────────────────────────────────────────────────────
-process.stdout.write(chalk.dim('Fetching run ID'));
-
-// GitHub registers a dispatched run asynchronously, so poll until a new run shows up
-let newRunIds = [];
-for (let attempt = 0; attempt < 20 && newRunIds.length === 0; attempt++) {
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-  process.stdout.write(chalk.dim('.'));
-  newRunIds = (await listDispatchedRunIds()).filter((runId) => !preexistingRunIds.has(runId));
-}
-
-if (newRunIds.length !== 1) {
-  console.log(chalk.red(' failed'));
-  console.error(
-    chalk.red(
-      newRunIds.length === 0
-        ? 'The dispatched run did not appear. Approve manually via the GitHub UI.'
-        : `Found ${newRunIds.length} new runs (${newRunIds.join(', ')}), so the one this script dispatched is ambiguous. Approve manually via the GitHub UI.`,
-    ),
-  );
+if (!runId) {
+  console.error(chalk.red('The workflow was dispatched but GitHub did not return its run ID. Approve manually via the GitHub UI:'));
+  console.log('  ' + chalk.cyan(`https://github.com/${REPO}/actions/workflows/${WORKFLOW}`));
   process.exit(1);
 }
 
-const [runId] = newRunIds;
-console.log(' ' + chalk.green(runId));
+console.log(chalk.dim('Run ID ') + chalk.green(runId));
 
 // Only approve the run this invocation dispatched, for the commit shown in the summary
 const dispatchedRun = JSON.parse((await $`gh api repos/${REPO}/actions/runs/${runId}`.quiet()).stdout);

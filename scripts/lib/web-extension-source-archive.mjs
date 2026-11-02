@@ -60,10 +60,10 @@ export async function assertSourceArchiveIsPublishable(sourceDir, archivePath) {
   const archive = await JSZip.loadAsync(await readFile(archivePath));
   const archivedEntries = Object.values(archive.files).filter(({ dir }) => !dir);
 
-  // JSZip resolves `.`/`..` segments while loading and keeps the original spelling on the entry, so an
+  // JSZip resolves `.`/`..` segments while loading and keeps the original spelling on every entry, so an
   // entry such as `../package.json` would otherwise pass the allow-list under its resolved name while the
-  // archive is uploaded as-is. Nothing the zip script builds has a path like that.
-  const normalizedEntries = archivedEntries.filter(({ unsafeOriginalName }) => unsafeOriginalName !== undefined);
+  // archive is uploaded as-is. Nothing the zip script builds has a path that changes when resolved.
+  const normalizedEntries = archivedEntries.filter(({ name, unsafeOriginalName }) => unsafeOriginalName !== name);
   if (normalizedEntries.length > 0) {
     const preview = normalizedEntries
       .slice(0, 20)
