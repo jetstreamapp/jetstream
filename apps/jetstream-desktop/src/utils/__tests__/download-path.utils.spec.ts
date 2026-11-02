@@ -4,10 +4,10 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   claimAvailableDownloadPath,
+  getCandidateFilePaths,
   getNumberedFilePath,
   isDownloadPathClaimed,
   MAX_FILE_NAME_BYTES,
-  MAX_NUMBERED_FILE_NAME_ATTEMPTS,
   releaseDownloadPath,
   tryClaimDownloadPath,
 } from '../download-path.utils';
@@ -109,8 +109,11 @@ describe('claimAvailableDownloadPath', () => {
   });
 
   it('returns null when every candidate name is taken', () => {
-    for (let i = 0; i < MAX_NUMBERED_FILE_NAME_ATTEMPTS; i++) {
-      claim('results.csv');
+    // Claim every candidate directly: going through `claim` re-walks all earlier candidates on each call (quadratic
+    // file system checks), which was slow enough to time out on CI
+    for (const candidatePath of getCandidateFilePaths(join(downloadDir, 'results.csv'))) {
+      tryClaimDownloadPath(candidatePath);
+      claimedPaths.push(candidatePath);
     }
 
     expect(claim('results.csv')).toBeNull();

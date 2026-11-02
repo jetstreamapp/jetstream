@@ -4,6 +4,7 @@ import { getLocalStore } from '@jetstream/shared/data';
 import { groupByFlat, hashString, pluralizeFromNumber, truncate } from '@jetstream/shared/utils';
 import { ApexHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import { waitForLocalStorageInit } from '@jetstream/ui/db';
 import { addDays } from 'date-fns/addDays';
 import { formatDate } from 'date-fns/format';
 import { isBefore } from 'date-fns/isBefore';
@@ -13,6 +14,25 @@ import { atomWithLazy } from 'jotai/utils';
 import orderBy from 'lodash/orderBy';
 
 let didRunCleanup = false;
+
+/**
+ * The current user's editor draft. A draft from before drafts were kept per user (plain localStorage, shared by
+ * every account on the machine) is moved into this store at sign-in by the legacy-store adoption in
+ * `@jetstream/shared/ui-db`, for the account that owns the rest of the shared data.
+ */
+export async function loadAnonymousApexDraft(): Promise<string | null> {
+  // The editor can mount before the adoption has moved the legacy draft in, which would read an empty store
+  await waitForLocalStorageInit();
+  return getLocalStore().getItem<string>(INDEXED_DB.KEYS.anonymousApexDraft);
+}
+
+export async function saveAnonymousApexDraft(apex: string): Promise<void> {
+  try {
+    await getLocalStore().setItem<string>(INDEXED_DB.KEYS.anonymousApexDraft, apex);
+  } catch (ex) {
+    logger.warn('[ANON-APEX]', 'Error saving the editor draft', ex);
+  }
+}
 
 /**
  * If history grows to a very large size,

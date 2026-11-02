@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
-import { INDEXED_DB } from '@jetstream/shared/constants';
+import { INDEXED_DB, LEGACY_LOCAL_STORAGE_KEYS } from '@jetstream/shared/constants';
 import { createUserLocalStore, getLocalStore, getUnscopedLocalStore, hasLocalStore, setLocalStore } from '@jetstream/shared/data';
 import { delay } from '@jetstream/shared/utils';
 import { ApiHistoryItem, LoadSavedMappingItem, QueryHistoryItem } from '@jetstream/types';
@@ -69,6 +69,9 @@ class DexieInitializer {
   private scopedUserId: string | null = null;
   private scopeReadyPromise: Promise<void> | null = null;
   private initPromise: Promise<void> | null = null;
+  /** Resolves once the current scope's full init (legacy adoption) has finished or been abandoned. */
+  private initSettledPromise: Promise<void> | null = null;
+  private resolveInitSettled: (() => void) | null = null;
 
   /** Tracks whether the current instance has an active sync connection (reset per user). */
   private hasConnectedSync = false;
@@ -96,6 +99,9 @@ class DexieInitializer {
     // connection and full-init promise no longer apply.
     this.clearScope();
     this.scopedUserId = userId;
+    this.initSettledPromise = new Promise<void>((resolve) => {
+      this.resolveInitSettled = resolve;
+    });
     pageSessionUserId = pageSessionUserId ?? userId;
     this.scopeReadyPromise = (async () => {
       try {
@@ -142,6 +148,9 @@ class DexieInitializer {
     if (!this.scopedUserId && !hasDexieDb() && !hasLocalStore()) {
       return;
     }
+    this.resolveInitSettled?.();
+    this.resolveInitSettled = null;
+    this.initSettledPromise = null;
     this.scopedUserId = null;
     this.scopeReadyPromise = null;
     this.initPromise = null;
@@ -150,6 +159,15 @@ class DexieInitializer {
     setLocalStore(null);
     // Per-user state outside the database (data history file stores) unbinds on the same signal
     notifyLocalStorageScopeCleared();
+  }
+
+  /**
+   * Resolves when the current scope's legacy adoption has finished (or the scope was torn down).
+   * Unlike `initPromise` this exists as soon as the scope does, so a reader that mounts before
+   * `initDexieDb` has started can still wait on it.
+   */
+  whenInitSettled(): Promise<void> {
+    return this.initSettledPromise ?? Promise.resolve();
   }
 
   async init(userId: string, dbName: string) {
@@ -168,6 +186,10 @@ class DexieInitializer {
       // later call retry.
       this.initPromise = null;
       logger.error('[DB] Error initializing db', ex);
+    } finally {
+      if (this.scopedUserId === userId) {
+        this.resolveInitSettled?.();
+      }
     }
   }
 
@@ -211,6 +233,9 @@ class DexieInitializer {
     // Adopt the pre-user-scoping shared data exactly once per machine/profile (first user post-upgrade)
     await adoptLegacySharedData(userId);
 
+    // Data that moved to the per-user store later than the adoption above goes to the same owner
+    await adoptLegacyAnonymousApexDraft(userId);
+
     // Backfill hashed keys on this user's own database (idempotent, per-user gated)
     await addHashedKeyToRecord();
   }
@@ -243,6 +268,17 @@ export function ensureLocalStorageReady({ userId, dbName }: LocalStorageScope): 
     return NOOP_STORAGE_READY;
   }
   return DexieInitializer.getInstance().ensureScopeReady(userId, dbName);
+}
+
+/**
+ * Resolve once the legacy-data adoption that follows {@link initDexieDb} has finished, so a reader of
+ * data that adoption migrates (e.g. the Anonymous Apex draft) does not read the per-user store before
+ * the data lands in it. There is deliberately no timeout: a slow migration must not let the read win
+ * and strand the migrated data. The wait always ends — `init` settles it on success or failure, and
+ * tearing the scope down settles it too — and it is immediate when there is no scope.
+ */
+export function waitForLocalStorageInit(): Promise<void> {
+  return DexieInitializer.getInstance().whenInitSettled();
 }
 
 /**
@@ -537,6 +573,39 @@ async function adoptLegacyUserPreferences(userId: string): Promise<void> {
     }
   } catch (ex) {
     logger.warn('[DB] Unable to copy legacy user preferences', ex);
+  }
+}
+
+/**
+ * Move the Anonymous Apex editor draft from plain localStorage, where it was shared by every account on the
+ * machine, into the per-user store. The draft moved to per-user storage after the shared stores above had already
+ * been claimed on existing installs, so this cannot ride on the claim itself: it runs on every sign-in and is gated
+ * on the claim *owner*, so the account that inherited the rest of the shared data inherits the draft too, and no
+ * other account can read it.
+ *
+ * The shared copy is removed only once the per-user write has succeeded (or the owner already has a draft of their
+ * own), so a failed write is retried on the owner's next sign-in instead of losing the draft. Never throws.
+ */
+export async function adoptLegacyAnonymousApexDraft(userId: string): Promise<void> {
+  try {
+    if (!hasLocalStore()) {
+      return;
+    }
+    const legacyDraft = globalThis.localStorage?.getItem(LEGACY_LOCAL_STORAGE_KEYS.anonymousApexDraft) ?? null;
+    if (legacyDraft === null) {
+      return;
+    }
+    const claimOwner = getLegacyClaimOwner();
+    if (!claimOwner || claimOwner !== (await getHashedRecordKey(userId))) {
+      return;
+    }
+    const targetStore = getLocalStore();
+    if ((await targetStore.getItem(INDEXED_DB.KEYS.anonymousApexDraft)) === null) {
+      await targetStore.setItem(INDEXED_DB.KEYS.anonymousApexDraft, legacyDraft);
+    }
+    globalThis.localStorage?.removeItem(LEGACY_LOCAL_STORAGE_KEYS.anonymousApexDraft);
+  } catch (ex) {
+    logger.warn('[DB] Unable to move the legacy Anonymous Apex draft, will retry on next sign in', ex);
   }
 }
 

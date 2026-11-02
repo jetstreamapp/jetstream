@@ -187,6 +187,7 @@ export const INDEXED_DB = {
     queryHistory: 'HISTORY:QUERY',
     loadSavedMapping: 'LOAD:SAVED_MAPPING',
     apexHistory: 'HISTORY:APEX',
+    anonymousApexDraft: 'DRAFT:ANONYMOUS_APEX',
     apexTestClassCache: 'CACHE:APEX_TEST_CLASSES',
     deployHistory: 'HISTORY:DEPLOY',
     salesforceApiHistory: 'HISTORY:SALESFORCE_API',
@@ -195,6 +196,14 @@ export const INDEXED_DB = {
     recentRecords: 'USER:RECENT_RECORDS',
     sobjectExportSelection: 'USER:SOBJECT_EXPORT_OPTIONS',
   },
+};
+
+/**
+ * localStorage keys from before local data was kept per user, shared by every account that signs in on the same
+ * browser profile or machine. Only read by the legacy-store adoption in `@jetstream/shared/ui-db`, never written.
+ */
+export const LEGACY_LOCAL_STORAGE_KEYS = {
+  anonymousApexDraft: 'ANONYMOUS_APEX',
 };
 
 export const YYYY_MM_DD = 'YYYY-MM-DD'; // NOT DATE-FN COMPATIBLE
