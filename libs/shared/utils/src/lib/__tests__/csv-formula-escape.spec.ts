@@ -29,7 +29,13 @@ describe('CSV_FORMULA_ESCAPE_REGEX', () => {
   it('should leave values that do not start with a trigger alone', () => {
     expect(roundTripCell('Account Name')).toBe('Account Name');
     expect(roundTripCell('a=b')).toBe('a=b');
+    expect(roundTripCell("'quoted text'")).toBe("'quoted text'");
     expect(CSV_FORMULA_ESCAPE_REGEX.test('')).toBe(false);
+  });
+
+  it('should escape a value that already looks escaped, so the import side can always remove one quote', () => {
+    expect(roundTripCell("'=1+1")).toBe("''=1+1");
+    expect(roundTripCell("''=1+1")).toBe("'''=1+1");
   });
 
   it('should not escape numbers, only strings', () => {
@@ -44,10 +50,12 @@ describe('unescapeCsvFormula', () => {
     expect(unescapeCsvFormula("'-1")).toBe('-1');
   });
 
-  it('should round-trip an escaped value', () => {
-    const value = '=1+1\nsecond line';
-    expect(unescapeCsvFormula(roundTripCell(value))).toBe(value);
-  });
+  it.each(['=1+1\nsecond line', "'=1+1", "''=1+1", "'-1", 'plain', "'quoted text'"])(
+    'should round-trip a value through export and import unchanged: %j',
+    (value) => {
+      expect(unescapeCsvFormula(roundTripCell(value))).toBe(value);
+    },
+  );
 
   it('should leave other values untouched', () => {
     expect(unescapeCsvFormula("'quoted text'")).toBe("'quoted text'");
