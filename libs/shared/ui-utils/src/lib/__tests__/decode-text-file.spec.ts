@@ -32,6 +32,19 @@ describe('decodeTextFile', () => {
     expect(decodeTextFile(new Uint8Array([0x80, 0x93, 0x94, 0x92]))).toBe('€“”’');
   });
 
+  it('rethrows a failure that is not an invalid-UTF-8 signal instead of retrying as Windows-1252', () => {
+    const outOfMemory = new Error('out of memory');
+    const decode = vi.spyOn(TextDecoder.prototype, 'decode').mockImplementation(() => {
+      throw outOfMemory;
+    });
+    try {
+      expect(() => decodeTextFile(utf8('Name'))).toThrow(outOfMemory);
+      expect(decode).toHaveBeenCalledTimes(1);
+    } finally {
+      decode.mockRestore();
+    }
+  });
+
   it('honors a UTF-16 LE byte-order mark', () => {
     expect(decodeTextFile(new Uint8Array([0xff, 0xfe, 0x43, 0x00, 0xe9, 0x00]))).toBe('Cé');
   });
@@ -50,6 +63,18 @@ describe('readFile', () => {
   it('reads a UTF-8 csv as text', async () => {
     const file = new File([utf8('Id,Name\n001,Café')], 'contacts.csv', { type: 'text/csv' });
     await expect(readFile(file, 'text')).resolves.toBe('Id,Name\n001,Café');
+  });
+
+  it('rejects instead of never settling when the file cannot be decoded', async () => {
+    const decode = vi.spyOn(TextDecoder.prototype, 'decode').mockImplementation(() => {
+      throw new Error('out of memory');
+    });
+    try {
+      const file = new File([utf8('Id,Name')], 'contacts.csv', { type: 'text/csv' });
+      await expect(readFile(file, 'text')).rejects.toThrow('too large to open in the browser');
+    } finally {
+      decode.mockRestore();
+    }
   });
 
   it('still returns the raw bytes when asked for an array buffer', async () => {
