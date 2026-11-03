@@ -9,7 +9,7 @@ import { ROUTES } from '../utils/environment';
 
 const TITLE = 'Jetstream | Salesforce Query Builder, Data Loader & Admin Tools';
 const DESCRIPTION =
-  'Salesforce toolkit for admins and developers: visual SOQL query builder, data loader, permissions and automation tools, and metadata compare and deploy. Free to start.';
+  'A Salesforce toolkit for admins and developers: SOQL query builder, data loader, permission and automation tools, and metadata compare and deploy. Free to start.';
 
 const STRUCTURED_DATA: Array<Record<string, unknown>> = [
   {
@@ -34,7 +34,7 @@ const STRUCTURED_DATA: Array<Record<string, unknown>> = [
     description: DESCRIPTION,
     url: SITE_URL,
     applicationCategory: 'BusinessApplication',
-    operatingSystem: 'Web, Windows, macOS, Linux',
+    operatingSystem: 'Web, Windows, macOS',
     softwareHelp: { '@type': 'CreativeWork', url: ROUTES.EXTERNAL.DOCS },
     featureList: [
       'Visual SOQL query builder',
@@ -49,7 +49,18 @@ const STRUCTURED_DATA: Array<Record<string, unknown>> = [
     ],
     offers: [
       { '@type': 'Offer', name: 'Free', price: '0', priceCurrency: 'USD' },
-      { '@type': 'Offer', name: 'Professional', price: PRICING_COPY.PRO.monthly.pricePerMonth.replace('$', ''), priceCurrency: 'USD' },
+      {
+        '@type': 'Offer',
+        name: 'Professional',
+        price: PRICING_COPY.PRO.monthly.pricePerMonth.replace('$', ''),
+        priceCurrency: 'USD',
+        priceSpecification: {
+          '@type': 'UnitPriceSpecification',
+          price: PRICING_COPY.PRO.monthly.pricePerMonth.replace('$', ''),
+          priceCurrency: 'USD',
+          unitText: 'MONTH',
+        },
+      },
     ],
   },
   {

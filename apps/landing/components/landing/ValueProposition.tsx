@@ -1,6 +1,8 @@
 'use client';
 
 import { CheckCircleIcon } from '@heroicons/react/20/solid';
+import Link from 'next/link';
+import { INTENT_PAGES } from '../intent/intent-pages-data';
 import { VALUE_PILLARS } from './landing-page-data';
 
 export const ValueProposition = () => {
@@ -43,6 +45,19 @@ export const ValueProposition = () => {
             </div>
           ))}
         </div>
+
+        {/* Always-rendered links to the task pages, so crawlers reach them from the homepage */}
+        <p className="mt-12 text-center text-sm text-gray-400">
+          Start with a task:{' '}
+          {INTENT_PAGES.filter(({ kind }) => kind === 'task').map(({ route, name }, index) => (
+            <span key={route}>
+              {index > 0 && <span aria-hidden="true"> · </span>}
+              <Link href={`${route}/`} className="font-semibold text-cyan-400 hover:text-cyan-300">
+                {name}
+              </Link>
+            </span>
+          ))}
+        </p>
       </div>
     </section>
   );

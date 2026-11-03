@@ -48,6 +48,8 @@ export interface FeatureCategory {
     bullets: string[];
     screenshot: string;
     screenshotAlt: string;
+    /** Dedicated page with more detail, linked from the tab */
+    learnMore?: { label: string; href: string };
   };
   subFeatures: SubFeature[];
 }
@@ -80,6 +82,7 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
       ],
       screenshot: SCREENSHOTS.query,
       screenshotAlt: 'Jetstream SOQL query builder interface',
+      learnMore: { label: 'More about the SOQL query builder', href: '/soql-query-builder/' },
     },
     subFeatures: [
       {
@@ -90,12 +93,12 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
       {
         icon: FunnelIcon,
         title: 'Advanced Filters',
-        description: 'Build complex WHERE clauses visually with nested conditions and subqueries.',
+        description: 'Build complex WHERE clauses visually with nested AND and OR groups.',
       },
       {
         icon: ArrowDownTrayIcon,
         title: 'Flexible Export',
-        description: 'Export to CSV, Excel, JSON, or Google Sheets. Download exactly what you need.',
+        description: 'Export to CSV, Excel, JSON, or Google Sheets.',
       },
     ],
   },
@@ -116,6 +119,7 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
       ],
       screenshot: SCREENSHOTS.load,
       screenshotAlt: 'Jetstream data loader with visual field mapping',
+      learnMore: { label: 'More about the data loader', href: '/salesforce-data-loader-alternative/' },
     },
     subFeatures: [
       {
@@ -183,6 +187,7 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
       ],
       screenshot: SCREENSHOTS.permissions,
       screenshotAlt: 'Jetstream permissions manager matrix view',
+      learnMore: { label: 'More about comparing permissions', href: '/compare-salesforce-permissions/' },
     },
     subFeatures: [
       {
@@ -204,7 +209,7 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
       {
         icon: ArrowDownTrayIcon,
         title: 'Audit-Ready Exports',
-        description: 'Every grid downloads to Excel, CSV, JSON, or Google Drive, so an access review comes with its own evidence file.',
+        description: 'Every grid downloads to Excel, CSV, JSON, or Google Drive for access reviews and audits.',
       },
     ],
   },
@@ -251,7 +256,7 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
     hero: {
       title: 'Build fields and test formulas without setup',
       description:
-        'Create new fields on any object directly from Jetstream. Set the field type, label, API name, and help text without navigating through the standard setup UI. Build fields in bulk across objects. Write and validate formula fields against real record data before they go live. No more guessing whether your syntax is correct.',
+        'Create new fields on any object directly from Jetstream. Set the field type, label, API name, and help text without navigating through the standard setup UI. Build fields in bulk across objects. Write and validate formula fields against real record data before they go live.',
       bullets: [
         'Create fields on any object without Salesforce setup UI',
         'Bulk field creation across multiple objects',
@@ -276,7 +281,7 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
       {
         icon: CircleStackIcon,
         title: 'Bulk Field Creation',
-        description: 'Create and update fields in bulk. Faster, cleaner, fewer clicks than setup.',
+        description: 'Create and update fields across objects in bulk, with field-level security and page layouts set in the same step.',
       },
     ],
   },

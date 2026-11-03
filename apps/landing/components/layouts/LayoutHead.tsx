@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 export const SITE_URL = 'https://getjetstream.app';
 
 const DEFAULT_DESCRIPTION =
-  'Jetstream is a powerful suite of Salesforce administration tools built for Salesforce admins, developers, and power users. Manage, query, and update Salesforce data faster with an advanced SOQL query builder, a high-performance data loader, and productivity features designed for real-world Salesforce workflows.';
+  'Jetstream is a Salesforce toolkit for admins and developers: SOQL query builder, data loader, permission and automation tools, and metadata deploy.';
 
 // Absolute URL required by social crawlers; the file lives in libs/shared/assets and is served by the API
 const OG_IMAGE = `${SITE_URL}/assets/images/website/jetstream-og-image.png`;
@@ -60,7 +60,7 @@ export default function LayoutHead({
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
       {isNoIndex && <meta name="robots" content="noindex, follow" />}
-      <link rel="canonical" href={canonicalUrl} />
+      {!isNoIndex && <link rel="canonical" href={canonicalUrl} />}
 
       {/* Open Graph */}
       <meta property="og:title" content={fullTitle} />

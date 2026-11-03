@@ -10,17 +10,17 @@ export const FaqSection = ({ items }: { items: FaqItem[] }) => (
         <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">Frequently asked questions</h2>
       </div>
 
-      <dl className="mt-12 divide-y divide-white/10 border-y border-white/10">
+      <div className="mt-12 divide-y divide-white/10 border-y border-white/10">
         {items.map(({ question, answer }) => (
           <details key={question} className="group py-6">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-x-6 text-left text-base font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-400 [&::-webkit-details-marker]:hidden">
-              <dt>{question}</dt>
+              <h3>{question}</h3>
               <ChevronDownIcon aria-hidden="true" className="h-5 w-5 shrink-0 text-gray-400 transition-transform group-open:rotate-180" />
             </summary>
-            <dd className="mt-4 text-base text-gray-400">{answer}</dd>
+            <p className="mt-4 text-base text-gray-400">{answer}</p>
           </details>
         ))}
-      </dl>
+      </div>
 
       <p className="mt-8 text-center text-sm text-gray-400">
         Looking for more detail?{' '}

@@ -8,7 +8,7 @@ export default function Page() {
     <div className="bg-gray-900 py-24 sm:pt-16 sm:pb-64">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-4xl text-center">
-          <p className="mt-2 text-balance text-5xl font-semibold tracking-tight text-white sm:text-6xl">Browser Extensions</p>
+          <h1 className="mt-2 text-balance text-5xl font-semibold tracking-tight text-white sm:text-6xl">Browser Extensions</h1>
         </div>
         <p className="mx-auto mt-6 max-w-2xl text-pretty text-center text-lg font-medium text-gray-400 sm:text-xl/8">
           Gain instant access to Jetstream just by logging in to Salesforce.
@@ -152,13 +152,6 @@ export default function Page() {
             <div className="flex items-start gap-x-3 p-4 rounded-lg border border-yellow-500/20 bg-yellow-500/5">
               <ExclamationTriangleIcon className="h-5 w-5 flex-none text-yellow-500 mt-1" />
               <div>
-                <p className="text-white font-medium">Google Drive Integration</p>
-                <p className="text-sm text-gray-400">Save to and load from Google Drive is not available</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-x-3 p-4 rounded-lg border border-yellow-500/20 bg-yellow-500/5">
-              <ExclamationTriangleIcon className="h-5 w-5 flex-none text-yellow-500 mt-1" />
-              <div>
                 <p className="text-white font-medium">Two-Org Features</p>
                 <p className="text-sm text-gray-400">
                   Deploy/compare between orgs not available. You can manually download from org 1 and upload to org 2.
@@ -176,7 +169,7 @@ Page.getLayout = function getLayout(page: React.ReactElement) {
   return (
     <Layout
       title="Browser Extensions | Jetstream"
-      description="The Jetstream browser extension for Chrome and Firefox adds a Salesforce toolkit to any Salesforce page: query, load, view and edit records, and search users without leaving Salesforce."
+      description="Jetstream for Chrome and Firefox: query, load, and edit records and search users from any Salesforce page, without connecting the org first."
       isInverse
     >
       {page}

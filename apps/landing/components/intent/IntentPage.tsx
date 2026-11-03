@@ -1,4 +1,6 @@
 import { CheckCircleIcon } from '@heroicons/react/20/solid';
+import { format } from 'date-fns/format';
+import { parseISO } from 'date-fns/parseISO';
 import Link from 'next/link';
 import { ROUTES } from '../../utils/environment';
 import { FaqSection } from '../landing/FaqSection';
@@ -6,7 +8,14 @@ import { FooterCta } from '../landing/FooterCta';
 import { SITE_URL } from '../layouts/LayoutHead';
 import { INTENT_PAGES, IntentPageContent } from './intent-pages-data';
 
-export function getIntentPageStructuredData({ route, title, description, name, faq }: IntentPageContent): Array<Record<string, unknown>> {
+export function getIntentPageStructuredData({
+  route,
+  title,
+  description,
+  name,
+  faq,
+  comparison,
+}: IntentPageContent): Array<Record<string, unknown>> {
   const pageUrl = `${SITE_URL}${route}/`;
 
   return [
@@ -16,6 +25,7 @@ export function getIntentPageStructuredData({ route, title, description, name, f
       name: title,
       description,
       url: pageUrl,
+      ...(comparison && { dateModified: comparison.lastReviewed }),
       isPartOf: { '@type': 'WebSite', name: 'Jetstream', url: SITE_URL },
     },
     {
@@ -38,8 +48,56 @@ export function getIntentPageStructuredData({ route, title, description, name, f
   ];
 }
 
+const ComparisonSection = ({ comparison }: { comparison: NonNullable<IntentPageContent['comparison']> }) => {
+  const { heading, intro, columns, rows, lastReviewed, footnote } = comparison;
+
+  return (
+    <section className="py-16 sm:py-24">
+      <div className="mx-auto max-w-6xl px-6 lg:px-8">
+        <h2 className="text-center text-3xl font-semibold tracking-tight text-white sm:text-4xl">{heading}</h2>
+        <p className="mx-auto mt-6 max-w-2xl text-center text-base text-gray-400">{intro}</p>
+        {/* The table scrolls inside its own container so the page never scrolls sideways on phones */}
+        <div className="mt-12 overflow-x-auto rounded-xl ring-1 ring-white/10">
+          <table className="min-w-full divide-y divide-white/10 text-left text-sm">
+            <thead className="bg-white/5">
+              <tr>
+                <th scope="col" className="px-4 py-3 font-semibold text-white">
+                  Feature
+                </th>
+                {columns.map((column) => (
+                  <th key={column} scope="col" className="px-4 py-3 font-semibold text-white">
+                    {column}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/10">
+              {rows.map(({ feature, values }) => (
+                <tr key={feature}>
+                  <th scope="row" className="px-4 py-3 align-top font-medium text-white">
+                    {feature}
+                  </th>
+                  {values.map((value, index) => (
+                    <td key={columns[index]} className="px-4 py-3 align-top text-gray-400">
+                      {value}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-4 text-xs text-gray-500">
+          Last reviewed <time dateTime={lastReviewed}>{format(parseISO(lastReviewed), 'MMMM d, y')}</time> from each product&apos;s own
+          documentation and store listings.{footnote ? ` ${footnote}` : ''}
+        </p>
+      </div>
+    </section>
+  );
+};
+
 export const IntentPage = ({ content }: { content: IntentPageContent }) => {
-  const { route, eyebrow, heading, lead, featuresHeading, features, steps, goodToKnow, faq, docLinks } = content;
+  const { route, eyebrow, heading, lead, featuresHeading, features, comparison, steps, goodToKnow, faq, docLinks } = content;
   const relatedPages = INTENT_PAGES.filter((page) => page.route !== route);
 
   return (
@@ -91,6 +149,8 @@ export const IntentPage = ({ content }: { content: IntentPageContent }) => {
           </div>
         </div>
       </section>
+
+      {comparison && <ComparisonSection comparison={comparison} />}
 
       {/* How it works */}
       <section className="py-16 sm:py-24">

@@ -285,7 +285,11 @@ export default function Page() {
 
 Page.getLayout = function getLayout(page) {
   return (
-    <Layout title="Terms of Service | Jetstream" navigationProps={{ omitLinks: [ROUTES.TERMS_OF_SERVICE] }}>
+    <Layout
+      title="Terms of Service | Jetstream"
+      description="The terms of service for using Jetstream."
+      navigationProps={{ omitLinks: [ROUTES.TERMS_OF_SERVICE] }}
+    >
       {page}
     </Layout>
   );

@@ -22,7 +22,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: 'Is Jetstream an alternative to the Salesforce Data Loader or dataloader.io?',
     answer:
-      'It can be, and it does much more. The data loader inserts, updates, upserts, and deletes records from CSV, Excel, JSON, or Google Sheets files, with automatic field mapping and a choice of Bulk API or the sObject Collections API. You can also load several related objects from a single Excel workbook, update records in bulk without a file, and upload or download files and attachments.',
+      'Yes. The data loader inserts, updates, upserts, and deletes records from CSV, Excel, JSON, or Google Sheets files, with automatic field mapping and a choice of Bulk API or the sObject Collections API. You can also load several related objects from a single Excel workbook, update records in bulk without a file, and upload or download files and attachments.',
   },
   {
     question: 'Is Jetstream a deployment tool like Gearset, Copado, or Flosum?',

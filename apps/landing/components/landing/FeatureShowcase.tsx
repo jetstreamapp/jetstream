@@ -2,6 +2,7 @@
 
 import { CheckCircleIcon } from '@heroicons/react/20/solid';
 import classNames from 'classnames';
+import Link from 'next/link';
 import { KeyboardEvent, useCallback, useRef, useState } from 'react';
 import { FEATURE_CATEGORIES } from './feature-data';
 import { ImageLightbox } from './ImageLightbox';
@@ -100,6 +101,14 @@ export const FeatureShowcase = () => {
                   </li>
                 ))}
               </ul>
+              {activeCategory.hero.learnMore && (
+                <Link
+                  href={activeCategory.hero.learnMore.href}
+                  className="mt-6 inline-block text-sm font-semibold text-cyan-400 hover:text-cyan-300"
+                >
+                  {activeCategory.hero.learnMore.label} <span aria-hidden="true">&rarr;</span>
+                </Link>
+              )}
             </div>
 
             {/* Right column */}

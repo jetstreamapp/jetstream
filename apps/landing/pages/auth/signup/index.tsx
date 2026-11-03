@@ -7,7 +7,12 @@ export default function Page() {
 
 Page.getLayout = function getLayout(page) {
   return (
-    <Layout title="Sign Up | Jetstream" omitFooter omitNavigation>
+    <Layout
+      title="Sign Up | Jetstream"
+      description="Create a free Jetstream account and connect your Salesforce orgs."
+      omitFooter
+      omitNavigation
+    >
       {page}
     </Layout>
   );
