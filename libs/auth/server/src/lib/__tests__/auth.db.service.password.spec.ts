@@ -95,7 +95,6 @@ describe('verifyPasswordForUserId', () => {
     authUtilsMock.verifyPassword.mockResolvedValue(true);
     prismaMock.user.findFirstOrThrow.mockResolvedValue({
       id: USER_A,
-      userId: 'jetstream|a',
       name: 'User A',
       email: SHARED_EMAIL,
       emailVerified: true,
@@ -178,7 +177,6 @@ describe('verifyPasswordForUserId', () => {
 describe('removePasswordFromUser', () => {
   const AUTHENTICATED_USER = {
     id: USER_A,
-    userId: 'jetstream|a',
     name: 'User A',
     email: 'a@example.com',
     emailVerified: true,

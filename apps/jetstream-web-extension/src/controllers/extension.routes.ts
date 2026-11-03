@@ -30,7 +30,6 @@ router.get('/api/heartbeat', async (_req) => {
 router.get('/api/me', async (_req) => {
   return handleJsonResponse({
     id: 'unknown',
-    userId: 'unknown',
     email: 'unknown',
     name: 'unknown',
     emailVerified: true,

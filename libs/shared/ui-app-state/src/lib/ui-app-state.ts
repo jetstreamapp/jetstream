@@ -45,7 +45,6 @@ import z from 'zod';
 // FIXME: browser extension should be able to obtain all of this information after logging in
 export const DEFAULT_PROFILE: UserProfileUi = {
   id: 'unknown',
-  userId: 'unknown',
   email: 'unknown',
   name: 'unknown',
   emailVerified: true,

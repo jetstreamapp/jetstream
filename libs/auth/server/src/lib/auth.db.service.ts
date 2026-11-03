@@ -92,7 +92,6 @@ const LOGIN_CONFIGURATION_CACHE = new LRUCache<string, { value: LoginConfigurati
 
 export const PLACEHOLDER_USER = AuthenticatedUserSchema.parse({
   id: PLACEHOLDER_USER_ID,
-  userId: `invalid|${PLACEHOLDER_USER_ID}`,
   name: 'Invalid User',
   email: 'invalid@invalid.com',
   emailVerified: false,
@@ -104,7 +103,6 @@ export const PLACEHOLDER_USER = AuthenticatedUserSchema.parse({
 // Mirrors AuthenticatedUserSchema
 export const AuthenticatedUserSelect = {
   id: true,
-  userId: true,
   name: true,
   email: true,
   emailVerified: true,
@@ -1477,10 +1475,6 @@ async function createUserFromProvider(
         select: AuthenticatedUserSelect,
         data: {
           email,
-          // TODO: do we really get any benefit from storing this userId like this?
-          // TODO: only reason I can think of is user migration since the id is a UUID so we need to different identifier
-          // TODO: this is nice as we can identify which identity is primary without joining the identity table - could solve in other ways
-          userId: `${provider}|${providerUser.id}`,
           name: providerUser.name,
           emailVerified: providerUser.emailVerified,
           // picture: providerUser.picture,
@@ -1633,7 +1627,6 @@ async function createUserFromUserInfo(
         select: AuthenticatedUserSelect,
         data: {
           email,
-          userId: `jetstream|${email}`, // this is temporary, we will update this after the user is created
           name,
           emailVerified: false,
           password: passwordHash,
@@ -1664,15 +1657,7 @@ async function createUserFromUserInfo(
       },
     });
 
-    // FIXME: do we really need a userId? Should be able to drop after Auth0 migration
-    // update userId to include the DB id as the second part of the userId instead of the email
-    return await tx.user
-      .update({
-        data: { userId: `jetstream|${user.id}` },
-        where: { id: user.id },
-        select: AuthenticatedUserSelect,
-      })
-      .then((user) => AuthenticatedUserSchema.parse(user));
+    return user;
   });
 
   // delete any pending invitations if they exist (user was auto-added to team based on config and no invite was needed)
@@ -2091,7 +2076,7 @@ export async function handleSignInOrRegistration(
             'Cannot register new user, email already in use - sending to verification flow before revealing the conflict',
           );
           return {
-            user: { ...PLACEHOLDER_USER, email, userId: `invalid|${email}` },
+            user: { ...PLACEHOLDER_USER, email },
             sessionDetails: { isTemporary: true },
             isNewUser: false,
             providerType,

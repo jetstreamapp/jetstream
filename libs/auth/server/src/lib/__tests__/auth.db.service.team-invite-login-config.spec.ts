@@ -112,7 +112,6 @@ function mockPendingInvite(ssoBypassConfig: SsoBypassConfig) {
 function buildUser(teamMembership: TeamMembership) {
   return {
     id: USER_ID,
-    userId: 'jetstream|invitee',
     name: 'Invitee',
     email: EMAIL,
     emailVerified: true,

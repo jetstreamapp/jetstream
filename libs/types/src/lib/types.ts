@@ -184,8 +184,6 @@ const EntitlementsSchema = z.object({
 
 export const UserProfileUiSchema = z.object({
   id: z.string(),
-  /** @deprecated */
-  userId: z.string().optional(),
   email: z.string(),
   name: z.string(),
   emailVerified: z.boolean().default(false),

@@ -40,7 +40,7 @@ vi.mock('@jetstream/shared/ui-utils', () => ({
   setItemInSessionStorage: vi.fn(),
 }));
 
-const PROFILE = { id: 'user-1', userId: 'user-1', email: 'user@example.com' } as UserProfileUi;
+const PROFILE = { id: 'user-1', email: 'user@example.com' } as UserProfileUi;
 
 /**
  * The profile fetch fires at module evaluation, so every scenario needs the module re-evaluated with

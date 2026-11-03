@@ -32,7 +32,6 @@ router.get('/api/me', async (_req) => {
   const { user } = window.sr.context;
   return handleJsonResponse({
     id: user.userId,
-    userId: user.userId,
     email: user.email,
     name: user.fullName,
     emailVerified: true,

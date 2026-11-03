@@ -42,7 +42,6 @@ const EXAMPLE_USER: UserProfileSession = {
   name: 'Test User',
   email: 'test@example.com',
   emailVerified: true,
-  userId: 'test|aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
   authFactors: [],
   tosAcceptedVersion: 'test-tos-version',
 };

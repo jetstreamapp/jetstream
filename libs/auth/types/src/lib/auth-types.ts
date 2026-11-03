@@ -10,7 +10,6 @@ export interface Team {
 // TODO: we might want a SessionUser (this) and a UserProfile with a few extra fields, like photo
 export interface UserProfile {
   id: string;
-  userId: string;
   name: string;
   email: string;
   emailVerified: boolean;
@@ -340,7 +339,6 @@ export interface ProviderUser {
 
 export const AuthenticatedUserSchema = z.object({
   id: z.string(),
-  userId: z.string(),
   name: z.string(),
   email: z.string(),
   emailVerified: z.boolean(),

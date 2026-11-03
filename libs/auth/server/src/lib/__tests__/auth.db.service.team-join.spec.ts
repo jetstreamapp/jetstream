@@ -93,7 +93,6 @@ function makeSeatLimitError(kind: 'ADD' | 'ACCEPT_INVITATION') {
 function makeUser(teamMembership: { teamId: string; role: string; status: string } | null) {
   return {
     id: USER_ID,
-    userId: `google|${providerUser.id}`,
     name: providerUser.name,
     email: EMAIL,
     emailVerified: true,

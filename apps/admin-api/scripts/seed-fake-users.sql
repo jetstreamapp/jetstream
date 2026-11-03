@@ -1,5 +1,5 @@
 -- Seeds fake users and teams into a LOCAL database so the admin app's lists, filters and pagination can be
--- tried at volume. Every seeded row is tagged (user ids `seed|…`, emails on `.test` domains, team names
+-- tried at volume. Every seeded row is tagged (emails on `.test` domains, team names
 -- starting with `[seed]`) and previous seed rows are deleted first, so the script is safe to re-run.
 --
 --   psql "$JETSTREAM_POSTGRES_DBURI" -f apps/admin-api/scripts/seed-fake-users.sql
@@ -31,7 +31,7 @@
 \endif
 
 -- A database with many real users is not a local one
-SELECT count(*) > 1000 AS looks_like_production FROM "User" WHERE "userId" NOT LIKE 'seed|%' \gset
+SELECT count(*) > 1000 AS looks_like_production FROM "User" WHERE email NOT LIKE '%.test' \gset
 \if :looks_like_production
   \if :force
   \else
@@ -43,15 +43,15 @@ SELECT count(*) > 1000 AS looks_like_production FROM "User" WHERE "userId" NOT L
 BEGIN;
 
 -- Login activity and audit logs outlive the users and teams they mention, so they are cleared explicitly
-DELETE FROM "LoginActivity" WHERE "userId" IN (SELECT id FROM "User" WHERE "userId" LIKE 'seed|%');
+DELETE FROM "LoginActivity" WHERE "userId" IN (SELECT id FROM "User" WHERE email LIKE '%.test');
 DELETE FROM audit_log
-WHERE "userId" IN (SELECT id FROM "User" WHERE "userId" LIKE 'seed|%')
+WHERE "userId" IN (SELECT id FROM "User" WHERE email LIKE '%.test')
   OR "teamId" IN (SELECT id FROM team WHERE name LIKE '[seed] %')
   OR "resourceId" IN (SELECT id::text FROM team WHERE name LIKE '[seed] %');
 -- Cascades to the login configuration and everything else the team owns
 DELETE FROM team WHERE name LIKE '[seed] %';
 -- Cascades to billing accounts, subscriptions, entitlements and memberships
-DELETE FROM "User" WHERE "userId" LIKE 'seed|%';
+DELETE FROM "User" WHERE email LIKE '%.test';
 
 \if :cleanup_only
   COMMIT;
@@ -79,10 +79,9 @@ FROM (
   FROM generate_series(1, :user_count) AS user_number
 ) AS generated;
 
-INSERT INTO "User" (id, "userId", email, name, "emailVerified", "createdAt", "updatedAt", "lastLoggedIn", "lockedUntil", "failedLoginAttempts")
+INSERT INTO "User" (id, email, name, "emailVerified", "createdAt", "updatedAt", "lastLoggedIn", "lockedUntil", "failedLoginAttempts")
 SELECT
   id,
-  'seed|' || lpad(user_number::text, 7, '0'),
   lower(first_name || '.' || replace(last_name, '-', '') || '.' || user_number) || '@' || company || '.test',
   first_name || ' ' || last_name,
   user_number % 13 <> 0,
@@ -97,7 +96,7 @@ FROM seed_user;
 INSERT INTO "LoginActivity" (action, method, email, "userId", success, "createdAt")
 SELECT 'LOGIN', 'credentials', u.email, u.id, true, u."lastLoggedIn"
 FROM "User" u
-WHERE u."userId" LIKE 'seed|%' AND u."lastLoggedIn" IS NOT NULL;
+WHERE u.email LIKE '%.test' AND u."lastLoggedIn" IS NOT NULL;
 
 -- Personal (Professional) subscriptions
 INSERT INTO billing_account ("userId", "customerId", "createdAt", "updatedAt")
@@ -197,7 +196,7 @@ WHERE team_number % 4 = 0;
 COMMIT;
 
 SELECT
-  (SELECT count(*) FROM "User" WHERE "userId" LIKE 'seed|%') AS seeded_users,
+  (SELECT count(*) FROM "User" WHERE email LIKE '%.test') AS seeded_users,
   (SELECT count(*) FROM team WHERE name LIKE '[seed] %') AS seeded_teams,
   (SELECT count(*) FROM team_member tm JOIN team t ON t.id = tm."teamId" WHERE t.name LIKE '[seed] %') AS seeded_memberships,
   (SELECT count(*) FROM subscription WHERE "subscriptionId" LIKE 'sub_seed_%') AS seeded_personal_subscriptions;
