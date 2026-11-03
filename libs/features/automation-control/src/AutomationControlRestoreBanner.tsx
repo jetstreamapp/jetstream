@@ -1,6 +1,6 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import { ScopedNotification, Spinner } from '@jetstream/ui';
+import { ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
 import { fromAutomationControlState } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent } from 'react';
 import { formatHistoryDate, getRestoreActionLabel } from './automation-control-history-utils';
@@ -11,6 +11,8 @@ const MAX_MISSING_ITEMS_SHOWN = 10;
 export interface AutomationControlRestoreBannerProps {
   pendingRestore: fromAutomationControlState.AutomationControlPendingRestore | null;
   stagedRestore: StagedHistoryRestore | null;
+  /** Why the member cannot deploy, when their access profile excludes it */
+  deployDeniedReason?: string;
   onReviewChanges: () => void;
 }
 
@@ -18,6 +20,7 @@ export interface AutomationControlRestoreBannerProps {
 export const AutomationControlRestoreBanner: FunctionComponent<AutomationControlRestoreBannerProps> = ({
   pendingRestore,
   stagedRestore,
+  deployDeniedReason,
   onReviewChanges,
 }) => {
   if (pendingRestore) {
@@ -51,8 +54,10 @@ export const AutomationControlRestoreBanner: FunctionComponent<AutomationControl
             <strong>
               {formatNumber(stagedCount)} {pluralizeFromNumber('change', stagedCount)} staged
             </strong>{' '}
-            to {actionLabel} the changes deployed {formatHistoryDate(source.createdAt)}. Pending changes are highlighted below, review them
-            and deploy when you are ready.
+            to {actionLabel} the changes deployed {formatHistoryDate(source.createdAt)}. Pending changes are highlighted below
+            {deployDeniedReason
+              ? ', but your access profile does not allow deploying them.'
+              : ', review them and deploy when you are ready.'}
           </p>
           {unchangedCount > 0 && (
             <p>
@@ -87,9 +92,11 @@ export const AutomationControlRestoreBanner: FunctionComponent<AutomationControl
         </Fragment>
       )}
       {stagedCount > 0 && (
-        <button className="slds-button slds-button_brand slds-m-top_x-small" onClick={onReviewChanges}>
-          Review Changes
-        </button>
+        <Tooltip content={deployDeniedReason}>
+          <button className="slds-button slds-button_brand slds-m-top_x-small" disabled={!!deployDeniedReason} onClick={onReviewChanges}>
+            Review Changes
+          </button>
+        </Tooltip>
       )}
     </ScopedNotification>
   );

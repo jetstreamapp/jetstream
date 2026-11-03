@@ -54,6 +54,21 @@ This project does NOT use `@salesforce/design-system-react`, all components were
 
 Prefer using Salesforce lightning design system CSS classes when applicable, but can use `import { css } from '@emotion/react'` where needed.
 
+## Access profiles (team feature gating)
+
+Team admins can restrict members to an allow-list of tools and operations (`libs/types/src/lib/access-profile.types.ts`).
+Every new feature must integrate with this, or members on a custom profile will either never see it or hit a dead end.
+
+- **New tool / page**: add a key to `ACCESS_PROFILE_TOOL_KEYS` + `ACCESS_PROFILE_TOOLS`, and set `TOOL` on its entry in
+  `APP_ROUTES` (`@jetstream/shared/ui-router`). That one property gates the nav, the home page cards and the route guard.
+- **New write action** (create/update/delete records, deploy or change metadata, connect orgs): gate the button with
+  `useOperationAccess('<key>')` from `@jetstream/ui/app-state`. Disable the control and show `deniedReason` in its
+  tooltip rather than hiding it. Gate every entry point into a flow, not just the final confirm button, so a restricted
+  member is never led into a modal whose only action is disabled.
+- Custom profiles are allow-lists, so a new tool key is off for them until an admin enables it. Members without a
+  profile get everything automatically.
+- These are UI guards, not a security boundary. Only surfaces (web/desktop/extension) are enforced server-side.
+
 ## Testing Approach
 
 - Unit tests with Vitest (co-located with source files, but in a `__tests__` folder example: `__tests__/*.spec.ts`)
