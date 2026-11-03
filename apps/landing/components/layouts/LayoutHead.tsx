@@ -29,6 +29,14 @@ const NOINDEX_PATH_PREFIXES = [
   '/web-extension',
 ];
 
+/**
+ * JSON.stringify leaves `</script>` intact, so CMS content (blog titles, summaries) could close the
+ * JSON-LD tag early and inject markup. `<` is still valid JSON and parses back to `<`.
+ */
+function serializeJsonLd(data: Record<string, unknown>) {
+  return JSON.stringify(data).replace(/</g, '\\u003c');
+}
+
 export interface LayoutHeadProps {
   title?: string;
   description?: string;
@@ -105,7 +113,7 @@ export default function LayoutHead({
       <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png" />
 
       {structuredData.map((data) => (
-        <script key={String(data['@type'])} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />
+        <script key={String(data['@type'])} type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(data) }} />
       ))}
     </Head>
   );
