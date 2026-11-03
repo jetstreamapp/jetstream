@@ -1,5 +1,6 @@
+import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import * as clientData from '@jetstream/shared/data';
-import { parseQuery } from '@jetstreamapp/soql-parser-js';
+import { composeQuery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import { beforeEach, vi } from 'vitest';
 import {
   composeSoqlQueryCustomWhereClause,
@@ -7,6 +8,7 @@ import {
   fetchRecordsWithRequiredFields,
   getEffectiveRecordLimit,
   getFieldsToQuery,
+  getQueryFields,
   getRecordLimitError,
   getValidationSoqlQuery,
   isValidRow,
@@ -932,5 +934,148 @@ describe('mass-update-records.utils#fetchRecordsWithRequiredFields', () => {
     });
 
     expect(vi.mocked(clientData.queryAllFromList).mock.calls[0][5]).toBe(signal);
+  });
+});
+
+describe('mass-update-records.utils polymorphic "value from another field"', () => {
+  const selectedOrg = { uniqueId: 'org1' } as any;
+
+  function anotherFieldConfig(selectedField: string, alternateField: string, sobject?: string) {
+    return {
+      selectedField,
+      transformationOptions: {
+        option: 'anotherField',
+        criteria: 'all',
+        staticValue: '',
+        whereClause: '',
+        alternateField,
+        alternateFieldTarget: sobject ? { relationshipName: alternateField.split('.')[0], sobject } : null,
+      },
+    } as any;
+  }
+
+  const selectFrom = (sObject: string, fields: ReturnType<typeof getQueryFields>) => composeQuery({ sObject, fields });
+
+  describe('getQueryFields', () => {
+    it('should select a field reached through a polymorphic lookup with TYPEOF', () => {
+      const configuration = [anotherFieldConfig('LinkedIn_URL__c', 'Who.Linkedin_URL_RevOps_Validated__c', 'Contact')];
+      const fields = getQueryFields(getFieldsToQuery(configuration), configuration);
+
+      expect(selectFrom('Task', fields)).toBe(
+        'SELECT Id, LinkedIn_URL__c, TYPEOF Who WHEN Contact THEN Linkedin_URL_RevOps_Validated__c END FROM Task',
+      );
+    });
+
+    it('should combine fields from different objects of the same lookup into one TYPEOF', () => {
+      const configuration = [
+        anotherFieldConfig('LinkedIn_URL__c', 'Who.Linkedin_URL__c', 'Contact'),
+        anotherFieldConfig('Website__c', 'Who.Website', 'Lead'),
+        anotherFieldConfig('Other__c', 'Who.Email', 'Contact'),
+      ];
+      const fields = getQueryFields(getFieldsToQuery(configuration), configuration);
+
+      expect(selectFrom('Task', fields)).toBe(
+        'SELECT Id, LinkedIn_URL__c, Website__c, Other__c, TYPEOF Who WHEN Contact THEN Linkedin_URL__c, Email WHEN Lead THEN Website END FROM Task',
+      );
+    });
+
+    it('should keep a relationship field as a plain path when no target was chosen', () => {
+      const configuration = [anotherFieldConfig('Description', 'Account.Name')];
+      const fields = getQueryFields(getFieldsToQuery(configuration), configuration);
+
+      expect(selectFrom('Contact', fields)).toBe('SELECT Id, Description, Account.Name FROM Contact');
+    });
+
+    it('should ignore a target that does not belong to the alternate field', () => {
+      const configuration = [anotherFieldConfig('Description', 'Account.Name')];
+      configuration[0].transformationOptions.alternateFieldTarget = { relationshipName: 'Who', sobject: 'Contact' };
+
+      expect(selectFrom('Contact', getQueryFields(getFieldsToQuery(configuration), configuration))).toBe(
+        'SELECT Id, Description, Account.Name FROM Contact',
+      );
+    });
+
+    it('should not select TYPEOF when the field was not requested, e.g. a Count() validation query', () => {
+      const configuration = [anotherFieldConfig('Description', 'Who.Email', 'Contact')];
+
+      expect(selectFrom('Task', getQueryFields(['Count()'], configuration))).toBe('SELECT Count() FROM Task');
+    });
+
+    it('should ignore a stale target once the row no longer uses another field', () => {
+      const configuration = [anotherFieldConfig('Description', 'Who.Email', 'Contact')];
+      configuration[0].transformationOptions.option = 'staticValue';
+
+      expect(selectFrom('Task', getQueryFields(['Id', 'Description'], configuration))).toBe('SELECT Id, Description FROM Task');
+    });
+  });
+
+  it('should use TYPEOF in the query that finds the records to update', () => {
+    const row = {
+      sobject: 'Task',
+      configuration: [anotherFieldConfig('LinkedIn_URL__c', 'Who.Linkedin_URL_RevOps_Validated__c', 'Contact')],
+    } as any;
+
+    expect(composeSoqlQueryOptionalCustomWhereClause(row, getFieldsToQuery(row.configuration))).toBe(
+      'SELECT Id, LinkedIn_URL__c, TYPEOF Who WHEN Contact THEN Linkedin_URL_RevOps_Validated__c END FROM Task',
+    );
+  });
+
+  it('should use TYPEOF when re-fetching the chosen records by Id', async () => {
+    vi.clearAllMocks();
+    vi.mocked(clientData.queryAllFromList).mockResolvedValue({ queryResults: { records: [], totalSize: 0, done: true } } as any);
+
+    await fetchRecordsWithRequiredFields({
+      selectedOrg,
+      parsedQuery: parseQuery('SELECT Id FROM Task'),
+      idsToInclude: new Set(['00T1']),
+      configuration: [anotherFieldConfig('LinkedIn_URL__c', 'Who.Linkedin_URL_RevOps_Validated__c', 'Contact')],
+    });
+
+    const [, soqlQueries] = vi.mocked(clientData.queryAllFromList).mock.calls[0];
+    expect(soqlQueries).toEqual([
+      `SELECT Id, LinkedIn_URL__c, TYPEOF Who WHEN Contact THEN Linkedin_URL_RevOps_Validated__c END FROM Task WHERE Id IN ('00T1')`,
+    ]);
+  });
+
+  it('should use TYPEOF when re-running the full query', async () => {
+    vi.clearAllMocks();
+    vi.mocked(clientData.queryAll).mockResolvedValue({ queryResults: { records: [], totalSize: 0, done: true } } as any);
+
+    await fetchRecordsWithRequiredFields({
+      selectedOrg,
+      parsedQuery: parseQuery('SELECT Id FROM Task'),
+      configuration: [anotherFieldConfig('LinkedIn_URL__c', 'Who.Linkedin_URL_RevOps_Validated__c', 'Contact')],
+    });
+
+    const [, soql] = vi.mocked(clientData.queryAll).mock.calls[0];
+    expect(soql).toBe('SELECT Id, LinkedIn_URL__c, TYPEOF Who WHEN Contact THEN Linkedin_URL_RevOps_Validated__c END FROM Task');
+  });
+
+  it('should read the value from the related record the TYPEOF returned', () => {
+    const configuration = [anotherFieldConfig('LinkedIn_URL__c', 'Who.Linkedin_URL_RevOps_Validated__c', 'Contact')];
+    const records = [
+      { Id: '1', LinkedIn_URL__c: 'old', Who: { attributes: { type: 'Contact' }, Linkedin_URL_RevOps_Validated__c: 'https://li/1' } },
+      // A lead has no value for the Contact field, so there is nothing to copy
+      { Id: '2', LinkedIn_URL__c: 'old', Who: { attributes: { type: 'Lead' } } },
+    ] as any;
+
+    const prepared = prepareRecords(records, configuration);
+
+    expect(prepared.map(({ LinkedIn_URL__c }) => LinkedIn_URL__c)).toEqual(['https://li/1', SFDC_BULK_API_NULL_VALUE]);
+  });
+
+  it('should only copy a shared path to the destination whose chosen object matches the related record', () => {
+    const configuration = [
+      anotherFieldConfig('Contact_Email__c', 'Who.Email', 'Contact'),
+      anotherFieldConfig('Lead_Email__c', 'Who.Email', 'Lead'),
+    ];
+    const records = [
+      { Id: '1', Contact_Email__c: 'old', Lead_Email__c: 'old', Who: { attributes: { type: 'Lead' }, Email: 'lead@example.com' } },
+    ] as any;
+
+    const [prepared] = prepareRecords(records, configuration);
+
+    expect(prepared.Contact_Email__c).toBe(SFDC_BULK_API_NULL_VALUE);
+    expect(prepared.Lead_Email__c).toBe('lead@example.com');
   });
 });

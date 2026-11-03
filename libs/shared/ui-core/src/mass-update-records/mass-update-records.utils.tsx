@@ -4,11 +4,11 @@ import { queryAll, queryAllFromList } from '@jetstream/shared/data';
 import { escapeSoqlString } from '@jetstream/shared/ui-utils';
 import { BULK_RESULTS_BASE_HEADER, buildBulkResultRow } from '@jetstream/shared/utils';
 import { BulkJobResultRecord, DescribeGlobalSObjectResult, ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
-import { Query, composeQuery, getField, isQueryValid } from '@jetstreamapp/soql-parser-js';
+import { FieldType, Query, composeQuery, getField, isQueryValid } from '@jetstreamapp/soql-parser-js';
 import lodashGet from 'lodash/get';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
-import { MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
+import { MetadataRow, MetadataRowConfiguration, TransformationOptions } from './mass-update-records.types';
 
 /**
  * SOQL sent to the Salesforce REST query endpoint travels in the request URL (`GET /query?q=...`), and
@@ -159,6 +159,51 @@ export function isValidRow(row: Maybe<MetadataRow>) {
     }
     return true;
   });
+}
+
+/**
+ * Fields for a query, with every "value from another field" source that was picked through a polymorphic lookup
+ * selected with `TYPEOF`. `Who.Email` is valid, but `Who.Linkedin_URL__c` is not, since `Who` only exposes the fields
+ * shared by Contact and Lead.
+ *
+ * The record still carries the value at `Who.Linkedin_URL__c`, so reading it needs no change. It is blank for a
+ * record whose lookup points at a different object than the one that was chosen.
+ */
+export function getQueryFields(fieldPaths: string[], configuration: MetadataRowConfiguration[]): FieldType[] {
+  // relationship name -> object -> fields to read from that object, relative to the relationship
+  const typeofFieldsByRelationship = new Map<string, Map<string, Set<string>>>();
+  const typeofPaths = new Set<string>();
+  const requestedPaths = new Set(fieldPaths);
+
+  configuration.forEach(({ transformationOptions: { option, alternateField, alternateFieldTarget } }) => {
+    // Only select what the caller asked for, e.g. a `Count()` validation query requests no fields and `TYPEOF` is invalid next to it
+    if (option !== 'anotherField' || !alternateField || !alternateFieldTarget || !requestedPaths.has(alternateField)) {
+      return;
+    }
+    const { relationshipName, sobject } = alternateFieldTarget;
+    if (!alternateField.startsWith(`${relationshipName}.`)) {
+      return;
+    }
+    const fieldsBySobject = typeofFieldsByRelationship.get(relationshipName) ?? new Map<string, Set<string>>();
+    const relativeFields = fieldsBySobject.get(sobject) ?? new Set<string>();
+    relativeFields.add(alternateField.slice(relationshipName.length + 1));
+    fieldsBySobject.set(sobject, relativeFields);
+    typeofFieldsByRelationship.set(relationshipName, fieldsBySobject);
+    typeofPaths.add(alternateField);
+  });
+
+  const typeofFields = Array.from(typeofFieldsByRelationship).map(([relationshipName, fieldsBySobject]) =>
+    getField({
+      field: relationshipName,
+      conditions: Array.from(fieldsBySobject).map(([sobject, relativeFields]) => ({
+        type: 'WHEN' as const,
+        objectType: sobject,
+        fieldList: Array.from(relativeFields),
+      })),
+    }),
+  );
+
+  return [...fieldPaths.filter((path) => !typeofPaths.has(path)).map((path) => getField(path)), ...typeofFields];
 }
 
 export function getFieldsToQuery(configuration: MetadataRowConfiguration[]): string[] {
@@ -351,7 +396,7 @@ export function composeSoqlQueryOptionalCustomWhereClause(
   { includeCustom = false }: { includeCustom?: boolean } = {},
 ) {
   const query: Query = {
-    fields: fields.map((field) => getField(field)),
+    fields: getQueryFields(fields, row.configuration),
     sObject: row.sobject,
   };
 
@@ -389,7 +434,7 @@ export function composeSoqlQueryOptionalCustomWhereClause(
 
 export function composeSoqlQueryCustomWhereClause(row: MetadataRow, fields: string[]) {
   const query: Query = {
-    fields: fields.map((field) => getField(field)),
+    fields: getQueryFields(fields, row.configuration),
     sObject: row.sobject,
   };
 
@@ -447,7 +492,7 @@ export async function fetchRecordsWithRequiredFields({
     }
   });
 
-  const fields = Array.from(fieldsRequiredInRecords).map((field) => getField(field));
+  const fields = getQueryFields(Array.from(fieldsRequiredInRecords), configuration);
 
   // Re-fetch only the specific records the user chose, querying by Id instead of the full result set.
   if (idsToInclude) {
@@ -472,6 +517,19 @@ export async function fetchRecordsWithRequiredFields({
   // All records - re-run the original query (criteria is applied client-side downstream)
   const { queryResults } = await queryAll(selectedOrg, composeQuery({ ...parsedQuery, fields }), false, false, onProgress, signal);
   return queryResults.records;
+}
+
+/**
+ * A merged `TYPEOF` returns the same path for every object that shares it (`Who.Email` for both Contact and Lead),
+ * so a destination that chose Contact would otherwise also receive the value of a record whose lookup points at a Lead.
+ * When the related record's type is unknown (no `attributes.type`) the value is used as-is.
+ */
+function isPolymorphicTargetMismatch(record: SalesforceRecord, { alternateFieldTarget }: TransformationOptions): boolean {
+  if (!alternateFieldTarget) {
+    return false;
+  }
+  const relatedType = lodashGet(record, [alternateFieldTarget.relationshipName, 'attributes', 'type']);
+  return !!relatedType && relatedType !== alternateFieldTarget.sobject;
 }
 
 export function prepareRecords(
@@ -500,7 +558,9 @@ export function prepareRecords(
         }
 
         if (transformationOptions.option === 'anotherField' && transformationOptions.alternateField) {
-          newRecord[selectedField] = lodashGet(newRecord, transformationOptions.alternateField, emptyFieldValue);
+          newRecord[selectedField] = isPolymorphicTargetMismatch(record, transformationOptions)
+            ? emptyFieldValue
+            : lodashGet(newRecord, transformationOptions.alternateField, emptyFieldValue);
         } else if (transformationOptions.option === 'staticValue') {
           newRecord[selectedField] = transformationOptions.staticValue;
         } else if (transformationOptions.option === 'null') {

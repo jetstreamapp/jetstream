@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest';
 import {
   getFlattenedListItemsById,
   getListItemsFromFieldWithRelatedItems,
+  getPolymorphicTargetForItem,
   getPolymorphicTargetListItems,
   isPolymorphicReference,
   isPolymorphicTargetItem,
@@ -150,5 +151,64 @@ describe('setChildItemsForParent', () => {
     const fields = getListItemsFromFieldWithRelatedItems([ownerField, accountField]);
 
     expect(setChildItemsForParent(fields, 'NotARelationship', [])).toBe(fields);
+  });
+});
+
+describe('getPolymorphicTargetForItem', () => {
+  const nameField = { name: 'Name', label: 'Name' } as Field;
+
+  /** A drill-in tree as the combobox holds it: Owner -> [Group, User] -> Name, with both targets loaded */
+  function buildTree() {
+    let items = getListItemsFromFieldWithRelatedItems([ownerField, accountField, nameField]);
+    items = setChildItemsForParent(items, 'Owner', getPolymorphicTargetListItems(ownerField, 'Owner'));
+    items = setChildItemsForParent(items, 'Owner::User', getListItemsFromFieldWithRelatedItems([nameField], 'Owner::User', 'Owner'));
+    items = setChildItemsForParent(items, 'Owner::Group', getListItemsFromFieldWithRelatedItems([nameField], 'Owner::Group', 'Owner'));
+    return items;
+  }
+
+  test('reports the object chosen for the polymorphic lookup the field was reached through', () => {
+    const items = buildTree();
+    const owner = items.find((item) => item.id === 'Owner');
+    const userName = owner?.childItems?.find((item) => item.id === 'Owner::User')?.childItems?.[0] as ListItem;
+    const groupName = owner?.childItems?.find((item) => item.id === 'Owner::Group')?.childItems?.[0] as ListItem;
+
+    // Both are the SOQL path `Owner.Name`, so the target is the only thing telling them apart
+    expect(userName.id).toBe(groupName.id);
+    expect(getPolymorphicTargetForItem(items, userName)).toEqual({ relationshipName: 'Owner', sobject: 'User' });
+    expect(getPolymorphicTargetForItem(items, groupName)).toEqual({ relationshipName: 'Owner', sobject: 'Group' });
+  });
+
+  test('matches a selected item that is a copy of the one in the tree', () => {
+    const items = buildTree();
+    const groupName = items.find((item) => item.id === 'Owner')?.childItems?.find((item) => item.id === 'Owner::Group')?.childItems?.[0];
+
+    expect(getPolymorphicTargetForItem(items, { ...(groupName as ListItem) })).toEqual({ relationshipName: 'Owner', sobject: 'Group' });
+  });
+
+  test('is null for a field on the root object or on an ordinary lookup', () => {
+    const items = buildTree();
+    const rootName = items.find((item) => item.id === 'Name') as ListItem;
+    expect(getPolymorphicTargetForItem(items, rootName)).toBeNull();
+
+    const accountItems = setChildItemsForParent(items, 'Account', getListItemsFromFieldWithRelatedItems([nameField], 'Account'));
+    const accountName = accountItems.find((item) => item.id === 'Account')?.childItems?.[0] as ListItem;
+    expect(getPolymorphicTargetForItem(accountItems, accountName)).toBeNull();
+  });
+
+  test('is null when the polymorphic lookup is not on the root object, which TYPEOF cannot select', () => {
+    let items = getListItemsFromFieldWithRelatedItems([accountField]);
+    items = setChildItemsForParent(items, 'Account', getListItemsFromFieldWithRelatedItems([ownerField], 'Account'));
+    items = setChildItemsForParent(items, 'Account.Owner', getPolymorphicTargetListItems(ownerField, 'Account.Owner'));
+    items = setChildItemsForParent(
+      items,
+      'Account.Owner::User',
+      getListItemsFromFieldWithRelatedItems([nameField], 'Account.Owner::User', 'Account.Owner'),
+    );
+    const userName = items[0].childItems
+      ?.find((item) => item.id === 'Account.Owner')
+      ?.childItems?.find((item) => item.id === 'Account.Owner::User')?.childItems?.[0] as ListItem;
+
+    expect(userName.id).toBe('Account.Owner.Name');
+    expect(getPolymorphicTargetForItem(items, userName)).toBeNull();
   });
 });

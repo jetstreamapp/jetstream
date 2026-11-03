@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { getPolymorphicTargetForItem } from '@jetstream/shared/ui-utils';
 import { Field, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithDrillInItems, ComboboxWithItems, Grid } from '@jetstream/ui';
 import { FunctionComponent, useMemo } from 'react';
@@ -37,8 +38,12 @@ export const MassUpdateRecordsObjectRowValue: FunctionComponent<MassUpdateRecord
     onOptionsChange({ ...transformationOptions, staticValue });
   }
 
-  function handleAlternateFieldChange(alternateField: Maybe<string>) {
-    onOptionsChange({ ...transformationOptions, alternateField });
+  function handleAlternateFieldChange(item: Maybe<ListItem>) {
+    onOptionsChange({
+      ...transformationOptions,
+      alternateField: item?.id,
+      alternateFieldTarget: item ? getPolymorphicTargetForItem(fields, item) : null,
+    });
   }
 
   return (
@@ -101,7 +106,7 @@ export const MassUpdateRecordsObjectRowValue: FunctionComponent<MassUpdateRecord
                 rootHeadingLabel={sobject}
                 selectedItemLabelFn={(item) => item.value}
                 selectedItemId={transformationOptions.alternateField}
-                onSelected={(item) => handleAlternateFieldChange(item?.id)}
+                onSelected={handleAlternateFieldChange}
                 onLoadItems={onLoadChildFields}
               />
             </div>

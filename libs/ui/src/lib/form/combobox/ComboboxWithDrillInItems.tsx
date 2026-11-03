@@ -72,28 +72,32 @@ export const ComboboxWithDrillInItems: FunctionComponent<ComboboxWithDrillInItem
     }
   }, [activeItemId, allItemsById, items]);
 
-  const handleSelection = useCallback(async (item: ListItem) => {
-    if (!item.isDrillInItem) {
-      onSelected(item);
-      selectedItem.current = item;
-      return;
-    } else {
-      comboboxRef.current?.clearSearchTerm();
-      // see if we have items already, if so set them
-      // otherwise call to parent to get the items
-      if (item.childItems) {
-        setCurrentItems(item.childItems);
-        setActiveItemId(item.id);
-      } else if (onLoadItems) {
-        setLoading(true);
-        const newItems = await onLoadItems(item);
-        setCurrentItems(newItems);
-        setActiveItemId(item.id);
-        setLoading(false);
+  const handleSelection = useCallback(
+    async (item: ListItem) => {
+      if (!item.isDrillInItem) {
+        onSelected(item);
+        selectedItem.current = item;
+        return;
+      } else {
+        comboboxRef.current?.clearSearchTerm();
+        // see if we have items already, if so set them
+        // otherwise call to parent to get the items
+        if (item.childItems) {
+          setCurrentItems(item.childItems);
+          setActiveItemId(item.id);
+        } else if (onLoadItems) {
+          setLoading(true);
+          const newItems = await onLoadItems(item);
+          setCurrentItems(newItems);
+          setActiveItemId(item.id);
+          setLoading(false);
+        }
       }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      // `onSelected` / `onLoadItems` must stay current: the parent's `items` gain children as they are lazy-loaded,
+      // and a stale callback would resolve a selection against the tree as it was on first render.
+    },
+    [onSelected, onLoadItems],
+  );
 
   const handleClose = useCallback(() => {
     if (!selectedItem.current && !selectedItemId) {
