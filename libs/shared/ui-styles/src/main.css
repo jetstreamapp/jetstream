@@ -215,11 +215,23 @@ pre {
   background-color: var(--slds-g-color-brand-base-90, #d8e6fe);
 }
 
+/**
+ * SLDS 2 rounds `.slds-table_bordered` with `--_slds-c-datatable-radius-border` (0.5rem in Cosmos) but leaves the
+ * header cells square, and every `th` has a background, so the cell paints over the rounded corner and the table
+ * looks "cut off" at the top. Round the corner cells with the table's own radius so the two curves coincide. The
+ * bottom corners are rounded too so a striped / hovered / selected last row does not do the same.
+ */
 .slds-table_bordered > thead > tr:first-child > *:first-child {
-  border-top-left-radius: var(--slds-g-radius-border-1, 0.25rem);
+  border-top-left-radius: var(--_slds-c-datatable-radius-border, var(--slds-g-radius-border-1, 0.25rem));
 }
 .slds-table_bordered > thead > tr:first-child > *:last-child {
-  border-top-right-radius: var(--slds-g-radius-border-1, 0.25rem);
+  border-top-right-radius: var(--_slds-c-datatable-radius-border, var(--slds-g-radius-border-1, 0.25rem));
+}
+.slds-table_bordered > tbody:last-child > tr:last-child > *:first-child {
+  border-bottom-left-radius: var(--_slds-c-datatable-radius-border, var(--slds-g-radius-border-1, 0.25rem));
+}
+.slds-table_bordered > tbody:last-child > tr:last-child > *:last-child {
+  border-bottom-right-radius: var(--_slds-c-datatable-radius-border, var(--slds-g-radius-border-1, 0.25rem));
 }
 
 .is-disabled {

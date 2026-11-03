@@ -6,6 +6,8 @@ import {
   ObjectPermissionDefinitionMap,
   PermissionSetNoProfileRecord,
   PermissionSetWithProfileRecord,
+  SetupEntityAccessDefinitionMap,
+  SetupEntityAccessType,
   SystemPermissionDefinitionMap,
   TabVisibilityPermissionDefinitionMap,
 } from '@jetstream/types';
@@ -45,12 +47,20 @@ export const tabVisibilityPermissionMap = atomWithReset<Record<string, TabVisibi
 export const systemPermissionMap = atomWithReset<Record<string, SystemPermissionDefinitionMap> | null>(null);
 
 /**
- * Returns true if all selections have been made
+ * One map per setup entity type (custom permissions, ...), each keyed by the setup entity id.
+ * `null` until loaded; a type whose load failed is present with an empty map.
+ */
+export const setupEntityAccessPermissionMap = atomWithReset<Record<
+  SetupEntityAccessType,
+  Record<string, SetupEntityAccessDefinitionMap>
+> | null>(null);
+
+/**
+ * Returns true if enough has been selected to open the editor: at least one profile or permission set.
+ * Objects are optional - without them the object, field and tab visibility tabs are empty, but system permissions
+ * and custom permissions do not depend on objects and can still be managed.
  */
 export const hasSelectionsMade = atom((get) => {
-  if (!get(selectedSObjectsState)?.length) {
-    return false;
-  }
   if (!get(selectedProfilesPermSetState)?.length && !get(selectedPermissionSetsState)?.length) {
     return false;
   }

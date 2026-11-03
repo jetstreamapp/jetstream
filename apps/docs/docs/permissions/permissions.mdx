@@ -20,14 +20,19 @@ keywords:
     update permissions,
     update fls,
     object permissions,
+    custom permissions,
+    system permissions,
   ]
 sidebar_label: Manage Permissions
 slug: /permissions
 ---
 
-Jetstream makes it easy to view and modify object and field level security across many profiles and permission sets for multiple objects.
+Jetstream makes it easy to view and modify object, field, tab, system and custom permissions across many profiles and
+permission sets at the same time.
 
-To get started, choose at least one profile and/or permission set and select one or more objects to view permissions for.
+To get started, choose at least one profile and/or permission set, then select the objects whose permissions you want
+to manage. Objects are optional: system permissions and custom permissions do not depend on them, so you can continue
+without any objects selected to manage just those.
 
 :::tip[Looking for an audit instead of an edit?]
 
@@ -76,6 +81,42 @@ A permission set in your own org's namespace is not treated as managed - you pub
 leaves those fully editable.
 
 :::
+
+## What can be managed
+
+The editor has one tab per kind of permission. Every tab works the same way: one row per item, one group of checkboxes
+per selected profile or permission set.
+
+- **Object Permissions** - Create, Read, Edit, Delete, View All, Modify All and View All Fields for each selected object.
+- **Tab Visibility** - Whether the object's tab is available and visible.
+- **Field Permissions** - Read and Edit access for every permissionable field on the selected objects, grouped by object.
+- **System Permissions** - Every user permission Salesforce allows to be set on a permission set in your org, such as
+  _API Enabled_ or _Modify All Data_. Dependencies between system permissions are applied automatically.
+- **Custom Permissions** - Which profiles and permission sets are granted each custom permission in the org, including
+  custom permissions from installed packages.
+
+### Custom permissions
+
+Custom permissions are how Salesforce lets you grant access to things it has no built-in permission for. Once a
+profile or permission set has a custom permission, you can check for it with `$Permission.Name` in formulas, validation
+rules and flows, or with `FeatureManagement.checkPermission('Name')` in Apex.
+
+The **Custom Permissions** tab lists every custom permission in the org, with its API name and description. Check a box
+to grant the custom permission to that profile or permission set, uncheck it to revoke it, then save.
+
+Use **New Custom Permission** on that tab to create one without leaving Jetstream. It is created through a metadata
+deployment, which takes a few seconds, and then appears in the table ready to be granted.
+
+:::note
+
+Creating a custom permission requires the **Manage Custom Permissions** or **Customize Application** user permission.
+Custom permissions cannot be deleted or renamed from Jetstream because other metadata (formulas, flows, Apex) may
+reference them; use Setup for that.
+
+:::
+
+To see which users end up with a custom permission, click a profile or permission set name in the column header to see
+the users assigned to it.
 
 ## Adjusting Permissions
 

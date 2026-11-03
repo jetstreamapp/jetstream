@@ -26,6 +26,7 @@ import StandardIcon_Billing from './icons/standard/Billing';
 import StandardIcon_BundleConfig from './icons/standard/BundleConfig';
 import StandardIcon_Chart from './icons/standard/Chart';
 import StandardIcon_ConnectedApps from './icons/standard/ConnectedApps';
+import StandardIcon_Custom from './icons/standard/Custom';
 import StandardIcon_CustomerPortalUsers from './icons/standard/CustomerPortalUsers';
 import StandardIcon_Customers from './icons/standard/Customers';
 import StandardIcon_DataStreams from './icons/standard/DataStreams';
@@ -220,6 +221,7 @@ const standardIcons = {
   bundle_config: StandardIcon_BundleConfig,
   chart: StandardIcon_Chart,
   connected_apps: StandardIcon_ConnectedApps,
+  custom: StandardIcon_Custom,
   customers: StandardIcon_Customers,
   customer_portal_users: StandardIcon_CustomerPortalUsers,
   data_streams: StandardIcon_DataStreams,

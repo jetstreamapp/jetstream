@@ -14,16 +14,21 @@ import {
   PermissionFieldSaveData,
   PermissionObjectSaveData,
   PermissionSaveResults,
+  PermissionSetupEntityAccessSaveData,
   PermissionSystemSaveData,
   PermissionTabVisibilitySaveData,
   PermissionTableFieldCell,
   PermissionTableFieldCellPermission,
   PermissionTableObjectCell,
   PermissionTableObjectCellPermission,
+  PermissionTableSetupEntityAccessCell,
+  PermissionTableSetupEntityAccessCellPermission,
   PermissionTableSummaryRow,
   PermissionTableSystemPermissionCell,
   PermissionTableTabVisibilityCell,
   PermissionTableTabVisibilityCellPermission,
+  SetupEntityAccessDefinitionMap,
+  SetupEntityAccessRecordForSave,
   SystemPermissionDefinitionMap,
   SystemPermissionSaveRecord,
   TabVisibilityPermissionDefinitionMap,
@@ -55,31 +60,38 @@ import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { CreateCustomPermissionModal } from './CreateCustomPermissionModal';
 import { FieldAuditColumnsPopover } from './FieldAuditColumnsPopover';
 import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTable';
 import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
+import ManagePermissionsEditorSetupEntityAccessTable from './ManagePermissionsEditorSetupEntityAccessTable';
 import ManagePermissionsEditorSystemPermissionTable from './ManagePermissionsEditorSystemPermissionTable';
 import ManagePermissionsEditorTabVisibilityTable from './ManagePermissionsEditorTabVisibilityTable';
+import { PermissionChangeSummary } from './PermissionChangeSummary';
 import { usePermissionRecords } from './usePermissionRecords';
 import { useVisibleFieldAuditColumns } from './useVisibleFieldAuditColumns';
+import { getPermissionChangeSections } from './utils/permission-change-summary';
 import { generateCsvFilesFromTable, generateExcelWorkbookFromTable } from './utils/permission-manager-export-utils';
 import {
   applySystemPermissionDependencies,
-  getConfirmationModalContent,
   getDirtyFieldPermissions,
   getDirtyObjectPermissions,
+  getDirtySetupEntityAccessPermissions,
   getDirtySystemPermissions,
   getDirtyTabVisibilityPermissions,
   getFieldColumns,
   getFieldRows,
   getObjectColumns,
   getObjectRows,
+  getSetupEntityAccessColumns,
+  getSetupEntityAccessRows,
   getSystemPermissionColumns,
   getSystemPermissionRows,
   getTabVisibilityColumns,
   getTabVisibilityRows,
   updateFieldRowsAfterSave,
   updateObjectRowsAfterSave,
+  updateSetupEntityAccessRowsAfterSave,
   updateSystemPermissionRowsAfterSave,
   updateTabVisibilityRowsAfterSave,
 } from './utils/permission-manager-table-utils';
@@ -100,10 +112,32 @@ import {
   saveSystemPermissionRecords,
   updatePermissionSetRecords,
 } from './utils/permission-manager-utils';
+import {
+  CUSTOM_PERMISSION_CATALOG,
+  customPermissionToCatalogItem,
+  getSetupEntityAccessDefinition,
+  getUpdatedSetupEntityAccessPermissions,
+  prepareSetupEntityAccessSaveData,
+} from './utils/setup-entity-access-utils';
 
 const HEIGHT_BUFFER = 170;
 
 const FIELD_PERMISSIONS_TAB_ID = 'field-permissions';
+const SYSTEM_PERMISSIONS_TAB_ID = 'system-permissions';
+const CUSTOM_PERMISSIONS_TAB_ID = CUSTOM_PERMISSION_CATALOG.key;
+/** Title case of the catalog label, for the column header, tab title and export sheet */
+const CUSTOM_PERMISSION_LABEL = 'Custom Permission';
+const CUSTOM_PERMISSIONS_LABEL = 'Custom Permissions';
+
+/** Shown in place of the object, tab visibility and field tables when the editor was opened without any objects */
+function NoObjectsSelectedNotice() {
+  return (
+    <ScopedNotification theme="info" className="slds-m-around_medium">
+      No objects were selected. Go back and select one or more objects to manage object, tab visibility and field permissions. System
+      permissions and custom permissions do not depend on objects and can be managed from their tabs.
+    </ScopedNotification>
+  );
+}
 
 export function ErrorTooltip({ hasError, id, message }: { hasError: boolean; id: string; message?: string }) {
   if (!hasError) {
@@ -134,13 +168,16 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const managePermissionsEditorObjectTableRef = useRef<ManagePermissionsEditorTableRef>(null);
   const managePermissionsEditorFieldTableRef = useRef<ManagePermissionsEditorTableRef>(null);
   const managePermissionsEditorSystemPermissionTableRef = useRef<ManagePermissionsEditorTableRef>(null);
+  const managePermissionsEditorCustomPermissionTableRef = useRef<ManagePermissionsEditorTableRef>(null);
   const selectedOrg = useAtomValue(selectedOrgState);
   const deployAccess = useOperationAccess('metadata.deploy');
+  const { defaultApiVersion } = useAtomValue(applicationCookieState);
 
   const [loading, setLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [fileDownloadModalOpen, setFileDownloadModalOpen] = useState<boolean>(false);
+  const [createCustomPermissionModalOpen, setCreateCustomPermissionModalOpen] = useState(false);
 
   const selectedProfiles = useAtomValue(fromPermissionsState.selectedProfilesPermSetState);
   const selectedPermissionSets = useAtomValue(fromPermissionsState.selectedPermissionSetsState);
@@ -155,6 +192,15 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const [fieldPermissionMap, setFieldPermissionMap] = useAtom(fromPermissionsState.fieldPermissionMap);
   const [tabVisibilityPermissionMap, setTabVisibilityPermissionMap] = useAtom(fromPermissionsState.tabVisibilityPermissionMap);
   const [systemPermissionMap, setSystemPermissionMap] = useAtom(fromPermissionsState.systemPermissionMap);
+  const [setupEntityAccessPermissionMap, setSetupEntityAccessPermissionMap] = useAtom(fromPermissionsState.setupEntityAccessPermissionMap);
+  // Only custom permissions are wired up today; each further setup entity type gets its own tab and state block
+  const customPermissionMap = setupEntityAccessPermissionMap?.CustomPermission || null;
+  const setCustomPermissionMap = useCallback(
+    (permissionMap: Record<string, SetupEntityAccessDefinitionMap>) => {
+      setSetupEntityAccessPermissionMap((previousValue) => ({ ...previousValue, CustomPermission: permissionMap }));
+    },
+    [setSetupEntityAccessPermissionMap],
+  );
 
   const resetFieldsByObject = useResetAtom(fromPermissionsState.fieldsByObject);
   const resetFieldsByKey = useResetAtom(fromPermissionsState.fieldsByKey);
@@ -162,6 +208,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const resetFieldPermissionMap = useResetAtom(fromPermissionsState.fieldPermissionMap);
   const resetTabVisibilityPermissionMap = useResetAtom(fromPermissionsState.tabVisibilityPermissionMap);
   const resetSystemPermissionMap = useResetAtom(fromPermissionsState.systemPermissionMap);
+  const resetSetupEntityAccessPermissionMap = useResetAtom(fromPermissionsState.setupEntityAccessPermissionMap);
 
   const { refetchMetadata, ...recordData } = usePermissionRecords(selectedOrg, selectedSObjects, selectedProfiles, selectedPermissionSets);
 
@@ -194,8 +241,10 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     filterColumns: filterVisibleFieldAuditColumns,
   } = useVisibleFieldAuditColumns();
 
+  // Without objects the field tab has nothing to show, so the first tab that does not depend on objects is opened
+  const initialTabId = selectedSObjects.length ? FIELD_PERMISSIONS_TAB_ID : SYSTEM_PERMISSIONS_TAB_ID;
   // The audit column toggles only apply to the field table, so the toolbar button is hidden on the other tabs
-  const [activeTabId, setActiveTabId] = useState(FIELD_PERMISSIONS_TAB_ID);
+  const [activeTabId, setActiveTabId] = useState(initialTabId);
 
   const [systemPermissionColumns, setSystemPermissionColumns] = useState<
     ColumnWithFilter<PermissionTableSystemPermissionCell, PermissionTableSummaryRow>[]
@@ -208,16 +257,34 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const [systemPermissionFilter, setSystemPermissionFilter] = useState('');
   const [systemPermissionErrorsOnly, setSystemPermissionErrorsOnly] = useState(false);
 
+  const [customPermissionColumns, setCustomPermissionColumns] = useState<
+    ColumnWithFilter<PermissionTableSetupEntityAccessCell, PermissionTableSummaryRow>[]
+  >([]);
+  const [customPermissionRows, setCustomPermissionRows] = useState<PermissionTableSetupEntityAccessCell[] | null>(null);
+  const [visibleCustomPermissionRows, setVisibleCustomPermissionRows] = useState<PermissionTableSetupEntityAccessCell[] | null>(null);
+  const [dirtyCustomPermissionRows, setDirtyCustomPermissionRows] = useState<
+    Record<string, DirtyRow<PermissionTableSetupEntityAccessCell>>
+  >({});
+  const [customPermissionFilter, setCustomPermissionFilter] = useState('');
+  const [customPermissionErrorsOnly, setCustomPermissionErrorsOnly] = useState(false);
+
   const [dirtyObjectCount, setDirtyObjectCount] = useState<number>(0);
   const [dirtyFieldCount, setDirtyFieldCount] = useState<number>(0);
   const [dirtyTabVisibilityCount, setDirtyTabVisibilityCount] = useState<number>(0);
   const [dirtySystemPermissionCount, setDirtySystemPermissionCount] = useState<number>(0);
+  const [dirtyCustomPermissionCount, setDirtyCustomPermissionCount] = useState<number>(0);
   const [hasModifiedViewAllFields, setHasModifiedViewAllFields] = useState(false);
 
   const [objectsHaveErrors, setObjectsHaveErrors] = useState<boolean>(false);
   const [fieldsHaveErrors, setFieldsHaveErrors] = useState<boolean>(false);
   const [tabVisibilityHaveErrors, setTabVisibilityHaveErrors] = useState<boolean>(false);
   const [systemPermissionsHaveErrors, setSystemPermissionsHaveErrors] = useState<boolean>(false);
+  const [customPermissionsHaveErrors, setCustomPermissionsHaveErrors] = useState<boolean>(false);
+
+  const hasDirtyChanges =
+    !!dirtyObjectCount || !!dirtyFieldCount || !!dirtyTabVisibilityCount || !!dirtySystemPermissionCount || !!dirtyCustomPermissionCount;
+  const hasAnyErrors =
+    objectsHaveErrors || fieldsHaveErrors || tabVisibilityHaveErrors || systemPermissionsHaveErrors || customPermissionsHaveErrors;
 
   /**
    * `fieldColumns` always holds every column, including the opt-in audit ones - the export path reads the full set
@@ -240,6 +307,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     setFieldPermissionMap(recordData.fieldPermissionMap);
     setTabVisibilityPermissionMap(recordData.tabVisibilityPermissionMap);
     setSystemPermissionMap(recordData.systemPermissionMap);
+    setSetupEntityAccessPermissionMap(recordData.setupEntityAccessPermissionMap);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     recordData.fieldsByObject,
@@ -248,6 +316,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     recordData.fieldPermissionMap,
     recordData.tabVisibilityPermissionMap,
     recordData.systemPermissionMap,
+    recordData.setupEntityAccessPermissionMap,
   ]);
 
   useEffect(() => {
@@ -263,28 +332,40 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       objectPermissionMap &&
       fieldPermissionMap &&
       tabVisibilityPermissionMap &&
-      systemPermissionMap
+      systemPermissionMap &&
+      customPermissionMap
     ) {
       setHasLoaded(true);
       initTableData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, fieldsByObject, fieldsByKey, objectPermissionMap, fieldPermissionMap, tabVisibilityPermissionMap, systemPermissionMap]);
+  }, [
+    loading,
+    fieldsByObject,
+    fieldsByKey,
+    objectPermissionMap,
+    fieldPermissionMap,
+    tabVisibilityPermissionMap,
+    systemPermissionMap,
+    customPermissionMap,
+  ]);
 
   useEffect(() => {
     setHasError(recordData.hasError);
   }, [recordData.hasError]);
 
   useEffect(() => {
-    if (objectPermissionMap && fieldPermissionMap && tabVisibilityPermissionMap && systemPermissionMap) {
+    if (objectPermissionMap && fieldPermissionMap && tabVisibilityPermissionMap && systemPermissionMap && customPermissionMap) {
       const objectsHaveError = permissionsHaveError(objectPermissionMap);
       const fieldsHaveError = permissionsHaveError(fieldPermissionMap);
       const tabVisibilityHaveError = permissionsHaveError(tabVisibilityPermissionMap);
       const systemPermissionsHaveError = permissionsHaveError(systemPermissionMap);
+      const customPermissionsHaveError = permissionsHaveError(customPermissionMap);
       setObjectsHaveErrors(objectsHaveError);
       setFieldsHaveErrors(fieldsHaveError);
       setTabVisibilityHaveErrors(tabVisibilityHaveError);
       setSystemPermissionsHaveErrors(systemPermissionsHaveError);
+      setCustomPermissionsHaveErrors(customPermissionsHaveError);
       // The "errors only" toggle is only rendered while a table has errors, so clearing the errors (a successful
       // re-save or a reset) must also clear the filter - otherwise the table stays filtered to zero rows with no
       // control left to turn it back off.
@@ -300,8 +381,11 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       if (!systemPermissionsHaveError) {
         setSystemPermissionErrorsOnly(false);
       }
+      if (!customPermissionsHaveError) {
+        setCustomPermissionErrorsOnly(false);
+      }
     }
-  }, [objectPermissionMap, fieldPermissionMap, tabVisibilityPermissionMap, systemPermissionMap]);
+  }, [objectPermissionMap, fieldPermissionMap, tabVisibilityPermissionMap, systemPermissionMap, customPermissionMap]);
 
   useEffect(() => {
     setDirtyFieldCount(Object.values(dirtyFieldRows).reduce((output, { dirtyCount }) => output + dirtyCount, 0));
@@ -325,6 +409,10 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   }, [dirtySystemPermissionRows]);
 
   useEffect(() => {
+    setDirtyCustomPermissionCount(Object.values(dirtyCustomPermissionRows).reduce((output, { dirtyCount }) => output + dirtyCount, 0));
+  }, [dirtyCustomPermissionRows]);
+
+  useEffect(() => {
     setVisibleFieldRows(filterPermissionRows(fieldRows, fieldFilter, fieldErrorsOnly));
   }, [fieldFilter, fieldRows, fieldErrorsOnly]);
 
@@ -339,6 +427,10 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   useEffect(() => {
     setVisibleSystemPermissionRows(filterPermissionRows(systemPermissionRows, systemPermissionFilter, systemPermissionErrorsOnly));
   }, [systemPermissionFilter, systemPermissionRows, systemPermissionErrorsOnly]);
+
+  useEffect(() => {
+    setVisibleCustomPermissionRows(filterPermissionRows(customPermissionRows, customPermissionFilter, customPermissionErrorsOnly));
+  }, [customPermissionFilter, customPermissionRows, customPermissionErrorsOnly]);
 
   const handleObjectBulkRowUpdate = useCallback((rows: PermissionTableObjectCell[], indexes?: number[]) => {
     const rowsByKey = groupByFlat(rows, 'key');
@@ -450,12 +542,35 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     [systemPermissionRows],
   );
 
+  const handleCustomPermissionBulkRowUpdate = useCallback((rows: PermissionTableSetupEntityAccessCell[], indexes?: number[]) => {
+    const rowsByKey = groupByFlat(rows, 'key');
+    setCustomPermissionRows((prevRows) => (prevRows ? prevRows.map((row) => rowsByKey[row.key] || row) : rows));
+    indexes = indexes || rows.map((row, index) => index);
+    setDirtyCustomPermissionRows((priorValue) => {
+      const newValues = { ...priorValue };
+      indexes?.forEach((rowIndex) => {
+        const row = rows[rowIndex];
+        const rowKey = row.key; // the setup entity id
+        const dirtyCount = Object.values(row.permissions).reduce((output, { enabledIsDirty }) => output + (enabledIsDirty ? 1 : 0), 0);
+        newValues[rowKey] = { rowKey, dirtyCount, row };
+      });
+      // remove items with a dirtyCount of 0 to reduce future processing required
+      return Object.keys(newValues).reduce((output: Record<string, DirtyRow<PermissionTableSetupEntityAccessCell>>, key) => {
+        if (newValues[key].dirtyCount) {
+          output[key] = newValues[key];
+        }
+        return output;
+      }, {});
+    });
+  }, []);
+
   function initTableData(
     includeColumns = true,
     objectPermissionMapOverride?: Record<string, ObjectPermissionDefinitionMap>,
     fieldPermissionMapOverride?: Record<string, FieldPermissionDefinitionMap>,
     tabVisibilityPermissionMapOverride?: Record<string, TabVisibilityPermissionDefinitionMap>,
     systemPermissionMapOverride?: Record<string, SystemPermissionDefinitionMap>,
+    customPermissionMapOverride?: Record<string, SetupEntityAccessDefinitionMap>,
   ) {
     if (includeColumns) {
       setObjectColumns(
@@ -470,6 +585,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       setSystemPermissionColumns(
         getSystemPermissionColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById, readOnlyPermissionSetIds),
       );
+      setCustomPermissionColumns(getCustomPermissionColumns());
     }
     const tempObjectRows = getObjectRows(selectedSObjects, objectPermissionMapOverride || objectPermissionMap || {});
     setObjectRows(tempObjectRows);
@@ -493,6 +609,65 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     setSystemPermissionRows(tempSystemPermissionRows);
     setVisibleSystemPermissionRows(tempSystemPermissionRows);
     setDirtySystemPermissionRows({});
+
+    const tempCustomPermissionRows = getSetupEntityAccessRows(customPermissionMapOverride || customPermissionMap || {});
+    setCustomPermissionRows(tempCustomPermissionRows);
+    setVisibleCustomPermissionRows(tempCustomPermissionRows);
+    setDirtyCustomPermissionRows({});
+  }
+
+  function getCustomPermissionColumns() {
+    return getSetupEntityAccessColumns(
+      CUSTOM_PERMISSION_LABEL,
+      selectedProfiles,
+      selectedPermissionSets,
+      profilesById,
+      permissionSetsById,
+      readOnlyPermissionSetIds,
+    );
+  }
+
+  /** Export data for every setup entity access tab, built fresh because a tab may never have rendered */
+  function getSetupEntityAccessExportData() {
+    return [
+      {
+        sheetName: CUSTOM_PERMISSIONS_LABEL,
+        fileName: CUSTOM_PERMISSION_CATALOG.key,
+        rowLabel: CUSTOM_PERMISSION_LABEL,
+        columns: getCustomPermissionColumns(),
+        rows: getSetupEntityAccessRows(customPermissionMap || {}),
+      },
+    ];
+  }
+
+  /**
+   * A custom permission created from the editor is added to the loaded data in place (unchecked everywhere) instead of
+   * reloading, which would discard unsaved changes on the other tabs.
+   */
+  function handleCustomPermissionCreated(record: Parameters<typeof customPermissionToCatalogItem>[0]) {
+    setCreateCustomPermissionModalOpen(false);
+    const definition = getSetupEntityAccessDefinition(
+      'CustomPermission',
+      customPermissionToCatalogItem(record),
+      selectedProfiles,
+      selectedPermissionSets,
+      {},
+      readOnlyPermissionSetIds,
+    );
+    const updatedMap = { ...customPermissionMap, [definition.setupEntityId]: definition };
+    setCustomPermissionMap(updatedMap);
+    // Rebuild from the map so the new row lands in sorted position; unsaved edits on this tab are carried over
+    const dirtyRowsByKey = Object.values(dirtyCustomPermissionRows).reduce(
+      (output: Record<string, PermissionTableSetupEntityAccessCell>, { row }) => {
+        output[row.key] = row;
+        return output;
+      },
+      {},
+    );
+    const rows = getSetupEntityAccessRows(updatedMap).map((row) => dirtyRowsByKey[row.key] || row);
+    setCustomPermissionRows(rows);
+    setCustomPermissionFilter('');
+    trackEvent(ANALYTICS_KEYS.permission_manager_custom_permission_created);
   }
 
   function exportChanges() {
@@ -553,6 +728,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
               ),
               rows: getSystemPermissionRows(systemPermissionMap || {}),
             },
+            getSetupEntityAccessExportData(),
           );
 
           if (uploadToGoogle) {
@@ -612,6 +788,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
               ),
               rows: getSystemPermissionRows(systemPermissionMap || {}),
             },
+            getSetupEntityAccessExportData(),
           );
           saveFile(zipFile, `${fileName}.zip`, MIME_TYPES.ZIP);
           break;
@@ -634,9 +811,24 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   async function saveChanges() {
     if (
       await ConfirmationModalPromise({
-        header: 'Confirmation',
+        header: 'Confirm Changes',
         confirm: 'Save Changes',
-        content: getConfirmationModalContent(dirtyObjectCount, dirtyFieldCount, dirtyTabVisibilityCount, dirtySystemPermissionCount),
+        size: 'md',
+        content: (
+          <PermissionChangeSummary
+            sections={getPermissionChangeSections({
+              dirtyObjectRows,
+              dirtyFieldRows,
+              dirtyTabVisibilityRows,
+              dirtySystemPermissionRows,
+              dirtySetupEntityAccessRows: [
+                { title: CUSTOM_PERMISSIONS_LABEL, itemHeader: CUSTOM_PERMISSION_LABEL, dirtyRows: dirtyCustomPermissionRows },
+              ],
+              profilesById,
+              permissionSetsById,
+            })}
+          />
+        ),
       })
     ) {
       setLoading(true);
@@ -645,6 +837,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         let fieldPermissionData: PermissionFieldSaveData | undefined = undefined;
         let tabVisibilityPermissionData: PermissionTabVisibilitySaveData | undefined = undefined;
         let systemPermissionData: PermissionSystemSaveData | undefined = undefined;
+        let customPermissionData: PermissionSetupEntityAccessSaveData | undefined = undefined;
         const profileIds = new Set<string>();
         const permissionSetIds = new Set<string>();
 
@@ -684,6 +877,15 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
             ids.permissionSetIds.forEach((id) => permissionSetIds.add(id));
           }
         }
+        if (dirtyCustomPermissionCount) {
+          const dirtyPermissions = getDirtySetupEntityAccessPermissions(dirtyCustomPermissionRows);
+          if (dirtyPermissions.length > 0) {
+            customPermissionData = prepareSetupEntityAccessSaveData(dirtyPermissions);
+            const ids = collectProfileAndPermissionIds(dirtyPermissions, profilesById, permissionSetsById);
+            ids.profileIds.forEach((id) => profileIds.add(id));
+            ids.permissionSetIds.forEach((id) => permissionSetIds.add(id));
+          }
+        }
 
         let objectSaveResults: PermissionSaveResults<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>[] | undefined =
           undefined;
@@ -693,6 +895,9 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           | PermissionSaveResults<TabVisibilityPermissionRecordForSave, PermissionTableTabVisibilityCellPermission>[]
           | undefined = undefined;
         let systemSaveResults: SystemPermissionSaveRecord[] | undefined = undefined;
+        let customPermissionSaveResults:
+          | PermissionSaveResults<SetupEntityAccessRecordForSave, PermissionTableSetupEntityAccessCellPermission>[]
+          | undefined = undefined;
 
         if (objectPermissionData) {
           objectSaveResults = await savePermissionRecords<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>(
@@ -721,6 +926,13 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         if (systemPermissionData) {
           systemSaveResults = await saveSystemPermissionRecords(selectedOrg, systemPermissionData);
           logger.log({ systemSaveResults });
+        }
+        if (customPermissionData) {
+          customPermissionSaveResults = await savePermissionRecords<
+            SetupEntityAccessRecordForSave,
+            PermissionTableSetupEntityAccessCellPermission
+          >(selectedOrg, 'SetupEntityAccess', customPermissionData);
+          logger.log({ customPermissionSaveResults });
         }
 
         // Update records so that SFDX is aware of the changes
@@ -762,6 +974,13 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
             setSystemPermissionRows(rows);
             handleSystemPermissionBulkRowUpdate(rows);
           }
+          if (customPermissionSaveResults && customPermissionMap && customPermissionRows) {
+            const permissionsMap = getUpdatedSetupEntityAccessPermissions(customPermissionMap, customPermissionSaveResults);
+            const rows = updateSetupEntityAccessRowsAfterSave(customPermissionRows, permissionsMap);
+            setCustomPermissionMap(permissionsMap);
+            setCustomPermissionRows(rows);
+            handleCustomPermissionBulkRowUpdate(rows);
+          }
           setLoading(false);
         }
         trackEvent(ANALYTICS_KEYS.permission_manager_saved, {
@@ -769,6 +988,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           dirtyFieldCount,
           dirtyTabVisibilityCount,
           dirtySystemPermissionCount,
+          dirtyCustomPermissionCount,
         });
       } catch (ex) {
         logger.error('Error saving permissions', ex);
@@ -777,6 +997,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           dirtyFieldCount,
           dirtyTabVisibilityCount,
           dirtySystemPermissionCount,
+          dirtyCustomPermissionCount,
         });
         if (isMounted.current) {
           fireToast({
@@ -795,7 +1016,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     setHasLoaded(false);
     // Clearing `hasLoaded` unmounts `Tabs`, which remounts on `initialActiveId` without firing `onChange`, so the
     // mirrored tab id is reset alongside it or the field-only toolbar controls stay hidden after a reload.
-    setActiveTabId(FIELD_PERMISSIONS_TAB_ID);
+    setActiveTabId(initialTabId);
     await refetchMetadata();
     trackEvent(ANALYTICS_KEYS.permission_manager_reload);
   }
@@ -805,16 +1026,19 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     const updatedFieldPermissionMap = clearPermissionErrorMessage(fieldPermissionMap || {});
     const updatedTabVisibilityPermissionMap = clearPermissionErrorMessage(tabVisibilityPermissionMap || {});
     const updatedSystemPermissionMap = clearPermissionErrorMessage(systemPermissionMap || {});
+    const updatedCustomPermissionMap = clearPermissionErrorMessage(customPermissionMap || {});
     setObjectPermissionMap(updatedObjectPermissionMap);
     setFieldPermissionMap(updatedFieldPermissionMap);
     setTabVisibilityPermissionMap(updatedTabVisibilityPermissionMap);
     setSystemPermissionMap(updatedSystemPermissionMap);
+    setCustomPermissionMap(updatedCustomPermissionMap);
     initTableData(
       false,
       updatedObjectPermissionMap,
       updatedFieldPermissionMap,
       updatedTabVisibilityPermissionMap,
       updatedSystemPermissionMap,
+      updatedCustomPermissionMap,
     );
     trackEvent(ANALYTICS_KEYS.permission_manager_reset);
   }
@@ -826,10 +1050,10 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     resetFieldPermissionMap();
     resetTabVisibilityPermissionMap();
     resetSystemPermissionMap();
+    resetSetupEntityAccessPermissionMap();
   }
 
-  const saveDisabled =
-    loading || !deployAccess.allowed || (!dirtyObjectCount && !dirtyFieldCount && !dirtyTabVisibilityCount && !dirtySystemPermissionCount);
+  const saveDisabled = loading || !deployAccess.allowed || !hasDirtyChanges;
 
   usePrimaryActionShortcut(saveChanges, { disabled: saveDisabled });
 
@@ -858,6 +1082,14 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           trackEvent={trackEvent}
         />
       )}
+      {createCustomPermissionModalOpen && (
+        <CreateCustomPermissionModal
+          selectedOrg={selectedOrg}
+          apiVersion={defaultApiVersion}
+          onClose={() => setCreateCustomPermissionModalOpen(false)}
+          onCreated={handleCustomPermissionCreated}
+        />
+      )}
       <RequireMetadataApiBanner />
       <Toolbar>
         <ToolbarItemGroup>
@@ -876,6 +1108,16 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           </Tooltip>
         </ToolbarItemGroup>
         <ToolbarItemActions>
+          {hasLoaded && activeTabId === CUSTOM_PERMISSIONS_TAB_ID && !recordData.setupEntityAccessUnavailable.CustomPermission && (
+            <button
+              className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
+              onClick={() => setCreateCustomPermissionModalOpen(true)}
+              disabled={loading}
+            >
+              <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" />
+              <span>New Custom Permission</span>
+            </button>
+          )}
           {hasLoaded && activeTabId === FIELD_PERMISSIONS_TAB_ID && (
             <FieldAuditColumnsPopover
               visibleColumns={visibleFieldAuditColumns}
@@ -895,17 +1137,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           <button
             className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
             onClick={resetChanges}
-            disabled={
-              loading ||
-              (!dirtyObjectCount &&
-                !dirtyFieldCount &&
-                !dirtyTabVisibilityCount &&
-                !dirtySystemPermissionCount &&
-                !objectsHaveErrors &&
-                !fieldsHaveErrors &&
-                !tabVisibilityHaveErrors &&
-                !systemPermissionsHaveErrors)
-            }
+            disabled={loading || (!hasDirtyChanges && !hasAnyErrors)}
           >
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
             <span>Reset Changes</span>
@@ -954,7 +1186,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         )}
         {hasLoaded && (
           <Tabs
-            initialActiveId={FIELD_PERMISSIONS_TAB_ID}
+            initialActiveId={initialTabId}
             onChange={setActiveTabId}
             tabs={[
               {
@@ -975,7 +1207,9 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                 ),
                 titleText: 'Object Permissions',
                 disabled: true,
-                content: (
+                content: !selectedSObjects.length ? (
+                  <NoObjectsSelectedNotice />
+                ) : (
                   <ManagePermissionsEditorObjectTable
                     ref={managePermissionsEditorObjectTableRef}
                     columns={objectColumns}
@@ -1010,7 +1244,9 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                 ),
                 titleText: 'Tab Visibility',
                 disabled: true,
-                content: (
+                content: !selectedSObjects.length ? (
+                  <NoObjectsSelectedNotice />
+                ) : (
                   <ManagePermissionsEditorTabVisibilityTable
                     ref={managePermissionsEditorObjectTableRef}
                     columns={tabVisibilityColumns}
@@ -1044,7 +1280,9 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                   </Fragment>
                 ),
                 titleText: 'Field Permissions',
-                content: (
+                content: !selectedSObjects.length ? (
+                  <NoObjectsSelectedNotice />
+                ) : (
                   <ManagePermissionsEditorFieldTable
                     ref={managePermissionsEditorFieldTableRef}
                     columns={visibleFieldColumns}
@@ -1062,7 +1300,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
               },
 
               {
-                id: 'system-permissions',
+                id: SYSTEM_PERMISSIONS_TAB_ID,
                 title: (
                   <Fragment>
                     <span className="slds-tabs__left-icon">
@@ -1102,6 +1340,52 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                     onToggleErrorsOnly={setSystemPermissionErrorsOnly}
                     onBulkUpdate={handleSystemPermissionBulkRowUpdate}
                     onDirtyRows={setDirtySystemPermissionRows}
+                  />
+                ),
+              },
+
+              {
+                id: CUSTOM_PERMISSIONS_TAB_ID,
+                title: (
+                  <Fragment>
+                    <span className="slds-tabs__left-icon">
+                      <Icon
+                        type="standard"
+                        icon="custom"
+                        containerClassname="slds-icon_container slds-icon-standard-custom"
+                        className="slds-icon slds-icon_small"
+                      />
+                    </span>
+                    {CUSTOM_PERMISSIONS_LABEL} {dirtyCustomPermissionCount ? `(${dirtyCustomPermissionCount})` : ''}
+                    <ErrorTooltip hasError={customPermissionsHaveErrors} id="custom-permission-errors" />
+                    <ErrorTooltip
+                      hasError={!!recordData.setupEntityAccessUnavailable.CustomPermission}
+                      id="custom-permission-unavailable"
+                      message="Custom permissions could not be loaded from Salesforce."
+                    />
+                  </Fragment>
+                ),
+                titleText: CUSTOM_PERMISSIONS_LABEL,
+                // Custom permissions load on their own, so they can fail while every other tab is fine
+                content: recordData.setupEntityAccessUnavailable.CustomPermission ? (
+                  <ScopedNotification theme="error" className="slds-m-around_medium">
+                    Custom permissions could not be loaded from Salesforce, so they cannot be viewed or changed here. Every other tab loaded
+                    normally. Use <strong>Reload All Permissions</strong> to try again.
+                  </ScopedNotification>
+                ) : (
+                  <ManagePermissionsEditorSetupEntityAccessTable
+                    ref={managePermissionsEditorCustomPermissionTableRef}
+                    setupEntityType="CustomPermission"
+                    columns={customPermissionColumns}
+                    rows={visibleCustomPermissionRows || []}
+                    totalCount={customPermissionRows?.length || 0}
+                    filterText={customPermissionFilter}
+                    hasErrors={customPermissionsHaveErrors}
+                    errorsOnly={customPermissionErrorsOnly}
+                    onFilter={setCustomPermissionFilter}
+                    onToggleErrorsOnly={setCustomPermissionErrorsOnly}
+                    onBulkUpdate={handleCustomPermissionBulkRowUpdate}
+                    onDirtyRows={setDirtyCustomPermissionRows}
                   />
                 ),
               },
