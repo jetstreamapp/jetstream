@@ -128,6 +128,34 @@ describe('Picklist', () => {
     expect(input.getAttribute('aria-expanded')).toBe('false');
   });
 
+  test('tabbing onto the closed picklist does not report a close', () => {
+    const onClose = vi.fn();
+    render(<Picklist label="Letter" items={items} onChange={vi.fn()} onClose={onClose} />);
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    // Sequential navigation moves focus on keydown, so the Tab keyup lands on the input it arrived at
+    input.focus();
+    fireEvent.keyUp(input, { key: 'Tab' });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(input.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  test('Tab from a focused option closes the open list once and returns focus to the input', async () => {
+    const onClose = vi.fn();
+    render(<Picklist label="Letter" items={items} onChange={vi.fn()} onClose={onClose} />);
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    input.focus();
+    fireEvent.keyDown(input, { key: 'Enter' });
+    fireEvent.keyUp(input, { key: 'Enter' });
+    fireEvent.keyUp(input, { key: 'ArrowDown' });
+    const firstOption = screen.getAllByRole('option')[0];
+    await waitFor(() => expect(document.activeElement).toBe(firstOption));
+
+    fireEvent.keyDown(firstOption, { key: 'Tab' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(input);
+    expect(input.getAttribute('aria-expanded')).toBe('false');
+  });
+
   test('describes the combobox with its help text', async () => {
     const { baseElement } = render(<Picklist label="Letter" items={items} helpText="Pick the first letter" onChange={vi.fn()} />);
     expect(getDescription(screen.getByRole('combobox', { name: 'Letter' }))).toBe('Pick the first letter');

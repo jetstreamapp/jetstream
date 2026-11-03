@@ -244,6 +244,7 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
               tertiaryLabel={item.tertiaryLabel}
               isDrillInItem={item.isDrillInItem}
               selected={item === selectedItem}
+              disabled={item.disabled}
               onSelection={(_id) => {
                 onSelected(item);
                 if (!item.isDrillInItem) {
@@ -258,6 +259,7 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
               ref={refs[i]}
               id={item.id}
               selected={item === selectedItem}
+              disabled={item.disabled}
               onSelection={(_id) => {
                 onSelected(item);
                 if (!item.isDrillInItem) {

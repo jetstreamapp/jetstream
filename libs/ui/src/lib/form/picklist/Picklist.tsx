@@ -310,12 +310,15 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
 
       // Tab leaves the picklist. From a focused option (keydown, via the list container) hand focus
       // back to the input WITHOUT preventDefault so the browser's sequential navigation continues from
-      // the input in one press; from the input itself (keyup) focus has already moved on — just close
+      // the input in one press. A Tab keyup here means focus just ARRIVED on the input (Tab out of the
+      // input is handled by handleFocusLeft), so only close — and report it — when the list is open
       if (isTabKey(event)) {
         if (event.type === 'keydown') {
           inputRef.current?.focus();
         }
-        handleClose();
+        if (isOpen) {
+          handleClose();
+        }
         return;
       }
 

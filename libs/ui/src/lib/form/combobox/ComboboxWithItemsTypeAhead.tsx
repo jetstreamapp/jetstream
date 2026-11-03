@@ -170,6 +170,7 @@ export const ComboboxWithItemsTypeAhead: FunctionComponent<ComboboxWithItemsType
           secondaryLabel={item.secondaryLabel}
           secondaryLabelOnNewLine={item.secondaryLabelOnNewLine}
           selected={item === selectedItem}
+          disabled={item.disabled}
           onSelection={(_id) => {
             onSelected(item);
             comboboxRef.current?.close();

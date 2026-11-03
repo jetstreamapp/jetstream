@@ -257,6 +257,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
               secondaryLabelOnNewLine={item.secondaryLabelOnNewLine}
               tertiaryLabel={item.tertiaryLabel}
               selected={item.id === selectedItem?.id}
+              disabled={item.disabled}
               focused={virtualItem.index === focusedIndex}
               onSelection={() => {
                 handleSelection(item);

@@ -93,7 +93,17 @@ export const TimePicker: FunctionComponent<TimePickerProps> = ({
   ...comboboxProps
 }) => {
   const items = useMemo(() => generateTimeListItems(stepInMinutes), [stepInMinutes]);
-  const selectedItemId = selectedItem ? normalizeInitialTime(selectedItem, stepInMinutes) : null;
+  // A generated option is kept as-is: when the step does not divide 60 (e.g. 45) the options drift off
+  // the minute-of-hour grid normalizeInitialTime rounds to, so 01:30 would otherwise become 01:45
+  const selectedItemId = useMemo(() => {
+    if (!selectedItem) {
+      return null;
+    }
+    if (items.some(({ id }) => id === selectedItem)) {
+      return selectedItem;
+    }
+    return normalizeInitialTime(selectedItem, stepInMinutes);
+  }, [items, selectedItem, stepInMinutes]);
 
   return (
     <ComboboxWithItems

@@ -1,10 +1,14 @@
 import { axeScan } from '@jetstream/test-utils';
+import { ListItem } from '@jetstream/types';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
-import { vi } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
 import { Combobox } from '../Combobox';
 import { ComboboxListItem } from '../ComboboxListItem';
+import { ComboboxWithGroupedItems } from '../ComboboxWithGroupedItems';
 import { ComboboxWithItems } from '../ComboboxWithItems';
+import { ComboboxWithItemsTypeAhead } from '../ComboboxWithItemsTypeAhead';
+import { ComboboxWithItemsVirtual } from '../ComboboxWithItemsVirtual';
 
 const NOOP = () => undefined;
 
@@ -168,5 +172,87 @@ describe('Combobox Enter key', () => {
 
     expect(getListbox(container)).toBeNull();
     expect(input.value).toBe('one');
+  });
+});
+
+describe('Combobox wrappers with a disabled item', () => {
+  // ComboboxWithItemsVirtual measures its scroll container, which jsdom reports as 0x0 - nothing would render
+  beforeEach(() => {
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(600);
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(600);
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const disabledItems: ListItem[] = [
+    { id: 'a', label: 'one', value: 'a' },
+    { id: 'b', label: 'two', value: 'b', disabled: true },
+    { id: 'c', label: 'three', value: 'c', disabled: true, customRenderer: () => <span>three (custom)</span> },
+  ];
+
+  // Keyboard activation already skips disabled items, so a pointer click must not select them either
+  test.each([
+    [
+      'ComboboxWithItems',
+      (onSelected: (item: ListItem) => void) => (
+        <ComboboxWithItems comboboxProps={{ label: 'Orgs' }} items={disabledItems} selectedItemId={null} onSelected={onSelected} />
+      ),
+    ],
+    [
+      'ComboboxWithGroupedItems',
+      (onSelected: (item: ListItem) => void) => (
+        <ComboboxWithGroupedItems
+          comboboxProps={{ label: 'Orgs' }}
+          groups={[{ id: 'group', label: 'Group', items: disabledItems }]}
+          selectedItemId={null}
+          onSelected={onSelected}
+        />
+      ),
+    ],
+    [
+      'ComboboxWithItemsTypeAhead',
+      (onSelected: (item: ListItem) => void) => (
+        <ComboboxWithItemsTypeAhead
+          comboboxProps={{ label: 'Orgs' }}
+          items={disabledItems}
+          selectedItemId={null}
+          onSearch={() => Promise.resolve()}
+          onSelected={onSelected}
+        />
+      ),
+    ],
+    [
+      'ComboboxWithItemsVirtual',
+      (onSelected: (item: ListItem) => void) => (
+        <ComboboxWithItemsVirtual comboboxProps={{ label: 'Orgs' }} items={disabledItems} selectedItemId={null} onSelected={onSelected} />
+      ),
+    ],
+  ])('%s marks disabled rows aria-disabled and ignores clicks on them', (_name, renderWrapper) => {
+    const onSelected = vi.fn();
+    const { container } = render(renderWrapper(onSelected));
+    fireEvent.click(getInput(container));
+
+    const disabledOptions = screen.getAllByRole('option').filter((option) => option.getAttribute('aria-disabled') === 'true');
+    expect(disabledOptions.length).toBeGreaterThan(0);
+    disabledOptions.forEach((option) => fireEvent.click(option));
+    expect(onSelected).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('option', { name: 'one' }));
+    expect(onSelected).toHaveBeenCalledTimes(1);
+    expect(onSelected).toHaveBeenCalledWith(expect.objectContaining({ id: 'a' }));
+  });
+
+  test('ComboboxWithItems disables a custom-rendered row', () => {
+    const onSelected = vi.fn();
+    const { container } = render(
+      <ComboboxWithItems comboboxProps={{ label: 'Orgs' }} items={disabledItems} selectedItemId={null} onSelected={onSelected} />,
+    );
+    fireEvent.click(getInput(container));
+
+    const customOption = screen.getByRole('option', { name: 'three (custom)' });
+    expect(customOption.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(customOption);
+    expect(onSelected).not.toHaveBeenCalled();
   });
 });

@@ -73,6 +73,17 @@ describe('TimePicker', () => {
       expect(screen.getAllByRole('option')).toHaveLength(48);
     });
 
+    test('keeps a generated option when the step does not divide an hour', () => {
+      // At a 45 minute step the options are 00:00, 00:45, 01:30, ... - rounding 01:30 to the
+      // minute-of-hour grid would turn it into 01:45, which is not an option
+      renderTimePicker({ selectedItem: '01:30:00.000', stepInMinutes: 45 });
+      const input = getInput();
+      expect(input.value).toBe('1:30 AM');
+
+      fireEvent.click(input);
+      expect(getSelectedOptionValue()).toBe('01:30:00.000');
+    });
+
     test('renders empty without a selected time', () => {
       renderTimePicker();
       expect(getInput().value).toBe('');
@@ -145,6 +156,18 @@ describe('TimePicker', () => {
       expect(input.getAttribute('aria-expanded')).toBe('true');
       await waitFor(() => expect(document.activeElement).toBe(input));
     });
+  });
+
+  test('a disabled picker cannot be cleared', () => {
+    const { onChange } = renderTimePicker({ selectedItem: '20:15', disabled: true });
+    const input = getInput();
+    const clearButton = screen.getByRole('button', { name: /clear/i }) as HTMLButtonElement;
+    expect(clearButton.disabled).toBe(true);
+
+    fireEvent.click(clearButton);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(input.value).toBe('8:15 PM');
+    expect(input.getAttribute('aria-expanded')).toBe('false');
   });
 
   describe('accessibility', () => {

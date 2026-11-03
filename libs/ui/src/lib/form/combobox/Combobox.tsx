@@ -422,6 +422,9 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
 
     const handleRemoveItem = (event: MouseEvent | KeyboardEvent) => {
       event.stopPropagation();
+      if (disabled) {
+        return;
+      }
       onClear && onClear();
       setIsOpen(true);
       focusElementFromRefWhenAvailable(inputEl);
@@ -434,6 +437,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
             type="button"
             className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
             onClick={handleRemoveItem}
+            disabled={disabled}
             title="Clear value"
           >
             <Icon type="utility" icon="clear" className="slds-button__icon" omitContainer description="Clear Selection" />
