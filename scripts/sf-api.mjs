@@ -49,8 +49,9 @@ Commands:
   put <path> <body>              PUT request
   delete <path>                  DELETE request
 
-Paths may be a full url, an absolute path (/services/data/latest/...), or a short path
-(sobjects/Account/describe) which is prefixed with /services/data/<version>/ automatically.
+Paths may be a full url on the org's own instance (https only), an absolute path
+(/services/data/latest/...), or a short path (sobjects/Account/describe) which is prefixed with
+/services/data/<version>/ automatically.
 
 Bodies may be inline JSON, @path/to/file.json, or - to read stdin.
 
@@ -189,9 +190,27 @@ async function authenticate({ useCache }) {
   return session;
 }
 
+/**
+ * A full url is only accepted for the org's own instance, because every request carries the org's bearer token.
+ * An https url on any other host would hand that token to whoever runs it.
+ */
+function resolveFullUrl({ instanceUrl, path }) {
+  let requestedUrl;
+  try {
+    requestedUrl = new URL(path);
+  } catch {
+    fail(`Invalid url: ${path}`);
+  }
+  const instanceOrigin = new URL(instanceUrl).origin;
+  if (requestedUrl.protocol !== 'https:' || requestedUrl.origin !== instanceOrigin) {
+    fail(`Refusing to send the org access token to ${requestedUrl.origin}. Full urls must start with ${instanceOrigin}.`);
+  }
+  return requestedUrl.toString();
+}
+
 function buildUrl({ instanceUrl, path, isTooling }) {
-  if (path.startsWith('http')) {
-    return path;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(path)) {
+    return resolveFullUrl({ instanceUrl, path });
   }
   if (path.startsWith('/services/')) {
     return `${instanceUrl}${path}`;

@@ -55,11 +55,22 @@ const promote = await confirm({
   default: true,
 });
 
+// The workflow runs the remote tip of the ref, so that is the commit the operator is approving. It is
+// captured now and the dispatched run must match it before the deployment is approved.
+let expectedHeadSha;
+try {
+  expectedHeadSha = (await $`git rev-parse --verify ${`origin/${releaseRef}^{commit}`}`.quiet()).stdout.trim();
+} catch {
+  console.error(chalk.red(`\norigin/${releaseRef} was not found. Push the branch first.`));
+  process.exit(1);
+}
+
 // ── Confirm ────────────────────────────────────────────────────────────────
 console.log('');
 console.log(chalk.bold('  Release summary'));
 console.log(chalk.dim('  ─────────────────────────'));
 console.log(`  ${chalk.dim('branch')}   ${chalk.cyan(releaseRef)}${isHotfix ? chalk.dim(' (hotfix)') : ''}`);
+console.log(`  ${chalk.dim('commit')}   ${chalk.cyan(expectedHeadSha.slice(0, 12))}`);
 console.log(`  ${chalk.dim('bump')}     ${chalk.cyan(bump)}`);
 console.log(`  ${chalk.dim('promote')}  ${promote ? chalk.green('yes (released)') : chalk.yellow('no (beta)')}`);
 console.log('');
@@ -71,38 +82,44 @@ if (!ok) {
 }
 
 // ── Trigger workflow ───────────────────────────────────────────────────────
+const currentUserLogin = (await $`gh api user --jq .login`.quiet()).stdout.trim();
+
 console.log('\n' + chalk.bold('Triggering workflow...'));
 
-await $`gh workflow run ${WORKFLOW} \
-  --repo ${REPO} \
-  --ref ${releaseRef} \
-  -f bump=${bump} \
-  -f promote=${String(promote)}`;
-
-// Give GitHub a moment to register the run before we query for it
-await new Promise((resolve) => setTimeout(resolve, 4000));
-
-// ── Find the run ID ────────────────────────────────────────────────────────
-process.stdout.write(chalk.dim('Fetching run ID... '));
-
-const runId = (
-  await $`gh run list \
-  --repo ${REPO} \
-  --workflow=${WORKFLOW} \
-  --branch ${releaseRef} \
-  --limit 1 \
-  --json databaseId \
-  --jq '.[0].databaseId'`
+// Dispatch through the REST API with `return_run_details` so GitHub returns the run this dispatch created.
+// Picking the run out of a run listing could select a concurrent dispatch with different inputs.
+const dispatchRequest = JSON.stringify({
+  ref: releaseRef,
+  inputs: { bump, promote: String(promote) },
+  return_run_details: true,
+});
+const dispatchResponse = (
+  await $({ input: dispatchRequest })`gh api --method POST repos/${REPO}/actions/workflows/${WORKFLOW}/dispatches --input -`.quiet()
 ).stdout.trim();
+const runId = dispatchResponse ? String(JSON.parse(dispatchResponse).workflow_run_id ?? '') : '';
 
-// `gh run list ... --jq '.[0].databaseId'` prints the literal string "null" when no runs match yet, which is truthy
-if (!/^\d+$/.test(runId)) {
-  console.log(chalk.red('failed'));
-  console.error(chalk.red('Could not determine run ID. Approve manually via the GitHub UI.'));
+if (!runId) {
+  console.error(chalk.red('The workflow was dispatched but GitHub did not return its run ID. Approve manually via the GitHub UI:'));
+  console.log('  ' + chalk.cyan(`https://github.com/${REPO}/actions/workflows/${WORKFLOW}`));
   process.exit(1);
 }
 
-console.log(chalk.green(runId));
+console.log(chalk.dim('Run ID ') + chalk.green(runId));
+
+// Only approve the run this invocation dispatched, for the commit shown in the summary
+const dispatchedRun = JSON.parse((await $`gh api repos/${REPO}/actions/runs/${runId}`.quiet()).stdout);
+const runMismatches = [
+  dispatchedRun.event !== 'workflow_dispatch' && `event is ${dispatchedRun.event}`,
+  dispatchedRun.actor?.login !== currentUserLogin && `dispatched by ${dispatchedRun.actor?.login}`,
+  dispatchedRun.head_sha !== expectedHeadSha &&
+    `commit is ${dispatchedRun.head_sha?.slice(0, 12)}, expected ${expectedHeadSha.slice(0, 12)}`,
+].filter(Boolean);
+
+if (runMismatches.length > 0) {
+  console.error(chalk.red(`\nRun ${runId} does not match this release (${runMismatches.join('; ')}). Not approving it.`));
+  console.log('  ' + chalk.cyan(`https://github.com/${REPO}/actions/runs/${runId}`));
+  process.exit(1);
+}
 
 // ── Wait for the deployment review to appear ───────────────────────────────
 process.stdout.write(chalk.dim('Waiting for deployment review'));

@@ -16,15 +16,13 @@
       "Bash(pnpm oxlint:*)",
       "Bash(pnpm nx run landing:build)",
       "Bash(pnpm build:ci)",
-      "Bash(gh api:*)",
       "Bash(gh run list:*)",
       "Bash(gh run view:*)",
       "Bash(gh run download:*)",
       "Bash(gh pr view:*)",
       "Bash(pnpm ci:failures:*)",
       "Bash(pnpm why *)",
-      "Bash(pnpm config *)",
-      "Bash(pnpm exec *)"
+      "Bash(pnpm config *)"
     ],
     "deny": [],
     "ask": []

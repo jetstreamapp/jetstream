@@ -11,14 +11,20 @@
  */
 
 const BOM_AND_TIMESTAMP = /^\uFEFF?\d{4}-\d{2}-\d{2}T[\d:.]+Z ?/;
-// Matching a control character is the entire point here: CI output is full of color codes.
+// Matching a control character is the entire point here: CI output is full of color codes. Besides
+// CSI sequences (colors, cursor movement) this removes OSC sequences (window titles, hyperlinks,
+// clipboard writes) and the remaining two-character escapes, because the text is CI-controlled and
+// ends up printed to a terminal.
 // oxlint-disable-next-line no-control-regex
-const ANSI_ESCAPE = /\u001B\[[0-9;]*[A-Za-z]/g;
+const ANSI_ESCAPE = /\u001B\[[0-?]*[ -/]*[@-~]|\u001B\][^\u0007\u001B]*(?:\u0007|\u001B\\)?|\u001B[@-Z\\-_]/g;
+// Any other C0/C1 control character except tab, line feed and carriage return.
+// oxlint-disable-next-line no-control-regex
+const CONTROL_CHARACTERS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g;
 const GROUP_PREFIX = '##[group]Run ';
 
-/** Remove terminal color codes so error text can be read, matched and diffed as plain text. */
+/** Remove terminal escape sequences and control characters so error text can be read, matched and diffed as plain text. */
 export function stripAnsi(value) {
-  return (value || '').replace(ANSI_ESCAPE, '');
+  return (value || '').replace(ANSI_ESCAPE, '').replace(CONTROL_CHARACTERS, '');
 }
 
 /**
