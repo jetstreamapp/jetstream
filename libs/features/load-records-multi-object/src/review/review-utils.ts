@@ -51,7 +51,7 @@ export function getGroupSummary(groupsByRefId: Record<string, LoadMultiObjectGro
   const sizes = Object.values(sizeByGraphId);
   return {
     groupCount: sizes.length,
-    largestGroupSize: sizes.length ? Math.max(...sizes) : 0,
+    largestGroupSize: sizes.length ? sizes.reduce((max, s) => (s > max ? s : max), 0) : 0,
   };
 }
 
