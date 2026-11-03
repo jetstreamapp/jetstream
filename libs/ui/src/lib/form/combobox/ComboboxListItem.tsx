@@ -121,6 +121,9 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
     const backupTitle = `${label || ''} ${secondaryLabel || ''}`;
     title = title || backupTitle;
     const wrapCss = allowWrap ? allowWrapCss : undefined;
+    // secondaryLabelOnNewLine only changes the layout when there is a secondary label to place - otherwise
+    // the item is single line and needs the plain styles (padding), or it renders cramped
+    const hasStackedSecondaryLabel = !!secondaryLabelOnNewLine && !!secondaryLabel;
     return (
       <li
         ref={combinedRef}
@@ -140,9 +143,9 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
               'slds-listbox__option_entity': isDrillInItem,
               'slds-is-selected': selected,
               'slds-text-color_error': hasError,
-              'slds-listbox__option_plain': !isDrillInItem && !secondaryLabelOnNewLine,
-              'slds-media_center slds-listbox__option_entity': !placeholder && secondaryLabelOnNewLine && secondaryLabel,
-              'slds-media_small': !placeholder && !secondaryLabelOnNewLine,
+              'slds-listbox__option_plain': !isDrillInItem && !hasStackedSecondaryLabel,
+              'slds-media_center slds-listbox__option_entity': !placeholder && hasStackedSecondaryLabel,
+              'slds-media_small': !placeholder && !hasStackedSecondaryLabel,
             },
             textContainerClassName,
           )}

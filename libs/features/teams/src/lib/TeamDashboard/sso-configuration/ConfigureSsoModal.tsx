@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import { LoginConfigurationWithCallbacks } from '@jetstream/auth/types';
 import { saveOidcConfig, saveSamlConfig } from '@jetstream/shared/data';
 import { getErrorMessage, nullifyEmptyStrings } from '@jetstream/shared/utils';
@@ -75,9 +76,17 @@ export function ConfigureSsoModal({ teamId, existingSsoConfig, onClose }: Config
       onClose={() => onClose()}
     >
       {saveError && (
-        <ScopedNotification theme="error" className="slds-m-bottom_medium">
-          {saveError}
-        </ScopedNotification>
+        // Sticky so the error stays visible when the form has been scrolled down
+        <div
+          className="slds-m-bottom_medium"
+          css={css`
+            position: sticky;
+            top: 0;
+            z-index: 1;
+          `}
+        >
+          <ScopedNotification theme="error">{saveError}</ScopedNotification>
+        </div>
       )}
 
       {!hasExisting && (
