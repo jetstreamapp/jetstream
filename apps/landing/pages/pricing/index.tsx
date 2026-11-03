@@ -239,7 +239,11 @@ export default function Page() {
 
 Page.getLayout = function getLayout(page) {
   return (
-    <Layout title="Pricing | Jetstream" isInverse>
+    <Layout
+      title="Pricing | Jetstream"
+      description="Start Jetstream free with the query builder, data loader, metadata tools, and developer tools. Paid plans add the desktop app, browser extension, permission analysis, and team features like SSO."
+      isInverse
+    >
       {page}
     </Layout>
   );

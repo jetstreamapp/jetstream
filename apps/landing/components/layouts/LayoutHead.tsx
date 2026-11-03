@@ -1,29 +1,71 @@
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 
-const DESCRIPTION =
+export const SITE_URL = 'https://getjetstream.app';
+
+const DEFAULT_DESCRIPTION =
   'Jetstream is a powerful suite of Salesforce administration tools built for Salesforce admins, developers, and power users. Manage, query, and update Salesforce data faster with an advanced SOQL query builder, a high-performance data loader, and productivity features designed for real-world Salesforce workflows.';
 
-const SITE_URL = 'https://getjetstream.app';
 // Absolute URL required by social crawlers; the file lives in libs/shared/assets and is served by the API
 const OG_IMAGE = `${SITE_URL}/assets/images/website/jetstream-og-image.png`;
 
-export default function LayoutHead({ title = 'Jetstream', url }: { title?: string; url?: string }) {
+/**
+ * Utility pages (auth flows, OAuth hand-offs, 404) that should never show up in search results.
+ * Keep in sync with the `exclude` list in next-sitemap.config.js.
+ * Sign in / sign up are intentionally indexable so branded searches like "jetstream login" land on them.
+ */
+const NOINDEX_PATH_PREFIXES = [
+  '/404',
+  '/auth/verify',
+  '/auth/mfa-enroll',
+  '/auth/accept-terms',
+  '/auth/password-reset',
+  '/auth/email-change',
+  '/canvas-auth',
+  '/desktop-app/auth',
+  '/desktop-app/google-picker',
+  '/goodbye',
+  '/oauth-link',
+  '/web-extension',
+];
+
+export interface LayoutHeadProps {
+  title?: string;
+  description?: string;
+  /** Overrides the canonical url, which otherwise comes from the current route */
+  url?: string;
+  /** Open Graph type, use `article` for blog posts */
+  type?: 'website' | 'article';
+  /** schema.org JSON-LD objects describing the page, rendered as one script tag each */
+  structuredData?: Array<Record<string, unknown>>;
+}
+
+export default function LayoutHead({
+  title = 'Jetstream',
+  description = DEFAULT_DESCRIPTION,
+  url,
+  type = 'website',
+  structuredData = [],
+}: LayoutHeadProps) {
   const router = useRouter();
-  const fullTitle = title === 'Jetstream' ? title : `${title} | Jetstream`;
-  // Automatically construct the canonical URL from the current route if not provided
-  const canonicalUrl = url || `${SITE_URL}${router.asPath}`;
+  // Callers conventionally pass titles like "Pricing | Jetstream", only add the brand when it is missing
+  const fullTitle = title.includes('Jetstream') ? title : `${title} | Jetstream`;
+  // Strip query string and hash so tracking parameters never end up in the canonical url
+  const [routePath] = router.asPath.split(/[?#]/);
+  const canonicalUrl = url || `${SITE_URL}${routePath}`;
+  const isNoIndex = NOINDEX_PATH_PREFIXES.some((prefix) => router.pathname.startsWith(prefix));
 
   return (
     <Head>
       <title>{fullTitle}</title>
-      <meta name="description" content={DESCRIPTION} />
+      <meta name="description" content={description} />
+      {isNoIndex && <meta name="robots" content="noindex, follow" />}
       <link rel="canonical" href={canonicalUrl} />
 
       {/* Open Graph */}
       <meta property="og:title" content={fullTitle} />
-      <meta property="og:description" content={DESCRIPTION} />
-      <meta property="og:type" content="website" />
+      <meta property="og:description" content={description} />
+      <meta property="og:type" content={type} />
       <meta property="og:url" content={canonicalUrl} />
       <meta property="og:site_name" content="Jetstream" />
       <meta property="og:image" content={OG_IMAGE} />
@@ -33,7 +75,7 @@ export default function LayoutHead({ title = 'Jetstream', url }: { title?: strin
       {/* Twitter Card */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={fullTitle} />
-      <meta name="twitter:description" content={DESCRIPTION} />
+      <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={OG_IMAGE} />
 
       <link rel="icon" type="image/png" href="/assets/images/favicon.ico"></link>
@@ -62,26 +104,9 @@ export default function LayoutHead({ title = 'Jetstream', url }: { title?: strin
       <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96x96.png" />
       <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png" />
 
-      {/* Structured Data */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'SoftwareApplication',
-            name: 'Jetstream',
-            description: DESCRIPTION,
-            applicationCategory: 'BusinessApplication',
-            operatingSystem: 'Web, Windows, macOS, Linux',
-            offers: {
-              '@type': 'Offer',
-              price: '0',
-              priceCurrency: 'USD',
-            },
-            url: 'https://getjetstream.app',
-          }),
-        }}
-      />
+      {structuredData.map((data) => (
+        <script key={String(data['@type'])} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />
+      ))}
     </Head>
   );
 }

@@ -270,7 +270,11 @@ export default function DesktopDownloadPage() {
 
 DesktopDownloadPage.getLayout = function getLayout(page: React.ReactElement) {
   return (
-    <Layout title="Download Desktop App | Jetstream" isInverse>
+    <Layout
+      title="Download Desktop App | Jetstream"
+      description="Download the Jetstream desktop app for macOS and Windows. Work with Salesforce data and metadata directly from your computer, with your Salesforce data never passing through Jetstream servers."
+      isInverse
+    >
       {page}
     </Layout>
   );

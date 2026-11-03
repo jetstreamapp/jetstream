@@ -1,3 +1,5 @@
+import { FAQ_ITEMS } from './faq-data';
+import { FaqSection } from './FaqSection';
 import { FeatureShowcase } from './FeatureShowcase';
 import { FooterCta } from './FooterCta';
 import { HeroSection } from './HeroSection';
@@ -26,6 +28,7 @@ export const LandingPage = () => (
     <TrustSignals />
     <FeatureShowcase />
     <PlatformSection />
+    <FaqSection items={FAQ_ITEMS} />
     <FooterCta />
   </main>
 );

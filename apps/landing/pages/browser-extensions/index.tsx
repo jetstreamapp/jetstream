@@ -174,7 +174,11 @@ export default function Page() {
 
 Page.getLayout = function getLayout(page: React.ReactElement) {
   return (
-    <Layout title="Browser Extensions | Jetstream" isInverse>
+    <Layout
+      title="Browser Extensions | Jetstream"
+      description="The Jetstream browser extension for Chrome and Firefox adds a Salesforce toolkit to any Salesforce page: query, load, view and edit records, and search users without leaving Salesforce."
+      isInverse
+    >
       {page}
     </Layout>
   );

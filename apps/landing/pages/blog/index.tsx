@@ -9,7 +9,6 @@ interface PostProps {
 }
 
 export default function Page({ blogPosts }: PostProps) {
-  // TODO: helmet etc..
   return (
     <>
       {blogPosts.length === 0 && (
@@ -42,7 +41,7 @@ export default function Page({ blogPosts }: PostProps) {
 
 Page.getLayout = function getLayout(page) {
   return (
-    <Layout title="Blog | Jetstream" isInverse>
+    <Layout title="Blog | Jetstream" description="Product updates and announcements from the Jetstream team." isInverse>
       {page}
     </Layout>
   );

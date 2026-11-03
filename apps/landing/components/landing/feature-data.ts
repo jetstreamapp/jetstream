@@ -126,7 +126,7 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
       {
         icon: ArrowPathIcon,
         title: 'Mass Update Records',
-        description: 'Update or delete records based on criteria you define. No file required.',
+        description: 'Update records in bulk based on criteria you define, across one or many objects. No file required.',
       },
       {
         icon: PlusCircleIcon,
@@ -142,10 +142,10 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
     hero: {
       title: 'See every automation on any object, instantly',
       description:
-        'Select any object and see every Flow, Workflow Rule, Process Builder, Validation Rule, and Apex Trigger running against it in one view. No more clicking through setup pages one by one. Debugging automations on a complex org used to take hours. This cuts it to minutes.',
+        'Select any object and see its Flows, Workflow Rules, Process Builders, Validation Rules, and Apex Triggers in one view. No more clicking through setup pages one by one. Debugging automations on a complex org used to take hours. This cuts it to minutes.',
       bullets: [
         'View all automation types for any object in a single screen',
-        'Toggle Flows, Triggers, Validation Rules, and Workflow Rules on or off',
+        'Switch automations off before a data load, back on after, and roll back with one click',
         'Quickly identify which automations are active vs. inactive',
         'Essential for debugging complex automation chains',
         'Works across Process Builders, Flows, and legacy automation',

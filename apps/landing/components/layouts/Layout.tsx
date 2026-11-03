@@ -2,10 +2,12 @@ import { useUserProfile } from '../../hooks/auth.hooks';
 import Footer, { FooterProps } from '../Footer';
 import HeaderNoNavigation from '../HeaderNoNavigation';
 import Navigation, { NavigationProps } from '../Navigation';
-import LayoutHead from './LayoutHead';
+import LayoutHead, { LayoutHeadProps } from './LayoutHead';
 
 export default function Layout({
   title,
+  description,
+  structuredData,
   isInverse,
   navigationProps,
   footerProps,
@@ -13,8 +15,7 @@ export default function Layout({
   omitFooter,
   userHeaderWithoutNavigation,
   children,
-}: {
-  title?: string;
+}: Pick<LayoutHeadProps, 'title' | 'description' | 'structuredData'> & {
   isInverse?: boolean;
   navigationProps?: Omit<NavigationProps, 'userProfile'>;
   footerProps?: FooterProps;
@@ -27,7 +28,7 @@ export default function Layout({
 
   return (
     <div>
-      <LayoutHead title={title} />
+      <LayoutHead title={title} description={description} structuredData={structuredData} />
       <div className={isInverse ? 'bg-white' : undefined}>
         <div className={isInverse ? 'relative overflow-hidden' : undefined}>
           {!omitNavigation && !userHeaderWithoutNavigation && (
