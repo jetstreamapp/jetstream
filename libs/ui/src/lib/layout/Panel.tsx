@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { isImeComposing } from '@jetstream/shared/ui-utils';
 import { PositionLeftRight, SizeSmMdLgXlFull } from '@jetstream/types';
 import classNames from 'classnames';
 import { FunctionComponent, RefObject, useEffect, useRef, useState } from 'react';
@@ -156,7 +157,8 @@ export const Panel: FunctionComponent<PanelProps> = ({
       pointerWasInsidePanel = event.target instanceof Node && !!panelRef.current?.contains(event.target);
     };
     const handler = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') {
+      // An Escape that cancels an IME conversion is part of typing into a panel field, not a request to close
+      if (event.key !== 'Escape' || isImeComposing(event)) {
         return;
       }
       // Escape already means something to these targets, so the panel waits for the next press: a search
@@ -194,7 +196,7 @@ export const Panel: FunctionComponent<PanelProps> = ({
       // Combobox, which closes an open dropdown and calls preventDefault/stopPropagation — get first
       // shot before the panel closes. Nested controls must consume Escape on keydown (not keyup) to
       // preempt this document-level keydown listener.
-      if (event.key === 'Escape' && !event.defaultPrevented) {
+      if (event.key === 'Escape' && !event.defaultPrevented && !isImeComposing(event)) {
         onClosed();
       }
     };

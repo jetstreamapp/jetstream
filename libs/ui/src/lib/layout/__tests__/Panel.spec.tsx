@@ -131,6 +131,18 @@ describe('Panel', () => {
     expect(document.activeElement).toBe(opener);
   });
 
+  it('stays open when Escape only cancels an IME conversion in a panel field, including Safari (keyCode 229)', () => {
+    render(<PanelHarness />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open drawer' }));
+
+    const nameInput = screen.getByRole('textbox', { name: 'Name' });
+    nameInput.focus();
+    fireEvent.keyDown(nameInput, { key: 'Escape', isComposing: true });
+    fireEvent.keyDown(nameInput, { key: 'Escape', keyCode: 229 });
+
+    expect(screen.getByRole('region', { name: 'Details' })).toBeTruthy();
+  });
+
   it('closes on Escape pressed inside the panel and returns focus', () => {
     render(<PanelHarness />);
     const opener = screen.getByRole('button', { name: 'Open drawer' });

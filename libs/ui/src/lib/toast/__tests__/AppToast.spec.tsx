@@ -140,6 +140,47 @@ describe('AppToast', () => {
     expect(screen.getAllByRole('alert')).toHaveLength(3);
   });
 
+  it('keeps the toast holding keyboard focus mounted when newer toasts would push it out', () => {
+    vi.useFakeTimers();
+    setup();
+
+    fire('First error', 'error');
+    fire('Second error', 'error');
+    fire('Third error', 'error');
+    const oldestCloseButton = screen.getAllByTitle('Close')[0];
+    act(() => oldestCloseButton.focus());
+
+    fire('Fourth error', 'error');
+
+    expect(document.activeElement).toBe(oldestCloseButton);
+    expect(screen.getAllByRole('alert').map((alert) => alert.textContent)).toEqual([
+      expect.stringContaining('First error'),
+      expect.stringContaining('Third error'),
+      expect.stringContaining('Fourth error'),
+    ]);
+  });
+
+  it('keeps auto-dismiss paused while focus stays on a toast after the pointer leaves, and vice versa', () => {
+    vi.useFakeTimers();
+    const { container } = setup();
+
+    fire('Saved', 'success');
+    fireEvent.mouseEnter(container);
+    act(() => screen.getByTitle('Close').focus());
+    fireEvent.mouseLeave(container);
+    advance(DEFAULT_DURATION);
+    expect(queryToast('Saved')).toBeTruthy();
+
+    fireEvent.mouseEnter(container);
+    act(() => screen.getByTitle('Close').blur());
+    advance(DEFAULT_DURATION);
+    expect(queryToast('Saved')).toBeTruthy();
+
+    fireEvent.mouseLeave(container);
+    advance(DEFAULT_DURATION);
+    expect(queryToast('Saved')).toBeNull();
+  });
+
   // A removed element fires no blur, so the pause started by focusing a toast's Close button never ended
   it('resumes auto-dismiss after a toast is closed from its own focused Close button', () => {
     vi.useFakeTimers();
