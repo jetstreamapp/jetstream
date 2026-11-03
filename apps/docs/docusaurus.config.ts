@@ -63,6 +63,8 @@ const config: Config = {
         sitemap: {
           changefreq: 'weekly' as any, // FIXME: figure out how to use enum
           priority: 0.5,
+          // Pagination and tag listings duplicate the individual release notes, which stay in the sitemap
+          ignorePatterns: ['/release-notes/page/**', '/release-notes/tags/**'],
         },
       } satisfies Preset.Options,
     ],

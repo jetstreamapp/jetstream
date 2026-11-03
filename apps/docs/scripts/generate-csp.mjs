@@ -88,6 +88,13 @@ const releaseNotesJsonHeaders = {
   'Cache-Control': 'public, max-age=300',
 };
 
+// Cloudflare Pages also serves every deployment on *.pages.dev. Those copies point their canonical
+// at docs.getjetstream.app but still get indexed, so tell crawlers to skip them. Pages only applies
+// absolute-URL rules to the matching host, so the custom domain is unaffected.
+const pagesDevHeaders = {
+  'X-Robots-Tag': 'noindex',
+};
+
 function formatHeaderBlock(source, headersForSource) {
   const headerLines = Object.entries(headersForSource)
     .map(([key, value]) => `  ${key}: ${value}`)
@@ -97,7 +104,12 @@ function formatHeaderBlock(source, headersForSource) {
 
 writeFileSync(
   join(BUILD_DIR, '_headers'),
-  `${formatHeaderBlock('/*', headers)}\n${formatHeaderBlock('/release-notes.json', releaseNotesJsonHeaders)}`,
+  [
+    formatHeaderBlock('/*', headers),
+    formatHeaderBlock('/release-notes.json', releaseNotesJsonHeaders),
+    formatHeaderBlock('https://:project.pages.dev/*', pagesDevHeaders),
+    formatHeaderBlock('https://:version.:project.pages.dev/*', pagesDevHeaders),
+  ].join('\n'),
 );
 
 const serveConfig = {
