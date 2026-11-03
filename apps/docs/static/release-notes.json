@@ -1,5 +1,35 @@
 [
   {
+    "slug": "v10.29.0",
+    "title": "10.29.0 - Settings search and bulk download fixes",
+    "date": "2026-11-03",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.29.0", "desktop": "4.22.0", "extension": "3.27.0" },
+    "summary": "Settings can now be searched from a box in the sidebar. Fixes include a bug where very large bulk query downloads could contain partial results, and bulk updates can now select fields from polymorphic lookups.",
+    "highlights": [
+      {
+        "title": "Search settings",
+        "description": "Filter settings from the sidebar search box, with matches highlighted.",
+        "docLink": "/user-profile-and-settings/settings"
+      },
+      {
+        "title": "Bulk download fixes",
+        "description": "Fixed a bug where extremely large bulk query result downloads could include only partial results.",
+        "docLink": "/load"
+      },
+      {
+        "title": "Bulk update with polymorphic lookup fields",
+        "description": "Fields on a polymorphic lookup such as Who or What can be used as the source of a bulk update value.",
+        "docLink": "/load/update-records"
+      },
+      {
+        "title": "Download progress on the app icon",
+        "description": "Active downloads show progress on the Dock or taskbar icon.",
+        "platforms": ["desktop"]
+      }
+    ]
+  },
+  {
     "slug": "v10.28.0",
     "title": "10.28.0 - Trust system certificates in the desktop app",
     "date": "2026-10-31",

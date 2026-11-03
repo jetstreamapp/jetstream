@@ -1,0 +1,57 @@
+---
+slug: v10.29.0
+title: 10.29.0 - Settings search and bulk download fixes
+date: '2026-11-03'
+tags: [web, desktop, extension]
+versions:
+  web: 10.29.0
+  desktop: 4.22.0
+  extension: 3.27.0
+summary: Settings can now be searched from a box in the sidebar. Fixes include a bug where very large bulk query downloads could contain partial results, and bulk updates can now select fields from polymorphic lookups.
+highlights:
+  - title: Search settings
+    description: Filter settings from the sidebar search box, with matches highlighted.
+    docLink: /user-profile-and-settings/settings
+  - title: Bulk download fixes
+    description: Fixed a bug where extremely large bulk query result downloads could include only partial results.
+    docLink: /load
+  - title: Bulk update with polymorphic lookup fields
+    description: Fields on a polymorphic lookup such as Who or What can be used as the source of a bulk update value.
+    docLink: /load/update-records
+  - title: Download progress on the app icon
+    description: Active downloads show progress on the Dock or taskbar icon.
+    platforms: [desktop]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Search settings
+
+Settings now has a search box in the sidebar. Every word you type must match a setting's text or the heading of the group or section it belongs to. Matches are highlighted, and the navigation lists only sections with results. The browser extension settings page uses the same layout and search.
+
+### Bulk download fixes
+
+- Fixed a bug where downloads of extremely large bulk query results could include only partial results.
+- Downloading load results (Download All and View All) now fails with an error if any batch cannot be downloaded. Previously a failed batch was skipped, which could pair later results with the wrong source records.
+- Zip downloads that hit an error now fail instead of hanging.
+
+### Bulk update with polymorphic lookup fields
+
+Choosing a field from a polymorphic lookup (for example `Who` → `Contact`) as the value source in Update Records or Bulk Update from query results failed when the field exists on only one of the related objects. These fields are now queried correctly.
+
+### Download progress on the app icon
+
+In the desktop app, active downloads show progress on the Dock (macOS), taskbar (Windows) or launcher (Linux) icon, so you can see progress while the window is in the background.
+
+### Other fixes
+
+- Choosing a very large file in Load Records now shows an error message instead of leaving the page waiting with no feedback.
+- Create Fields and Deploy Metadata CSV exports now escape values that begin with a formula character, so spreadsheet apps do not evaluate them. Re-importing an exported Create Fields file works as before.
+- Access profiles (pre-release, available only for teams): Automation Control history Roll Back, Re-deploy and Review Changes are now disabled, with an explanation, for team members whose access profile does not allow metadata deployment.
+- Fixed duplicate customers and duplicate subscriptions being created in some checkout flows.
+- Removing a password or unlinking a login method can no longer leave an account with no way to sign in.
+- Deleting a team SSO configuration that is not the active one no longer resets the team's SSO provider.
+- Team SSO configuration now requires the identity provider URLs to use https.
+- Deleting an org group that contains orgs now records an audit entry for each org for team members.
