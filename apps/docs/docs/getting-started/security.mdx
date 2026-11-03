@@ -51,10 +51,12 @@ When using the Jetstream web application, we employ the following security measu
 
 ### Additional Security Features
 
+Teams can use **Single Sign-On (SSO) via SAML or OIDC** with providers such as Microsoft Entra ID (Azure AD), Google Workspace, Okta, or any other SAML or OIDC identity provider. See the [Single Sign-On overview](/team-management/sso/overview) to get started.
+
 Upon request, we can provide additional security features for enterprise customers, including:
 
 - Restrict login to a specific provider (e.g. Google or Salesforce)
-  - _We currently don't offer Single-Sign-On via SAML or OIDC. However, if you require SSO to log in to your Google or Salesforce account and want to restrict logging in to that provider, this will ensure that users go through your existing SSO to gain access to Jetstream._
+  - _If your organization requires SSO to log in to your Google or Salesforce account, restricting login to that provider ensures that users go through your existing SSO to gain access to Jetstream._
 - Require Multi-factor authentication (MFA) for all users in your domain, and specify which MFA options are available for your users (e.g. OTP using Authenticator App)
 - Prevent linking additional identities to your Jetstream Account
   - _This will ensure that users can only login to Jetstream using the identity they were invited with, and cannot link additional identities (e.g. Google or Salesforce) to their account. This restriction applies to all users in your domain when enabled._
@@ -74,7 +76,7 @@ When using the Jetstream browser extension, you will need to login with your exi
 
 <JetstreamProLogo width="200px" />
 
-**The desktop application will be available for users on paid plans.**
+**The desktop application is available for users on paid plans.**
 
 When using the Jetstream desktop application:
 
