@@ -35,6 +35,7 @@ vi.mock('@jetstream/ui/app-state', async () => {
   return {
     applicationCookieState: atom({ defaultApiVersion: 'v60.0' }),
     googleDriveAccessState: atom({ hasGoogleDriveAccess: false, googleShowUpgradeToPro: false }),
+    useOperationAccess: () => ({ allowed: true }),
   };
 });
 
