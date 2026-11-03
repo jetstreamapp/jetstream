@@ -8,6 +8,7 @@ import { DeployResults } from '../mass-update-records.types';
 
 // The real app-state module fetches app info at module load; only the atoms the row reads are needed
 vi.doMock('@jetstream/ui/app-state', () => ({
+  actionInProgressCountState: atom(0),
   actionInProgressState: atom(false),
   applicationCookieState: atom({ serverUrl: 'https://test.getjetstream.app' }),
   googleDriveAccessState: atom({ hasGoogleDriveAccess: false, googleShowUpgradeToPro: false }),
