@@ -19,6 +19,7 @@ import {
 } from '../utils/download-path.utils';
 import { registerOpenableFile } from '../utils/openable-file-registry';
 import { markDownloadCompleted, toSafeDownloadFileName } from '../utils/utils';
+import { DownloadProgress, startDownloadProgress } from './download-progress.service';
 import { getUserPreferences } from './persistence.service';
 
 interface DownloadTarget {
@@ -131,6 +132,7 @@ export async function downloadAndZipFilesToDisk(
   jobId: string,
   sender?: Maybe<WebContents>,
 ): Promise<DownloadFileResult> {
+  let iconProgress: Maybe<DownloadProgress>;
   try {
     // Get download location from user preferences or prompt user
     const downloadPreferences = getUserPreferences().fileDownload;
@@ -159,6 +161,9 @@ export async function downloadAndZipFilesToDisk(
       downloadTarget = { filePath: result.filePath, overwrite: true };
     }
 
+    // Started before the zip is prepared so the icon shows activity right away - indeterminate until the size is known
+    iconProgress = startDownloadProgress(sender);
+
     // Use the downloadAndZipFiles method from the salesforce-api library
     const zipResult = await jetstreamConn.binary.downloadAndZipFiles(files, zipFileName, true);
 
@@ -166,6 +171,7 @@ export async function downloadAndZipFilesToDisk(
     let bytesDownloaded = 0;
     const totalBytes = Number(zipResult.size);
     let currentFileIndex = 0;
+    iconProgress.update(0, totalBytes);
 
     // Convert web stream to Node.js readable stream
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -174,6 +180,7 @@ export async function downloadAndZipFilesToDisk(
     // Track progress as chunks are written
     nodeStream.on('data', (chunk: Buffer) => {
       bytesDownloaded += chunk.length;
+      iconProgress?.update(bytesDownloaded);
       const percentComplete = Math.round((bytesDownloaded / totalBytes) * 100);
 
       // Estimate current file (this is approximate since we don't know exact boundaries)
@@ -209,6 +216,8 @@ export async function downloadAndZipFilesToDisk(
       success: false,
       error: error instanceof Error ? error.message : 'An unknown error occurred',
     };
+  } finally {
+    iconProgress?.finish();
   }
 }
 
@@ -219,6 +228,7 @@ export async function downloadBulkApiFileAndSaveToDisk({
   batchId,
   isQuery,
   type,
+  sender,
 }: {
   jetstreamConn: ApiConnection;
   fileName: string;
@@ -226,7 +236,10 @@ export async function downloadBulkApiFileAndSaveToDisk({
   batchId: string;
   isQuery: boolean;
   type: 'request' | 'result';
+  /** The window that requested the download, which shows the progress on its app icon */
+  sender?: Maybe<WebContents>;
 }): Promise<DownloadFileResult> {
+  let iconProgress: Maybe<DownloadProgress>;
   try {
     // Get download location from user preferences or prompt user
     const downloadPreferences = getUserPreferences().fileDownload;
@@ -254,12 +267,21 @@ export async function downloadBulkApiFileAndSaveToDisk({
       downloadTarget = { filePath: result.filePath, overwrite: true };
     }
 
+    // The results are streamed and concatenated across result sets, so the size is never known up front
+    iconProgress = startDownloadProgress(sender);
+
     const results = isQuery
       ? await jetstreamConn.bulk.downloadQueryResults(jobId, batchId)
       : await jetstreamConn.bulk.downloadRecords(jobId, batchId, type);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const downloadPath = await writeDownloadToFile(Readable.fromWeb(results as any), downloadTarget);
+    const nodeStream = Readable.fromWeb(results as any);
+    let bytesDownloaded = 0;
+    nodeStream.on('data', (chunk: Buffer) => {
+      bytesDownloaded += chunk.length;
+      iconProgress?.update(bytesDownloaded);
+    });
+    const downloadPath = await writeDownloadToFile(nodeStream, downloadTarget);
 
     logger.info(`File downloaded successfully: ${downloadPath}`);
     markDownloadCompleted(downloadPath);
@@ -271,5 +293,7 @@ export async function downloadBulkApiFileAndSaveToDisk({
       success: false,
       error: error instanceof Error ? error.message : 'An unknown error occurred',
     };
+  } finally {
+    iconProgress?.finish();
   }
 }

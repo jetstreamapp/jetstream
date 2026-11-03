@@ -769,6 +769,7 @@ const handleDownloadBulkApiFile: MainIpcHandler<'downloadBulkApiFile'> = async (
       batchId,
       isQuery,
       type,
+      sender: event.sender,
     });
   } catch (ex) {
     logger.error('Error handling handleDownloadBulkApiFile', ex);

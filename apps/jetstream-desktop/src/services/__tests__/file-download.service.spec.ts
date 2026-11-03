@@ -1,5 +1,5 @@
 import type { ApiConnection } from '@jetstream/salesforce-api';
-import { dialog } from 'electron';
+import { BrowserWindow, dialog, WebContents } from 'electron';
 import { promises as fs } from 'node:fs';
 import { link } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -11,11 +11,13 @@ import { getUserPreferences } from '../persistence.service';
 
 const mocks = vi.hoisted(() => ({
   downloadDir: '',
+  window: { isDestroyed: () => false, setProgressBar: vi.fn() },
 }));
 
 vi.mock('electron', () => ({
   app: { getPath: vi.fn(() => mocks.downloadDir) },
   dialog: { showSaveDialog: vi.fn() },
+  BrowserWindow: { fromWebContents: vi.fn(() => mocks.window), getAllWindows: vi.fn(() => [mocks.window]) },
 }));
 
 vi.mock('electron-log', () => ({
@@ -82,7 +84,7 @@ function createBulkConn(downloadRecords: () => Promise<ReadableStream<Uint8Array
   return { bulk: { downloadRecords: vi.fn(downloadRecords) } } as unknown as ApiConnection;
 }
 
-function downloadResultsCsv(jetstreamConn: ApiConnection) {
+function downloadResultsCsv(jetstreamConn: ApiConnection, sender?: WebContents) {
   return downloadBulkApiFileAndSaveToDisk({
     jetstreamConn,
     fileName: 'results.csv',
@@ -90,7 +92,16 @@ function downloadResultsCsv(jetstreamConn: ApiConnection) {
     batchId: 'batch-1',
     isQuery: false,
     type: 'result',
+    sender,
   });
+}
+
+function createSender() {
+  return { isDestroyed: () => false, send: vi.fn() } as unknown as WebContents;
+}
+
+function getIconProgressValues() {
+  return mocks.window.setProgressBar.mock.calls.map(([progress]) => progress);
 }
 
 describe('file-download.service', () => {
@@ -298,5 +309,78 @@ describe('file-download.service', () => {
     expect(result).toEqual({ success: true, filePath: join(mocks.downloadDir, numberedFileName) });
     expect(await fs.readFile(join(mocks.downloadDir, numberedFileName), 'utf8')).toBe('Id\n001A\n');
     expect(await fs.readFile(join(mocks.downloadDir, fileName), 'utf8')).toBe('existing');
+  });
+
+  describe('app icon progress', () => {
+    it('shows zip progress against the zip size and clears it when the zip is saved', async () => {
+      const content = 'zip-bytes';
+      const jetstreamConn = {
+        binary: {
+          downloadAndZipFiles: vi.fn(async () => ({
+            stream: new Response(content).body,
+            fileName: 'files.zip',
+            size: BigInt(content.length),
+          })),
+        },
+      } as unknown as ApiConnection;
+      const sender = createSender();
+
+      const result = await downloadAndZipFilesToDisk(jetstreamConn, [], 'files.zip', 'job-1', sender);
+
+      expect(result.success).toBe(true);
+      expect(BrowserWindow.fromWebContents).toHaveBeenCalledWith(sender);
+      const progressValues = getIconProgressValues();
+      expect(progressValues).toContain(1);
+      expect(progressValues.at(-1)).toBe(-1);
+    });
+
+    it('clears the progress when the zip stream fails', async () => {
+      const jetstreamConn = {
+        binary: { downloadAndZipFiles: vi.fn(async () => ({ stream: streamThatFails(), fileName: 'files.zip', size: BigInt(100) })) },
+      } as unknown as ApiConnection;
+
+      const result = await downloadAndZipFilesToDisk(jetstreamConn, [], 'files.zip', 'job-1', createSender());
+
+      expect(result.success).toBe(false);
+      expect(getIconProgressValues().at(-1)).toBe(-1);
+    });
+
+    it('shows a bulk download while it streams and clears it once saved', async () => {
+      const { stream, release } = streamThatWaits('Id\n', '001A\n');
+      const download = downloadResultsCsv(
+        createBulkConn(async () => stream),
+        createSender(),
+      );
+
+      await vi.waitFor(() => expect(mocks.window.setProgressBar).toHaveBeenCalled());
+      expect(getIconProgressValues()).not.toContain(-1);
+      release();
+
+      expect((await download).success).toBe(true);
+      expect(getIconProgressValues().at(-1)).toBe(-1);
+    });
+
+    it('clears the progress when a bulk download fails mid-stream', async () => {
+      const result = await downloadResultsCsv(
+        createBulkConn(async () => streamThatFails()),
+        createSender(),
+      );
+
+      expect(result.success).toBe(false);
+      expect(getIconProgressValues().at(-1)).toBe(-1);
+    });
+
+    it('does not show progress when the save dialog is canceled', async () => {
+      vi.mocked(getUserPreferences).mockReturnValueOnce({ fileDownload: { omitPrompt: false } } as ReturnType<typeof getUserPreferences>);
+      vi.mocked(dialog.showSaveDialog).mockResolvedValueOnce({ canceled: true, filePath: '' });
+
+      const result = await downloadResultsCsv(
+        createBulkConn(async () => new Response('Id\n').body),
+        createSender(),
+      );
+
+      expect(result).toEqual({ success: false, error: 'Download canceled by user' });
+      expect(mocks.window.setProgressBar).not.toHaveBeenCalled();
+    });
   });
 });

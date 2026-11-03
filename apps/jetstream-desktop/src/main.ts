@@ -7,6 +7,7 @@ import { ENV } from './config/environment';
 import { initializeSmokeTest } from './config/smoke-test';
 import { applySystemCertificateTrust } from './config/system-certificates';
 import { initDeepLink } from './services/deep-link.service';
+import { renderPendingDownloadProgress } from './services/download-progress.service';
 import { registerIpc } from './services/ipc.service';
 import { initAppMenu } from './services/menu.service';
 import { registerNotificationPoller } from './services/notification.service';
@@ -41,6 +42,7 @@ app.on('window-all-closed', () => {
 // keeping the app running on its own. macOS keeps it open, like a native Settings window - the dock and
 // File > New Window lead back to the app.
 app.on('browser-window-created', (_, window) => {
+  renderPendingDownloadProgress(window);
   window.on('closed', () => {
     if (!isMac()) {
       closeSettingsWindowIfAlone();
