@@ -245,6 +245,11 @@ const initPassword = createRoute(routeDefinition.initPassword.validators, async 
   }
   // Revoke other sessions so an attacker with a stolen session loses access when the legitimate user rotates credentials.
   await revokeAllUserSessions(user.id, req.session.id);
+
+  await sendAuthenticationChangeConfirmation(user.email, 'A password has been added to your account', {
+    heading: 'You have added a password as a login method',
+  });
+
   sendJson(res, await userDbService.findUserWithIdentitiesById(user.id));
 
   createUserActivityFromReq(req, res, {

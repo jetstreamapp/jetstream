@@ -105,7 +105,6 @@ routes.delete('/me/profile/sessions', userController.revokeAllSessions.controlle
 routes.post('/me/profile/password/init', accountManagementRateLimit, requireStepUpAuth(), userController.initPassword.controllerFn());
 // The reset email only ever goes to the account's own address, so it needs no step-up
 routes.post('/me/profile/password/reset', passwordResetEmailRateLimit, userController.initResetPassword.controllerFn());
-// TODO: should we allow users to remove their password if they have social login?
 routes.delete('/me/profile/password', accountManagementRateLimit, requireStepUpAuth(), userController.deletePassword.controllerFn());
 /**
  * Step-up (re)authentication Routes - proving identity again before a sensitive account change

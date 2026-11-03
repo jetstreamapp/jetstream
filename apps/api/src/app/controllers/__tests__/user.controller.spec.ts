@@ -277,3 +277,60 @@ describe('user.controller - deletePassword', () => {
     );
   });
 });
+
+describe('user.controller - initPassword', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    userDbMocks.findUserWithIdentitiesById.mockResolvedValue({
+      id: 'user-id',
+      email: 'user@example.com',
+      identities: [],
+    });
+    emailMocks.sendAuthenticationChangeConfirmation.mockResolvedValue(undefined);
+  });
+
+  it('fails without side effects when the password cannot be set', async () => {
+    authServerMocks.setPasswordForUser.mockResolvedValue({
+      error: new Error('Cannot set password when already set, you must go through the password reset flow'),
+    });
+
+    const req = makeReq({ method: 'POST', body: { password: 'a-Valid-passw0rd!' } });
+    const res = makeRes();
+    const next = vi.fn();
+
+    const handler = routeDefinition.initPassword.controllerFn();
+    await handler(req as never, res as never, next);
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next.mock.calls[0][0]).toBeInstanceOf(UserFacingError);
+    expect(authServerMocks.revokeAllUserSessions).not.toHaveBeenCalled();
+    expect(emailMocks.sendAuthenticationChangeConfirmation).not.toHaveBeenCalled();
+    expect(authServerMocks.createUserActivityFromReq).not.toHaveBeenCalled();
+    expect(sendJson).not.toHaveBeenCalled();
+  });
+
+  it('revokes other sessions and notifies the user when a password is set', async () => {
+    authServerMocks.setPasswordForUser.mockResolvedValue({ id: 'user-id' });
+
+    const req = makeReq({ method: 'POST', body: { password: 'a-Valid-passw0rd!' } });
+    const res = makeRes();
+    const next = vi.fn();
+
+    const handler = routeDefinition.initPassword.controllerFn();
+    await handler(req as never, res as never, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(authServerMocks.setPasswordForUser).toHaveBeenCalledWith('user-id', 'a-Valid-passw0rd!');
+    expect(authServerMocks.revokeAllUserSessions).toHaveBeenCalledWith('user-id', 'current-session-id');
+    expect(emailMocks.sendAuthenticationChangeConfirmation).toHaveBeenCalledWith(
+      'user@example.com',
+      'A password has been added to your account',
+      expect.objectContaining({ heading: expect.any(String) }),
+    );
+    expect(authServerMocks.createUserActivityFromReq).toHaveBeenCalledWith(
+      req,
+      res,
+      expect.objectContaining({ action: 'PASSWORD_SET', success: true }),
+    );
+  });
+});

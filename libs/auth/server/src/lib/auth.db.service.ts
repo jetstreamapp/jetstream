@@ -959,7 +959,8 @@ export async function setPasswordForUser(id: string, password: string) {
     return { error: new InvalidCredentials(`User not found with id ${id}`) };
   }
 
-  // FIXME: this is kinda dumb since the user can remove the password then re-add it
+  // Changing an existing password goes through the reset flow. Removing and re-adding one is guarded by the
+  // step-up check on the route, so it cannot be used to sidestep that.
   if (UNSAFE_userWithPassword.password) {
     return { error: new Error('Cannot set password when already set, you must go through the password reset flow') };
   }
