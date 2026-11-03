@@ -8,7 +8,7 @@ import { FieldType, Query, composeQuery, getField, isQueryValid } from '@jetstre
 import lodashGet from 'lodash/get';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
-import { MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
+import { MetadataRow, MetadataRowConfiguration, TransformationOptions } from './mass-update-records.types';
 
 /**
  * SOQL sent to the Salesforce REST query endpoint travels in the request URL (`GET /query?q=...`), and
@@ -173,9 +173,11 @@ export function getQueryFields(fieldPaths: string[], configuration: MetadataRowC
   // relationship name -> object -> fields to read from that object, relative to the relationship
   const typeofFieldsByRelationship = new Map<string, Map<string, Set<string>>>();
   const typeofPaths = new Set<string>();
+  const requestedPaths = new Set(fieldPaths);
 
   configuration.forEach(({ transformationOptions: { option, alternateField, alternateFieldTarget } }) => {
-    if (option !== 'anotherField' || !alternateField || !alternateFieldTarget) {
+    // Only select what the caller asked for, e.g. a `Count()` validation query requests no fields and `TYPEOF` is invalid next to it
+    if (option !== 'anotherField' || !alternateField || !alternateFieldTarget || !requestedPaths.has(alternateField)) {
       return;
     }
     const { relationshipName, sobject } = alternateFieldTarget;
@@ -517,6 +519,19 @@ export async function fetchRecordsWithRequiredFields({
   return queryResults.records;
 }
 
+/**
+ * A merged `TYPEOF` returns the same path for every object that shares it (`Who.Email` for both Contact and Lead),
+ * so a destination that chose Contact would otherwise also receive the value of a record whose lookup points at a Lead.
+ * When the related record's type is unknown (no `attributes.type`) the value is used as-is.
+ */
+function isPolymorphicTargetMismatch(record: SalesforceRecord, { alternateFieldTarget }: TransformationOptions): boolean {
+  if (!alternateFieldTarget) {
+    return false;
+  }
+  const relatedType = lodashGet(record, [alternateFieldTarget.relationshipName, 'attributes', 'type']);
+  return !!relatedType && relatedType !== alternateFieldTarget.sobject;
+}
+
 export function prepareRecords(
   records: SalesforceRecord[],
   configuration: MetadataRowConfiguration[],
@@ -543,7 +558,9 @@ export function prepareRecords(
         }
 
         if (transformationOptions.option === 'anotherField' && transformationOptions.alternateField) {
-          newRecord[selectedField] = lodashGet(newRecord, transformationOptions.alternateField, emptyFieldValue);
+          newRecord[selectedField] = isPolymorphicTargetMismatch(record, transformationOptions)
+            ? emptyFieldValue
+            : lodashGet(newRecord, transformationOptions.alternateField, emptyFieldValue);
         } else if (transformationOptions.option === 'staticValue') {
           newRecord[selectedField] = transformationOptions.staticValue;
         } else if (transformationOptions.option === 'null') {

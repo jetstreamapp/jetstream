@@ -995,6 +995,12 @@ describe('mass-update-records.utils polymorphic "value from another field"', () 
       );
     });
 
+    it('should not select TYPEOF when the field was not requested, e.g. a Count() validation query', () => {
+      const configuration = [anotherFieldConfig('Description', 'Who.Email', 'Contact')];
+
+      expect(selectFrom('Task', getQueryFields(['Count()'], configuration))).toBe('SELECT Count() FROM Task');
+    });
+
     it('should ignore a stale target once the row no longer uses another field', () => {
       const configuration = [anotherFieldConfig('Description', 'Who.Email', 'Contact')];
       configuration[0].transformationOptions.option = 'staticValue';
@@ -1056,5 +1062,20 @@ describe('mass-update-records.utils polymorphic "value from another field"', () 
     const prepared = prepareRecords(records, configuration);
 
     expect(prepared.map(({ LinkedIn_URL__c }) => LinkedIn_URL__c)).toEqual(['https://li/1', SFDC_BULK_API_NULL_VALUE]);
+  });
+
+  it('should only copy a shared path to the destination whose chosen object matches the related record', () => {
+    const configuration = [
+      anotherFieldConfig('Contact_Email__c', 'Who.Email', 'Contact'),
+      anotherFieldConfig('Lead_Email__c', 'Who.Email', 'Lead'),
+    ];
+    const records = [
+      { Id: '1', Contact_Email__c: 'old', Lead_Email__c: 'old', Who: { attributes: { type: 'Lead' }, Email: 'lead@example.com' } },
+    ] as any;
+
+    const [prepared] = prepareRecords(records, configuration);
+
+    expect(prepared.Contact_Email__c).toBe(SFDC_BULK_API_NULL_VALUE);
+    expect(prepared.Lead_Email__c).toBe('lead@example.com');
   });
 });
