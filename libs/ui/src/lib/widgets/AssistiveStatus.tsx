@@ -22,6 +22,10 @@ export interface AssistiveStatusProps {
  * Keep this MOUNTED across the whole transition and change only `message` — a live region that is
  * inserted into the DOM already containing its text (e.g. a spinner with baked-in "Loading"
  * assistive text) is unreliably announced, and an unmounting spinner announces nothing at all.
+ *
+ * The message present at mount is deliberately NOT announced: it is the starting state the user can
+ * already read (e.g. "Showing 10 of 10"), not a change. To announce a state that begins on mount, mount
+ * with an empty message and set it after.
  */
 export const AssistiveStatus = ({ message, debounceMs }: AssistiveStatusProps) => {
   const [displayedMessage, setDisplayedMessage] = useState(message);

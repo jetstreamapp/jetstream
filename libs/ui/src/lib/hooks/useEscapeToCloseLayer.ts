@@ -63,6 +63,9 @@ const openLayerStack: symbol[] = [];
  *   (component handlers may still guard Escape in the CLOSED state, e.g. type-ahead buffers).
  * - Layers may nest: each open instance joins `openLayerStack`, and only the topmost (innermost,
  *   most recently opened) instance handles Escape. One press closes one layer, from the inside out.
+ *   "Most recently opened" is effect order, so a parent and child layer that mount ALREADY open in the
+ *   same commit would stack in reverse (React runs the child's effect first). No layer mounts that way
+ *   today; inner layers open on interaction. Order by DOM containment before adding one that does.
  */
 export function useEscapeToCloseLayer(
   isOpen: boolean,
@@ -83,7 +86,24 @@ export function useEscapeToCloseLayer(
     const layerId = Symbol('escape-layer');
     openLayerStack.push(layerId);
 
-    let pendingSwallowTimeout: number | undefined;
+    // The swallower outlives this effect (see below), so it only touches the document and window captured
+    // here: in jsdom the globals can be gone by the time it is cleaned up
+    const ownerDocument = document;
+    const ownerWindow = window;
+
+    function detachSwallower() {
+      ownerDocument.removeEventListener('keyup', swallowKeyUp, { capture: true });
+      ownerDocument.removeEventListener('keydown', dropStaleSwallower, { capture: true });
+      ownerWindow.removeEventListener('blur', detachSwallower);
+    }
+
+    // A new Escape press means the previous press's keyup was lost (e.g. focus left the page mid-press), so
+    // stop waiting for it. Registered during the keydown that closed the layer, so it does not see that one.
+    function dropStaleSwallower(event: KeyboardEvent) {
+      if (event.key === 'Escape' && !event.repeat) {
+        detachSwallower();
+      }
+    }
 
     function swallowKeyUp(event: KeyboardEvent) {
       // Only the Escape keyup detaches the one-shot swallower: releasing a modifier (Shift held while
@@ -91,11 +111,7 @@ export function useEscapeToCloseLayer(
       if (event.key !== 'Escape') {
         return;
       }
-      document.removeEventListener('keyup', swallowKeyUp, { capture: true });
-      if (pendingSwallowTimeout !== undefined) {
-        window.clearTimeout(pendingSwallowTimeout);
-        pendingSwallowTimeout = undefined;
-      }
+      detachSwallower();
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
@@ -133,15 +149,11 @@ export function useEscapeToCloseLayer(
         event.stopImmediatePropagation();
       }
       // The swallower has to outlive this effect: closing the layer flips `isOpen`, so the cleanup below
-      // has already run by the time the keyup arrives
-      const ownerDocument = document;
+      // has already run by the time the keyup arrives. It waits for the matching keyup however long Escape
+      // is held, and is dropped if that keyup is lost (the window loses focus, or a new press starts).
       ownerDocument.addEventListener('keyup', swallowKeyUp, { capture: true });
-      // Safety: never leave the one-shot swallower behind if the matching keyup is lost. It touches only
-      // the captured document: this fires after the effect is gone, and in jsdom after the globals are too
-      pendingSwallowTimeout = window.setTimeout(() => {
-        pendingSwallowTimeout = undefined;
-        ownerDocument.removeEventListener('keyup', swallowKeyUp, { capture: true });
-      }, 1000);
+      ownerDocument.addEventListener('keydown', dropStaleSwallower, { capture: true });
+      ownerWindow.addEventListener('blur', detachSwallower);
       onEscapeRef.current();
     };
 

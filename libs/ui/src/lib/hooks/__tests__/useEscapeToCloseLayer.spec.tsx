@@ -248,6 +248,44 @@ describe('useEscapeToCloseLayer', () => {
     expect(documentKeyUp).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps swallowing the keyup however long Escape is held, so a hosting Modal cannot close on the release', () => {
+    vi.useFakeTimers();
+    try {
+      const documentKeyUp = listenOnDocument('keyup');
+      render(<SingleLayerHarness onEscape={vi.fn()} />);
+      const target = screen.getByRole('button', { name: 'Key target' });
+
+      fireEvent.keyDown(target, { key: 'Escape' });
+      fireEvent.keyDown(target, { key: 'Escape', repeat: true });
+      vi.advanceTimersByTime(5000);
+      fireEvent.keyUp(target, { key: 'Escape' });
+
+      expect(documentKeyUp).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops waiting for a lost keyup once the window loses focus or a new Escape press starts', () => {
+    const documentKeyUp = listenOnDocument('keyup');
+    render(<SingleLayerHarness onEscape={vi.fn()} />);
+    const target = screen.getByRole('button', { name: 'Key target' });
+
+    // The keyup of this press never arrives: focus left the window mid-press
+    fireEvent.keyDown(target, { key: 'Escape' });
+    fireEvent.blur(window);
+    fireEvent.keyUp(target, { key: 'Escape' });
+    expect(documentKeyUp).toHaveBeenCalledTimes(1);
+
+    // The layer is closed now, so a fresh press that loses its keyup is recovered by the next press instead
+    render(<SingleLayerHarness onEscape={vi.fn()} />);
+    const secondTarget = screen.getAllByRole('button', { name: 'Key target' })[1];
+    fireEvent.keyDown(secondTarget, { key: 'Escape' });
+    fireEvent.keyDown(secondTarget, { key: 'Escape' });
+    fireEvent.keyUp(secondTarget, { key: 'Escape' });
+    expect(documentKeyUp).toHaveBeenCalledTimes(2);
+  });
+
   it('lets a modifier keyup through and still swallows the Escape keyup that comes after it', () => {
     const onTargetKeyUp = vi.fn();
     render(<SingleLayerHarness onEscape={vi.fn()} onTargetKeyUp={onTargetKeyUp} />);

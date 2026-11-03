@@ -12,8 +12,8 @@ interface AriaDisabledButtonProps {
  * the top of the page. `aria-disabled` keeps focus and announces the state instead; the CSS in
  * `ui-styles/main.css` mirrors SLDS `:disabled` styling for `[aria-disabled='true']`.
  *
- * `aria-disabled` is not enforced by the browser — and the CSS `pointer-events: none` does not
- * block keyboard-initiated clicks — so the click handler is guarded here. Callers must spread
+ * `aria-disabled` is not enforced by the browser, so the click handler (mouse and keyboard) is
+ * guarded here. Callers must spread
  * these props INSTEAD of attaching their own `onClick`/`aria-disabled`. `preventDefault()` on the
  * disabled path also makes this safe for link-shaped actions.
  */
