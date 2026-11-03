@@ -40,7 +40,7 @@ export default function Page() {
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         {/* Hero Section */}
         <div className="mx-auto max-w-4xl text-center">
-          <p className="mt-2 text-balance text-5xl font-semibold tracking-tight text-white sm:text-6xl">About Jetstream</p>
+          <h1 className="mt-2 text-balance text-5xl font-semibold tracking-tight text-white sm:text-6xl">About Jetstream</h1>
         </div>
         <p className="mx-auto mt-6 max-w-2xl text-pretty text-center text-lg font-medium text-gray-400 sm:text-xl/8">
           Empowering Salesforce professionals with tools that make complex tasks simple, secure, and efficient.
@@ -150,7 +150,11 @@ export default function Page() {
 
 Page.getLayout = function getLayout(page: React.ReactElement) {
   return (
-    <Layout title="About | Jetstream" isInverse>
+    <Layout
+      title="About | Jetstream"
+      description="The people and mission behind Jetstream, the Salesforce toolkit for admins and developers."
+      isInverse
+    >
       {page}
     </Layout>
   );

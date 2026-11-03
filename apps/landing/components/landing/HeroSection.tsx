@@ -17,10 +17,10 @@ export const HeroSection = () => (
 
       {/* Heading and subtitle */}
       <h1 className="mt-8 text-5xl font-semibold tracking-tight text-white text-balance sm:text-7xl">
-        A simpler way to build on Salesforce
+        The toolkit for Salesforce admins and developers
       </h1>
       <p className="mx-auto mt-8 max-w-2xl text-lg text-gray-400 sm:text-xl">
-        Streamline Salesforce management and speed up your day-to-day workflow with Jetstream
+        A visual SOQL query builder, data loader, permission and automation tools, and metadata compare and deploy, all in one app.
       </p>
 
       {/* CTAs */}

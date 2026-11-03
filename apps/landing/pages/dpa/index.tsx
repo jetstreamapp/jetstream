@@ -615,7 +615,11 @@ export default function Page() {
 
 Page.getLayout = function getLayout(page) {
   return (
-    <Layout title="Data Processing Agreement | Jetstream" navigationProps={{ omitLinks: [ROUTES.DPA] }}>
+    <Layout
+      title="Data Processing Agreement | Jetstream"
+      description="The Jetstream data processing agreement (DPA) for customers."
+      navigationProps={{ omitLinks: [ROUTES.DPA] }}
+    >
       {page}
     </Layout>
   );

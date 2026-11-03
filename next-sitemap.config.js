@@ -4,7 +4,21 @@ module.exports = {
   outDir: 'dist/apps/landing',
 
   generateRobotsTxt: true, // (optional)
-  exclude: ['/goodbye*', '/oauth-*', '/web-extension*'],
+  // Keep in sync with NOINDEX_PATH_PREFIXES in apps/landing/components/layouts/LayoutHead.tsx
+  exclude: [
+    '/404*',
+    '/auth/verify*',
+    '/auth/mfa-enroll*',
+    '/auth/accept-terms*',
+    '/auth/password-reset*',
+    '/auth/email-change*',
+    '/canvas-auth*',
+    '/desktop-app/auth*',
+    '/desktop-app/google-picker*',
+    '/goodbye*',
+    '/oauth-*',
+    '/web-extension*',
+  ],
   robotsTxtOptions: {
     policies: [{ userAgent: '*', disallow: ['/cgi-bin/', '/tmp/'], allow: '/' }],
     additionalSitemaps: ['https://docs.getjetstream.app/sitemap.xml'],

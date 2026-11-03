@@ -231,7 +231,11 @@ export default function Page() {
 
 Page.getLayout = function getLayout(page) {
   return (
-    <Layout title="Privacy | Jetstream" navigationProps={{ omitLinks: [ROUTES.PRIVACY] }}>
+    <Layout
+      title="Privacy | Jetstream"
+      description="How Jetstream protects your data: security practices, our SOC 2 Type II audit, data handling, and our privacy policy."
+      navigationProps={{ omitLinks: [ROUTES.PRIVACY] }}
+    >
       {page}
     </Layout>
   );

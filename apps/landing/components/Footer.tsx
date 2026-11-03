@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ROUTES } from '../utils/environment';
+import { INTENT_PAGES } from './intent/intent-pages-data';
 import { Soc2Badge } from './Soc2Badge';
 
 interface FooterNavItem {
@@ -21,6 +22,7 @@ const footerNavigation: Record<'support' | 'resources' | 'legal', FooterNavItem[
     { name: 'Blog', href: ROUTES.BLOG },
     { name: 'Desktop Application', href: ROUTES.DESKTOP },
     { name: 'Browser Extensions', href: ROUTES.BROWSER_EXTENSIONS },
+    ...INTENT_PAGES.map(({ name, route }) => ({ name, href: route })),
   ],
   legal: [
     { name: 'About', href: ROUTES.ABOUT },

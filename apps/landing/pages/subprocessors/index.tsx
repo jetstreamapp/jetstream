@@ -187,7 +187,11 @@ export default function Page() {
 
 Page.getLayout = function getLayout(page) {
   return (
-    <Layout title="Sub-Processors | Jetstream" navigationProps={{ omitLinks: [ROUTES.SUB_PROCESSORS] }}>
+    <Layout
+      title="Sub-Processors | Jetstream"
+      description="The third-party sub-processors Jetstream uses to deliver its service."
+      navigationProps={{ omitLinks: [ROUTES.SUB_PROCESSORS] }}
+    >
       {page}
     </Layout>
   );
