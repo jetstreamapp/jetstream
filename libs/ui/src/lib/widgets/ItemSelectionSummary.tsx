@@ -127,12 +127,14 @@ export const ItemSelectionSummary: FunctionComponent<ItemSelectionSummaryProps> 
         buttonProps={{
           className: 'slds-button',
           // aria-disabled keeps the trigger focusable: it is the returnFocus target when removing the
-          // final item closes the popover — a natively disabled trigger dropped focus on <body>. The
-          // keydown guard blocks Enter/Space activation (aria-disabled CSS already blocks the mouse).
+          // final item closes the popover — a natively disabled trigger dropped focus on <body>.
           'aria-disabled': disabled || !items.length,
-          onKeyDown: (event) => {
-            if ((disabled || !items.length) && (event.key === 'Enter' || event.key === ' ')) {
+          // aria-disabled blocks neither the mouse nor Enter/Space, and Popover runs its own toggle before any
+          // buttonProps.onClick, so the guard stops the click in the capture phase
+          onClickCapture: (event) => {
+            if (disabled || !items.length) {
               event.preventDefault();
+              event.stopPropagation();
             }
           },
         }}
