@@ -620,7 +620,8 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
             </div>
           }
           size="lg"
-          closeOnEsc={!loading && !formIsDirty}
+          closeDisabled={saving}
+          closeOnEsc={!loading && !saving && !formIsDirty}
           className="h-100 slds-is-relative"
           footer={
             <Fragment>
