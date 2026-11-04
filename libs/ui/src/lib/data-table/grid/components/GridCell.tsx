@@ -59,9 +59,11 @@ function GridCellComponent<TRow extends object>({
 
   const dynamicClass = typeof meta?.cellClass === 'function' ? meta.cellClass(row) : meta?.cellClass;
 
-  // `editable` may be a per-row predicate, so resolve it against this row before announcing read-only.
+  // A cell is announced editable only when Enter really opens an editor — `editable` alone also covers
+  // paste/clear eligibility (checkbox columns), where Enter toggles the control instead. `editable` may
+  // be a per-row predicate, so resolve it against this row.
   const editable = meta?.editable;
-  const isEditable = typeof editable === 'function' ? editable(row) : !!editable;
+  const isEditable = !!meta?.editor && (typeof editable === 'function' ? editable(row) : !!editable);
 
   const style: CSSProperties = {
     ...(colSpan > 1 ? { gridColumn: `${colIndex + 1} / span ${colSpan}` } : { gridColumnStart: colIndex + 1 }),

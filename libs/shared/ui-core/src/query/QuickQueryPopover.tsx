@@ -205,6 +205,7 @@ export const QuickQueryPopover = () => {
       <Popover
         ref={popoverRef}
         size="x-large"
+        codeEditorEscapeLeavesEditor
         header={
           <header className="slds-popover__header slds-grid">
             <h2 className="slds-text-heading_small">Query Records</h2>

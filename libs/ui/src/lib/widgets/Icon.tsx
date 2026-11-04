@@ -34,9 +34,12 @@ export const Icon = ({
   const ariaLabel = description || title || undefined;
   let svgElement = getIcon(type, icon, className, svgCss);
 
-  // If svgElement is a React element, clone it to add aria-label if needed
+  // If svgElement is a React element, clone it to add aria-label if needed.
+  // The generated icon svgs hardcode aria-hidden="true", which would exclude the label from the
+  // accessible name of a wrapping control (e.g. icon-only buttons) — so it must be removed and
+  // role="img" added for the label to be exposed.
   if (omitContainer && ariaLabel && svgElement && typeof svgElement === 'object' && 'type' in svgElement) {
-    svgElement = cloneElement(svgElement, { 'aria-label': ariaLabel });
+    svgElement = cloneElement(svgElement, { 'aria-label': ariaLabel, 'aria-hidden': undefined, role: 'img' });
   }
 
   if (omitContainer) {

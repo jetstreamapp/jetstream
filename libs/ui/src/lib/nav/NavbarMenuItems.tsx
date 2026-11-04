@@ -227,7 +227,7 @@ export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label
             className="slds-button slds-button_icon slds-button_icon slds-context-bar__button"
             aria-haspopup="true"
             aria-expanded={isOpen}
-            title="Open menu"
+            title={`${label} menu`}
             onClick={() => setIsOpen(!isOpen)}
             onKeyDown={handleTriggerKeyDown}
           >
@@ -237,7 +237,7 @@ export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label
               className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
               omitContainer
             />
-            <span className="slds-assistive-text">Open menu item</span>
+            <span className="slds-assistive-text">{label} menu</span>
           </button>
         </div>
         <div className="slds-dropdown slds-dropdown_right slds-dropdown_small">

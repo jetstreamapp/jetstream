@@ -76,6 +76,7 @@ export const CopyRecordsToClipboardButton: FunctionComponent<CopyRecordsToClipbo
         className="slds-button_last"
         dropDownClassName="slds-dropdown_actions"
         position="right"
+        description="More copy formats"
         disabled={isDisabled}
         items={[
           { id: 'csv', value: 'Copy as CSV' },

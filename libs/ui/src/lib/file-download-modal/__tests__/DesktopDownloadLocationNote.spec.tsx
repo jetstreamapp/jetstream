@@ -1,4 +1,5 @@
 import { DesktopUserPreferences, DesktopUserPreferencesSchema } from '@jetstream/desktop/types';
+import { axeScan } from '@jetstream/test-utils';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, test, vi } from 'vitest';
@@ -33,8 +34,9 @@ function setup(initialPreferences: DesktopUserPreferences | null | Error) {
     emitPreferencesChanged = callback;
     return unsubscribe;
   });
-  const { unmount } = render(<DesktopDownloadLocationNote />);
+  const { container, unmount } = render(<DesktopDownloadLocationNote />);
   return {
+    container,
     emitPreferencesChanged: (preferences: DesktopUserPreferences) => act(() => emitPreferencesChanged(preferences)),
     unsubscribe,
     unmount,
@@ -47,9 +49,10 @@ describe('DesktopDownloadLocationNote', () => {
   });
 
   test('shows the auto-save folder and opens Settings without closing anything', async () => {
-    setup(getPreferences('/Users/me/Downloads/Jetstream'));
+    const { container } = setup(getPreferences('/Users/me/Downloads/Jetstream'));
 
     expect((await screen.findByTestId('desktop-download-location')).textContent).toContain('/Users/me/Downloads/Jetstream');
+    await axeScan(container);
 
     await userEvent.click(screen.getByRole('button', { name: 'Change in Settings' }));
 

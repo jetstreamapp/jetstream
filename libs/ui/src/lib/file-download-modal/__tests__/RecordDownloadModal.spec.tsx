@@ -1,5 +1,5 @@
 import { SalesforceOrgUi } from '@jetstream/types';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Profiler, ProfilerOnRenderCallback } from 'react';
 import { MemoryRouter } from 'react-router';
@@ -188,5 +188,36 @@ describe('RecordDownloadModal parent re-renders', () => {
     expect(fileNameInput.value).toBe('my-file');
     expect(screen.getByLabelText<HTMLInputElement>(/^All records/).checked).toBe(true);
     expect(onRender).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('RecordDownloadModal filename Enter', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  // The modal opens with the filename input focused, so the keyup of the Enter that activated the
+  // opening button lands in it — that keyup must not download
+  test('downloads on Enter keydown in the filename input, never on the keyup alone', () => {
+    const { onDownload } = setup();
+    const filename = document.getElementById('download-filename') as HTMLInputElement;
+
+    fireEvent.keyUp(filename, { key: 'Enter' });
+    expect(onDownload).not.toHaveBeenCalled();
+
+    expect(fireEvent.keyDown(filename, { key: 'Enter' })).toBe(false);
+    expect(onDownload).toHaveBeenCalledTimes(1);
+  });
+
+  test('an Enter that commits an IME conversion keeps typing instead of downloading', () => {
+    const { onDownload } = setup();
+    const filename = document.getElementById('download-filename') as HTMLInputElement;
+
+    fireEvent.keyDown(filename, { key: 'Enter', isComposing: true });
+    // Safari has already ended the composition by this keydown; only the IME keyCode still marks it
+    fireEvent.keyDown(filename, { key: 'Enter', keyCode: 229 });
+
+    expect(onDownload).not.toHaveBeenCalled();
   });
 });

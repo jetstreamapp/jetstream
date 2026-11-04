@@ -61,6 +61,11 @@ export interface PopoverProps {
   buttonProps?: React.HTMLProps<HTMLButtonElement> & { as?: string; 'data-testid'?: string; 'data-grid-inner-focus'?: boolean };
   /** Trap Tab inside the popover until it is explicitly closed (rich dialog-like popovers). */
   trapFocus?: boolean;
+  /**
+   * For a popover whose content is mainly a code editor: Escape inside the editor first leaves the editor (as the
+   * editor announces) and the next Escape closes the popover, instead of closing it and discarding what was typed.
+   */
+  codeEditorEscapeLeavesEditor?: boolean;
   panelProps?: Omit<React.HTMLProps<HTMLDivElement>, 'children' | 'className' | 'as' | 'refName' | 'onKeyDown'>;
   buttonStyle?: CSSProperties;
   /**
@@ -107,6 +112,7 @@ const PopoverComponent = ({
   panelStyle,
   buttonProps,
   trapFocus = false,
+  codeEditorEscapeLeavesEditor,
   panelProps,
   buttonStyle,
   tooltipProps,
@@ -204,7 +210,7 @@ const PopoverComponent = ({
     },
     // A popover action can open a modal (View Record, Manage Assignments) while the popover stays open
     // underneath — Escape inside that modal is the modal's
-    { getLayerElement: () => refs.floating.current },
+    { getLayerElement: () => refs.floating.current, codeEditorEscapeLeavesEditor },
   );
 
   /**

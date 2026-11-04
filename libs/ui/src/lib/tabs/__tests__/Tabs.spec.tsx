@@ -1,5 +1,7 @@
+import { axeScan } from '@jetstream/test-utils';
 import { UiTabSection } from '@jetstream/types';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { vi } from 'vitest';
 import Tabs from '../Tabs';
 
 const tabs: UiTabSection[] = [
@@ -68,6 +70,120 @@ describe('Tabs', () => {
 
     const tabPanel = screen.getByRole('tabpanel');
     expect(tabPanel.textContent).toContain('Gamma Content');
+  });
+
+  test('arrow keys move between tabs with automatic activation', () => {
+    render(<Tabs tabs={tabs} />);
+
+    const alphaTab = screen.getAllByRole('tab').find((tab) => tab.getAttribute('aria-controls') === 'tab-alpha')!;
+
+    // Fired on the tab itself so it bubbles to the tablist handler with the tab as event target
+    fireEvent.keyDown(alphaTab, { key: 'ArrowRight' });
+    expect(screen.getByRole('tabpanel').textContent).toContain('Beta Content');
+
+    const betaTab = screen.getAllByRole('tab').find((tab) => tab.getAttribute('aria-controls') === 'tab-beta')!;
+    fireEvent.keyDown(betaTab, { key: 'End' });
+    expect(screen.getByRole('tabpanel').textContent).toContain('Gamma Content');
+  });
+
+  test('arrow keys stay within their own tab list when another one on the page uses the same tab ids', () => {
+    render(
+      <>
+        <Tabs tabs={tabs} />
+        <div data-testid="dialog-tabs">
+          <Tabs tabs={tabs} />
+        </div>
+      </>,
+    );
+    const dialogTabs = within(screen.getByTestId('dialog-tabs'));
+    const dialogAlphaTab = dialogTabs.getByRole('tab', { name: 'Alpha' });
+    dialogAlphaTab.focus();
+
+    fireEvent.keyDown(dialogAlphaTab, { key: 'ArrowRight' });
+
+    expect(document.activeElement).toBe(dialogTabs.getByRole('tab', { name: 'Beta' }));
+  });
+
+  test('with manual activation the arrow keys only move focus, and Enter or Space select the focused tab', () => {
+    const onChange = vi.fn();
+    render(<Tabs tabs={tabs} activationMode="manual" onChange={onChange} />);
+    const getTab = (id: string) => screen.getAllByRole('tab').find((tab) => tab.getAttribute('aria-controls') === id)!;
+
+    fireEvent.keyDown(getTab('tab-alpha'), { key: 'ArrowRight' });
+    expect(document.activeElement).toBe(getTab('tab-beta'));
+    fireEvent.keyDown(getTab('tab-beta'), { key: 'ArrowRight' });
+    expect(document.activeElement).toBe(getTab('tab-gamma'));
+    // Nothing selected on the way: the expensive panels were never built
+    expect(screen.getByRole('tabpanel').textContent).toContain('Alpha Content');
+    expect(onChange).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(getTab('tab-gamma'), { key: 'Enter' });
+    expect(screen.getByRole('tabpanel').textContent).toContain('Gamma Content');
+    expect(onChange).toHaveBeenCalledWith('tab-gamma');
+
+    fireEvent.keyDown(getTab('tab-gamma'), { key: 'Home' });
+    fireEvent.keyDown(getTab('tab-alpha'), { key: ' ' });
+    expect(screen.getByRole('tabpanel').textContent).toContain('Alpha Content');
+  });
+
+  test('with manual activation the roving tab stop follows focus, so Shift+Tab from the focused tab leaves the list', () => {
+    render(<Tabs tabs={tabs} activationMode="manual" />);
+    const getTab = (id: string) => screen.getAllByRole('tab').find((tab) => tab.getAttribute('aria-controls') === id)!;
+
+    act(() => getTab('tab-alpha').focus());
+    fireEvent.keyDown(getTab('tab-alpha'), { key: 'ArrowRight' });
+
+    expect(document.activeElement).toBe(getTab('tab-beta'));
+    expect(getTab('tab-beta').getAttribute('tabindex')).toBe('0');
+    expect(getTab('tab-alpha').getAttribute('tabindex')).toBe('-1');
+    // Nothing was selected on the way
+    expect(screen.getByRole('tabpanel').textContent).toContain('Alpha Content');
+
+    // Focus leaving the list puts the tab stop back on the selected tab
+    act(() => (document.activeElement as HTMLElement).blur());
+    expect(getTab('tab-alpha').getAttribute('tabindex')).toBe('0');
+    expect(getTab('tab-beta').getAttribute('tabindex')).toBe('-1');
+  });
+
+  test.each(['Enter', ' '])(
+    'with automatic activation %j activates the focused tab (the first visible one after a filter hides the selected tab)',
+    (key) => {
+      const onChange = vi.fn();
+      render(<Tabs tabs={tabs} onChange={onChange} />);
+      const betaTab = screen.getAllByRole('tab').find((tab) => tab.getAttribute('aria-controls') === 'tab-beta')!;
+      betaTab.focus();
+
+      const notPrevented = fireEvent.keyDown(betaTab, { key });
+
+      expect(notPrevented).toBe(false);
+      expect(onChange).toHaveBeenCalledWith('tab-beta');
+      expect(screen.getByRole('tabpanel').textContent).toContain('Beta Content');
+    },
+  );
+
+  test('with manual activation Cmd/Ctrl+Enter on a tab is left to the page shortcuts', () => {
+    render(<Tabs tabs={tabs} activationMode="manual" />);
+    const betaTab = screen.getAllByRole('tab').find((tab) => tab.getAttribute('aria-controls') === 'tab-beta')!;
+
+    // fireEvent returns false only when the handler called preventDefault — the page's save shortcut
+    // ignores a press that was already handled
+    expect(fireEvent.keyDown(betaTab, { key: 'Enter', metaKey: true })).toBe(true);
+    expect(fireEvent.keyDown(betaTab, { key: 'Enter', ctrlKey: true, shiftKey: true })).toBe(true);
+    expect(screen.getByRole('tabpanel').textContent).toContain('Alpha Content');
+  });
+
+  test('only the active tab is in the tab order (roving tabindex)', () => {
+    render(<Tabs tabs={tabs} />);
+
+    const tabLinks = screen.getAllByRole('tab');
+    expect(tabLinks.filter((tab) => tab.getAttribute('tabindex') === '0')).toHaveLength(1);
+    expect(tabLinks.filter((tab) => tab.getAttribute('tabindex') === '-1')).toHaveLength(2);
+  });
+
+  test('has no axe violations', async () => {
+    const { container } = render(<Tabs tabs={tabs} />);
+    const results = await axeScan(container);
+    expect(results.violations).toEqual([]);
   });
 
   test('all tab titles are rendered in the tablist', () => {

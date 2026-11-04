@@ -89,13 +89,13 @@ test.describe('QUERY RESULTS', () => {
     await expect(queryPage.sobjectList.getByTestId('Account')).toHaveAttribute('aria-selected', 'true');
 
     for (const field of ['Account ID', 'Account Name']) {
-      await expect(queryPage.getSelectedField(field)).toHaveAttribute('aria-selected', 'true');
+      await expect(queryPage.getSelectedField(field)).toBeChecked();
     }
 
     await queryPage.selectSubqueryObject('Contacts');
 
     for (const field of ['Contact ID', 'Full Name', 'Account ID', 'Email']) {
-      await expect(queryPage.getSelectedField(field)).toHaveAttribute('aria-selected', 'true');
+      await expect(queryPage.getSelectedField(field)).toBeChecked();
     }
   });
 
