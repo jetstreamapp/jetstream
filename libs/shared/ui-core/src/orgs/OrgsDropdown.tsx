@@ -172,6 +172,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
                 className={addOrgsButtonClassName}
                 onAddOrg={handleAddOrg}
                 onAddOrgHandlerFn={onAddOrgHandlerFn}
+                showManageOrgsLink
                 disabled={actionInProgress}
               />
             </div>

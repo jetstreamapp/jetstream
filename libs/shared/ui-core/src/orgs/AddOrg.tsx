@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS, SFDC_LOGIN_URL_PRE_RELEASE, SFDC_LOGIN_URL_PROD, SFDC_LOGIN_URL_SANDBOX } from '@jetstream/shared/constants';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { addOrg } from '@jetstream/shared/ui-utils';
 import { AddOrgHandlerFn, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -19,6 +20,7 @@ import { fromAppState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router';
 import { useAnalytics } from '..';
 import { parseSalesforceLoginUrl } from './salesforce-login-url.utils';
 
@@ -72,6 +74,10 @@ export interface AddOrgProps {
   disabled?: boolean;
   omitIcon?: boolean;
   /**
+   * Adds a link to the Manage Orgs page in the popover footer. Requires a router context.
+   */
+  showManageOrgsLink?: boolean;
+  /**
    * If provided, the form will be pre-populated to reconnect the existing org.
    * Reconnecting is always available, only connecting a new org depends on the member's access profile. Members
    * who cannot connect new orgs can only reconnect to the existing org's login url.
@@ -91,6 +97,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
   popoverLabel = 'Add New Org',
   disabled,
   omitIcon,
+  showManageOrgsLink,
   existingOrg,
   onAddOrg,
   onAddOrgHandlerFn = addOrg,
@@ -296,6 +303,15 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
         <footer className="slds-popover__footer">
           <Grid verticalAlign="center">
             <GridCol>
+              {showManageOrgsLink && (
+                <Link
+                  to={{ pathname: APP_ROUTES.SALESFORCE_ORG_GROUPS.ROUTE, search: APP_ROUTES.SALESFORCE_ORG_GROUPS.SEARCH_PARAM }}
+                  onClick={() => popoverRef.current?.close()}
+                  className="slds-text-link slds-m-right_small"
+                >
+                  Manage Orgs
+                </Link>
+              )}
               <a href="https://docs.getjetstream.app/troubleshooting" target="_blank" rel="noopener noreferrer" className="slds-text-link">
                 Trouble Connecting?
               </a>
