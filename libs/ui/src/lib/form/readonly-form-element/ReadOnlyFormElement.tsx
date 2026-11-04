@@ -79,7 +79,7 @@ export const ReadOnlyFormElement: FunctionComponent<ReadOnlyFormElementProps> = 
         <div className="slds-form-element__static">
           {isString(value) && showViewLookup ? (
             <>
-              <button className="slds-button" onClick={() => viewRelatedRecord(value, metadata)} title="View related record">
+              <button type="button" className="slds-button" onClick={() => viewRelatedRecord(value, metadata)} title="View related record">
                 {relatedRecord.Name}
               </button>
               <span className="slds-m-left_xx-small">({value})</span>

@@ -1,3 +1,4 @@
+import { axeScan } from '@jetstream/test-utils';
 import { fireEvent, render, screen } from '@testing-library/react';
 import Radio from '../Radio';
 import RadioGroup from '../RadioGroup';
@@ -82,3 +83,41 @@ test('changing checkbox should change active item', async () => {
 //   // expect(screen.getByRole('radio', { checked: true }).getAttribute('value')).toEqual('radio1');
 //   // expect(screen.getByRole('radio', { checked: false }).getAttribute('value')).toEqual('radio2');
 // });
+
+test('hideLabel keeps the group name for assistive technology only', async () => {
+  const { baseElement } = render(
+    <RadioGroup label="View" hideLabel isButtonGroup>
+      <Radio name="view" label="Edited" value="edited" checked onChange={() => undefined} />
+    </RadioGroup>,
+  );
+
+  const group = screen.getByRole('radiogroup', { name: 'View' });
+  expect(group.querySelector('legend')?.className).toContain('slds-assistive-text');
+  await axeScan(baseElement);
+});
+
+test('a group that also holds other controls keeps the native group role', async () => {
+  const { baseElement } = render(
+    <RadioGroup label="Map to Lookup Options" hasNonRadioControls>
+      <Radio name="lookup" label="Use first found record" value="FIRST" checked onChange={() => undefined} />
+      <input type="checkbox" aria-label="Set value to null if no match is found" />
+    </RadioGroup>,
+  );
+
+  expect(screen.queryByRole('radiogroup')).toBeNull();
+  expect(screen.getByRole('group', { name: 'Map to Lookup Options' })).toBeTruthy();
+  await axeScan(baseElement);
+});
+
+test('the group, not each radio, carries the help text and error descriptions', () => {
+  render(
+    <RadioGroup idPrefix="lookup" label="If multiple matches" helpText="Applies to every row" hasError errorMessage="Choose one">
+      <Radio name="lookup" label="Use first match" value="first" checked={false} onChange={() => undefined} />
+    </RadioGroup>,
+  );
+
+  const group = screen.getByRole('radiogroup', { name: 'If multiple matches' });
+  const descriptionIds = group.getAttribute('aria-describedby')?.split(' ') ?? [];
+  expect(descriptionIds.map((id) => document.getElementById(id)?.textContent)).toEqual(['Applies to every row', 'Choose one']);
+  expect(screen.getByRole('radio', { name: 'Use first match' }).hasAttribute('aria-describedby')).toBe(false);
+});

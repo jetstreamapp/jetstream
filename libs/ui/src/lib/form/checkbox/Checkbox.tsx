@@ -23,6 +23,8 @@ export interface CheckboxProps {
   isStandAlone?: boolean;
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
+  /** Extra attributes for the native input (e.g. data-grid-inner-focus for grid cells) */
+  inputProps?: React.InputHTMLAttributes<HTMLInputElement> & { [dataAttribute: `data-${string}`]: string | boolean | undefined };
   onChange?: (value: boolean) => void;
   onChangeNative?: (event: SyntheticEvent<HTMLInputElement>) => void;
   onBlur?: () => void;
@@ -48,6 +50,7 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
   tabIndex,
   hideLabel = false,
   isStandAlone = false,
+  inputProps,
   onChange,
   onChangeNative,
   onBlur,
@@ -67,6 +70,9 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
     }
   }, [inputRef, localInputRef, indeterminate, checked]);
 
+  const labelHelpId = labelHelp ? `${id}-label-help-text` : undefined;
+  const helpTextId = helpText ? `${id}-help-text` : undefined;
+
   return (
     <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
       {isStandAlone && (
@@ -79,7 +85,7 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
             )}
             {label}
           </label>
-          {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
+          {labelHelp && <HelpText id={labelHelpId} content={labelHelp} />}
         </Fragment>
       )}
       <div className="slds-form-element__control">
@@ -94,16 +100,18 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
             type="checkbox"
             name="options"
             id={id}
+            aria-invalid={hasError || undefined}
             checked={checked || false}
             disabled={readOnly || disabled}
             readOnly={readOnly}
             tabIndex={tabIndex}
-            aria-describedby={errorMessageId}
+            aria-describedby={[labelHelpId, helpTextId, errorMessageId].filter(Boolean).join(' ') || undefined}
             onChange={(event) => {
               onChange && onChange(event.target?.checked || false);
               onChangeNative && onChangeNative(event);
             }}
             onBlur={onBlur}
+            {...inputProps}
           />
           {isStandAlone && <span className="slds-checkbox_faux"></span>}
           {!isStandAlone && (
@@ -112,12 +120,16 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
                 <span className="slds-checkbox_faux"></span>
                 <span className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })}>{label}</span>
               </label>
-              {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
+              {labelHelp && <HelpText id={labelHelpId} content={labelHelp} />}
             </Fragment>
           )}
         </div>
       </div>
-      {helpText && <div className="slds-form-element__help">{helpText}</div>}
+      {helpText && (
+        <div className="slds-form-element__help" id={helpTextId}>
+          {helpText}
+        </div>
+      )}
       {hasError && errorMessage && (
         <div className="slds-form-element__help" id={errorMessageId}>
           {errorMessage}
