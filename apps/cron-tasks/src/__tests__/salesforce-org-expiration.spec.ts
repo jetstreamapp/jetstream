@@ -75,7 +75,7 @@ export const prisma = new PrismaClient({ adapter });
 export async function createUser(lastLoggedIn: Date | null = new Date()) {
   const userId = uuid();
   return await prisma.user.create({
-    data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId, lastLoggedIn },
+    data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, lastLoggedIn },
   });
 }
 

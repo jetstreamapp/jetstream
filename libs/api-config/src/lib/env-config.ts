@@ -102,7 +102,6 @@ const envSchema = z.object({
   EXAMPLE_USER: z
     .object({
       id: z.string(),
-      userId: z.string(),
       name: z.string(),
       email: z.string(),
       emailVerified: z.boolean(),

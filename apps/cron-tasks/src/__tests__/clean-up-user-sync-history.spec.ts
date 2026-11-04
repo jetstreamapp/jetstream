@@ -398,9 +398,9 @@ describe('UserSyncData Cleanup Integration Test', () => {
 
     await prisma.user.createMany({
       data: [
-        { id: userId1, email: `${TEST_PREFIX}-${userId1}@test.com`, name: userId1, userId: userId1 },
-        { id: userId2, email: `${TEST_PREFIX}-${userId2}@test.com`, name: userId2, userId: userId2 },
-        { id: userId3, email: `${TEST_PREFIX}-${userId3}@test.com`, name: userId3, userId: userId3 },
+        { id: userId1, email: `${TEST_PREFIX}-${userId1}@test.com`, name: userId1 },
+        { id: userId2, email: `${TEST_PREFIX}-${userId2}@test.com`, name: userId2 },
+        { id: userId3, email: `${TEST_PREFIX}-${userId3}@test.com`, name: userId3 },
       ],
     });
 
