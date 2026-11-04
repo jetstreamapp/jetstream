@@ -80,9 +80,14 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
       () => (filterValue ? tabs.filter(multiWordObjectFilter(['titleText', 'title', 'id'], filterValue)) : tabs),
       [tabs, filterValue],
     );
-    // The roving tab stop must be a RENDERED tab: when the vertical filter hides the active tab, fall
+    // The tab holding keyboard focus, which under manual activation can differ from the selected tab. Tracked
+    // so the roving tab stop moves with focus: otherwise Shift+Tab from the focused tab lands back on the
+    // selected one instead of leaving the tablist. Cleared when focus leaves the list so Tab re-enters at
+    // the selected tab.
+    const [focusedTabId, setFocusedTabId] = useState<string | null>(null);
+    // The roving tab stop must be a RENDERED tab: when the vertical filter hides the focused/active tab, fall
     // back to the first visible one so the tablist stays reachable with Tab
-    const rovingTabId = filteredTabs.some((tab) => tab.id === activeId) ? activeId : filteredTabs[0]?.id;
+    const rovingTabId = [focusedTabId, activeId].find((id) => id && filteredTabs.some((tab) => tab.id === id)) ?? filteredTabs[0]?.id;
 
     const tablistRef = useRef<HTMLUListElement>(null);
     // Looked up within this tab list: ids such as `tab-results` or `tab-1` repeat when another Tabs instance is on
@@ -130,8 +135,9 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
       // The focused tab, which under manual activation can be a different one from the selected tab
       const focusedIndex = filteredTabs.findIndex((tab) => `tab-${tab.id}` === target.id);
       const hasModifier = event.metaKey || event.ctrlKey || event.altKey || event.shiftKey;
-      // Modified presses belong to page shortcuts (Cmd/Ctrl+Enter saves, Cmd/Ctrl+Shift+Enter goes back)
-      if (activationMode === 'manual' && !hasModifier && (event.key === 'Enter' || event.key === ' ') && focusedIndex >= 0) {
+      // Modified presses belong to page shortcuts (Cmd/Ctrl+Enter saves, Cmd/Ctrl+Shift+Enter goes back). A tab is an
+      // anchor without an href, so Enter/Space have no native activation and are handled in both modes
+      if (!hasModifier && (event.key === 'Enter' || event.key === ' ') && focusedIndex >= 0) {
         event.preventDefault();
         setActiveId(filteredTabs[focusedIndex].id);
         onChange?.(filteredTabs[focusedIndex].id);
@@ -160,6 +166,20 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
         onChange?.(nextTab.id);
       }
       focusTabElement(nextTab.id);
+    }
+
+    function handleTabListFocus(event: React.FocusEvent<HTMLUListElement>) {
+      const { target } = event;
+      if (target.getAttribute('role') !== 'tab') {
+        return;
+      }
+      setFocusedTabId(filteredTabs.find((tab) => `tab-${tab.id}` === target.id)?.id ?? null);
+    }
+
+    function handleTabListBlur(event: React.FocusEvent<HTMLUListElement>) {
+      if (!event.currentTarget.contains(event.relatedTarget)) {
+        setFocusedTabId(null);
+      }
     }
 
     function getContent() {
@@ -227,6 +247,8 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
           aria-orientation={position}
           style={ulStyle}
           onKeyDown={handleTabListKeyDown}
+          onFocus={handleTabListFocus}
+          onBlur={handleTabListBlur}
         >
           {children}
           {filterVisible && position === 'vertical' && (

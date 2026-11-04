@@ -188,4 +188,35 @@ describe('ReadonlyList', () => {
       expect(onSelected).not.toHaveBeenCalled();
     },
   );
+
+  describe('Enter and Space on a row', () => {
+    const getContentWithLink = (item: TestItem) => ({
+      ...getContent(item),
+      children: item.id === 'item-1' ? <a href="https://example.com/record">View record</a> : undefined,
+    });
+
+    test.each(['Enter', ' '])('%j on a secondary control inside a row activates the control, not the row', (key) => {
+      const onSelected = vi.fn();
+      render(<List items={items} isActive={() => false} getContent={getContentWithLink} onSelected={onSelected} />);
+      const link = screen.getByRole('link', { name: 'View record' });
+      link.focus();
+
+      const notPrevented = fireEvent.keyDown(link, { key });
+
+      expect(notPrevented).toBe(true);
+      expect(onSelected).not.toHaveBeenCalled();
+    });
+
+    test.each(['Enter', ' '])('%j on the focused option itself selects the row', (key) => {
+      const onSelected = vi.fn();
+      render(<List items={items} isActive={() => false} getContent={getContentWithLink} onSelected={onSelected} />);
+      const [firstOption] = screen.getAllByRole('option');
+      firstOption.focus();
+
+      const notPrevented = fireEvent.keyDown(firstOption, { key });
+
+      expect(notPrevented).toBe(false);
+      expect(onSelected).toHaveBeenCalledWith('item-1');
+    });
+  });
 });

@@ -14,7 +14,7 @@ vi.mock('@jetstream/ui/app-state', async () => {
 import { axeScan } from '@jetstream/test-utils';
 import { Field, FieldWrapper, QueryFields, SalesforceOrgUi } from '@jetstream/types';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import SobjectFieldList from '../SobjectFieldList';
 
 const org = { uniqueId: 'org-1', label: 'Acme', instanceUrl: 'https://acme.my.salesforce.com' } as SalesforceOrgUi;

@@ -268,6 +268,10 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
         }
         return;
       } else if (!useCheckbox && !hasModifierKey(event) && isEnterOrSpace(event)) {
+        // Enter/Space on a row's secondary control (a link, a details button) activates that control natively
+        if (event.target !== event.currentTarget && event.target !== focusedRow) {
+          return;
+        }
         // A modified Enter (Cmd/Ctrl/Alt) belongs to page and dialog shortcuts, not to row selection
         event.stopPropagation();
         event.preventDefault();

@@ -1,6 +1,6 @@
 import { axeScan } from '@jetstream/test-utils';
 import { UiTabSection } from '@jetstream/types';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import Tabs from '../Tabs';
 
@@ -125,6 +125,41 @@ describe('Tabs', () => {
     fireEvent.keyDown(getTab('tab-alpha'), { key: ' ' });
     expect(screen.getByRole('tabpanel').textContent).toContain('Alpha Content');
   });
+
+  test('with manual activation the roving tab stop follows focus, so Shift+Tab from the focused tab leaves the list', () => {
+    render(<Tabs tabs={tabs} activationMode="manual" />);
+    const getTab = (id: string) => screen.getAllByRole('tab').find((tab) => tab.getAttribute('aria-controls') === id)!;
+
+    act(() => getTab('tab-alpha').focus());
+    fireEvent.keyDown(getTab('tab-alpha'), { key: 'ArrowRight' });
+
+    expect(document.activeElement).toBe(getTab('tab-beta'));
+    expect(getTab('tab-beta').getAttribute('tabindex')).toBe('0');
+    expect(getTab('tab-alpha').getAttribute('tabindex')).toBe('-1');
+    // Nothing was selected on the way
+    expect(screen.getByRole('tabpanel').textContent).toContain('Alpha Content');
+
+    // Focus leaving the list puts the tab stop back on the selected tab
+    act(() => (document.activeElement as HTMLElement).blur());
+    expect(getTab('tab-alpha').getAttribute('tabindex')).toBe('0');
+    expect(getTab('tab-beta').getAttribute('tabindex')).toBe('-1');
+  });
+
+  test.each(['Enter', ' '])(
+    'with automatic activation %j activates the focused tab (the first visible one after a filter hides the selected tab)',
+    (key) => {
+      const onChange = vi.fn();
+      render(<Tabs tabs={tabs} onChange={onChange} />);
+      const betaTab = screen.getAllByRole('tab').find((tab) => tab.getAttribute('aria-controls') === 'tab-beta')!;
+      betaTab.focus();
+
+      const notPrevented = fireEvent.keyDown(betaTab, { key });
+
+      expect(notPrevented).toBe(false);
+      expect(onChange).toHaveBeenCalledWith('tab-beta');
+      expect(screen.getByRole('tabpanel').textContent).toContain('Beta Content');
+    },
+  );
 
   test('with manual activation Cmd/Ctrl+Enter on a tab is left to the page shortcuts', () => {
     render(<Tabs tabs={tabs} activationMode="manual" />);
