@@ -1,15 +1,12 @@
 import { useDraggable } from '@dnd-kit/react';
 import { css } from '@emotion/react';
 import { getOrgType } from '@jetstream/shared/ui-utils';
-import { truncateMiddle } from '@jetstream/shared/utils';
 import { AddOrgHandlerFn, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Grid, Icon } from '@jetstream/ui';
 import { OrgInfoPopover, useUpdateOrgs } from '@jetstream/ui-core';
+import { MiddleTruncatedText } from './MiddleTruncatedText';
 import { DraggableSfdcCard } from './organization-group.types';
 import { SalesforceOrgCardConnectionRefresh } from './SalesforceOrgCardConnectionRefresh';
-
-const MAX_USERNAME_LABEL_LENGTH = 34;
-const MAX_INSTANCE_URL_LENGTH = 50;
 
 interface SalesforceOrgCardDraggableProps {
   org: SalesforceOrgUi;
@@ -77,15 +74,23 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
           `}
         >
           <Grid align="spread" className="slds-m-right_medium">
-            <h2 className="slds-text-heading_small" title={org.label}>
+            <h2
+              className="slds-text-heading_small"
+              css={css`
+                min-width: 0;
+                flex: 1 1 auto;
+              `}
+            >
               {/* The end of a username is what distinguishes sandboxes, so truncate the middle of default labels */}
               {org.label === org.username ? (
-                truncateMiddle(org.label, MAX_USERNAME_LABEL_LENGTH)
+                <MiddleTruncatedText text={org.label} />
               ) : (
-                <span className="slds-truncate">{org.label}</span>
+                <span className="slds-truncate" title={org.label}>
+                  {org.label}
+                </span>
               )}
             </h2>
-            <Grid verticalAlign="center">
+            <Grid verticalAlign="center" className="slds-shrink-none slds-m-left_x-small">
               {org.color && (
                 <div
                   className="slds-swatch slds-m-right_x-small"
@@ -122,7 +127,7 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
               </Badge>
             )}
           </Grid>
-          <p title={org.instanceUrl}>{truncateMiddle(org.instanceUrl, MAX_INSTANCE_URL_LENGTH)}</p>
+          <MiddleTruncatedText text={org.instanceUrl} tailLength={24} />
         </div>
       </div>
       {isActive && (
