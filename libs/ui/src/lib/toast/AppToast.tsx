@@ -1,18 +1,36 @@
+import { css } from '@emotion/react';
 import { useObservable } from '@jetstream/shared/ui-utils';
 import { InfoSuccessWarningError } from '@jetstream/types';
-import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
+import React, { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Subject } from 'rxjs';
+import { useAnnouncer } from '../widgets/useAnnouncer';
 import { Toast } from './Toast';
 
 const appToastMessage = new Subject<AppToastMessage>();
 const appToastMessage$ = appToastMessage.asObservable();
 
 const DEFAULT_DURATION = 5000;
+const MAX_VISIBLE_TOASTS = 3;
+
+/**
+ * The newest toasts: errors stay until dismissed, so showing the oldest let a few unread errors hide every
+ * toast after them (each later one timed out without ever being rendered). A toast holding keyboard focus
+ * stays mounted even once newer ones would push it out, or focus would drop to the page.
+ */
+export function selectVisibleToasts<T extends { id: number }>(messages: T[], focusedToastId: number | null): T[] {
+  const newest = messages.slice(-MAX_VISIBLE_TOASTS);
+  const focusedToast = messages.find(({ id }) => id === focusedToastId);
+  if (!focusedToast || newest.includes(focusedToast)) {
+    return newest;
+  }
+  return [focusedToast, ...messages.slice(-(MAX_VISIBLE_TOASTS - 1))];
+}
 
 export interface AppToastMessage {
   type: InfoSuccessWarningError;
   message: string | React.ReactNode;
-  duration?: number; // <= 0 to keep until user closes
+  /** Auto-dismiss delay; <= 0 keeps the toast until the user closes it. Errors default to that. */
+  duration?: number;
 }
 
 export function fireToast(toast: AppToastMessage) {
@@ -21,13 +39,26 @@ export function fireToast(toast: AppToastMessage) {
 
 export interface AppToastMessageWithId extends AppToastMessage {
   id: number;
+  /** Resolved auto-dismiss delay (see `AppToastMessage.duration`) */
+  duration: number;
 }
+
+const toastWrapperCss = css`
+  display: contents;
+`;
 
 export const AppToast: FunctionComponent = () => {
   const newMessage = useObservable(appToastMessage$);
   const [activeMessages, setActiveMessages] = useState<AppToastMessageWithId[]>([]);
   const nextIdRef = useRef(0);
   const timersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+  const { announce, announcer } = useAnnouncer();
+  // Set while the pointer or keyboard focus rests on the toasts: a toast arriving during the pause must
+  // not start its own timer, or it could dismiss under the pointer
+  const isPausedRef = useRef(false);
+  const isPointerInsideRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [focusedToastId, setFocusedToastId] = useState<number | null>(null);
 
   useEffect(() => {
     return () => {
@@ -37,31 +68,131 @@ export const AppToast: FunctionComponent = () => {
     };
   }, []);
 
+  const startDismissTimer = useCallback((id: number, duration: number) => {
+    if (duration <= 0 || timersRef.current.has(id)) {
+      return;
+    }
+    const timeout = setTimeout(() => {
+      setActiveMessages((messages) => messages.filter((message) => message.id !== id));
+      timersRef.current.delete(id);
+    }, duration);
+    timersRef.current.set(id, timeout);
+  }, []);
+
+  // Auto-dismiss pauses while the pointer or keyboard focus is on the toasts (WCAG 2.2.1): a user
+  // moving toward the close button, or reading with a magnifier, must not lose the message mid-way
+  function pauseDismissTimers() {
+    isPausedRef.current = true;
+    timersRef.current.forEach((timeout) => clearTimeout(timeout));
+    timersRef.current.clear();
+  }
+  // Pointer and focus pause independently, so leaving with one must not resume while the other is still there
+  function resumeDismissTimersIfIdle({ focusLeft = false }: { focusLeft?: boolean } = {}) {
+    const container = containerRef.current;
+    const focusIsInside = !focusLeft && !!container?.contains(document.activeElement);
+    if (isPointerInsideRef.current || focusIsInside) {
+      return;
+    }
+    isPausedRef.current = false;
+    activeMessages.forEach(({ id, duration }) => startDismissTimer(id, duration));
+  }
+
+  // A toast closed from its own X is removed while it holds focus (or the pointer), and a removed element
+  // fires neither blur nor mouseleave — the pause it started would never end and later toasts would
+  // stay up until someone hovered them
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!isPausedRef.current || !container) {
+      return;
+    }
+    isPointerInsideRef.current = container.matches(':hover');
+    if (isPointerInsideRef.current || container.contains(document.activeElement)) {
+      return;
+    }
+    isPausedRef.current = false;
+    activeMessages.forEach(({ id, duration }) => startDismissTimer(id, duration));
+  }, [activeMessages, startDismissTimer]);
+
   useEffect(() => {
     if (!newMessage) {
       return;
     }
 
     const id = nextIdRef.current++;
-    const duration = newMessage.duration ?? DEFAULT_DURATION;
+    // Errors stay until dismissed: they are the toasts a user must be able to read and act on
+    const duration = newMessage.duration ?? (newMessage.type === 'error' ? 0 : DEFAULT_DURATION);
 
-    setActiveMessages((messages) => [...messages, { id, ...newMessage }]);
-
-    if (duration > 0) {
-      const timeout = setTimeout(() => {
-        setActiveMessages((messages) => messages.filter((m) => m.id !== id));
-        timersRef.current.delete(id);
-      }, duration);
-      timersRef.current.set(id, timeout);
+    setActiveMessages((messages) => {
+      // A toast that stays until dismissed is shown once however often its source repeats (a platform event
+      // reconnect loop firing the same error), instead of stacking copies the user has to close one by one
+      const isRepeat =
+        duration <= 0 &&
+        typeof newMessage.message === 'string' &&
+        messages.some((message) => message.duration <= 0 && message.type === newMessage.type && message.message === newMessage.message);
+      return isRepeat ? messages : [...messages, { ...newMessage, id, duration }];
+    });
+    if (!isPausedRef.current) {
+      startDismissTimer(id, duration);
     }
-  }, [newMessage]);
+
+    // Non-error toasts are announced through ONE persistent polite region — a status region that
+    // mounts already containing its text is skipped by most screen readers. Errors render as
+    // role="alert", which IS announced on insertion, so they are not mirrored (that would double them).
+    if (newMessage.type !== 'error' && typeof newMessage.message === 'string') {
+      announce(newMessage.message);
+    }
+  }, [newMessage, startDismissTimer, announce]);
 
   return (
-    <div data-testid="toast-notify-container" className="slds-notify_container">
-      {activeMessages.slice(0, 3).map(({ id, message, type }) => (
-        <Toast key={id} type={type} onClose={() => setActiveMessages((messages) => messages.filter((m) => m.id !== id))} showIcon>
-          {message}
-        </Toast>
+    <div
+      ref={containerRef}
+      data-testid="toast-notify-container"
+      className="slds-notify_container"
+      // The strip spans the whole viewport width but the toast boxes are centered: only the boxes may
+      // catch the pointer, otherwise the transparent strip blocks header controls beneath it and its
+      // hover pauses auto-dismiss while the pointer merely rests near the top of the page
+      css={css`
+        pointer-events: none;
+        .slds-notify {
+          pointer-events: auto;
+        }
+      `}
+      onMouseEnter={() => {
+        isPointerInsideRef.current = true;
+        pauseDismissTimers();
+      }}
+      onMouseLeave={() => {
+        isPointerInsideRef.current = false;
+        resumeDismissTimersIfIdle();
+      }}
+      onFocus={(event) => {
+        const toastId = (event.target as Element).closest<HTMLElement>('[data-toast-id]')?.dataset.toastId;
+        setFocusedToastId(toastId === undefined ? null : Number(toastId));
+        pauseDismissTimers();
+      }}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setFocusedToastId(null);
+          resumeDismissTimersIfIdle({ focusLeft: true });
+        }
+      }}
+    >
+      {announcer}
+      {selectVisibleToasts(activeMessages, focusedToastId).map(({ id, message, type }) => (
+        // display: contents keeps the wrapper out of the notify container's layout
+        <div key={id} data-toast-id={id} css={toastWrapperCss}>
+          <Toast
+            type={type}
+            liveRegion={
+              /* errors are alerts; a JSX message cannot go through the announcer above, so it keeps its own status region */ type ===
+                'error' || typeof message !== 'string'
+            }
+            onClose={() => setActiveMessages((messages) => messages.filter((message) => message.id !== id))}
+            showIcon
+          >
+            {message}
+          </Toast>
+        </div>
       ))}
     </div>
   );
