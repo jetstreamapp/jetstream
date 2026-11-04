@@ -59,7 +59,6 @@ export async function createSsoFixture(options: SsoFixtureOptions = {}): Promise
     const user = await prisma.user.create({
       data: {
         email,
-        userId: `credentials|${email}`,
         password: await hash(password),
         emailVerified: true,
         tosAcceptedVersion: CURRENT_TOS_VERSION,

@@ -38,7 +38,6 @@ const OTHER_TEAM_ID = 'dddddddd-0000-4000-8000-dddddddddddd';
 
 const EXISTING_USER = {
   id: 'aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
-  userId: 'credentials|aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
   name: 'Existing User',
   emailVerified: true,
   tosAcceptedVersion: '1',

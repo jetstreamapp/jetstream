@@ -25,7 +25,6 @@ test.describe('Security Checks', () => {
       await prisma.user.create({
         data: {
           id: userId,
-          userId: jetstreamUserId,
           email,
           emailVerified: true,
           name: 'Test User',
