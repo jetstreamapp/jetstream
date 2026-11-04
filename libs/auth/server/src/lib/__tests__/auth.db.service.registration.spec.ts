@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CURRENT_TOS_VERSION } from '../auth.constants';
-import { handleSignInOrRegistration } from '../auth.db.service';
+import { handleSignInOrRegistration, PLACEHOLDER_USER } from '../auth.db.service';
 import { EmailDomainNotAllowed, SsoRequired } from '../auth.errors';
 
 /**
@@ -38,7 +38,6 @@ const OTHER_TEAM_ID = 'dddddddd-0000-4000-8000-dddddddddddd';
 
 const EXISTING_USER = {
   id: 'aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
-  userId: 'credentials|aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
   name: 'Existing User',
   emailVerified: true,
   tosAcceptedVersion: '1',
@@ -100,7 +99,7 @@ describe('handleSignInOrRegistration - credentials register', () => {
     );
     // The enumeration-safe branch: a placeholder user routed to email verification, not an error
     expect(result.isNewUser).toBe(false);
-    expect(result.user.userId).toBe(`invalid|${ALLOWED_EMAIL}`);
+    expect(result.user.id).toBe(PLACEHOLDER_USER.id);
     expect(result.verificationRequired.email).toBe(true);
   });
 
@@ -137,7 +136,7 @@ describe('handleSignInOrRegistration - credentials register', () => {
         teamInvite: { token: 'invite-token', teamId: TEAM_ID },
       });
 
-      expect(result.user.userId).toBe(`invalid|${SSO_DOMAIN_EMAIL}`);
+      expect(result.user.id).toBe(PLACEHOLDER_USER.id);
     });
 
     it('rejects an address that already has an account the same way when the invite role cannot bypass SSO', async () => {

@@ -28,7 +28,6 @@ async function createUser(overrides: { lockedUntil?: Date | null; failedLoginAtt
   return prisma.user.create({
     data: {
       id,
-      userId: id,
       email: `${TEST_PREFIX}-${id}@test.com`,
       name: `Test User ${id}`,
       ...overrides,

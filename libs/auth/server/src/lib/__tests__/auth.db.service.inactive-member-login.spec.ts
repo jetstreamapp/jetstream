@@ -50,7 +50,6 @@ const providerUser = {
 function makeInactiveAdmin() {
   return {
     id: USER_ID,
-    userId: `google|${providerUser.id}`,
     name: 'Ex Admin',
     email: EMAIL,
     emailVerified: true,

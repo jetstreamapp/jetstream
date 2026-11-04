@@ -10,9 +10,6 @@ datasource db {
 
 model User {
   id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  // TODO: we should deprecate this field - is there a purpose of having two user ids?
-  // Might be nice to rename this to something like "legacyId" for reference
-  userId            String    @unique @db.VarChar
   // TODO: we want to make this unique
   email             String    @db.VarChar
   emailVerified     Boolean   @default(false)

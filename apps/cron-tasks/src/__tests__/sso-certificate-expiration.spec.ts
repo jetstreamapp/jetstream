@@ -51,7 +51,7 @@ export const prisma = new PrismaClient({ adapter });
 async function createUser() {
   const userId = uuid();
   return await prisma.user.create({
-    data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId },
+    data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId },
   });
 }
 

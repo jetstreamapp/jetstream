@@ -302,7 +302,6 @@ export function checkUserAgentSimilarity(sessionUserAgent: string, currentUserAg
 export const convertUserProfileToSession_External = (user: UserProfileUi): UserProfileSession => {
   return {
     id: user.id,
-    userId: user.userId || user.id,
     name: user.name,
     email: user.email,
     emailVerified: user.emailVerified,

@@ -17,7 +17,6 @@ import { resolveFeatureFlagsForUser } from './feature-flags.db';
 
 const FullUserFacingProfileSelect = {
   id: true,
-  userId: true,
   name: true,
   email: true,
   emailVerified: true,
@@ -76,7 +75,6 @@ const FullUserFacingProfileSelect = {
 
 const UserFacingProfileSelect = {
   id: true,
-  userId: true,
   name: true,
   email: true,
   emailVerified: true,

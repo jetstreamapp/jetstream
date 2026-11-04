@@ -263,7 +263,6 @@ describe('auth.controller - placeholder session email suppression', () => {
         user: {
           id: authServerMocks.PLACEHOLDER_USER_ID,
           email: 'existing@example.com',
-          userId: 'invalid|existing@example.com',
           name: 'Invalid User',
           emailVerified: false,
           authFactors: [],

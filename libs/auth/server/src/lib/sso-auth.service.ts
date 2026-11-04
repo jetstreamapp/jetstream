@@ -399,7 +399,6 @@ export async function handleSsoLogin(
         const { id: userId } = await tx.user.create({
           data: {
             email,
-            userId: `${provider}|${email}`,
             name: [userInfo.firstName, userInfo.lastName].filter(Boolean).join(' ') || email,
             emailVerified: true,
             lastLoggedIn: new Date(),

@@ -357,7 +357,6 @@ export function getFullUserProfile() {
 
   const userProfile: UserProfileUiDesktop = {
     id: appData.userProfile.id,
-    userId: appData.userProfile.id,
     email: appData.userProfile.email,
     name: appData.userProfile.name,
     emailVerified: true,

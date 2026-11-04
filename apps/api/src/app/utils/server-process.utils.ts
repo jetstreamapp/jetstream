@@ -183,7 +183,6 @@ async function initExampleUserIfRequired() {
       await prisma.user.upsert({
         create: {
           id: user.id,
-          userId: user.userId,
           email: user.email,
           emailVerified: user.emailVerified,
           name: user.name,

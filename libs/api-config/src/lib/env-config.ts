@@ -42,7 +42,6 @@ const EXAMPLE_USER: UserProfileSession = {
   name: 'Test User',
   email: 'test@example.com',
   emailVerified: true,
-  userId: 'test|aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
   authFactors: [],
   tosAcceptedVersion: 'test-tos-version',
 };
@@ -103,7 +102,6 @@ const envSchema = z.object({
   EXAMPLE_USER: z
     .object({
       id: z.string(),
-      userId: z.string(),
       name: z.string(),
       email: z.string(),
       emailVerified: z.boolean(),

@@ -214,7 +214,7 @@ export async function findProductionOrganizationId(userId: string): Promise<stri
 export async function createOrUpdateSalesforceOrg(userId: string, salesforceOrgUi: Partial<SalesforceOrgUi>) {
   const userWithOrgs = await prisma.user.findFirstOrThrow({
     where: { id: userId },
-    select: { id: true, userId: true, salesforceOrgs: true },
+    select: { id: true, salesforceOrgs: true },
   });
   const existingOrg = userWithOrgs.salesforceOrgs.find((org) => org.uniqueId === salesforceOrgUi.uniqueId);
 
@@ -290,7 +290,7 @@ export async function createOrUpdateSalesforceOrg(userId: string, salesforceOrgU
       select: SELECT,
       data: {
         jetstreamUserId2: userWithOrgs.id,
-        jetstreamUserId: userWithOrgs.userId,
+        jetstreamUserId: userWithOrgs.id,
         jetstreamUrl: ENV.JETSTREAM_SERVER_URL,
         jetstreamOrganizationId: salesforceOrgUi.jetstreamOrganizationId,
         label: salesforceOrgUi.label || salesforceOrgUi.username,
