@@ -1,5 +1,30 @@
 [
   {
+    "slug": "v10.30.0",
+    "title": "10.30.0 - Custom permissions in Manage Permissions",
+    "date": "2026-11-04",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.30.0", "desktop": "4.23.0", "extension": "3.28.0" },
+    "summary": "Manage Permissions has a new Custom Permissions tab for granting and revoking custom permissions across profiles and permission sets.",
+    "highlights": [
+      {
+        "title": "Custom Permissions tab",
+        "description": "Grant or revoke every custom permission in the org, including packaged ones, across the selected profiles and permission sets.",
+        "docLink": "/permissions"
+      },
+      {
+        "title": "Create custom permissions",
+        "description": "A New Custom Permission button on the tab creates one and adds it to the table, ready to be granted.",
+        "docLink": "/permissions"
+      },
+      {
+        "title": "Objects are optional in Manage Permissions",
+        "description": "Open the editor with only profiles or permission sets selected to manage system and custom permissions.",
+        "docLink": "/permissions"
+      }
+    ]
+  },
+  {
     "slug": "v10.29.0",
     "title": "10.29.0 - Settings search and bulk download fixes",
     "date": "2026-11-03",

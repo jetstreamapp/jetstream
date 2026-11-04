@@ -1,0 +1,47 @@
+---
+slug: v10.30.0
+title: 10.30.0 - Custom permissions in Manage Permissions
+date: '2026-11-04'
+tags: [web, desktop, extension]
+versions:
+  web: 10.30.0
+  desktop: 4.23.0
+  extension: 3.28.0
+summary: Manage Permissions has a new Custom Permissions tab for granting and revoking custom permissions across profiles and permission sets.
+highlights:
+  - title: Custom Permissions tab
+    description: Grant or revoke every custom permission in the org, including packaged ones, across the selected profiles and permission sets.
+    docLink: /permissions
+  - title: Create custom permissions
+    description: A New Custom Permission button on the tab creates one and adds it to the table, ready to be granted.
+    docLink: /permissions
+  - title: Objects are optional in Manage Permissions
+    description: Open the editor with only profiles or permission sets selected to manage system and custom permissions.
+    docLink: /permissions
+---
+
+{/* truncate */}
+
+## What's new
+
+### Custom Permissions tab
+
+Manage Permissions has a new Custom Permissions tab next to System Permissions. It lists every custom permission in the org, including those from installed packages, with a checkbox for each selected profile and permission set. Check a box to grant the custom permission, uncheck it to revoke it, then save.
+
+- Row, column, bulk and paste actions work the same as on the other tabs.
+- Managed permission sets are read-only.
+- The export includes a Custom Permissions sheet (or csv file).
+
+### Create custom permissions
+
+Use **New Custom Permission** on the Custom Permissions tab to create one without leaving Jetstream. It is created through a metadata deployment and then added to the table, and unsaved changes on other tabs are kept. Creating a custom permission requires the Manage Custom Permissions or Customize Application user permission. Deleting and renaming custom permissions is still done in Setup, since other metadata may reference them.
+
+### Objects are optional in Manage Permissions
+
+System permissions and custom permissions do not depend on objects, so you can now open the editor with only profiles or permission sets selected. The editor opens on System Permissions, and the object, tab visibility and field tabs show a notice instead.
+
+### Other fixes
+
+- Fixed an error that could prevent the review step from loading in multi-object Load Records when the file produced a large number of record groups.
+- Outbound changeset dropdown entries without a description now display at normal height.
+- The error message in the team SSO configuration modal stays visible while the modal is scrolled.
