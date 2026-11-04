@@ -104,12 +104,18 @@ export function EditorHost<TRow extends object>({ editingCell, table, getRootEle
         aria-label={editorColumnName ? `Edit ${editorColumnName}` : 'Edit cell'}
         className="slds-popover slds-popover_edit jgrid-editor"
         style={{ ...floatingStyles, zIndex: 9050, minWidth }}
-        onKeyDown={(event) => {
+        // Escape cancels the edit from the capture phase: an editor control that handles Escape itself and stops
+        // the event (a focused picklist option closing its list) would otherwise hide it from this dialog and leave
+        // the draft open to be committed later
+        onKeyDownCapture={(event) => {
           if (event.key === 'Escape') {
             event.preventDefault();
             event.stopPropagation();
             handleClose(false, true);
-          } else if (event.key === 'Tab') {
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Tab') {
             event.preventDefault();
             event.stopPropagation();
             handleClose(true, true);

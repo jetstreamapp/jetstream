@@ -283,6 +283,39 @@ describe('useGridKeyboardNavigation — mouse range drag', () => {
   });
 });
 
+describe('useGridKeyboardNavigation — spanning header', () => {
+  /** The permission-manager shape: a group header over the Name and Amount sub-columns renders ONE header cell */
+  const spanningHeaderColumns: TanstackColumnDef<Row>[] = [
+    {
+      id: 'Name',
+      accessorKey: 'Name',
+      meta: { jetstream: { colSpan: ({ type }) => (type === 'HEADER' ? 2 : 1) } } as TanstackColumnDef<Row>['meta'],
+    },
+    { id: 'Amount', accessorKey: 'Amount' },
+  ];
+
+  test.each(['ArrowDown', 'Escape'])('Up into the spanning header then %s returns to the column the user left', (exitKey) => {
+    const { result } = renderNav({ columns: spanningHeaderColumns });
+    act(() => result.current.keyboardNav.handleCellMouseDown('1', 'Amount', false));
+
+    act(() => result.current.keyboardNav.handleKeyDown(keyEvent('ArrowUp')));
+    // The header cell is owned by the span's first column
+    expect(result.current.keyboardNav.activeCell).toEqual({ rowId: HEADER_ROW_ID, columnId: 'Name' });
+
+    act(() => result.current.keyboardNav.handleKeyDown(keyEvent(exitKey)));
+    expect(result.current.keyboardNav.activeCell).toEqual({ rowId: '1', columnId: 'Amount' });
+  });
+
+  test('after moving along the header, leaving it vertically uses the header cell that was moved to', () => {
+    const { result } = renderNav({ columns: spanningHeaderColumns });
+    act(() => result.current.keyboardNav.handleHeaderCellMouseDown('Name'));
+
+    act(() => result.current.keyboardNav.handleKeyDown(keyEvent('ArrowDown')));
+
+    expect(result.current.keyboardNav.activeCell).toEqual({ rowId: '1', columnId: 'Name' });
+  });
+});
+
 describe('useGridKeyboardNavigation — empty body (a filter matched zero rows)', () => {
   test('Tab-in seeds the header row so the column filters stay reachable', () => {
     const { result } = renderNav({ data: [] });

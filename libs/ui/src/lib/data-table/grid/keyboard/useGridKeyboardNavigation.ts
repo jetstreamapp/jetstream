@@ -940,21 +940,24 @@ export function useGridKeyboardNavigation<TRow extends object>({
           0,
           columns.findIndex((column) => column.id === activeCell.columnId),
         );
+        // A spanning header (a profile-name group over its Read/Edit sub-columns) owns several columns, so
+        // leaving it vertically returns to the column the user came from, not to the span's first column
+        const verticalExitColIndex = clamp(desiredColRef.current ?? headerColIndex, 0, columns.length - 1);
         switch (event.key) {
           case 'ArrowDown':
             consume();
             // Step into the summary rows if present (column filters / bulk actions), else the body.
             // keepDesiredCol: a vertical step must not overwrite the sticky column when snapping.
             if (summaryRowCount > 0) {
-              applySelection(getSummaryRowId(0), columns[headerColIndex].id, false, true);
+              applySelection(getSummaryRowId(0), columns[verticalExitColIndex].id, false, true);
             } else {
-              moveTo(0, headerColIndex, false, true);
+              moveTo(0, verticalExitColIndex, false, true);
             }
             break;
           case 'Escape':
             consume();
             // Escape jumps straight to the data (skipping the summary rows). moveTo handles group snapping.
-            moveTo(0, headerColIndex, false, true);
+            moveTo(0, verticalExitColIndex, false, true);
             break;
           case 'ArrowUp':
             consume();

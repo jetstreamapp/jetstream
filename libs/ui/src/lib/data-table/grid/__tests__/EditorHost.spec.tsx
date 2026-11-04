@@ -52,6 +52,22 @@ function EditorClosesOnTab({ row, onRowChange, onClose }: DataTableEditorProps<R
   );
 }
 
+/** Mirrors a focused multi-select picklist option: it handles Escape itself and stops the key from bubbling */
+function EditorStopsEscape({ row, onRowChange }: DataTableEditorProps<Row>) {
+  return (
+    <input
+      data-testid="editor-stops-escape"
+      value={row.Name || ''}
+      onChange={(event) => onRowChange({ ...row, Name: event.target.value })}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          event.stopPropagation();
+        }
+      }}
+    />
+  );
+}
+
 function Harness({
   columns,
   getRootElement,
@@ -104,6 +120,20 @@ describe('EditorHost', () => {
     // A second commit of the same draft would push a second, empty undo step
     expect(onCommitRow).toHaveBeenCalledTimes(1);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test('Escape from an editor control that stops the key still discards the draft', () => {
+    const root = createGridRoot();
+    const onCommitRow = vi.fn();
+    const onClose = vi.fn();
+    render(<Harness columns={buildColumns(EditorStopsEscape)} getRootElement={() => root} onCommitRow={onCommitRow} onClose={onClose} />);
+    const editor = screen.getByTestId('editor-stops-escape');
+
+    fireEvent.change(editor, { target: { value: 'Drafted value' } });
+    fireEvent.keyDown(editor, { key: 'Escape' });
+
+    expect(onCommitRow).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledWith(false, true);
   });
 
   test('swapping to a hook-bearing editor mid-edit remounts the editor instead of crashing (React #310 regression)', () => {
