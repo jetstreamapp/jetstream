@@ -23,6 +23,7 @@ import { Observable } from 'rxjs';
 import browser from 'webextension-polyfill';
 import { environment } from '../environments/environment';
 import { useExtensionErrorTracker } from '../hooks/useExtensionErrorTracker';
+import { useHistorySyncAccess } from '../hooks/useHistorySyncAccess';
 import { chromeLocalStorage, chromeSyncStorage, UserProfileState } from '../utils/extension.store';
 import { sendMessage } from '../utils/web-extension.utils';
 import { GlobalExtensionError } from './GlobalExtensionError';
@@ -50,6 +51,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
   const { authTokens, extIdentifier, soqlQueryFormatOptions } = useAtomValue(chromeSyncStorage);
   const { options } = useAtomValue(chromeLocalStorage);
   const chromeUserProfile = useAtomValue(UserProfileState);
+  const { allowed: canSyncHistory } = useHistorySyncAccess();
   const { serverUrl } = useAtomValue(fromAppState.applicationCookieState);
   const setAppInfo = useSetAtom(fromAppState.appInfoState);
   const setUserProfile = useSetAtom(fromAppState.userProfileState);
@@ -121,7 +123,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
     if (!authTokens?.accessToken || !extIdentifier?.id || !chromeUserProfile?.id || isDifferentUser) {
       return;
     }
-    const recordSyncEnabled = options.recordSyncEnabled && !!authTokens?.accessToken && !!extIdentifier?.id;
+    const recordSyncEnabled = options.recordSyncEnabled && canSyncHistory && !!authTokens?.accessToken && !!extIdentifier?.id;
     if (recordSyncEnabled) {
       initSocket(serverUrl, {
         [HTTP.HEADERS.AUTHORIZATION]: `Bearer ${authTokens.accessToken}`,
@@ -142,6 +144,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
     chromeUserProfile?.id,
     isDifferentUser,
     options.recordSyncEnabled,
+    canSyncHistory,
     serverUrl,
     initDataHistoryAndSeedState,
   ]);

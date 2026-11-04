@@ -21,6 +21,7 @@ import * as webExtDb from '../db/web-extension.db';
 import { emitRecordSyncEventsToOtherClients, SyncEvent } from '../services/data-sync-broadcast.service';
 import * as externalAuthService from '../services/external-auth.service';
 import { decryptJwtToken } from '../services/jwt-token-encryption.service';
+import { assertHistorySyncAllowed } from '../utils/access-profile.utils';
 import { getPendingSessionRedirectPath } from '../utils/pending-session.utils';
 import { redirect, sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
@@ -311,6 +312,7 @@ const logout = createRoute(routeDefinition.logout.validators, async ({ user }, r
 });
 
 const dataSyncPull = createRoute(routeDefinition.dataSyncPull.validators, async ({ user, query }, _, res) => {
+  await assertHistorySyncAllowed(user.id);
   const { lastKey, updatedAt, limit } = query;
   const response = await userSyncDbService.findByUpdatedAt({
     userId: user.id,
@@ -325,6 +327,7 @@ const dataSyncPull = createRoute(routeDefinition.dataSyncPull.validators, async 
  * Push changes to server and emit to any other clients the user has active
  */
 const dataSyncPush = createRoute(routeDefinition.dataSyncPush.validators, async ({ user, body: records, query }, req, res) => {
+  await assertHistorySyncAllowed(user.id);
   const response = await userSyncDbService.syncRecordChanges({
     updatedAt: query.updatedAt,
     userId: user.id,

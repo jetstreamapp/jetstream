@@ -12,6 +12,7 @@ import {
   FULL_ACCESS_POLICY,
   getAccessProfileFingerprint,
   getAccessProfilePolicyWarnings,
+  isAccessProfileOperationAllowed,
   isAccessProfileSurfaceAllowed,
 } from '../access-profile.types';
 
@@ -229,5 +230,23 @@ describe('getAccessProfileFingerprint', () => {
     expect(getAccessProfileFingerprint({ id: 'profile-1', version: 2 })).not.toBe(original);
     expect(getAccessProfileFingerprint({ id: 'profile-2', version: 1 })).not.toBe(original);
     expect(getAccessProfileFingerprint(null)).not.toBe(original);
+  });
+});
+
+describe('isAccessProfileOperationAllowed', () => {
+  it('allows every operation for a member without a profile', () => {
+    expect(isAccessProfileOperationAllowed(null, 'history.sync')).toBe(true);
+    expect(isAccessProfileOperationAllowed(undefined, 'history.sync')).toBe(true);
+  });
+
+  it('allows an operation the policy lists and denies one it does not', () => {
+    const policy = { v: 1, tools: [], operations: ['history.sync'], surfaces: [] };
+
+    expect(isAccessProfileOperationAllowed({ policy }, 'history.sync')).toBe(true);
+    expect(isAccessProfileOperationAllowed({ policy }, 'records.write')).toBe(false);
+  });
+
+  it('denies when the stored policy cannot be read', () => {
+    expect(isAccessProfileOperationAllowed({ policy: null }, 'history.sync')).toBe(false);
   });
 });

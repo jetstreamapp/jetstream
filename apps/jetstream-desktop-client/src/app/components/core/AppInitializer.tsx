@@ -1,3 +1,4 @@
+import { canPerformOperation } from '@jetstream/acl';
 import { DesktopAuthInfo } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, HTTP_SOURCE_DESKTOP } from '@jetstream/shared/constants';
@@ -67,7 +68,8 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ authInf
   useElectronActionLoader();
 
   const recordSyncEntitlementEnabled = ability.can('access', 'RecordSync');
-  const recordSyncEnabled = recordSyncEntitlementEnabled && userProfile.preferences.recordSyncEnabled;
+  const canSyncHistory = canPerformOperation(ability, 'history.sync');
+  const recordSyncEnabled = recordSyncEntitlementEnabled && canSyncHistory && userProfile.preferences.recordSyncEnabled;
 
   const activeUserId = userProfile.id && userProfile.id !== DEFAULT_PROFILE.id ? userProfile.id : null;
   // Suspend until both local stores are scoped to this user, so no descendant reads local storage

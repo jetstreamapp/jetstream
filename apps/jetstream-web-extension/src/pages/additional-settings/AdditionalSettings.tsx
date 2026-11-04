@@ -30,6 +30,7 @@ export function AdditionalSettings() {
     setEnabled,
     recordSyncEnabled,
     setRecordSyncEnabled,
+    recordSyncDeniedReason,
     // TEMPORARILY DISABLED - see the commented-out toggle below
     // crashReportingEnabled,
     // setCrashReportingEnabled,
@@ -102,7 +103,11 @@ export function AdditionalSettings() {
               {/* No link into the app — this page has no Salesforce `host` param, so Data History is reached from the app nav */}
               <DataHistorySettingsSection hideViewHistoryLink />
               <SettingsGroup title="Sync">
-                <HistorySyncSettings enabled={recordSyncEnabled} onChange={(value) => setRecordSyncEnabled(value)} />
+                <HistorySyncSettings
+                  enabled={recordSyncEnabled}
+                  deniedReason={recordSyncDeniedReason}
+                  onChange={(value) => setRecordSyncEnabled(value)}
+                />
               </SettingsGroup>
             </SettingsSection>
           </SettingsLayout>
