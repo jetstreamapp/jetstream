@@ -1,11 +1,15 @@
 import { useDraggable } from '@dnd-kit/react';
 import { css } from '@emotion/react';
 import { getOrgType } from '@jetstream/shared/ui-utils';
+import { truncateMiddle } from '@jetstream/shared/utils';
 import { AddOrgHandlerFn, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Grid, Icon } from '@jetstream/ui';
 import { OrgInfoPopover, useUpdateOrgs } from '@jetstream/ui-core';
 import { DraggableSfdcCard } from './organization-group.types';
 import { SalesforceOrgCardConnectionRefresh } from './SalesforceOrgCardConnectionRefresh';
+
+const MAX_USERNAME_LABEL_LENGTH = 34;
+const MAX_INSTANCE_URL_LENGTH = 50;
 
 interface SalesforceOrgCardDraggableProps {
   org: SalesforceOrgUi;
@@ -73,13 +77,15 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
           `}
         >
           <Grid align="spread" className="slds-m-right_medium">
-            <h2 className="slds-truncate slds-text-heading_small">{org.label}</h2>
-            <Grid verticalAlign="center">
-              {orgType && (
-                <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType} className="slds-m-right_x-small">
-                  {orgType}
-                </Badge>
+            <h2 className="slds-text-heading_small" title={org.label}>
+              {/* The end of a username is what distinguishes sandboxes, so truncate the middle of default labels */}
+              {org.label === org.username ? (
+                truncateMiddle(org.label, MAX_USERNAME_LABEL_LENGTH)
+              ) : (
+                <span className="slds-truncate">{org.label}</span>
               )}
+            </h2>
+            <Grid verticalAlign="center">
               {org.color && (
                 <div
                   className="slds-swatch slds-m-right_x-small"
@@ -108,10 +114,15 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
             onRemoveOrg={handleRemoveOrg}
           />
 
-          <p className="slds-m-top_x-small">{org.organizationId}</p>
-          <p className="slds-truncate" title={org.instanceUrl}>
-            {org.instanceUrl}
-          </p>
+          <Grid verticalAlign="center" className="slds-m-top_x-small">
+            <span className="slds-m-right_x-small">{org.organizationId}</span>
+            {orgType && (
+              <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType}>
+                {orgType}
+              </Badge>
+            )}
+          </Grid>
+          <p title={org.instanceUrl}>{truncateMiddle(org.instanceUrl, MAX_INSTANCE_URL_LENGTH)}</p>
         </div>
       </div>
       {isActive && (
