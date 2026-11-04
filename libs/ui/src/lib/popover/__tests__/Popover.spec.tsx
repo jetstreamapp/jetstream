@@ -294,10 +294,13 @@ describe('Popover', () => {
       </Popover>,
     );
     await openPopover();
-    await act(async () => {
+    // The popover's focus manager can move focus after it opens, which closes a tooltip that opened on focus
+    // (focusout), so keep focusing the trigger until the tooltip stays open
+    await waitFor(() => {
       screen.getByRole('button', { name: 'Hint trigger' }).focus();
+      expect(screen.getByRole('tooltip')).toBeTruthy();
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Hint trigger' }));
     });
-    await waitFor(() => expect(screen.getByRole('tooltip')).toBeTruthy());
 
     pressEscape(screen.getByRole('button', { name: 'Hint trigger' }));
 
