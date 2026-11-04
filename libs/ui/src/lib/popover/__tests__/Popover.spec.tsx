@@ -311,4 +311,29 @@ describe('Popover', () => {
 
     await waitFor(() => expect(screen.queryByTitle('Close dialog')).toBeNull());
   });
+
+  test('with codeEditorEscapeLeavesEditor, Escape inside a code editor leaves the popover open and the next Escape closes it', async () => {
+    render(
+      <Popover
+        codeEditorEscapeLeavesEditor
+        content={
+          <div className="monaco-editor">
+            <textarea aria-label="Query editor" />
+          </div>
+        }
+      >
+        Open Popover
+      </Popover>,
+    );
+    await openPopover();
+    const editorInput = screen.getByRole('textbox', { name: 'Query editor' });
+
+    pressEscape(editorInput);
+
+    expect(screen.getByTitle('Close dialog')).toBeTruthy();
+
+    pressEscape(screen.getByTitle('Close dialog'));
+
+    await waitFor(() => expect(screen.queryByTitle('Close dialog')).toBeNull());
+  });
 });
