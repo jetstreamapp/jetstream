@@ -150,6 +150,7 @@
   },
   "private": true,
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@contentful/rich-text-react-renderer": "^16.2.2",
@@ -213,6 +214,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/coverage-v8": "5.0.5",
     "archiver": "^8.0.0",
+    "axe-core": "^4.13.0",
     "chrome-types": "^0.1.449",
     "contentful": "^11.12.10",
     "cross-env": "^10.1.0",
@@ -242,6 +244,7 @@
     "typescript": "6.0.3",
     "vite": "^8.3.4",
     "vitest": "5.0.5",
+    "vitest-axe": "^0.1.0",
     "web-ext": "^10.7.0",
     "xml-crypto": "^6.4.0",
     "zx": "^8.8.5"
