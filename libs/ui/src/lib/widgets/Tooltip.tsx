@@ -15,6 +15,7 @@ import {
 } from '@floating-ui/react';
 import { Maybe } from '@jetstream/types';
 import { FunctionComponent, memo, MouseEvent, useEffect, useRef, useState } from 'react';
+import { useEscapeToCloseLayer } from '../hooks/useEscapeToCloseLayer';
 import { usePortalContext } from '../modal/PortalContext';
 
 export interface TooltipProps {
@@ -88,7 +89,10 @@ const TooltipComponent: FunctionComponent<TooltipProps> = ({
   });
   const focus = useFocus(context, { enabled: hasContent });
   const role = useRole(context, { role: ariaRole });
-  const dismiss = useDismiss(context, { enabled: hasContent });
+  // Escape is owned by useEscapeToCloseLayer below: an enclosing Popover consumes Escape at document capture
+  // before useDismiss's listener runs, so the whole popover closed instead of just the tooltip
+  const dismiss = useDismiss(context, { enabled: hasContent, escapeKey: false });
+  useEscapeToCloseLayer(open && hasContent, () => setOpen(false));
 
   // With the interactions disabled nothing would close a tooltip whose content went away while it was open
   useEffect(() => {

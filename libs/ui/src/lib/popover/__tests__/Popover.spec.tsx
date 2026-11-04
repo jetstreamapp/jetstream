@@ -12,6 +12,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { Fragment, useState } from 'react';
 import Modal from '../../modal/Modal';
+import { Tooltip } from '../../widgets/Tooltip';
 import { Popover } from '../Popover';
 
 /** A popover living inside a modal — the Escape ownership case the layer hook exists for. */
@@ -278,5 +279,33 @@ describe('Popover', () => {
     pressEscape(screen.getByRole('button', { name: 'Open Popover' }));
 
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Host modal' })).toBeNull());
+  });
+
+  test('Escape with a tooltip open inside the popover closes only the tooltip', async () => {
+    render(
+      <Popover
+        content={
+          <Tooltip content="Helpful hint">
+            <button type="button">Hint trigger</button>
+          </Tooltip>
+        }
+      >
+        Open Popover
+      </Popover>,
+    );
+    await openPopover();
+    await act(async () => {
+      screen.getByRole('button', { name: 'Hint trigger' }).focus();
+    });
+    await waitFor(() => expect(screen.getByRole('tooltip')).toBeTruthy());
+
+    pressEscape(screen.getByRole('button', { name: 'Hint trigger' }));
+
+    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+    expect(screen.getByTitle('Close dialog')).toBeTruthy();
+
+    pressEscape(screen.getByRole('button', { name: 'Hint trigger' }));
+
+    await waitFor(() => expect(screen.queryByTitle('Close dialog')).toBeNull());
   });
 });
