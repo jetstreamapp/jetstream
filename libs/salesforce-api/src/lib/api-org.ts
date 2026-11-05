@@ -1,6 +1,5 @@
-import { isSObjectBlobFieldUrl } from '@jetstream/shared/utils';
+import { isHostRelativeUrlPath, isSObjectBlobFieldUrl } from '@jetstream/shared/utils';
 import { Maybe, SalesforceUserIdentity } from '@jetstream/types';
-import isString from 'lodash/isString';
 import { ApiConnection } from './connection';
 import { SalesforceApi } from './utils';
 
@@ -9,10 +8,16 @@ export class ApiOrg extends SalesforceApi {
     super(connection);
   }
 
+  /**
+   * `retURL` is where Salesforce sends the user after the frontdoor login, so only a host-relative
+   * path on the org's own instance is forwarded. Anything else is dropped and Salesforce lands on its
+   * default page. Callers validate at their edge as well; this is the backstop for the ones that
+   * bypass them (e.g. the desktop window-open handler).
+   */
   getFrontdoorLoginUrl(returnUrl?: Maybe<string>): string {
     const url = new URL(`${this.sessionInfo.instanceUrl}/secur/frontdoor.jsp`);
     url.searchParams.append('sid', this.sessionInfo.accessToken);
-    if (isString(returnUrl) && returnUrl) {
+    if (isHostRelativeUrlPath(returnUrl)) {
       url.searchParams.append('retURL', returnUrl);
     }
     return url.toString();

@@ -27,3 +27,15 @@ export function isQueryLocatorUrl(value: unknown): value is string {
 export function isSObjectBlobFieldUrl(value: unknown): value is string {
   return typeof value === 'string' && SOBJECT_BLOB_FIELD_URL_REGEX.test(value);
 }
+
+/**
+ * A host-relative path that is safe to hand to a redirect that resolves it against a fixed origin
+ * (e.g. the `retURL` of the Salesforce frontdoor login): exactly one leading `/` (so no `//host`
+ * or `/\host` authority tricks), no scheme, and no backslashes, whitespace or control characters.
+ */
+// eslint-disable-next-line no-control-regex -- intentionally rejecting C0/DEL control chars in the path
+const HOST_RELATIVE_URL_PATH_REGEX = /^\/(?![/\\])[^\\\s\x00-\x1f\x7f]*$/;
+
+export function isHostRelativeUrlPath(value: unknown): value is string {
+  return typeof value === 'string' && HOST_RELATIVE_URL_PATH_REGEX.test(value);
+}
