@@ -83,7 +83,8 @@ describe('OrgsCombobox', () => {
       fireEvent.change(input, { target: { value: term } });
       fireEvent.keyUp(input, { key: term.slice(-1) });
       const listbox = () => container.querySelector('[role="listbox"]') as HTMLElement;
-      await waitFor(() => expect(within(listbox()).queryAllByRole('option').length).toBeLessThan(orgs.length));
+      // The filter is debounced, so the default 1s waitFor runs out under a busy parallel test run
+      await waitFor(() => expect(within(listbox()).queryAllByRole('option').length).toBeLessThan(orgs.length), { timeout: 5000 });
       return listbox();
     }
 

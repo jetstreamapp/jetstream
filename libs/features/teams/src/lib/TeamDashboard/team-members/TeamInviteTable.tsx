@@ -17,7 +17,7 @@ export function TeamInviteTable({ invitations, accessProfiles, canUpdate, onUser
   return (
     <table
       data-testid="team-invite-table"
-      aria-describedby="team-members-heading"
+      aria-label="Team member invitations"
       className="slds-table slds-table_cell-buffer slds-table_bordered"
     >
       <thead>
