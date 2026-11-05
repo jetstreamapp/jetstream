@@ -6,12 +6,16 @@ name: Publish Desktop (macOS)
 # The signing cert is auto-imported by electron-builder via CSC_LINK/CSC_KEY_PASSWORD.
 # The provisioning profile and App Store Connect API key are kept out of git
 # (build-resources/.gitignore), so they're materialized from secrets at runtime.
+#
+# Triggered automatically by the `desktop-v*` tag that the main Release workflow
+# (release.yml) pushes via the GitHub App token, so it builds the already-bumped
+# version. Can also be dispatched manually against `main` or a `desktop-v*` tag.
 
 on:
   workflow_dispatch:
     inputs:
       ref:
-        description: "Git ref (tag or branch) to build"
+        description: "Git ref to build: `main` or a `desktop-v*` release tag"
         required: true
         default: "main"
   push:
@@ -30,6 +34,16 @@ jobs:
   build-macos:
     runs-on: macos-latest
     timeout-minutes: 60
+    # The signing, notarization and update-feed credentials belong to the `desktop-release`
+    # GitHub environment. Its protection rules are configured in the repository settings
+    # (Settings > Environments > desktop-release) and must include:
+    #   - Required reviewers, so every run (tag push or manual dispatch) waits for approval.
+    #     `pnpm release` only auto-approves the `production` environment of release.yml, so
+    #     approve this run from the GitHub UI or `gh run review <run-id> --approve`.
+    #   - Deployment branches and tags limited to `main` and `desktop-v*`.
+    #   - The APPLE_* and AWS_DESKTOP_UPDATES_* secrets defined as environment secrets
+    #     (and removed from the repository level) so no other workflow can read them.
+    environment: desktop-release
     env:
       NODE_OPTIONS: "--max_old_space_size=8192"
       # `prisma generate` runs as part of the nx build graph and loads prisma.config.ts,
@@ -38,26 +52,28 @@ jobs:
       JETSTREAM_POSTGRES_DBURI: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
       # Turns on the mac signing branch in electron-builder.config.js
       IS_CODESIGNING_ENABLED: "true"
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      # Notarization (notarytool) — APPLE_API_KEY (the .p8 path) is set at runtime below
-      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-      # Developer ID cert — electron-builder imports this into a temp keychain
-      CSC_LINK: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
-      CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DESKTOP_UPDATES_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DESKTOP_UPDATES_SECRET_ACCESS_KEY }}
-      AWS_ENDPOINT_URL: ${{ secrets.AWS_DESKTOP_UPDATES_ENDPOINT_URL }}
-      # Public key (base64 SPKI DER) baked into the renderer to verify the server's feature flag signature
-      NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY: ${{ secrets.NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY }}
-      # Public Better Stack DSN baked into the renderer, which hands it to the main process at boot.
-      # Unset means no error reporting from the desktop app rather than a failed build.
-      NX_PUBLIC_SENTRY_DSN_DESKTOP: ${{ secrets.NX_PUBLIC_SENTRY_DSN_DESKTOP }}
 
     steps:
+      # A manual dispatch may only build `main` or a release tag. Resolving the input to a fully
+      # qualified ref also means a branch that happens to be named like a tag is never built.
+      - name: Resolve ref to build
+        id: ref
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          INPUT_REF: ${{ github.event.inputs.ref }}
+        run: |
+          if [[ "$INPUT_REF" == "main" ]]; then
+            echo "checkout-ref=refs/heads/main" >> "$GITHUB_OUTPUT"
+          elif [[ "$INPUT_REF" == desktop-v* ]]; then
+            echo "checkout-ref=refs/tags/${INPUT_REF}" >> "$GITHUB_OUTPUT"
+          else
+            echo "Error: ref must be 'main' or a 'desktop-v*' release tag. Got: ${INPUT_REF}"
+            exit 1
+          fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.inputs.ref || github.ref }}
+          ref: ${{ steps.ref.outputs.checkout-ref || github.ref }}
           persist-credentials: false
 
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -68,6 +84,29 @@ jobs:
         with:
           node-version: "24"
           cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The Prisma client is gitignored and generated on demand. It must exist before the
+      # desktop build: nx's `^build` ordering never runs prisma:build first because the
+      # intervening libraries (api-types, etc.) have no build target, so the build graph
+      # would otherwise race prisma:build against salesforce-api:build. Generating up front
+      # guarantees the client is on disk. (JETSTREAM_POSTGRES_DBURI is set at the job level.)
+      - name: Generate database client
+        run: pnpm db:generate
+
+      # Builds the nx desktop projects and assembles dist/desktop-build. Only the public values
+      # baked into the renderer are exposed here; the signing and publishing credentials are
+      # scoped to the publish step, so neither the build nor its dependency installs see them.
+      - name: Build desktop bundle
+        env:
+          # Public key (base64 SPKI DER) baked into the renderer to verify the server's feature flag signature
+          NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY: ${{ secrets.NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY }}
+          # Public Better Stack DSN baked into the renderer, which hands it to the main process at boot.
+          # Unset means no error reporting from the desktop app rather than a failed build.
+          NX_PUBLIC_SENTRY_DSN_DESKTOP: ${{ secrets.NX_PUBLIC_SENTRY_DSN_DESKTOP }}
+        run: pnpm build:desktop
 
       # electron-builder.config.js resolves the profile to build-resources/ (relative
       # to dist/desktop-build). build-resources/.gitignore keeps it out of the repo.
@@ -81,33 +120,32 @@ jobs:
       # Decode the .p8 to an absolute path and expose it as APPLE_API_KEY; the publish
       # step runs from dist/desktop-build, so a relative path would not resolve.
       - name: Write App Store Connect API key
+        id: apple-api-key
         env:
           APPLE_API_KEY_BASE64: ${{ secrets.APPLE_API_KEY_BASE64 }}
         run: |
           KEY_PATH="$RUNNER_TEMP/apple_api_key.p8"
           echo "$APPLE_API_KEY_BASE64" | base64 --decode > "$KEY_PATH"
-          echo "APPLE_API_KEY=$KEY_PATH" >> "$GITHUB_ENV"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      # The Prisma client is gitignored and generated on demand. It must exist before the
-      # desktop build: nx's `^build` ordering never runs prisma:build first because the
-      # intervening libraries (api-types, etc.) have no build target, so the build graph
-      # would otherwise race prisma:build against salesforce-api:build. Generating up front
-      # guarantees the client is on disk. (JETSTREAM_POSTGRES_DBURI is set at the job level.)
-      - name: Generate database client
-        run: pnpm db:generate
-
-      # Builds the nx desktop projects and assembles dist/desktop-build,
-      # writing the .env (Apple + S3-compatible storage creds) that electron-builder reads.
-      - name: Build desktop bundle
-        run: pnpm build:desktop
+          echo "key-path=$KEY_PATH" >> "$GITHUB_OUTPUT"
 
       # electron-builder --mac -p always: signs, notarizes, uploads the dmg/zip installers
       # + update metadata to the R2 desktop-updates bucket, and points clients at the release feed subdomain.
+      # electron-builder reads the credentials from this step's environment (IS_CODESIGNING_ENABLED is job-level).
       - name: Package, sign, notarize, and publish macOS installers
         working-directory: dist/desktop-build
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Notarization (notarytool)
+          APPLE_API_KEY: ${{ steps.apple-api-key.outputs.key-path }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          # Developer ID cert — electron-builder imports this into a temp keychain
+          CSC_LINK: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          # R2 desktop-updates bucket
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DESKTOP_UPDATES_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DESKTOP_UPDATES_SECRET_ACCESS_KEY }}
+          AWS_ENDPOINT_URL: ${{ secrets.AWS_DESKTOP_UPDATES_ENDPOINT_URL }}
         run: pnpm publish:mac
 
       - name: File GitHub issue for failed publish
