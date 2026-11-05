@@ -17,7 +17,6 @@ import {
   REGEX,
   delay,
   ensureArray,
-  ensureBoolean,
   getErrorMessage,
   orderObjectsBy,
   orderValues,
@@ -74,6 +73,7 @@ import isUndefined from 'lodash/isUndefined';
 import type { IDisposable, editor } from 'monaco-editor';
 import { UnparseConfig, parse as parseCsv, unparse, unparse as unparseCsv } from 'papaparse';
 import * as XLSX from 'xlsx';
+import { getOrgFromAddOrgMessage } from './add-org-message';
 import { decodeTextFile } from './decode-text-file';
 import { parseJson } from './parse-json';
 
@@ -1054,31 +1054,31 @@ export function getPicklistListItems(field: Field): ListItem[] {
 /// START ADD ORG ////
 let windowRef: Maybe<Window>;
 let addOrgCallbackFn: (org: SalesforceOrgUi) => void;
+/** Origin of the `/oauth-link/` page that posts the org back, i.e. the server that owns the OAuth flow */
+let expectedMessageOrigin: string;
+
+function stopListeningForAddOrg() {
+  window.removeEventListener('message', handleWindowEvent);
+  windowRef = null;
+}
 
 function handleWindowEvent(event: MessageEvent) {
-  if (isString(event.data)) {
-    try {
-      const org: SalesforceOrgUi = JSON.parse(event.data);
-      org.orgIsSandbox = ensureBoolean(org.orgIsSandbox);
-      // ensure from our origin // FIXME:
-      logger.log({ org });
-      if (addOrgCallbackFn) {
-        addOrgCallbackFn(org);
-      }
-      if (windowRef) {
-        windowRef.close();
-        window.removeEventListener('message', handleWindowEvent);
-      }
-    } catch {
-      // TODO: tell user there was a problem
-    }
+  const org = getOrgFromAddOrgMessage(event, expectedMessageOrigin, windowRef);
+  if (!org) {
+    return;
   }
+  logger.log({ org });
+  if (addOrgCallbackFn) {
+    addOrgCallbackFn(org);
+  }
+  windowRef?.close();
+  stopListeningForAddOrg();
 }
 
 export const addOrg: AddOrgHandlerFn = (options, callback) => {
   const { serverUrl, loginUrl, addLoginTrue, orgGroupId, loginHint } = options;
   addOrgCallbackFn = callback;
-  window.removeEventListener('message', handleWindowEvent);
+  stopListeningForAddOrg();
   const strWindowFeatures = 'toolbar=no, menubar=no, width=1025, height=700';
   const url = new URL(`${serverUrl}/oauth/sfdc/auth`);
   url.searchParams.set('loginUrl', loginUrl);
@@ -1092,8 +1092,12 @@ export const addOrg: AddOrgHandlerFn = (options, callback) => {
   if (orgGroupId) {
     url.searchParams.set('orgGroupId', orgGroupId);
   }
+  expectedMessageOrigin = url.origin;
   windowRef = window.open(url, 'Add Salesforce Org', strWindowFeatures);
-  window.addEventListener('message', handleWindowEvent, false);
+  // Nothing can post a legitimate completion message if the popup was blocked
+  if (windowRef) {
+    window.addEventListener('message', handleWindowEvent, false);
+  }
 };
 /// END ADD ORG ////
 
