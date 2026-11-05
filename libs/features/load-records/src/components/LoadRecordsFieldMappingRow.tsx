@@ -1,10 +1,10 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { FieldMappingItemCsv, FieldWithRelatedEntities, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Checkbox, ComboboxWithItems, Grid, Icon, Tooltip } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Checkbox, ComboboxWithItems, Grid, Icon, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
-import { Fragment, FunctionComponent, useState } from 'react';
+import { Fragment, FunctionComponent, MouseEvent, useState } from 'react';
 import { getComboboxFieldName, getComboboxFieldTitle, getFieldListItems } from '../utils/field-mapping-utils';
 import { LoadRecordsFieldMappingRelatedObject } from './LoadRecordsFieldMappingRelatedObject';
 
@@ -30,7 +30,7 @@ export interface LoadRecordsFieldMappingRowProps {
   binaryAttachmentBodyField?: Maybe<string>;
   /** An additional mapping can be removed, a column's own row can spawn more */
   isAdditionalMapping: boolean;
-  onRemoveRow?: () => void;
+  onRemoveRow?: (event?: MouseEvent<HTMLButtonElement>) => void;
   onAddAdditionalMapping?: () => void;
   onSelectionChanged: (mappingKey: string, fieldMappingItem: FieldMappingItemCsv) => void;
 }
@@ -212,10 +212,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
               'slds-button_icon-error': fieldMappingItem.targetField,
             })}
             title="Clear mapping"
-            onClick={() => {
-              handleSelectionChanged(null);
-            }}
-            disabled={!fieldMappingItem.targetField}
+            {...ariaDisabledButtonProps(!fieldMappingItem.targetField, () => handleSelectionChanged(null))}
           >
             <Icon type="utility" icon="clear" className="slds-button__icon" omitContainer />
             <span className="slds-assistive-text">Clear Mapping</span>

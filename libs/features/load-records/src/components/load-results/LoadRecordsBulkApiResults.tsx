@@ -24,6 +24,7 @@ import {
   ViewModalData,
 } from '@jetstream/types';
 import {
+  AssistiveStatus,
   ButtonGroupContainer,
   FileDownloadModal,
   Grid,
@@ -33,6 +34,7 @@ import {
   ScopedNotification,
   Spinner,
   Tooltip,
+  ariaDisabledButtonProps,
   fireToast,
 } from '@jetstream/ui';
 import {
@@ -45,7 +47,7 @@ import {
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { DataHistoryEntryHandle, buildBulkJobHistoryCounts } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { LoadFailureReach, captureBulkApiLoadResults, settleHistoryForFailedLoad } from '../../utils/data-history-capture';
 import {
   BULK_JOB_POLL_MAX_CHECKS,
@@ -145,6 +147,7 @@ export const LoadRecordsBulkApiResults = ({
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
   const [prepareDataProgress, setPrepareDataProgress] = useState(0);
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
+  const statusId = useId();
   const [fatalError, setFatalError] = useState<Maybe<string>>(null);
   const [downloadError, setDownloadError] = useState<Maybe<string>>(null);
   const [jobInfo, setJobInfo] = useState<BulkJobWithBatches>();
@@ -762,15 +765,19 @@ export const LoadRecordsBulkApiResults = ({
       )}
       <Grid verticalAlign="center" align="spread">
         <div>
+          {/* The status heading changes in place as the load progresses ("Uploading batch X of Y") — mirror it
+              into a persistent live region (a live-region role on the heading itself removed its heading semantics) */}
+          <AssistiveStatus message={`${status} ${getUploadingText() || ''}`.trim()} />
           <h3 className="slds-text-heading_small slds-grid">
             <Grid verticalAlign="center">
-              <span className="slds-m-right_x-small">
+              <span id={statusId} className="slds-m-right_x-small">
                 {status} <span className="slds-text-title">{getUploadingText()}</span>
               </span>
               {status === STATUSES.PREPARING && (
                 <div>
                   {!!prepareDataProgress && (
                     <ProgressRing
+                      aria-labelledby={statusId}
                       className="slds-m-right_x-small"
                       fillPercent={prepareDataProgress / 100}
                       size="medium"
@@ -790,12 +797,12 @@ export const LoadRecordsBulkApiResults = ({
             </Grid>
           </h3>
           {fatalError && (
-            <div className="slds-text-color_error">
+            <div className="slds-text-color_error" role="alert">
               <strong>Fatal Error</strong>: {fatalError}
             </div>
           )}
           {downloadError && (
-            <div className="slds-text-color_error">
+            <div className="slds-text-color_error" role="alert">
               <strong>Error preparing data</strong>: {downloadError}
             </div>
           )}
@@ -814,10 +821,10 @@ export const LoadRecordsBulkApiResults = ({
         <div>
           {ABORTABLE_STATUSES.has(status) && (
             <Tooltip content="Any batches in progress may not be able to be aborted.">
+              {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
               <button
                 className="slds-button slds-button_text-destructive slds-m-bottom_xx-small slds-is-relative"
-                disabled={status === STATUSES.ABORTING}
-                onClick={handleAbort}
+                {...ariaDisabledButtonProps(status === STATUSES.ABORTING, () => handleAbort())}
               >
                 {status === STATUSES.ABORTING && <Spinner size="small" />}
                 Abort Job
@@ -836,30 +843,29 @@ export const LoadRecordsBulkApiResults = ({
                 )}
                 {batchSummary && batchSummary.totalBatches > 1 && (
                   <>
+                    {/* Both stay focusable while their own click disables them — native disabled would drop focus to <body> */}
                     <button
                       className="slds-button slds-button_neutral"
-                      disabled={!!downloadState}
-                      onClick={() =>
+                      {...ariaDisabledButtonProps(!!downloadState, () =>
                         handleDownloadOrViewRecords({
                           scope: 'all',
                           action: 'download',
                           type: 'results',
-                        })
-                      }
+                        }),
+                      )}
                     >
                       <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
                       Download All
                     </button>
                     <button
                       className="slds-button slds-button_neutral"
-                      disabled={!!downloadState}
-                      onClick={() =>
+                      {...ariaDisabledButtonProps(!!downloadState, () =>
                         handleDownloadOrViewRecords({
                           scope: 'all',
                           action: 'view',
                           type: 'results',
-                        })
-                      }
+                        }),
+                      )}
                     >
                       <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
                       View All

@@ -3,6 +3,8 @@ import { Maybe } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
+  DisabledReasonButton,
+  getAriaKeyshortcuts,
   getModifierKey,
   Icon,
   Input,
@@ -110,7 +112,11 @@ export const MassUpdateRecordsDeployment = () => {
                 </div>
               }
             >
-              <Link className="slds-button slds-button_neutral slds-m-right_x-small" to="..">
+              <Link
+                className="slds-button slds-button_neutral slds-m-right_x-small"
+                aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'shift', 'enter'])}
+                to=".."
+              >
                 <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Go Back
               </Link>
@@ -118,21 +124,23 @@ export const MassUpdateRecordsDeployment = () => {
           )}
         </ToolbarItemGroup>
         <ToolbarItemActions>
-          <Tooltip
-            openDelay={500}
-            content={
-              writeAccess.deniedReason ?? (
-                <div className="slds-p-bottom_small">
-                  <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
-                </div>
-              )
+          {/* Stays focusable while its own click disables it, and says why when the user cannot update or the batch size is invalid */}
+          <DisabledReasonButton
+            className="slds-button slds-button_brand slds-is-relative"
+            aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+            disabled={deployDisabled}
+            disabledReason={writeAccess.deniedReason ?? batchSizeError}
+            tooltipOpenDelay={500}
+            tooltip={
+              <div className="slds-p-bottom_small">
+                <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+              </div>
             }
+            onClick={() => handleDeploy()}
           >
-            <button className="slds-button slds-button_brand slds-is-relative" onClick={handleDeploy} disabled={deployDisabled}>
-              {loading && <Spinner size="small" />}
-              Update Records
-            </button>
-          </Tooltip>
+            {loading && <Spinner size="small" />}
+            Update Records
+          </DisabledReasonButton>
         </ToolbarItemActions>
       </Toolbar>
       <AutoFullHeightContainer bottomBuffer={10} className="slds-p-around_small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>

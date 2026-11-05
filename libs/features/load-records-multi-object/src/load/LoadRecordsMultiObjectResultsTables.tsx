@@ -262,7 +262,8 @@ export const LoadRecordsMultiObjectResultsTables: FunctionComponent<LoadRecordsM
         <ExpandCollapseButton isExpanded={hasExpandedGroups} onToggle={toggleAllGroups} />
         <Checkbox id="show-failures-only" checked={showFailuresOnly} label="Show failures only" onChange={setShowFailuresOnly} />
       </Grid>
-      <Tabs tabs={tabs} />
+      {/* Each tab is a results grid, too costly to build for every tab the arrow keys pass */}
+      <Tabs tabs={tabs} activationMode="manual" />
     </div>
   );
 };

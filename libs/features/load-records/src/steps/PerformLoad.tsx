@@ -10,7 +10,20 @@ import {
   SalesforceOrgUiType,
   UiTabSection,
 } from '@jetstream/types';
-import { Badge, Checkbox, ConfirmationModalPromise, Grid, Input, Radio, RadioButton, RadioGroup, Spinner, Tabs } from '@jetstream/ui';
+import {
+  Badge,
+  Checkbox,
+  ConfirmationModalPromise,
+  DisabledReasonButton,
+  Grid,
+  Input,
+  Radio,
+  RadioButton,
+  RadioGroup,
+  Spinner,
+  Tabs,
+  TabsRef,
+} from '@jetstream/ui';
 import {
   ConfirmPageChange,
   fromLoadRecordsState,
@@ -26,10 +39,8 @@ import { ChangeEvent, FunctionComponent, useCallback, useEffect, useMemo, useRef
 import LoadRecordsAssignmentRules from '../components/LoadRecordsAssignmentRules';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
-import { useAllowedLoadTypes } from '../useAllowedLoadTypes';
+import { LOAD_TYPE_NOT_ALLOWED_MESSAGE, useAllowedLoadTypes } from '../useAllowedLoadTypes';
 import { buildLoadRecordsHistoryConfig, LoadRecordsHistoryConfig, startLoadRecordsHistory } from '../utils/data-history-capture';
-
-const LOAD_TYPE_NOT_ALLOWED_MESSAGE = `Your Jetstream access does not include this type of data load.`;
 
 /**
  * The only Data History values that differ between an initial load, a trial run and a retry —
@@ -102,6 +113,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const { trackEvent } = useAnalytics();
   const isLoadTypeAllowed = useAllowedLoadTypes().includes(loadType);
   const runIdCounter = useRef(0);
+  const runTabsRef = useRef<TabsRef>(null);
 
   const [apiMode, setApiMode] = useAtom(fromLoadRecordsState.apiModeState);
   const [batchSize, setBatchSize] = useAtom(fromLoadRecordsState.batchSizeState);
@@ -404,6 +416,11 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       onIsLoading(true);
       trackEvent(ANALYTICS_KEYS.load_Submitted, runSnapshot);
       document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
+      // The retry button the user activated unmounts with the old results view, which would drop
+      // focus to <body> — land on the new run's tab instead, once it has mounted
+      window.setTimeout(() => {
+        runTabsRef.current?.focusTab(String(newRunId));
+      });
     },
     [activeRun, runs, onIsLoading, trackEvent, apiMode, batchSize, fieldMapping, inputZipFileData, startHistoryForRun],
   );
@@ -475,6 +492,12 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     handleRetryFailedRecords,
   ]);
 
+  // Disabled conditions for the start buttons; DisabledReasonButton keeps them focusable (aria-disabled), so the
+  // aria-disabled attribute and the click guard can never drift apart
+  const startTrialRunDisabled =
+    hasDataInputError() || loadInProgressTrialRun || hasLoadResultsTrialRun || loadInProgress || !isLoadTypeAllowed;
+  const startLoadDisabled = hasDataInputError() || (trialRun && !hasLoadResultsTrialRun) || loadInProgress || !isLoadTypeAllowed;
+
   return (
     <div>
       <ConfirmPageChange actionInProgress={loadInProgress} />
@@ -496,9 +519,8 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           labelHelp="The Bulk API is optimized for loading in large datasets and you can view the progress within Salesforce. The Batch API will load records in sets of up to 200 at a time and cannot be used with large datasets."
         >
           <Radio
-            idPrefix="apiMode"
             id="apiMode-bulk"
-            name="BULK"
+            name="api-mode"
             label={bulkApiModeLabel}
             value="BULK"
             checked={apiMode === 'BULK'}
@@ -506,9 +528,8 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             onChange={setApiMode as (value: string) => void}
           />
           <Radio
-            idPrefix="apiMode"
             id="apiMode-batch"
-            name="BATCH"
+            name="api-mode"
             label={batchApiModeLabel}
             value="BATCH"
             checked={apiMode === 'BATCH'}
@@ -551,7 +572,6 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             className="slds-input"
             placeholder="Set batch size"
             value={batchSizeInput.inputValue}
-            aria-describedby={'batch-size-error'}
             disabled={loading || hasZipAttachment}
             onChange={batchSizeInput.handleChange}
             onBlur={batchSizeInput.handleBlur}
@@ -652,29 +672,29 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         <Grid>
           {trialRun && (
             <div className="slds-m-top_small slds-m-right_small">
-              <button
+              <DisabledReasonButton
                 data-testid="start-load"
                 className="slds-button slds-button_brand"
-                disabled={hasDataInputError() || loadInProgressTrialRun || hasLoadResultsTrialRun || loadInProgress || !isLoadTypeAllowed}
-                title={isLoadTypeAllowed ? undefined : LOAD_TYPE_NOT_ALLOWED_MESSAGE}
+                disabled={startTrialRunDisabled}
+                disabledReason={isLoadTypeAllowed ? undefined : LOAD_TYPE_NOT_ALLOWED_MESSAGE}
                 onClick={() => handleStartLoad(true)}
               >
                 {loadTypeLabel} <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedTrialRunLabel}</strong>{' '}
                 {pluralizeIfMultiple('Record', inputFileDataTrialRun)} (Dry Run)
-              </button>
+              </DisabledReasonButton>
             </div>
           )}
           <div className="slds-m-top_small">
-            <button
+            <DisabledReasonButton
               data-testid="start-load"
               className="slds-button slds-button_brand"
-              disabled={hasDataInputError() || (trialRun && !hasLoadResultsTrialRun) || loadInProgress || !isLoadTypeAllowed}
-              title={isLoadTypeAllowed ? undefined : LOAD_TYPE_NOT_ALLOWED_MESSAGE}
+              disabled={startLoadDisabled}
+              disabledReason={isLoadTypeAllowed ? undefined : LOAD_TYPE_NOT_ALLOWED_MESSAGE}
               onClick={() => handleStartLoad()}
             >
               {loadTypeLabel} <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedLabel}</strong>{' '}
               {pluralizeIfMultiple('Record', inputFileDataToLoad)}
-            </button>
+            </DisabledReasonButton>
           </div>
         </Grid>
       </div>
@@ -708,10 +728,12 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         {runTabs.length > 0 && (
           <div style={{ maxWidth: '100%', minWidth: 0 }}>
             <Tabs
+              ref={runTabsRef}
               tabs={runTabs}
               initialActiveId={activeRunId ?? undefined}
               onChange={setActiveRunId}
               renderAllContent
+              truncateLabels={false}
               style={{ maxWidth: '100%', minWidth: 0 }}
               // Hide the tab nav when there's only one run; a single-tab header adds UI noise
               // without value. The tabs themselves stay rendered so React preserves panel state
