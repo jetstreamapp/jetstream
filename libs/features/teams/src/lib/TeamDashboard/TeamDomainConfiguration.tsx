@@ -76,8 +76,10 @@ export function TeamDomainConfiguration({ teamId, domains, hasSsoEnabled, onChan
         window.setTimeout(() => {
           if (adjacentRow?.isConnected) {
             const controls = adjacentRow.querySelectorAll<HTMLElement>('button, a[href], input, [tabindex]');
-            (controls[controls.length - 1] ?? adjacentRow).focus();
-            return;
+            if (controls.length) {
+              controls[controls.length - 1].focus();
+              return;
+            }
           }
           document.getElementById(ADD_DOMAIN_BUTTON_ID)?.focus();
         });
