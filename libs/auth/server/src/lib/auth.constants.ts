@@ -16,6 +16,13 @@ export const EXISTING_ACCOUNT_NOTICE_INTERVAL_HOURS = 1;
 // (destroy the session for /auth/verify, delete the reset row for /password/reset/verify).
 export const MAX_VERIFICATION_ATTEMPTS = 5;
 
+// Per-account ceiling on second-factor submissions at /auth/verify, counted across every session and
+// IP address so that completing the first factor again does not hand out a fresh budget. Sized at two
+// sessions' worth of MAX_VERIFICATION_ATTEMPTS so a user who mistypes a few codes is never caught by it,
+// while an account-wide guessing campaign is capped at this many codes per window.
+export const MAX_SECOND_FACTOR_ATTEMPTS_PER_ACCOUNT = 10;
+export const SECOND_FACTOR_ATTEMPT_WINDOW_MINUTES = 15;
+
 // How long a minted-but-unconfirmed TOTP secret stays on the session. Long enough to install an
 // authenticator app and scan the code, short enough that an abandoned enrollment does not leave a
 // usable secret sitting on the session until it expires.

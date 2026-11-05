@@ -5,6 +5,7 @@ import {
   beginTotpEnrollment,
   claimExistingAccountNotice,
   clearOauthCookies,
+  clearSecondFactorAttempts,
   consumeTotpEnrollmentOrThrow,
   createOrUpdateOtpAuthFactor,
   createRememberDevice,
@@ -43,6 +44,7 @@ import {
   PLACEHOLDER_USER_ID,
   ProviderEmailNotVerified,
   ProviderNotAllowed,
+  reserveSecondFactorAttemptOrThrow,
   resetUserPassword,
   samlService,
   setUserEmailVerified,
@@ -797,6 +799,13 @@ const verification = createRoute(
         throw new ExpiredVerificationToken(`Pending verification is expired: ${pendingVerification.exp}`);
       }
 
+      // Account-wide budget, on top of the per-session counter below: a new first-factor login resets
+      // the session counter, this one only resets on a successful verification. Placeholder sessions
+      // never verify anything, so there is no account to charge.
+      if (!isPlaceholderUser) {
+        await reserveSecondFactorAttemptOrThrow(req.session.user.id);
+      }
+
       try {
         switch (pendingVerification.type) {
           case 'email': {
@@ -884,6 +893,7 @@ const verification = createRoute(
 
       req.session.pendingVerification = null;
       req.session.pendingVerificationAttempts = 0;
+      await clearSecondFactorAttempts(user.id);
 
       if (req.session.sendNewUserEmailAfterVerify && req.session.user) {
         req.session.sendNewUserEmailAfterVerify = undefined;
