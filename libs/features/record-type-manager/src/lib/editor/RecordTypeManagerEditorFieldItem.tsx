@@ -10,6 +10,11 @@ const BLANK_LIST_ITEM: ListItem = { id: SFDC_BLANK_PICKLIST_VALUE, label: '--Non
 
 interface RecordTypeManagerEditorFieldItemProps {
   label: string;
+  /**
+   * Full context for screen readers (e.g. "Status field — Sales record type"): the visible heading
+   * only shows one half, the other half lives in the accordion section title far above.
+   */
+  contextLabel?: string;
   picklistFieldEntry: PicklistFieldEntry;
   recordTypeName: string;
   picklistValues: Record<string, RecordTypePicklistConfiguration>;
@@ -20,6 +25,7 @@ interface RecordTypeManagerEditorFieldItemProps {
 
 export function RecordTypeManagerEditorFieldItem({
   label,
+  contextLabel,
   recordTypeName,
   picklistValues,
   picklistFieldEntry,
@@ -50,7 +56,11 @@ export function RecordTypeManagerEditorFieldItem({
   );
 
   return (
+    // Grouped-checkbox pattern: entering the group announces which picklist field and record type
+    // these value checkboxes (and the Default Value combobox) belong to
     <div
+      role="group"
+      aria-label={contextLabel ?? label}
       className="slds-m-left_x-small slds-m-bottom_x-small"
       css={css`
         min-width: fit-content;
