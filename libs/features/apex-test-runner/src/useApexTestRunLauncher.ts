@@ -3,7 +3,7 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import type { SalesforceOrgUi } from '@jetstream/types';
 import { useAnalytics } from '@jetstream/ui-core';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { buildRunTestsPayload, runTestsAsync } from './apex-test-runner-data.utils';
 import { useApexTestClasses } from './useApexTestClasses';
 import { useApexTestSuites } from './useApexTestSuites';
@@ -20,13 +20,17 @@ export function useApexTestRunLauncher(selectedOrg: SalesforceOrgUi, apiVersion:
   const [selectedClasses, setSelectedClasses] = useState<Map<string, Set<string> | 'ALL'>>(() => new Map());
   const [launching, setLaunching] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
+  // Bumped on every launch and org change so a launch started for a previous org can't touch the current org's state
+  const launchToken = useRef(0);
   const [maxFailedTests, setMaxFailedTests] = useState('');
   const [skipCodeCoverage, setSkipCodeCoverage] = useState(false);
 
   // The classes/suites hooks refetch on their own when the org changes, but this hook outlives the
   // switch (the header and tabs stay mounted) so selection and run options reset explicitly
   useNonInitialEffect(() => {
+    launchToken.current += 1;
     setSelectedClasses(new Map());
+    setLaunching(false);
     setLaunchError(null);
     setMaxFailedTests('');
     setSkipCodeCoverage(false);
@@ -102,6 +106,7 @@ export function useApexTestRunLauncher(selectedOrg: SalesforceOrgUi, apiVersion:
   const clearSelection = useCallback(() => setSelectedClasses(new Map()), []);
 
   const runSelectedTests = useCallback(async () => {
+    const token = ++launchToken.current;
     try {
       setLaunching(true);
       setLaunchError(null);
@@ -118,16 +123,24 @@ export function useApexTestRunLauncher(selectedOrg: SalesforceOrgUi, apiVersion:
         hasMaxFailedTests: runOptions.maxFailedTests !== undefined,
         source: 'classes',
       });
+      if (token !== launchToken.current) {
+        return;
+      }
       onRunStarted(asyncApexJobId);
     } catch (ex) {
-      setLaunchError(getErrorMessage(ex));
+      if (token === launchToken.current) {
+        setLaunchError(getErrorMessage(ex));
+      }
     } finally {
-      setLaunching(false);
+      if (token === launchToken.current) {
+        setLaunching(false);
+      }
     }
   }, [selectedOrg, selectedClasses, selectedMethodCount, runOptions, trackEvent, onRunStarted]);
 
   const runSuite = useCallback(
     async (suiteId: string) => {
+      const token = ++launchToken.current;
       try {
         setLaunching(true);
         setLaunchError(null);
@@ -137,11 +150,18 @@ export function useApexTestRunLauncher(selectedOrg: SalesforceOrgUi, apiVersion:
           hasMaxFailedTests: runOptions.maxFailedTests !== undefined,
           source: 'suite',
         });
+        if (token !== launchToken.current) {
+          return;
+        }
         onRunStarted(asyncApexJobId);
       } catch (ex) {
-        setLaunchError(getErrorMessage(ex));
+        if (token === launchToken.current) {
+          setLaunchError(getErrorMessage(ex));
+        }
       } finally {
-        setLaunching(false);
+        if (token === launchToken.current) {
+          setLaunching(false);
+        }
       }
     },
     [selectedOrg, runOptions, trackEvent, onRunStarted],
