@@ -80,7 +80,8 @@ describe('SalesforceOrgCardDraggable', () => {
 
     // The details remain readable in browse mode
     expect(screen.getByText(org.organizationId)).toBeTruthy();
-    expect(screen.getByText(org.instanceUrl)).toBeTruthy();
+    // The URL is middle-truncated across two spans, so match the full text exposed through the title
+    expect(screen.getByTitle(org.instanceUrl)).toBeTruthy();
     // The heading is a programmatic focus target only (tabindex -1), named by the org label alone
     expect(screen.getByRole('heading', { name: 'Acme Sandbox' }).getAttribute('tabindex')).toBe('-1');
   });
