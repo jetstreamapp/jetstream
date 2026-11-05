@@ -21,6 +21,26 @@ const RESERVED_OBJECT_KEYS = ['__proto__', 'constructor', 'prototype'];
 const MAX_SYNC_DATA_DEPTH = 100;
 
 /**
+ * Size caps for a single sync record and for one push request. These are shared by the web, desktop
+ * and browser-extension sync routes and by the local (desktop/extension/canvas) sync controllers.
+ *
+ * - key: query-history keys embed the (lower-cased, stripped) SOQL, which Salesforce caps at 100,000
+ *   characters, so 128 KiB leaves room for the org/object prefix.
+ * - data: the largest real payload is a query-history item (SOQL plus label/metadata, ~110 KB worst
+ *   case) or a saved load mapping with a few hundred fields, so 512 KiB is roughly 4x headroom.
+ * - records per push: clients push in batches of 50 (MAX_PUSH_SIZE in @jetstream/shared/ui-db).
+ * - push total: 5 MiB bounds a single request well below the global 20 MB JSON body limit while still
+ *   allowing a full batch of unusually large records.
+ *
+ * Sizes are measured as JSON.stringify length (UTF-16 code units), which is at or below the UTF-8 byte
+ * length, so the caps are a predictable "characters" bound rather than an exact byte count.
+ */
+export const MAX_SYNC_KEY_LENGTH = 128 * 1024;
+export const MAX_SYNC_RECORD_DATA_LENGTH = 512 * 1024;
+export const MAX_SYNC_RECORDS_PER_PUSH = 50;
+export const MAX_SYNC_PUSH_LENGTH = 5 * 1024 * 1024;
+
+/**
  * Recursively strip dangerous own keys (__proto__/constructor/prototype) from an object/array
  * at any depth so a nested `__proto__` cannot survive into persisted JSONB or be re-broadcast.
  * A single in-place walk that deletes the dangerous own keys; no deep clone is performed.
@@ -57,6 +77,7 @@ const stripReservedKeys = (value: unknown, seen = new WeakSet<object>(), depth =
 
 const SyncRecordKeySchema = z
   .string()
+  .max(MAX_SYNC_KEY_LENGTH, { message: `Sync record key exceeds the maximum length of ${MAX_SYNC_KEY_LENGTH}` })
   .refine((key) => !RESERVED_OBJECT_KEYS.includes(key), { message: 'Sync record key uses a reserved name' });
 
 const SyncRecordDataSchema = z.record(z.string(), z.unknown()).transform((data, ctx) => {
@@ -68,8 +89,25 @@ const SyncRecordDataSchema = z.record(z.string(), z.unknown()).transform((data, 
     ctx.addIssue('Sync record data exceeds the maximum allowed nesting depth');
     return z.NEVER;
   }
+  if (JSON.stringify(data).length > MAX_SYNC_RECORD_DATA_LENGTH) {
+    ctx.addIssue(`Sync record data exceeds the maximum serialized size of ${MAX_SYNC_RECORD_DATA_LENGTH}`);
+    return z.NEVER;
+  }
   return data;
 });
+
+/**
+ * Adds the per-request caps to an array schema of sync records: the record count and the total
+ * serialized size of the request. Applied to the raw array before the per-record schema runs so an
+ * oversized request is rejected without validating every element first.
+ */
+export const withSyncPushLimits = <TSchema extends z.ZodType>(recordsSchema: TSchema) =>
+  z
+    .array(recordsSchema)
+    .max(MAX_SYNC_RECORDS_PER_PUSH, { message: `Cannot sync more than ${MAX_SYNC_RECORDS_PER_PUSH} records at a time` })
+    .refine((records) => JSON.stringify(records).length <= MAX_SYNC_PUSH_LENGTH, {
+      message: `Sync push exceeds the maximum serialized size of ${MAX_SYNC_PUSH_LENGTH}`,
+    });
 
 export const SyncTypeSchema = z.enum(['query_history', 'load_saved_mapping', 'recent_history_item', 'api_request_history']);
 export type SyncType = z.infer<typeof SyncTypeSchema>;
@@ -84,9 +122,10 @@ export type EntitySyncStatus = z.infer<typeof EntitySyncStatusSchema>;
 
 export const SyncRecordOperationBaseSchema = z.object({
   key: SyncRecordKeySchema,
-  // hashedKey is a fixed-length hash; the DB column is char(40). Cap length so an over-long value is
-  // rejected with a clean validation error instead of aborting the insert transaction.
-  hashedKey: z.string().max(40),
+  // hashedKey is a SHA-1 hex digest of the key; the DB column is char(40). Validate the shape so an
+  // over-long or malformed value is rejected with a clean validation error instead of aborting the
+  // insert transaction.
+  hashedKey: z.string().regex(/^[0-9a-f]{40}$/, { message: 'hashedKey must be a 40 character lowercase hex string' }),
   entity: SyncTypeSchema,
   data: SyncRecordDataSchema,
 });

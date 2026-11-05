@@ -871,6 +871,17 @@ export const feedbackRateLimit = createRateLimit('api_feedback_submission', {
   keyGenerator: (req, res) => (req as Request).externalAuth?.user?.id || req.session.user?.id || feedbackIpKeyGenerator(req, res),
 });
 
+const dataSyncIpKeyGenerator = rateLimitGetKeyGenerator();
+// Per-user ceiling for the data-sync push/pull routes (web, desktop and browser extension mounts).
+// Clients push in batches of 50 records and pull 100 per page, so even an initial sync of a few
+// thousand records from several devices at once stays well under this; it exists to bound how much
+// an authenticated account can write per minute, not to shape normal sync traffic.
+export const dataSyncRateLimit = createRateLimit('api_data_sync', {
+  windowMs: 1000 * 60 * 1, // 1 minute
+  limit: rateLimitGetMaxRequests(300),
+  keyGenerator: (req, res) => (req as Request).externalAuth?.user?.id || req.session.user?.id || dataSyncIpKeyGenerator(req, res),
+});
+
 const passwordResetEmailIpKeyGenerator = rateLimitGetKeyGenerator();
 // Throttle by the TARGET email (normalized) first so a single account cannot be mailbox-bombed by
 // rotating source IPs, falling back to session user / IP. Uses the distributed store so the per-email

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { SyncRecordOperationSchema } from '../sync.types';
+import { z } from 'zod';
+import {
+  MAX_SYNC_KEY_LENGTH,
+  MAX_SYNC_RECORD_DATA_LENGTH,
+  MAX_SYNC_RECORDS_PER_PUSH,
+  SyncRecordOperationSchema,
+  withSyncPushLimits,
+} from '../sync.types';
 
 /**
  * Security coverage for the sync record schema (prototype pollution):
@@ -11,7 +18,7 @@ import { SyncRecordOperationSchema } from '../sync.types';
 const baseCreate = (overrides: Record<string, unknown> = {}) => ({
   type: 'create' as const,
   key: 'qh_valid',
-  hashedKey: 'hash1',
+  hashedKey: 'a'.repeat(40),
   entity: 'query_history' as const,
   orgId: 'org-1',
   data: { foo: 'bar' },
@@ -62,5 +69,46 @@ describe('SyncRecordOperationSchema — data sanitization', () => {
       expect(Object.prototype.hasOwnProperty.call(item, '__proto__')).toBe(false);
       expect(item.name).toBe('ok');
     }
+  });
+});
+
+describe('SyncRecordOperationSchema — size caps', () => {
+  it('rejects a key longer than MAX_SYNC_KEY_LENGTH and accepts one at the limit', () => {
+    expect(SyncRecordOperationSchema.safeParse(baseCreate({ key: 'qh_' + 'x'.repeat(MAX_SYNC_KEY_LENGTH - 3) })).success).toBe(true);
+    expect(SyncRecordOperationSchema.safeParse(baseCreate({ key: 'qh_' + 'x'.repeat(MAX_SYNC_KEY_LENGTH) })).success).toBe(false);
+  });
+
+  it('rejects data whose serialized size exceeds MAX_SYNC_RECORD_DATA_LENGTH', () => {
+    const withinLimit = { soql: 'x'.repeat(MAX_SYNC_RECORD_DATA_LENGTH - 20) };
+    const overLimit = { soql: 'x'.repeat(MAX_SYNC_RECORD_DATA_LENGTH) };
+
+    expect(SyncRecordOperationSchema.safeParse(baseCreate({ data: withinLimit })).success).toBe(true);
+    expect(SyncRecordOperationSchema.safeParse(baseCreate({ data: overLimit })).success).toBe(false);
+  });
+
+  it.each(['hash1', 'A'.repeat(40), 'a'.repeat(41), 'a'.repeat(39)])('rejects a malformed hashedKey (%s)', (hashedKey) => {
+    expect(SyncRecordOperationSchema.safeParse(baseCreate({ hashedKey })).success).toBe(false);
+  });
+});
+
+describe('withSyncPushLimits', () => {
+  const PushSchema = withSyncPushLimits(z.looseObject({ key: z.string() }));
+
+  it('rejects more than MAX_SYNC_RECORDS_PER_PUSH records', () => {
+    const makeRecords = (count: number) => Array.from({ length: count }, (_, index) => ({ key: `qh_${index}` }));
+
+    expect(PushSchema.safeParse(makeRecords(MAX_SYNC_RECORDS_PER_PUSH)).success).toBe(true);
+    expect(PushSchema.safeParse(makeRecords(MAX_SYNC_RECORDS_PER_PUSH + 1)).success).toBe(false);
+  });
+
+  it('rejects a push whose total serialized size exceeds MAX_SYNC_PUSH_LENGTH', () => {
+    // 11 records of ~0.5 MiB each are individually fine but together exceed the 5 MiB push cap
+    const records = Array.from({ length: 11 }, (_, index) => ({
+      key: `qh_${index}`,
+      data: { soql: 'x'.repeat(MAX_SYNC_RECORD_DATA_LENGTH - 100) },
+    }));
+
+    expect(PushSchema.safeParse(records.slice(0, 5)).success).toBe(true);
+    expect(PushSchema.safeParse(records).success).toBe(false);
   });
 });

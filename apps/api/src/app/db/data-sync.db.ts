@@ -1,7 +1,14 @@
 import { prisma } from '@jetstream/api-config';
 import { Prisma } from '@jetstream/prisma';
 import { groupByFlat } from '@jetstream/shared/utils';
-import { Maybe, PullResponse, SyncRecordOperation, SyncRecordOperationCreateUpdate, SyncRecordOperationDelete } from '@jetstream/types';
+import {
+  MAX_SYNC_RECORDS_PER_PUSH,
+  Maybe,
+  PullResponse,
+  SyncRecordOperation,
+  SyncRecordOperationCreateUpdate,
+  SyncRecordOperationDelete,
+} from '@jetstream/types';
 import { InputJsonValue } from '@prisma/client/runtime/client';
 import { isAfter } from 'date-fns';
 import clamp from 'lodash/clamp';
@@ -11,7 +18,7 @@ import crypto from 'node:crypto';
 export const MIN_PULL = 25;
 export const MAX_PULL = 100;
 
-export const MAX_SYNC = 50;
+export const MAX_SYNC = MAX_SYNC_RECORDS_PER_PUSH;
 
 /**
  * FIXME: After browser and browser extension get updated, remove server-side hashing

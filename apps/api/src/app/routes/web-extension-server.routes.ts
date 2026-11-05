@@ -6,7 +6,7 @@ import * as webExtensionController from '../controllers/web-extension.controller
 import * as externalAuthService from '../services/external-auth.service';
 import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
 import { CSP_REPORTING_DIRECTIVES } from '../utils/security-headers';
-import { deprecatedRouteMiddleware, feedbackRateLimit, feedbackUploadMiddleware } from './route.middleware';
+import { dataSyncRateLimit, deprecatedRouteMiddleware, feedbackRateLimit, feedbackUploadMiddleware } from './route.middleware';
 
 export const LAX_AuthRateLimit = createRateLimit('web-ext_lax', {
   windowMs: 1000 * 60 * 1, // 1 minutes
@@ -121,8 +121,8 @@ routes.delete('/auth/logout', STRICT_AuthRateLimit, authMiddleware, webExtension
 /**
  * Other Routes
  */
-routes.get('/data-sync/pull', authMiddleware, webExtensionController.routeDefinition.dataSyncPull.controllerFn());
-routes.post('/data-sync/push', authMiddleware, webExtensionController.routeDefinition.dataSyncPush.controllerFn());
+routes.get('/data-sync/pull', authMiddleware, dataSyncRateLimit, webExtensionController.routeDefinition.dataSyncPull.controllerFn());
+routes.post('/data-sync/push', authMiddleware, dataSyncRateLimit, webExtensionController.routeDefinition.dataSyncPush.controllerFn());
 
 routes.post(
   '/feedback',

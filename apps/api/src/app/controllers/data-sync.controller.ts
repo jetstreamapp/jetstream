@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ensureBoolean, REGEX } from '@jetstream/shared/utils';
-import { SyncRecordOperationSchema } from '@jetstream/types';
+import { SyncRecordOperationSchema, withSyncPushLimits } from '@jetstream/types';
 import { parseISO } from 'date-fns';
 import { clamp } from 'lodash';
 import { z } from 'zod';
@@ -10,28 +10,27 @@ import { sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
 
 // FIXME: TEMPORARY UNTIL ALL CLIENTS HAVE BEEN BACKFILLED
-export const SyncRecordOperationSchemaFillHashedKey = z
-  .looseObject({
+// The record-count and total-size caps are applied to the raw array (withSyncPushLimits) so an oversized
+// request is rejected before every element is validated and hashed.
+export const SyncRecordOperationSchemaFillHashedKey = withSyncPushLimits(
+  z.looseObject({
     key: z.string(),
     hashedKey: z.string().optional(),
     data: z.record(z.string(), z.unknown()),
-  })
-  .array()
-  .transform((records) => {
-    return SyncRecordOperationSchema.array()
-      .max(userSyncDbService.MAX_SYNC)
-      .parse(
-        records.map((record) => {
-          if (!record.hashedKey) {
-            record.hashedKey = userSyncDbService.hashRecordSyncKey(record.key);
-          }
-          if (!(record as any).data?.hashedKey) {
-            (record as any).data.hashedKey = record.hashedKey;
-          }
-          return record;
-        }),
-      );
-  });
+  }),
+).transform((records) => {
+  return SyncRecordOperationSchema.array().parse(
+    records.map((record) => {
+      if (!record.hashedKey) {
+        record.hashedKey = userSyncDbService.hashRecordSyncKey(record.key);
+      }
+      if (!(record as any).data?.hashedKey) {
+        (record as any).data.hashedKey = record.hashedKey;
+      }
+      return record;
+    }),
+  );
+});
 
 export const routeDefinition = {
   pull: {
