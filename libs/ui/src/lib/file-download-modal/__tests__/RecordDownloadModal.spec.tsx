@@ -137,6 +137,70 @@ describe('RecordDownloadModal bulk API requirement', () => {
 });
 
 /**
+ * SheetJS builds each worksheet as one string, so an Excel file this large failed with `RangeError: Invalid string length` -
+ * for "All records", only after every record had been downloaded.
+ */
+describe('RecordDownloadModal Excel size limit', () => {
+  // 300,000 records x 20 fields is 6M cells, over the 5M cell limit
+  const twentyFields = Array.from({ length: 20 }, (_, i) => `Field${i}__c`);
+
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  test('switches an all-records download that is too large for Excel to CSV and explains why', () => {
+    localStorage.setItem(LS_KEY, 'xlsx');
+    setup({ fields: twentyFields, totalRecordCount: 300_000 });
+
+    expect(screen.getByLabelText<HTMLInputElement>('Excel').disabled).toBe(true);
+    expect(screen.getByLabelText<HTMLInputElement>('CSV').checked).toBe(true);
+    expect(screen.queryByText(/limited to 5,000,000 cells/)).not.toBeNull();
+    expect(screen.queryByText(/about 6,000,000/)).not.toBeNull();
+  });
+
+  test('leaves Excel available when the download is within the limit', () => {
+    localStorage.setItem(LS_KEY, 'xlsx');
+    setup({ fields: twentyFields, totalRecordCount: 200_000 });
+
+    expect(screen.getByLabelText<HTMLInputElement>('Excel').disabled).toBe(false);
+    expect(screen.getByLabelText<HTMLInputElement>('Excel').checked).toBe(true);
+    expect(screen.queryByText(/limited to 5,000,000 cells/)).toBeNull();
+  });
+
+  test('sizes the download from the records option, so the loaded records can still be downloaded as Excel', async () => {
+    setup({ fields: twentyFields, totalRecordCount: 300_000 });
+    expect(screen.getByLabelText<HTMLInputElement>('Excel').disabled).toBe(true);
+
+    await userEvent.click(screen.getByLabelText(/^First set of records/));
+
+    expect(screen.getByLabelText<HTMLInputElement>('Excel').disabled).toBe(false);
+  });
+
+  test('disables the load template, which is also an Excel file', () => {
+    setup({ fields: twentyFields, totalRecordCount: 300_000, loadTemplateOption: { sobject: 'Account' } });
+
+    expect(screen.getByLabelText<HTMLInputElement>('Load template (Excel)').disabled).toBe(true);
+  });
+
+  test('allows Google Drive only when the Bulk API streams the results as a CSV', async () => {
+    setup({
+      fields: twentyFields,
+      totalRecordCount: 300_000,
+      googleIntegrationEnabled: true,
+      google_apiKey: 'api-key',
+      google_appId: 'app-id',
+      google_clientId: 'client-id',
+    });
+    expect(screen.getByLabelText<HTMLInputElement>('Google Drive').disabled).toBe(true);
+
+    await userEvent.click(screen.getByLabelText('Salesforce Bulk API'));
+
+    expect(screen.getByLabelText<HTMLInputElement>('Google Drive').disabled).toBe(false);
+  });
+});
+
+/**
  * Callers commonly pass a new `records`/`selectedRecords` array on every render (the query results grid reports its
  * selection as a fresh array), and the modal used to reset its state on each one - overwriting the filename mid-typing,
  * re-selecting the input, and turning every parent render into several extra commits.

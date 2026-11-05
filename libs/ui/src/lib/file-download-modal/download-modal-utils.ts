@@ -49,6 +49,36 @@ export const getWhichRecordsDefaultValue = ({
   return hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER;
 };
 
+/**
+ * SheetJS builds each worksheet's XML as one string, so an Excel file fails with `RangeError: Invalid string length` once a
+ * sheet passes the browser's ~537M character string limit - after the user has already waited for every record to download.
+ * Each cell costs about 34 characters of XML plus its value (measured with SheetJS 0.20.3), which puts the ceiling at
+ * 537M / (34 + average value length) cells: about 15.8M cells of empty values, 9.9M at 20 characters and 4.9M at 75.
+ * The smallest download seen failing in production was 9.6M cells. This leaves room for values averaging about 70
+ * characters, and stays under the 10M cell limit of a Google Sheet.
+ */
+export const MAX_EXCEL_DOWNLOAD_CELLS = 5_000_000;
+
+/**
+ * How many records the download will contain. "All records" pages the rest in from Salesforce after the modal closes, so
+ * it is sized from the query's total rather than the records already loaded - Big Objects report a total of -1, which
+ * leaves the loaded records as the only known count.
+ */
+export const getDownloadRecordCount = ({
+  downloadRecordsValue,
+  totalRecordCount,
+  activeRecordCount,
+}: {
+  downloadRecordsValue: string;
+  totalRecordCount?: Maybe<number>;
+  activeRecordCount: number;
+}): number => {
+  if (downloadRecordsValue === RADIO_ALL_SERVER && totalRecordCount && totalRecordCount > activeRecordCount) {
+    return totalRecordCount;
+  }
+  return activeRecordCount;
+};
+
 const LS_KEY_PREFIX = 'RECENT_FILE_FORMAT_';
 export const getInitialDownloadFileFormat = <T>(allowedTypes: T[], localStorageKey: string): T => {
   try {
