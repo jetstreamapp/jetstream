@@ -39,6 +39,7 @@ const Content = ({
       <div className={classNames({ 'slds-text-align_right': align === 'right' })}>
         {align === 'right' && (
           <CopyToClipboard
+            key={org.uniqueId}
             type="icon"
             content={item.content || ''}
             icon={{ type: 'utility', icon: 'copy', description: `Copy ${org.label} metadata to clipboard` }}
@@ -47,6 +48,7 @@ const Content = ({
         {org.label}
         {align === 'left' && (
           <CopyToClipboard
+            key={org.uniqueId}
             type="icon"
             content={item.content || ''}
             icon={{ type: 'utility', icon: 'copy', description: `Copy ${org.label} metadata to clipboard` }}
