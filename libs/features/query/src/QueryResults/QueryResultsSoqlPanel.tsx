@@ -5,7 +5,7 @@ import { fromQueryHistoryState, MonacoEditor, SoqlQueryFormatConfigPopover, useS
 import { formatQuery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import { OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
-import { FunctionComponent, useEffect, useReducer, useRef, useState } from 'react';
+import { FunctionComponent, RefObject, useEffect, useReducer, useRef, useState } from 'react';
 import SaveFavoriteSoql from '../QueryOptions/SaveFavoriteSoql';
 
 type Action =
@@ -57,6 +57,10 @@ export interface QueryResultsSoqlPanelProps {
   selectedOrg: SalesforceOrgUi;
   sObject: string;
   soqlQueryFormatOptions: SoqlQueryFormatOptions;
+  /** The toolbar button that toggles the panel, so closing can return focus to it */
+  returnFocusTo?: RefObject<HTMLElement | null>;
+  /** False when the panel opened because a query failed rather than because the user opened it */
+  focusOnOpen?: boolean;
   onClosed: () => void;
   executeQuery: (soql: string, isTooling: boolean) => void;
   onOpenHistory: (type: fromQueryHistoryState.QueryHistoryType) => void;
@@ -70,6 +74,8 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
   selectedOrg,
   sObject,
   soqlQueryFormatOptions,
+  returnFocusTo,
+  focusOnOpen,
   onClosed,
   executeQuery,
   onOpenHistory,
@@ -158,7 +164,16 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
   };
 
   return (
-    <Panel heading="SOQL Query" isOpen={isOpen} size="lg" fullHeight={false} position="left" onClosed={onClosed}>
+    <Panel
+      heading="SOQL Query"
+      isOpen={isOpen}
+      size="lg"
+      fullHeight={false}
+      position="left"
+      returnFocusTo={returnFocusTo}
+      focusOnOpen={focusOnOpen}
+      onClosed={onClosed}
+    >
       <Textarea
         id="soql"
         labelClassName="w-100"
@@ -192,6 +207,8 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
       >
         <MonacoEditor
           height="50vh"
+          label="SOQL query"
+          primaryActionLabel="run the query"
           language="soql"
           value={userSoql}
           options={{
