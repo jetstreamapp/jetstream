@@ -6,6 +6,9 @@ import { DropDownItem } from '@jetstream/types';
 import { Badge, Card, ConfirmationModalPromise, DropDown, fireToast, Input, Spinner } from '@jetstream/ui';
 import { FormEvent, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 
+const SETUP_BUTTON_ID = 'mfa-totp-setup-button';
+const CARD_HEADING_ID = 'mfa-totp-card-heading';
+
 export interface Profile2faOtpProps {
   isConfigured: boolean;
   isEnabled: boolean;
@@ -96,17 +99,18 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
 
   /**
    * Save and Cancel unmount the set-up form they live in, which would drop keyboard focus to <body> —
-   * land on the card action that replaces it (Set Up after cancel, the actions menu after a save)
+   * land on the card action that replaces it (Set Up after cancel, the actions menu after a save),
+   * or the card heading when the enabled factor can't be disabled and so has no actions menu
    */
   function focusCardAction() {
     window.setTimeout(() => {
       const cardAction =
-        document.getElementById(SETUP_BUTTON_ID) ?? document.querySelector<HTMLElement>('[data-testid="mfa-totp-menu-button"]');
+        document.getElementById(SETUP_BUTTON_ID) ??
+        document.querySelector<HTMLElement>('[data-testid="mfa-totp-menu-button"]') ??
+        document.getElementById(CARD_HEADING_ID);
       cardAction?.focus();
     });
   }
-
-  const SETUP_BUTTON_ID = 'mfa-totp-setup-button';
 
   const menuItems = useMemo(() => {
     const items: DropDownItem[] = [];
@@ -139,7 +143,9 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
     <Card
       title={
         <>
-          Authenticator App
+          <span id={CARD_HEADING_ID} tabIndex={-1}>
+            Authenticator App
+          </span>
           {isEnabled && (
             <Badge className="slds-m-left_x-small" type="success">
               Active
