@@ -12,8 +12,18 @@ export const ListMetadataRequestSchema = z.object({
 });
 export type ListMetadataRequest = z.infer<typeof ListMetadataRequestSchema>;
 
+/**
+ * Caps for a readMetadata request. Salesforce reads at most 10 names per call, so every request is
+ * fanned out into ceil(n / 10) upstream calls. Real callers send tens to a few hundred names (record
+ * type manager chunks by 10, the formula evaluator sends one profile plus a user's permission sets),
+ * so 1,000 names (100 upstream calls) is generous while keeping one request's fan-out bounded.
+ * Individual metadata full names (including folder paths and namespaces) are far shorter than 1,024.
+ */
+export const READ_METADATA_MAX_FULL_NAMES = 1000;
+export const READ_METADATA_MAX_FULL_NAME_LENGTH = 1024;
+
 export const ReadMetadataRequestSchema = z.object({
-  fullNames: z.string().array().min(1),
+  fullNames: z.string().max(READ_METADATA_MAX_FULL_NAME_LENGTH).array().min(1).max(READ_METADATA_MAX_FULL_NAMES),
 });
 export type ReadMetadataRequest = z.infer<typeof ReadMetadataRequestSchema>;
 

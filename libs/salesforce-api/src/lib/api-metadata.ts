@@ -1,6 +1,12 @@
 // eslint-disable-next-line @nx/enforce-module-boundaries
-import type { DeployOptions, ListMetadataRequest, ReadMetadataRequest } from '@jetstream/api-types';
-import { arrayBufferToBase64, ensureArray, splitArrayToMaxSize, uint8ArrayToBase64 } from '@jetstream/shared/utils';
+import { READ_METADATA_MAX_FULL_NAMES, type DeployOptions, type ListMetadataRequest, type ReadMetadataRequest } from '@jetstream/api-types';
+import {
+  arrayBufferToBase64,
+  createConcurrencyLimiter,
+  ensureArray,
+  splitArrayToMaxSize,
+  uint8ArrayToBase64,
+} from '@jetstream/shared/utils';
 import {
   AsyncResult,
   DeployResult,
@@ -20,6 +26,11 @@ import {
   correctInvalidArrayXmlResponseTypes,
   correctInvalidXmlResponseTypes,
 } from './utils';
+
+/** Salesforce readMetadata accepts at most 10 full names per call */
+const READ_METADATA_CHUNK_SIZE = 10;
+/** How many readMetadata chunks are requested from Salesforce at once for a single read() call */
+const READ_METADATA_MAX_CONCURRENT_REQUESTS = 5;
 
 export class ApiMetadata extends SalesforceApi {
   constructor(connection: ApiConnection) {
@@ -76,23 +87,33 @@ export class ApiMetadata extends SalesforceApi {
     ).then((response) => correctInvalidArrayXmlResponseTypes(response.Envelope.Body.listMetadataResponse?.result || []));
   }
 
+  /**
+   * Read metadata in chunks of 10 (the Salesforce per-call limit) with a bounded number of chunks in
+   * flight at once, so a large name list cannot fan out into an unbounded burst of upstream requests.
+   */
   async read(type: string, fullNames: ReadMetadataRequest['fullNames']): Promise<MetadataInfo[]> {
+    if (fullNames.length > READ_METADATA_MAX_FULL_NAMES) {
+      throw new Error(`Cannot read more than ${READ_METADATA_MAX_FULL_NAMES} metadata records at a time`);
+    }
+    const limitConcurrency = createConcurrencyLimiter(READ_METADATA_MAX_CONCURRENT_REQUESTS);
     return (
       await Promise.all(
-        splitArrayToMaxSize(fullNames, 10).map((fullNames) =>
-          this.apiRequest<SoapResponse<'readMetadataResponse', { records: MetadataInfo[] }>>(
-            this.prepareSoapRequestOptions({
-              type: 'METADATA',
-              body: {
-                readMetadata: {
-                  type,
-                  fullNames,
+        splitArrayToMaxSize(fullNames, READ_METADATA_CHUNK_SIZE).map((fullNamesChunk) =>
+          limitConcurrency(() =>
+            this.apiRequest<SoapResponse<'readMetadataResponse', { records: MetadataInfo[] }>>(
+              this.prepareSoapRequestOptions({
+                type: 'METADATA',
+                body: {
+                  readMetadata: {
+                    type,
+                    fullNames: fullNamesChunk,
+                  },
                 },
-              },
+              }),
+            ).then((response) => {
+              return correctInvalidArrayXmlResponseTypes(response.Envelope.Body.readMetadataResponse?.result.records || []);
             }),
-          ).then((response) => {
-            return correctInvalidArrayXmlResponseTypes(response.Envelope.Body.readMetadataResponse?.result.records || []);
-          }),
+          ),
         ),
       )
     ).flat();

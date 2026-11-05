@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
+import { READ_METADATA_MAX_FULL_NAMES } from '@jetstream/api-types';
+import { describe, expect, it, vi } from 'vitest';
 import { ApiMetadata } from '../api-metadata';
-import { ApiConnection } from '../connection';
 import { getApiRequestFactoryFn } from '../callout-adapter';
+import { ApiConnection } from '../connection';
 
 // Real SOAP XML responses from Salesforce Metadata API
 const METADATA_SOAP_RESPONSES = {
@@ -200,6 +201,83 @@ const createConnectionWithSoapParsing = (mockFetch: any) => {
     logger: console,
   } as unknown as ApiConnection;
 };
+
+describe('ApiMetadata.read - request fan-out', () => {
+  const READ_METADATA_EMPTY = `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns="http://soap.sforce.com/2006/04/metadata">
+  <soapenv:Body>
+    <readMetadataResponse>
+      <result></result>
+    </readMetadataResponse>
+  </soapenv:Body>
+</soapenv:Envelope>`;
+
+  // Mock fetch that holds every response until released, so the number of concurrent upstream requests can be observed
+  const createGatedMockFetch = () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const pendingResolvers: Array<() => void> = [];
+    const mockFetch = vi.fn((url: string | URL) => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      return new Promise((resolve) => {
+        pendingResolvers.push(() => {
+          inFlight--;
+          resolve({
+            ok: true,
+            status: 200,
+            statusText: 'OK',
+            headers: new Headers({ 'content-type': 'text/xml; charset=UTF-8' }),
+            type: 'basic' as ResponseType,
+            url: url.toString(),
+            text: () => Promise.resolve(READ_METADATA_EMPTY),
+            json: () => Promise.reject(new Error('Not JSON')),
+            clone() {
+              return this;
+            },
+          } as any);
+        });
+      });
+    });
+    const releaseAll = async () => {
+      while (pendingResolvers.length > 0) {
+        pendingResolvers.shift()?.();
+        // Let the released request settle so queued chunks can start before the next release
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+    };
+    return { mockFetch, releaseAll, getMaxInFlight: () => maxInFlight, hasPending: () => pendingResolvers.length > 0 };
+  };
+
+  it('splits names into chunks of 10 and keeps at most 5 upstream requests in flight', async () => {
+    const { mockFetch, releaseAll, getMaxInFlight, hasPending } = createGatedMockFetch();
+    const apiMetadata = new ApiMetadata(createConnectionWithSoapParsing(mockFetch));
+    const fullNames = Array.from({ length: 100 }, (_, index) => `Object_${index}__c`);
+
+    const readPromise = apiMetadata.read('CustomObject', fullNames);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockFetch).toHaveBeenCalledTimes(5);
+
+    // Release requests until every chunk has been requested and completed
+    while (mockFetch.mock.calls.length < 10 || hasPending()) {
+      await releaseAll();
+    }
+    const result = await readPromise;
+
+    expect(result).toEqual([]);
+    expect(mockFetch).toHaveBeenCalledTimes(10);
+    expect(getMaxInFlight()).toBeLessThanOrEqual(5);
+  });
+
+  it('rejects more than READ_METADATA_MAX_FULL_NAMES names without calling Salesforce', async () => {
+    const mockFetch = createMockFetch({});
+    const apiMetadata = new ApiMetadata(createConnectionWithSoapParsing(mockFetch));
+    const fullNames = Array.from({ length: READ_METADATA_MAX_FULL_NAMES + 1 }, (_, index) => `Object_${index}__c`);
+
+    await expect(apiMetadata.read('CustomObject', fullNames)).rejects.toThrow(/Cannot read more than/);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+});
 
 describe('ApiMetadata SOAP XML parsing and type handling', () => {
   describe('describe - SOAP XML parsing', () => {

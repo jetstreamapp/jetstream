@@ -39,6 +39,9 @@
     },
     {
       "path": "../../types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../api-types/tsconfig.lib.json"
     }
   ]
 }
