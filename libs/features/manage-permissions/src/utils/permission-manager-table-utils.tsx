@@ -936,7 +936,7 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
           // The visible context lives in the column-group header far above and the row label far to
           // the left — name each checkbox with both so arrowing down a column announces which
           // object/field/tab/permission is being toggled, and for which profile/permission set
-          aria-label={`${actionType} ${row.label} for ${label} (${type})`}
+          aria-label={`${actionType} ${permissionType === 'field' ? `${row.label} (${row.key})` : row.label} for ${label} (${type})`}
           // Grid arrow navigation focuses the checkbox itself (APG single-widget cell) so its role,
           // checked state, and toggle affordance are announced
           {...(disabled ? {} : { 'data-grid-inner-focus': true })}
