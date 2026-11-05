@@ -346,10 +346,23 @@ export const DomainVerificationSchema = z.object({
   status: TeamVerificationStatusSchema,
   verificationCode: z.string(),
   verifiedAt: DateStringSchema.nullable(),
+  /** A PENDING claim is only held until this time; after that it must be re-created, which issues a new code */
+  expiresAt: DateStringSchema,
   createdAt: DateStringSchema,
   updatedAt: DateStringSchema,
 });
 export type DomainVerification = z.infer<typeof DomainVerificationSchema>;
+
+/**
+ * A PENDING domain claim that passed its expiry can no longer be verified and no longer reserves
+ * the domain. VERIFIED domains never expire.
+ */
+export function isDomainVerificationExpired(
+  { status, expiresAt }: { status: string; expiresAt: string | Date },
+  now = new Date(),
+): boolean {
+  return status === TeamVerificationStatusSchema.enum.PENDING && new Date(expiresAt).getTime() <= now.getTime();
+}
 
 export type TeamMemberRole = z.infer<typeof TeamMemberRoleSchema>;
 export type TeamStatus = z.infer<typeof TeamStatusSchema>;

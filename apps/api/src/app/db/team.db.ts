@@ -29,6 +29,7 @@ import {
   ACCESS_PROFILE_POLICY_VERSION,
   AccessProfilePolicySchema,
   DomainVerificationSchema,
+  isDomainVerificationExpired,
   Maybe,
   TEAM_MEMBER_ROLE_ACCESS,
   TEAM_MEMBER_ROLE_ADMIN,
@@ -1828,25 +1829,60 @@ export const hasVerifiedDomain = async (teamId: string) => {
     .then((count) => count > 0);
 };
 
-export const saveDomainVerification = async (teamId: string, domain: string, verificationCode: string) => {
-  const existing = await prisma.domainVerification.findUnique({ where: { domain } });
-  if (existing) {
-    if (existing.teamId !== teamId) {
-      throw new UserFacingError('Domain is already claimed by another team');
-    }
-    return prisma.domainVerification
-      .update({
-        where: { domain },
-        data: { verificationCode, status: TeamVerificationStatusSchema.enum.PENDING, verifiedAt: null },
-      })
-      .then((items) => DomainVerificationSchema.parse(items));
-  }
+export const DOMAIN_VERIFICATION_EXPIRES_DAYS = 7;
+// Deliberately the same for every reason a domain cannot be claimed, so the response does not reveal
+// whether some other team currently holds it.
+const DOMAIN_CLAIM_UNAVAILABLE_MESSAGE = 'This domain cannot be claimed right now. If you own this domain, please contact support.';
+const DOMAIN_VERIFICATION_EXPIRED_MESSAGE =
+  'This domain verification request has expired. Delete it and add the domain again to receive a new verification code.';
 
-  return prisma.domainVerification
-    .create({
-      data: { teamId, domain, verificationCode, status: TeamVerificationStatusSchema.enum.PENDING },
-    })
-    .then((items) => DomainVerificationSchema.parse(items));
+/**
+ * Creates (or re-issues) a PENDING claim for `domain`. A VERIFIED domain, or a PENDING claim still
+ * inside its window, is exclusive to the team that holds it. A PENDING claim another team let expire
+ * is released and replaced in the same transaction.
+ */
+export const saveDomainVerification = async (teamId: string, domain: string, verificationCode: string) => {
+  const now = new Date();
+  const expiresAt = addDays(now, DOMAIN_VERIFICATION_EXPIRES_DAYS);
+  const pendingStatus = TeamVerificationStatusSchema.enum.PENDING;
+
+  try {
+    return await prisma
+      .$transaction(async (tx) => {
+        const existing = await tx.domainVerification.findUnique({ where: { domain } });
+
+        if (existing && existing.teamId === teamId) {
+          return tx.domainVerification.update({
+            where: { id: existing.id },
+            data: { verificationCode, status: pendingStatus, verifiedAt: null, expiresAt },
+          });
+        }
+
+        if (existing) {
+          if (!isDomainVerificationExpired(existing, now)) {
+            throw new UserFacingError(DOMAIN_CLAIM_UNAVAILABLE_MESSAGE);
+          }
+          // The predicate repeats the expiry check so a claim that was verified or re-issued since the
+          // read above is left alone; the unique constraint catches two takeovers racing on the insert.
+          const released = await tx.domainVerification.deleteMany({
+            where: { id: existing.id, status: pendingStatus, expiresAt: { lte: now } },
+          });
+          if (released.count === 0) {
+            throw new UserFacingError(DOMAIN_CLAIM_UNAVAILABLE_MESSAGE);
+          }
+        }
+
+        return tx.domainVerification.create({
+          data: { teamId, domain, verificationCode, status: pendingStatus, expiresAt },
+        });
+      })
+      .then((item) => DomainVerificationSchema.parse(item));
+  } catch (ex) {
+    if (isUniqueConstraintError(ex)) {
+      throw new UserFacingError(DOMAIN_CLAIM_UNAVAILABLE_MESSAGE);
+    }
+    throw ex;
+  }
 };
 
 export const getDomainVerification = async (teamId: string, domainId: string) => {
@@ -1865,6 +1901,15 @@ export const verifyDomainVerification = async (teamId: string, domainId: string)
   return prisma
     .$transaction(async (tx) => {
       await lockTeamLoginConfiguration(tx, teamId);
+
+      const existing = await tx.domainVerification.findUnique({ where: { id: domainId, teamId } });
+      if (!existing) {
+        throw new NotFoundError('Domain verification request not found');
+      }
+      // An expired claim no longer reserves the domain, so it cannot be promoted; a fresh claim mints a new code
+      if (isDomainVerificationExpired(existing)) {
+        throw new UserFacingError(DOMAIN_VERIFICATION_EXPIRED_MESSAGE);
+      }
 
       const verification = await tx.domainVerification.update({
         where: { id: domainId, teamId },

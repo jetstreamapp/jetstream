@@ -43,7 +43,18 @@ const prismaMock = vi.hoisted(() => {
       update: vi.fn(),
       create: vi.fn(),
     },
+    domainVerification: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      deleteMany: vi.fn(),
+      create: vi.fn(),
+      findMany: vi.fn(),
+    },
+    loginConfiguration: {
+      update: vi.fn(),
+    },
     $transaction: vi.fn(),
+    $queryRaw: vi.fn(),
   };
   return mock;
 });
@@ -1238,5 +1249,138 @@ describe('deleteAccessProfile', () => {
     const countedSince: Date = select._count.select.invitations.where.expiresAt.gte;
     const listedSince = Date.now() - teamDb.TEAM_INVITE_EXPIRES_DAYS * 24 * 60 * 60 * 1000;
     expect(Math.abs(countedSince.getTime() - listedSince)).toBeLessThan(60_000);
+  });
+});
+
+describe('domain verification claims', () => {
+  const OTHER_TEAM_ID = 'other-team-id';
+  const DOMAIN = 'example.com';
+  const CODE = 'jetstream-verification=new';
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  function makeClaim(overrides: Record<string, unknown> = {}) {
+    const now = new Date();
+    return {
+      id: 'claim-id',
+      domain: DOMAIN,
+      teamId: OTHER_TEAM_ID,
+      status: 'PENDING',
+      verificationCode: 'jetstream-verification=old',
+      verifiedAt: null,
+      expiresAt: new Date(now.getTime() + DAY_MS),
+      createdAt: now,
+      updatedAt: now,
+      ...overrides,
+    };
+  }
+
+  describe('saveDomainVerification', () => {
+    it('creates a PENDING claim with an expiry when the domain is unclaimed', async () => {
+      prismaMock.domainVerification.findUnique.mockResolvedValue(null);
+      prismaMock.domainVerification.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) =>
+        makeClaim({ ...data, id: 'new-id' }),
+      );
+
+      const result = await teamDb.saveDomainVerification(TEAM_ID, DOMAIN, CODE);
+
+      expect(result.teamId).toBe(TEAM_ID);
+      expect(result.status).toBe('PENDING');
+      const [{ data }] = prismaMock.domainVerification.create.mock.calls[0];
+      expect(data.expiresAt.getTime()).toBeGreaterThan(Date.now() + 6 * DAY_MS);
+    });
+
+    it('re-issues the code and expiry for a claim the same team already holds', async () => {
+      prismaMock.domainVerification.findUnique.mockResolvedValue(makeClaim({ teamId: TEAM_ID }));
+      prismaMock.domainVerification.update.mockImplementation(async ({ data }: { data: Record<string, unknown> }) =>
+        makeClaim({ teamId: TEAM_ID, ...data }),
+      );
+
+      const result = await teamDb.saveDomainVerification(TEAM_ID, DOMAIN, CODE);
+
+      expect(result.verificationCode).toBe(CODE);
+      expect(prismaMock.domainVerification.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ verificationCode: CODE, status: 'PENDING', expiresAt: expect.any(Date) }),
+        }),
+      );
+      expect(prismaMock.domainVerification.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses a domain another team holds as PENDING inside its window, without saying who holds it', async () => {
+      prismaMock.domainVerification.findUnique.mockResolvedValue(makeClaim());
+
+      await expect(teamDb.saveDomainVerification(TEAM_ID, DOMAIN, CODE)).rejects.toThrow(/cannot be claimed right now/);
+      expect(prismaMock.domainVerification.deleteMany).not.toHaveBeenCalled();
+      expect(prismaMock.domainVerification.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses a domain another team has VERIFIED, even long after it was verified', async () => {
+      prismaMock.domainVerification.findUnique.mockResolvedValue(
+        makeClaim({ status: 'VERIFIED', verifiedAt: new Date(Date.now() - 400 * DAY_MS), expiresAt: new Date(Date.now() - 390 * DAY_MS) }),
+      );
+
+      await expect(teamDb.saveDomainVerification(TEAM_ID, DOMAIN, CODE)).rejects.toThrow(/cannot be claimed right now/);
+      expect(prismaMock.domainVerification.deleteMany).not.toHaveBeenCalled();
+      expect(prismaMock.domainVerification.create).not.toHaveBeenCalled();
+    });
+
+    it("releases another team's expired PENDING claim and creates a new one in the same transaction", async () => {
+      prismaMock.domainVerification.findUnique.mockResolvedValue(makeClaim({ expiresAt: new Date(Date.now() - DAY_MS) }));
+      prismaMock.domainVerification.deleteMany.mockResolvedValue({ count: 1 });
+      prismaMock.domainVerification.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) =>
+        makeClaim({ ...data, id: 'new-id' }),
+      );
+
+      const result = await teamDb.saveDomainVerification(TEAM_ID, DOMAIN, CODE);
+
+      expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+      expect(prismaMock.domainVerification.deleteMany).toHaveBeenCalledWith({
+        where: { id: 'claim-id', status: 'PENDING', expiresAt: { lte: expect.any(Date) } },
+      });
+      expect(result.teamId).toBe(TEAM_ID);
+      expect(result.verificationCode).toBe(CODE);
+    });
+
+    it('gives the same generic error when the expired claim changed between the read and the release', async () => {
+      prismaMock.domainVerification.findUnique.mockResolvedValue(makeClaim({ expiresAt: new Date(Date.now() - DAY_MS) }));
+      prismaMock.domainVerification.deleteMany.mockResolvedValue({ count: 0 });
+
+      await expect(teamDb.saveDomainVerification(TEAM_ID, DOMAIN, CODE)).rejects.toThrow(/cannot be claimed right now/);
+      expect(prismaMock.domainVerification.create).not.toHaveBeenCalled();
+    });
+
+    it('gives the same generic error when two teams race to create the first claim', async () => {
+      prismaMock.domainVerification.findUnique.mockResolvedValue(null);
+      prismaMock.domainVerification.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', { code: 'P2002' } as never),
+      );
+
+      await expect(teamDb.saveDomainVerification(TEAM_ID, DOMAIN, CODE)).rejects.toThrow(/cannot be claimed right now/);
+    });
+  });
+
+  describe('verifyDomainVerification', () => {
+    beforeEach(() => {
+      prismaMock.domainVerification.findMany.mockResolvedValue([{ domain: DOMAIN }]);
+      prismaMock.loginConfiguration.update.mockResolvedValue({});
+    });
+
+    it('refuses to verify an expired PENDING claim', async () => {
+      prismaMock.domainVerification.findUnique.mockResolvedValue(makeClaim({ teamId: TEAM_ID, expiresAt: new Date(Date.now() - DAY_MS) }));
+
+      await expect(teamDb.verifyDomainVerification(TEAM_ID, 'claim-id')).rejects.toThrow(/expired/);
+      expect(prismaMock.domainVerification.update).not.toHaveBeenCalled();
+      expect(prismaMock.loginConfiguration.update).not.toHaveBeenCalled();
+    });
+
+    it('verifies a PENDING claim inside its window and rebuilds the login configuration domains', async () => {
+      prismaMock.domainVerification.findUnique.mockResolvedValue(makeClaim({ teamId: TEAM_ID }));
+      prismaMock.domainVerification.update.mockResolvedValue(makeClaim({ teamId: TEAM_ID, status: 'VERIFIED', verifiedAt: new Date() }));
+
+      const result = await teamDb.verifyDomainVerification(TEAM_ID, 'claim-id');
+
+      expect(result.status).toBe('VERIFIED');
+      expect(prismaMock.loginConfiguration.update).toHaveBeenCalledWith({ where: { teamId: TEAM_ID }, data: { domains: [DOMAIN] } });
+    });
   });
 });

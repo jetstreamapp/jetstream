@@ -3,9 +3,23 @@ import { BLOCKED_PUBLIC_EMAIL_DOMAINS } from '@jetstream/shared/constants';
 import { deleteDomainVerification, saveDomainVerification, verifyDomain } from '@jetstream/shared/data';
 import { saveFile } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
-import { DomainVerification } from '@jetstream/types';
-import { Badge, Card, ConfirmationModalPromise, FeedbackLink, fireToast, Grid, GridCol, Icon, Input, Modal, Spinner } from '@jetstream/ui';
+import { DomainVerification, isDomainVerificationExpired } from '@jetstream/types';
+import {
+  Badge,
+  Card,
+  ConfirmationModalPromise,
+  FeedbackLink,
+  fireToast,
+  Grid,
+  GridCol,
+  Icon,
+  Input,
+  Modal,
+  Spinner,
+  Tooltip,
+} from '@jetstream/ui';
 import { abilityState } from '@jetstream/ui/app-state';
+import { parseISO } from 'date-fns/parseISO';
 import { useAtomValue } from 'jotai';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -112,38 +126,56 @@ export function TeamDomainConfiguration({ teamId, domains, hasSsoEnabled, onChan
 
         {pendingDomains.length > 0 && (
           <ul className="slds-list">
-            {pendingDomains.map((domain, index) => (
-              <li key={domain.id} className={index > 0 ? 'slds-p-top_x-small' : undefined}>
-                <Grid verticalAlign="center">
-                  <GridCol className="slds-col">
-                    <Grid verticalAlign="center">
-                      <Badge type="default" className="slds-m-right_small">
-                        Pending Verification
-                      </Badge>
-                      <strong>{domain.domain}</strong>
-                    </Grid>
-                  </GridCol>
-                  {canUpdate && (
-                    <GridCol bump="left">
-                      <button
-                        className="slds-button slds-button_neutral slds-m-right_x-small"
-                        type="button"
-                        onClick={() => setVerifyModalOpen(domain)}
-                      >
-                        Verify
-                      </button>
-                      <button
-                        className="slds-button slds-button_icon slds-button_icon-border-filled"
-                        type="button"
-                        onClick={() => handleDelete(domain)}
-                      >
-                        <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
-                      </button>
+            {pendingDomains.map((domain, index) => {
+              const isExpired = isDomainVerificationExpired(domain);
+              const expiresAt = parseISO(domain.expiresAt);
+              return (
+                <li key={domain.id} className={index > 0 ? 'slds-p-top_x-small' : undefined}>
+                  <Grid verticalAlign="center">
+                    <GridCol className="slds-col">
+                      <Grid verticalAlign="center">
+                        {isExpired ? (
+                          <Tooltip
+                            content={`This verification request expired on ${expiresAt.toLocaleString()}. Delete it and add the domain again to receive a new verification code.`}
+                          >
+                            <Badge type="warning" className="slds-m-right_small">
+                              Expired
+                            </Badge>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip content={`Verify this domain before ${expiresAt.toLocaleString()} or the request will expire.`}>
+                            <Badge type="default" className="slds-m-right_small">
+                              Pending Verification
+                            </Badge>
+                          </Tooltip>
+                        )}
+                        <strong>{domain.domain}</strong>
+                      </Grid>
                     </GridCol>
-                  )}
-                </Grid>
-              </li>
-            ))}
+                    {canUpdate && (
+                      <GridCol bump="left">
+                        {!isExpired && (
+                          <button
+                            className="slds-button slds-button_neutral slds-m-right_x-small"
+                            type="button"
+                            onClick={() => setVerifyModalOpen(domain)}
+                          >
+                            Verify
+                          </button>
+                        )}
+                        <button
+                          className="slds-button slds-button_icon slds-button_icon-border-filled"
+                          type="button"
+                          onClick={() => handleDelete(domain)}
+                        >
+                          <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
+                        </button>
+                      </GridCol>
+                    )}
+                  </Grid>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
