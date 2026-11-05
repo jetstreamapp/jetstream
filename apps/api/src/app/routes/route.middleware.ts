@@ -720,58 +720,63 @@ export function verifyCaptcha(req: express.Request, res: express.Response, next:
  * so the two drift apart: browsers drop the CSRF cookie on restart, and some (seen with Safari) restore
  * an older value that was issued for a previous session. Both cases get a fresh token for the current
  * session here - otherwise every mutation would fail until the user logged in again.
+ *
+ * A missing cookie is replaced on any authenticated request, so the read requests the app makes on load
+ * (e.g. the heartbeat) hand the browser a cookie before its first mutation. A mutation that arrives with
+ * no cookie still gets the replacement, but is rejected like any other request without a valid token:
+ * the client resends it with the new cookie and the matching header (`csrfRetryInterceptor`).
  */
 export function validateDoubleCSRF(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const skipMethods = new Set(['GET', 'HEAD', 'OPTIONS']);
-
-  if (skipMethods.has(req.method)) {
-    return next();
-  }
+  const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS']);
+  const isSafeMethod = safeMethods.has(req.method);
 
   // Skip if user is not logged in (no session)
   if (!req.session?.user) {
-    // Log for monitoring
-    getLogger().warn(
-      {
-        path: req.path,
-        method: req.method,
-        hasUser: !!req.session?.user,
-      },
-      '[CSRF][SKIP] No user session',
-    );
+    if (!isSafeMethod) {
+      // Log for monitoring
+      getLogger().warn(
+        {
+          path: req.path,
+          method: req.method,
+          hasUser: !!req.session?.user,
+        },
+        '[CSRF][SKIP] No user session',
+      );
+    }
     return next();
   }
 
   const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
   const cookies = parseCookie(req.headers.cookie || '');
-  let cookieToken = cookies?.[cookieConfig.doubleCSRFToken.name];
+  const cookieToken = cookies?.[cookieConfig.doubleCSRFToken.name];
   const requestToken = decodeURIComponent(req.get(HTTP.HEADERS.X_CSRF_TOKEN) || req.body?.[HTTP.BODY.CSRF_TOKEN] || '');
 
   const issueTokenForSession = () => {
     const token = generateHMACDoubleCSRFToken(ENV.JETSTREAM_SESSION_SECRET, req.session.id);
     res.cookie(cookieConfig.doubleCSRFToken.name, token, cookieConfig.doubleCSRFToken.options);
-    return token;
   };
 
   // The browser dropped the CSRF cookie but kept the session cookie (e.g. after a browser restart).
-  // This is not a one-off migration - it happens all the time and must stay.
-  let isNewTokenGenerated = false;
+  // This is not a one-off migration - it happens all the time and must stay. The new cookie never
+  // vouches for the current request: a mutation is validated below against the (missing) cookie.
   if (!cookieToken && req.session?.id) {
-    cookieToken = issueTokenForSession();
-    isNewTokenGenerated = true;
+    issueTokenForSession();
 
     getLogger().info(
       {
+        method: req.method,
         sessionAge: req.session.loginTime ? Date.now() - req.session.loginTime : 'unknown',
       },
       '[CSRF][MIGRATION] Generated CSRF token for existing session',
     );
   }
 
+  if (isSafeMethod) {
+    return next();
+  }
+
   try {
-    // A freshly generated token is let through because the client had no cookie to read it from yet
-    const isValid =
-      isNewTokenGenerated || validateHMACDoubleCSRFToken(ENV.JETSTREAM_SESSION_SECRET, cookieToken, requestToken, req.session.id);
+    const isValid = validateHMACDoubleCSRFToken(ENV.JETSTREAM_SESSION_SECRET, cookieToken, requestToken, req.session.id);
 
     if (!isValid) {
       // A cookie that was not issued for this session can never pass, and nothing else would replace it.
