@@ -438,6 +438,13 @@ const AggregatedObjectRollupCard: FunctionComponent<{
   sobjectExportDetails: Record<string, SobjectExportDetail> | undefined;
   onOpen: () => void;
 }> = ({ row, sobjectExportDetails, onOpen }) => {
+  const accessibleObjectName =
+    row.objectApiName === '(no object)'
+      ? 'No object'
+      : (() => {
+          const { displayLabel } = formatObjectLabelForModalSummary(row.objectApiName, sobjectExportDetails);
+          return displayLabel === row.objectApiName ? displayLabel : `${displayLabel} (${row.objectApiName})`;
+        })();
   const hint =
     row.objectApiName === '(no object)' ? (
       <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_none">These issues are not tied to a specific object.</p>
@@ -449,7 +456,7 @@ const AggregatedObjectRollupCard: FunctionComponent<{
       tabIndex={0}
       css={aggregatedRollupRowInteractiveCss}
       title="View issue details"
-      aria-label={`View issue details for ${row.objectApiName}: ${row.count} ${row.count === 1 ? 'issue' : 'issues'}, ${row.errorCount} ${row.errorCount === 1 ? 'error' : 'errors'}, ${row.warningCount} ${row.warningCount === 1 ? 'warning' : 'warnings'}`}
+      aria-label={`View issue details for ${accessibleObjectName}: ${row.count} ${row.count === 1 ? 'issue' : 'issues'}, ${row.errorCount} ${row.errorCount === 1 ? 'error' : 'errors'}, ${row.warningCount} ${row.warningCount === 1 ? 'warning' : 'warnings'}`}
       onClick={onOpen}
       onKeyDown={aggregatedRollupRowKeyDown(onOpen)}
     >
