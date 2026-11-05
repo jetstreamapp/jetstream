@@ -52,18 +52,25 @@ jobs:
         with:
           node-version: "24"
 
+      # Pinned to an exact version so the CLI (and, via its shipped npm-shrinkwrap, its
+      # dependency tree) does not float between runs. Bump deliberately, alongside sfdx-ci.yml.
       - name: Install Salesforce CLI
-        run: npm install -g @salesforce/cli
+        run: npm install -g @salesforce/cli@2.157.8
 
       - name: Decode JWT key
-        run: echo "${{ secrets.SFDX_JWT_KEY_BASE64 }}" | base64 --decode > server.key
+        env:
+          SFDX_JWT_KEY_BASE64: ${{ secrets.SFDX_JWT_KEY_BASE64 }}
+        run: echo "$SFDX_JWT_KEY_BASE64" | base64 --decode > server.key
 
       - name: Authenticate to Dev Hub
+        env:
+          SFDX_CONSUMER_KEY: ${{ secrets.SFDX_CONSUMER_KEY }}
+          SFDX_DEVHUB_USERNAME: ${{ secrets.SFDX_DEVHUB_USERNAME }}
         run: |
           sf org login jwt \
-            --client-id ${{ secrets.SFDX_CONSUMER_KEY }} \
+            --client-id "$SFDX_CONSUMER_KEY" \
             --jwt-key-file server.key \
-            --username ${{ secrets.SFDX_DEVHUB_USERNAME }} \
+            --username "$SFDX_DEVHUB_USERNAME" \
             --set-default-dev-hub \
             --alias devhub
 
