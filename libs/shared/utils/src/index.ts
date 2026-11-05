@@ -17,3 +17,4 @@ export * from './lib/subquery-record-utils';
 export * from './lib/team-seats';
 export * from './lib/telemetry-redaction';
 export * from './lib/utils';
+export * from './lib/zip-entry-name';

@@ -1,5 +1,5 @@
 import { MAX_BINARY_DOWNLOAD_SIZE_BYTES } from '@jetstream/shared/constants';
-import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { getErrorMessageAndStackObj, sanitizeZipEntryName } from '@jetstream/shared/utils';
 import { ApiConnection } from './connection';
 import { SalesforceApi } from './utils';
 import { StreamingZip, ZipUtils } from './zip-utils';
@@ -8,6 +8,8 @@ import { StreamingZip, ZipUtils } from './zip-utils';
 const FILE_DOWNLOAD_TIMEOUT_MS = 5 * 60 * 1000;
 
 export interface BinaryFileDownload {
+  /** Record id - used as the archive entry name when the record name has nothing usable in it */
+  id?: string;
   url: string;
   fileName: string;
   fileExtension?: string;
@@ -53,15 +55,19 @@ export class ApiBinaryDownload extends SalesforceApi {
       );
     }
 
-    // Get filename with extension and ensure uniqueness within the zip
+    // Names come from Salesforce record fields that any org user can set, so each one is reduced to a
+    // single safe entry name before it is used for the zip headers and size calculation
+    // Uniqueness is case-insensitive since most filesystems the zip is extracted on are
     const usedFileNames = new Set<string>();
     files = files.map((file) => {
-      let newFileName = `${file.fileName}${file.fileExtension ? `.${file.fileExtension}` : ''}`;
+      const baseName = sanitizeZipEntryName(file.fileName, file.id || 'file');
+      const extension = sanitizeZipEntryName(file.fileExtension);
+      let newFileName = `${baseName}${extension ? `.${extension}` : ''}`;
       let counter = 1;
-      while (usedFileNames.has(newFileName)) {
-        newFileName = `${file.fileName} (${counter++})${file.fileExtension ? `.${file.fileExtension}` : ''}`;
+      while (usedFileNames.has(newFileName.toLowerCase())) {
+        newFileName = `${baseName} (${counter++})${extension ? `.${extension}` : ''}`;
       }
-      usedFileNames.add(newFileName);
+      usedFileNames.add(newFileName.toLowerCase());
       file.fileName = newFileName;
       return {
         ...file,
