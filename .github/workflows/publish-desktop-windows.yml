@@ -5,13 +5,13 @@ name: Publish Desktop (Windows)
 #
 # Triggered automatically by the `desktop-v*` tag that the main Release workflow
 # (release.yml) pushes via the GitHub App token, so it builds the already-bumped
-# version. Can also be dispatched manually against any ref.
+# version. Can also be dispatched manually against `main` or a `desktop-v*` tag.
 
 on:
   workflow_dispatch:
     inputs:
       ref:
-        description: "Git ref (tag or branch) to build"
+        description: "Git ref to build: `main` or a `desktop-v*` release tag"
         required: true
         default: "main"
   push:
@@ -30,6 +30,16 @@ jobs:
   build-windows:
     runs-on: windows-latest
     timeout-minutes: 60
+    # The signing and update-feed credentials belong to the `desktop-release` GitHub
+    # environment. Its protection rules are configured in the repository settings
+    # (Settings > Environments > desktop-release) and must include:
+    #   - Required reviewers, so every run (tag push or manual dispatch) waits for approval.
+    #     `pnpm release` only auto-approves the `production` environment of release.yml, so
+    #     approve this run from the GitHub UI or `gh run review <run-id> --approve`.
+    #   - Deployment branches and tags limited to `main` and `desktop-v*`.
+    #   - The AZURE_* and AWS_DESKTOP_UPDATES_* secrets defined as environment secrets
+    #     (and removed from the repository level) so no other workflow can read them.
+    environment: desktop-release
     env:
       NODE_OPTIONS: "--max_old_space_size=8192"
       # `prisma generate` runs as part of the nx build graph and loads prisma.config.ts,
@@ -38,23 +48,29 @@ jobs:
       JETSTREAM_POSTGRES_DBURI: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
       # Turns on the win `azureSignOptions` branch in electron-builder.config.js
       IS_CODESIGNING_ENABLED: "true"
-      # Azure Trusted Signing — consumed by Azure Identity EnvironmentCredential
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DESKTOP_UPDATES_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DESKTOP_UPDATES_SECRET_ACCESS_KEY }}
-      AWS_ENDPOINT_URL: ${{ secrets.AWS_DESKTOP_UPDATES_ENDPOINT_URL }}
-      # Public key (base64 SPKI DER) baked into the renderer to verify the server's feature flag signature
-      NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY: ${{ secrets.NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY }}
-      # Public Better Stack DSN baked into the renderer, which hands it to the main process at boot.
-      # Unset means no error reporting from the desktop app rather than a failed build.
-      NX_PUBLIC_SENTRY_DSN_DESKTOP: ${{ secrets.NX_PUBLIC_SENTRY_DSN_DESKTOP }}
 
     steps:
+      # A manual dispatch may only build `main` or a release tag. Resolving the input to a fully
+      # qualified ref also means a branch that happens to be named like a tag is never built.
+      - name: Resolve ref to build
+        id: ref
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          INPUT_REF: ${{ github.event.inputs.ref }}
+        run: |
+          if [[ "$INPUT_REF" == "main" ]]; then
+            echo "checkout-ref=refs/heads/main" >> "$GITHUB_OUTPUT"
+          elif [[ "$INPUT_REF" == desktop-v* ]]; then
+            echo "checkout-ref=refs/tags/${INPUT_REF}" >> "$GITHUB_OUTPUT"
+          else
+            echo "Error: ref must be 'main' or a 'desktop-v*' release tag. Got: ${INPUT_REF}"
+            exit 1
+          fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.inputs.ref || github.ref }}
+          ref: ${{ steps.ref.outputs.checkout-ref || github.ref }}
           persist-credentials: false
 
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -84,15 +100,32 @@ jobs:
       - name: Generate database client
         run: pnpm db:generate
 
-      # Builds the nx desktop projects and assembles dist/desktop-build,
-      # writing the .env (Azure + S3-compatible storage creds) that electron-builder reads.
+      # Builds the nx desktop projects and assembles dist/desktop-build. Only the public values
+      # baked into the renderer are exposed here; the signing and publishing credentials are
+      # scoped to the publish step, so neither the build nor its dependency installs see them.
       - name: Build desktop bundle
+        env:
+          # Public key (base64 SPKI DER) baked into the renderer to verify the server's feature flag signature
+          NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY: ${{ secrets.NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY }}
+          # Public Better Stack DSN baked into the renderer, which hands it to the main process at boot.
+          # Unset means no error reporting from the desktop app rather than a failed build.
+          NX_PUBLIC_SENTRY_DSN_DESKTOP: ${{ secrets.NX_PUBLIC_SENTRY_DSN_DESKTOP }}
         run: pnpm build:desktop
 
       # electron-builder --win -p always: signs via Azure Trusted Signing, uploads installers
       # + update metadata to the R2 desktop-updates bucket, and points clients at the release feed subdomain.
+      # electron-builder reads the credentials from this step's environment (IS_CODESIGNING_ENABLED is job-level).
       - name: Package, sign, and publish Windows installers
         working-directory: dist/desktop-build
+        env:
+          # Azure Trusted Signing — consumed by Azure Identity EnvironmentCredential
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          # R2 desktop-updates bucket
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DESKTOP_UPDATES_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DESKTOP_UPDATES_SECRET_ACCESS_KEY }}
+          AWS_ENDPOINT_URL: ${{ secrets.AWS_DESKTOP_UPDATES_ENDPOINT_URL }}
         run: pnpm publish:win
 
       - name: File GitHub issue for failed publish
