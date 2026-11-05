@@ -643,6 +643,8 @@ const IssuesFindingTreeDataGrid: FunctionComponent<IssuesFindingTreeDataGridProp
     return new Set(Object.keys(grouped));
   });
 
+  const groupBy = useMemo(() => [treeGroupColumnKey], [treeGroupColumnKey]);
+
   return (
     <DataTree
       org={org}
@@ -654,7 +656,7 @@ const IssuesFindingTreeDataGrid: FunctionComponent<IssuesFindingTreeDataGridProp
       includeQuickFilter
       autoRowHeight
       context={{ defaultApiVersion }}
-      groupBy={[treeGroupColumnKey]}
+      groupBy={groupBy}
       rowGrouper={groupIssueFindingsByColumnKey}
       expandedGroupIds={expandedGroupIds}
       onExpandedGroupIdsChange={(nextExpanded) => setExpandedGroupIds(nextExpanded)}

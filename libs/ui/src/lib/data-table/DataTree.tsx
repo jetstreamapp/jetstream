@@ -19,7 +19,11 @@ export interface DataTreeProps<T extends object = RowWithKey, TContext = Record<
 
 function DataTreeInner<T extends object = RowWithKey>(props: DataTreeProps<T>, ref: React.Ref<DataTableRef<T>>) {
   const { groupBy, expandedGroupIds, onExpandedGroupIdsChange, rowGrouper, ...rest } = props;
-  const grouping = useMemo(() => groupBy.map((key) => String(key)), [groupBy]);
+  // Callers commonly pass an inline `groupBy` array. Key on its contents so a new array identity with the same
+  // columns does not rebuild the table's grouping state (which re-publishes the sorted rows to consumers and can loop).
+  const groupingKey = groupBy.map((key) => String(key)).join('\u001f');
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- groupingKey is the content-derived key for groupBy
+  const grouping = useMemo(() => groupBy.map((key) => String(key)), [groupingKey]);
   const groupColumnId = grouping[0];
 
   // Bridge: a group row's TanStack id is `${columnId}:${groupingValue}` for single-level grouping.
