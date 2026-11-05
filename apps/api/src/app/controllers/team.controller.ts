@@ -831,7 +831,7 @@ const updateTeamMember = createRoute(routeDefinition.updateTeamMember.validators
           targetUserId: userId,
         }
       : null,
-    () => teamService.updateTeamMember({ teamId, userId, data: body, runningUserId: user.id }),
+    () => teamService.updateTeamMember({ teamId, userId, data: body, runningUserId: user.id, runningUserRole }),
   );
   sendJson(res, team);
 
@@ -993,7 +993,7 @@ const updateTeamMemberStatusAndRole = createRoute(
         resourceId: userId,
         targetUserId: userId,
       },
-      () => teamService.updateTeamMemberStatusAndRole({ teamId, userId, status, role, runningUserId: user.id }),
+      () => teamService.updateTeamMemberStatusAndRole({ teamId, userId, status, role, runningUserId: user.id, runningUserRole }),
     );
     sendJson(res, team);
 

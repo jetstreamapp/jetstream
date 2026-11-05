@@ -7,7 +7,7 @@ import { Prisma } from '@jetstream/prisma';
 import { SeatLimitError } from '@jetstream/team-seats';
 import { TeamAccessProfileRequest, TeamInvitationRequest, TeamSeatSummary } from '@jetstream/types';
 import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
-import { NotFoundError, UserFacingError } from '../../utils/error-handler';
+import { NotAllowedError, NotFoundError, UserFacingError } from '../../utils/error-handler';
 import * as teamDb from '../team.db';
 
 const prismaMock = vi.hoisted(() => {
@@ -222,6 +222,7 @@ describe('updateTeamMemberRole — seat check transitions', () => {
       teamId: TEAM_ID,
       userId: USER_ID,
       runningUserId: 'admin-id',
+      runningUserRole: 'ADMIN',
       data: data as any,
     });
   }
@@ -284,7 +285,13 @@ describe('updateTeamMemberRole — seat check transitions', () => {
 
 describe('updateTeamMemberRole — access profile assignment', () => {
   function run(data: { role?: string; accessProfileId?: string | null }) {
-    return teamDb.updateTeamMemberRole({ teamId: TEAM_ID, userId: USER_ID, runningUserId: 'admin-id', data: data as any });
+    return teamDb.updateTeamMemberRole({
+      teamId: TEAM_ID,
+      userId: USER_ID,
+      runningUserId: 'admin-id',
+      runningUserRole: 'ADMIN',
+      data: data as any,
+    });
   }
 
   beforeEach(() => {
@@ -370,6 +377,7 @@ describe('updateTeamMemberStatusAndRole — seat check transitions', () => {
       teamId: TEAM_ID,
       userId: USER_ID,
       runningUserId: 'admin-id',
+      runningUserRole: 'ADMIN',
       status: newStatus as any,
       role: (newRole ?? undefined) as any,
     });
@@ -426,6 +434,7 @@ describe('updateTeamMemberStatusAndRole — seat check transitions', () => {
       teamId: TEAM_ID,
       userId: USER_ID,
       runningUserId: 'admin-id',
+      runningUserRole: 'ADMIN',
       status: 'ACTIVE' as any,
       role: 'ADMIN' as any,
     });
@@ -744,6 +753,60 @@ describe('revokeTeamInvitation', () => {
   });
 });
 
+describe('running user authorization is re-checked under the lock', () => {
+  // The controller authorizes against a read that is not serialized with other membership writes, so
+  // the db layer repeats the decision against the row it is about to update.
+  it('updateTeamMemberRole refuses a BILLING caller when the locked read shows the target is now an ADMIN', async () => {
+    prismaMock.teamMember.findUniqueOrThrow.mockResolvedValue(makePreReadMember('ADMIN', 'ACTIVE'));
+
+    await expect(
+      teamDb.updateTeamMemberRole({
+        teamId: TEAM_ID,
+        userId: USER_ID,
+        runningUserId: 'billing-id',
+        runningUserRole: 'BILLING',
+        data: { role: 'MEMBER' as any },
+      }),
+    ).rejects.toBeInstanceOf(NotAllowedError);
+    expect(teamSeatsMock.withTeamSeatLock).toHaveBeenCalledWith(TEAM_ID, expect.any(Function));
+    expect(prismaMock.teamMember.update).not.toHaveBeenCalled();
+  });
+
+  it('updateTeamMemberStatusAndRole refuses a BILLING caller when the locked read shows the target is now an ADMIN', async () => {
+    // Pre-lock read sees a MEMBER (what the controller authorized); the locked read sees the promotion.
+    prismaMock.teamMember.findUniqueOrThrow
+      .mockResolvedValueOnce(makePreReadMember('MEMBER', 'ACTIVE'))
+      .mockResolvedValueOnce({ role: 'ADMIN', status: 'ACTIVE' });
+
+    await expect(
+      teamDb.updateTeamMemberStatusAndRole({
+        teamId: TEAM_ID,
+        userId: USER_ID,
+        runningUserId: 'billing-id',
+        runningUserRole: 'BILLING',
+        status: 'INACTIVE' as any,
+      }),
+    ).rejects.toBeInstanceOf(NotAllowedError);
+    expect(prismaMock.teamMember.update).not.toHaveBeenCalled();
+  });
+
+  it('lets a BILLING caller update a MEMBER', async () => {
+    prismaMock.teamMember.findUniqueOrThrow.mockResolvedValue(makePreReadMember('MEMBER', 'ACTIVE'));
+    prismaMock.teamMember.update.mockResolvedValueOnce(makeFullTeamMember('MEMBER', 'INACTIVE'));
+
+    const result = await teamDb.updateTeamMemberStatusAndRole({
+      teamId: TEAM_ID,
+      userId: USER_ID,
+      runningUserId: 'billing-id',
+      runningUserRole: 'BILLING',
+      status: 'INACTIVE' as any,
+    });
+
+    expect(result.teamMember.status).toBe('INACTIVE');
+    expect(prismaMock.teamMember.update).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('last-admin invariant', () => {
   it('rejects deactivating the last active admin', async () => {
     prismaMock.teamMember.findUniqueOrThrow.mockResolvedValue(makePreReadMember('ADMIN', 'ACTIVE'));
@@ -755,6 +818,7 @@ describe('last-admin invariant', () => {
         teamId: TEAM_ID,
         userId: USER_ID,
         runningUserId: 'admin-id',
+        runningUserRole: 'ADMIN',
         status: 'INACTIVE' as any,
       }),
     ).rejects.toThrow(/at least one active administrator/i);
@@ -771,6 +835,7 @@ describe('last-admin invariant', () => {
         teamId: TEAM_ID,
         userId: USER_ID,
         runningUserId: 'admin-id',
+        runningUserRole: 'ADMIN',
         data: { role: 'MEMBER' as any },
       }),
     ).rejects.toThrow(/at least one active administrator/i);
@@ -787,6 +852,7 @@ describe('last-admin invariant', () => {
       teamId: TEAM_ID,
       userId: USER_ID,
       runningUserId: 'admin-id',
+      runningUserRole: 'ADMIN',
       status: 'INACTIVE' as any,
     });
 
@@ -806,6 +872,7 @@ describe('last-admin invariant', () => {
       teamId: TEAM_ID,
       userId: USER_ID,
       runningUserId: 'admin-id',
+      runningUserRole: 'ADMIN',
       data: { role: 'MEMBER' as any },
     });
 
@@ -1044,7 +1111,12 @@ describe('updateAccessProfile', () => {
 
 describe('deleteAccessProfile', () => {
   function run(reassignToAccessProfileId?: string | null) {
-    return teamDb.deleteAccessProfile({ teamId: TEAM_ID, id: 'profile-1', runningUserId: 'admin-id', reassignToAccessProfileId });
+    return teamDb.deleteAccessProfile({
+      teamId: TEAM_ID,
+      id: 'profile-1',
+      runningUserId: 'admin-id',
+      reassignToAccessProfileId,
+    });
   }
 
   function expectNothingWritten() {

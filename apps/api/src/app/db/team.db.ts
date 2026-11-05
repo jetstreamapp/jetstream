@@ -30,6 +30,7 @@ import {
   AccessProfilePolicySchema,
   DomainVerificationSchema,
   Maybe,
+  TEAM_MEMBER_ROLE_ACCESS,
   TEAM_MEMBER_ROLE_ADMIN,
   TEAM_MEMBER_ROLE_BILLING,
   TEAM_MEMBER_STATUS_ACTIVE,
@@ -765,15 +766,30 @@ async function assertTeamRetainsActiveAdmin(
   }
 }
 
+/**
+ * Re-checks, against the target member's role as read under the team row lock, that the running
+ * user's role is allowed to modify a member holding that role. The controller performs the same
+ * check before calling in, but that read is not serialized with other membership writes, so the
+ * authoritative decision is made here next to the write it authorizes.
+ */
+function assertRunningUserCanUpdateTargetRole({ runningUserRole, targetRole }: { runningUserRole: TeamMemberRole; targetRole: string }) {
+  const allowedTargetRoles = (TEAM_MEMBER_ROLE_ACCESS[runningUserRole] || []) as string[];
+  if (!allowedTargetRoles.includes(targetRole)) {
+    throw new NotAllowedError('Forbidden');
+  }
+}
+
 export async function updateTeamMemberRole({
   teamId,
   userId,
   runningUserId,
+  runningUserRole,
   data,
 }: {
   teamId: string;
   userId: string;
   runningUserId: string;
+  runningUserRole: TeamMemberRole;
   data: TeamMemberUpdateRequest;
 }): Promise<{
   teamMember: TeamMember;
@@ -789,6 +805,7 @@ export async function updateTeamMemberRole({
       select: { role: true, status: true, accessProfileId: true, user: { select: { email: true } } },
       where: { teamId_userId: { teamId, userId } },
     });
+    assertRunningUserCanUpdateTargetRole({ runningUserRole, targetRole: current.role });
     // Only a member who is not already using a seat needs one (e.g. BILLING → MEMBER). MEMBER → ADMIN
     // and access-profile-only updates are seat-neutral and never hit the check.
     const nextRole = data.role ?? current.role;
@@ -824,12 +841,14 @@ export async function updateTeamMemberStatusAndRole({
   teamId,
   userId,
   runningUserId,
+  runningUserRole,
   status,
   role,
 }: {
   teamId: string;
   userId: string;
   runningUserId: string;
+  runningUserRole: TeamMemberRole;
   status: TeamMemberStatus;
   role?: Maybe<TeamMemberRole>;
 }): Promise<{
@@ -862,6 +881,7 @@ export async function updateTeamMemberStatusAndRole({
       select: { role: true, status: true },
       where: { teamId_userId: { teamId, userId } },
     });
+    assertRunningUserCanUpdateTargetRole({ runningUserRole, targetRole: current.role });
     const nextRole = role || (current.role as TeamMemberRole);
     // Reactivating into a billable role takes a seat; deactivation and moves into BILLING never do, and
     // a member who already holds a seat keeps it (e.g. ACTIVE MEMBER → ACTIVE ADMIN).
