@@ -1,4 +1,6 @@
 /* eslint-disable import/first -- vi.mock calls must be evaluated before the modules they intercept are imported */
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 vi.mock('@jetstream/shared/data', () => ({
   getApiErrorCode: vi.fn(() => null),
   previewTeamSeats: vi.fn(),
@@ -13,7 +15,6 @@ import { previewTeamSeats, updateTeamSeats } from '@jetstream/shared/data';
 import { TeamSeatChangePreview, TeamSeatSummary } from '@jetstream/types';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TeamSeatsManageModal } from '../TeamSeatsManageModal';
 
 const SEATS: TeamSeatSummary = {
