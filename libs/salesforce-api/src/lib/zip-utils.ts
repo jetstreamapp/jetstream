@@ -127,6 +127,13 @@ interface FileRecord {
   headerOffsetBig: bigint;
 }
 
+/**
+ * How many bytes the output stream may hold before the producer is paused. Upstream chunks are
+ * typically 16-64 KB, so this keeps a handful of chunks ready for the consumer while bounding how much
+ * of a file can accumulate in memory when the client reads slowly.
+ */
+export const ZIP_OUTPUT_HIGH_WATER_MARK_BYTES = 1024 * 1024;
+
 export class StreamingZip {
   private zip64: boolean;
   private fileRecord: FileRecord[] = [];
@@ -136,21 +143,31 @@ export class StreamingZip {
   private aborted = false;
   private controllerClosed = false;
   private abortCallbacks: Array<() => void> = [];
+  /** Producers waiting in enqueue() for the consumer to drain the output queue */
+  private drainWaiters: Array<() => void> = [];
 
   outputStream: ReadableStream<Uint8Array>;
 
   constructor(zip64 = false) {
     this.zip64 = zip64;
 
-    this.outputStream = new ReadableStream({
-      start: (controller) => {
-        this.outputController = controller;
+    this.outputStream = new ReadableStream<Uint8Array>(
+      {
+        start: (controller) => {
+          this.outputController = controller;
+        },
+        // The runtime calls pull whenever the queue drops below the high water mark, which is the
+        // signal that a producer paused in enqueue() may continue
+        pull: () => {
+          this.releaseDrainWaiters();
+        },
+        cancel: () => {
+          // Client disconnected or download was canceled
+          this.abort();
+        },
       },
-      cancel: () => {
-        // Client disconnected or download was canceled
-        this.abort();
-      },
-    });
+      new ByteLengthQueuingStrategy({ highWaterMark: ZIP_OUTPUT_HIGH_WATER_MARK_BYTES }),
+    );
   }
 
   /**
@@ -173,6 +190,26 @@ export class StreamingZip {
     this.controllerClosed = true;
     this.abortCallbacks.forEach((callback) => callback());
     this.abortCallbacks = [];
+    // A producer paused waiting for the consumer must not hang once there is no consumer
+    this.releaseDrainWaiters();
+  }
+
+  private releaseDrainWaiters(): void {
+    const waiters = this.drainWaiters;
+    this.drainWaiters = [];
+    waiters.forEach((resolve) => resolve());
+  }
+
+  /**
+   * True while the output queue is at or above its high water mark on a live stream. desiredSize is
+   * null once the stream has errored, and the closed/aborted flags cover the other terminal states.
+   */
+  private isOutputQueueFull(): boolean {
+    if (!this.outputController || this.aborted || this.controllerClosed) {
+      return false;
+    }
+    const { desiredSize } = this.outputController;
+    return desiredSize !== null && desiredSize <= 0;
   }
 
   /**
@@ -200,17 +237,18 @@ export class StreamingZip {
     return this.aborted;
   }
 
+  /**
+   * Enqueue a chunk and, if that filled the output queue, wait until the consumer has drained it
+   * (signalled by the stream's pull callback) before returning. This is what pauses the upstream
+   * Salesforce reads while the client is slow, so the zip never buffers more than the high water mark.
+   */
   private async enqueue(data: Uint8Array): Promise<void> {
-    if (this.outputController) {
-      this.outputController.enqueue(data);
-      // Check desired size for backpressure
-      // When desiredSize is null or <= 0, the consumer is slow and we should wait
-      const desiredSize = this.outputController.desiredSize;
-      if (desiredSize !== null && desiredSize <= 0) {
-        // Wait for the stream to drain before continuing
-        // This prevents memory buildup when the client has a slow connection
-        await new Promise((resolve) => setTimeout(resolve, 10));
-      }
+    if (!this.outputController) {
+      return;
+    }
+    this.outputController.enqueue(data);
+    while (this.isOutputQueueFull()) {
+      await new Promise<void>((resolve) => this.drainWaiters.push(resolve));
     }
   }
 
