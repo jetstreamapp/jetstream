@@ -1239,7 +1239,7 @@ const enrollOtpFactor = createRoute(routeDefinition.enrollOtpFactor.validators, 
     const { csrfToken, code } = body;
     await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
 
-    await createOrUpdateOtpAuthFactor(user.id, consumeTotpEnrollmentOrThrow(req.session, code));
+    await createOrUpdateOtpAuthFactor(user, consumeTotpEnrollmentOrThrow(req.session, code));
 
     req.session.pendingMfaEnrollment = null;
 

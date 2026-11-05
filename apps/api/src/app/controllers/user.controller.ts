@@ -2,6 +2,7 @@ import { ENV, getLogger } from '@jetstream/api-config';
 import {
   AuthError,
   beginTotpEnrollment,
+  checkMfaActionAllowedOrThrow,
   consumeTotpEnrollmentOrThrow,
   createOrUpdateOtpAuthFactor,
   createUserActivityFromReq,
@@ -354,13 +355,16 @@ const getUserLoginConfiguration = createRoute(routeDefinition.getUserLoginConfig
 });
 
 const getOtpQrCode = createRoute(routeDefinition.getOtpQrCode.validators, async ({ user }, req, res) => {
+  // Refuse before minting a secret so a member whose team disallows authenticator apps is not
+  // walked through a set-up that the save step would reject anyway
+  await checkMfaActionAllowedOrThrow(user, '2fa-otp', 'enable');
   sendJson(res, await beginTotpEnrollment(req.session, user.id));
 });
 
 const saveOtpAuthFactor = createRoute(routeDefinition.saveOtpAuthFactor.validators, async ({ body, user }, req, res) => {
   try {
     const { code } = body;
-    const authFactors = await createOrUpdateOtpAuthFactor(user.id, consumeTotpEnrollmentOrThrow(req.session, code));
+    const authFactors = await createOrUpdateOtpAuthFactor(user, consumeTotpEnrollmentOrThrow(req.session, code));
     sendJson(res, authFactors);
 
     await sendAuthenticationChangeConfirmation(user.email, 'A new 2FA method has been added to your account', {
@@ -380,6 +384,9 @@ const saveOtpAuthFactor = createRoute(routeDefinition.saveOtpAuthFactor.validato
     });
     if (ex instanceof InvalidVerificationToken) {
       throw new UserFacingError('Your verification code is invalid or has expired. Please try again.');
+    }
+    if (ex instanceof AuthError) {
+      throw ex;
     }
     throw new UserFacingError('There was an error setting up the 2FA method');
   }

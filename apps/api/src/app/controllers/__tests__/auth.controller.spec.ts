@@ -987,7 +987,7 @@ describe('auth.controller - authenticator enrollment waits for the pending secon
     await routeDefinition.enrollOtpFactor.controllerFn()(req as never, res as never, next);
 
     expect(next).not.toHaveBeenCalled();
-    expect(authServerMocks.createOrUpdateOtpAuthFactor).toHaveBeenCalledWith(REAL_USER_ID, 'secret');
+    expect(authServerMocks.createOrUpdateOtpAuthFactor).toHaveBeenCalledWith(expect.objectContaining({ id: REAL_USER_ID }), 'secret');
     expect(req.session.pendingMfaEnrollment).toBeNull();
     expect(responseHandlerMocks.sendJson).toHaveBeenCalledWith(res, expect.objectContaining({ error: false }));
   });

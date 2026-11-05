@@ -390,7 +390,17 @@ export async function getTotpAuthenticationFactor(userId: string) {
     });
 }
 
-export async function createOrUpdateOtpAuthFactor(userId: string, secretPlainText: string) {
+/**
+ * Stores (or replaces) the user's authenticator secret and enables the factor.
+ * Enabling a factor is subject to the team's allowed MFA methods, exactly like the toggle route.
+ */
+export async function createOrUpdateOtpAuthFactor(
+  user: Pick<UserProfileSession, 'id' | 'email' | 'teamMembership'>,
+  secretPlainText: string,
+) {
+  const userId = user.id;
+  await checkMfaActionAllowedOrThrow(user, '2fa-otp', 'enable');
+
   const secret = encryptString(secretPlainText, ENV.JETSTREAM_AUTH_OTP_SECRET);
 
   const factors = await prisma.authFactors.findMany({
@@ -429,7 +439,7 @@ export async function createOrUpdateOtpAuthFactor(userId: string, secretPlainTex
  * If adding a factor, ensure it is allowed
  * If removing/deleting a factor, ensure that a remaining factor still exists if required
  */
-async function checkMfaActionAllowedOrThrow(
+export async function checkMfaActionAllowedOrThrow(
   user: Pick<UserProfileSession, 'id' | 'email' | 'teamMembership'>,
   type: TwoFactorTypeWithoutEmail,
   action: 'enable' | 'disable' | 'delete',
@@ -2133,8 +2143,19 @@ export async function handleSignInOrRegistration(
 
     await setLastLoginDate(user.id);
 
+    // Drop enabled factors whose method the team no longer allows, the same way getSsoMfaRequirements
+    // does. A factor enabled before the admin narrowed allowedMfaMethods must not keep satisfying MFA.
+    const allowedMfaMethods = loginConfiguration?.allowedMfaMethods;
     const twoFactor = user.authFactors
-      .filter(({ enabled }) => enabled)
+      .filter(({ enabled, type }) => {
+        if (!enabled) {
+          return false;
+        }
+        if (allowedMfaMethods && (type === '2fa-otp' || type === '2fa-email')) {
+          return allowedMfaMethods.has(type);
+        }
+        return true;
+      })
       .sort((a, b) => {
         const priority = {
           '2fa-otp': 1,
