@@ -683,6 +683,7 @@ export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisE
           rows={rows}
           fileNameParts={downloadFileNameParts}
           modalHeader={downloadModalHeader}
+          escapeCsvFormulas
         />
       </div>
       <AutoFullHeightContainer

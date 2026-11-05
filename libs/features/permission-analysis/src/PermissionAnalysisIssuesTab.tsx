@@ -1106,6 +1106,7 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
               rows={sortedFindings}
               fileNameParts={['permission-analysis-issues']}
               modalHeader="Download Issues"
+              escapeCsvFormulas
             />
           </div>
 

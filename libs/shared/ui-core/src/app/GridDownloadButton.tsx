@@ -15,6 +15,12 @@ export interface GridDownloadModalProps<T extends object = RowWithKey> {
   /** Analytics source; defaults to the joined `fileNameParts`. */
   source?: string;
   modalHeader?: string;
+  /**
+   * Prefix CSV cells that a spreadsheet would evaluate as a formula with a single quote (see
+   * {@link FileDownloadModal}'s `escapeCsvFormulas`). Enable for grids of org metadata (labels, names,
+   * descriptions) that are opened in a spreadsheet, not for record data that may be loaded back into Salesforce.
+   */
+  escapeCsvFormulas?: boolean;
   onClose: () => void;
 }
 
@@ -30,6 +36,7 @@ export function GridDownloadModal<T extends object = RowWithKey>({
   fileNameParts,
   source,
   modalHeader = 'Download',
+  escapeCsvFormulas = false,
   onClose,
 }: GridDownloadModalProps<T>) {
   const { trackEvent } = useAnalytics();
@@ -58,6 +65,7 @@ export function GridDownloadModal<T extends object = RowWithKey>({
       google_clientId={google_clientId}
       emitUploadToGoogleEvent={fromJetstreamEvents.emit}
       trackEvent={trackEvent}
+      escapeCsvFormulas={escapeCsvFormulas}
       onModalClose={onClose}
     />
   );
@@ -72,6 +80,12 @@ export interface GridDownloadButtonProps<T extends object = RowWithKey> {
   /** Analytics source; defaults to the joined `fileNameParts`. */
   source?: string;
   modalHeader?: string;
+  /**
+   * Prefix CSV cells that a spreadsheet would evaluate as a formula with a single quote (see
+   * {@link FileDownloadModal}'s `escapeCsvFormulas`). Enable for grids of org metadata (labels, names,
+   * descriptions) that are opened in a spreadsheet, not for record data that may be loaded back into Salesforce.
+   */
+  escapeCsvFormulas?: boolean;
   label?: string;
   className?: string;
   disabled?: boolean;
@@ -92,6 +106,7 @@ export function GridDownloadButton<T extends object = RowWithKey>({
   fileNameParts,
   source,
   modalHeader = 'Download',
+  escapeCsvFormulas = false,
   label = 'Download',
   className,
   disabled,
@@ -118,6 +133,7 @@ export function GridDownloadButton<T extends object = RowWithKey>({
           fileNameParts={fileNameParts}
           source={source}
           modalHeader={modalHeader}
+          escapeCsvFormulas={escapeCsvFormulas}
           onClose={() => setIsModalOpen(false)}
         />
       )}

@@ -849,6 +849,7 @@ export const PermissionAnalysisUserAssignmentsTree: FunctionComponent<Permission
           rows={treeRows}
           fileNameParts={['permission-analysis-user-assignments']}
           modalHeader="Download User Assignments"
+          escapeCsvFormulas
         />
       </div>
       <AutoFullHeightContainer

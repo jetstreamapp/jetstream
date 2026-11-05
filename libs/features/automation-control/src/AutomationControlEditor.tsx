@@ -276,6 +276,7 @@ export const AutomationControlEditor = () => {
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
           source="automation_control"
           trackEvent={trackEvent}
+          escapeCsvFormulas
         />
       )}
       {exportMetadataModalOpen && (

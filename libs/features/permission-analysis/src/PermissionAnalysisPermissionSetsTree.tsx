@@ -899,6 +899,7 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
           rows={treeRows}
           fileNameParts={[isProfilesTree ? 'permission-analysis-profiles' : 'permission-analysis-permission-sets']}
           modalHeader={isProfilesTree ? 'Download Profiles' : 'Download Permission Sets'}
+          escapeCsvFormulas
         />
       </div>
       <AutoFullHeightContainer
