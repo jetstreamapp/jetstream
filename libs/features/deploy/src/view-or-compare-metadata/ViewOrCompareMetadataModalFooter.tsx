@@ -1,4 +1,4 @@
-import { Grid, Icon, Tooltip } from '@jetstream/ui';
+import { DisabledReasonButton, Grid, Icon } from '@jetstream/ui';
 import { useOperationAccess } from '@jetstream/ui/app-state';
 import { FunctionComponent } from 'react';
 import { OrgType } from './viewOrCompareMetadataTypes';
@@ -37,11 +37,11 @@ export const ViewOrCompareMetadataModalFooter: FunctionComponent<ViewOrCompareMe
   const deployAccess = useOperationAccess('metadata.deploy');
   const hasBoth = hasSourceMetadata && hasTargetMetadata;
 
-  let deployTooltip = 'Select a target org to deploy changes';
-  if (deployAccess.deniedReason) {
-    deployTooltip = deployAccess.deniedReason;
-  } else if (hasTargetMetadata) {
-    deployTooltip = 'Deploy changes to the target org, confirm which metadata components to deploy on the next screen';
+  let deployDisabledReason: string | undefined;
+  if (!deployAccess.allowed) {
+    deployDisabledReason = deployAccess.deniedReason;
+  } else if (!hasTargetMetadata) {
+    deployDisabledReason = 'Select a target org to deploy changes';
   }
 
   return (
@@ -64,22 +64,23 @@ export const ViewOrCompareMetadataModalFooter: FunctionComponent<ViewOrCompareMe
         )}
       </div>
       <Grid>
-        <Tooltip content={deployTooltip}>
-          <button
-            className="slds-button slds-button_brand slds-m-right_x-small"
-            onClick={() => onDeployToTarget()}
-            disabled={!hasTargetMetadata || !deployAccess.allowed}
-          >
-            <Icon type="utility" icon="share" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Deploy Changes
-          </button>
-        </Tooltip>
+        <DisabledReasonButton
+          className="slds-button slds-button_brand slds-m-right_x-small"
+          disabled={!hasTargetMetadata || !deployAccess.allowed}
+          disabledReason={deployDisabledReason}
+          tooltip="Deploy changes to the target org, confirm which metadata components to deploy on the next screen"
+          onClick={() => onDeployToTarget()}
+        >
+          <Icon type="utility" icon="share" className="slds-button__icon slds-button__icon_left" omitContainer />
+          Deploy Changes
+        </DisabledReasonButton>
         <button
           className="slds-button slds-button_neutral"
           onClick={() => onDownloadPackage('SOURCE')}
           disabled={!hasSourceMetadata || sourceLoading}
         >
           <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+          <span className="slds-assistive-text">Download </span>
           Source Package
         </button>
 
@@ -91,11 +92,13 @@ export const ViewOrCompareMetadataModalFooter: FunctionComponent<ViewOrCompareMe
               disabled={!hasTargetMetadata || targetLoading || !hasTargetMetadataContent}
             >
               <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+              <span className="slds-assistive-text">Download </span>
               Target Package
             </button>
 
             <button className="slds-button slds-button_neutral" onClick={() => onExportSummary()} disabled={!hasBoth}>
               <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+              <span className="slds-assistive-text">Download </span>
               Export Comparison
             </button>
           </>

@@ -107,6 +107,7 @@ export const UserSelection: FunctionComponent<UserSelectionProps | UserSelection
         <>
           <hr className="slds-m-vertical_small" />
           <List
+            ariaLabel="Users"
             items={[{ id: 'current-user', label: `${selectedOrg.displayName} (ME)`, secondaryLabel: selectedOrg.username }]}
             isMultiSelect
             isActive={() => true}

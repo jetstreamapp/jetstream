@@ -93,6 +93,10 @@ export const LoadingAndActiveRenderer: FunctionComponent<{
           hideLabel
           checked={row.isActive}
           disabled={row.readOnly}
+          // Grid arrow navigation focuses the checkbox itself (APG single-widget cell) so its role,
+          // checked state, and Space affordance are announced; tabIndex -1 keeps the grid one tab stop
+          tabIndex={-1}
+          inputProps={row.readOnly ? undefined : { 'data-grid-inner-focus': true }}
           onChange={(value) => updateIsActiveFlag(row, value)}
         />
       </div>
@@ -100,7 +104,15 @@ export const LoadingAndActiveRenderer: FunctionComponent<{
   } else {
     return (
       <div className="slds-align_absolute-center h-100 w-100">
-        <Checkbox id={row.key} label="Active" hideLabel checked={row.isActive} onChange={(value) => updateIsActiveFlag(row, value)} />
+        <Checkbox
+          id={row.key}
+          label="Active"
+          hideLabel
+          checked={row.isActive}
+          tabIndex={-1}
+          inputProps={{ 'data-grid-inner-focus': true }}
+          onChange={(value) => updateIsActiveFlag(row, value)}
+        />
       </div>
     );
   }
@@ -139,7 +151,14 @@ export const BooleanAndVersionRenderer = ({ column, row }: RenderCellProps<Deplo
   const type = metadata.type;
   const value = metadata[column.key as keyof TableRowOrItemOrChild];
   const checkbox = (
-    <Checkbox className="slds-align_absolute-center" id={`${column.key}-${row.key}`} checked={!!value} label="value" hideLabel readOnly />
+    <Checkbox
+      className="slds-align_absolute-center"
+      id={`${column.key}-${row.key}`}
+      checked={!!value}
+      label={column.key === 'isActiveInitialState' ? 'Active (old value)' : 'Active (new value)'}
+      hideLabel
+      readOnly
+    />
   );
   if (type === 'FlowRecordTriggered' || type === 'FlowProcessBuilder') {
     const activeVersionNumberInitialState = metadata.activeVersionNumberInitialState;
@@ -222,7 +241,7 @@ export const AutomationDeployStatusRenderer = ({ row }: RenderCellProps<Deployme
           {isError && (
             <Tooltip id={`${uniqueId('deploy-error')}`} content={getErrorMessageContent(deployError) || 'An unknown error has occurred'}>
               <CopyToClipboard
-                icon={{ type: 'utility', icon: 'error', description: 'deployment error' }}
+                icon={{ type: 'utility', icon: 'error', description: `Copy error for ${row.label}` }}
                 content={getErrorMessageContentString(deployError) || 'An unknown error has occurred'}
                 className="slds-text-color_error"
               />
@@ -245,7 +264,7 @@ export const HistoryActivationStateRenderer = ({ column, row }: RenderCellProps<
         className="slds-align_absolute-center"
         id={`${column.key}-${row.key}`}
         checked={isActive}
-        label="value"
+        label={column.key === 'previous' ? 'Active before' : 'Active after'}
         hideLabel
         readOnly
       />
@@ -253,6 +272,8 @@ export const HistoryActivationStateRenderer = ({ column, row }: RenderCellProps<
     </Grid>
   );
 };
+
+const NOT_CONFIRMED_EXPLANATION = 'The deployment did not finish, so this change may or may not have been applied.';
 
 export const HistoryItemStatusRenderer = ({ row }: RenderCellProps<HistoryItemRow, unknown>): ReactNode => {
   const { status, errorMessage } = row;
@@ -264,9 +285,13 @@ export const HistoryItemStatusRenderer = ({ row }: RenderCellProps<HistoryItemRo
           icon="warning"
           className="slds-icon slds-icon-text-warning slds-icon_x-small slds-m-right_x-small"
           containerClassname="slds-icon_container slds-icon-utility-warning"
-          description="result not confirmed"
         />
-        <span title="The deployment did not finish, so this change may or may not have been applied">Not confirmed</span>
+        {/* The tooltip only opens on hover, so the explanation is also in the text a screen reader reads */}
+        <Tooltip content={NOT_CONFIRMED_EXPLANATION}>
+          <span>
+            Not confirmed<span className="slds-assistive-text">. {NOT_CONFIRMED_EXPLANATION}</span>
+          </span>
+        </Tooltip>
       </Grid>
     );
   }
@@ -278,7 +303,6 @@ export const HistoryItemStatusRenderer = ({ row }: RenderCellProps<HistoryItemRo
           icon="success"
           className="slds-icon slds-icon-text-success slds-icon_x-small slds-m-right_x-small"
           containerClassname="slds-icon_container slds-icon-utility-success"
-          description="deployed successfully"
         />
         <span className="slds-text-success">Success</span>
       </Grid>
@@ -288,7 +312,7 @@ export const HistoryItemStatusRenderer = ({ row }: RenderCellProps<HistoryItemRo
     <Grid verticalAlign="center">
       <Tooltip id={`${uniqueId('history-error')}`} content={errorMessage || 'An unknown error has occurred'}>
         <CopyToClipboard
-          icon={{ type: 'utility', icon: 'error', description: 'deployment error' }}
+          icon={{ type: 'utility', icon: 'error', description: `Copy error for ${row.label}` }}
           content={errorMessage || 'An unknown error has occurred'}
           className="slds-text-color_error"
         />
