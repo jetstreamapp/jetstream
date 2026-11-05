@@ -1,0 +1,60 @@
+---
+slug: v10.31.0
+title: 10.31.0 - Accessibility improvements
+date: '2026-11-05'
+tags: [web, desktop, extension]
+versions:
+  web: 10.31.0
+  desktop: 4.23.0
+  extension: 3.29.0
+summary: Accessibility improvements across data tables, form controls, modals and menus, including full keyboard navigation and better screen reader support. Org cards also keep the sandbox name visible.
+highlights:
+  - title: Keyboard navigation in data tables
+    description: The data grid is a single tab stop, and arrow keys, Home/End and paging move between cells.
+  - title: Keyboard and screen reader support in form controls
+    description: Comboboxes, picklists, date pickers, time pickers and radio groups follow standard keyboard and ARIA behavior.
+  - title: Focus handling in modals, menus and popovers
+    description: Focus returns to the control that opened a modal or menu, and Escape closes only the top-most layer.
+  - title: Org cards keep the sandbox name visible
+    description: Long usernames and instance URLs are shortened in the middle, and the Add Org popover links to Manage Orgs.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Accessibility improvements
+
+This release improves keyboard and screen reader support across the app. The changes cover data tables, shared form controls, and modal, menu and popover behavior.
+
+#### Data tables
+
+- The data grid is a single tab stop. Arrow keys, Home/End and page keys move between cells, including the header and summary rows when a filter matches nothing.
+- Focus stays in place when an overlay opens from a cell and returns to the cell when the overlay closes.
+- Column filter popovers keep keyboard focus inside them.
+- A focused cell describes what Enter does, and record actions and counts have accessible names.
+- In Preview Changes, Save stays focusable when it is unavailable and explains why.
+
+#### Form controls
+
+- Comboboxes support arrow keys, Home/End and drill-in, and disabled options can no longer be selected.
+- Picklists open with Enter or Space, do not reopen after a choice, and no longer submit the form they sit in.
+- The time picker is now a combobox you can type into to filter times, and the date picker has updated keyboard support and layout.
+- Radio groups are a single tab stop, and help text and errors on form fields are read when the field receives focus.
+
+#### Modals, menus and popovers
+
+- Modals return focus to the button that opened them, and dropdown menus return focus to their trigger.
+- Escape closes only the top-most layer, so pressing it in a menu, popover or tooltip inside a modal no longer closes the modal.
+- Tooltips can be opened and dismissed with the keyboard.
+- A repeated error toast appears once instead of stacking, and toasts are announced by screen readers.
+- Cmd/Ctrl+Enter page shortcuts do nothing while a modal is open.
+
+### Org cards keep the sandbox name visible
+
+Org cards shorten the middle of long usernames and instance URLs (the full value is in the tooltip), so the sandbox name at the end stays visible. The Production/Sandbox badge moved next to the org Id to leave more room for the title. The Add Org popover in the header now has a Manage Orgs link.
+
+### Other fixes
+
+- Fixed a crash on the Permission Analysis Issues tab when expanding or collapsing a group while Group By is set.
+- The record view, edit and clone modal can no longer be closed while a save is in progress.

@@ -1,5 +1,31 @@
 [
   {
+    "slug": "v10.31.0",
+    "title": "10.31.0 - Accessibility improvements",
+    "date": "2026-11-05",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.31.0", "desktop": "4.23.0", "extension": "3.29.0" },
+    "summary": "Accessibility improvements across data tables, form controls, modals and menus, including full keyboard navigation and better screen reader support. Org cards also keep the sandbox name visible.",
+    "highlights": [
+      {
+        "title": "Keyboard navigation in data tables",
+        "description": "The data grid is a single tab stop, and arrow keys, Home/End and paging move between cells."
+      },
+      {
+        "title": "Keyboard and screen reader support in form controls",
+        "description": "Comboboxes, picklists, date pickers, time pickers and radio groups follow standard keyboard and ARIA behavior."
+      },
+      {
+        "title": "Focus handling in modals, menus and popovers",
+        "description": "Focus returns to the control that opened a modal or menu, and Escape closes only the top-most layer."
+      },
+      {
+        "title": "Org cards keep the sandbox name visible",
+        "description": "Long usernames and instance URLs are shortened in the middle, and the Add Org popover links to Manage Orgs."
+      }
+    ]
+  },
+  {
     "slug": "v10.30.0",
     "title": "10.30.0 - Custom permissions in Manage Permissions",
     "date": "2026-11-04",
