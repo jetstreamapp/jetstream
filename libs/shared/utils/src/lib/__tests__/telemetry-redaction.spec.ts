@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sanitizeUrlForTelemetry } from '../telemetry-redaction';
+import { isSensitiveTelemetryKey, redactSensitiveTelemetryData, sanitizeUrlForTelemetry } from '../telemetry-redaction';
 
 describe('sanitizeUrlForTelemetry', () => {
   it('drops the query string and fragment', () => {
@@ -37,8 +37,75 @@ describe('sanitizeUrlForTelemetry', () => {
     expect(sanitizeUrlForTelemetry('')).toBe('');
     expect(sanitizeUrlForTelemetry(null)).toBe('');
     expect(sanitizeUrlForTelemetry(undefined)).toBe('');
-    expect(sanitizeUrlForTelemetry('not a url?token=1')).toBe('/not%20a%20url');
+    expect(sanitizeUrlForTelemetry('not a url?token=1')).toBe('not%20a%20url');
+    expect(sanitizeUrlForTelemetry('QueryPage')).toBe('QueryPage');
     // invalid host: falls back to cutting at the first delimiter
     expect(sanitizeUrlForTelemetry('http://[bad-host/path?token=1#x')).toBe('http://[bad-host/path');
+  });
+});
+
+describe('isSensitiveTelemetryKey', () => {
+  it('matches secret-bearing keys regardless of casing or separators', () => {
+    for (const key of [
+      'token',
+      'access_token',
+      'refreshToken',
+      'Authorization',
+      'Cookie',
+      'password',
+      'client_secret',
+      'code',
+      'state',
+      'csrf-token',
+    ]) {
+      expect(isSensitiveTelemetryKey(key), key).toBe(true);
+    }
+  });
+
+  it('does not match ambiguous keys used as substrings', () => {
+    for (const key of ['statusCode', 'stateName', 'osId', 'email', 'userId', 'query', 'sobject']) {
+      expect(isSensitiveTelemetryKey(key), key).toBe(false);
+    }
+  });
+});
+
+describe('redactSensitiveTelemetryData', () => {
+  it('redacts secret keys recursively and keeps the rest', () => {
+    const input = {
+      sobject: 'Account',
+      token: 'abc',
+      nested: { refresh_token: 'r', headers: { Authorization: 'Bearer x', 'content-type': 'json' }, state: 's' },
+      list: [{ password: 'p', name: 'ok' }],
+    };
+    const result = redactSensitiveTelemetryData(input);
+    expect(result).toEqual({
+      sobject: 'Account',
+      token: '[REDACTED]',
+      nested: { refresh_token: '[REDACTED]', headers: { Authorization: '[REDACTED]', 'content-type': 'json' }, state: '[REDACTED]' },
+      list: [{ password: '[REDACTED]', name: 'ok' }],
+    });
+    // input is not mutated
+    expect(input.token).toBe('abc');
+  });
+
+  it('truncates long strings and arrays and cuts off deep nesting', () => {
+    const longString = 'x'.repeat(50);
+    const result = redactSensitiveTelemetryData(
+      { query: longString, rows: Array.from({ length: 5 }, (_, i) => i), deep: { a: { b: { c: 'leaf' } } } },
+      { maxStringLength: 10, maxArrayLength: 2, maxDepth: 3 },
+    );
+    expect(result.query).toBe('xxxxxxxxxx…[truncated 40 chars]');
+    expect(result.rows).toEqual([0, 1, '…[truncated 3 items]']);
+    expect(result.deep).toEqual({ a: { b: '[REDACTED]' } });
+  });
+
+  it('leaves primitives, special objects and circular references safe', () => {
+    const date = new Date();
+    const circular: Record<string, unknown> = { name: 'c' };
+    circular.self = circular;
+    expect(redactSensitiveTelemetryData(42)).toBe(42);
+    expect(redactSensitiveTelemetryData(null)).toBe(null);
+    expect(redactSensitiveTelemetryData({ date }).date).toBe(date);
+    expect(redactSensitiveTelemetryData(circular)).toEqual({ name: 'c', self: '[Circular]' });
   });
 });
