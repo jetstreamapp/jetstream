@@ -238,7 +238,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
   const previousJobStatusRef = useRef(jobStatusNormalized);
   useEffect(() => {
     if (previousJobStatusRef.current === 'running' && jobStatusNormalized === 'completed') {
-      announce('Permission analysis complete. Results are ready.');
+      announce('Permission analysis complete. Loading results.');
     }
     previousJobStatusRef.current = jobStatusNormalized;
   }, [jobStatusNormalized, announce]);

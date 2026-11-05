@@ -1057,6 +1057,14 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
 
   const saveDisabled = loading || !deployAccess.allowed || !hasDirtyChanges;
 
+  const saveDisabledReason = !deployAccess.allowed
+    ? deployAccess.deniedReason
+    : loading
+      ? 'Permissions are loading'
+      : !hasDirtyChanges
+        ? 'Make a change to enable saving'
+        : null;
+
   usePrimaryActionShortcut(saveChanges, { disabled: saveDisabled });
 
   useGoBackShortcut(() => {
@@ -1164,7 +1172,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
             className="slds-button slds-button_brand slds-m-left_xx-small"
             aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
             disabled={saveDisabled}
-            disabledReason={deployAccess.allowed ? null : deployAccess.deniedReason}
+            disabledReason={saveDisabledReason}
             tooltipOpenDelay={500}
             tooltip={
               <div className="slds-p-bottom_small">
