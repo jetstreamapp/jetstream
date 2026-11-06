@@ -1,6 +1,7 @@
 import { LoginConfigurationUI, UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { APIRequestContext, expect, Locator, Page } from '@playwright/test';
 import { ApiRequestUtils } from '../ApiRequestUtils';
+import { AuthenticationPage } from './AuthenticationPage.model';
 
 /** Role labels as rendered in the role picklists */
 export type TeamMemberRoleLabel = 'Admin' | 'Billing' | 'Member';
@@ -96,6 +97,19 @@ export class TeamDashboardPage {
     this.accessProfileEditorModal = page.getByTestId('team-access-profile-editor-modal');
     this.accessProfileDeleteModal = page.getByTestId('team-access-profile-delete-modal');
     this.seatsUnavailableNotice = page.getByTestId('seats-unavailable-notice');
+  }
+
+  /**
+   * Saves the login configuration form, completing the identity prompt that guards it, and waits for
+   * the save to land. Every caller saves after a page load, so this tab never holds a grant yet.
+   */
+  async saveLoginConfiguration(password: string) {
+    const saved = this.page.waitForResponse(
+      (response) => response.url().endsWith('/login-configuration') && response.request().method() === 'POST' && response.ok(),
+    );
+    await this.loginConfigSaveButton.click();
+    await new AuthenticationPage(this.page).completeStepUpWithPassword(password);
+    await saved;
   }
 
   async goToTeamDashboardPage() {

@@ -6,7 +6,7 @@ import { checkFeatureFlag } from '../db/feature-flags.db';
 import { findActiveTeamMembershipForRoles } from '../db/team.db';
 import { Request, Response } from '../types/route.types';
 import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
-import { checkAuth, validateDoubleCSRF } from './route.middleware';
+import { accountManagementRateLimit, checkAuth, requireStepUpAuth, validateDoubleCSRF } from './route.middleware';
 
 /**
  * Route Prefix: /api/teams
@@ -95,9 +95,13 @@ routes.get(
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
   teamController.getUserAuthActivity.controllerFn(),
 );
+// Step-up because loosening the team's MFA requirements or allowed providers weakens every member's
+// account, so an admin's stolen session must not be enough on its own.
 routes.post(
   '/:teamId/login-configuration',
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN]),
+  accountManagementRateLimit,
+  requireStepUpAuth(),
   teamController.updateLoginConfiguration.controllerFn(),
 );
 routes.put(

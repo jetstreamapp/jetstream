@@ -21,9 +21,10 @@ export const MAX_VERIFICATION_ATTEMPTS = 5;
 // usable secret sitting on the session until it expires.
 export const TOTP_ENROLLMENT_TTL_MINUTES = 15;
 
-// How long a step-up grant remains usable. Kept short because the grant authorizes a sensitive
-// action - it is also single-use, so this only bounds the window between verifying and acting.
-export const STEP_UP_AUTH_TTL_MINUTES = 5;
+// How long a step-up grant remains usable. It covers every protected action until then, so this is
+// how long one verification lasts: long enough to set up an authenticator and adjust the other
+// factors in one sitting, short enough that an unattended tab does not stay verified for long.
+export const STEP_UP_AUTH_TTL_MINUTES = 10;
 // Cool-down after exhausting MAX_VERIFICATION_ATTEMPTS step-up submissions. Unlike /auth/verify we
 // do NOT destroy the session here - the user is already authenticated and killing a working session
 // over a few mistyped passwords is a self-inflicted denial of service.

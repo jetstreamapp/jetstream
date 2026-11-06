@@ -147,10 +147,16 @@ export const StepUpMethodSchema = z.enum(['password', '2fa-otp', 'email']);
 export type StepUpMethod = z.infer<typeof StepUpMethodSchema>;
 
 /**
- * A step-up grant is bound to the action it was obtained for so it cannot be silently reused by a
- * different sensitive route. Extend this as more routes adopt step-up.
+ * The change that prompted a step-up verification. Recorded on the grant for troubleshooting only:
+ * a grant covers every step-up protected action until it expires, whatever purpose obtained it.
+ *
+ * - CHANGE_EMAIL: request an email address change
+ * - MANAGE_2FA: set up or enable an authenticator, or disable or remove a two-factor method
+ * - MANAGE_PASSWORD: set or remove the account password
+ * - DELETE_ACCOUNT: delete the account and everything in it
+ * - MANAGE_TEAM_LOGIN: change a team's login configuration (MFA requirements, allowed providers)
  */
-export const StepUpPurposeSchema = z.enum(['CHANGE_EMAIL']);
+export const StepUpPurposeSchema = z.enum(['CHANGE_EMAIL', 'MANAGE_2FA', 'MANAGE_PASSWORD', 'DELETE_ACCOUNT', 'MANAGE_TEAM_LOGIN']);
 export type StepUpPurpose = z.infer<typeof StepUpPurposeSchema>;
 
 /**
@@ -240,8 +246,8 @@ export interface SessionData {
   pendingVerificationAttempts?: number;
   /**
    * Proof that the user re-authenticated recently, set by POST /api/me/profile/step-up/verify.
-   * Short-lived, single-use (deleted when the protected route consumes it), and bound to a purpose
-   * so a grant for one sensitive action cannot be reused by another.
+   * Covers every step-up protected action until it expires (STEP_UP_AUTH_TTL_MINUTES), so a user
+   * making several account changes in a row verifies once.
    *
    * Stored on the session rather than in the database because the session is already the trust
    * boundary checkAuth enforces (including the user-agent similarity guard), which makes the grant

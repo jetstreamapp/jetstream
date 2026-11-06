@@ -51,6 +51,11 @@ export class AuthenticationPage {
   readonly mfaTotpMenuButton: Locator;
   readonly mfaEmailMenuButton: Locator;
 
+  /** Identity prompt that guards 2FA, password and account changes made from the profile page */
+  readonly stepUpModal: Locator;
+  readonly stepUpPasswordInput: Locator;
+  readonly stepUpVerifyButton: Locator;
+
   /** Checkbox on the sign-up form */
   readonly tosCheckbox: Locator;
   /** Checkbox on the /auth/accept-terms gate page */
@@ -96,6 +101,10 @@ export class AuthenticationPage {
 
     this.mfaTotpMenuButton = page.getByTestId('mfa-totp-menu-button');
     this.mfaEmailMenuButton = page.getByTestId('mfa-email-menu-button');
+
+    this.stepUpModal = page.getByTestId('step-up-auth-modal');
+    this.stepUpPasswordInput = page.locator('#step-up-password');
+    this.stepUpVerifyButton = page.getByRole('button', { name: 'Verify' });
 
     this.tosCheckbox = page.getByLabel('I agree to the Terms of Service, Privacy Policy, and Data Processing Agreement');
     this.acceptTermsCheckbox = page.getByLabel(
@@ -262,12 +271,26 @@ export class AuthenticationPage {
     };
   }
 
-  async enrollInOtpForLoggedInUser() {
+  /**
+   * 2FA, password and account changes are answered with the identity prompt first; the account's
+   * password satisfies it. One verification covers further changes from the same tab for a few
+   * minutes, so only the first change after a page load or login prompts. Turning on email 2FA never
+   * prompts.
+   */
+  async completeStepUpWithPassword(password: string) {
+    await this.stepUpModal.waitFor();
+    await this.stepUpPasswordInput.fill(password);
+    await this.stepUpVerifyButton.click();
+    await this.stepUpModal.waitFor({ state: 'hidden' });
+  }
+
+  async enrollInOtpForLoggedInUser(password: string) {
     // go to profile page
     await this.page.getByRole('button', { name: 'Avatar' }).click();
     await this.page.getByRole('menuitem', { name: 'Profile' }).click();
-    // Setup TOTP MFA
+    // Setup TOTP MFA - identity is verified when enrollment starts, before the secret is shown
     await this.page.getByRole('button', { name: 'Set Up' }).click();
+    await this.completeStepUpWithPassword(password);
     const secret = await this.page.getByTestId('totp-secret').innerText();
     // save a valid token
     await this.page.getByTestId('settings-page').getByRole('textbox').click();

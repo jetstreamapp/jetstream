@@ -2,8 +2,8 @@ import { createRateLimit, enrichRequestContext, ENV, getLogger } from '@jetstrea
 import { AuditLogAction, AuditLogResource, createTeamAuditLog } from '@jetstream/audit-logs';
 import {
   AuthError,
+  checkStepUpAuthOrThrow,
   checkUserAgentSimilarity,
-  consumeStepUpAuthOrThrow,
   createUserActivityFromReq,
   ExpiredVerificationToken,
   generateHMACDoubleCSRFToken,
@@ -16,7 +16,7 @@ import {
   timingSafeStringCompare,
   validateHMACDoubleCSRFToken,
 } from '@jetstream/auth/server';
-import { CSRF_TOKEN_INVALID_ERROR_TYPE, StepUpPurpose, UserProfileSession } from '@jetstream/auth/types';
+import { CSRF_TOKEN_INVALID_ERROR_TYPE, UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection, exchangeRefreshToken, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, getErrorMessageAndStackObj, ORG_INACTIVITY_EXPIRATION_DAYS } from '@jetstream/shared/utils';
@@ -915,9 +915,8 @@ export const stepUpChallengeRateLimit = createRateLimit(
 );
 
 /**
- * Requires the caller to have re-authenticated recently for this specific purpose, consuming the
- * grant so it authorizes exactly one action. The factor that satisfied it is placed on
- * res.locals.stepUpMethod for the controller, because consuming clears it from the session.
+ * Requires the caller to have re-authenticated recently (see checkStepUpAuthOrThrow). The factor that
+ * satisfied it is placed on res.locals.stepUpMethod for the controller.
  *
  * Deliberately a per-route middleware rather than a flag on createRoute. createRoute wraps every
  * route in the application, so an authorization check inside it makes every handler an
@@ -930,12 +929,18 @@ export const stepUpChallengeRateLimit = createRateLimit(
  * validation to be safe.
  *
  * NOTE: this is positional - it must be listed on the route, ahead of the controller.
+ *
+ * @param options.unless skips the check for requests the route serves that carry no takeover risk
  */
-export function requireStepUpAuth(purpose: StepUpPurpose) {
+export function requireStepUpAuth(options?: { unless?: (req: Request) => boolean }) {
   return (req: Request, res: express.Response, next: express.NextFunction) => {
     try {
+      if (options?.unless?.(req)) {
+        next();
+        return;
+      }
       const stepUpNonce = typeof req.body?.stepUpNonce === 'string' ? req.body.stepUpNonce : undefined;
-      res.locals.stepUpMethod = consumeStepUpAuthOrThrow(req, purpose, stepUpNonce);
+      res.locals.stepUpMethod = checkStepUpAuthOrThrow(req, stepUpNonce);
       next();
     } catch (ex) {
       next(ex);

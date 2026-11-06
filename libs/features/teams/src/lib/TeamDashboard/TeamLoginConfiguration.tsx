@@ -1,6 +1,7 @@
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { LoginConfigurationIdentityDisplayNames, TeamLoginConfigRequest } from '@jetstream/types';
 import { Card, Checkbox, fireToast, Grid, GridCol, Spinner } from '@jetstream/ui';
+import { useStepUpAuth } from '@jetstream/ui-core';
 import { abilityState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
@@ -41,6 +42,8 @@ export interface TeamLoginConfigurationProps {
 export function TeamLoginConfiguration({ loginConfiguration, hasSsoConfigured, ssoIsActive, onUpdate }: TeamLoginConfigurationProps) {
   const ability = useAtomValue(abilityState);
   const [loading, setLoading] = useState(false);
+  // onUpdate may open the identity prompt, which this form's spinner would otherwise sit behind
+  const { isPrompting } = useStepUpAuth();
   const [formData, setFormData] = useState(() => getFormData(loginConfiguration));
 
   const [errors, setErrors] = useState(() => ({
@@ -164,7 +167,7 @@ export function TeamLoginConfiguration({ loginConfiguration, hasSsoConfigured, s
       }
     >
       <form id="team-login-configuration-form" className="slds-is-relative slds-m-top_small" onSubmit={onSubmit}>
-        {loading && <Spinner />}
+        {loading && !isPrompting && <Spinner />}
         <Grid wrap gutters guttersSize="large">
           <GridCol size={12} sizeMedium={6} sizeLarge={4}>
             <fieldset className="slds-form-element">

@@ -6,6 +6,7 @@ import {
   getSsoConfiguration,
   getTeam,
   resendInvitation,
+  StepUpCancelledError,
   updateTeamLoginConfiguration,
 } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
@@ -37,7 +38,7 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { SalesforceCanvasOrgs, useAnalytics } from '@jetstream/ui-core';
+import { SalesforceCanvasOrgs, useAnalytics, useStepUpAuth } from '@jetstream/ui-core';
 import { abilityState, fetchLatestUserProfile, fromAppState, useFeatureFlag } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -69,9 +70,16 @@ type TeamMemberEditStatusModalState =
 
 const HEIGHT_BUFFER = 170;
 
+const TEAM_LOGIN_STEP_UP = {
+  purpose: 'MANAGE_TEAM_LOGIN',
+  header: "Confirm it's you",
+  description: "Changing your team's login configuration requires verifying your identity first.",
+} as const;
+
 export function TeamDashboard() {
   useTitle(TITLES.TEAM);
   const { trackEvent } = useAnalytics();
+  const { runWithStepUp } = useStepUpAuth();
   const ability = useAtomValue(abilityState);
   const [loading, setLoading] = useState(true);
   const [team, setTeam] = useState<TeamUserFacing>();
@@ -180,7 +188,20 @@ export function TeamDashboard() {
       throw new Error('Team Id is required.');
     }
 
-    const updatedTeam = await updateTeamLoginConfiguration(team.id, loginConfiguration);
+    const currentTeamId = team.id;
+    let updatedTeam: TeamUserFacing;
+    try {
+      updatedTeam = await runWithStepUp(
+        ({ stepUpNonce }) => updateTeamLoginConfiguration(currentTeamId, loginConfiguration, stepUpNonce),
+        TEAM_LOGIN_STEP_UP,
+      );
+    } catch (ex) {
+      // Dismissing the identity prompt leaves the form as it was, with its unsaved changes
+      if (ex instanceof StepUpCancelledError) {
+        return;
+      }
+      throw ex;
+    }
     setTeam(updatedTeam);
     const loginConfig = TeamLoginConfigSchema.parse(updatedTeam.loginConfig || {});
     setLoginConfiguration(loginConfig);

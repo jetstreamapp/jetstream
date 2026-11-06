@@ -79,6 +79,16 @@ test.describe('Team Audit Log', () => {
       });
 
       await test.step('LOGIN_CONFIG_UPDATED is logged with a changes diff', async () => {
+        // Changing the login configuration requires a recent identity verification
+        const unverifiedRes = await request.post(`/api/teams/${teamId}/login-configuration`, { data: { requireMfa: false } });
+        expect(unverifiedRes.status()).toBe(403);
+
+        const stepUpRes = await request.post('/api/me/profile/step-up/verify', {
+          data: { purpose: 'MANAGE_TEAM_LOGIN', method: 'password', password: tc.adminUser.user.password },
+        });
+        expect(stepUpRes.ok()).toBeTruthy();
+        const { stepUpNonce } = (await stepUpRes.json()).data;
+
         // DB defaults: requireMfa=true, allowIdentityLinking=false
         // Send requireMfa=false to produce a diff entry
         const res = await request.post(`/api/teams/${teamId}/login-configuration`, {
@@ -87,6 +97,7 @@ test.describe('Team Audit Log', () => {
             allowIdentityLinking: false,
             allowedMfaMethods: ['email', 'otp'],
             allowedProviders: ['credentials', 'google', 'salesforce'],
+            stepUpNonce,
           },
         });
         expect(res.ok()).toBeTruthy();
