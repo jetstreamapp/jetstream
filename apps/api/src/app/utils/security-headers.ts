@@ -1,5 +1,5 @@
 import { ENV } from '@jetstream/api-config';
-import type { Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 
 type CspDirectiveValue = NonNullable<NonNullable<Parameters<typeof helmet.contentSecurityPolicy>[0]>['directives']>[string];
@@ -123,9 +123,11 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
     // keep blob: OUT of script-src (where it would be a page-level script sink) while workers still load.
     workerSrc: ["'self'", 'blob:'],
     childSrc: ["'self'", 'blob:'],
-    styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
-    // unsafe-inline required for monaco-editor
-    styleSrcElem: ["'self'", 'https:', "'unsafe-inline'"],
+    // No stylesheet is loaded from another origin (Google's sign-in, API and Picker scripts only add inline <style>
+    // elements), so there is no host allowlist here. unsafe-inline is required for monaco-editor until the
+    // nonce-only policy in buildAppStyleNonceReportOnlyDirectives has proven clean.
+    styleSrc: ["'self'", "'unsafe-inline'"],
+    styleSrcElem: ["'self'", "'unsafe-inline'"],
     // unsafe-inline required for monaco-editor
     styleSrcAttr: ["'unsafe-inline'"],
     formAction: [
@@ -211,6 +213,58 @@ export function buildAppCspDirectives(extraFrameAncestors: string[] = []): CspDi
     frameSrc: narrowGoogleWildcards(directives.frameSrc, APP_GOOGLE_FRAME_SRC),
     connectSrc: narrowGoogleWildcards(directives.connectSrc, APP_GOOGLE_CONNECT_SRC),
   };
+}
+
+/**
+ * Report-only trial of the /app policy with nonce-only `<style>` elements, which is the change that would let
+ * 'unsafe-inline' leave style-src-elem. Emotion is created with the page nonce and `addNonceToCreatedStyleElements`
+ * stamps it on the `<style>` elements Monaco and other libraries create, so violations reported here are the ones
+ * still standing in the way. Style attributes keep 'unsafe-inline': React and Monaco set styles through the CSSOM,
+ * which CSP does not restrict, so attributes are not part of this trial.
+ *
+ * Sent outside production only (staging), where the reports can be reviewed without production noise from browser
+ * extensions. `frame-ancestors` and `upgrade-insecure-requests` are left out because browsers ignore both in a
+ * report-only policy.
+ */
+export function buildAppStyleNonceReportOnlyDirectives(): CspDirectives {
+  const directives: CspDirectives = {
+    ...buildAppCspDirectives(),
+    styleSrc: ["'self'", nonceDirective],
+    styleSrcElem: ["'self'", nonceDirective],
+  };
+  delete directives.frameAncestors;
+  delete directives.upgradeInsecureRequests;
+  return directives;
+}
+
+export function isStyleNonceReportOnlyEnabled() {
+  return ENV.STAGE !== 'production';
+}
+
+/**
+ * Pages that run inside a popup and hand their result back through `window.opener`. A page with any
+ * Cross-Origin-Opener-Policy value - `same-origin-allow-popups` included - that is reached after a cross-origin hop
+ * (Salesforce or Google login), or that is opened by another origin (the browser extension, canvas running inside a
+ * Salesforce iframe), is moved to a new browsing context group and loses its opener. These pages are sent without COOP.
+ *
+ * - `/oauth/`, `/oauth-link`: Salesforce org connection popup (callback route and the page that posts the result)
+ * - `/canvas/`, `/canvas-auth`: canvas login popup opened from the Salesforce-hosted iframe
+ * - `/web-extension/google-picker`, `/desktop-app/google-picker`: Google Drive Picker relay pages
+ */
+export const OPENER_DEPENDENT_POPUP_PATH_PREFIXES = [
+  '/oauth/',
+  '/oauth-link',
+  '/canvas/',
+  '/canvas-auth',
+  '/web-extension/google-picker',
+  '/desktop-app/google-picker',
+];
+
+export function removeOpenerPolicyForPopupPages(req: Request, res: Response, next: NextFunction) {
+  if (OPENER_DEPENDENT_POPUP_PATH_PREFIXES.some((prefix) => req.path.startsWith(prefix))) {
+    res.removeHeader('Cross-Origin-Opener-Policy');
+  }
+  next();
 }
 
 export function buildHstsConfig() {
