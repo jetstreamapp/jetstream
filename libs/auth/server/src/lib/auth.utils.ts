@@ -156,7 +156,8 @@ export function getCookieConfig(useSecureCookies: boolean): CookieConfig {
     doubleCSRFToken: {
       name: `${useSecureCookies ? '__Host-' : ''}${HTTP.COOKIE.CSRF_SUFFIX}`,
       options: {
-        httpOnly: false, // Must be readable by JavaScript for double CSRF
+        // The web app gets the value from `GET /api/csrf-token` instead of reading the cookie
+        httpOnly: true,
         sameSite: 'lax',
         path: '/',
         secure: useSecureCookies,

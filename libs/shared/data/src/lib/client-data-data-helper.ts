@@ -68,21 +68,6 @@ export const AxiosAdapterConfig: { adapter?: (config: InternalAxiosRequestConfig
   adapter: undefined,
 };
 
-/**
- * Helper function to read a cookie value by name
- */
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') {
-    return null;
-  }
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) {
-    return parts.pop()?.split(';').shift() || null;
-  }
-  return null;
-}
-
 function getHeader(headers: RawAxiosResponseHeaders | AxiosResponseHeaders, header: string) {
   if (!headers || !header) {
     return null;
@@ -141,14 +126,57 @@ export async function handleRequest<T = any>(config: AxiosRequestConfig, options
   return response.data;
 }
 
-export function getCsrfTokenFromCookie(): string | null {
-  try {
-    const cookieName = `${document.location.protocol === 'https:' ? '__Host-' : ''}${HTTP.COOKIE.CSRF_SUFFIX}`;
-    const cookieToken = getCookie(cookieName);
-    return cookieToken;
-  } catch (error) {
-    logger.warn('[CSRF] Failed to read CSRF token cookie', error);
-    return null;
+const CSRF_TOKEN_URL = '/api/csrf-token';
+const CSRF_SAFE_METHODS = new Set(['get', 'head', 'options']);
+
+let sessionCsrfToken: string | null = null;
+let pendingSessionCsrfToken: Promise<string | null> | null = null;
+
+/**
+ * The double-submit CSRF token for the logged in web session.
+ *
+ * The server keeps the token in an HttpOnly cookie, so the value is fetched from the server the first time a request
+ * needs it and kept in memory; concurrent callers share one fetch. The server issues one token per session, so the
+ * cached value stays valid until the session changes, which `csrfRetryInterceptor` recovers from.
+ *
+ * Desktop, the browser extension and canvas send requests through their own adapter without a session cookie, so
+ * they have no token.
+ */
+export function getSessionCsrfToken(): Promise<string | null> {
+  if (AxiosAdapterConfig.adapter) {
+    return Promise.resolve(null);
+  }
+  if (sessionCsrfToken) {
+    return Promise.resolve(sessionCsrfToken);
+  }
+  if (!pendingSessionCsrfToken) {
+    pendingSessionCsrfToken = axios
+      .get<ApiResponse<{ csrfToken: string }>>(CSRF_TOKEN_URL, {
+        ...baseConfig,
+        headers: { [HTTP.HEADERS.ACCEPT]: HTTP.CONTENT_TYPE.JSON },
+      })
+      .then(({ data }) => {
+        sessionCsrfToken = data?.data?.csrfToken || null;
+        return sessionCsrfToken;
+      })
+      .catch((ex) => {
+        logger.warn('[CSRF] Failed to fetch CSRF token', ex);
+        return null;
+      })
+      .finally(() => {
+        pendingSessionCsrfToken = null;
+      });
+  }
+  return pendingSessionCsrfToken;
+}
+
+/**
+ * Forget the cached token so the next mutation fetches the one the server holds now. With `rejectedToken`, only that
+ * token is dropped, so a rejection that arrives after another request already fetched the replacement keeps it.
+ */
+export function clearSessionCsrfToken(rejectedToken?: unknown) {
+  if (!rejectedToken || rejectedToken === sessionCsrfToken) {
+    sessionCsrfToken = null;
   }
 }
 
@@ -168,17 +196,11 @@ function requestInterceptor<T>(options: RequestOptions) {
       config.headers[HTTP.HEADERS.ACCEPT] = HTTP.CONTENT_TYPE.JSON;
     }
 
-    // Client-side double submit CSRF protection: read cookie and send as header
-    // The server validates that the cookie and header values match (double submit pattern)
-    if (typeof document !== 'undefined' && config.url) {
-      try {
-        const cookieToken = getCsrfTokenFromCookie();
-
-        if (cookieToken) {
-          config.headers[HTTP.HEADERS.X_CSRF_TOKEN] = cookieToken;
-        }
-      } catch (error) {
-        logger.warn('[CSRF] Failed to read CSRF token cookie', error);
+    // Double-submit CSRF protection: the server checks this header against its HttpOnly cookie on every mutation
+    if (config.url && !CSRF_SAFE_METHODS.has((config.method || 'get').toLowerCase())) {
+      const csrfToken = await getSessionCsrfToken();
+      if (csrfToken) {
+        config.headers[HTTP.HEADERS.X_CSRF_TOKEN] = csrfToken;
       }
     }
 
@@ -296,9 +318,8 @@ function retryInterceptor(config: AxiosRequestConfig, options: RequestOptions = 
  * Resend a request once when the server rejected it with a CSRF error.
  *
  * The CSRF check runs before any route handler, so the rejected request had no effect and is safe to
- * send again, mutations included. The resend reads the cookie again, which by then holds a token the
- * server accepts: the rejection itself replaces a cookie issued for another session, and a cookie the
- * browser had dropped is re-created by whichever request reached the server first.
+ * send again, mutations included. The cached token is dropped first, so the resend fetches the token the
+ * server holds now: it replaces a cookie that was dropped by the browser or issued for another session.
  *
  * The resend instance carries no response interceptors at all: it has no CSRF interceptor, so a second
  * rejection is reported rather than retried, and whatever it returns goes back through the outer chain
@@ -311,10 +332,11 @@ function csrfRetryInterceptor(config: AxiosRequestConfig, options: RequestOption
       return Promise.reject(error);
     }
     logger.warn(`[HTTP][CSRF][RETRYING REQUEST]`, config.url);
+    clearSessionCsrfToken(
+      error.config?.headers ? getHeader(error.config.headers as RawAxiosResponseHeaders, HTTP.HEADERS.X_CSRF_TOKEN) : null,
+    );
 
-    // The rejected attempt reached the server, so it was a cache miss and a second lookup would miss too.
-    // Skipping it keeps the cookie read right next to the send - an await in between lets a concurrent
-    // rejection replace the cookie after the header was read from it, which would fail the only resend.
+    // The rejected attempt reached the server, so it was a cache miss and a second lookup would miss too
     const retryOptions: RequestOptions = { ...options, skipRequestCache: true };
     // The adapter must be carried over for the same reason as in `retryInterceptor`
     const axiosInstance = axios.create({ ...config, adapter: AxiosAdapterConfig.adapter });

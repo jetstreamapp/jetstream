@@ -20,6 +20,7 @@ import { routeDefinition as testController } from '../controllers/test.controlle
 import * as userFeedbackController from '../controllers/user-feedback.controller';
 import { routeDefinition as userController } from '../controllers/user.controller';
 import { findActiveTeamAccessProfile } from '../db/user.db';
+import type { Response } from '../types/route.types';
 import { deferredResponseMiddleware as dfr } from '../utils/deferred-response.middleware';
 import { sendJson } from '../utils/response.handlers';
 import {
@@ -34,6 +35,7 @@ import {
   ensureTargetOrgExists,
   feedbackRateLimit,
   feedbackUploadMiddleware,
+  getOrIssueDoubleCSRFToken,
   logCrossSiteRequest,
   passwordResetEmailRateLimit,
   requireStepUpAuth,
@@ -63,6 +65,12 @@ async function findAccessProfileFingerprintSafe(userId: string): Promise<string 
     return undefined;
   }
 }
+
+// The CSRF cookie is HttpOnly, so the web app reads the token it must echo back from here. Same-origin only:
+// /api sends no CORS headers outside of local development.
+routes.get('/csrf-token', (req: express.Request, res: Response) => {
+  sendJson(res, { csrfToken: getOrIssueDoubleCSRFToken(req, res) });
+});
 
 // used to make sure the user is authenticated and can communicate with the server
 routes.get('/heartbeat', async (req: express.Request, res: express.Response) => {

@@ -5,7 +5,7 @@ import {
   MAX_BINARY_DOWNLOAD_RECORDS_FREE_USER,
   MAX_BINARY_DOWNLOAD_RECORDS_PAID_USER,
 } from '@jetstream/shared/constants';
-import { downloadBinaryAttachmentsZip_WEB_EXTENSION, getCsrfTokenFromCookie } from '@jetstream/shared/data';
+import { downloadBinaryAttachmentsZip_WEB_EXTENSION } from '@jetstream/shared/data';
 import {
   formatNumber,
   getFilename,
@@ -15,6 +15,7 @@ import {
   saveFile,
   tracker,
   useNonInitialEffect,
+  useSessionCsrfToken,
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getRecordIdFromAttributes, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJobNew, BinaryDownloadCompatibleObjectsSchema, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
@@ -58,7 +59,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
 }) => {
   sobjectName = sobjectName?.toLowerCase() || null;
   const { trackEvent } = useAnalytics();
-  const [csrfToken] = useState(() => getCsrfTokenFromCookie());
+  const csrfToken = useSessionCsrfToken();
   const [modalOpen, setModalOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [visible, setVisible] = useState(false);
