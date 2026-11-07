@@ -65,10 +65,10 @@ export class Browser {
       if (url.pathname === '/static/sfdc/login' && orgUniqueId) {
         const connection = initApiConnection(orgUniqueId);
         if (connection) {
-          connection.jetstreamConn.org.identity().then(() => {
-            const sfdcUrl = connection.jetstreamConn.org.getFrontdoorLoginUrl(returnUrl);
-            openExternalSafe(sfdcUrl);
-          });
+          connection.jetstreamConn.org
+            .getFrontdoorLoginUrl(returnUrl)
+            .then((sfdcUrl) => openExternalSafe(sfdcUrl))
+            .catch((ex) => log.error('[FRONTDOOR] Unable to open Salesforce', ex));
           return { action: 'deny' };
         }
       }
