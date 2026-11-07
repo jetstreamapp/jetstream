@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import classNames from 'classnames';
 import { CSSProperties, memo } from 'react';
+import { isEventFromPortal } from '../grid-events';
 import { DataTableCellProps, TanstackCell, TanstackColumn } from '../grid-types';
 import { getFrozenCellStyle } from './grid-layout';
 
@@ -139,10 +140,25 @@ function GridCellComponent<TRow extends object>({
         dynamicClass,
       )}
       style={style}
-      onMouseDown={(event) => onCellMouseDown?.(cell.row.id, cell.column.id, event.shiftKey, event.button, event.ctrlKey || event.metaKey)}
+      onMouseDown={(event) => {
+        if (isEventFromPortal(event)) {
+          return;
+        }
+        onCellMouseDown?.(cell.row.id, cell.column.id, event.shiftKey, event.button, event.ctrlKey || event.metaKey);
+      }}
       onMouseEnter={() => onCellMouseEnter?.(cell.row.id, cell.column.id)}
-      onContextMenu={(event) => onCellContextMenu?.(event, cell.row.id, cell.column.id)}
-      onDoubleClick={() => onStartEdit?.(cell.row.id, cell.column.id)}
+      onContextMenu={(event) => {
+        if (isEventFromPortal(event)) {
+          return;
+        }
+        onCellContextMenu?.(event, cell.row.id, cell.column.id);
+      }}
+      onDoubleClick={(event) => {
+        if (isEventFromPortal(event)) {
+          return;
+        }
+        onStartEdit?.(cell.row.id, cell.column.id);
+      }}
     >
       {content}
     </div>

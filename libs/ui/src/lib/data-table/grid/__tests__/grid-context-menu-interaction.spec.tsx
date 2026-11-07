@@ -1,5 +1,6 @@
 import { ContextMenuItem } from '@jetstream/types';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { createPortal } from 'react-dom';
 import { beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import { DataTable, DataTableProps } from '../../DataTable';
 import { DataTree } from '../../DataTree';
@@ -188,5 +189,38 @@ describe('context menu — explicit empty list', () => {
     selectRange();
 
     expect(await openMenu(getCell('2', 'Name'))).toEqual(['Copy selected cells', 'Copy selected cells with header']);
+  });
+});
+
+describe('context menu — portaled cell content', () => {
+  // Stands in for the record lookup popover: rendered from a cell but portaled to the body, so React still
+  // bubbles its events to the cell even though the DOM target is outside it.
+  const columnsWithPortal: ColumnWithFilter<Row>[] = [
+    columns[0],
+    {
+      ...columns[1],
+      renderCell: ({ row }) => (
+        <>
+          {row.Name}
+          {row._key === '1' && createPortal(<a href="https://example.com">Portaled link</a>, document.body)}
+        </>
+      ),
+    },
+  ];
+
+  test('right-clicking inside a portal from a cell keeps the native menu', async () => {
+    renderTable({ columns: columnsWithPortal });
+    const link = screen.getByText('Portaled link');
+
+    const notCancelled = fireEvent.contextMenu(link);
+
+    expect(notCancelled).toBe(true);
+    expect(await openMenu(link)).toEqual([]);
+  });
+
+  test('the cell itself still opens the grid menu', async () => {
+    renderTable({ columns: columnsWithPortal });
+
+    expect(await openMenu(getCell('1', 'Name'))).toContain('Copy cell to clipboard');
   });
 });
