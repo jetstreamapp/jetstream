@@ -1,9 +1,18 @@
+import type { NextFunction, Request, Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildAppCspDirectives, buildCspDirectives, buildHstsConfig } from '../security-headers';
+import {
+  buildAppCspDirectives,
+  buildAppStyleNonceReportOnlyDirectives,
+  buildCspDirectives,
+  buildHstsConfig,
+  isStyleNonceReportOnlyEnabled,
+  removeOpenerPolicyForPopupPages,
+} from '../security-headers';
 
 const apiConfigMock = vi.hoisted(() => ({
   ENV: {
     ENVIRONMENT: 'staging',
+    STAGE: 'staging',
     JETSTREAM_SERVER_URL: 'https://staging.jetstream-app.com',
   },
 }));
@@ -13,6 +22,7 @@ vi.mock('@jetstream/api-config', () => apiConfigMock);
 describe('security headers', () => {
   beforeEach(() => {
     apiConfigMock.ENV.ENVIRONMENT = 'staging';
+    apiConfigMock.ENV.STAGE = 'staging';
     apiConfigMock.ENV.JETSTREAM_SERVER_URL = 'https://staging.jetstream-app.com';
   });
 
@@ -57,8 +67,8 @@ describe('security headers', () => {
     expect(directives.manifestSrc).toEqual(["'self'", 'https://*.cloudflareaccess.com']);
     expect(directives.objectSrc).toEqual(["'none'"]);
     expect(directives.scriptSrcAttr).toEqual(["'none'"]);
-    expect(directives.styleSrc).toEqual(["'self'", 'https:', "'unsafe-inline'"]);
-    expect(directives.styleSrcElem).toEqual(["'self'", 'https:', "'unsafe-inline'"]);
+    expect(directives.styleSrc).toEqual(["'self'", "'unsafe-inline'"]);
+    expect(directives.styleSrcElem).toEqual(["'self'", "'unsafe-inline'"]);
     expect(nonceDirective).toBeTypeOf('function');
     expect(typeof nonceDirective === 'function' ? nonceDirective({}, { locals: { cspNonce: 'test-nonce' } }) : null).toBe(
       "'nonce-test-nonce'",
@@ -142,5 +152,79 @@ describe('security headers', () => {
     // The shared (landing) policy keeps the broad wildcards
     expect(sharedDirectives.frameSrc as string[]).toContain('https://*.google.com');
     expect(sharedDirectives.connectSrc as string[]).toContain('https://*.googleapis.com');
+  });
+
+  describe('style nonce report-only trial', () => {
+    const res = { locals: { cspNonce: 'test-nonce' } };
+    const resolve = (sources: unknown) =>
+      (sources as Array<string | ((req: unknown, response: typeof res) => string)>).map((source) =>
+        typeof source === 'function' ? source({}, res) : source,
+      );
+
+    it('allows style elements by nonce only, without unsafe-inline or another origin', () => {
+      const directives = buildAppStyleNonceReportOnlyDirectives();
+
+      expect(resolve(directives.styleSrc)).toEqual(["'self'", "'nonce-test-nonce'"]);
+      expect(resolve(directives.styleSrcElem)).toEqual(["'self'", "'nonce-test-nonce'"]);
+      expect(directives.styleSrcAttr).toEqual(["'unsafe-inline'"]);
+    });
+
+    it('otherwise matches the enforced /app policy, minus directives a report-only policy ignores', () => {
+      const enforced = buildAppCspDirectives();
+      const reportOnly = buildAppStyleNonceReportOnlyDirectives();
+      const ignoredInReportOnly = ['frameAncestors', 'upgradeInsecureRequests'];
+      const trialDirectives = ['styleSrc', 'styleSrcElem'];
+
+      expect(Object.keys(reportOnly).sort()).toEqual(
+        Object.keys(enforced)
+          .filter((directive) => !ignoredInReportOnly.includes(directive))
+          .sort(),
+      );
+      expect(reportOnly.reportUri).toBeDefined();
+      Object.keys(reportOnly)
+        .filter((directive) => !trialDirectives.includes(directive))
+        .forEach((directive) => expect(reportOnly[directive]).toEqual(enforced[directive]));
+    });
+
+    it.each([
+      ['staging', true],
+      ['development', true],
+      ['production', false],
+    ])('is sent when the stage is %s: %s', (stage, expected) => {
+      apiConfigMock.ENV.STAGE = stage;
+
+      expect(isStyleNonceReportOnlyEnabled()).toBe(expected);
+    });
+  });
+
+  describe('removeOpenerPolicyForPopupPages', () => {
+    function run(path: string) {
+      const res = { removeHeader: vi.fn() };
+      const next = vi.fn();
+      removeOpenerPolicyForPopupPages({ path } as Request, res as unknown as Response, next as NextFunction);
+      return { removeHeader: res.removeHeader, next };
+    }
+
+    it.each([
+      '/oauth/sfdc/auth',
+      '/oauth/sfdc/callback',
+      '/oauth-link/',
+      '/canvas/callback',
+      '/canvas-auth/',
+      '/web-extension/google-picker',
+      '/desktop-app/google-picker/',
+    ])('sends %s without COOP so the popup keeps its opener', (path) => {
+      const { removeHeader, next } = run(path);
+
+      expect(removeHeader).toHaveBeenCalledWith('Cross-Origin-Opener-Policy');
+      expect(next).toHaveBeenCalledOnce();
+    });
+
+    it.each(['/', '/app', '/app/query', '/api/me', '/auth/login/', '/web-extension/auth', '/oauthx'])('keeps COOP on %s', (path) => {
+      const { removeHeader, next } = run(path);
+
+      expect(removeHeader).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledOnce();
+    });
   });
 });

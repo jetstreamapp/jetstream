@@ -6,6 +6,7 @@ import { getErrorMessage } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { stringifySetCookie } from 'cookie';
 import * as express from 'express';
+import type { ServerResponse } from 'node:http';
 import { Duplex, Readable } from 'stream';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import type { Response } from '../types/route.types';
@@ -40,6 +41,13 @@ function getLoginMethodDetails(err: AuthError) {
     return { attemptedMethod: err.attemptedMethod, allowedMethods: err.allowedMethods };
   }
   return undefined;
+}
+
+/** Keep a document out of browser and proxy caches; Pragma and Expires cover HTTP/1.0 caches */
+export function setNoStoreHeaders(res: Pick<ServerResponse, 'setHeader'>) {
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
 }
 
 export function setCsrfCookie(res: Response) {

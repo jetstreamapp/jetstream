@@ -55,6 +55,8 @@ routes.post(
         const lineNumber = cspReport.lineNumber ?? cspReport['line-number'];
         logger.warn(
           {
+            // "enforce" or "report" - the report-only trial policy reports through the same handler
+            disposition: truncateField(cspReport.disposition),
             effectiveDirective: truncateField(cspReport.effectiveDirective || cspReport['effective-directive']),
             blockedUri: truncateField(cspReport.blockedURL || cspReport['blocked-uri']),
             documentUri: toOriginAndPath(cspReport.documentURL || cspReport['document-uri']),

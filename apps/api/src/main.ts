@@ -66,8 +66,15 @@ import {
   setPermissionPolicy,
 } from './app/routes/route.middleware';
 import { gzipBodyPassthrough } from './app/utils/gzip-body-passthrough.middleware';
-import { healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
-import { buildAppCspDirectives, buildCspDirectives, buildHstsConfig } from './app/utils/security-headers';
+import { healthCheck, setNoStoreHeaders, uncaughtErrorHandler } from './app/utils/response.handlers';
+import {
+  buildAppCspDirectives,
+  buildAppStyleNonceReportOnlyDirectives,
+  buildCspDirectives,
+  buildHstsConfig,
+  isStyleNonceReportOnlyEnabled,
+  removeOpenerPolicyForPopupPages,
+} from './app/utils/security-headers';
 import { handleWorkerExit, primaryClusterInitSideEffects, shutdownPrimaryGracefully } from './app/utils/server-process.utils';
 import { environment } from './environments/environment';
 
@@ -177,21 +184,21 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   // this request — including from services that don't receive `req` — carries full context.
   app.use(sentryRequestContextMiddleware);
 
-  // `crossOriginOpenerPolicy: false` is load-bearing. Any COOP value — including the
-  // looser `same-origin-allow-popups` — causes the browser to isolate popups into a new
-  // browsing-context group when they navigate cross-origin, and the opener reference is
-  // never restored when they navigate back. That breaks the Salesforce OAuth popup flow
-  // in apps/landing/pages/oauth-link/index.tsx which reads window.opener after
-  // Jetstream → Salesforce → /oauth-link, plus Google Picker OAuth consent and any other
-  // popup-based third-party auth.
+  // `same-origin-allow-popups` cuts the opener link to any cross-origin window that opens a Jetstream page, while
+  // popups that Jetstream opens keep theirs. Pages that run inside a popup and post back through `window.opener`
+  // after a cross-origin hop (Salesforce/Google login) would lose the opener under any COOP value, so
+  // `removeOpenerPolicyForPopupPages` sends those without the header. COEP is left off: it only enables
+  // cross-origin isolation (SharedArrayBuffer), which Jetstream does not use, and would block the Stripe, Google
+  // and Turnstile iframes that do not opt in to it.
   app.use(
     helmet({
-      crossOriginOpenerPolicy: false,
+      crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
       referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
       contentSecurityPolicy: { directives: buildCspDirectives() },
       hsts: buildHstsConfig(),
     }),
   );
+  app.use(removeOpenerPolicyForPopupPages);
 
   app.use(setPermissionPolicy);
 
@@ -391,7 +398,16 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   );
   app.use('/assets', express.static(join(__dirname, './assets'), { maxAge: '1m' }));
   app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
-  app.use(express.static(join(__dirname, '../landing')));
+  // Landing HTML is public, but scanners flag any cacheable HTML document; the hashed /_next assets stay cacheable
+  app.use(
+    express.static(join(__dirname, '../landing'), {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+          setNoStoreHeaders(res);
+        }
+      },
+    }),
+  );
 
   // Load the landing site's 404 page so uncaughtErrorHandler can serve it inline
   // with a real 404 status (instead of redirecting to /404/, which logged as 302
@@ -467,6 +483,9 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
         // `frame-ancestors 'self'`, confirming Google framing is not required.
         directives: buildAppCspDirectives(),
       }),
+      ...(isStyleNonceReportOnlyEnabled()
+        ? [helmet.contentSecurityPolicy({ reportOnly: true, useDefaults: false, directives: buildAppStyleNonceReportOnlyDirectives() })]
+        : []),
       (_: express.Request, res: express.Response) => {
         if (!jetstreamIndexHtml) {
           res.status(503);
@@ -477,7 +496,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
           return;
         }
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-store');
+        setNoStoreHeaders(res);
         res.send(jetstreamIndexHtml.replaceAll('__CSP_NONCE__', res.locals.cspNonce));
       },
     );
