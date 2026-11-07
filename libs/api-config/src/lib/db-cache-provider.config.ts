@@ -106,6 +106,36 @@ export class DbCacheProvider implements CacheProvider {
   }
 
   /**
+   * Atomically counts an occurrence of `key` within a fixed window and returns the new total.
+   *
+   * The first increment opens a window of ttlMs; later increments inside it only bump the count and
+   * leave the expiry alone, so a window never slides and the count can never be stretched out
+   * indefinitely by whoever keeps incrementing it. An expired row is reused as a fresh window with a
+   * count of 1. The INSERT ... ON CONFLICT is the atomicity boundary, so concurrent callers each see a
+   * distinct total - a plain get-then-save would let a burst of parallel calls all observe the same
+   * starting value.
+   *
+   * Only meant for keys that this method alone writes to: the stored value is parsed as an integer.
+   */
+  async incrementAsync(key: string): Promise<number> {
+    const dbKey = this.buildKey(key);
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + this.ttlMs);
+
+    const rows = await prisma.$queryRaw<{ value: string }[]>`
+      INSERT INTO "cache_entry" ("key", "value", "createdAt", "expiresAt")
+      VALUES (${dbKey}, '1', ${now}, ${expiresAt})
+      ON CONFLICT ("key") DO UPDATE SET
+        "value" = CASE WHEN "cache_entry"."expiresAt" <= ${now} THEN '1' ELSE ("cache_entry"."value"::int + 1)::text END,
+        "createdAt" = CASE WHEN "cache_entry"."expiresAt" <= ${now} THEN ${now} ELSE "cache_entry"."createdAt" END,
+        "expiresAt" = CASE WHEN "cache_entry"."expiresAt" <= ${now} THEN ${expiresAt} ELSE "cache_entry"."expiresAt" END
+      RETURNING "value"
+    `;
+
+    return Number(rows[0]?.value ?? '1');
+  }
+
+  /**
    * Delete all expired cache rows across all namespaces.
    * Call this at startup and/or on a periodic interval to keep the table clean.
    */

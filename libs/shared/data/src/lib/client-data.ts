@@ -20,6 +20,7 @@ import type {
   UserSessionAndExtTokensAndActivityWithLocation,
   UserSessionWithLocationAndUser,
 } from '@jetstream/auth/types';
+import { READ_METADATA_MAX_FULL_NAMES } from '@jetstream/api-types';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
 import {
@@ -1233,8 +1234,20 @@ export async function listMetadata(
   });
 }
 
+/**
+ * The server accepts at most READ_METADATA_MAX_FULL_NAMES names per request, so larger lists are sent
+ * as sequential requests and the results combined.
+ */
 export async function readMetadata<T = any>(org: SalesforceOrgUi, type: string, fullNames: string[]): Promise<T[]> {
-  return handleRequest({ method: 'POST', url: `/api/metadata/read/${type}`, data: { fullNames } }, { org }).then(unwrapResponseIgnoreCache);
+  const results: T[] = [];
+  for (const fullNamesChunk of splitArrayToMaxSize(fullNames, READ_METADATA_MAX_FULL_NAMES)) {
+    const chunkResults: T[] = await handleRequest(
+      { method: 'POST', url: `/api/metadata/read/${type}`, data: { fullNames: fullNamesChunk } },
+      { org },
+    ).then(unwrapResponseIgnoreCache);
+    results.push(...chunkResults);
+  }
+  return results;
 }
 
 export async function deployMetadata(

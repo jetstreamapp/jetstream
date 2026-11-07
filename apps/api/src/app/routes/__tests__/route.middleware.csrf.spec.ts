@@ -21,9 +21,9 @@ vi.mock('@jetstream/api-config', async (importOriginal) => {
   };
 });
 
-function makeReq({ cookieToken, headerToken }: { cookieToken?: string; headerToken?: string }) {
+function makeReq({ cookieToken, headerToken, method = 'POST' }: { cookieToken?: string; headerToken?: string; method?: string }) {
   return {
-    method: 'POST',
+    method,
     path: '/api/query',
     headers: { cookie: cookieToken ? `${CSRF_COOKIE_NAME}=${encodeURIComponent(cookieToken)}` : '' },
     body: {},
@@ -66,12 +66,53 @@ describe('validateDoubleCSRF', () => {
     expect(issuedToken).toBeUndefined();
   });
 
-  it('issues a cookie and lets the request through when the browser dropped the cookie', () => {
-    const { next, issuedToken } = runMiddleware(makeReq({}));
+  // The browser dropped the session-only cookie but kept the session cookie (e.g. after a restart).
+  // The replacement cookie is issued for the retry; it never vouches for the request that had none.
+  it('issues a cookie but rejects a mutation that arrives without one', () => {
+    const { next, res, issuedToken } = runMiddleware(makeReq({}));
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ error: true, message: 'Invalid CSRF token', errorType: CSRF_TOKEN_INVALID_ERROR_TYPE });
+    expect(isHMACDoubleCSRFTokenValidForSession(SESSION_SECRET, issuedToken as string, SESSION_ID)).toBe(true);
+  });
+
+  it('rejects a mutation that sends a header but no cookie', () => {
+    const token = generateHMACDoubleCSRFToken(SESSION_SECRET, SESSION_ID);
+
+    const { next, res, issuedToken } = runMiddleware(makeReq({ headerToken: token }));
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(issuedToken).toBeDefined();
+    expect(issuedToken).not.toBe(token);
+  });
+
+  it('issues a cookie and lets a read request through when the browser dropped the cookie', () => {
+    const { next, res, issuedToken } = runMiddleware(makeReq({ method: 'GET' }));
 
     expect(next).toHaveBeenCalledOnce();
-    expect(issuedToken).toBeDefined();
+    expect(res.status).not.toHaveBeenCalled();
     expect(isHMACDoubleCSRFTokenValidForSession(SESSION_SECRET, issuedToken as string, SESSION_ID)).toBe(true);
+  });
+
+  it('leaves an existing cookie alone on a read request', () => {
+    const token = generateHMACDoubleCSRFToken(SESSION_SECRET, SESSION_ID);
+
+    const { next, issuedToken } = runMiddleware(makeReq({ method: 'GET', cookieToken: token }));
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(issuedToken).toBeUndefined();
+  });
+
+  it('does not validate a read request against the header', () => {
+    const token = generateHMACDoubleCSRFToken(SESSION_SECRET, SESSION_ID);
+    const otherToken = generateHMACDoubleCSRFToken(SESSION_SECRET, SESSION_ID);
+
+    const { next, res } = runMiddleware(makeReq({ method: 'GET', cookieToken: token, headerToken: otherToken }));
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(res.status).not.toHaveBeenCalled();
   });
 
   // The browser held on to (or restored) a cookie from an earlier login, and sends it in both places

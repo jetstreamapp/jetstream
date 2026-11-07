@@ -6,6 +6,7 @@ import path from 'node:path';
 import { Browser } from '../browser/browser';
 import { openSettingsWindow } from '../browser/settings-window';
 import { checkForUpdates, getUpdatePolicy } from '../config/auto-updater';
+import { isOpenableFileType } from '../utils/openable-file-registry';
 import { openExternalSafe } from '../utils/url.utils';
 import { isMac } from '../utils/utils';
 import { getUserPreferences } from './persistence.service';
@@ -31,6 +32,38 @@ function checkForUpdatesMenuItem(): MenuItem {
   return {
     label: 'Check for Updates',
     click: () => checkForUpdates(true),
+  };
+}
+
+/**
+ * Recent documents are persisted by the OS across restarts, so the registry of files written in this
+ * session cannot vouch for them. The file-type allowlist still applies: the same check the `openFile`
+ * IPC makes, so a download whose renderer-chosen name is not a type Jetstream produces can be revealed
+ * in the file manager (which runs nothing) but never launched through `shell.openPath`.
+ */
+function recentFileMenuItem(filePath: string): MenuItem {
+  const fileName = truncateMiddle(path.basename(filePath), 125);
+  const canOpen = isOpenableFileType(filePath);
+  return {
+    label: fileName,
+    submenu: [
+      {
+        label: 'Open',
+        visible: canOpen,
+        click: async () => {
+          // Re-checked at click time so the guard does not depend on how the template was built
+          if (!isOpenableFileType(filePath)) {
+            logger.warn('[MENU] Refusing to open a recent file whose type Jetstream does not produce', filePath);
+            return;
+          }
+          await shell.openPath(filePath);
+        },
+      },
+      {
+        label: isMac() ? 'Show in Finder' : 'Show in Explorer',
+        click: async () => await shell.showItemInFolder(filePath),
+      },
+    ],
   };
 }
 
@@ -105,22 +138,7 @@ export function initAppMenu() {
           },
         },
         { type: 'separator' },
-        ...recentDocuments.map((filePath): MenuItem => {
-          const fileName = truncateMiddle(path.basename(filePath), 125);
-          return {
-            label: fileName,
-            submenu: [
-              {
-                label: 'Open',
-                click: async () => await shell.openPath(filePath),
-              },
-              {
-                label: isMac() ? 'Show in Finder' : 'Show in Explorer',
-                click: async () => await shell.showItemInFolder(filePath),
-              },
-            ],
-          };
-        }),
+        ...recentDocuments.map((filePath): MenuItem => recentFileMenuItem(filePath)),
         { type: 'separator', visible: recentDocuments.length > 0 },
         {
           label: 'Clear Recent Files',

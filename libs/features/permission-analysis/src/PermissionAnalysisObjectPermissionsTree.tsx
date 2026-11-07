@@ -418,6 +418,7 @@ export const PermissionAnalysisObjectPermissionsTree: FunctionComponent<Permissi
           rows={treeRows}
           fileNameParts={['permission-analysis-object-permissions']}
           modalHeader="Download Object Permissions"
+          escapeCsvFormulas
         />
       </div>
       <AutoFullHeightContainer

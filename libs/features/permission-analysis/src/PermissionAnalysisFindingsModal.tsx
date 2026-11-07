@@ -132,6 +132,7 @@ export const PermissionAnalysisFindingsModal: FunctionComponent<PermissionAnalys
             rows={findings}
             fileNameParts={['permission-analysis-issues']}
             modalHeader="Download Issues"
+            escapeCsvFormulas
           />
           <button type="button" className="slds-button slds-button_neutral" onClick={onClose}>
             Close

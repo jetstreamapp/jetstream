@@ -49,8 +49,12 @@ const authServerMocks = vi.hoisted(() => {
   class ProviderEmailNotVerified extends AuthError {}
   class ProviderNotAllowed extends AuthError {}
   class EmailDomainNotAllowed extends AuthError {}
+  class TooManyVerificationAttempts extends AuthError {}
 
   return {
+    TooManyVerificationAttempts,
+    reserveSecondFactorAttemptOrThrow: vi.fn(),
+    clearSecondFactorAttempts: vi.fn(),
     PLACEHOLDER_USER_ID,
     CURRENT_TOS_VERSION: 'v1',
     EMAIL_VERIFICATION_TOKEN_DURATION_HOURS: 24,
@@ -795,6 +799,54 @@ describe('auth.controller - 2fa-otp single-use replay enforcement', () => {
     );
   });
 
+  it('reserves an account-wide attempt before checking the code and clears the budget on success', async () => {
+    const req = make2faOtpReq();
+    const res = makeRes();
+    const next = vi.fn();
+
+    await routeDefinition.verification.controllerFn()(req as never, res as never, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(authServerMocks.reserveSecondFactorAttemptOrThrow).toHaveBeenCalledWith(REAL_USER_ID);
+    expect(authServerMocks.reserveSecondFactorAttemptOrThrow.mock.invocationCallOrder[0]).toBeLessThan(
+      authServerMocks.verifyTotpCodeOnceOrThrow.mock.invocationCallOrder[0],
+    );
+    expect(authServerMocks.clearSecondFactorAttempts).toHaveBeenCalledWith(REAL_USER_ID);
+  });
+
+  it('keeps the account-wide budget charged after a wrong code', async () => {
+    authServerMocks.verifyTotpCodeOnceOrThrow.mockRejectedValueOnce(
+      new authServerMocks.InvalidVerificationToken('Provided code does not match') as never,
+    );
+    const req = make2faOtpReq();
+    const res = makeRes();
+    const next = vi.fn();
+
+    await routeDefinition.verification.controllerFn()(req as never, res as never, next);
+
+    expect(authServerMocks.reserveSecondFactorAttemptOrThrow).toHaveBeenCalledWith(REAL_USER_ID);
+    expect(authServerMocks.clearSecondFactorAttempts).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.any(authServerMocks.InvalidVerificationToken));
+  });
+
+  it('refuses to check a code once the account-wide budget is spent, even on a fresh session', async () => {
+    authServerMocks.reserveSecondFactorAttemptOrThrow.mockRejectedValueOnce(
+      new authServerMocks.TooManyVerificationAttempts('Too many failed verification attempts for this account') as never,
+    );
+    const req = make2faOtpReq();
+    const res = makeRes();
+    const next = vi.fn();
+
+    await routeDefinition.verification.controllerFn()(req as never, res as never, next);
+
+    expect(authServerMocks.verifyTotpCodeOnceOrThrow).not.toHaveBeenCalled();
+    expect(responseHandlerMocks.sendJson).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.any(authServerMocks.TooManyVerificationAttempts));
+    // The session-scoped counter is untouched: the refusal happened before any code was checked.
+    expect(req.session.pendingVerificationAttempts).toBe(0);
+    expect(req.session.destroy).not.toHaveBeenCalled();
+  });
+
   it('rejects a replayed TOTP code and charges the attempt', async () => {
     authServerMocks.verifyTotpCodeOnceOrThrow.mockRejectedValueOnce(
       new authServerMocks.InvalidVerificationToken('Provided code has already been used') as never,
@@ -987,7 +1039,7 @@ describe('auth.controller - authenticator enrollment waits for the pending secon
     await routeDefinition.enrollOtpFactor.controllerFn()(req as never, res as never, next);
 
     expect(next).not.toHaveBeenCalled();
-    expect(authServerMocks.createOrUpdateOtpAuthFactor).toHaveBeenCalledWith(REAL_USER_ID, 'secret');
+    expect(authServerMocks.createOrUpdateOtpAuthFactor).toHaveBeenCalledWith(expect.objectContaining({ id: REAL_USER_ID }), 'secret');
     expect(req.session.pendingMfaEnrollment).toBeNull();
     expect(responseHandlerMocks.sendJson).toHaveBeenCalledWith(res, expect.objectContaining({ error: false }));
   });

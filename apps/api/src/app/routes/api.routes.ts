@@ -28,6 +28,7 @@ import {
   addOrgsToLocalFromHeaderOrQuery,
   basicAuthMiddleware,
   checkAuth,
+  dataSyncRateLimit,
   emailChangeRequestRateLimit,
   emailChangeTokenRateLimit,
   ensureTargetOrgExists,
@@ -145,8 +146,8 @@ routes.delete('/me/profile/2fa/:type', userController.deleteAuthFactor.controlle
  * Data History Sync Routes
  * ************************************
  */
-routes.get('/data-sync/pull', verifyEntitlement('recordSync'), dataSyncController.pull.controllerFn());
-routes.post('/data-sync/push', verifyEntitlement('recordSync'), dataSyncController.push.controllerFn());
+routes.get('/data-sync/pull', dataSyncRateLimit, verifyEntitlement('recordSync'), dataSyncController.pull.controllerFn());
+routes.post('/data-sync/push', dataSyncRateLimit, verifyEntitlement('recordSync'), dataSyncController.push.controllerFn());
 
 /**
  * ************************************

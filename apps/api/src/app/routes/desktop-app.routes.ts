@@ -6,7 +6,7 @@ import * as userFeedbackController from '../controllers/user-feedback.controller
 import * as externalAuthService from '../services/external-auth.service';
 import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
 import { CSP_REPORTING_DIRECTIVES } from '../utils/security-headers';
-import { deprecatedRouteMiddleware, feedbackRateLimit, feedbackUploadMiddleware } from './route.middleware';
+import { dataSyncRateLimit, deprecatedRouteMiddleware, feedbackRateLimit, feedbackUploadMiddleware } from './route.middleware';
 
 export const LAX_AuthRateLimit = createRateLimit('desktop_lax', {
   windowMs: 1000 * 60 * 1, // 1 minutes
@@ -98,8 +98,8 @@ routes.delete('/auth/logout', STRICT_AuthRateLimit, authMiddleware, desktopAppCo
 /**
  * Other Routes
  */
-routes.get('/data-sync/pull', authMiddleware, desktopAppController.routeDefinition.dataSyncPull.controllerFn());
-routes.post('/data-sync/push', authMiddleware, desktopAppController.routeDefinition.dataSyncPush.controllerFn());
+routes.get('/data-sync/pull', authMiddleware, dataSyncRateLimit, desktopAppController.routeDefinition.dataSyncPull.controllerFn());
+routes.post('/data-sync/push', authMiddleware, dataSyncRateLimit, desktopAppController.routeDefinition.dataSyncPush.controllerFn());
 
 routes.get('/v1/notifications', STRICT_2X_AuthRateLimit, authMiddleware, desktopAppController.routeDefinition.notifications.controllerFn());
 

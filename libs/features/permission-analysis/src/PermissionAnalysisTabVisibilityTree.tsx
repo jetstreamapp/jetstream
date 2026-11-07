@@ -380,6 +380,7 @@ export const PermissionAnalysisTabVisibilityTree: FunctionComponent<PermissionAn
           rows={treeRows}
           fileNameParts={['permission-analysis-tab-visibility']}
           modalHeader="Download Tab Visibility"
+          escapeCsvFormulas
         />
       </div>
       <AutoFullHeightContainer

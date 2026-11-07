@@ -1,7 +1,7 @@
 import { SalesforceApiRequestSchema, SalesforceRequestManualRequestSchema, SObjectBlobFieldUrlSchema } from '@jetstream/api-types';
 import { FetchResponse, getBinaryFileRecordQueryMap } from '@jetstream/salesforce-api';
 import { MAX_BINARY_DOWNLOAD_RECORDS_FREE_USER, MAX_BINARY_DOWNLOAD_RECORDS_PAID_USER } from '@jetstream/shared/constants';
-import { ensureArray } from '@jetstream/shared/utils';
+import { ensureArray, isHostRelativeUrlPath } from '@jetstream/shared/utils';
 import { BinaryDownloadCompatibleObjectsSchema, FileNameFormatSchema, ManualRequestResponse } from '@jetstream/types';
 import { z } from 'zod';
 import { isPaidUser } from '../db/user.db';
@@ -30,7 +30,10 @@ export const routeDefinition = {
     controllerFn: () => getFrontdoorLoginUrl,
     responseType: z.any(),
     validators: {
-      query: z.object({ returnUrl: z.string().min(1) }),
+      query: z.object({
+        // Becomes the frontdoor `retURL`, so it must be a path on the org's own instance
+        returnUrl: z.string().refine(isHostRelativeUrlPath, 'returnUrl must be a host-relative path beginning with "/"'),
+      }),
     } satisfies RouteValidator,
   },
   streamFileDownload: {
@@ -83,7 +86,7 @@ const getFrontdoorLoginUrl = createRoute(
       const { returnUrl } = query;
       // ensure that our token is valid and not expired
       await jetstreamConn.org.identity();
-      res.redirect(jetstreamConn.org.getFrontdoorLoginUrl(returnUrl as string));
+      res.redirect(jetstreamConn.org.getFrontdoorLoginUrl(returnUrl));
     } catch (ex) {
       next(new UserFacingError(ex));
     }

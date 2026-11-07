@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isQueryLocatorUrl, isSObjectBlobFieldUrl } from '../salesforce-url-shapes';
+import { isHostRelativeUrlPath, isQueryLocatorUrl, isSObjectBlobFieldUrl } from '../salesforce-url-shapes';
 
 describe('isQueryLocatorUrl', () => {
   it.each([
@@ -72,5 +72,38 @@ describe('isSObjectBlobFieldUrl', () => {
   it('refuses non-string values', () => {
     expect(isSObjectBlobFieldUrl(undefined)).toBe(false);
     expect(isSObjectBlobFieldUrl(42)).toBe(false);
+  });
+});
+
+describe('isHostRelativeUrlPath', () => {
+  it.each([
+    '/',
+    '/lightning/page/home',
+    '/lightning/setup/ObjectManager/Account/Details/view',
+    '/0015g00000AbCdEAAX',
+    '/lightning/setup/ManageUsers/page?address=%2F0055g0000012345%3Fnoredirect%3D1',
+    '/lightning/setup/AsyncApiJobStatus/page?address=%2F7505g00000ABCDE',
+  ])('accepts a host-relative path (%s)', (value) => {
+    expect(isHostRelativeUrlPath(value)).toBe(true);
+  });
+
+  it.each([
+    '',
+    'lightning/page/home',
+    'https://evil.example/',
+    'javascript:alert(1)',
+    '//evil.example/lightning/page/home',
+    '/\\evil.example/lightning/page/home',
+    '/lightning\\..\\evil',
+    '/lightning/page home',
+    '/lightning/page\thome',
+    '/lightning/page\x00home',
+    '/lightning/page\nhome',
+    ' /lightning/page/home',
+    42,
+    null,
+    undefined,
+  ])('refuses anything that is not a host-relative path (%s)', (value) => {
+    expect(isHostRelativeUrlPath(value)).toBe(false);
   });
 });

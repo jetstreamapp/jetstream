@@ -62,6 +62,38 @@ describe('ApiBinaryDownload.downloadAndZipFiles', () => {
     expect(BigInt(zipBytes.byteLength)).toBe(size);
   });
 
+  it('reduces record-derived names to safe, unique entry names', async () => {
+    const startFileSpy = vi.spyOn(StreamingZip.prototype, 'startFile');
+    const binaryDownload = createApiBinaryDownload(async () => fileStream('hello'));
+    const files: BinaryFileDownload[] = [
+      { id: '00P000000000001AAA', url: '/file-1', fileName: '../../.bashrc', size: 5 },
+      { id: '00P000000000002AAA', url: '/file-2', fileName: '..\\..\\Startup\\evil', fileExtension: 'bat', size: 5 },
+      { id: '00P000000000003AAA', url: '/file-3', fileName: 'report', fileExtension: 'pdf', size: 5 },
+      { id: '00P000000000004AAA', url: '/file-4', fileName: 'Report', fileExtension: 'PDF', size: 5 },
+      { id: '00P000000000005AAA', url: '/file-5', fileName: 'nested/report', fileExtension: 'pdf', size: 5 },
+      { id: '00P000000000006AAA', url: '/file-6', fileName: '..', fileExtension: 'txt', size: 5 },
+      { id: '00P000000000007AAA', url: '/file-7', fileName: 'ctrl\x00chars', fileExtension: '../txt', size: 5 },
+    ];
+
+    try {
+      const { stream, size } = await binaryDownload.downloadAndZipFiles(files, 'files.zip');
+      const zipBytes = await readWithin(stream);
+
+      expect(startFileSpy.mock.calls.map(([fileName]) => fileName)).toEqual([
+        'bashrc',
+        'Startup_evil.bat',
+        'report.pdf',
+        'Report (1).PDF',
+        'nested_report.pdf',
+        '00P000000000006AAA.txt',
+        'ctrlchars.txt',
+      ]);
+      expect(BigInt(zipBytes.byteLength)).toBe(size);
+    } finally {
+      startFileSpy.mockRestore();
+    }
+  });
+
   it('errors the zip stream when a later file fails to download', async () => {
     const binaryDownload = createApiBinaryDownload(async ({ url }) => {
       if (url === '/file-2') {

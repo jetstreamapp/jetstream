@@ -35,6 +35,7 @@ const authServerMocks = vi.hoisted(() => {
     createUserActivityFromReqWithError: vi.fn(),
     deleteAuthFactor: vi.fn(),
     beginTotpEnrollment: vi.fn(),
+    checkMfaActionAllowedOrThrow: vi.fn(),
     consumeTotpEnrollmentOrThrow: vi.fn(),
     generatePasswordResetToken: vi.fn(),
     getAllSessions: vi.fn(),

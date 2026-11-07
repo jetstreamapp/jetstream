@@ -1,7 +1,8 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { INVALID_QUERY_LOCATOR_REGEX } from '@jetstream/shared/utils';
+import { INVALID_QUERY_LOCATOR_REGEX, redactSensitiveTelemetryData } from '@jetstream/shared/utils';
 import { Environment, UserProfileUi } from '@jetstream/types';
 import * as Sentry from '@sentry/react';
+import { scrubErrorTrackerBreadcrumb, scrubErrorTrackerEvent } from './errorTracker.redaction';
 
 type Severity = 'error' | 'warning' | 'fatal' | 'info';
 
@@ -121,8 +122,11 @@ export function initErrorTracker(options: InitOptions): void {
       if (isRateLimited()) {
         return null;
       }
-      return event;
+      // Last line of defense: strip urls/query strings, secret keys and oversized payloads from
+      // everything attached to the event (extras, contexts, request data, breadcrumbs).
+      return scrubErrorTrackerEvent(event);
     },
+    beforeBreadcrumb: (breadcrumb) => scrubErrorTrackerBreadcrumb(breadcrumb),
   });
   initialized = true;
   if (pendingUser !== undefined) {
@@ -169,7 +173,7 @@ function capture(severity: Severity, messageOrError: unknown, extras: unknown[])
         }
       }
       if (Object.keys(merged).length > 0) {
-        scope.setExtras(merged);
+        scope.setExtras(redactSensitiveTelemetryData(merged));
       }
       if (messageOrError instanceof Error) {
         Sentry.captureException(messageOrError);

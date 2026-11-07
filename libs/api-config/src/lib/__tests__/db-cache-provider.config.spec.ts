@@ -13,6 +13,7 @@ const prismaMock = vi.hoisted(() => {
     // Interactive transaction: invoke the callback with the same mock so nested
     // tx.cacheEntry.* calls hit the same spies the tests assert against.
     $transaction: vi.fn((callback: (tx: any) => Promise<unknown>) => callback(mock)),
+    $queryRaw: vi.fn(),
   };
   return mock;
 });
@@ -118,5 +119,40 @@ describe('DbCacheProvider.consumeOnceAsync', () => {
     expect(createdAt.getTime()).toBeGreaterThanOrEqual(before);
     expect(createdAt.getTime()).toBeLessThanOrEqual(after);
     expect(expiresAt.getTime() - createdAt.getTime()).toBe(5 * 60_000);
+  });
+});
+
+describe('DbCacheProvider.incrementAsync', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns the total the database reports after the atomic upsert', async () => {
+    prismaMock.$queryRaw.mockResolvedValueOnce([{ value: '3' }]);
+    const provider = new DbCacheProvider('auth:2fa-attempts', 60_000);
+
+    await expect(provider.incrementAsync('user-1')).resolves.toBe(3);
+    expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it('parameterizes the namespaced key and a window derived from ttlMs', async () => {
+    prismaMock.$queryRaw.mockResolvedValueOnce([{ value: '1' }]);
+    const before = Date.now();
+    const provider = new DbCacheProvider('auth:2fa-attempts', 60_000);
+
+    await provider.incrementAsync('user-1');
+
+    // Tagged-template call: the first argument is the SQL fragments, the rest are the bound values.
+    const [, dbKey, now, expiresAt] = prismaMock.$queryRaw.mock.calls[0] as [unknown, string, Date, Date];
+    expect(dbKey).toBe('auth:2fa-attempts:user-1');
+    expect(expiresAt.getTime() - now.getTime()).toBe(60_000);
+    expect(now.getTime()).toBeGreaterThanOrEqual(before);
+  });
+
+  it('treats a missing row in the result as the first increment', async () => {
+    prismaMock.$queryRaw.mockResolvedValueOnce([]);
+    const provider = new DbCacheProvider('auth:2fa-attempts', 60_000);
+
+    await expect(provider.incrementAsync('user-1')).resolves.toBe(1);
   });
 });

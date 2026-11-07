@@ -120,12 +120,14 @@ export async function updateLoginConfiguration({
 
 export async function updateTeamMember({
   runningUserId,
+  runningUserRole,
   teamId,
   userId,
   data,
 }: {
   teamId: string;
   runningUserId: string;
+  runningUserRole: TeamMemberRole;
   userId: string;
   data: TeamMemberUpdateRequest;
 }): Promise<{
@@ -137,6 +139,7 @@ export async function updateTeamMember({
     userId,
     data,
     runningUserId,
+    runningUserRole,
   });
 
   await authDbService
@@ -157,6 +160,7 @@ export async function updateTeamMember({
 
 export async function updateTeamMemberStatusAndRole({
   runningUserId,
+  runningUserRole,
   teamId,
   userId,
   status,
@@ -164,6 +168,7 @@ export async function updateTeamMemberStatusAndRole({
 }: {
   teamId: string;
   runningUserId: string;
+  runningUserRole: TeamMemberRole;
   userId: string;
   status: typeof TEAM_MEMBER_STATUS_ACTIVE | typeof TEAM_MEMBER_STATUS_INACTIVE;
   role?: Maybe<TeamMemberRole>;
@@ -174,6 +179,7 @@ export async function updateTeamMemberStatusAndRole({
     status,
     role,
     runningUserId,
+    runningUserRole,
   });
 
   let allSessionsRevoked = false;

@@ -10,6 +10,7 @@ import { auditSeatLimitRejection, SeatLimitError, SeatLimitRejectionContext } fr
 import {
   ACCESS_PROFILE_FULL_ACCESS_ID,
   CreateSalesforceCanvasOrgRequestSchema,
+  isDomainVerificationExpired,
   TEAM_MEMBER_ROLE_ACCESS,
   TEAM_MEMBER_ROLE_ADMIN,
   TEAM_MEMBER_ROLE_MEMBER,
@@ -831,7 +832,7 @@ const updateTeamMember = createRoute(routeDefinition.updateTeamMember.validators
           targetUserId: userId,
         }
       : null,
-    () => teamService.updateTeamMember({ teamId, userId, data: body, runningUserId: user.id }),
+    () => teamService.updateTeamMember({ teamId, userId, data: body, runningUserId: user.id, runningUserRole }),
   );
   sendJson(res, team);
 
@@ -993,7 +994,7 @@ const updateTeamMemberStatusAndRole = createRoute(
         resourceId: userId,
         targetUserId: userId,
       },
-      () => teamService.updateTeamMemberStatusAndRole({ teamId, userId, status, role, runningUserId: user.id }),
+      () => teamService.updateTeamMemberStatusAndRole({ teamId, userId, status, role, runningUserId: user.id, runningUserRole }),
     );
     sendJson(res, team);
 
@@ -1654,6 +1655,12 @@ const verifyDomain = createRoute(routeDefinition.verifyDomain.validators, async 
     const verification = await teamDb.getDomainVerification(teamId, domainId);
     if (!verification) {
       throw new NotFoundError('Domain verification request not found');
+    }
+    // The db layer refuses this too; checking first avoids DNS/HTTP lookups for a claim that cannot succeed
+    if (isDomainVerificationExpired(verification)) {
+      throw new UserFacingError(
+        'This domain verification request has expired. Delete it and add the domain again to receive a new verification code.',
+      );
     }
 
     const { verified, verificationMethod, foundNonMatchingValue } = await checkDomainVerification(
