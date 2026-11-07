@@ -119,7 +119,10 @@ export const Modal = ({
   const dismiss = useDismiss(context, {
     enabled: !closeDisabled,
     escapeKey: closeOnEsc,
-    outsidePress: closeOnBackdropClick,
+    // Toasts render above the backdrop, so dismissing one must not count as a click outside the modal
+    outsidePress: closeOnBackdropClick
+      ? (event) => !(event.target instanceof Element && event.target.closest('.slds-notify_container'))
+      : false,
   });
 
   const role = useRole(context, { role: 'dialog' });

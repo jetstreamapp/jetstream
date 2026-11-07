@@ -151,7 +151,12 @@ export const AppToast: FunctionComponent = () => {
       // The strip spans the whole viewport width but the toast boxes are centered: only the boxes may
       // catch the pointer, otherwise the transparent strip blocks header controls beneath it and its
       // hover pauses auto-dismiss while the pointer merely rests near the top of the page
+      //
+      // SLDS2 (cosmos) puts `.slds-notify_container` at z-index 1000 but keeps `.slds-backdrop` at 9000, so a toast
+      // fired while a modal is open rendered behind the blurred backdrop. 10000 restores the SLDS1 value, above
+      // modals and grid editors.
       css={css`
+        z-index: 10000;
         pointer-events: none;
         .slds-notify {
           pointer-events: auto;
