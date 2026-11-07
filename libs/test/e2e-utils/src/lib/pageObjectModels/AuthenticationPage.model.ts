@@ -322,6 +322,17 @@ export class AuthenticationPage {
     await this.verifyEmail(email, rememberMe, waitForPage);
   }
 
+  /**
+   * Signs in a member whose team requires an authenticator app and who has not enrolled one yet. The team does not
+   * allow email as an MFA method, so the server offers no second factor and goes straight to enrollment.
+   */
+  async loginAndExpectOtpEnrollment(email: string, password: string) {
+    await this.fillOutLoginForm(email, password);
+
+    await this.page.waitForURL('**/auth/mfa-enroll/');
+    await expect(this.page.getByRole('heading', { name: 'Scan the QR code with your' })).toBeVisible();
+  }
+
   async loginAndVerifyTotp(email: string, password: string, secret: string, rememberMe = false) {
     await this.fillOutLoginForm(email, password);
 

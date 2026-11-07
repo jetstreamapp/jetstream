@@ -2,7 +2,7 @@ import { prisma } from '@jetstream/api-config';
 import { decodeBase32IgnorePadding, generateTOTP } from '@jetstream/auth/server';
 import type { SessionData } from '@jetstream/auth/types';
 import type { Prisma } from '@jetstream/prisma';
-import { delay, groupByFlat } from '@jetstream/shared/utils';
+import { groupByFlat } from '@jetstream/shared/utils';
 import { AuthenticationPage, TeamDashboardPage } from '@jetstream/test/e2e-utils';
 import { Page } from '@playwright/test';
 import { expect, test } from '../../../fixtures/fixtures';
@@ -208,7 +208,7 @@ test.describe('Team Dashboard', () => {
       await teamDashboardPage.loginConfigRequireMfaCheckbox.check();
       await teamDashboardPage.loginConfigEmailCheckbox.uncheck();
       await teamDashboardPage.loginConfigAllowIdentityLinkingCheckbox.uncheck();
-      await teamDashboardPage.loginConfigSaveButton.click();
+      await teamDashboardPage.saveLoginConfiguration();
 
       await page.reload();
       // ensure save persists
@@ -233,8 +233,7 @@ test.describe('Team Dashboard', () => {
       await member1Page.reload();
       expect(member1Page.url()).toContain('/auth/login');
 
-      await authenticationPage.loginAndVerifyEmail(member1.user.email, member1.user.password, true, '**/auth/mfa-enroll/');
-      await expect(member1Page.getByRole('heading', { name: 'Scan the QR code with your' })).toBeVisible();
+      await authenticationPage.loginAndExpectOtpEnrollment(member1.user.email, member1.user.password);
 
       await authenticationPage.enrollInOtp(member1.user.email);
 
@@ -392,7 +391,7 @@ test.describe('Team Dashboard', () => {
       await teamDashboardPage.loginConfigRequireMfaCheckbox.check();
       await teamDashboardPage.loginConfigEmailCheckbox.uncheck();
       await teamDashboardPage.loginConfigAllowIdentityLinkingCheckbox.uncheck();
-      await teamDashboardPage.loginConfigSaveButton.click();
+      await teamDashboardPage.saveLoginConfiguration();
 
       await page.reload();
     });
@@ -425,8 +424,7 @@ test.describe('Team Dashboard', () => {
       expect(page.url()).toContain('/auth/login');
 
       const authenticationPage = new AuthenticationPage(page);
-      await authenticationPage.loginAndVerifyEmail(user1.email, user1.password, true, '**/auth/mfa-enroll/');
-      await expect(page.getByRole('heading', { name: 'Scan the QR code with your' })).toBeVisible();
+      await authenticationPage.loginAndExpectOtpEnrollment(user1.email, user1.password);
 
       await authenticationPage.enrollInOtp(user1.email);
       await page.close();
@@ -558,7 +556,7 @@ test.describe('Team Dashboard', () => {
       await teamDashboardPage.loginConfigRequireMfaCheckbox.check();
       await teamDashboardPage.loginConfigEmailCheckbox.uncheck();
       await teamDashboardPage.loginConfigAllowIdentityLinkingCheckbox.uncheck();
-      await teamDashboardPage.loginConfigSaveButton.click();
+      await teamDashboardPage.saveLoginConfiguration();
       await page.reload();
     });
 
@@ -609,10 +607,7 @@ test.describe('Team Dashboard', () => {
       const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
       const newPage = await context.newPage();
       const auth = new AuthenticationPage(newPage);
-      await auth.fillOutLoginForm(user.email, user.password);
-      await delay(1000); // ensure session is initialized
-      await auth.verifyEmail(user.email, false, '**/auth/mfa-enroll/');
-      await expect(newPage.getByRole('heading', { name: 'Scan the QR code with your' })).toBeVisible();
+      await auth.loginAndExpectOtpEnrollment(user.email, user.password);
       await newPage.getByRole('link', { name: 'Logout' }).click();
       await context.close();
     });
@@ -621,10 +616,7 @@ test.describe('Team Dashboard', () => {
       const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
       const newPage = await context.newPage();
       const auth = new AuthenticationPage(newPage);
-      await auth.fillOutLoginForm(user.email, user.password);
-      await delay(1000); // ensure session is initialized
-      await auth.verifyEmail(user.email, false, '**/auth/mfa-enroll/');
-      await expect(newPage.getByRole('heading', { name: 'Scan the QR code with your' })).toBeVisible();
+      await auth.loginAndExpectOtpEnrollment(user.email, user.password);
       await auth.enrollInOtp(user.email);
       expect(newPage.url()).toContain('/app');
       await context.close();
@@ -641,7 +633,7 @@ test.describe('Team Dashboard', () => {
 
     await test.step('Disable username/password as an allowed login provider', async () => {
       await teamDashboardPage.loginConfigUsernamePasswordCheckbox.uncheck();
-      await teamDashboardPage.loginConfigSaveButton.click();
+      await teamDashboardPage.saveLoginConfiguration();
       await page.reload();
       await expect(teamDashboardPage.loginConfigUsernamePasswordCheckbox).toBeChecked({ checked: false });
     });

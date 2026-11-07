@@ -98,6 +98,19 @@ export class TeamDashboardPage {
     this.seatsUnavailableNotice = page.getByTestId('seats-unavailable-notice');
   }
 
+  /**
+   * Saves the login configuration form and waits for the server to confirm it. Reloading straight after the click
+   * cancels the in-flight request on a fast machine, so the checkbox state after the reload would be stale.
+   */
+  async saveLoginConfiguration() {
+    const responsePromise = this.page.waitForResponse(
+      (response) => response.request().method() === 'POST' && response.url().includes('/login-configuration'),
+    );
+    await this.loginConfigSaveButton.click();
+    const response = await responsePromise;
+    expect(response.ok()).toBeTruthy();
+  }
+
   async goToTeamDashboardPage() {
     const navigationPromise = this.page.waitForURL('**/app/teams');
     await this.page.getByRole('button', { name: 'Avatar' }).click();
