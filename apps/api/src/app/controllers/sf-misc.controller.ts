@@ -84,9 +84,7 @@ const getFrontdoorLoginUrl = createRoute(
   async ({ query, jetstreamConn }, _, res, next) => {
     try {
       const { returnUrl } = query;
-      // ensure that our token is valid and not expired
-      await jetstreamConn.org.identity();
-      res.redirect(jetstreamConn.org.getFrontdoorLoginUrl(returnUrl));
+      res.redirect(await jetstreamConn.org.getFrontdoorLoginUrl(returnUrl));
     } catch (ex) {
       next(new UserFacingError(ex));
     }
