@@ -38,8 +38,8 @@ jobs:
     # GitHub environment. Its protection rules are configured in the repository settings
     # (Settings > Environments > desktop-release) and must include:
     #   - Required reviewers, so every run (tag push or manual dispatch) waits for approval.
-    #     `pnpm release` only auto-approves the `production` environment of release.yml, so
-    #     approve this run from the GitHub UI or `gh run review <run-id> --approve`.
+    #     `pnpm release` approves the tag-triggered run once the release run succeeds; approve a
+    #     manual dispatch (or a run the script missed) from the GitHub UI.
     #   - Deployment branches and tags limited to `main` and `desktop-v*`.
     #   - The APPLE_* and AWS_DESKTOP_UPDATES_* secrets defined as environment secrets
     #     (and removed from the repository level) so no other workflow can read them.

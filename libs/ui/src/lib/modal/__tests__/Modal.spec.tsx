@@ -230,4 +230,39 @@ describe('Modal', () => {
 
     expect(onClose).toHaveBeenCalled();
   });
+
+  describe('clicks outside the modal', () => {
+    function renderWithToast(onClose: () => void) {
+      // Rendered before the modal, like the app-level toast container that is always mounted
+      return render(
+        <Fragment>
+          <div className="slds-notify_container">
+            <button type="button">Close toast</button>
+          </div>
+          <button type="button">Page button</button>
+          <Modal header="Add Domain" onClose={onClose}>
+            <input aria-label="Domain" />
+          </Modal>
+        </Fragment>,
+      );
+    }
+
+    it('stays open when a toast above the backdrop is clicked', async () => {
+      const onClose = vi.fn();
+      renderWithToast(onClose);
+
+      await userEvent.click(screen.getByText('Close toast'));
+
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('still closes on any other click outside the dialog', async () => {
+      const onClose = vi.fn();
+      renderWithToast(onClose);
+
+      await userEvent.click(screen.getByText('Page button'));
+
+      expect(onClose).toHaveBeenCalled();
+    });
+  });
 });

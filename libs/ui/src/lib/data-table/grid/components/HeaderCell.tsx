@@ -8,6 +8,7 @@ import Checkbox from '../../../form/checkbox/Checkbox';
 import Icon from '../../../widgets/Icon';
 import { HeaderFilterButton } from '../filters/HeaderFilters';
 import { DEFAULT_MIN_COLUMN_WIDTH, HEADER_ROW_ID } from '../grid-constants';
+import { isEventFromPortal } from '../grid-events';
 import { DataTableHeaderProps, SortDirection, TanstackHeader } from '../grid-types';
 import { getFrozenCellStyle } from './grid-layout';
 
@@ -222,8 +223,18 @@ export function HeaderCell<TRow extends object>({
       onDragOver={canReorder ? handleDragOver : undefined}
       onDragLeave={canReorder ? handleDragLeave : undefined}
       onDrop={canReorder ? handleDrop : undefined}
-      onMouseDown={() => onHeaderCellMouseDown?.(header.column.id)}
-      onContextMenu={(event) => onHeaderContextMenu?.(event, header.column.id)}
+      onMouseDown={(event) => {
+        if (isEventFromPortal(event)) {
+          return;
+        }
+        onHeaderCellMouseDown?.(header.column.id);
+      }}
+      onContextMenu={(event) => {
+        if (isEventFromPortal(event)) {
+          return;
+        }
+        onHeaderContextMenu?.(event, header.column.id);
+      }}
     >
       {canSort ? (
         <button
