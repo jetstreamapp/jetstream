@@ -12,8 +12,11 @@ import { describe, expect, it } from 'vitest';
 const PACKAGE_ROOT = new URL('../../../../../apps-sfdx/canvas-app/jetstream/main/default/', import.meta.url);
 const CONTROLLER_SOURCE = readFileSync(new URL('classes/JetstreamPageController.cls', PACKAGE_ROOT), 'utf8');
 
-/** Canvas only works with the org that opened it, so connecting orgs has no custom permission */
-const OPERATIONS_WITHOUT_PERMISSION = ['orgs.connect'];
+/**
+ * Canvas only works with the org that opened it, so connecting orgs has no custom permission. It also has no
+ * Jetstream server account, so history stays in the browser and there is nothing for a sync permission to gate.
+ */
+const OPERATIONS_WITHOUT_PERMISSION = ['orgs.connect', 'history.sync'];
 
 function parseApexStringMap(mapName: string): Map<string, string> {
   const mapBody = CONTROLLER_SOURCE.match(new RegExp(`${mapName}\\s*=\\s*new Map<String, String>\\{([^}]*)\\}`))?.[1];

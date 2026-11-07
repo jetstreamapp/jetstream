@@ -31,6 +31,7 @@ export function Component() {
     setEnabled,
     recordSyncEnabled,
     setRecordSyncEnabled,
+    recordSyncDeniedReason,
     colorScheme,
     setColorScheme,
     crashReportingEnabled,
@@ -81,7 +82,8 @@ export function Component() {
               containerClassname="slds-m-top_x-small"
               checked={recordSyncEnabled}
               label="Data Sync"
-              labelHelp="Enable to sync Query History with the Jetstream server."
+              labelHelp={recordSyncDeniedReason ?? 'Enable to sync Query History with the Jetstream server.'}
+              disabled={!!recordSyncDeniedReason}
               labelPosition="right"
               onChange={(value) => setRecordSyncEnabled(value)}
             />

@@ -24,7 +24,7 @@ import {
   SoqlQueryFormatSettings,
   useAnalytics,
 } from '@jetstream/ui-core';
-import { fromAppState } from '@jetstream/ui/app-state';
+import { fromAppState, useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { useAtomCallback } from 'jotai/utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -58,6 +58,7 @@ export const Settings = () => {
   const [isChoosingDownloadFolder, setIsChoosingDownloadFolder] = useState(false);
 
   const recordSyncEntitled = ability.can('access', 'RecordSync');
+  const { deniedReason: historySyncDeniedReason } = useOperationAccess('history.sync');
   const downloadPath = preferences?.fileDownload?.downloadPath;
 
   useEffect(() => {
@@ -314,6 +315,7 @@ export const Settings = () => {
               <SettingsGroup title="Sync">
                 <HistorySyncSettings
                   enabled={preferences?.recordSyncEnabled ?? false}
+                  deniedReason={historySyncDeniedReason}
                   onChange={(recordSyncEnabled) => savePreferences({ recordSyncEnabled })}
                 />
               </SettingsGroup>

@@ -68,11 +68,13 @@ Actions are limited in every tool where they appear. Buttons for an action that 
 | Delete records                           | Deleting and undeleting from query results, delete and hard delete loads, and purging debug logs                                                                                                                           |
 | Deploy metadata and change configuration | Deploying or deleting metadata, creating objects and fields, toggling automation, saving permission changes, managing permission set assignments, updating record type picklist values and loading custom metadata records |
 | Connect Salesforce orgs                  | Adding new Salesforce orgs to Jetstream                                                                                                                                                                                    |
+| Sync history to the Jetstream server     | Syncing query history, saved load mappings, recent objects and API request history across devices. Without it, this data stays on the member's device and the Jetstream server refuses sync requests                       |
 
 A few things to keep in mind:
 
 - A tool can be included without the actions it uses. For example, Load Records without **Create and update records** only offers delete loads (when **Delete records** is included), and Manage Permissions without **Deploy metadata and change configuration** lets the member view permissions but not save changes.
 - Members without **Connect Salesforce orgs** can keep using, and reconnect, the orgs they have already connected. A member with no connected orgs cannot use Jetstream, which is why every preset includes this action.
+- **Sync history to the Jetstream server** is enforced by the server for the web application, desktop application and browser extension, so history from a member without it is never stored on Jetstream's servers. Data already synced before the action was removed stays on the server until the member is removed or their data is deleted. Only the Everything preset includes this action, so turn it on for members who should be able to sync.
 - Anonymous Apex and the Salesforce API tool can create, update and delete records and change metadata on their own, even when those actions are not included. Leave these tools out of profiles for members who should not make changes.
 
 ### Which applications members can use
