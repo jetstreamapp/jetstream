@@ -3,6 +3,8 @@
 /**
  * Interactive release script.
  * Triggers the GitHub Actions release workflow and auto-approves the deployment review.
+ * For desktop releases it also approves the `desktop-release` review on the macOS and Windows
+ * publish runs that the pushed `desktop-v*` tag triggers, once the release run succeeds.
  *
  * Usage: node scripts/release.mjs
  */
@@ -15,6 +17,12 @@ import { bumpVersion, RELEASE_TARGETS, resolveBaseVersion, ROOT } from './lib/re
 
 const REPO = 'jetstreamapp/jetstream';
 const WORKFLOW = 'release.yml';
+const RELEASE_ENVIRONMENT = 'production';
+const DESKTOP_ENVIRONMENT = 'desktop-release';
+const DESKTOP_PUBLISH_WORKFLOWS = [
+  { file: 'publish-desktop-macos.yml', label: 'macOS' },
+  { file: 'publish-desktop-windows.yml', label: 'Windows' },
+];
 const RELEASE_NOTES_DIR = path.join(ROOT, 'apps/docs/release-notes');
 
 const STATUS_COLORS = {
@@ -31,6 +39,58 @@ const STATUS_COLORS = {
 function colorStatus(value) {
   const fn = STATUS_COLORS[/** @type {keyof typeof STATUS_COLORS} */ (value)] ?? chalk.white;
   return fn(value);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function runUrlFor(runId) {
+  return `https://github.com/${REPO}/actions/runs/${runId}`;
+}
+
+// Polls until the run is waiting on a review for `environmentName` and returns that environment's id, or null if
+// the review never appears. Matching by name means only the expected environment is ever approved.
+async function waitForPendingEnvironmentId(runId, environmentName, { attempts = 20, onAttempt } = {}) {
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    await sleep(3000);
+    onAttempt?.();
+    const pending = JSON.parse((await $`gh api repos/${REPO}/actions/runs/${runId}/pending_deployments`.quiet()).stdout);
+    const match = pending.find(({ environment }) => environment.name === environmentName);
+    if (match) {
+      return match.environment.id;
+    }
+  }
+  return null;
+}
+
+async function approveDeployment(runId, environmentId) {
+  await $`gh api repos/${REPO}/actions/runs/${runId}/pending_deployments \
+    --method POST \
+    -f state=approved \
+    -f comment="Approved via release script" \
+    -F environment_ids[]=${environmentId}`.quiet();
+}
+
+// The tag-triggered run for a publish workflow. It is created when release.yml pushes the tag, so it normally
+// exists by the time the release run finishes; poll briefly in case GitHub is slow to register it.
+async function findTagTriggeredRunId(workflowFile, tag) {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const result = await $`gh run list \
+      --repo ${REPO} \
+      --workflow=${workflowFile} \
+      --branch=${tag} \
+      --event=push \
+      --limit 1 \
+      --json databaseId \
+      --jq '.[0].databaseId // empty'`.quiet();
+    const runId = result.stdout.trim();
+    if (runId) {
+      return runId;
+    }
+    await sleep(3000);
+  }
+  return null;
 }
 
 // Looks for a release-note file (e.g. `2026-06-22-v10.4.0.mdx`) for the given web version.
@@ -229,43 +289,28 @@ console.log(chalk.green(runId));
 // ── Wait for the deployment review to appear ───────────────────────────────
 process.stdout.write(chalk.dim('Waiting for deployment review'));
 
-let environmentId = null;
-for (let attempt = 0; attempt < 20; attempt++) {
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-  process.stdout.write(chalk.dim('.'));
-
-  const pendingResult = await $`gh api repos/${REPO}/actions/runs/${runId}/pending_deployments`.quiet();
-
-  const pending = JSON.parse(pendingResult.stdout);
-  if (pending.length > 0) {
-    environmentId = pending[0].environment.id;
-    break;
-  }
-}
+const environmentId = await waitForPendingEnvironmentId(runId, RELEASE_ENVIRONMENT, {
+  onAttempt: () => process.stdout.write(chalk.dim('.')),
+});
 
 console.log('');
 
 if (!environmentId) {
-  console.error(chalk.red('\nNo pending deployment review found. Approve manually:'));
-  console.log('  ' + chalk.cyan(`gh run review ${runId} --approve --repo ${REPO}`));
+  console.error(chalk.red(`\nNo pending ${RELEASE_ENVIRONMENT} review found. Approve manually:`));
+  console.log('  ' + chalk.underline.blue(runUrlFor(runId)));
   process.exit(1);
 }
 
 // ── Approve ────────────────────────────────────────────────────────────────
 process.stdout.write(chalk.dim(`Approving deployment... `));
-
-await $`gh api repos/${REPO}/actions/runs/${runId}/pending_deployments \
-  --method POST \
-  -f state=approved \
-  -f comment="Approved via release script" \
-  -F environment_ids[]=${environmentId}`;
-
+await approveDeployment(runId, environmentId);
 console.log(chalk.green('approved'));
 
 // ── Print recovery commands early ──────────────────────────────────────────
 // Print these before the status check / watch so they remain available in
 // scrollback even if the user cancels (Ctrl+C) the watch step below.
-const runUrl = `https://github.com/${REPO}/actions/runs/${runId}`;
+const runUrl = runUrlFor(runId);
+const desktopReleaseTag = releaseDesktop ? `desktop-v${plannedVersions.get('desktop').nextVersion}` : null;
 console.log('');
 console.log(chalk.dim('  To check again:'));
 console.log('  ' + chalk.cyan(`gh run view ${runId} --repo ${REPO}`));
@@ -278,6 +323,12 @@ if (releaseExtension) {
         `rm -rf dist/web-extension-build && gh run download ${runId} --name web-extension-zips --dir dist/web-extension-build --repo ${REPO}`,
       ),
   );
+}
+if (desktopReleaseTag) {
+  console.log('');
+  console.log(chalk.dim(`  Desktop publish runs wait for ${DESKTOP_ENVIRONMENT} approval, given below once the release succeeds.`));
+  console.log(chalk.dim('  If you stop watching first, approve them from:'));
+  console.log('  ' + chalk.underline.blue(`https://github.com/${REPO}/actions?query=branch%3A${desktopReleaseTag}`));
 }
 console.log('');
 console.log(`  ${chalk.dim('url')}  ${chalk.underline.blue(runUrl)}`);
@@ -342,6 +393,37 @@ try {
   // User cancelled (ctrl+c) or the run failed
   console.log(chalk.red('\nWorkflow run did not complete successfully.'));
   process.exit(1);
+}
+
+// ── Approve desktop publish runs ──────────────────────────────────────────
+// The `desktop-v*` tag pushed by release.yml triggers the macOS and Windows publish workflows, which wait on the
+// `desktop-release` environment. Approving only after the release run succeeded keeps a failed release from
+// shipping a desktop build.
+if (desktopReleaseTag) {
+  console.log('');
+  console.log(chalk.bold(`Approving desktop publish runs for ${desktopReleaseTag}...`));
+  for (const { file, label } of DESKTOP_PUBLISH_WORKFLOWS) {
+    process.stdout.write(chalk.dim(`  ${label.padEnd(8)} `));
+    try {
+      const desktopRunId = await findTagTriggeredRunId(file, desktopReleaseTag);
+      if (!desktopRunId) {
+        console.log(chalk.yellow(`no run found for ${desktopReleaseTag} — check the ${file} workflow`));
+        continue;
+      }
+      const desktopEnvironmentId = await waitForPendingEnvironmentId(desktopRunId, DESKTOP_ENVIRONMENT, { attempts: 10 });
+      if (!desktopEnvironmentId) {
+        console.log(
+          chalk.yellow(`no pending ${DESKTOP_ENVIRONMENT} review — approve manually if needed: `) +
+            chalk.underline.blue(runUrlFor(desktopRunId)),
+        );
+        continue;
+      }
+      await approveDeployment(desktopRunId, desktopEnvironmentId);
+      console.log(chalk.green('approved  ') + chalk.underline.blue(runUrlFor(desktopRunId)));
+    } catch (error) {
+      console.log(chalk.red(`failed — ${error.stderr?.trim() || error.message}`));
+    }
+  }
 }
 
 // ── Download web extension zips ───────────────────────────────────────────
