@@ -23,8 +23,13 @@ export interface UseDriveExternalPickerReturn {
   error: string | null;
 }
 
-// Loading timeout: if no result comes back within this time, stop showing loading state
+// The picker runs in another window (the system browser on desktop, a popup elsewhere), and a Google sign-in or a
+// deep folder tree easily takes longer than a spinner is worth showing. The spinner stops after LOADING_TIMEOUT_MS so
+// the button is usable again, but the result is still wanted: the nonce is only released when a result arrives, the
+// popup closes, a newer picker is opened, the hook unmounts, or RESULT_TIMEOUT_MS passes. RESULT_TIMEOUT_MS matches
+// the desktop main process, which gives up on the deep link after the same window.
 const LOADING_TIMEOUT_MS = 15_000;
+const RESULT_TIMEOUT_MS = 15 * 60 * 1000;
 
 // ─── Module-level listener registry ───
 // A single IPC/message listener is set up per channel. Results are dispatched
@@ -160,6 +165,7 @@ export function useDriveExternalPicker(serverUrl?: string): UseDriveExternalPick
   const [error, setError] = useState<string | null>(null);
   const isMounted = useRef(true);
   const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resultTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isAuthorized, setIsAuthorized] = useState(() => isExternalGoogleAccessTokenValid());
   const nonceRef = useRef<string | null>(null);
   const popupRef = useRef<Window | null>(null);
@@ -173,6 +179,49 @@ export function useDriveExternalPicker(serverUrl?: string): UseDriveExternalPick
       loadingTimeoutRef.current = null;
     }
   }, []);
+
+  /** Stop waiting for a result from the picker window that is currently open, if any */
+  const releasePendingNonce = useCallback(() => {
+    if (resultTimeoutRef.current) {
+      clearTimeout(resultTimeoutRef.current);
+      resultTimeoutRef.current = null;
+    }
+    if (nonceRef.current) {
+      unregisterNonce(nonceRef.current);
+      nonceRef.current = null;
+    }
+  }, []);
+
+  /**
+   * Register the nonce the picker window will answer with. An earlier attempt that is still waiting is superseded, so
+   * only the newest picker window can deliver a result to this hook instance.
+   */
+  const waitForPickerResult = useCallback(
+    (nonce: string, callback: PickerResultCallback) => {
+      releasePendingNonce();
+      clearLoadingTimeout();
+
+      nonceRef.current = nonce;
+      registerNonce(nonce, (pickerResult) => {
+        releasePendingNonce();
+        callback(pickerResult);
+      });
+
+      // Only the spinner stops here; the result is still accepted until RESULT_TIMEOUT_MS
+      loadingTimeoutRef.current = setTimeout(() => {
+        loadingTimeoutRef.current = null;
+        if (isMounted.current) {
+          setLoading(false);
+        }
+      }, LOADING_TIMEOUT_MS);
+
+      resultTimeoutRef.current = setTimeout(() => {
+        resultTimeoutRef.current = null;
+        releasePendingNonce();
+      }, RESULT_TIMEOUT_MS);
+    },
+    [clearLoadingTimeout, releasePendingNonce],
+  );
 
   /** Shared handler for picker results from either IPC or postMessage */
   const handlePickerResult = useCallback(
@@ -278,13 +327,9 @@ export function useDriveExternalPicker(serverUrl?: string): UseDriveExternalPick
     return () => {
       isMounted.current = false;
       clearLoadingTimeout();
-      // Unregister this instance's nonce if it's still pending
-      if (nonceRef.current) {
-        unregisterNonce(nonceRef.current);
-        nonceRef.current = null;
-      }
+      releasePendingNonce();
     };
-  }, [usesPopupFlow, clearLoadingTimeout]);
+  }, [usesPopupFlow, clearLoadingTimeout, releasePendingNonce]);
 
   // Browser extension: ensure the single module-level message listener is set up
   useEffect(() => {
@@ -297,16 +342,13 @@ export function useDriveExternalPicker(serverUrl?: string): UseDriveExternalPick
     return () => {
       isMounted.current = false;
       clearLoadingTimeout();
-      if (nonceRef.current) {
-        unregisterNonce(nonceRef.current);
-        nonceRef.current = null;
-      }
+      releasePendingNonce();
       if (popupPollRef.current) {
         clearInterval(popupPollRef.current);
         popupPollRef.current = null;
       }
     };
-  }, [usesPopupFlow, serverUrl, clearLoadingTimeout]);
+  }, [usesPopupFlow, serverUrl, clearLoadingTimeout, releasePendingNonce]);
 
   const openPicker = useCallback(
     (mode: 'file' | 'folder' | 'auth' = 'file') => {
@@ -327,28 +369,16 @@ export function useDriveExternalPicker(serverUrl?: string): UseDriveExternalPick
         setError(null);
         setLoading(true);
 
-        clearLoadingTimeout();
-        loadingTimeoutRef.current = setTimeout(() => {
-          if (isMounted.current) {
-            setLoading(false);
-          }
-          if (nonceRef.current) {
-            unregisterNonce(nonceRef.current);
-            nonceRef.current = null;
-          }
-        }, LOADING_TIMEOUT_MS);
-
         const nonce = crypto.randomUUID();
-        nonceRef.current = nonce;
-        registerNonce(nonce, (pickerResult) => {
+        waitForPickerResult(nonce, (pickerResult) => {
           if (isMounted.current) {
-            nonceRef.current = null;
             handlePickerResult(pickerResult);
           }
         });
 
         window.electronAPI.openGooglePicker({ mode, accessToken, accessTokenExpiresAt: expiresAt, nonce }).catch((ex) => {
           logger.error('Error opening Google picker', ex);
+          releasePendingNonce();
           clearLoadingTimeout();
           if (isMounted.current) {
             setError('Failed to open Google Drive picker');
@@ -367,17 +397,6 @@ export function useDriveExternalPicker(serverUrl?: string): UseDriveExternalPick
       setError(null);
       setLoading(true);
 
-      clearLoadingTimeout();
-      loadingTimeoutRef.current = setTimeout(() => {
-        if (isMounted.current) {
-          setLoading(false);
-        }
-        if (nonceRef.current) {
-          unregisterNonce(nonceRef.current);
-          nonceRef.current = null;
-        }
-      }, LOADING_TIMEOUT_MS);
-
       const { accessToken, expiresAt } = getExternalGoogleAccessToken() || {};
 
       if (!accessToken) {
@@ -386,8 +405,7 @@ export function useDriveExternalPicker(serverUrl?: string): UseDriveExternalPick
       }
 
       const nonce = crypto.randomUUID();
-      nonceRef.current = nonce;
-      registerNonce(nonce, (eventData) => {
+      waitForPickerResult(nonce, (eventData) => {
         if (!isMounted.current) {
           return;
         }
@@ -397,8 +415,6 @@ export function useDriveExternalPicker(serverUrl?: string): UseDriveExternalPick
           logger.warn('[GOOGLE] Received postMessage from unexpected origin', eventData._origin);
           return;
         }
-
-        nonceRef.current = null;
 
         // Parse the raw postMessage data into a GooglePickerResult
         const {
@@ -466,7 +482,7 @@ export function useDriveExternalPicker(serverUrl?: string): UseDriveExternalPick
             }
             // If we still have a nonce, the popup was closed without sending a result
             if (nonceRef.current && isMounted.current) {
-              nonceRef.current = null;
+              releasePendingNonce();
               clearLoadingTimeout();
               setLoading(false);
             }
@@ -474,7 +490,7 @@ export function useDriveExternalPicker(serverUrl?: string): UseDriveExternalPick
         }, 1000);
       }
     },
-    [usesPopupFlow, serverUrl, clearLoadingTimeout, handlePickerResult],
+    [usesPopupFlow, serverUrl, clearLoadingTimeout, releasePendingNonce, waitForPickerResult, handlePickerResult],
   );
 
   const signOut = useCallback(() => {
