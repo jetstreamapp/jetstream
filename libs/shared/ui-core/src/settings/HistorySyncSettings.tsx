@@ -7,10 +7,12 @@ import { SettingsRow, SettingsToggleRow } from './layout/SettingsSection';
 export interface HistorySyncSettingsProps {
   enabled: boolean;
   onChange: (enabled: boolean) => void;
+  /** Set when the member's access profile excludes sync; the controls are disabled and this explains why */
+  deniedReason?: string;
 }
 
 /** Rows for the Jetstream server sync of query history and the other syncable local tables */
-export const HistorySyncSettings = ({ enabled, onChange }: HistorySyncSettingsProps) => {
+export const HistorySyncSettings = ({ enabled, onChange, deniedReason }: HistorySyncSettingsProps) => {
   const [resetting, setResetting] = useState(false);
 
   async function handleReset() {
@@ -31,8 +33,12 @@ export const HistorySyncSettings = ({ enabled, onChange }: HistorySyncSettingsPr
       <SettingsToggleRow
         id="setting-history-sync"
         title="Sync across devices"
-        description="Keep your query history, saved load mappings, recent objects, and API request history in sync between the Jetstream web app, desktop app, and browser extension."
-        checked={enabled}
+        description={
+          deniedReason ??
+          'Keep your query history, saved load mappings, recent objects, and API request history in sync between the Jetstream web app, desktop app, and browser extension.'
+        }
+        checked={enabled && !deniedReason}
+        disabled={!!deniedReason}
         onChange={onChange}
       />
       <SettingsRow
@@ -40,7 +46,7 @@ export const HistorySyncSettings = ({ enabled, onChange }: HistorySyncSettingsPr
         title="Reset sync"
         description="If your history looks different on another device, push and pull everything again from the Jetstream server."
       >
-        <button className="slds-button slds-button_neutral slds-is-relative" disabled={resetting} onClick={handleReset}>
+        <button className="slds-button slds-button_neutral slds-is-relative" disabled={resetting || !!deniedReason} onClick={handleReset}>
           {resetting && <Spinner size="x-small" />}
           Reset Sync
         </button>

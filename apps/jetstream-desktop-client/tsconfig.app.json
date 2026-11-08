@@ -38,10 +38,10 @@
       "path": "../../libs/shared/constants/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/shared/client-logger/tsconfig.lib.json"
+      "path": "../../libs/auth/acl/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/shared/ui-utils/tsconfig.lib.json"
+      "path": "../../libs/shared/client-logger/tsconfig.lib.json"
     },
     {
       "path": "../../libs/ui/tsconfig.lib.json"
@@ -114,6 +114,9 @@
     },
     {
       "path": "../../libs/shared/ui-core/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/shared/ui-utils/tsconfig.lib.json"
     },
     {
       "path": "../../libs/shared/ui-router/tsconfig.lib.json"

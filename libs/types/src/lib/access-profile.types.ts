@@ -37,7 +37,13 @@ export const ACCESS_PROFILE_TOOL_KEYS = [
   'platform-events',
 ] as const;
 
-export const ACCESS_PROFILE_OPERATION_KEYS = ['records.write', 'records.delete', 'metadata.deploy', 'orgs.connect'] as const;
+export const ACCESS_PROFILE_OPERATION_KEYS = [
+  'records.write',
+  'records.delete',
+  'metadata.deploy',
+  'orgs.connect',
+  'history.sync',
+] as const;
 
 /**
  * Without `web` a member can still sign in to the web application, because their profile, settings and the team
@@ -246,6 +252,12 @@ export const ACCESS_PROFILE_OPERATIONS: AccessProfileOperationDefinition[] = [
     label: 'Connect Salesforce orgs',
     description: 'Add new Salesforce orgs to Jetstream',
   },
+  {
+    key: 'history.sync',
+    label: 'Sync history to the Jetstream server',
+    description:
+      'Sync query history, saved load mappings, recent objects and API request history across devices. Without it, this data stays on the device and the server refuses sync requests',
+  },
 ];
 
 /**
@@ -257,6 +269,7 @@ export const ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES: Record<AccessProfile
   'records.delete': `Your Jetstream access does not include deleting records.`,
   'metadata.deploy': `Your Jetstream access does not include deploying metadata or changing configuration.`,
   'orgs.connect': `Your Jetstream access does not include connecting Salesforce orgs.`,
+  'history.sync': `Your Jetstream access does not include syncing history to the Jetstream server.`,
 };
 
 export const ACCESS_PROFILE_SURFACES: AccessProfileSurfaceDefinition[] = [
@@ -334,6 +347,20 @@ export function isAccessProfileSurfaceAllowed(
     return true;
   }
   return AccessProfilePolicySchema.parse(accessProfile.policy).surfaces.includes(surface);
+}
+
+/**
+ * Whether the member's profile includes an operation, for server routes that must refuse it. A member without a
+ * profile has full access. A profile whose stored policy cannot be read denies the operation rather than granting it.
+ */
+export function isAccessProfileOperationAllowed(
+  accessProfile: { policy: unknown } | null | undefined,
+  operation: AccessProfileOperationKey,
+): boolean {
+  if (!accessProfile) {
+    return true;
+  }
+  return AccessProfilePolicySchema.parse(accessProfile.policy).operations.includes(operation);
 }
 
 /**

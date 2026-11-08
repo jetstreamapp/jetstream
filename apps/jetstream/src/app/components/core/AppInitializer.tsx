@@ -1,3 +1,4 @@
+import { canPerformOperation } from '@jetstream/acl';
 import { logger } from '@jetstream/shared/client-logger';
 import { getAuthErrorMessage, HTTP, isAuthErrorType, isLoginMethod } from '@jetstream/shared/constants';
 import {
@@ -75,7 +76,8 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnou
   useConditionalGoogleAnalytics(environment.googleAnalyticsSiteId, analytics === 'accepted');
 
   const recordSyncEntitlementEnabled = ability.can('access', 'RecordSync');
-  const recordSyncEnabled = recordSyncEntitlementEnabled && userProfile.preferences.recordSyncEnabled;
+  const canSyncHistory = canPerformOperation(ability, 'history.sync');
+  const recordSyncEnabled = recordSyncEntitlementEnabled && canSyncHistory && userProfile.preferences.recordSyncEnabled;
   // Data history is available to everyone; paid plans get higher limits (canonical paid signal,
   // NOT an individual entitlement — some paid plans lack specific entitlements)
   const hasPaidPlan = useAtomValue(fromAppState.hasPaidPlanState);

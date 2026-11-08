@@ -21,7 +21,7 @@ import {
   SoqlQueryFormatSettings,
   useAnalytics,
 } from '@jetstream/ui-core';
-import { fromAppState, useFeatureFlag, userProfileState, userProfileSyncState } from '@jetstream/ui/app-state';
+import { fromAppState, useFeatureFlag, useOperationAccess, userProfileState, userProfileSyncState } from '@jetstream/ui/app-state';
 import { deleteAllDataHistoryFiles } from '@jetstream/ui/data-history';
 import { deleteAllLocalData } from '@jetstream/ui/db';
 import { useAtomValue } from 'jotai';
@@ -44,6 +44,7 @@ export const Settings = () => {
   const { preferences } = userProfile;
 
   const recordSyncEntitled = ability.can('access', 'RecordSync');
+  const { deniedReason: historySyncDeniedReason } = useOperationAccess('history.sync');
   // Canvas org management: gated by the feature flag + entitlement, and only for individual (non-team)
   // users — team members manage authorized orgs from the Team Dashboard.
   const canvasEnabled = useFeatureFlag('salesforce-canvas');
@@ -190,6 +191,7 @@ export const Settings = () => {
               <SettingsGroup title="Sync">
                 <HistorySyncSettings
                   enabled={preferences?.recordSyncEnabled ?? true}
+                  deniedReason={historySyncDeniedReason}
                   onChange={(recordSyncEnabled) => savePreferences({ recordSyncEnabled })}
                 />
               </SettingsGroup>

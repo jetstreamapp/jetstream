@@ -6,6 +6,7 @@ import { clamp } from 'lodash';
 import { z } from 'zod';
 import * as userSyncDbService from '../db/data-sync.db';
 import { emitRecordSyncEventsToOtherClients, SyncEvent } from '../services/data-sync-broadcast.service';
+import { assertHistorySyncAllowed } from '../utils/access-profile.utils';
 import { sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
 
@@ -95,6 +96,7 @@ export const routeDefinition = {
  * Pull changes from server
  */
 const pull = createRoute(routeDefinition.pull.validators, async ({ user, query }, _, res) => {
+  await assertHistorySyncAllowed(user.id);
   const { lastKey, updatedAt, limit } = query;
   const response = await userSyncDbService.findByUpdatedAt({
     userId: user.id,
@@ -109,6 +111,7 @@ const pull = createRoute(routeDefinition.pull.validators, async ({ user, query }
  * Push changes to server and emit to any other clients the user has active
  */
 const push = createRoute(routeDefinition.push.validators, async ({ user, body: records, query }, req, res) => {
+  await assertHistorySyncAllowed(user.id);
   const response = await userSyncDbService.syncRecordChanges({
     updatedAt: query.updatedAt,
     userId: user.id,

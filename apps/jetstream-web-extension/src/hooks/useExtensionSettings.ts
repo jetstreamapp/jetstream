@@ -6,6 +6,7 @@ import browser from 'webextension-polyfill';
 import { requestSyncDataCollectionConsent } from '../utils/data-collection-consent';
 import { chromeStorageOptions, chromeSyncStorage } from '../utils/extension.store';
 import { sendMessage } from '../utils/web-extension.utils';
+import { useHistorySyncAccess } from './useHistorySyncAccess';
 
 export const useExtensionSettings = () => {
   const { authTokens, soqlQueryFormatOptions: _soqlQueryFormatOptions } = useAtomValue(chromeSyncStorage);
@@ -17,7 +18,8 @@ export const useExtensionSettings = () => {
 
   // Use atom values directly instead of copying to local state
   const enabled = options.enabled;
-  const recordSyncEnabled = options.recordSyncEnabled;
+  const { allowed: canSyncHistory, deniedReason: recordSyncDeniedReason } = useHistorySyncAccess();
+  const recordSyncEnabled = options.recordSyncEnabled && canSyncHistory;
   const colorScheme = options.colorScheme;
   const crashReportingEnabled = options.crashReportingEnabled;
 
@@ -77,6 +79,7 @@ export const useExtensionSettings = () => {
     setEnabled,
     recordSyncEnabled,
     setRecordSyncEnabled,
+    recordSyncDeniedReason,
     colorScheme,
     setColorScheme,
     crashReportingEnabled,
