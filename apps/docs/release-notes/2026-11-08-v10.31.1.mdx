@@ -1,0 +1,53 @@
+---
+slug: v10.31.1
+title: 10.31.1 - History sync in access profiles and security fixes
+date: '2026-11-08'
+tags: [web, desktop, extension]
+versions:
+  web: 10.31.1
+  desktop: 4.23.1
+  extension: 3.29.1
+summary: Access profiles can now stop team members from syncing history to the Jetstream server. Opening Salesforce from Jetstream now uses a one-time login link instead of your session.
+highlights:
+  - title: Control history sync with access profiles
+    description: A new Sync history to the Jetstream server action lets team admins keep a member's history on their own device.
+    docLink: /team-management/access-profiles
+  - title: One-time login links when opening Salesforce
+    description: Links that log you in to Salesforce carry a single-use code that expires after one minute, not your session.
+    platforms: [web, desktop]
+  - title: Notifications show above open modals
+    description: Messages raised while a modal is open are no longer hidden behind it.
+  - title: Pending domain claims expire after 7 days
+    description: The Domains list shows when a pending claim expires and marks expired claims.
+    docLink: /team-management/sso/domain-verification
+    platforms: [web]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Control history sync with access profiles
+
+Access profiles have a new **Sync history to the Jetstream server** action. When a member's profile does not include it, sync is turned off in the web app, the desktop app and the browser extension, the sync toggle and Reset Sync are disabled with the reason shown, and the server refuses their sync requests.
+
+- Only the Everything preset includes the action. Custom profiles are allow-lists, so members on an existing custom profile lose sync until an admin enables it.
+- History that was already synced stays on the server.
+
+### One-time login links when opening Salesforce
+
+When Jetstream opens Salesforce for you, the link now carries a single-use code that expires after one minute instead of your Salesforce session. Salesforce does not issue these links for every connection (for example API Only users, revoked connections, or orgs connected through a URL that is not a My Domain). In those cases Jetstream opens the org without logging you in, and Salesforce asks you to log in if you are not already.
+
+### Pending domain claims expire after 7 days
+
+A pending domain claim is now held for 7 days. The Domains list shows the expiry date and an Expired badge, and another team can claim an expired domain. Verified domains are unchanged. A failed claim now shows the same message whether or not another team holds the domain.
+
+### Other fixes
+
+- Notifications raised while a modal is open appear above it, and clicking one no longer closes the modal.
+- Right-clicking inside the record lookup popover in a data table opens the browser menu instead of the table's copy menu, and clicking in the popover no longer starts a cell selection.
+- Teams that do not allow email as a second factor send members straight to authenticator app enrollment, and login no longer offers factors the team does not allow.
+- Zip downloads of attachments, documents, static resources and files use safe file names, and duplicate names are detected regardless of case.
+- Permission Analysis and Automation Control CSV exports escape values that a spreadsheet would treat as a formula.
+- The desktop Recent Files menu only offers Open for file types Jetstream creates. Show in Finder or Explorer still works for every file.
+- Additional security hardening, with no change to how the app works.
