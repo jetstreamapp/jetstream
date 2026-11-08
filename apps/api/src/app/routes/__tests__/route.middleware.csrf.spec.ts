@@ -3,7 +3,7 @@ import { CSRF_TOKEN_INVALID_ERROR_TYPE } from '@jetstream/auth/types';
 import { HTTP } from '@jetstream/shared/constants';
 import type express from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { validateDoubleCSRF } from '../route.middleware';
+import { getOrIssueDoubleCSRFToken, validateDoubleCSRF } from '../route.middleware';
 
 const SESSION_SECRET = 'test-session-secret';
 const SESSION_ID = 'current-session-id';
@@ -66,95 +66,118 @@ describe('validateDoubleCSRF', () => {
     expect(issuedToken).toBeUndefined();
   });
 
-  // The browser dropped the session-only cookie but kept the session cookie (e.g. after a restart).
-  // The replacement cookie is issued for the retry; it never vouches for the request that had none.
-  it('issues a cookie but rejects a mutation that arrives without one', () => {
+  it('rejects a mutation that arrives without a cookie, without issuing one', () => {
     const { next, res, issuedToken } = runMiddleware(makeReq({}));
 
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(403);
     expect(res.json).toHaveBeenCalledWith({ error: true, message: 'Invalid CSRF token', errorType: CSRF_TOKEN_INVALID_ERROR_TYPE });
-    expect(isHMACDoubleCSRFTokenValidForSession(SESSION_SECRET, issuedToken as string, SESSION_ID)).toBe(true);
+    expect(issuedToken).toBeUndefined();
   });
 
   it('rejects a mutation that sends a header but no cookie', () => {
     const token = generateHMACDoubleCSRFToken(SESSION_SECRET, SESSION_ID);
 
-    const { next, res, issuedToken } = runMiddleware(makeReq({ headerToken: token }));
+    const { next, res } = runMiddleware(makeReq({ headerToken: token }));
 
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(403);
-    expect(issuedToken).toBeDefined();
-    expect(issuedToken).not.toBe(token);
   });
 
-  it('issues a cookie and lets a read request through when the browser dropped the cookie', () => {
-    const { next, res, issuedToken } = runMiddleware(makeReq({ method: 'GET' }));
-
-    expect(next).toHaveBeenCalledOnce();
-    expect(res.status).not.toHaveBeenCalled();
-    expect(isHMACDoubleCSRFTokenValidForSession(SESSION_SECRET, issuedToken as string, SESSION_ID)).toBe(true);
-  });
-
-  it('leaves an existing cookie alone on a read request', () => {
-    const token = generateHMACDoubleCSRFToken(SESSION_SECRET, SESSION_ID);
-
-    const { next, issuedToken } = runMiddleware(makeReq({ method: 'GET', cookieToken: token }));
-
-    expect(next).toHaveBeenCalledOnce();
-    expect(issuedToken).toBeUndefined();
-  });
-
-  it('does not validate a read request against the header', () => {
+  // Issuing on every request would give concurrent requests different tokens; only the token endpoint issues them
+  it.each(['GET', 'HEAD', 'OPTIONS'])('lets a %s request through without touching the cookie', (method) => {
     const token = generateHMACDoubleCSRFToken(SESSION_SECRET, SESSION_ID);
     const otherToken = generateHMACDoubleCSRFToken(SESSION_SECRET, SESSION_ID);
 
-    const { next, res } = runMiddleware(makeReq({ method: 'GET', cookieToken: token, headerToken: otherToken }));
+    const withoutCookie = runMiddleware(makeReq({ method }));
+    const withMismatchedHeader = runMiddleware(makeReq({ method, cookieToken: token, headerToken: otherToken }));
 
-    expect(next).toHaveBeenCalledOnce();
-    expect(res.status).not.toHaveBeenCalled();
+    for (const { next, res, issuedToken } of [withoutCookie, withMismatchedHeader]) {
+      expect(next).toHaveBeenCalledOnce();
+      expect(res.status).not.toHaveBeenCalled();
+      expect(issuedToken).toBeUndefined();
+    }
   });
 
   // The browser held on to (or restored) a cookie from an earlier login, and sends it in both places
-  it('replaces a cookie issued for another session and rejects the request so the client can resend it', () => {
+  it('rejects a token issued for another session', () => {
     const staleToken = generateHMACDoubleCSRFToken(SESSION_SECRET, 'previous-session-id');
 
     const { next, res, issuedToken } = runMiddleware(makeReq({ cookieToken: staleToken, headerToken: staleToken }));
 
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith({ error: true, message: 'Invalid CSRF token', errorType: CSRF_TOKEN_INVALID_ERROR_TYPE });
-    expect(isHMACDoubleCSRFTokenValidForSession(SESSION_SECRET, issuedToken as string, SESSION_ID)).toBe(true);
-  });
-
-  it('replaces a cookie signed with a previous secret', () => {
-    const tokenFromOldSecret = generateHMACDoubleCSRFToken('previous-secret', SESSION_ID);
-
-    const { res, issuedToken } = runMiddleware(makeReq({ cookieToken: tokenFromOldSecret, headerToken: tokenFromOldSecret }));
-
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(isHMACDoubleCSRFTokenValidForSession(SESSION_SECRET, issuedToken as string, SESSION_ID)).toBe(true);
-  });
-
-  // Replacing a valid cookie would fail every other request already in flight with the current value
-  it('keeps a valid cookie when the request is missing the header', () => {
-    const token = generateHMACDoubleCSRFToken(SESSION_SECRET, SESSION_ID);
-
-    const { next, res, issuedToken } = runMiddleware(makeReq({ cookieToken: token }));
-
-    expect(next).not.toHaveBeenCalled();
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ errorType: CSRF_TOKEN_INVALID_ERROR_TYPE }));
     expect(issuedToken).toBeUndefined();
   });
 
-  it('keeps a valid cookie when the header does not match it', () => {
+  it('rejects a token signed with a previous secret', () => {
+    const tokenFromOldSecret = generateHMACDoubleCSRFToken('previous-secret', SESSION_ID);
+
+    const { res } = runMiddleware(makeReq({ cookieToken: tokenFromOldSecret, headerToken: tokenFromOldSecret }));
+
+    expect(res.status).toHaveBeenCalledWith(403);
+  });
+
+  it('rejects a header that does not match the cookie', () => {
     const token = generateHMACDoubleCSRFToken(SESSION_SECRET, SESSION_ID);
     const otherToken = generateHMACDoubleCSRFToken(SESSION_SECRET, SESSION_ID);
 
-    const { next, issuedToken } = runMiddleware(makeReq({ cookieToken: token, headerToken: otherToken }));
+    const { next, res } = runMiddleware(makeReq({ cookieToken: token, headerToken: otherToken }));
 
     expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(403);
+  });
+
+  it('accepts the token from the body of a plain form post', () => {
+    const token = generateHMACDoubleCSRFToken(SESSION_SECRET, SESSION_ID);
+    const req = makeReq({ cookieToken: token });
+    req.body = { [HTTP.BODY.CSRF_TOKEN]: token };
+
+    const { next } = runMiddleware(req);
+
+    expect(next).toHaveBeenCalledOnce();
+  });
+});
+
+describe('getOrIssueDoubleCSRFToken', () => {
+  function getToken(cookieToken?: string) {
+    const res = makeRes();
+    const token = getOrIssueDoubleCSRFToken(makeReq({ method: 'GET', cookieToken }), res as unknown as express.Response);
+    const issuedToken: string | undefined = res.cookie.mock.calls.find(([name]) => name === CSRF_COOKIE_NAME)?.[1];
+    return { token, issuedToken, res };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // Every tab and every concurrent request has to end up with the same value as the cookie
+  it('returns the existing cookie without replacing it when it was issued for the session', () => {
+    const cookieToken = generateHMACDoubleCSRFToken(SESSION_SECRET, SESSION_ID);
+
+    const { token, issuedToken } = getToken(cookieToken);
+
+    expect(token).toBe(cookieToken);
     expect(issuedToken).toBeUndefined();
+  });
+
+  it('issues an HttpOnly cookie when the browser has none', () => {
+    const { token, issuedToken, res } = getToken();
+
+    expect(issuedToken).toBe(token);
+    expect(isHMACDoubleCSRFTokenValidForSession(SESSION_SECRET, token, SESSION_ID)).toBe(true);
+    expect(res.cookie).toHaveBeenCalledWith(CSRF_COOKIE_NAME, token, expect.objectContaining({ httpOnly: true }));
+  });
+
+  it.each([
+    ['another session', generateHMACDoubleCSRFToken(SESSION_SECRET, 'previous-session-id')],
+    ['a previous secret', generateHMACDoubleCSRFToken('previous-secret', SESSION_ID)],
+    ['a malformed value', 'not-a-token'],
+  ])('replaces a cookie issued for %s', (_, staleToken) => {
+    const { token, issuedToken } = getToken(staleToken);
+
+    expect(token).not.toBe(staleToken);
+    expect(issuedToken).toBe(token);
+    expect(isHMACDoubleCSRFTokenValidForSession(SESSION_SECRET, token, SESSION_ID)).toBe(true);
   });
 });

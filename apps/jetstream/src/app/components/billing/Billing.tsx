@@ -1,8 +1,8 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, HTTP, TITLES } from '@jetstream/shared/constants';
-import { getCsrfTokenFromCookie, getSubscriptions, getTeam, initCheckoutSession } from '@jetstream/shared/data';
+import { getSubscriptions, getTeam, initCheckoutSession } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { tracker, useTitle } from '@jetstream/shared/ui-utils';
+import { tracker, useSessionCsrfToken, useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getMinimumSeats } from '@jetstream/shared/utils';
 import {
   JetstreamPricesByLookupKey,
@@ -79,7 +79,7 @@ export const Billing = () => {
     hasUnPaidSubscriptions: false,
   });
   const [searchParams] = useSearchParams();
-  const [csrfToken] = useState(() => getCsrfTokenFromCookie());
+  const csrfToken = useSessionCsrfToken();
 
   const teamId = userProfile.teamMembership?.team.id;
   // Reading the team is restricted to these roles, so a plain member would only ever get a 403
