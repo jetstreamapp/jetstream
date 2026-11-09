@@ -73,7 +73,7 @@ jobs:
           ref: ${{ steps.ref.outputs.checkout-ref || github.ref }}
           persist-credentials: false
 
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: 12.4.2
 
@@ -85,7 +85,7 @@ jobs:
       # The TrustedSigning PowerShell module that electron-builder installs at
       # sign time runs on .NET 8. Without it, signing fails with SignTool exit 3.
       - name: Setup .NET 8 runtime
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           dotnet-version: "8.0.x"
 
