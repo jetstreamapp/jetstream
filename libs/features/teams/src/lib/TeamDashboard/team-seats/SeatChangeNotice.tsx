@@ -3,6 +3,9 @@ import { ScopedNotification } from '@jetstream/ui';
 import { SeatGate, SeatGateEvaluation } from './seat-gate';
 import { SeatsUnavailableNotice } from './SeatsUnavailableNotice';
 
+/** A submit button blocked by the seat gate points its `aria-describedby` here, so focusing it says why */
+export const SEAT_CHANGE_NOTICE_ID = 'seat-change-notice';
+
 export const SEATS_PAST_DUE_MESSAGE =
   'Your account is past due. New users cannot be added to a seat until billing is resolved. Resolve the past-due invoice on the billing page, then try again. Billing-only users do not need a seat.';
 
@@ -19,9 +22,18 @@ export interface SeatChangeNoticeProps {
 
 /**
  * The seat explanation shown above the invite, status and role forms: why the change is blocked,
- * or what it will cost in seats when it is not.
+ * or what it will cost in seats when it is not. The wrapper stays mounted (and keeps its id) while the
+ * explanation inside it changes with the selected role.
  */
-export function SeatChangeNotice({
+export function SeatChangeNotice(props: SeatChangeNoticeProps) {
+  return (
+    <div id={SEAT_CHANGE_NOTICE_ID}>
+      <SeatChangeNoticeContent {...props} />
+    </div>
+  );
+}
+
+function SeatChangeNoticeContent({
   seatGate: { seats, hasManualBilling, canManageSeats, onBuySeats },
   evaluation: { availableSeats, blockedReason },
   requiresSeat,

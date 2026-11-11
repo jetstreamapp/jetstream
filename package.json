@@ -255,6 +255,7 @@
     "@casl/ability": "^7.1.1",
     "@casl/react": "^7.1.0",
     "@contentful/rich-text-types": "17.2.7",
+    "@dnd-kit/dom": "0.5.3",
     "@dnd-kit/react": "0.5.3",
     "@emotion/cache": "11.14.0",
     "@emotion/react": "11.14.0",

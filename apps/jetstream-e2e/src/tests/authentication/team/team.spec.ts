@@ -35,7 +35,7 @@ async function enrollInTotp(page: Page) {
   const code = generateTOTP(decodeBase32IgnorePadding(secret), 30, 6);
   await page.getByTestId('settings-page').getByRole('textbox').fill(code);
   await page.getByRole('button', { name: 'Save' }).click();
-  await expect(page.getByRole('heading', { name: 'Authenticator App Active' }).locator('span')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Authenticator App Active' }).getByText('Active', { exact: true })).toBeVisible();
 
   return secret;
 }

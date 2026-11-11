@@ -45,6 +45,9 @@ importers:
       '@contentful/rich-text-types':
         specifier: 17.2.7
         version: 17.2.7
+      '@dnd-kit/dom':
+        specifier: 0.5.3
+        version: 0.5.3
       '@dnd-kit/react':
         specifier: 0.5.3
         version: 0.5.3(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
