@@ -274,7 +274,7 @@ export class AuthenticationPage {
     const code = generateTOTP(decodeBase32IgnorePadding(secret), 30, 6);
     await this.page.getByTestId('settings-page').getByRole('textbox').fill(code);
     await this.page.getByRole('button', { name: 'Save' }).click();
-    await expect(this.page.getByRole('heading', { name: 'Authenticator App Active' }).locator('span')).toBeVisible();
+    await expect(this.page.getByRole('heading', { name: 'Authenticator App Active' }).getByText('Active', { exact: true })).toBeVisible();
 
     return secret;
   }
