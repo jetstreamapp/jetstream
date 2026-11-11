@@ -47,7 +47,6 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
       'https://*.googleapis.com',
       'https://*.gstatic.com',
       'https://*.betterstackdata.com',
-      'https://api.amplitude.com',
       'https://api.stripe.com',
       'https://challenges.cloudflare.com',
       'https://checkout.stripe.com',

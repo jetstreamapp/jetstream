@@ -192,7 +192,6 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "5.0.6",
-    "@types/express-http-proxy": "^1.6.7",
     "@types/express-session": "^1.19.0",
     "@types/file-saver": "^2.0.7",
     "@types/fs-extra": "^11.0.4",
@@ -250,7 +249,6 @@
     "zx": "^8.8.5"
   },
   "dependencies": {
-    "@amplitude/analytics-browser": "2.9.2",
     "@aws-sdk/client-s3": "^3.1164.0",
     "@casl/ability": "^7.1.1",
     "@casl/react": "^7.1.0",
@@ -308,7 +306,6 @@
     "electron-app-universal-protocol-client": "^2.1.1",
     "electron-log": "^5.4.4",
     "express": "^5.3.0",
-    "express-http-proxy": "^2.1.2",
     "express-rate-limit": "^8.7.3",
     "express-session": "^1.19.0",
     "fast-jwt": "^6.3.6",
