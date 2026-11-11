@@ -20,9 +20,6 @@ ignoreWorkspaceRootCheck: true
 minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
   - "@jetstreamapp/*"
-  # Remove these after 3 days
-  # Node 24.22.1 security release (CVE-2026-105481 et al.) + Chromium backports
-  - electron@43.8.6
 
 # Allow scripts from these specific libraries
 allowBuilds:
