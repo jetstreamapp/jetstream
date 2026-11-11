@@ -119,6 +119,19 @@ function isPlainObject(value: object): boolean {
   return proto === Object.prototype || proto === null;
 }
 
+// Custom Salesforce api names (`Foo__c`, `ns__Foo__r`, `ns__Foo__mdt`, ...). The namespace and object/field name identify the
+// customer or their installed packages, so everything before the type suffix is masked and the suffix is kept for triage.
+const CUSTOM_SALESFORCE_NAME_REGEX =
+  /\b[A-Za-z][A-Za-z0-9_]*__(c|r|mdt|e|x|b|s|pc|pr|share|history|feed|kav|tag|changeevent)(?![A-Za-z0-9])/gi;
+
+/**
+ * Replace custom Salesforce object/field api names with `[custom]__<suffix>` (e.g. `acme__Quote_Line__c` -> `[custom]__c`).
+ * Standard names (`Account`, `Industry`) are left alone since they identify nothing about the customer.
+ */
+export function maskCustomSalesforceNames(text: string): string {
+  return text.replace(CUSTOM_SALESFORCE_NAME_REGEX, '[custom]__$1');
+}
+
 function truncateString(value: string, maxLength: number): string {
   if (value.length <= maxLength) {
     return value;
@@ -128,7 +141,7 @@ function truncateString(value: string, maxLength: number): string {
 
 function redactDeep(value: unknown, options: Required<RedactTelemetryOptions>, depth: number, seen: WeakSet<object>): unknown {
   if (typeof value === 'string') {
-    return truncateString(value, options.maxStringLength);
+    return truncateString(maskCustomSalesforceNames(value), options.maxStringLength);
   }
   if (value === null || typeof value !== 'object') {
     return value;

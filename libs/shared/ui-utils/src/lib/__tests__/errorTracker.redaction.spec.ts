@@ -76,3 +76,25 @@ describe('scrubErrorTrackerEvent', () => {
     expect(scrubErrorTrackerEvent(event)).toEqual({ message: 'hello' });
   });
 });
+
+describe('custom Salesforce name masking', () => {
+  it('masks custom names in breadcrumb messages, event messages and exception values but not stack frames', () => {
+    const crumb: Breadcrumb = { category: 'ui.input', message: 'textarea#acme__Territory__c-criteria' };
+    expect(scrubErrorTrackerBreadcrumb(crumb).message).toBe('textarea#[custom]__c-criteria');
+
+    const event: SentryEvent = {
+      message: 'Failed for Foo__c',
+      exception: {
+        values: [
+          { type: 'Error', value: "No such column 'acme__Bar__c' on entity 'Foo__c'", stacktrace: { frames: [{ function: 'helper__c' }] } },
+        ],
+      },
+    };
+    const scrubbed = scrubErrorTrackerEvent(event);
+    expect(scrubbed.message).toBe('Failed for [custom]__c');
+    expect(scrubbed.exception?.values?.[0].value).toBe("No such column '[custom]__c' on entity '[custom]__c'");
+    expect(scrubbed.exception?.values?.[0].stacktrace?.frames?.[0].function).toBe('helper__c');
+    // original is untouched
+    expect(event.message).toBe('Failed for Foo__c');
+  });
+});
