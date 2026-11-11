@@ -30,7 +30,7 @@ export interface QueryHistoryItemCardProps {
   onSave: (item: QueryHistoryItem, value: boolean) => void;
   onQueryUpdated?: () => void;
   startRestore: () => void;
-  endRestore: (isTooling: boolean, fatalError: boolean, errors?: QueryRestoreErrors) => void;
+  endRestore: (fatalError: boolean, isTooling: boolean, errors?: QueryRestoreErrors) => void;
 }
 
 export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> = ({

@@ -275,7 +275,7 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ selectedO
                   setRefreshCounter((prev) => prev + 1);
                 }}
                 startRestore={handleStartRestore}
-                endRestore={(isTooling, fatalError, errors) => handleEndRestore(item, fatalError, errors)}
+                endRestore={(fatalError, _isTooling, errors) => handleEndRestore(item, fatalError, errors)}
               />
             ))}
             {queryHistory.length === 0 && (

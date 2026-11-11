@@ -26,7 +26,7 @@ export const useQueryRestore = (
     // called when restore is started
     startRestore?: () => void;
     // called when restore is finished
-    endRestore?: (isTooling: boolean, fatalError: boolean, errors?: QueryRestoreErrors) => void;
+    endRestore?: (fatalError: boolean, isTooling: boolean, errors?: QueryRestoreErrors) => void;
   },
 ): UseQueryRestoreReturnType => {
   soql = soql || '';
