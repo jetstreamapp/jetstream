@@ -227,6 +227,9 @@ export const httpLogger: HttpLogger<express.Request, express.Response> = pinoHtt
               'content-length': rawHeaders['content-length'],
             }
           : undefined,
+        // Set by the API error handler when Salesforce rejected the request (omitted from the log line otherwise)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        sfdcErrorCode: (res.raw as any)?.locals?.sfdcErrorCode as string | undefined,
       };
     }),
   },

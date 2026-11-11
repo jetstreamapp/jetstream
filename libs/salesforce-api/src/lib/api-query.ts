@@ -1,6 +1,7 @@
 import { flattenQueryColumn, getErrorMessage, isQueryLocatorUrl } from '@jetstream/shared/utils';
 import { CompositeResponse, Maybe, QueryColumnsSfdc, QueryResult, QueryResults, QueryResultsColumns } from '@jetstream/types';
 import { Query, parseQuery } from '@jetstreamapp/soql-parser-js';
+import { ApiRequestError } from './callout-adapter';
 import { ApiConnection } from './connection';
 import { SalesforceApi } from './utils';
 
@@ -88,7 +89,13 @@ export class ApiQuery extends SalesforceApi {
         { httpStatusCode: queryResultsResponse?.httpStatusCode, errorCode: errors?.[0]?.errorCode },
         'Composite query subrequest failed',
       );
-      throw new Error(errors?.[0]?.message || errors?.[0]?.errorCode || 'An unknown error has occurred');
+      // The composite call itself succeeded, so there is no Salesforce response to mirror - 400 keeps the status this
+      // failure has always been returned with, while the error code still reaches the client
+      throw new ApiRequestError(
+        errors?.[0]?.message || errors?.[0]?.errorCode || 'An unknown error has occurred',
+        new Response(null, { status: 400, statusText: 'Bad Request' }),
+        errors?.[0]?.errorCode,
+      );
     }
     const queryResults = queryResultsResponse.body as QueryResult<T>;
 
