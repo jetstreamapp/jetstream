@@ -172,7 +172,7 @@
     "@nx/vitest": "24.0.5",
     "@nx/web": "24.0.5",
     "@nx/workspace": "24.0.5",
-    "@playwright/test": "^1.63.0",
+    "@playwright/test": "^1.65.0",
     "@release-it/bumper": "^8.0.1",
     "@sentry/vite-plugin": "^5.4.0",
     "@swc-node/register": "1.12.1",
