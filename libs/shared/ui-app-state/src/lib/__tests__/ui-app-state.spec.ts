@@ -119,7 +119,7 @@ describe('userProfileState', () => {
 
 describe('useUserPreferenceState', () => {
   /**
-   * Preference readers (theme, header, notifications prompt, analytics) sit directly under the app's
+   * Preference readers (theme, header, notifications prompt) sit directly under the app's
    * top level Suspense boundary, so a write that re-suspends them swaps the whole page for the loading
    * fallback.
    */

@@ -10,7 +10,6 @@ test.describe('Desktop / Web-Extension Authentication', () => {
 
   test.beforeEach(async ({ page, authenticationPage }) => {
     await page.goto('/');
-    await authenticationPage.acceptCookieBanner();
   });
 
   test('Desktop Authentication - success', async ({ page, teamCreationUtils1User }) => {
@@ -153,7 +152,6 @@ test.describe('Desktop / Web-Extension Token Rotation', () => {
 
   test.beforeEach(async ({ page, authenticationPage }) => {
     await page.goto('/');
-    await authenticationPage.acceptCookieBanner();
   });
 
   // The desktop token is stored in plaintext on disk and cannot be machine-bound in VDI/roaming
@@ -365,7 +363,6 @@ test.describe('Desktop / Web-Extension Authentication - No Access', () => {
 
   test.beforeEach(async ({ page, authenticationPage }) => {
     await page.goto('/');
-    await authenticationPage.acceptCookieBanner();
   });
 
   test('Desktop Authentication - no subscription', async ({ page, newUser: _newUser }) => {

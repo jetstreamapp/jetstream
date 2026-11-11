@@ -14,7 +14,6 @@ test.use({ storageState: { cookies: [], origins: [] } });
 test.describe('Login 2', () => {
   test.beforeEach(async ({ page, authenticationPage }) => {
     await page.goto('/');
-    await authenticationPage.acceptCookieBanner();
   });
 
   test('Should SignUp, Log Out, Reset Password, and Login with new password', async ({ page, authenticationPage, playwrightPage }) => {

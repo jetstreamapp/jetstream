@@ -104,17 +104,6 @@ export class AuthenticationPage {
     this.acceptTermsButton = page.getByRole('button', { name: 'Accept and Continue' });
   }
 
-  async acceptCookieBanner(page = this.page) {
-    const cookieBannerAcceptButton = page.getByRole('button', { name: 'Accept' });
-
-    try {
-      await cookieBannerAcceptButton.waitFor({ state: 'visible', timeout: 5000 });
-      await cookieBannerAcceptButton.click();
-    } catch {
-      console.log('Cookie banner not visible, skipping click.');
-    }
-  }
-
   /** Accepts TOS on the /auth/accept-terms gate page and waits for redirect to /app */
   async acceptTosGatePage() {
     await this.acceptTermsCheckbox.check();

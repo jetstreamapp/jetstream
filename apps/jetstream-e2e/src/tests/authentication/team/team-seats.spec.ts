@@ -108,7 +108,6 @@ async function registerInvitee(browser: Browser, teamCreationUtils: TeamCreation
   const page = await context.newPage();
   const authenticationPage = new AuthenticationPage(page);
   await page.goto('/');
-  await authenticationPage.acceptCookieBanner();
   const user = await authenticationPage.signUpAndVerifyEmail();
   teamCreationUtils.users.push(user);
   teamCreationUtils.userEmails.push(user.email);
@@ -118,7 +117,6 @@ async function registerInvitee(browser: Browser, teamCreationUtils: TeamCreation
 test.describe('Team seats', () => {
   test.beforeEach(async ({ page, authenticationPage }) => {
     await page.goto('/');
-    await authenticationPage.acceptCookieBanner();
   });
 
   test('At the seat cap, billable invitations are blocked and Billing invitations are allowed', async ({

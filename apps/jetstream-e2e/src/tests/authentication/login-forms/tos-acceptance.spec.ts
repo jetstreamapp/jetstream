@@ -14,7 +14,6 @@ test.use({ storageState: { cookies: [], origins: [] } });
 test.describe('TOS Acceptance', () => {
   test.beforeEach(async ({ page, authenticationPage }) => {
     await page.goto('/');
-    await authenticationPage.acceptCookieBanner();
   });
 
   test('Sign up TOS checkbox is required and tosAcceptedVersion is stored on registration', async ({ page, authenticationPage }) => {

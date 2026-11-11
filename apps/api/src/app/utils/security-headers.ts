@@ -42,7 +42,6 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
     connectSrc: [
       "'self'",
       ENV.JETSTREAM_SERVER_URL,
-      'https://*.google-analytics.com',
       'https://*.google.com',
       'https://*.googleapis.com',
       'https://*.gstatic.com',
@@ -85,8 +84,6 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
       'https://*.documentforce.com',
       'https://*.force.com',
       'https://*.githubusercontent.com',
-      'https://*.google-analytics.com',
-      'https://*.googletagmanager.com',
       'https://*.googleusercontent.com',
       'https://*.gravatar.com',
       'https://*.gstatic.com',
@@ -106,8 +103,6 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
       nonceDirective,
       'https://*.google.com',
       'https://*.gstatic.com',
-      'https://*.google-analytics.com',
-      'https://*.googletagmanager.com',
       'https://challenges.cloudflare.com',
       'https://checkout.stripe.com',
       'https://connect-js.stripe.com',
@@ -160,8 +155,8 @@ const IMG_SOURCES_EXCLUDED_FROM_APP = [
 // Broad Google wildcards that the /app does NOT need — the SPA only ever calls specific Google hosts
 // directly, and the Google Drive Picker runs as a popup served by the desktop/web-extension picker
 // routes (it is never framed inline in /app), so /app needs only its own Sign-In / gapi / Drive /
-// OAuth / OIDC endpoints. `*.gstatic.com`, `*.google-analytics.com`, `*.googletagmanager.com` are
-// left untouched (Fonts / Maps static / analytics, not Drive-Picker related).
+// OAuth / OIDC endpoints. `*.gstatic.com` is left untouched (Fonts / Maps static, not Drive-Picker
+// related).
 const APP_GOOGLE_WILDCARDS = ['https://*.google.com', 'https://*.googleapis.com'];
 const APP_GOOGLE_FRAME_SRC = [
   'https://accounts.google.com',

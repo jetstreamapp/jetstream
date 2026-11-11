@@ -53,7 +53,6 @@ test.describe('Auth rate limit UI behavior', () => {
 
       await page.goto('/');
       const authPage = new AuthenticationPage(page);
-      await authPage.acceptCookieBanner();
       await authPage.goToLogin(false);
 
       await authPage.emailInput.fill(`user@${fixture.domain}`);
@@ -74,7 +73,6 @@ test.describe('Auth rate limit UI behavior', () => {
 
       // Sign up and stop before completing verification — lands on the verify page
       await page.goto('/');
-      await authPage.acceptCookieBanner();
       await authPage.signUpWithoutEmailVerification();
 
       // Intercept verify calls from the browser to use the isolated rate limit key

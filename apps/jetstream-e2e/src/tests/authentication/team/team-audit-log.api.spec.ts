@@ -48,7 +48,6 @@ test.describe('Team Audit Log', () => {
 
   test.beforeEach(async ({ page, authenticationPage }) => {
     await page.goto('/');
-    await authenticationPage.acceptCookieBanner();
   });
 
   /**
