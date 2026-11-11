@@ -1,4 +1,4 @@
-import { redactSensitiveTelemetryData, sanitizeUrlForTelemetry } from '@jetstream/shared/utils';
+import { maskCustomSalesforceNames, redactSensitiveTelemetryData, sanitizeUrlForTelemetry } from '@jetstream/shared/utils';
 import type { Breadcrumb, Event as SentryEvent } from '@sentry/react';
 
 const BREADCRUMB_URL_KEYS = ['url', 'from', 'to'] as const;
@@ -11,8 +11,9 @@ const MAX_BREADCRUMB_MESSAGE_LENGTH = 500;
  */
 export function scrubErrorTrackerBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb {
   const scrubbed: Breadcrumb = { ...breadcrumb };
-  if (typeof scrubbed.message === 'string' && scrubbed.message.length > MAX_BREADCRUMB_MESSAGE_LENGTH) {
-    scrubbed.message = `${scrubbed.message.slice(0, MAX_BREADCRUMB_MESSAGE_LENGTH)}…`;
+  if (typeof scrubbed.message === 'string') {
+    const message = maskCustomSalesforceNames(scrubbed.message);
+    scrubbed.message = message.length > MAX_BREADCRUMB_MESSAGE_LENGTH ? `${message.slice(0, MAX_BREADCRUMB_MESSAGE_LENGTH)}…` : message;
   }
   if (scrubbed.data) {
     const data: Record<string, unknown> = { ...scrubbed.data };
@@ -29,7 +30,8 @@ export function scrubErrorTrackerBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb 
 /**
  * Scrub an error event before it leaves the browser. Covers every place caller-supplied or
  * auto-collected data lands: request url/query/headers/cookies, the transaction name, extras,
- * contexts, tags and breadcrumbs. Exception messages and stack traces are left intact.
+ * contexts, tags and breadcrumbs. Custom Salesforce api names are masked in exception messages and event messages
+ * as well; stack traces are left intact (they hold our own code, not customer data).
  * Pure: returns a new event.
  */
 export function scrubErrorTrackerEvent<T extends SentryEvent>(event: T): T {
@@ -55,6 +57,19 @@ export function scrubErrorTrackerEvent<T extends SentryEvent>(event: T): T {
   }
   if (scrubbed.breadcrumbs) {
     scrubbed.breadcrumbs = scrubbed.breadcrumbs.map(scrubErrorTrackerBreadcrumb);
+  }
+  if (typeof scrubbed.message === 'string') {
+    scrubbed.message = maskCustomSalesforceNames(scrubbed.message);
+  }
+  if (scrubbed.exception?.values) {
+    scrubbed.exception = {
+      ...scrubbed.exception,
+      values: scrubbed.exception.values.map((exceptionValue) =>
+        typeof exceptionValue.value === 'string'
+          ? { ...exceptionValue, value: maskCustomSalesforceNames(exceptionValue.value) }
+          : exceptionValue,
+      ),
+    };
   }
   return scrubbed;
 }

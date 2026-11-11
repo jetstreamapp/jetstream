@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { isSensitiveTelemetryKey, redactSensitiveTelemetryData, sanitizeUrlForTelemetry } from '../telemetry-redaction';
+import {
+  isSensitiveTelemetryKey,
+  maskCustomSalesforceNames,
+  redactSensitiveTelemetryData,
+  sanitizeUrlForTelemetry,
+} from '../telemetry-redaction';
 
 describe('sanitizeUrlForTelemetry', () => {
   it('drops the query string and fragment', () => {
@@ -107,5 +112,29 @@ describe('redactSensitiveTelemetryData', () => {
     expect(redactSensitiveTelemetryData(null)).toBe(null);
     expect(redactSensitiveTelemetryData({ date }).date).toBe(date);
     expect(redactSensitiveTelemetryData(circular)).toEqual({ name: 'c', self: '[Circular]' });
+  });
+});
+
+describe('maskCustomSalesforceNames', () => {
+  it('masks plain and namespaced custom names but keeps the type suffix', () => {
+    expect(maskCustomSalesforceNames('No such column Foo__c on entity Bar__mdt')).toBe(
+      'No such column [custom]__c on entity [custom]__mdt',
+    );
+    expect(maskCustomSalesforceNames('SBQQ__Quote_Line__c.acme__Owner__r.Name')).toBe('[custom]__c.[custom]__r.Name');
+    expect(maskCustomSalesforceNames('textarea#S2N_Health__Territory_Assignment__c-criteria')).toBe('textarea#[custom]__c-criteria');
+    expect(maskCustomSalesforceNames("sObject type 'Lead__History' is not supported")).toBe(
+      "sObject type '[custom]__History' is not supported",
+    );
+  });
+
+  it('leaves standard names, other dunders and already masked text alone', () => {
+    const unchanged = ['Account.Industry', 'sObject type ValidationRule is not supported', 'obj.__proto__', 'a__bc', '[custom]__c'];
+    unchanged.forEach((text) => expect(maskCustomSalesforceNames(text)).toBe(text));
+  });
+
+  it('is applied to strings inside redacted telemetry data', () => {
+    expect(redactSensitiveTelemetryData({ item: { error: 'bad Foo__c', type: 'ValidationRule' } })).toEqual({
+      item: { error: 'bad [custom]__c', type: 'ValidationRule' },
+    });
   });
 });
