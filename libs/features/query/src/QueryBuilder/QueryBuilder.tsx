@@ -2,7 +2,6 @@
 import { css } from '@emotion/react';
 import { IconObj } from '@jetstream/icon-factory';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { describeSObject } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
@@ -31,14 +30,7 @@ import {
   PageHeaderTitle,
   Tabs,
 } from '@jetstream/ui';
-import {
-  fromJetstreamEvents,
-  fromQueryHistoryState,
-  fromQueryState,
-  QueryHistory,
-  QueryHistoryRef,
-  useAnalytics,
-} from '@jetstream/ui-core';
+import { fromJetstreamEvents, fromQueryHistoryState, fromQueryState, QueryHistory, QueryHistoryRef } from '@jetstream/ui-core';
 import { applicationCookieState, selectedOrgState, soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
 import { formatQuery } from '@jetstreamapp/soql-parser-js';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
@@ -104,7 +96,6 @@ const ConnectedQueryLimit: FunctionComponent = () => {
 };
 
 export const QueryBuilder = () => {
-  const { trackEvent } = useAnalytics();
   const navigate = useNavigate();
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const queryHistoryRef = useRef<QueryHistoryRef>(null);
@@ -173,12 +164,6 @@ export const QueryBuilder = () => {
   }, [isTooling, navigate, selectedSObject, soql]);
 
   usePrimaryActionShortcut(handleExecuteQuery, { disabled: !selectedSObject || !soql });
-
-  useNonInitialEffect(() => {
-    if (showWalkthrough) {
-      trackEvent(ANALYTICS_KEYS.query_HelpClicked, { isTooling });
-    }
-  }, [isTooling, showWalkthrough, trackEvent]);
 
   function handleSubquerySelectedField(relationshipPath: string, fields: QueryFieldWithPolymorphic[]) {
     const tempSelectedSubqueryFieldsState = { ...selectedSubqueryFieldsState, [relationshipPath]: fields };

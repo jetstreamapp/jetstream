@@ -59,9 +59,6 @@
       "path": "../../shared/data/tsconfig.lib.json"
     },
     {
-      "path": "../../shared/constants/tsconfig.lib.json"
-    },
-    {
       "path": "../../shared/client-logger/tsconfig.lib.json"
     },
     {

@@ -1,4 +1,3 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber, useGoBackShortcut, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { groupByFlat, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { ListItem } from '@jetstream/types';
@@ -16,7 +15,7 @@ import {
   Tooltip,
   getModifierKey,
 } from '@jetstream/ui';
-import { RequireMetadataApiBanner, useAnalytics } from '@jetstream/ui-core';
+import { RequireMetadataApiBanner } from '@jetstream/ui-core';
 import { selectedOrgState, useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
@@ -72,7 +71,6 @@ export interface CreateFieldsProps {}
 
 export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
   const navigate = useNavigate();
-  const { trackEvent } = useAnalytics();
   const selectedOrg = useAtomValue(selectedOrgState);
   const deployAccess = useOperationAccess('metadata.deploy');
 
@@ -112,7 +110,6 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
 
   function handleReset() {
     resetRows();
-    trackEvent(ANALYTICS_KEYS.sobj_create_field_reset_rows, { numFields: rows.length });
   }
 
   const handleStartOver = useCallback(async () => {
@@ -141,12 +138,6 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
 
   function handleSubmit() {
     setDeployModalOpen(true);
-    trackEvent(ANALYTICS_KEYS.sobj_create_field_submit_modal_opened, {
-      numFields: rows.length,
-      selectedProfiles: selectedProfiles.length,
-      selectedPermissionSets: selectedPermissionSets.length,
-      selectedSObjects: selectedSObjects.length,
-    });
   }
 
   function handleCloseModal() {

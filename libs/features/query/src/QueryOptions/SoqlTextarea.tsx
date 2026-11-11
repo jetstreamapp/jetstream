@@ -53,11 +53,7 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = memo(
           label={
             <>
               Generated SOQL
-              <SoqlQueryFormatConfigPopover
-                location="SoqlTextarea"
-                value={soqlQueryFormatOptions}
-                onChange={onSaveSoqlQueryFormatOptions}
-              />
+              <SoqlQueryFormatConfigPopover value={soqlQueryFormatOptions} onChange={onSaveSoqlQueryFormatOptions} />
             </>
           }
         >

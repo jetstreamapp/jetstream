@@ -1,10 +1,9 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { AutomationControlHistorySource, AutomationControlRestoreAction, SalesforceOrgUi } from '@jetstream/types';
 import type { Column } from '@jetstream/ui';
 import { AutoFullHeightContainer, DataTable, Grid, Icon, Modal, ScopedNotification, Spinner, getWrappedTextRowHeight } from '@jetstream/ui';
-import { ConfirmPageChange, useAnalytics } from '@jetstream/ui-core';
+import { ConfirmPageChange } from '@jetstream/ui-core';
 import { useOperationAccess } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -127,13 +126,11 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   historyRestore,
   onClose,
 }) => {
-  const { trackEvent } = useAnalytics();
   /** History entry of this modal's deploy, referenced by the rollback entry if Rollback is clicked */
   const deployHistorySource = useRef<AutomationControlHistorySource | null>(null);
   const { preparingVariant, packageDownload, packageError, preparePackage, closePackageDownload } = useAutomationPackageDownload(
     selectedOrg,
     defaultApiVersion,
-    'review',
   );
   const deployAccess = useOperationAccess('metadata.deploy');
   const [currentStep, setCurrentStep] = useState<number>(0);
@@ -280,7 +277,6 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   }
 
   function handleDeployMetadata(currDeploymentItemMap: DeploymentItemMap, isRollback?: boolean) {
-    trackEvent(ANALYTICS_KEYS.automation_deploy, { type: isRollback ? 'rollback' : 'deploy', items: deploymentItems.length });
     const deployResultsByKey: Record<string, AutomationControlDeploymentItem> = {};
     const saveHistory = startHistoryRecording(currDeploymentItemMap, !!isRollback);
     // the entry must be committed before anything changes in Salesforce so an interrupted deploy is still recorded
@@ -458,12 +454,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
         </div>
       </Modal>
       {packageDownload && (
-        <AutomationPackageDownloadModal
-          selectedOrg={selectedOrg}
-          packageDownload={packageDownload}
-          source="automation_control_review"
-          onClose={closePackageDownload}
-        />
+        <AutomationPackageDownloadModal selectedOrg={selectedOrg} packageDownload={packageDownload} onClose={closePackageDownload} />
       )}
     </Fragment>
   );

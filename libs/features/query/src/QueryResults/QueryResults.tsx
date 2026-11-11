@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
+import { TITLES } from '@jetstream/shared/constants';
 import { query, sobjectOperation } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
@@ -63,7 +63,6 @@ import {
   fromQueryHistoryState,
   fromQueryState,
   isAsyncJob,
-  useAnalytics,
   useQueryRestore,
 } from '@jetstream/ui-core';
 import { getFlattenSubqueryFlattenedFieldMap } from '@jetstream/ui-core/shared';
@@ -101,7 +100,6 @@ const SOURCE_RELOAD: SourceAction = 'RELOAD';
 export const QueryResults = React.memo(() => {
   const isMounted = useRef(true);
   const navigate = useNavigate();
-  const { trackEvent } = useAnalytics();
   const queryHistoryRef = useRef<QueryHistoryRef>(null);
   const previousSoql = useAtomValue(fromQueryState.querySoqlState);
   const includeDeletedRecords = useAtomValue(fromQueryState.queryIncludeDeletedRecordsState);
@@ -265,12 +263,6 @@ export const QueryResults = React.memo(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bulkDeleteJob]);
 
-  useNonInitialEffect(() => {
-    if (soqlPanelOpen) {
-      trackEvent(ANALYTICS_KEYS.query_ManualSoqlOpened, { isTooling });
-    }
-  }, [isTooling, soqlPanelOpen, trackEvent]);
-
   // Ensure that the query is updated in the browser history any time it changes
   useNonInitialEffect(() => {
     if (soql) {
@@ -388,7 +380,6 @@ export const QueryResults = React.memo(() => {
       if (forceRestore || previousSoql !== soqlQuery) {
         restore(soqlQuery, tooling);
       }
-      trackEvent(ANALYTICS_KEYS.query_ExecuteQuery, { source, success: true, isTooling: tooling, includeDeletedRecords });
 
       const sobjectName = results.parsedQuery?.sObject || results.columns?.entityName;
       if (sobjectName) {
@@ -403,7 +394,6 @@ export const QueryResults = React.memo(() => {
       logger.warn('ERROR', ex);
       setErrorMessage(getErrorMessage(ex));
       setSoqlPanelOpen(true);
-      trackEvent(ANALYTICS_KEYS.query_ExecuteQuery, { source, success: false, isTooling: tooling, includeDeletedRecords });
       notifyUser(`Your query failed`, {
         body: getErrorMessage(ex),
         tag: 'query',
@@ -437,7 +427,6 @@ export const QueryResults = React.memo(() => {
    */
   function handleLoadMore(results: IQueryResults<any>) {
     if (isMounted.current) {
-      const existingRecordCount = records?.length || 0;
       const sobjectName = results.parsedQuery?.sObject || results.columns?.entityName;
       const allRecords = results.queryResults.records;
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
@@ -445,12 +434,6 @@ export const QueryResults = React.memo(() => {
       setRecordCount(getTotalRecordCount(results.queryResults, allRecords));
       setTotalRecordCount(getTotalRecordCount(results.queryResults, allRecords));
       setRecords(allRecords);
-      trackEvent(ANALYTICS_KEYS.query_LoadMore, {
-        existingRecordCount,
-        nextSetCount: allRecords.length - existingRecordCount,
-        totalSize: results.queryResults.totalSize,
-        isTooling,
-      });
     }
   }
 
@@ -458,7 +441,7 @@ export const QueryResults = React.memo(() => {
     return !loading && !errorMessage && !!records?.length;
   }
 
-  function handleCloneEditView(record: any, action: CloneEditView, source: 'ROW_ACTION' | 'RELATED_RECORD_POPOVER') {
+  function handleCloneEditView(record: any, action: CloneEditView) {
     const recordId = record.Id || getRecordIdFromAttributes(record);
     const sobjectName = getSObjectNameFromAttributes(record);
     switch (action) {
@@ -475,7 +458,6 @@ export const QueryResults = React.memo(() => {
         appActionObservable.next({ action: 'VIEW_RECORD', payload: { recordId } });
         break;
     }
-    trackEvent(ANALYTICS_KEYS.query_RecordAction, { action, source });
   }
 
   /**
@@ -501,8 +483,6 @@ export const QueryResults = React.memo(() => {
     } else {
       results = (await Promise.all(batches.map(updateBatch))).flat();
     }
-
-    trackEvent(ANALYTICS_KEYS.query_UpdateRecordsInline, { recordCount: modifiedRecords.length, batchSize, serialMode });
     return results;
   }
 
@@ -563,7 +543,6 @@ export const QueryResults = React.memo(() => {
           },
         ];
         fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
-        trackEvent(ANALYTICS_KEYS.query_BulkDelete, { numRecords: selectedRows.length, source: 'ROW_ACTION' });
       })
       .catch((ex) => {
         logger.info(ex);
@@ -597,7 +576,6 @@ export const QueryResults = React.memo(() => {
           },
         ];
         fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
-        trackEvent(ANALYTICS_KEYS.query_BulkUndelete, { numRecords: selectedRows.length, source: 'ROW_ACTION' });
       })
       .catch((ex) => {
         logger.info(ex);
@@ -623,7 +601,6 @@ export const QueryResults = React.memo(() => {
   function handleCreateNewRecord() {
     if (queryResults?.parsedQuery?.sObject) {
       appActionObservable.next({ action: 'CREATE_RECORD', payload: { objectName: queryResults.parsedQuery.sObject } });
-      trackEvent(ANALYTICS_KEYS.query_RecordAction, { action: 'create', source: 'QUERY_RESULTS_CREATE_RECORD' });
     }
   }
 
@@ -772,7 +749,6 @@ export const QueryResults = React.memo(() => {
             records={records || []}
             filteredRows={filteredRows}
             selectedRows={selectedRows}
-            isTooling={isTooling}
           />
           <QueryResultsDownloadButton
             selectedOrg={selectedOrg}
@@ -881,7 +857,6 @@ export const QueryResults = React.memo(() => {
           {!!(records && !!records.length) && (
             <SalesforceRecordDataTable
               org={selectedOrg}
-              trackEvent={trackEvent}
               hasGoogleDriveAccess={hasGoogleDriveAccess}
               googleShowUpgradeToPro={googleShowUpgradeToPro}
               defaultApiVersion={defaultApiVersion}
@@ -904,18 +879,15 @@ export const QueryResults = React.memo(() => {
               onSubqueryFieldReorder={handleSubqueryFieldsChanged}
               onFilteredRowsChanged={setFilteredRows}
               onLoadMoreRecords={handleLoadMore}
-              onSavedRecords={(data) => {
-                trackEvent(ANALYTICS_KEYS.query_InlineEditSave, data);
-              }}
               onRecordsSaveCapture={handleRecordsSaveCapture}
-              onEdit={(record, source) => {
-                handleCloneEditView(record, 'edit', source);
+              onEdit={(record) => {
+                handleCloneEditView(record, 'edit');
               }}
-              onClone={(record, source) => {
-                handleCloneEditView(record, 'clone', source);
+              onClone={(record) => {
+                handleCloneEditView(record, 'clone');
               }}
-              onView={(record, source) => {
-                handleCloneEditView(record, 'view', source);
+              onView={(record) => {
+                handleCloneEditView(record, 'view');
               }}
               onUpdateRecords={handleUpdateRecords}
               onDelete={(record) => {

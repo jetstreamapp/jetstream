@@ -1,5 +1,4 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { Field, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
@@ -8,7 +7,6 @@ import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/ap
 import { useAtomValue } from 'jotai';
 import isNumber from 'lodash/isNumber';
 import { Fragment, FunctionComponent, ReactNode, useState } from 'react';
-import { useAnalytics } from '../analytics';
 import { fromJetstreamEvents } from '../jetstream-events';
 import MassUpdateRecordTransformationText from './MassUpdateRecordTransformationText';
 import MassUpdateRecordsObjectRowCriteria from './MassUpdateRecordsObjectRowCriteria';
@@ -64,7 +62,6 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
   onRemoveField,
   children,
 }) => {
-  const { trackEvent } = useAnalytics();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
 
@@ -91,7 +88,6 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
         header: fieldsToQuery,
         fileNameParts: ['mass-update', sobject.toLowerCase(), 'validation-records'],
       });
-      trackEvent(ANALYTICS_KEYS.mass_update_DownloadRecords, { type: 'validation', numRows: records.length });
     } catch (ex) {
       logger.error('[DOWNLOAD VALIDATION RECORDS]', ex);
       fireToast({ type: 'error', message: `Failed to download records. ${getErrorMessage(ex)}` });
@@ -218,8 +214,6 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
           fileNameParts={downloadModalData.fileNameParts}
           onModalClose={handleDownloadModalClose}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="mass_update_validation"
-          trackEvent={trackEvent}
         />
       )}
     </div>

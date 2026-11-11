@@ -1,4 +1,3 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import {
   ChangeSet,
   DeployMetadataTableRow,
@@ -9,7 +8,7 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
-import { fromDeployMetadataState, fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
+import { fromDeployMetadataState, fromJetstreamEvents } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, useOperationAccess } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtom, useAtomValue } from 'jotai';
@@ -26,7 +25,6 @@ export interface AddToChangesetProps {
 }
 
 export const AddToChangeset = ({ className, selectedOrg, loading, selectedRows }: AddToChangesetProps) => {
-  const { trackEvent } = useAnalytics();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const deployAccess = useOperationAccess('metadata.deploy');
@@ -62,10 +60,6 @@ export const AddToChangeset = ({ className, selectedOrg, loading, selectedRows }
     setSelectedChangeset(changeset);
     setConfigModalOpen(false);
     setDeployStatusModalOpen(true);
-    trackEvent(ANALYTICS_KEYS.deploy_addToChangeset, {
-      hasDescription: !!changesetDescription,
-      itemCount: selectedRows.size,
-    });
   }
 
   function handleGoBackFromDeploy() {
@@ -131,8 +125,6 @@ export const AddToChangeset = ({ className, selectedOrg, loading, selectedRows }
           data={deployResultsData}
           onModalClose={() => setDownloadResultsModalOpen(false)}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="deploy_metadata_add_to_changeset_modal"
-          trackEvent={trackEvent}
         />
       )}
     </Fragment>

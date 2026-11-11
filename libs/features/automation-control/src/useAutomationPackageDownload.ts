@@ -1,8 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { useAnalytics } from '@jetstream/ui-core';
 import { useCallback, useState } from 'react';
 import {
   AutomationPackage,
@@ -19,8 +17,7 @@ export type AutomationPackageDownload = AutomationPackage & { variant: Automatio
  * Builds a before/after activation package on demand. The caller renders the download modal for
  * `packageDownload` outside its own modal (and hides its modal meanwhile).
  */
-export function useAutomationPackageDownload(selectedOrg: SalesforceOrgUi, apiVersion: string, source: 'review' | 'history') {
-  const { trackEvent } = useAnalytics();
+export function useAutomationPackageDownload(selectedOrg: SalesforceOrgUi, apiVersion: string) {
   const [preparingVariant, setPreparingVariant] = useState<AutomationPackageVariant | null>(null);
   const [packageDownload, setPackageDownload] = useState<AutomationPackageDownload | null>(null);
   /** Shown inside the caller's modal, a toast would render behind it */
@@ -40,7 +37,6 @@ export function useAutomationPackageDownload(selectedOrg: SalesforceOrgUi, apiVe
           return;
         }
         setPackageDownload({ ...automationPackage, variant });
-        trackEvent(ANALYTICS_KEYS.automation_export, { type: 'activation-package', variant, source, items: items.length });
       } catch (ex) {
         logger.warn('[AUTOMATION][PACKAGE] Error building package', ex);
         setPackageError(`There was a problem building the package. ${getErrorMessage(ex)}`);
@@ -48,7 +44,7 @@ export function useAutomationPackageDownload(selectedOrg: SalesforceOrgUi, apiVe
         setPreparingVariant(null);
       }
     },
-    [apiVersion, selectedOrg, source, trackEvent],
+    [apiVersion, selectedOrg],
   );
 
   const closePackageDownload = useCallback(() => setPackageDownload(null), []);

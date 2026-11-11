@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS, SFDC_LOGIN_URL_PRE_RELEASE, SFDC_LOGIN_URL_PROD, SFDC_LOGIN_URL_SANDBOX } from '@jetstream/shared/constants';
+import { SFDC_LOGIN_URL_PRE_RELEASE, SFDC_LOGIN_URL_PROD, SFDC_LOGIN_URL_SANDBOX } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { addOrg } from '@jetstream/shared/ui-utils';
 import { AddOrgHandlerFn, SalesforceOrgUi } from '@jetstream/types';
@@ -21,7 +21,6 @@ import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { useAnalytics } from '..';
 import { parseSalesforceLoginUrl } from './salesforce-login-url.utils';
 
 type OrgType = 'prod' | 'sandbox' | 'pre-release' | 'custom';
@@ -103,7 +102,6 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
   onAddOrgHandlerFn = addOrg,
 }) => {
   const popoverRef = useRef<PopoverRef>(null);
-  const { trackEvent } = useAnalytics();
   const [orgType, setOrgType] = useState<OrgType>(() => (getExistingOrgDomain(existingOrg) ? 'custom' : 'prod'));
   const [customUrl, setCustomUrl] = useState<string>(() => getExistingOrgDomain(existingOrg) || '');
   const [advancedOptionsEnabled, setAdvancedOptionsEnabled] = useState(false);
@@ -136,13 +134,6 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
           onAddOrg(addedOrg, true);
         },
       );
-    trackEvent(ANALYTICS_KEYS.sfdc_org_add_org, {
-      orgType,
-      advancedOptionsEnabled,
-      addLoginTrue,
-      addToActiveOrganization: addToActiveOrgGroup,
-      isReconnect: !!existingOrg,
-    });
   }
 
   function handleReset() {

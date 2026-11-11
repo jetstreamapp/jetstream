@@ -39,8 +39,6 @@ function setup(props: Partial<RecordDownloadModalProps> = {}) {
         downloadModalOpen
         fields={['Id', 'Name']}
         records={records}
-        source="test"
-        trackEvent={vi.fn()}
         onModalClose={vi.fn()}
         onDownload={onDownload}
         onDownloadFromServer={onDownloadFromServer}
@@ -162,8 +160,6 @@ describe('RecordDownloadModal parent re-renders', () => {
             fields={['Id', 'Name']}
             records={[...records]}
             selectedRecords={selectedRecords}
-            source="test"
-            trackEvent={vi.fn()}
             onModalClose={vi.fn()}
             onDownload={vi.fn()}
             onDownloadFromServer={vi.fn()}

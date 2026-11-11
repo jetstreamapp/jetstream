@@ -1,10 +1,8 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
 import { ORG_INACTIVITY_EXPIRATION_DAYS, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Spinner, Tooltip, fireToast } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useSetAtom } from 'jotai';
@@ -24,7 +22,6 @@ interface RefreshAllOrgsButtonProps {
  * Salesforce's inactivity clock (the server treats any org access as activity).
  */
 export const RefreshAllOrgsButton = ({ className, orgs }: RefreshAllOrgsButtonProps) => {
-  const { trackEvent } = useAnalytics();
   const setOrgs = useSetAtom(fromAppState.salesforceOrgsAsyncState);
   const [completedCount, setCompletedCount] = useState<number | null>(null);
   const isRefreshing = completedCount !== null;
@@ -74,7 +71,6 @@ export const RefreshAllOrgsButton = ({ className, orgs }: RefreshAllOrgsButtonPr
       fireToast({ type: 'error', message: 'There was a problem refreshing your orgs. Please try again.' });
     } finally {
       setCompletedCount(null);
-      trackEvent(ANALYTICS_KEYS.sfdc_org_refresh_all, { orgCount: orgs.length, successCount, errorCount });
     }
   }
 

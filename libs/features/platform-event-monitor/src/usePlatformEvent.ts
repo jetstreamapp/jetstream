@@ -1,11 +1,9 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { clearCacheForOrg, describeGlobal, sobjectOperation } from '@jetstream/shared/data';
 import { tracker, useDebounce } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, orderValues } from '@jetstream/shared/utils';
 import { Maybe, PlatformEventMessage, PlatformEventMessagePayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { CometD } from 'cometd';
 import { useAtom } from 'jotai';
@@ -51,7 +49,6 @@ export function usePlatformEvent({
 }) {
   const isMounted = useRef(true);
   const cometD = useRef<CometD>(null);
-  const { trackEvent } = useAnalytics();
   const [{ serverUrl, defaultApiVersion }] = useAtom(applicationCookieState);
   const [platformEvents, setPlatformEvents] = useState<PlatformEventObject[]>([]);
   const [loadingPlatformEvents, setPlatformLoadingEvents] = useState<boolean>(false);
@@ -74,11 +71,10 @@ export function usePlatformEvent({
         if (cometD.current) {
           platformEventUtils.disconnect(cometD.current);
           cometD.current = null;
-          trackEvent(ANALYTICS_KEYS.platform_event_unsubscribe, { user_initiated: false });
         }
       };
     }
-  }, [selectedOrg, trackEvent]);
+  }, [selectedOrg]);
 
   const fetchPlatformEvents = useCallback(
     async (clearCache = false) => {
@@ -171,7 +167,6 @@ export function usePlatformEvent({
     async (channel: string, replayId?: number) => {
       try {
         if (selectedOrg) {
-          let requiredInit = false;
           if (!cometD.current || cometD.current.isDisconnected()) {
             cometD.current = await platformEventUtils.init({
               defaultApiVersion,
@@ -179,7 +174,6 @@ export function usePlatformEvent({
               serverUrl,
               onSubscribeError: handleSubscribeError,
             });
-            requiredInit = true;
           }
 
           const cometd = cometD.current;
@@ -190,14 +184,13 @@ export function usePlatformEvent({
             item[channel] = { messages: [], channel, replayId };
             return item;
           });
-          trackEvent(ANALYTICS_KEYS.platform_event_subscribed, { requiredInit, channel, replayId });
         }
       } catch (ex) {
         logger.warn('[PLATFORM EVENT][ERROR]', getErrorMessage(ex));
         fireToast({ type: 'error', message: 'Error connecting to Salesforce' });
       }
     },
-    [defaultApiVersion, handleSubscribeError, onEvent, selectedOrg, serverUrl, trackEvent],
+    [defaultApiVersion, handleSubscribeError, onEvent, selectedOrg, serverUrl],
   );
 
   const unsubscribe = useCallback(
@@ -215,20 +208,18 @@ export function usePlatformEvent({
                 return output;
               }, {});
           });
-          trackEvent(ANALYTICS_KEYS.platform_event_unsubscribe, { user_initiated: true });
         }
       } catch (ex) {
         logger.warn('[PLATFORM EVENT][ERROR] unsubscribing', getErrorMessage(ex));
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedOrg, trackEvent],
+    [selectedOrg],
   );
 
   const publish = useCallback(
     async (platformEventName: string, body: any): Promise<string> => {
       const results = (await sobjectOperation(selectedOrg, platformEventName, 'create', { records: [body] }))[0];
-      trackEvent(ANALYTICS_KEYS.platform_event_publish, { success: results.success });
       const message = results.errors[0].message;
       if (results.success === false) {
         throw new Error(message);
@@ -236,7 +227,7 @@ export function usePlatformEvent({
       // very strange, but the id of the event is in the errors array
       return message;
     },
-    [selectedOrg, trackEvent],
+    [selectedOrg],
   );
 
   const subscribeOverrideRef = useRef(maybeSubscribeOverrideFn ? maybeSubscribeOverrideFn(setMessagesByChannel, onEvent) : undefined);
@@ -254,11 +245,10 @@ export function usePlatformEvent({
         }
       }
       setMessagesByChannel({});
-      trackEvent(ANALYTICS_KEYS.platform_event_clear_all, { user_initiated: true });
     } catch (ex) {
       logger.warn('[PLATFORM EVENT][ERROR] unsubscribing', getErrorMessage(ex));
     }
-  }, [messagesByChannel, trackEvent]);
+  }, [messagesByChannel]);
 
   const clearAllEvents = useCallback(async (): Promise<void> => {
     setMessagesByChannel((prevValue) => {
@@ -268,8 +258,7 @@ export function usePlatformEvent({
       });
       return newValue;
     });
-    trackEvent(ANALYTICS_KEYS.platform_event_clear_events, { user_initiated: true });
-  }, [trackEvent]);
+  }, []);
 
   const prepareDownloadData = useCallback((messagesByChannel: MessagesByChannel): PlatformEventDownloadData => {
     const output: PlatformEventDownloadData = {

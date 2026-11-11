@@ -2,7 +2,6 @@ import { css } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { Icon, UpgradeToProButton, ViewDocsLink } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
-import { useAnalytics } from '../analytics';
 
 export interface AnalysisToolsPaywallProps {
   /** Feature name shown in the heading, e.g. "Field Usage Analysis". Defaults to "Analysis Tools". */
@@ -21,7 +20,6 @@ export const AnalysisToolsPaywall: FunctionComponent<AnalysisToolsPaywallProps> 
   featureLabel = 'Analysis Tools',
   docsPath = APP_ROUTES.PERMISSION_ANALYSIS.DOCS,
 }) => {
-  const { trackEvent } = useAnalytics();
   return (
     <div
       className="slds-p-around_large slds-align_absolute-center"
@@ -51,7 +49,7 @@ export const AnalysisToolsPaywall: FunctionComponent<AnalysisToolsPaywallProps> 
           <ViewDocsLink path={docsPath} textReset />
         </div>
         <div className="slds-align_absolute-center">
-          <UpgradeToProButton source="analysis-tools" trackEvent={trackEvent} />
+          <UpgradeToProButton />
         </div>
       </div>
     </div>

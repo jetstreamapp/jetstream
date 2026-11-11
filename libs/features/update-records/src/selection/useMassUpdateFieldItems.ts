@@ -1,5 +1,4 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { describeSObject, query } from '@jetstream/shared/data';
 import {
   getListItemsFromFieldWithRelatedItems,
@@ -22,7 +21,6 @@ import {
   TransformationCriteria,
   TransformationOption,
   TransformationOptions,
-  useAnalytics,
 } from '@jetstream/ui-core';
 import { useAtom, useAtomValue } from 'jotai';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
@@ -307,7 +305,6 @@ function reducer(state: State, action: Action): State {
 
 export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: string[]) {
   const isMounted = useRef(true);
-  const { trackEvent } = useAnalytics();
   const currentSelectedObjects = useRef(new Set<string>());
 
   const rows = useAtomValue(fromMassUpdateState.rowsState);
@@ -424,8 +421,7 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
         }
       }
     }
-    trackEvent(ANALYTICS_KEYS.mass_update_ApplyAll, { numObjects: rows.length, type: 'VALIDATION' });
-  }, [org, rows, trackEvent]);
+  }, [org, rows]);
 
   const onFieldSelected = useCallback((configIndex: number, sobject: string, selectedField: string) => {
     dispatch({ type: 'FIELD_SELECTION_CHANGED', payload: { sobject, selectedField, configIndex } });
@@ -489,17 +485,14 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
 
   function applyCommonField(configIndex: number, selectedField: string) {
     dispatch({ type: 'COMMON_FIELD_SELECTED', payload: { selectedField, configIndex } });
-    trackEvent(ANALYTICS_KEYS.mass_update_ApplyAll, { numObjects: rows.length, type: 'COMMON_FIELD_SELECTED' });
   }
 
   function applyCommonOption(configIndex: number, option: TransformationOption, staticValue?: string) {
     dispatch({ type: 'COMMON_OPTION_SELECTED', payload: { option, staticValue, configIndex } });
-    trackEvent(ANALYTICS_KEYS.mass_update_ApplyAll, { numObjects: rows.length, type: 'COMMON_OPTION_SELECTED', option });
   }
 
   function applyCommonCriteria(configIndex: number, criteria: TransformationCriteria, whereClause?: string) {
     dispatch({ type: 'COMMON_CRITERIA_SELECTED', payload: { criteria, whereClause, configIndex } });
-    trackEvent(ANALYTICS_KEYS.mass_update_ApplyAll, { numObjects: rows.length, type: 'COMMON_CRITERIA_SELECTED', criteria });
   }
 
   function handleOptionChange(configIndex: number, sobject: string, transformationOptions: TransformationOptions) {

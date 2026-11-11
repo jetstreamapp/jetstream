@@ -1,4 +1,3 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { formatNumber, useGoBackShortcut, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { getNameOrNameAndLabel, pluralizeIfMultiple } from '@jetstream/shared/utils';
@@ -20,7 +19,6 @@ import {
   Tooltip,
   getModifierKey,
 } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
 import { useCanPerformOperation } from '@jetstream/ui/app-state';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -35,7 +33,6 @@ const HEIGHT_BUFFER = 170;
 export function RecordTypeManagerEditor() {
   const navigate = useNavigate();
   const isMounted = useRef(true);
-  const { trackEvent } = useAnalytics();
   const canDeployMetadata = useCanPerformOperation('metadata.deploy');
   const [viewMode, setViewMode] = useState<ViewMode>('RECORD_TYPE');
   const [deployModalOpen, setDeployModalOpen] = useState(false);
@@ -85,7 +82,6 @@ export function RecordTypeManagerEditor() {
 
   function handleViewModeChange(value: ViewMode) {
     setViewMode(value);
-    trackEvent(ANALYTICS_KEYS.record_type_picklist_toggle_view_mode, { viewMode: value });
   }
 
   return (

@@ -1,8 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { sanitizePastedEditorText, useDisposables } from '@jetstream/shared/ui-utils';
-import { NOOP, getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { NOOP, getErrorMessage } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { Field, FieldType, Maybe, NullNumberBehavior, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, KeyboardShortcut, Modal, Spinner, Tabs, Textarea } from '@jetstream/ui';
@@ -22,7 +21,6 @@ import {
   fieldTypeToReturnType,
   getFormulaData,
   registerCompletions,
-  useAnalytics,
 } from '@jetstream/ui-core';
 import type { FieldSchema, FormulaContext, FormulaValue } from '@jetstreamapp/sf-formula-parser';
 import { evaluateFormula, extractFields, extractFieldsByCategory } from '@jetstreamapp/sf-formula-parser';
@@ -50,7 +48,6 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
     const isMounted = useRef(true);
     const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
     const { addDisposable } = useDisposables();
-    const { trackEvent } = useAnalytics();
 
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -188,18 +185,15 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
           });
           logger.log('results', result);
           setResults({ context, result, returnType: formulaReturnType });
-          trackEvent(ANALYTICS_KEYS.sobj_create_field_formula_execute, { success: true, fieldCount: formulaFields.length, testMethod });
         } catch (ex) {
           logger.warn(ex);
           setFormulaErrorMessage(getErrorMessage(ex));
-          trackEvent(ANALYTICS_KEYS.sobj_create_field_formula_execute, { success: false, ...getErrorMessageAndStackObj(ex) });
         } finally {
           setLoading(false);
         }
       },
       [
         allValues.formulaTreatBlanksAs.value,
-        allValues.secondaryType.value,
         formulaFieldValues,
         formulaFields.length,
         recordId,
@@ -207,7 +201,6 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
         selectedSObjects,
         selectedUserId,
         testMethod,
-        trackEvent,
       ],
     );
 

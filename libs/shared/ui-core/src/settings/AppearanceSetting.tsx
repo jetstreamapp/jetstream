@@ -1,8 +1,6 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { ColorScheme } from '@jetstream/types';
 import { RadioButton, RadioGroup } from '@jetstream/ui';
 import { useUserPreferenceState } from '@jetstream/ui/app-state';
-import { useAnalytics } from '../analytics';
 import { getSettingsRowIds, SettingsRow } from './layout/SettingsSection';
 
 const ROW_ID = 'setting-theme';
@@ -15,13 +13,11 @@ const COLOR_SCHEME_OPTIONS: { value: ColorScheme; label: string }[] = [
 
 /** Same preference as the theme options in the user menu */
 export const AppearanceSetting = () => {
-  const { trackEvent } = useAnalytics();
   const [userPreferences, setUserPreferences] = useUserPreferenceState();
   const colorScheme = userPreferences?.colorScheme ?? 'light';
 
   function handleChange(nextColorScheme: ColorScheme) {
     setUserPreferences({ ...userPreferences, colorScheme: nextColorScheme });
-    trackEvent(ANALYTICS_KEYS.settings_color_scheme_changed, { colorScheme: nextColorScheme, location: 'settings' });
   }
 
   return (

@@ -540,9 +540,6 @@ function SubqueryModal({
           filteredRecords={filteredRecords}
           selectedRecords={selectedRecords}
           onModalClose={handleCloseModal}
-          source="data_table_subquery"
-          // eslint-disable-next-line @typescript-eslint/no-empty-function
-          trackEvent={() => {}}
         />
       )}
     </>

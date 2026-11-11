@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
+import { MIME_TYPES } from '@jetstream/shared/constants';
 import {
   getFilename,
   isBrowserExtension,
@@ -88,8 +88,6 @@ export interface FileDownloadModalProps {
    */
   fileNameParts?: string[];
   alternateDownloadButton?: React.ReactNode; // If provided, then caller must manage what happens on click - used for URL links
-  source: string;
-  trackEvent: (key: string, value?: Record<string, any>) => void;
   onModalClose: (canceled?: boolean) => void;
   // TODO: we may want to provide a hook "onPrepareDownload" to override default file generation process
   /** this may be useful if alternateDownloadButton is provided, otherwise this usually is not required */
@@ -129,8 +127,6 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   header,
   fileNameParts = ['records'],
   alternateDownloadButton,
-  source,
-  trackEvent,
   onModalClose,
   onChange,
   emitUploadToGoogleEvent,
@@ -253,7 +249,6 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
         onModalClose();
       }
       saveFileFormatToStorage(fileFormat, LS_KEY);
-      trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'FileDownloadModal' });
     } catch (ex) {
       logger.error('[FILE DOWNLOAD][ERROR]', ex);
       onError && onError(ensureError(ex));
@@ -399,9 +394,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
               onChange={(value: string) => setFileFormat(value as FileExtGDrive)}
             />
           )}
-          {!googleIntegrationEnabled && googleShowUpgradeToPro && (
-            <GoogleSelectedProUpgradeButton trackEvent={trackEvent} source={source} />
-          )}
+          {!googleIntegrationEnabled && googleShowUpgradeToPro && <GoogleSelectedProUpgradeButton />}
         </RadioGroup>
         {fileFormat === 'gdrive' && hasGoogleInputConfigured && (
           <FileDownloadGoogle

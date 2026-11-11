@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { queryRemaining, queryRemainingSubqueryRecords } from '@jetstream/shared/data';
 import { formatNumber, tracker } from '@jetstream/shared/ui-utils';
 import {
@@ -160,7 +159,6 @@ export interface SalesforceRecordDataTableProps {
   onDelete: (record: any) => void;
   onUndelete: (record: any) => void;
   onGetAsApex: (record: any) => void;
-  onSavedRecords: (results: { recordCount: number; failureCount: number }) => void;
   onReloadQuery: () => void;
   /**
    * Fired after a save settles (resolved OR threw) with Data-History-ready snapshots (edited/prior values
@@ -168,8 +166,6 @@ export interface SalesforceRecordDataTableProps {
    * stays free of the data-history service — the host wires this to the capture layer.
    */
   onRecordsSaveCapture?: (info: RecordsSaveCaptureInfo) => void;
-  /** Analytics tracker (from the host's `useAnalytics`). Optional — defaults to a no-op. */
-  trackEvent?: (key: string, value?: Record<string, any>) => void;
   /** Inline editing plus the edit and clone row actions. Defaults to true. */
   canWriteRecords?: boolean;
   /** Delete and restore row actions. Defaults to true. */
@@ -204,9 +200,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     onDelete,
     onUndelete,
     onGetAsApex,
-    onSavedRecords,
     onRecordsSaveCapture,
-    trackEvent = () => undefined,
     canWriteRecords = true,
     canDeleteRecords = true,
   }: SalesforceRecordDataTableProps) => {
@@ -353,13 +347,12 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
           const field = data.column.meta?.field as Field | undefined;
           if (field) {
             setFieldMetaModal({ field, columnName: String(data.column.name) });
-            trackEvent?.(ANALYTICS_KEYS.query_FieldMetadataViewed, { type: field.type, isCustom: field.custom });
           }
           return;
         }
         copySalesforceRecordTableDataToClipboard(item.value, fields, data);
       },
-      [fields, trackEvent],
+      [fields],
     );
 
     // Offer "View field metadata" on a column header only when we have that field's describe stashed on
@@ -559,8 +552,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         return previous;
       });
       setDirtyRows(previous.filter(isRowDirty));
-      trackEvent(ANALYTICS_KEYS.query_InlineEditUndo);
-    }, [trackEvent]);
+    }, []);
 
     const handleRedo = useCallback(() => {
       const next = redoStackRef.current.pop();
@@ -574,8 +566,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         return next;
       });
       setDirtyRows(next.filter(isRowDirty));
-      trackEvent(ANALYTICS_KEYS.query_InlineEditRedo);
-    }, [trackEvent]);
+    }, []);
 
     const handleRowsChange = useCallback(
       (
@@ -606,12 +597,8 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         const newRows = applyPasteCellsToRows(rows, event.cells, fieldMetadata);
         setRows(newRows);
         setDirtyRows(newRows.filter(isRowDirty));
-        // Delete/Backspace also flows through here with source 'clear'.
-        trackEvent(event.source === 'clear' ? ANALYTICS_KEYS.query_InlineEditClear : ANALYTICS_KEYS.query_InlineEditPaste, {
-          cellCount: event.cells.length,
-        });
       },
-      [rows, fieldMetadata, pushUndoSnapshot, trackEvent],
+      [rows, fieldMetadata, pushUndoSnapshot],
     );
 
     const rowsByKey = useMemo(() => new Map((rows ?? []).map((row) => [row._key, row])), [rows]);
@@ -633,18 +620,13 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         const newRows = revertCellsInRows(rows, cells, fieldMetadata);
         setRows(newRows);
         setDirtyRows(newRows.filter(isRowDirty));
-        trackEvent(ANALYTICS_KEYS.query_InlineEditRevert, { cellCount: cells.length });
       },
-      [rows, fieldMetadata, pushUndoSnapshot, trackEvent],
+      [rows, fieldMetadata, pushUndoSnapshot],
     );
 
-    const handleDownload = useCallback(
-      (config: DownloadConfig) => {
-        setDownloadConfig(config);
-        trackEvent(ANALYTICS_KEYS.query_InlineEditDownload, { source: config.source, recordCount: config.data.length });
-      },
-      [trackEvent],
-    );
+    const handleDownload = useCallback((config: DownloadConfig) => {
+      setDownloadConfig(config);
+    }, []);
 
     const handleCancelEditMode = () => {
       setRecords((records) => (records ? [...records] : records));
@@ -762,7 +744,6 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         });
         setRows(newRows);
         setDirtyRows(newRows.filter(isRowDirty));
-        onSavedRecords({ recordCount: modifiedRecords.length, failureCount: Object.values(failedResultsById).length });
       } catch (ex) {
         // This happens if exception thrown, normal behavior is to get records with result success/error
         logger.warn('Error saving records', ex);
@@ -789,7 +770,6 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
           return;
         }
         setShowPreview(true);
-        trackEvent(ANALYTICS_KEYS.query_InlineEditPreview, { changeCount: dirtyRows.length });
       },
     });
 
@@ -898,7 +878,6 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
               className="slds-button slds-button_brand slds-m-left_x-small"
               onClick={() => {
                 setShowPreview(true);
-                trackEvent(ANALYTICS_KEYS.query_InlineEditPreview, { changeCount: dirtyRows.length });
               }}
               disabled={isSavingRecords}
             >
@@ -929,7 +908,6 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
             onDiscard={() => {
               handleCancelEditMode();
               setShowPreview(false);
-              trackEvent(ANALYTICS_KEYS.query_InlineEditDiscard, { changeCount: dirtyRows.length });
             }}
             onClose={() => setShowPreview(false)}
             canWriteRecords={canWriteRecords}
@@ -947,8 +925,6 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
             data={downloadConfig.data}
             header={downloadConfig.header}
             fileNameParts={downloadConfig.fileNameParts}
-            source={downloadConfig.source}
-            trackEvent={trackEvent}
             onModalClose={() => setDownloadConfig(null)}
           />
         )}
@@ -999,12 +975,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
           </DataTableSubqueryContext.Provider>
         </AutoFullHeightContainer>
         {fieldMetaModal && (
-          <FieldMetadataModal
-            field={fieldMetaModal.field}
-            columnName={fieldMetaModal.columnName}
-            onClose={() => setFieldMetaModal(null)}
-            onDownload={() => trackEvent?.(ANALYTICS_KEYS.query_FieldMetadataDownloaded, { type: fieldMetaModal.field.type })}
-          />
+          <FieldMetadataModal field={fieldMetaModal.field} columnName={fieldMetaModal.columnName} onClose={() => setFieldMetaModal(null)} />
         )}
       </Fragment>
     ) : null;

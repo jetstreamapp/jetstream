@@ -1,7 +1,7 @@
 import { getLoginConfigurationAbility, LoginConfigAbility } from '@jetstream/acl';
 import type { LoginConfigurationUI, UserProfileAuthFactor, UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
+import { TITLES } from '@jetstream/shared/constants';
 import {
   getFullUserProfile,
   getLoginConfiguration,
@@ -25,7 +25,6 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
 import { userProfileState } from '@jetstream/ui/app-state';
 import { useAtom } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
@@ -42,7 +41,6 @@ const HEIGHT_BUFFER = 170;
 export const Profile = () => {
   useTitle(TITLES.PROFILE);
   const isMounted = useRef(true);
-  const { trackEvent } = useAnalytics();
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
   const [userProfile, setUserProfile] = useAtom(userProfileState);
@@ -100,7 +98,6 @@ export const Profile = () => {
       setUserProfile(await getUserProfileUi());
       setFullUserProfile(userProfile);
       sessionData.getSessions();
-      trackEvent(ANALYTICS_KEYS.settings_update_user);
     } catch (ex) {
       logger.warn('Error updating user', ex);
       fireToast({
@@ -132,7 +129,6 @@ export const Profile = () => {
   async function handleSetPassword(password: string) {
     try {
       setFullUserProfile(await initPassword(password));
-      trackEvent(ANALYTICS_KEYS.settings_password_action, { action: 'set-password' });
       sessionData.getSessions();
     } catch (ex) {
       fireToast({
@@ -147,7 +143,6 @@ export const Profile = () => {
     try {
       await initResetPassword();
       sessionData.getSessions();
-      trackEvent(ANALYTICS_KEYS.settings_password_action, { action: 'reset-password' });
       fireToast({
         message: 'An email has been sent to continue the password reset process.',
         type: 'success',
@@ -165,7 +160,6 @@ export const Profile = () => {
     try {
       setFullUserProfile(await removePassword());
       sessionData.getSessions();
-      trackEvent(ANALYTICS_KEYS.settings_password_action, { action: 'remove-password' });
     } catch (ex) {
       fireToast({
         message: 'There was a problem removing your password. Try again or file a support ticket for assistance.',

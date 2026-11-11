@@ -1,8 +1,7 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { checkOrgHealth } from '@jetstream/shared/data';
 import { DeployMetadataTableRow, DeployOptions, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
-import { fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
+import { fromJetstreamEvents } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, useState } from 'react';
@@ -17,7 +16,6 @@ export interface DeployMetadataToOrgProps {
 }
 
 export const DeployMetadataToOrg = ({ selectedOrg, loading, selectedRows }: DeployMetadataToOrgProps) => {
-  const { trackEvent } = useAnalytics();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const deployAccess = useOperationAccess('metadata.deploy');
@@ -55,7 +53,6 @@ export const DeployMetadataToOrg = ({ selectedOrg, loading, selectedRows }: Depl
     setDeployMetadataOptions(deployOptions);
     setConfigModalOpen(false);
     setDeployStatusModalOpen(true);
-    trackEvent(ANALYTICS_KEYS.deploy_deployMetadata, { type: 'org-to-org', deployOptions });
   }
 
   function handleGoBackFromDeploy() {
@@ -117,8 +114,6 @@ export const DeployMetadataToOrg = ({ selectedOrg, loading, selectedRows }: Depl
           data={deployResultsData}
           onModalClose={() => setDownloadResultsModalOpen(false)}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="deploy_metadata_to_org"
-          trackEvent={trackEvent}
         />
       )}
     </Fragment>

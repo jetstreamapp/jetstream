@@ -1,8 +1,8 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS, DATE_FORMATS } from '@jetstream/shared/constants';
+import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { DeployMetadataStatus, DeployResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal, TabsRef } from '@jetstream/ui';
-import { ConfirmPageChange, DeployMetadataProgressSummary, OrgLabelBadge, useAnalytics } from '@jetstream/ui-core';
+import { ConfirmPageChange, DeployMetadataProgressSummary, OrgLabelBadge } from '@jetstream/ui-core';
 import { formatDate } from 'date-fns/format';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import DeployMetadataResultsTables from './DeployMetadataResultsTables';
@@ -69,8 +69,6 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
   onClose,
   onDownload,
 }) => {
-  const isDone = results?.done;
-  const { trackEvent } = useAnalytics();
   const [hasErrors, setHasErrors] = useState(false);
   const tabsRef = useRef<TabsRef>(null);
   // when errors are encountered for the first time, focus the errors tab
@@ -82,45 +80,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
     }
   }, [hasErrors, results]);
 
-  useEffect(() => {
-    if (isDone) {
-      trackEvent(ANALYTICS_KEYS.deploy_finished, {
-        checkOnly: results.checkOnly,
-        completedDate: results.completedDate,
-        numberComponentErrors: results.numberComponentErrors,
-        numberComponentsDeployed: results.numberComponentsDeployed,
-        numberComponentsTotal: results.numberComponentsTotal,
-        numberTestErrors: results.numberTestErrors,
-        numberTestsCompleted: results.numberTestsCompleted,
-        numberTestsTotal: results.numberTestsTotal,
-        rollbackOnError: results.rollbackOnError,
-        runTestsEnabled: results.runTestsEnabled,
-        startDate: results.startDate,
-        success: results.success,
-      });
-    }
-  }, [isDone]);
-
   function handleGoBack() {
-    trackEvent(
-      ANALYTICS_KEYS.deploy_go_back,
-      results
-        ? {
-            checkOnly: results.checkOnly,
-            completedDate: results.completedDate,
-            numberComponentErrors: results.numberComponentErrors,
-            numberComponentsDeployed: results.numberComponentsDeployed,
-            numberComponentsTotal: results.numberComponentsTotal,
-            numberTestErrors: results.numberTestErrors,
-            numberTestsCompleted: results.numberTestsCompleted,
-            numberTestsTotal: results.numberTestsTotal,
-            rollbackOnError: results.rollbackOnError,
-            runTestsEnabled: results.runTestsEnabled,
-            startDate: results.startDate,
-            success: results.success,
-          }
-        : { results: 'none' },
-    );
     onGoBack && onGoBack();
   }
 

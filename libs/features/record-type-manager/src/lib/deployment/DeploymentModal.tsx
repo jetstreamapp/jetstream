@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
+import { MIME_TYPES } from '@jetstream/shared/constants';
 import { saveFile, tracker } from '@jetstream/shared/ui-utils';
 import { ReadMetadataRecordTypeExtended } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
@@ -8,7 +8,6 @@ import {
   ConfirmPageChange,
   DeployMetadataProgressSummary,
   DeployMetadataResultsTables,
-  useAnalytics,
   useDeployMetadataPackage,
 } from '@jetstream/ui-core';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
@@ -26,7 +25,6 @@ interface DeploymentModalProps {
 }
 
 export function DeploymentModal({ modifiedValues, recordTypeMetadataByFullName, viewMode, onClose }: DeploymentModalProps) {
-  const { trackEvent } = useAnalytics();
   const { defaultApiVersion: apiVersion, serverUrl } = useAtomValue(applicationCookieState);
   const selectedOrg = useAtomValue(selectedOrgState);
   const [inProgress, setInProgress] = useState(false);
@@ -41,7 +39,6 @@ export function DeploymentModal({ modifiedValues, recordTypeMetadataByFullName, 
       recordTypesByFullName: recordTypeMetadataByFullName,
     });
     saveFile(file, `package.zip`, MIME_TYPES.ZIP);
-    trackEvent(ANALYTICS_KEYS.record_type_picklist_download_package, { viewMode, modifiedValuesLength: modifiedValues.length });
   }
 
   async function handleDeploy() {
@@ -60,7 +57,6 @@ export function DeploymentModal({ modifiedValues, recordTypeMetadataByFullName, 
         singlePackage: true,
         allowMissingFiles: false,
       });
-      trackEvent(ANALYTICS_KEYS.record_type_picklist_deploy, { viewMode, modifiedValuesLength: modifiedValues.length });
     } catch (ex) {
       logger.error('Error preparing deployment package', ex);
       setPrepareError(true);

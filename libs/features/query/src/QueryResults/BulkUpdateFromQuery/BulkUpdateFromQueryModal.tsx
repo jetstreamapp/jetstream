@@ -552,7 +552,6 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             org={selectedOrg}
             sobject={sobject}
             proposedChanges={proposedChanges}
-            configuration={selectedConfig}
             totalFetched={recordsToLoad.length}
           />
         )}

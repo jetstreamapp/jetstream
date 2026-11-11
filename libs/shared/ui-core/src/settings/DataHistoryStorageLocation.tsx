@@ -9,8 +9,6 @@ export interface DataHistoryStorageLocationProps {
   onChanged?: () => void;
 }
 
-const ANALYTICS_LOCATION = 'settings-storage-location';
-
 /**
  * "Storage location" row for Data History: the Chromium user-chosen-folder backend (File
  * System Access API) on the web, or the native filesystem backend on desktop. Renders nothing in
@@ -31,7 +29,7 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
     available: canStoreInFolder,
     working,
     migrationProgress,
-  } = useDataHistoryStorage({ analyticsLocation: ANALYTICS_LOCATION, onChanged });
+  } = useDataHistoryStorage({ onChanged });
 
   if (!status || (!status.directorySupported && !status.nativeSupported)) {
     return null;
@@ -166,7 +164,7 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
                         message:
                           restored > 0 ? `Restored ${restored} history entries from the folder.` : 'No new entries found in the folder.',
                       });
-                      return { backend: 'directory', action: 'reindex' };
+                      return true;
                     })
                   }
                   title="Rebuild the history list from the files in the connected folder (e.g. after restoring a backup)"

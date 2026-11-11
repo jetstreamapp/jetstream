@@ -1,6 +1,5 @@
 import { css } from '@emotion/react';
 import { ListMetadataResultItem, useListMetadata } from '@jetstream/connected-ui';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { copyRecordsToClipboard, formatNumber, isBrowserExtension, isCanvasApp, useGoBackShortcut } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { DeployMetadataTableRow, ListMetadataResult, SidePanelType } from '@jetstream/types';
@@ -20,7 +19,7 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
-import { fromDeployMetadataState, fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
+import { fromDeployMetadataState, fromJetstreamEvents } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import { addMinutes } from 'date-fns/addMinutes';
 import { formatISO as formatISODate } from 'date-fns/formatISO';
@@ -54,7 +53,6 @@ const TABLE_ACTION_DELETE_METADATA = 'delete-manifest';
 export interface DeployMetadataDeploymentProps {}
 
 export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymentProps> = () => {
-  const { trackEvent } = useAnalytics();
   const navigate = useNavigate();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
@@ -84,7 +82,6 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   const dateRangeStartState = useAtomValue(fromDeployMetadataState.dateRangeStartState);
   const dateRangeEndState = useAtomValue(fromDeployMetadataState.dateRangeEndState);
   const includeManagedPackageItems = useAtomValue(fromDeployMetadataState.includeManagedPackageItems);
-  const analyticsSubmissionSelector = useAtomValue(fromDeployMetadataState.analyticsSubmissionSelector);
 
   const [exportData, setExportData] = useState<Record<string, any> | null>(null);
   const [rows, setRows] = useState<DeployMetadataTableRow[]>();
@@ -208,7 +205,6 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   async function handleDownloadActive(type: 'manifest' | 'package', scope: 'selected' | 'all' = 'selected') {
     setActiveDownloadType(type);
     setDownloadScope(scope);
-    trackEvent(ANALYTICS_KEYS.deploy_download, { type, scope, itemCount: scope === 'all' ? allMetadataCount : selectedRows.size });
   }
 
   async function handleFileModalClose() {
@@ -226,7 +222,6 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
   function handleCloseSidePanel() {
     setIsSidePanelOpen(false);
-    trackEvent(ANALYTICS_KEYS.deploy_configuration, { page: 'deploy-table', ...analyticsSubmissionSelector });
   }
 
   function handleDropdownMenuSelect(id: string) {
@@ -291,8 +286,6 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
           escapeCsvFormulas
           onModalClose={() => setExportData(null)}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="deploy_metadata"
-          trackEvent={trackEvent}
         />
       )}
 

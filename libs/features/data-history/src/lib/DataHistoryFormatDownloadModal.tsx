@@ -1,11 +1,10 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { DataHistoryItem, FileExtAllTypes, SalesforceOrgUi } from '@jetstream/types';
+import { DataHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, fireToast, Modal, Spinner } from '@jetstream/ui';
-import { fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
+import { fromJetstreamEvents } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useEffect, useState } from 'react';
 import {
   DataHistoryErrorInfo,
   getDataHistoryReadErrorMessage,
@@ -17,8 +16,6 @@ import { DataHistoryExportTarget, DataHistoryPayloadView, flattenPayloadRows } f
 export interface DataHistoryFormatDownloadModalProps {
   item: DataHistoryItem;
   target: DataHistoryExportTarget;
-  /** Which surface opened the download — the only thing that differs between hosts in the analytics payload */
-  analyticsLocation: 'detail-modal' | 'table';
   onClose: () => void;
   /** Report failures here instead of a toast — used by the detail modal, where toasts render behind the overlay */
   onError?: (info: DataHistoryErrorInfo) => void;
@@ -33,29 +30,15 @@ export interface DataHistoryFormatDownloadModalProps {
 export const DataHistoryFormatDownloadModal: FunctionComponent<DataHistoryFormatDownloadModalProps> = ({
   item,
   target,
-  analyticsLocation,
   onClose,
   onError = fireToast,
 }) => {
-  const { trackEvent } = useAnalytics();
   const orgs = useAtomValue(fromAppState.salesforceOrgsState);
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(fromAppState.applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(fromAppState.googleDriveAccessState);
   const [view, setView] = useState<DataHistoryPayloadView | null>(null);
   // The org is only used for the generated filename — history outlives org removal, so fall back to the label snapshot
   const org = orgs.find(({ uniqueId }) => uniqueId === item.org) ?? ({ username: item.orgLabel } as SalesforceOrgUi);
-  const chosenFormat = useRef<FileExtAllTypes>('csv');
-
-  /** `format` is `raw-csv`/`raw-json` for the stored-format fallback */
-  function trackDownloaded(format: string) {
-    trackEvent(ANALYTICS_KEYS.data_history_download, {
-      kind: target.kind,
-      view: target.viewId,
-      format,
-      source: item.source,
-      location: analyticsLocation,
-    });
-  }
 
   useEffect(() => {
     // Closing the modal mid-read must cancel it: the raw fallback SAVES A FILE as its side effect, and would
@@ -77,7 +60,6 @@ export const DataHistoryFormatDownloadModal: FunctionComponent<DataHistoryFormat
           if (exportData.reason === 'too-large') {
             onError({ type: 'info', message: 'This file is too large to convert, so it was downloaded in its original format.' });
           }
-          trackDownloaded(exportData.contentType === 'text/csv' ? 'raw-csv' : 'raw-json');
           onClose();
           return;
         }
@@ -127,17 +109,7 @@ export const DataHistoryFormatDownloadModal: FunctionComponent<DataHistoryFormat
       transformData={({ fileFormat, data }) =>
         fileFormat === 'json' ? data : flattenPayloadRows(data as Record<string, unknown>[], view.header)
       }
-      source="data_history"
-      trackEvent={trackEvent}
-      onChange={({ fileFormat }) => {
-        chosenFormat.current = fileFormat;
-      }}
-      onModalClose={(canceled) => {
-        if (!canceled) {
-          trackDownloaded(chosenFormat.current);
-        }
-        onClose();
-      }}
+      onModalClose={() => onClose()}
     />
   );
 };

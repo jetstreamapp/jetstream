@@ -1,9 +1,7 @@
 import { jetstreamSampleNotificationUrl } from '@jetstream/shared/assets';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DockedComposer, DockedComposerRef } from '@jetstream/ui';
 import { useUserPreferenceState } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useAnalytics } from '../analytics';
 
 export interface NotificationsRequestModalProps {
   loadDelay?: number;
@@ -20,14 +18,12 @@ export const NotificationsRequestModal: FunctionComponent<NotificationsRequestMo
   const composerRef = useRef<DockedComposerRef>(null);
   const [userPreferences, setUserPreferences] = useUserPreferenceState();
   const [isDismissed, setIsDismissed] = useState(true);
-  const { trackEvent } = useAnalytics();
 
   // ask user for notification permissions on load
   useEffect(() => {
     if (window.Notification) {
       if (userInitiated || (!userPreferences?.deniedNotifications && window.Notification.permission === 'default')) {
         setTimeout(() => setIsDismissed(false), loadDelay);
-        trackEvent(ANALYTICS_KEYS.notifications_modal_opened, { userInitiated, currentPermission: window.Notification.permission });
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -46,7 +42,6 @@ export const NotificationsRequestModal: FunctionComponent<NotificationsRequestMo
     if (onClose) {
       onClose(permission === 'granted');
     }
-    trackEvent(ANALYTICS_KEYS.notifications_permission_requested, { permission });
   }
 
   async function handleEnable() {

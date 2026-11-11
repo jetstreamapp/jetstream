@@ -1,4 +1,4 @@
-import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
+import { TITLES } from '@jetstream/shared/constants';
 import { deleteUserProfile, updateUserProfile } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { eraseCookies, tracker, useTitle } from '@jetstream/shared/ui-utils';
@@ -19,7 +19,6 @@ import {
   SettingsNavItem,
   SettingsSection,
   SoqlQueryFormatSettings,
-  useAnalytics,
 } from '@jetstream/ui-core';
 import { fromAppState, useFeatureFlag, useOperationAccess, userProfileState, userProfileSyncState } from '@jetstream/ui/app-state';
 import { deleteAllDataHistoryFiles } from '@jetstream/ui/data-history';
@@ -37,7 +36,6 @@ type UserPreferences = UserProfileUi['preferences'];
 
 export const Settings = () => {
   useTitle(TITLES.SETTINGS);
-  const { trackEvent } = useAnalytics();
   const [deletingAccount, setDeletingAccount] = useState(false);
   const userProfile = useAtomValue(userProfileState);
   const ability = useAtomValue(fromAppState.abilityState);
@@ -92,7 +90,6 @@ export const Settings = () => {
       try {
         await updateUserProfile({ preferences: changes });
         savedPreferencesRef.current = { ...savedPreferencesRef.current, ...changes };
-        trackEvent(ANALYTICS_KEYS.settings_update_user);
       } catch (ex) {
         mergePreferences(rollbackPreferences(changes));
         fireToast({
@@ -105,11 +102,6 @@ export const Settings = () => {
   }
 
   async function handleDeleteAccount(reason?: string) {
-    /**
-     * FUTURE:
-     * Send email from server letting user know we are sorry to see them go!
-     */
-    trackEvent(ANALYTICS_KEYS.settings_delete_account, { reason });
     setDeletingAccount(true);
     try {
       await deleteUserProfile(reason);

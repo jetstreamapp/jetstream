@@ -1,10 +1,8 @@
 import { css } from '@emotion/react';
 import { LoginConfigAbility } from '@jetstream/acl';
 import type { UserProfileIdentity, UserProfileUiWithIdentities } from '@jetstream/auth/types';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { tracker, useCsrfToken } from '@jetstream/shared/ui-utils';
 import { fireToast, Grid } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
 import { FunctionComponent } from 'react';
 import { ProfileIdentityCard } from './ProfileIdentityCard';
 import { useLinkAccount } from './useLinkAccount';
@@ -25,7 +23,6 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
   loginConfigAbility,
   onUserProfilesChange,
 }) => {
-  const { trackEvent } = useAnalytics();
   const { unlinkAccount, providers } = useLinkAccount();
   const { csrfToken } = useCsrfToken();
 
@@ -33,7 +30,6 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
     try {
       const userProfile = await unlinkAccount(identity);
       onUserProfilesChange(userProfile);
-      trackEvent(ANALYTICS_KEYS.settings_unlink_account, { provider: identity.provider, userId: identity.providerAccountId });
     } catch (ex) {
       fireToast({
         message: 'There was a problem unlinking your account. Try again or file a support ticket for assistance.',
@@ -78,7 +74,6 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
               `}
               action={`${providers.google.signinUrl}?${searchParams}`}
               method="POST"
-              onSubmit={() => trackEvent(ANALYTICS_KEYS.settings_link_account, { provider: 'google' })}
             >
               <input type="hidden" name="csrfToken" value={csrfToken} />
               <input type="hidden" name="callbackUrl" value={providers.google.callbackUrl} />
@@ -104,7 +99,6 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
               `}
               action={`${providers.salesforce.signinUrl}?${searchParams}`}
               method="POST"
-              onSubmit={() => trackEvent(ANALYTICS_KEYS.settings_link_account, { provider: 'salesforce' })}
             >
               <input type="hidden" name="csrfToken" value={csrfToken} />
               <input type="hidden" name="callbackUrl" value={providers.salesforce.callbackUrl} />

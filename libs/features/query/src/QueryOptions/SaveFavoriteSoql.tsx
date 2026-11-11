@@ -1,8 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { Maybe, QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, Icon, Input, Popover, PopoverRef, Spinner, Textarea } from '@jetstream/ui';
-import { fromQueryHistoryState, MonacoEditor, useAnalytics } from '@jetstream/ui-core';
+import { fromQueryHistoryState, MonacoEditor } from '@jetstream/ui-core';
 import { queryHistoryDb } from '@jetstream/ui/db';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 
@@ -29,7 +28,6 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
 }) => {
   const isMounted = useRef(true);
   const popoverRef = useRef<PopoverRef>(null);
-  const { trackEvent } = useAnalytics();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [queryHistoryItem, setQueryHistoryItem] = useState<QueryHistoryItem | null>(null);
@@ -91,7 +89,6 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
     } catch (ex) {
       logger.warn('Unable to save favorite', ex);
     }
-    trackEvent(ANALYTICS_KEYS.query_HistorySaveQueryToggled, { location: 'popover', isFavorite: true });
   }
 
   async function handleRemove() {
@@ -105,7 +102,6 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
       logger.warn('Unable to save favorite', ex);
     }
     popoverRef.current?.close();
-    trackEvent(ANALYTICS_KEYS.query_HistorySaveQueryToggled, { location: 'popover', isFavorite: false });
   }
 
   function handleOpenHistory() {

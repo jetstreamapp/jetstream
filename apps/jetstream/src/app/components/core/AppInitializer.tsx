@@ -18,7 +18,7 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
-import { fromJetstreamEvents, useAnalytics, useInitDataHistory } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useInitDataHistory } from '@jetstream/ui-core';
 import { DEFAULT_PROFILE, fetchLatestUserProfile, fromAppState } from '@jetstream/ui/app-state';
 import { CookieConsentBanner, useConditionalGoogleAnalytics } from '@jetstream/ui/cookie-consent-banner';
 import { ensureLocalStorageReady, initDexieDb, pruneAnalysisJobHistory } from '@jetstream/ui/db';
@@ -164,8 +164,6 @@ APP VERSION ${version}
   useEffect(() => {
     setErrorTrackerUser(userProfile);
   }, [userProfile]);
-
-  useAnalytics(analytics !== 'accepted');
 
   useEffect(() => {
     if (onSaveSoqlQueryFormatOptions?.value) {

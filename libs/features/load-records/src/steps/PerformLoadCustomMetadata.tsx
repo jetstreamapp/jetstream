@@ -1,4 +1,4 @@
-import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
+import { DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, tracker, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { groupByFlat, isProductionOrg } from '@jetstream/shared/utils';
 import {
@@ -20,7 +20,6 @@ import {
   convertCsvToCustomMetadata,
   fromJetstreamEvents,
   prepareCustomMetadata,
-  useAnalytics,
   useDeployMetadataPackage,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth, useOperationAccess } from '@jetstream/ui/app-state';
@@ -59,7 +58,6 @@ export const PerformLoadCustomMetadata = ({
   onIsLoading,
 }: PerformLoadCustomMetadataProps) => {
   const isProduction = isProductionOrg(selectedOrg);
-  const { trackEvent } = useAnalytics();
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
@@ -115,12 +113,6 @@ export const PerformLoadCustomMetadata = ({
           rollbackOnError,
         });
         onIsLoading(true);
-        trackEvent(ANALYTICS_KEYS.load_Submitted, {
-          loadType: 'Custom Metadata',
-          numRecords: inputFileData.length,
-          timesSameDataSubmitted: loadNumber + 1,
-          dateFormat,
-        });
         document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
       } catch (ex) {
         setDeployMetadataError('There was a problem preparing the Custom Metadata for deployment. Please check your file and try again.');
@@ -155,7 +147,6 @@ export const PerformLoadCustomMetadata = ({
       data = data.filter((record) => !record._success);
     }
     setDownloadModalData({ data, fileNameParts: ['custom-metadata', selectedSObject.toLocaleLowerCase(), type], header, open: true });
-    trackEvent(ANALYTICS_KEYS.load_DownloadRecords, { loadType: 'Custom Metadata', type, numRows: data.length });
   }
 
   function handleViewResults(type: DownloadType) {
@@ -184,7 +175,6 @@ export const PerformLoadCustomMetadata = ({
       data = data.filter((record) => !record._success);
     }
     setResultsModalData({ data, header, open: true, type });
-    trackEvent(ANALYTICS_KEYS.load_ViewRecords, { loadType: 'Custom Metadata', type, numRows: data.length });
   }
 
   function handleDownloadRecordsFromModal(type: 'results' | 'failures', rows: any[], header: string[]) {
@@ -221,8 +211,6 @@ export const PerformLoadCustomMetadata = ({
           fileNameParts={downloadModalData.fileNameParts}
           onModalClose={handleModalClose}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="load_records_custom_metadata"
-          trackEvent={trackEvent}
         />
       )}
       {resultsModalData.open && (

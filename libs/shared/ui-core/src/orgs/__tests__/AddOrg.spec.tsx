@@ -3,8 +3,8 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { atom } from 'jotai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-// `@jetstream/ui/app-state` fetches app info and the user profile at module load, and `..` is the
-// full ui-core barrel - neither is needed to exercise the login url derivation this component owns.
+// `@jetstream/ui/app-state` fetches app info and the user profile at module load, which is not
+// needed to exercise the login url derivation this component owns.
 // `doMock` rather than `mock` so the stub atoms can be built from a normal top-level import.
 let canConnectOrgs = true;
 vi.doMock('@jetstream/ui/app-state', () => ({
@@ -13,10 +13,6 @@ vi.doMock('@jetstream/ui/app-state', () => ({
     jetstreamActiveGroupSelector: atom(undefined),
   },
   useCanPerformOperation: () => canConnectOrgs,
-}));
-
-vi.doMock('../..', () => ({
-  useAnalytics: () => ({ trackEvent: vi.fn() }),
 }));
 
 const { AddOrg } = await import('../AddOrg');

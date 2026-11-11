@@ -1,10 +1,9 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { REGEX, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJobNew, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { DropDown, Input, getSfdcRetUrl, salesforceLoginAndRedirect, useConfirmation } from '@jetstream/ui';
-import { fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
+import { fromJetstreamEvents } from '@jetstream/ui-core';
 import { useCanPerformOperation } from '@jetstream/ui/app-state';
 import { Query } from '@jetstreamapp/soql-parser-js';
 import { Fragment, FunctionComponent, useState } from 'react';
@@ -73,7 +72,6 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
   refreshRecords,
   onCreateNewRecord,
 }) => {
-  const { trackEvent } = useAnalytics();
   const { confirm, setOptions } = useConfirmation();
   const [openModal, setOpenModal] = useState<false | 'bulk-update' | 'apex'>(false);
   const canWriteRecords = useCanPerformOperation('records.write');
@@ -124,7 +122,6 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
               { type: 'BulkDelete', title: `Delete ${recordCountText}`, org: selectedOrg, meta: { batchSize, records: selectedRows } },
             ];
             fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
-            trackEvent(ANALYTICS_KEYS.query_BulkDelete, { numRecords: selectedRows.length, source: 'HEADER_ACTION' });
           })
           .catch((ex) => {
             logger.info(ex);
@@ -163,7 +160,6 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
               { type: 'BulkUndelete', title: `Restore ${recordCountText}`, org: selectedOrg, meta: { batchSize, records: selectedRows } },
             ];
             fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
-            trackEvent(ANALYTICS_KEYS.query_BulkUndelete, { numRecords: selectedRows.length, source: 'HEADER_ACTION' });
           })
           .catch((ex) => {
             logger.info(ex);

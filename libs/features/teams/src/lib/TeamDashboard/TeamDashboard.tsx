@@ -1,5 +1,5 @@
 import { LoginConfigurationWithCallbacks } from '@jetstream/auth/types';
-import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
+import { TITLES } from '@jetstream/shared/constants';
 import {
   cancelInvitation,
   getDomainVerifications,
@@ -37,7 +37,7 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { SalesforceCanvasOrgs, useAnalytics } from '@jetstream/ui-core';
+import { SalesforceCanvasOrgs } from '@jetstream/ui-core';
 import { abilityState, fetchLatestUserProfile, fromAppState, useFeatureFlag } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -71,7 +71,6 @@ const HEIGHT_BUFFER = 170;
 
 export function TeamDashboard() {
   useTitle(TITLES.TEAM);
-  const { trackEvent } = useAnalytics();
   const ability = useAtomValue(abilityState);
   const [loading, setLoading] = useState(true);
   const [team, setTeam] = useState<TeamUserFacing>();
@@ -187,11 +186,10 @@ export function TeamDashboard() {
     setLoginConfigurationKey(new Date().getTime());
   }
 
-  function openManageSeats(source: string) {
+  function openManageSeats() {
     if (!canManageSeats || isPastDue || isSeatCountUnknown) {
       return;
     }
-    trackEvent(ANALYTICS_KEYS.team_seats_modal_open, { source });
     setManageSeatsModalOpen(true);
   }
 
@@ -200,7 +198,7 @@ export function TeamDashboard() {
     setInviteModalOpen(false);
     setTeamMemberUpdateState({ open: false });
     setTeamMemberStatusUpdateState({ open: false });
-    openManageSeats('member-modal');
+    openManageSeats();
   }
 
   /**
@@ -259,7 +257,7 @@ export function TeamDashboard() {
         break;
       }
       case 'manage-seats': {
-        openManageSeats('dashboard');
+        openManageSeats();
         break;
       }
     }

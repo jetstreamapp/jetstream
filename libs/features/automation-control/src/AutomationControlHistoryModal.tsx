@@ -64,7 +64,6 @@ export const AutomationControlHistoryModal: FunctionComponent<AutomationControlH
   const { preparingVariant, packageDownload, packageError, preparePackage, closePackageDownload } = useAutomationPackageDownload(
     selectedOrg,
     defaultApiVersion,
-    'history',
   );
 
   const entries = useLiveQuery(() => automationControlHistoryDb.getEntries(selectedOrg.uniqueId), [selectedOrg.uniqueId]);
@@ -167,12 +166,7 @@ export const AutomationControlHistoryModal: FunctionComponent<AutomationControlH
         )}
       </Modal>
       {packageDownload && (
-        <AutomationPackageDownloadModal
-          selectedOrg={selectedOrg}
-          packageDownload={packageDownload}
-          source="automation_control_history"
-          onClose={closePackageDownload}
-        />
+        <AutomationPackageDownloadModal selectedOrg={selectedOrg} packageDownload={packageDownload} onClose={closePackageDownload} />
       )}
     </Fragment>
   );

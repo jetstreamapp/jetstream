@@ -58,7 +58,7 @@ export interface FieldMetadataModalProps {
   field: Field;
   columnName?: string;
   onClose: () => void;
-  /** Fired after the raw field JSON is downloaded (e.g. for analytics). */
+  /** Fired after the raw field JSON is downloaded. */
   onDownload?: () => void;
 }
 
