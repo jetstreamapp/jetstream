@@ -80,6 +80,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const [loading, setLoading] = useState(false);
   const [historyItems, setHistoryItems] = useAtom(fromApexState.apexHistoryState);
   const debouncedApex = useDebounce(apex, 1000);
+  const hasApex = apex.trim().length > 0;
 
   /** Add trace for 1 hour so that any background jobs are logged even if dev console is not open */
   useSetTraceFlag(selectedOrg, 1);
@@ -169,6 +170,10 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
 
   const onSubmit = useCallback(
     async (value: string) => {
+      // Guards the keyboard shortcuts, which bypass the disabled submit button
+      if (!value.trim()) {
+        return;
+      }
       setLoading(true);
       setResults('');
       setTextFilter('');
@@ -230,7 +235,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const handleSubmitApex = useCallback(() => {
     onSubmitRef.current(apexRef.current?.getValue() ?? '');
   }, []);
-  usePrimaryActionShortcut(handleSubmitApex, { disabled: loading });
+  usePrimaryActionShortcut(handleSubmitApex, { disabled: loading || !hasApex });
 
   const handleApexEditorMount: OnMount = (currEditor, monaco) => {
     apexRef.current = currEditor;
@@ -303,7 +308,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
                     </div>
                   }
                 >
-                  <button className="slds-button slds-button_brand" onClick={() => onSubmit(apex)}>
+                  <button className="slds-button slds-button_brand" disabled={!hasApex} onClick={() => onSubmit(apex)}>
                     <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
                     Submit
                   </button>
