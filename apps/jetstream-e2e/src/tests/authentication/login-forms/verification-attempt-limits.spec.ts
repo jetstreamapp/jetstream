@@ -17,7 +17,6 @@ const invalidResetTokenMessage = 'Your reset token is invalid, Restart the reset
 test.describe('Verification attempt limits', () => {
   test.beforeEach(async ({ page, authenticationPage }) => {
     await page.goto('/');
-    await authenticationPage.acceptCookieBanner();
   });
 
   test('Destroys session after MAX failed codes on /auth/verify', async ({ page, authenticationPage }) => {

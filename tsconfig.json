@@ -11,9 +11,6 @@
       "path": "./libs/features/platform-event-monitor"
     },
     {
-      "path": "./libs/shared/cookie-consent-banner"
-    },
-    {
       "path": "./libs/features/permission-analysis"
     },
     {

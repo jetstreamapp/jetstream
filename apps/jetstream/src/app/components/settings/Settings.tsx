@@ -27,7 +27,6 @@ import { useAtomValue } from 'jotai';
 import { useAtomCallback } from 'jotai/utils';
 import { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { AnalyticsTrackingSetting } from './AnalyticsTrackingSetting';
 import { SettingsDeleteAccount } from './SettingsDeleteAccount';
 
 const HEIGHT_BUFFER = 170;
@@ -195,7 +194,6 @@ export const Settings = () => {
 
           <SettingsSection id="privacy-diagnostics" title="Privacy & Diagnostics">
             <SettingsGroup>
-              <AnalyticsTrackingSetting />
               <DiagnosticLoggingSetting />
             </SettingsGroup>
           </SettingsSection>

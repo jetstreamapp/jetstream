@@ -5,7 +5,6 @@ export const environment = {
   name: 'JetstreamDev',
   production: false,
   serverUrl: import.meta.env.NX_PUBLIC_SERVER_URL || window.location.origin,
-  googleAnalyticsSiteId: import.meta.env.NX_GOOGLE_ANALYTICS_KEY || '',
   sentryDsn: import.meta.env.NX_PUBLIC_SENTRY_DSN,
   STRIPE_PUBLIC_KEY: import.meta.env.NX_PUBLIC_STRIPE_PUBLIC_KEY,
   BILLING_ENABLED: import.meta.env.NX_PUBLIC_BILLING_ENABLED === 'true',

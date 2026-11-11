@@ -26,12 +26,6 @@
   "exclude": ["node_modules", "**/*.spec.ts", "**/*.test.ts", "eslint.config.js"],
   "references": [
     {
-      "path": "../../libs/shared/cookie-consent-banner"
-    },
-    {
-      "path": "../../libs/shared/constants"
-    },
-    {
       "path": "../../libs/shared/utils"
     },
     {
@@ -39,6 +33,9 @@
     },
     {
       "path": "../../libs/types"
+    },
+    {
+      "path": "../../libs/shared/constants"
     }
   ]
 }

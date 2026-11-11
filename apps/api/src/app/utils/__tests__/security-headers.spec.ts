@@ -145,7 +145,6 @@ describe('security headers', () => {
 
     // Non-Google sources are retained on /app
     expect(appConnectSrc).toContain('https://api.stripe.com');
-    expect(appConnectSrc).toContain('https://*.google-analytics.com');
     // release-notes.json for the in-app "What's New" popover
     expect(appConnectSrc).toContain('https://docs.getjetstream.app');
 
