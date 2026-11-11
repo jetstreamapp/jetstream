@@ -10,16 +10,16 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "engines": {
     "node": ">=24 <25",
-    "pnpm": "12.4.2"
+    "pnpm": "12.18.0"
   },
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "12.4.2",
+      "version": "12.18.0",
       "onFail": "download"
     }
   },
-  "packageManager": "pnpm@12.4.2+sha512.08adc6613180275c7c9edada39dcf08c9c61ad4e7eaf330a4f3461f102b0f907423454d117f98e72d47fef0616070644d7bffc973a6a57f5090a6d7c368b07c9",
+  "packageManager": "pnpm@12.18.0+sha512.9d7882d5dc82147ecfc4e062aa34834e0ad0296710a1837a1115ae012127d36b7109e321ac1598a1dd0a65597681b1e99917e12ed0d749eae91187943363beb3",
   "scripts": {
     "preinstall": "node scripts/check-package-manager.mjs",
     "init:project": "zx ./scripts/init-project.mjs",
