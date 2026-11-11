@@ -180,6 +180,9 @@ describe('Combobox wrappers with a disabled item', () => {
   beforeEach(() => {
     vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(600);
     vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(600);
+    // @tanstack/virtual-core >= 3.19 sizes the scroll container from clientWidth/clientHeight instead of the offset pair
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(600);
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(600);
   });
   afterEach(() => {
     vi.restoreAllMocks();

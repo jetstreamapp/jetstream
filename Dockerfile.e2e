@@ -1,8 +1,8 @@
-FROM mcr.microsoft.com/playwright:v1.60.0-noble
+FROM mcr.microsoft.com/playwright:v1.65.0-noble
 
 WORKDIR /usr/src/app
 
-ARG PNPM_VERSION=12.4.2
+ARG PNPM_VERSION=12.18.0
 ARG NODE_VERSION=24.22.1
 
 RUN apt-get update && apt-get install -y curl ca-certificates \
