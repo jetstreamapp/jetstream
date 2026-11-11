@@ -1,4 +1,3 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import {
   hasModifierKey,
   hasShiftModifierKey,
@@ -30,7 +29,6 @@ import { useAtom, useAtomValue } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { useAnalytics } from '../analytics';
 import { MonacoEditor } from '../app/MonacoEditor';
 import { fromJetstreamEvents } from '../jetstream-events';
 import { SoqlQueryFormatConfigPopover } from '../settings/SoqlQueryFormatConfigPopover';
@@ -40,7 +38,6 @@ import { useQueryRestore } from './RestoreQuery/useQueryRestore';
 const NUM_HISTORY_ITEMS = 50;
 
 export const QuickQueryPopover = () => {
-  const { trackEvent } = useAnalytics();
   const popoverRef = useRef<PopoverRef>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const { addDisposable } = useDisposables();
@@ -79,18 +76,14 @@ export const QuickQueryPopover = () => {
     setQueryIsValid(!!soql && isQueryValid(soql));
   }, [soql]);
 
-  const onKeydown = useCallback(
-    (event: KeyboardEvent) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (hasModifierKey(event as any) && isEKey(event as any)) {
-        event.stopPropagation();
-        event.preventDefault();
-        popoverRef.current?.open();
-        trackEvent(ANALYTICS_KEYS.quick_query_Open, { method: 'keyboard' });
-      }
-    },
-    [trackEvent],
-  );
+  const onKeydown = useCallback((event: KeyboardEvent) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (hasModifierKey(event as any) && isEKey(event as any)) {
+      event.stopPropagation();
+      event.preventDefault();
+      popoverRef.current?.open();
+    }
+  }, []);
 
   useGlobalEventHandler('keydown', onKeydown);
 
@@ -101,17 +94,13 @@ export const QuickQueryPopover = () => {
   function handleOpenQueryHistory() {
     popoverRef.current?.close();
     setQueryHistoryModalOpen(true);
-    trackEvent(ANALYTICS_KEYS.query_HistoryModalOpened, { source: 'quick_query', type: 'HISTORY' });
   }
 
-  function handleRestore(soqlOverride?: string, isToolingOverride?: boolean, skipTracking = false) {
+  function handleRestore(soqlOverride?: string, isToolingOverride?: boolean) {
     restore(soqlOverride || soql, isToolingOverride ?? isTooling);
-    if (!skipTracking) {
-      trackEvent(ANALYTICS_KEYS.quick_query_Restore, { method: 'button', location: 'popover' });
-    }
   }
 
-  function handleExecute(soqlOverride?: string, isToolingOverride?: boolean, skipTracking = false) {
+  function handleExecute(soqlOverride?: string, isToolingOverride?: boolean) {
     popoverRef.current?.close();
     navigate('/query/results', {
       state: {
@@ -119,9 +108,6 @@ export const QuickQueryPopover = () => {
         soql: soqlOverride || soql,
       },
     });
-    if (!skipTracking) {
-      trackEvent(ANALYTICS_KEYS.quick_query_Execute, { method: 'button', location: 'popover' });
-    }
   }
 
   function handleSelectRecentQuery(event: React.MouseEvent, query: QueryHistoryItem) {
@@ -131,11 +117,9 @@ export const QuickQueryPopover = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (hasModifierKey(event as any)) {
       handleExecute(query.soql, query.isTooling);
-      trackEvent(ANALYTICS_KEYS.quick_query_Execute, { method: 'keyboard', location: 'recent_query' });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } else if (hasShiftModifierKey(event as any)) {
       handleRestore(query.soql, query.isTooling);
-      trackEvent(ANALYTICS_KEYS.quick_query_Restore, { method: 'keyboard', location: 'recent_query' });
     }
   }
 
@@ -167,7 +151,6 @@ export const QuickQueryPopover = () => {
         keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
         run: () => {
           handleExecuteRef.current(currEditor.getValue());
-          trackEvent(ANALYTICS_KEYS.quick_query_Execute, { method: 'keyboard', location: 'editor' });
         },
       }),
     );
@@ -179,7 +162,6 @@ export const QuickQueryPopover = () => {
         contextMenuGroupId: '9_cutcopypaste',
         run: (currEditor) => {
           setSoqlRef.current(formatQuery(currEditor.getValue(), soqlQueryFormatOptionsRef.current));
-          trackEvent(ANALYTICS_KEYS.quick_query_Format, { method: 'editor-shortcut' });
         },
       }),
     );
@@ -298,16 +280,11 @@ export const QuickQueryPopover = () => {
                         disabled={!queryIsValid}
                         onClick={() => {
                           handleFormat();
-                          trackEvent(ANALYTICS_KEYS.quick_query_Format, { method: 'popover' });
                         }}
                       >
                         format
                       </button>
-                      <SoqlQueryFormatConfigPopover
-                        location="QuickQueryPopover"
-                        value={soqlQueryFormatOptions}
-                        onChange={handleSaveSoqlQueryFormatOptions}
-                      />
+                      <SoqlQueryFormatConfigPopover value={soqlQueryFormatOptions} onChange={handleSaveSoqlQueryFormatOptions} />
                     </span>
                   </Grid>
                 }
@@ -371,9 +348,6 @@ export const QuickQueryPopover = () => {
             'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
           title: 'Query Search - ctrl/command + e',
           disabled: !selectedOrg || !!selectedOrg.connectionError,
-          onClick: () => {
-            trackEvent(ANALYTICS_KEYS.quick_query_Open, { method: 'keyboard' });
-          },
         }}
       >
         <Icon type="utility" icon="search" className="slds-button__icon slds-global-header__icon" omitContainer />

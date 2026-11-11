@@ -1,4 +1,3 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
   formatUsd,
@@ -10,7 +9,6 @@ import {
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { JetstreamPricesByLookupKey, StripeUserFacingCustomer, TeamSeatSummary } from '@jetstream/types';
 import { FeedbackLink, ScopedNotification } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { EnhancedBillingCard } from './EnhancedBillingCard';
@@ -67,8 +65,6 @@ export const BillingExistingSubscriptions = ({
   seats,
   teamId,
 }: BillingExistingSubscriptionsProps) => {
-  const { trackEvent } = useAnalytics();
-
   const activeSubscription = customerWithSubscriptions.subscriptions.find(({ status }) => ACTIVE_SUBSCRIPTION_STATUSES.has(status));
   const activeItem = activeSubscription?.items[0];
 
@@ -90,7 +86,6 @@ export const BillingExistingSubscriptions = ({
   });
 
   const handleEnterpriseContact = () => {
-    trackEvent(ANALYTICS_KEYS.billing_session, { action: 'enterprise_contact' });
     window.open('mailto:sales@getjetstream.app?subject=Enterprise Plan Inquiry', '_blank');
   };
 

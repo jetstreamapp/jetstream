@@ -1,4 +1,4 @@
-import { ANALYTICS_KEYS, INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
+import { INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
   ensureXlsxCodepageTable,
@@ -27,7 +27,7 @@ import {
   Spinner,
   fireToast,
 } from '@jetstream/ui';
-import { SkipDataHistoryCheckbox, useAnalytics } from '@jetstream/ui-core';
+import { SkipDataHistoryCheckbox } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useEffect, useMemo, useRef } from 'react';
@@ -60,7 +60,6 @@ const STEP_COUNT = 2;
 
 export const LoadRecordsMultiObject = () => {
   useTitle(TITLES.LOAD);
-  const { trackEvent } = useAnalytics();
   const selectedOrg = useAtomValue(selectedOrgState);
   const orgType = useAtomValue(selectedOrgType);
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
@@ -124,27 +123,17 @@ export const LoadRecordsMultiObject = () => {
   useEffect(() => {
     if (datasets && datasets !== lastTrackedParseRef.current) {
       lastTrackedParseRef.current = datasets;
-      trackEvent(ANALYTICS_KEYS.load_multi_obj_FileProcessed, {
-        worksheets: datasets.length,
-        records: datasets.reduce((count, { data }) => count + data.length, 0),
-        errors: allBlockingErrors.length,
-      });
     }
-  }, [datasets, allBlockingErrors, trackEvent]);
+  }, [datasets, allBlockingErrors]);
 
   useEffect(() => {
     if (!loadIsRunning && runs.length) {
       const latestRun = runs[runs.length - 1];
       if (latestRun.finishedAt && latestRun.runId !== lastTrackedRunIdRef.current) {
         lastTrackedRunIdRef.current = latestRun.runId;
-        trackEvent(ANALYTICS_KEYS.load_multi_obj_Finished, {
-          type: latestRun.type,
-          cancelled: latestRun.cancelled,
-          durationMs: latestRun.startedAt && latestRun.finishedAt ? latestRun.finishedAt.getTime() - latestRun.startedAt.getTime() : null,
-        });
       }
     }
-  }, [loadIsRunning, runs, trackEvent]);
+  }, [loadIsRunning, runs]);
 
   // Registered on mount so the table is ready by the time a file is chosen.
   useEffect(() => {
@@ -177,7 +166,6 @@ export const LoadRecordsMultiObject = () => {
 
   function handleStartOver() {
     resetAll();
-    trackEvent(ANALYTICS_KEYS.load_StartOver, { page: 'load-multi-object' });
   }
 
   function changeStep(changeBy: number) {
@@ -196,13 +184,7 @@ export const LoadRecordsMultiObject = () => {
     <div>
       <p className="slds-form-element__label slds-m-bottom_xx-small">
         Upload a file based on the{' '}
-        <a
-          href={templateUrl}
-          target="_blank"
-          rel="noreferrer"
-          download
-          onClick={() => trackEvent(ANALYTICS_KEYS.load_multi_obj_TemplateDownloaded)}
-        >
+        <a href={templateUrl} target="_blank" rel="noreferrer" download>
           Excel template
         </a>
       </p>
@@ -228,8 +210,6 @@ export const LoadRecordsMultiObject = () => {
           disabled: fileParsing,
           onReadFile: handleGoogleFile,
         }}
-        source="load_records_multi_object"
-        trackEvent={trackEvent}
       />
     </div>
   );
@@ -315,12 +295,7 @@ export const LoadRecordsMultiObject = () => {
               showViewLink
               onChange={setSkipDataHistory}
             />
-            {!hasData && !fileParsing && (
-              <LoadRecordsMultiObjectEmptyState
-                templateUrl={templateUrl}
-                onTemplateDownload={() => trackEvent(ANALYTICS_KEYS.load_multi_obj_TemplateDownloaded)}
-              />
-            )}
+            {!hasData && !fileParsing && <LoadRecordsMultiObjectEmptyState templateUrl={templateUrl} />}
             {hasData && <LoadRecordsMultiObjectReview />}
           </div>
         )}

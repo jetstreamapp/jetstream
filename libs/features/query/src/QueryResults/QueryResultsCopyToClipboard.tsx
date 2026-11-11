@@ -1,7 +1,5 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { Maybe, SalesforceRecord } from '@jetstream/types';
 import { CopyRecordsToClipboardButton } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
 import { FunctionComponent } from 'react';
 
 export interface QueryResultsCopyToClipboardProps {
@@ -11,7 +9,6 @@ export interface QueryResultsCopyToClipboardProps {
   records: Maybe<SalesforceRecord[]>;
   filteredRows: SalesforceRecord[];
   selectedRows: SalesforceRecord[];
-  isTooling: boolean;
 }
 
 export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToClipboardProps> = ({
@@ -21,10 +18,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
   records,
   filteredRows,
   selectedRows,
-  isTooling,
 }) => {
-  const { trackEvent } = useAnalytics();
-
   return (
     <CopyRecordsToClipboardButton
       className={className}
@@ -33,7 +27,6 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
       records={records}
       filteredRecords={filteredRows}
       selectedRecords={selectedRows}
-      onCopy={({ format, whichRecords }) => trackEvent(ANALYTICS_KEYS.query_CopyToClipboard, { isTooling, whichRecords, format })}
     />
   );
 };

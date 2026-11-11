@@ -5,7 +5,7 @@ import { delay, unSanitizeXml } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { FileExtAllTypes, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Checkbox, FileDownloadModal, Modal, Spinner, TreeItems } from '@jetstream/ui';
-import { fromJetstreamEvents, MonacoDiffEditor, MonacoEditor, useAnalytics } from '@jetstream/ui-core';
+import { fromJetstreamEvents, MonacoDiffEditor, MonacoEditor } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import type { editor } from 'monaco-editor';
@@ -25,7 +25,6 @@ export interface ViewOrCompareMetadataModalProps {
 }
 
 export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClose }: ViewOrCompareMetadataModalProps) => {
-  const { trackEvent } = useAnalytics();
   const [isSingleOrgMode] = useState(() => isBrowserExtension() || isCanvasApp());
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
@@ -265,8 +264,6 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
           allowedTypes={downloadFileModalConfig.allowedTypes}
           onModalClose={handleFileDownloadModalClose}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="compare_metadata_modal"
-          trackEvent={trackEvent}
         />
       )}
       {deployConfirmationModalConfig.open && deployConfirmationModalConfig.targetOrg && (

@@ -1,7 +1,6 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { AutomationControlHistoryEntry, AutomationControlRestoreAction, SalesforceOrgUi } from '@jetstream/types';
 import { ConfirmationModalPromise, Icon } from '@jetstream/ui';
-import { fromAutomationControlState, useAnalytics } from '@jetstream/ui-core';
+import { fromAutomationControlState } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import { useSetAtom } from 'jotai';
 import { Fragment, FunctionComponent, useState } from 'react';
@@ -23,7 +22,6 @@ export const AutomationControlHistoryButton: FunctionComponent<AutomationControl
   hasUnsavedChanges,
   onRestore,
 }) => {
-  const { trackEvent } = useAnalytics();
   const [isOpen, setIsOpen] = useState(false);
   const setSelectedSObjects = useSetAtom(fromAutomationControlState.selectedSObjectsState);
   const setSelectedAutomationTypes = useSetAtom(fromAutomationControlState.selectedAutomationTypes);
@@ -31,7 +29,6 @@ export const AutomationControlHistoryButton: FunctionComponent<AutomationControl
 
   function handleOpen() {
     setIsOpen(true);
-    trackEvent(ANALYTICS_KEYS.automation_history_opened);
   }
 
   async function handleRestore(entry: AutomationControlHistoryEntry, action: AutomationControlRestoreAction) {
@@ -52,7 +49,6 @@ export const AutomationControlHistoryButton: FunctionComponent<AutomationControl
     setSelectedAutomationTypes(Array.from(new Set(snapshot.map(({ type }) => type))));
     setPendingHistoryRestore({ entry, action, requestedAt: Date.now() });
     setIsOpen(false);
-    trackEvent(ANALYTICS_KEYS.automation_history_restore, { action, items: snapshot.length });
     onRestore?.();
   }
 

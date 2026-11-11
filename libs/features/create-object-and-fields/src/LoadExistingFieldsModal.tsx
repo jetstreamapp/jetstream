@@ -1,5 +1,4 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { clearCacheForOrg, describeSObject, query } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { splitArrayToMaxSize } from '@jetstream/shared/utils';
@@ -28,7 +27,6 @@ import {
   getDeveloperNameFromFieldApiName,
   getExistingFieldRows,
   mapFieldToFieldValues,
-  useAnalytics,
 } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -99,7 +97,6 @@ export const LoadExistingFieldsModal: FunctionComponent<LoadExistingFieldsModalP
   onLoadFields,
   onClose,
 }) => {
-  const { trackEvent } = useAnalytics();
   const [sourceObject, setSourceObject] = useState<string>(selectedSObjects.length === 1 ? selectedSObjects[0] : '');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -223,11 +220,6 @@ export const LoadExistingFieldsModal: FunctionComponent<LoadExistingFieldsModalP
         })
         .filter((row): row is FieldValues => row !== null);
 
-      trackEvent(ANALYTICS_KEYS.sobj_create_field_load_from_org, {
-        numFields: mappedRows.length,
-        sourceObject,
-      });
-
       onLoadFields(mappedRows);
       onClose();
     } catch (err: any) {
@@ -239,7 +231,7 @@ export const LoadExistingFieldsModal: FunctionComponent<LoadExistingFieldsModalP
     } finally {
       setSubmitting(false);
     }
-  }, [fields, selectedRows, sourceObject, selectedOrg, trackEvent, onLoadFields, onClose]);
+  }, [fields, selectedRows, sourceObject, selectedOrg, onLoadFields, onClose]);
 
   return (
     <Modal

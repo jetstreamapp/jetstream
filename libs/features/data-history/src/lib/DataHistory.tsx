@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
+import { TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
   isBrowserExtension,
@@ -26,19 +26,13 @@ import {
   ScopedNotification,
   UpgradeToProButton,
 } from '@jetstream/ui';
-import {
-  openHistoryFolder,
-  useAnalytics,
-  useDataHistoryStorage,
-  useRequestPersistentStorage,
-  useSetDataHistoryCaptureEnabled,
-} from '@jetstream/ui-core';
+import { openHistoryFolder, useDataHistoryStorage, useRequestPersistentStorage, useSetDataHistoryCaptureEnabled } from '@jetstream/ui-core';
 import { dataHistoryCaptureEnabledState, fromAppState } from '@jetstream/ui/app-state';
 import { deleteDataHistoryEntry, getDataHistoryStorageLocation, setDataHistoryPinned } from '@jetstream/ui/data-history';
 import { dataHistoryDb } from '@jetstream/ui/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useAtomValue } from 'jotai';
-import { Fragment, FunctionComponent, useCallback, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useState } from 'react';
 import { Link } from 'react-router';
 import { DataHistoryExportTarget } from './data-history-payload-views';
 import { DataHistoryDetailModal } from './DataHistoryDetailModal';
@@ -127,10 +121,9 @@ const scopedNotificationNeutralButtonCss = css`
 
 export const DataHistory: FunctionComponent = () => {
   useTitle(TITLES.DATA_HISTORY);
-  const { trackEvent } = useAnalytics();
   const orgs = useAtomValue(fromAppState.salesforceOrgsState);
   const captureEnabled = useAtomValue(dataHistoryCaptureEnabledState);
-  const setCaptureEnabled = useSetDataHistoryCaptureEnabled({ analyticsLocation: 'data-history-page' });
+  const setCaptureEnabled = useSetDataHistoryCaptureEnabled();
   const limits = useAtomValue(fromAppState.dataHistoryLimitsState);
   // The resolved tier is the free/paid signal — entry-capped means the free tier is active
   const showUpgradeToPro = limits?.maxEntries != null;
@@ -148,20 +141,8 @@ export const DataHistory: FunctionComponent = () => {
   // Format download modal opened from a table row (the detail modal hosts its own)
   const [rowDownload, setRowDownload] = useState<{ item: DataHistoryItem; target: DataHistoryExportTarget } | null>(null);
 
-  useEffect(() => {
-    trackEvent(ANALYTICS_KEYS.data_history_page_view);
-  }, [trackEvent]);
-
-  const { persistPromptEligible, persisted, requestingPersist, requestPersist } = useRequestPersistentStorage({
-    analyticsLocation: 'data-history-page',
-  });
-  const {
-    backendStatus,
-    storeInFolder,
-    reconnectFolder,
-    available: canStoreInFolder,
-    working: storageWorking,
-  } = useDataHistoryStorage({ analyticsLocation: 'data-history-page' });
+  const { persistPromptEligible, persisted, requestingPersist, requestPersist } = useRequestPersistentStorage();
+  const { backendStatus, storeInFolder, reconnectFolder, available: canStoreInFolder, working: storageWorking } = useDataHistoryStorage();
 
   // The three-way "where do history files live" decision, shared with the Settings panel so the two
   // surfaces can never give the user contradictory answers — see `getDataHistoryStorageLocation`.
@@ -205,14 +186,10 @@ export const DataHistory: FunctionComponent = () => {
   const liveDetailItem = useLiveQuery(() => (detailKey ? dataHistoryDb.getEntry(detailKey) : undefined), [detailKey]);
   const detailItem = detailKey ? (liveDetailItem ?? detailFallback) : null;
 
-  const openDetail = useCallback(
-    (item: DataHistoryItem) => {
-      setDetailKey(item.key);
-      setDetailFallback(item);
-      trackEvent(ANALYTICS_KEYS.data_history_view_detail, { source: item.source });
-    },
-    [trackEvent],
-  );
+  const openDetail = useCallback((item: DataHistoryItem) => {
+    setDetailKey(item.key);
+    setDetailFallback(item);
+  }, []);
 
   function closeDetail() {
     setDetailKey(null);
@@ -254,46 +231,38 @@ export const DataHistory: FunctionComponent = () => {
     }
   }
 
-  const handleTogglePin = useCallback(
-    async (item: DataHistoryItem) => {
-      try {
-        await setDataHistoryPinned(item.key, !item.pinned);
-        trackEvent(ANALYTICS_KEYS.data_history_pin, { pinned: !item.pinned });
-      } catch (ex) {
-        logger.warn('[DATA_HISTORY] Error pinning entry', ex);
-      }
-    },
-    [trackEvent],
-  );
+  const handleTogglePin = useCallback(async (item: DataHistoryItem) => {
+    try {
+      await setDataHistoryPinned(item.key, !item.pinned);
+    } catch (ex) {
+      logger.warn('[DATA_HISTORY] Error pinning entry', ex);
+    }
+  }, []);
 
-  const handleDelete = useCallback(
-    async (item: DataHistoryItem) => {
-      try {
-        if (
-          await ConfirmationModalPromise({
-            content: 'This will permanently delete this history entry and its saved data from this device. This cannot be undone.',
-          })
-        ) {
-          const { deleted } = await deleteDataHistoryEntry(item.key);
-          if (!deleted) {
-            // Refused for a live capture AND for a recent in-progress entry a closed tab left behind —
-            // the latter only becomes deletable once the sweep marks it incomplete
-            fireToast({
-              type: 'warning',
-              message:
-                'This entry is still being written, or its load was interrupted less than 24 hours ago. Try again once the load finishes, or after 24 hours.',
-            });
-            return;
-          }
-          trackEvent(ANALYTICS_KEYS.data_history_delete, { source: item.source });
+  const handleDelete = useCallback(async (item: DataHistoryItem) => {
+    try {
+      if (
+        await ConfirmationModalPromise({
+          content: 'This will permanently delete this history entry and its saved data from this device. This cannot be undone.',
+        })
+      ) {
+        const { deleted } = await deleteDataHistoryEntry(item.key);
+        if (!deleted) {
+          // Refused for a live capture AND for a recent in-progress entry a closed tab left behind —
+          // the latter only becomes deletable once the sweep marks it incomplete
+          fireToast({
+            type: 'warning',
+            message:
+              'This entry is still being written, or its load was interrupted less than 24 hours ago. Try again once the load finishes, or after 24 hours.',
+          });
+          return;
         }
-      } catch (ex) {
-        logger.warn('[DATA_HISTORY] Error deleting entry', ex);
-        fireToast({ type: 'error', message: 'There was a problem deleting this history entry.' });
       }
-    },
-    [trackEvent],
-  );
+    } catch (ex) {
+      logger.warn('[DATA_HISTORY] Error deleting entry', ex);
+      fireToast({ type: 'error', message: 'There was a problem deleting this history entry.' });
+    }
+  }, []);
 
   return (
     <Page testId="data-history-page">
@@ -413,7 +382,7 @@ export const DataHistory: FunctionComponent = () => {
               <span className="slds-m-right_small">
                 {`All ${limits?.maxEntries} of your free plan's history entries are pinned, so new data modifications will not be kept in your history. Unpin or delete an entry, or upgrade for unlimited entries.`}
               </span>
-              <UpgradeToProButton trackEvent={trackEvent} source="data-history-pinned-cap" />
+              <UpgradeToProButton />
             </Grid>
           </ScopedNotification>
         )}
@@ -424,7 +393,7 @@ export const DataHistory: FunctionComponent = () => {
                 <span className="slds-m-right_small">
                   {`Free accounts keep your ${limits?.maxEntries} most recent history entries. Upgrade for unlimited entries and up to a year of history.`}
                 </span>
-                <UpgradeToProButton trackEvent={trackEvent} source="data-history" />
+                <UpgradeToProButton />
               </Grid>
               <button className="slds-button slds-button_icon" title="Dismiss" onClick={handleDismissUpgradeBanner}>
                 <Icon type="utility" icon="close" className="slds-button__icon" omitContainer description="Dismiss" />
@@ -489,12 +458,7 @@ export const DataHistory: FunctionComponent = () => {
           <DataHistoryDetailModal key={detailItem.key} item={detailItem} onClose={closeDetail} onViewEntry={handleViewEntry} />
         )}
         {rowDownload && (
-          <DataHistoryFormatDownloadModal
-            item={rowDownload.item}
-            target={rowDownload.target}
-            analyticsLocation="table"
-            onClose={() => setRowDownload(null)}
-          />
+          <DataHistoryFormatDownloadModal item={rowDownload.item} target={rowDownload.target} onClose={() => setRowDownload(null)} />
         )}
       </AutoFullHeightContainer>
     </Page>

@@ -45,7 +45,6 @@ import {
   fromJetstreamEvents,
   fromPermissionsState,
   jobsState,
-  useAnalytics,
 } from '@jetstream/ui-core';
 import {
   applicationCookieState,
@@ -99,7 +98,6 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const canDeployMetadata = useCanPerformOperation('metadata.deploy');
   const canUsePermissionAnalysis = useCanAccessTool('permission-analysis');
-  const { trackEvent } = useAnalytics();
 
   const renderPopoverTrigger = (recordType: ProfileOrPermSetRecordType) => (item: ListItem) => {
     const meta = item.meta as PermissionSetWithProfileRecord | PermissionSetNoProfileRecord | undefined;
@@ -126,7 +124,6 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
           recordType={recordType}
           meta={meta}
           allowManageAssignments={recordType === 'PermissionSet' && canDeployMetadata}
-          trackEvent={trackEvent}
         />
       </Grid>
     );

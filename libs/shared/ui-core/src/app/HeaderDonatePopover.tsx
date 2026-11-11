@@ -1,10 +1,7 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { Icon, Popover, PopoverRef } from '@jetstream/ui';
 import { useEffect, useRef } from 'react';
-import { useAnalytics } from '../analytics';
 
 export const HeaderDonatePopover = () => {
-  const { trackEvent } = useAnalytics();
   const isMounted = useRef(true);
   const popoverRef = useRef<PopoverRef>(null);
 
@@ -17,14 +14,12 @@ export const HeaderDonatePopover = () => {
 
   function closePopover() {
     popoverRef.current?.close();
-    trackEvent(ANALYTICS_KEYS.donate_popover_cta_click);
   }
 
   return (
     <Popover
       ref={popoverRef}
       placement="bottom-end"
-      onChange={(isOpen) => isOpen && trackEvent(ANALYTICS_KEYS.donate_popover_open)}
       header={
         <header className="slds-popover__header">
           <h2 className="slds-text-heading_small" title="Get Help">

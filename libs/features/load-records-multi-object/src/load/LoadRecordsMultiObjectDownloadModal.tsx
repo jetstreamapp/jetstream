@@ -1,6 +1,6 @@
 import { FileExtAllTypes } from '@jetstream/types';
 import { FileDownloadModal } from '@jetstream/ui';
-import { fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
+import { fromJetstreamEvents } from '@jetstream/ui-core';
 import { fromAppState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent } from 'react';
@@ -16,7 +16,6 @@ export const LoadRecordsMultiObjectDownloadModal: FunctionComponent<LoadRecordsM
   downloadModalData,
   onClose,
 }) => {
-  const { trackEvent } = useAnalytics();
   const selectedOrg = useAtomValue(selectedOrgState);
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(fromAppState.applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
@@ -39,8 +38,6 @@ export const LoadRecordsMultiObjectDownloadModal: FunctionComponent<LoadRecordsM
       allowedTypes={downloadModalData.allowedTypes as FileExtAllTypes[]}
       onModalClose={onClose}
       emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-      source="load_records_multi_object"
-      trackEvent={trackEvent}
     />
   );
 };

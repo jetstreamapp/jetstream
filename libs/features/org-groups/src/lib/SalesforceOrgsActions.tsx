@@ -1,7 +1,5 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { DropDown } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
 import { useState } from 'react';
 import { DeleteOrgsModal } from './DeleteOrgsModal';
 
@@ -11,16 +9,11 @@ interface SalesforceOrgsActionsProps {
 }
 
 export const SalesforceOrgsActions = ({ orgs, onOrgsDeleted }: SalesforceOrgsActionsProps) => {
-  const { trackEvent } = useAnalytics();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   function handleAction(action: string) {
     switch (action) {
       case 'DELETE_ORGS':
-        trackEvent(ANALYTICS_KEYS.sfdc_org_delete_modal_open, {
-          orgCount: orgs.length,
-          orgsWithErrorCount: orgs.filter(({ connectionError }) => !!connectionError).length,
-        });
         setIsDeleteModalOpen(true);
         break;
     }

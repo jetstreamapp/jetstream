@@ -1,10 +1,9 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, ConfirmationModalPromise, DropDown, Grid, Icon, ScopedNotification } from '@jetstream/ui';
-import { ConfirmPageChange, useAnalytics } from '@jetstream/ui-core';
+import { ConfirmPageChange } from '@jetstream/ui-core';
 import { useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useMemo } from 'react';
@@ -32,7 +31,6 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
   serverUrl,
   apiVersion,
 }) => {
-  const { trackEvent } = useAnalytics();
   const writeAccess = useOperationAccess('records.write');
   const { downloadRequests, downloadResults, handleCloseDownloadModal, downloadModalData } = useDownloadResults();
 
@@ -79,28 +77,19 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
         content: 'This file has already been loaded, are you sure you want to load it again?',
       }))
     ) {
-      trackEvent(ANALYTICS_KEYS.load_multi_obj_Submitted, {
-        records: totalRecordCount,
-        groups: totalGroupCount,
-        requests: requests.length,
-        isReload: runs.length > 0,
-      });
       loadFile(requests);
     }
   }
 
   function handleRetryFailed() {
-    trackEvent(ANALYTICS_KEYS.load_multi_obj_RetryFailed, { groups: failedGroupCount });
     retryFailed(failedGroupRequests);
   }
 
   function handleCancel() {
-    trackEvent(ANALYTICS_KEYS.load_multi_obj_Cancelled, { progress });
     cancel();
   }
 
   function handleDownloadResults(which: 'results' | 'failures') {
-    trackEvent(ANALYTICS_KEYS.load_multi_obj_DownloadResults, { which });
     downloadResults(resultRows, which);
   }
 

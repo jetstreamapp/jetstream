@@ -34,7 +34,6 @@ import {
   XlsxSheetSelectionModalPromise,
   fireToast,
 } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
 import { useCanPerformOperation } from '@jetstream/ui/app-state';
 import { Fragment } from 'react';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
@@ -111,7 +110,6 @@ export const LoadRecordsSelectObjectAndFile = ({
   onExternalIdChange,
   children,
 }: LoadRecordsSelectObjectAndFileProps) => {
-  const { trackEvent } = useAnalytics();
   const canDeployMetadata = useCanPerformOperation('metadata.deploy');
   const hasGoogleInputConfigured =
     isDesktop() ||
@@ -271,8 +269,6 @@ export const LoadRecordsSelectObjectAndFile = ({
                       inputGoogleFile,
                       onReadFile: handleGoogleFile,
                     }}
-                    source="load_records_single_object"
-                    trackEvent={trackEvent}
                   />
                 </GridCol>
               </Grid>

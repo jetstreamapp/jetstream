@@ -1,5 +1,4 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { getErrorMessage, multiWordObjectFilter } from '@jetstream/shared/utils';
 import {
   Checkbox,
@@ -13,7 +12,6 @@ import {
   SearchInput,
   Spinner,
 } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 import { validateTestSuiteName } from '../apex-test-runner-data.utils';
 import type { TestClassListItem } from '../apex-test-runner-types';
@@ -26,7 +24,6 @@ export interface TestSuiteManagerModalProps {
 }
 
 export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps> = ({ suitesState, testClasses, onClose }) => {
-  const { trackEvent } = useAnalytics();
   const { suites, membershipsBySuiteId, loading, errorMessage, createSuite, renameSuite, removeSuite, saveSuiteMembership } = suitesState;
   const [selectedSuiteId, setSelectedSuiteId] = useState<string | null>(null);
   const [newSuiteName, setNewSuiteName] = useState('');
@@ -90,7 +87,6 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
       setSaving(true);
       setActionError(null);
       const suiteId = await createSuite(newSuiteName.trim());
-      trackEvent(ANALYTICS_KEYS.apex_tests_suite_created);
       setNewSuiteName('');
       setSelectedSuiteId(suiteId);
     } catch (ex) {
@@ -108,7 +104,6 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
       setSaving(true);
       setActionError(null);
       await renameSuite(selectedSuite.Id, renameValue.trim());
-      trackEvent(ANALYTICS_KEYS.apex_tests_suite_updated, { action: 'rename' });
     } catch (ex) {
       setActionError(getErrorMessage(ex));
     } finally {
@@ -130,7 +125,6 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
         setSaving(true);
         setActionError(null);
         await removeSuite(selectedSuite.Id);
-        trackEvent(ANALYTICS_KEYS.apex_tests_suite_deleted);
         setSelectedSuiteId(null);
       } catch (ex) {
         setActionError(getErrorMessage(ex));
@@ -148,7 +142,6 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
       setSaving(true);
       setActionError(null);
       await saveSuiteMembership(selectedSuite.Id, memberClassIds);
-      trackEvent(ANALYTICS_KEYS.apex_tests_suite_updated, { action: 'membership', classCount: memberClassIds.size });
     } catch (ex) {
       setActionError(getErrorMessage(ex));
     } finally {

@@ -102,25 +102,3 @@ export const listMetadataQueriesSelector = atom<ListMetadataQueryExtended[]>((ge
       };
     });
 });
-
-export const analyticsSubmissionSelector = atom((get) => {
-  const metadataSelectionType = get(metadataSelectionTypeState);
-  const userSelection = get(userSelectionState);
-  const dateRangeSelection = get(dateRangeSelectionState);
-  const dateStartRange = get(dateRangeStartState);
-  const dateEndRange = get(dateRangeEndState);
-  const selectedMetadataItems = get(selectedMetadataItemsState);
-  const selectedUsers = get(selectedUsersState);
-  const includeManaged = get(includeManagedPackageItems);
-
-  return {
-    metadataCount: selectedMetadataItems.size,
-    metadataSelectionType,
-    userSelection,
-    selectedUserCount: selectedUsers.length,
-    dateRangeSelection,
-    dateStartRange,
-    dateEndRange,
-    includeManaged: includeManaged === 'Yes',
-  };
-});

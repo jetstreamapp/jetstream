@@ -239,7 +239,6 @@ export const DataHistoryDetailModal: FunctionComponent<DataHistoryDetailModalPro
         <DataHistoryFormatDownloadModal
           item={item}
           target={downloadTarget}
-          analyticsLocation="detail-modal"
           onClose={() => setDownloadTarget(null)}
           onError={setFileError}
         />

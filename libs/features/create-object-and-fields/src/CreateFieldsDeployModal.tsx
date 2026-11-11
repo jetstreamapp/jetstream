@@ -1,5 +1,4 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useFetchPageLayouts } from '@jetstream/shared/ui-utils';
 import { PermissionSetNoProfileRecord, PermissionSetWithProfileRecord, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, ConfirmationModalPromise, FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
@@ -9,7 +8,6 @@ import {
   fromJetstreamEvents,
   OrgLabelBadge,
   prepareDownloadResultsFile,
-  useAnalytics,
   useCreateFields,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
@@ -36,7 +34,6 @@ export const CreateFieldsDeployModal = ({
   rows,
   onClose,
 }: CreateFieldsDeployModalProps) => {
-  const { trackEvent } = useAnalytics();
   const { defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const {
@@ -67,11 +64,6 @@ export const CreateFieldsDeployModal = ({
   }, [prepareFields, rows, sObjects]);
 
   async function handleDeploy() {
-    trackEvent(ANALYTICS_KEYS.sobj_create_field_deploy, {
-      numFields: rows.length,
-      numLayouts: selectedLayoutIds.size,
-      previousDeploy: deployed,
-    });
     if (deployed) {
       setConfirmModalOpen(true);
       if (
@@ -96,10 +88,6 @@ export const CreateFieldsDeployModal = ({
   function downloadResults() {
     setExportModalData(prepareDownloadResultsFile(results, rows, profilesAndPermSetsById));
     setExportModalOpen(true);
-    trackEvent(ANALYTICS_KEYS.sobj_create_field_export_results, {
-      numFields: rows.length,
-      numResults: results.length,
-    });
   }
 
   function handleDownloadResultsModalClosed() {
@@ -125,8 +113,6 @@ export const CreateFieldsDeployModal = ({
           allowedTypes={['xlsx']}
           onModalClose={handleDownloadResultsModalClosed}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="create_fields_deploy_modal"
-          trackEvent={trackEvent}
         />
       )}
       {!confirmModalOpen && !exportModalOpen && (

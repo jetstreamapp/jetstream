@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, HTTP, TITLES } from '@jetstream/shared/constants';
+import { HTTP, TITLES } from '@jetstream/shared/constants';
 import { getSubscriptions, getTeam, initCheckoutSession } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { tracker, useSessionCsrfToken, useTitle } from '@jetstream/shared/ui-utils';
@@ -26,7 +26,6 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtom } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
@@ -55,7 +54,6 @@ function isTeamPriceKey(priceKey: StripePriceKey): priceKey is 'TEAM_MONTHLY' | 
 
 export const Billing = () => {
   useTitle(TITLES.BILLING);
-  const { trackEvent } = useAnalytics();
   const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
@@ -190,12 +188,6 @@ export const Billing = () => {
       });
       // Redirect
       window.location.href = url;
-      // Track analytics for enterprise contact
-      trackEvent(ANALYTICS_KEYS.billing_session, {
-        action: 'create_session',
-        priceId: selectedPlan,
-        seats: isTeamPlan ? seats : undefined,
-      });
     } catch (ex) {
       tracker.error('There was an error initiating your checkout session', ex);
       // The server explains its own rejections (seat minimum, manual billing, permissions); only an
@@ -209,8 +201,6 @@ export const Billing = () => {
   };
 
   const handleEnterpriseContact = () => {
-    // Track analytics for enterprise contact
-    trackEvent(ANALYTICS_KEYS.billing_session, { action: 'enterprise_contact' });
     // Open email or contact form
     window.open('mailto:sales@getjetstream.app?subject=Enterprise Plan Inquiry', '_blank');
   };
@@ -231,7 +221,7 @@ export const Billing = () => {
           <PageHeaderTitle icon={{ type: 'standard', icon: 'billing' }} label="Billing" docsPath={APP_ROUTES.BILLING.DOCS} />
           {customerWithSubscriptions && (
             <PageHeaderActions colType="actions" buttonType="separate">
-              <form method="POST" action="/api/billing/portal" target="_blank" onSubmit={() => trackEvent(ANALYTICS_KEYS.billing_portal)}>
+              <form method="POST" action="/api/billing/portal" target="_blank">
                 {csrfToken && <input type="hidden" name={HTTP.BODY.CSRF_TOKEN} value={csrfToken} />}
                 <button className="slds-button slds-button_brand">
                   Billing Portal

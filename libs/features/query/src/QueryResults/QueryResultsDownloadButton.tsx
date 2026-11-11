@@ -1,8 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { AsyncJobNew, BulkDownloadJob, Maybe, QueryResultsColumn, SalesforceOrgUi } from '@jetstream/types';
-import { DownloadFromServerOpts, Icon, RecordDownloadFileFormat, RecordDownloadModal } from '@jetstream/ui';
-import { fromJetstreamEvents, fromQueryState, useAnalytics } from '@jetstream/ui-core';
+import { DownloadFromServerOpts, Icon, RecordDownloadModal } from '@jetstream/ui';
+import { fromJetstreamEvents, fromQueryState } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, useCanAccessTool } from '@jetstream/ui/app-state';
 import { composeQuery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import { useAtomValue } from 'jotai';
@@ -39,23 +38,11 @@ export const QueryResultsDownloadButton = ({
   selectedRows,
   totalRecordCount,
 }: QueryResultsDownloadButtonProps) => {
-  const { trackEvent } = useAnalytics();
   const { google_apiKey, google_appId, google_clientId, serverUrl } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [isDownloadModalOpen, setModalOpen] = useState<boolean>(false);
   const includeDeletedRecords = useAtomValue(fromQueryState.queryIncludeDeletedRecordsState);
   const canUseLoadTool = useCanAccessTool('load');
-
-  function handleDidDownload(fileFormat: RecordDownloadFileFormat, whichFields: 'all' | 'specified', includeSubquery: boolean) {
-    trackEvent(ANALYTICS_KEYS.query_DownloadResults, {
-      source: 'BROWSER',
-      fileFormat,
-      isTooling,
-      userOverrideFields: whichFields === 'specified',
-      whichFields,
-      includeSubquery,
-    });
-  }
 
   function handleDownloadFromServer(options: DownloadFromServerOpts) {
     const {
@@ -63,7 +50,6 @@ export const QueryResultsDownloadButton = ({
       fileName,
       fields,
       includeSubquery,
-      whichFields,
       recordsToInclude,
       hasAllRecords,
       googleFolder,
@@ -121,13 +107,6 @@ export const QueryResultsDownloadButton = ({
       },
     ];
     fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
-    trackEvent(ANALYTICS_KEYS.query_DownloadResults, {
-      source: 'SERVER',
-      fileFormat,
-      isTooling,
-      userOverrideFields: whichFields === 'specified',
-      includeSubquery,
-    });
   }
 
   return (
@@ -153,12 +132,9 @@ export const QueryResultsDownloadButton = ({
           selectedRecords={selectedRows}
           totalRecordCount={totalRecordCount || 0}
           onModalClose={() => setModalOpen(false)}
-          onDownload={handleDidDownload}
           includeDeletedRecords={includeDeletedRecords}
           onDownloadFromServer={handleDownloadFromServer}
           loadTemplateOption={sObject && !isTooling ? { sobject: sObject, showLoadToolLink: canUseLoadTool } : undefined}
-          source="query_results"
-          trackEvent={trackEvent}
         />
       )}
     </Fragment>

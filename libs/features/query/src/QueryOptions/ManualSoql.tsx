@@ -1,4 +1,3 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { sanitizePastedEditorText, useDisposables } from '@jetstream/shared/ui-utils';
 import { SoqlQueryFormatOptions } from '@jetstream/types';
 import { CheckboxToggle, Grid, GridCol, Icon, Popover, PopoverRef, Spinner, Textarea } from '@jetstream/ui';
@@ -8,7 +7,6 @@ import {
   RestoreQuery,
   SoqlQueryFormatConfigPopover,
   SoqlValidIndicator,
-  useAnalytics,
   useSoqlCompletions,
 } from '@jetstream/ui-core';
 import { selectedOrgState, soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
@@ -31,7 +29,6 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const { addDisposable } = useDisposables();
   const navigate = useNavigate();
-  const { trackEvent } = useAnalytics();
   const [soql, setSoql] = useState<string>('');
   const [isRestoring, setIsRestoring] = useState(false);
   const [queryIsValid, setQueryIsValid] = useState(false);
@@ -147,7 +144,6 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
       if (generatedSoql) {
         setSoql(generatedSoql);
       }
-      trackEvent(ANALYTICS_KEYS.query_ManualQueryOpened, { isTooling });
     }
   }
 
@@ -178,11 +174,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
                     >
                       format
                     </button>
-                    <SoqlQueryFormatConfigPopover
-                      location="ManualSoql"
-                      value={soqlQueryFormatOptions}
-                      onChange={handleSaveSoqlQueryFormatOptions}
-                    />
+                    <SoqlQueryFormatConfigPopover value={soqlQueryFormatOptions} onChange={handleSaveSoqlQueryFormatOptions} />
                   </span>
                 </Grid>
               }

@@ -1,7 +1,5 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import type { SalesforceOrgUi } from '@jetstream/types';
 import { Grid, Icon, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
 import { formatDate } from 'date-fns/format';
 import { FunctionComponent, useCallback } from 'react';
 import { SelectedTestRun, useApexTestRun } from '../useApexTestRun';
@@ -24,7 +22,6 @@ export const TestRunsTab: FunctionComponent<TestRunsTabProps> = ({
   selectedRun,
   onSelectedRunChange,
 }) => {
-  const { trackEvent } = useAnalytics();
   const { runs, loading, errorMessage, lastChecked, isPaused, togglePause, fetchRuns } = runsList;
   const runDetail = useApexTestRun(selectedOrg, apiVersion, selectedRun);
 
@@ -37,8 +34,7 @@ export const TestRunsTab: FunctionComponent<TestRunsTabProps> = ({
 
   const handleAbort = useCallback(() => {
     runDetail.abort();
-    trackEvent(ANALYTICS_KEYS.apex_tests_aborted);
-  }, [runDetail, trackEvent]);
+  }, [runDetail]);
 
   return (
     <div className="slds-is-relative">

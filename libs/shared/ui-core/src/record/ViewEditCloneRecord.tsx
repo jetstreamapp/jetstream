@@ -3,7 +3,7 @@
 import { css } from '@emotion/react';
 import { getPicklistValuesForRecordAndRecordType, UiRecordForm } from '@jetstream/record-form';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
+import { SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
 import { clearCacheForOrg, describeGlobal, describeSObject, query, sobjectOperation } from '@jetstream/shared/data';
 import { copyRecordsToClipboard, isErrorResponse, tracker, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
@@ -31,7 +31,6 @@ import {
   Modal,
   NotSeeingRecentMetadataPopover,
   PopoverErrorButton,
-  RecordDownloadFileFormat,
   RecordDownloadModal,
   SalesforceLogin,
   Spinner,
@@ -51,7 +50,6 @@ import { useAtomValue } from 'jotai';
 import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useAnalytics } from '../analytics';
 import { MonacoEditor } from '../app/MonacoEditor';
 import { fromJetstreamEvents } from '../jetstream-events';
 import { ViewChildRecords } from './ViewChildRecords';
@@ -141,7 +139,6 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   onFetch,
   onFetchError,
 }) => {
-  const { trackEvent } = useAnalytics();
   const isMounted = useRef(true);
   const modalBodyRef = useRef<HTMLDivElement>(null);
   // If user was ever in view mode, clicking cancel will take back to view instead of close
@@ -311,10 +308,6 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     fetchMetadata();
   }, [fetchMetadata]);
 
-  useEffect(() => {
-    trackEvent(ANALYTICS_KEYS.record_modal_action_change, { action, isViewAsJson });
-  }, [action, isViewAsJson, trackEvent]);
-
   async function handleRecordChange(record: SalesforceRecord) {
     setModifiedRecord(record);
   }
@@ -395,7 +388,6 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     if (isMounted.current) {
       setSaving(false);
     }
-    trackEvent(ANALYTICS_KEYS.record_modal_save, { action });
   }
 
   function handleDownloadModalOpen() {
@@ -456,20 +448,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       },
     ];
     fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
-    trackEvent(ANALYTICS_KEYS.record_modal_download, {
-      fileFormat,
-      whichFields,
-      includeSubquery,
-    });
     onClose();
-  }
-
-  function handleDidDownload(fileFormat: RecordDownloadFileFormat, whichFields: 'all' | 'specified', includeSubquery: boolean) {
-    trackEvent(ANALYTICS_KEYS.record_modal_download, {
-      fileFormat,
-      whichFields,
-      includeSubquery,
-    });
   }
 
   function handleCopyToClipboard(format: CopyAsDataType = 'excel') {
@@ -481,7 +460,6 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       format,
       Object.keys(initialRecord).filter((field) => field !== 'attributes'),
     );
-    trackEvent(ANALYTICS_KEYS.record_modal_clipboard);
   }
 
   /**
@@ -510,8 +488,6 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
           generalErrors: ['Oops. There was a problem loading the related record information.'],
         });
       }
-    } finally {
-      trackEvent(ANALYTICS_KEYS.record_modal_view_related);
     }
   }
 
@@ -590,10 +566,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
           records={downloadModalData.data || []}
           totalRecordCount={1}
           onModalClose={handleDownloadModalClose}
-          onDownload={handleDidDownload}
           onDownloadFromServer={handleDownloadFromServer}
-          source="view_edit_clone_record"
-          trackEvent={trackEvent}
         />
       )}
 
@@ -825,14 +798,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                     viewRelatedRecord={viewRelatedRecord}
                   />
                 )}
-                {!isViewAsJson && action === 'view' && (
-                  <Tabs
-                    onChange={(value) => {
-                      value === 'children' && trackEvent(ANALYTICS_KEYS.record_modal_view_children);
-                    }}
-                    tabs={tabs}
-                  />
-                )}
+                {!isViewAsJson && action === 'view' && <Tabs tabs={tabs} />}
                 {isViewAsJson && (
                   <div className="slds-p-around_large">
                     <MonacoEditor

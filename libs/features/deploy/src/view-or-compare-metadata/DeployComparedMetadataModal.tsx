@@ -1,7 +1,6 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DeployOptions, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, FileDownloadModal, Grid, Icon, Modal } from '@jetstream/ui';
-import { fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
+import { fromJetstreamEvents } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
@@ -19,7 +18,6 @@ export interface DeployComparedMetadataModalProps {
 }
 
 export const DeployComparedMetadataModal = ({ sourceOrg, targetOrg, items, onClose }: DeployComparedMetadataModalProps) => {
-  const { trackEvent } = useAnalytics();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [mode, setMode] = useState<'SELECTION' | 'DEPLOY_CONFIG' | 'DEPLOY'>('SELECTION');
@@ -49,7 +47,6 @@ export const DeployComparedMetadataModal = ({ sourceOrg, targetOrg, items, onClo
   function handleDeployMetadata(destinationOrg: SalesforceOrgUi, deployOptions: DeployOptions) {
     setDeployMetadataOptions(deployOptions);
     setMode('DEPLOY');
-    trackEvent(ANALYTICS_KEYS.deploy_deployMetadata, { type: 'org-to-org-from-comparison', deployOptions });
   }
 
   function handleContinue() {
@@ -120,8 +117,6 @@ export const DeployComparedMetadataModal = ({ sourceOrg, targetOrg, items, onClo
             data={deployResultsData}
             onModalClose={() => setDownloadResultsModalOpen(false)}
             emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-            source="deploy_metadata_to_org_from_comparison"
-            trackEvent={trackEvent}
           />
         )}
       </>

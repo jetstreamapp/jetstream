@@ -1,5 +1,4 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
@@ -24,12 +23,10 @@ import {
 } from '@jetstream/ui/data-history';
 import { useSetAtom } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
-import { useAnalytics } from '../analytics';
 
 /**
- * Shared Data History storage flows (service call + toasts + analytics), used by both the Data
- * History page and the Settings components. Each hook takes the analytics `location` it should
- * report so every surface keeps its own payload.
+ * Shared Data History storage flows (service call + toasts), used by both the Data History page
+ * and the Settings components.
  */
 
 /** Loads the storage backend status on mount and exposes a stable refresher — internal to `useDataHistoryStorage`. */
@@ -75,8 +72,7 @@ function useDataHistoryBackendStatus() {
  *
  * Returns `false` when the change could not be persisted, so callers can surface it. Never throws.
  */
-export function useSetDataHistoryCaptureEnabled({ analyticsLocation }: { analyticsLocation: string }) {
-  const { trackEvent } = useAnalytics();
+export function useSetDataHistoryCaptureEnabled() {
   const setCaptureEnabledAtom = useSetAtom(dataHistoryCaptureEnabledState);
 
   return useCallback(
@@ -84,7 +80,6 @@ export function useSetDataHistoryCaptureEnabled({ analyticsLocation }: { analyti
       try {
         await setDataHistoryEnabled(enabled);
         setCaptureEnabledAtom(enabled);
-        trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { enabled, location: analyticsLocation });
         return true;
       } catch (ex) {
         logger.warn('[DATA_HISTORY] Error updating enabled setting', ex);
@@ -92,7 +87,7 @@ export function useSetDataHistoryCaptureEnabled({ analyticsLocation }: { analyti
         return false;
       }
     },
-    [analyticsLocation, setCaptureEnabledAtom, trackEvent],
+    [setCaptureEnabledAtom],
   );
 }
 
@@ -101,8 +96,7 @@ export function useSetDataHistoryCaptureEnabled({ analyticsLocation }: { analyti
  * outcome. Owns `persisted` (the browser's current answer) for whichever surface renders it, so no
  * surface keeps a second copy to refresh.
  */
-export function useRequestPersistentStorage({ analyticsLocation }: { analyticsLocation: string }) {
-  const { trackEvent } = useAnalytics();
+export function useRequestPersistentStorage() {
   const [requestingPersist, setRequestingPersist] = useState(false);
   const [persisted, setPersisted] = useState<boolean | null>(null);
   const persistPromptEligible = isPersistentStoragePromptEligible();
@@ -119,7 +113,6 @@ export function useRequestPersistentStorage({ analyticsLocation }: { analyticsLo
       setRequestingPersist(true);
       granted = await requestPersistentStorage();
       setPersisted(granted);
-      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { action: 'request-persist', granted, location: analyticsLocation });
       fireToast(
         granted
           ? { type: 'success', message: 'Your browser will keep this history and not remove it automatically.' }
@@ -140,9 +133,6 @@ export function useRequestPersistentStorage({ analyticsLocation }: { analyticsLo
 }
 
 const STORAGE_ACTION_ERROR_MESSAGE = 'There was a problem changing the Data History storage location.';
-
-/** The `data_history_settings_changed` payload an action reports (minus `location`), or `false` when the user cancelled it */
-export type DataHistoryStorageActionOutcome = Record<string, unknown> | false;
 
 /**
  * Report the outcome of moving history between backends. Every migration can leave entries behind —
@@ -182,13 +172,13 @@ function fireMigrationResultToast({ migrated, skipped }: DataHistoryMigrationRes
  * wires that refresh, so no two callers can wire it differently. The hook also owns the `working`
  * flag and the "Moving history — N of N" counter: `runStorageAction` clears the counter before and
  * after every action and hands the action the `onProgress` callback that drives it, so a surface
- * cannot strand a stale counter or a stuck spinner. Toast copy, the analytics shape and the error
+ * cannot strand a stale counter or a stuck spinner. Toast copy and the error
  * handling live here as well.
  *
- * An action resolves with its analytics payload (minus `location`, which each surface supplies), or
- * `false` when the user cancelled (a dismissed folder picker): nothing changed, so there is no
- * analytics event, no status re-read and no `onChanged`. `runStorageAction` resolves whether the
- * action completed; surfaces reach for it directly only for flows they alone offer (re-index).
+ * An action resolves `true` when it completed, or `false` when the user cancelled (a dismissed
+ * folder picker): nothing changed, so there is no status re-read and no `onChanged`.
+ * `runStorageAction` resolves whether the action completed; surfaces reach for it directly only for
+ * flows they alone offer (re-index).
  *
  * `storeInFolder` connects a folder when none is active; `changeFolder` moves the history to a
  * different one while a folder IS active — on the web that is the same `connectHistoryDirectory`
@@ -198,20 +188,17 @@ function fireMigrationResultToast({ migrated, skipped }: DataHistoryMigrationRes
  * directory backend otherwise; each surface shows exactly one of the two.
  */
 export function useDataHistoryStorage({
-  analyticsLocation,
   onChanged,
 }: {
-  analyticsLocation: string;
   /** Runs after an action completed and the status was re-read — refresh usage numbers and the like here */
   onChanged?: () => void | Promise<void>;
-}) {
-  const { trackEvent } = useAnalytics();
+} = {}) {
   const { backendStatus, loadBackendStatus } = useDataHistoryBackendStatus();
   const [working, setWorking] = useState(false);
   const [migrationProgress, setMigrationProgress] = useState<Maybe<{ migrated: number; total: number }>>(null);
 
   async function runStorageAction(
-    action: (onProgress: DataHistoryMigrationProgress) => Promise<DataHistoryStorageActionOutcome>,
+    action: (onProgress: DataHistoryMigrationProgress) => Promise<boolean>,
     options?: {
       /**
        * Shown verbatim instead of the thrown error's message. By default the error's own message is
@@ -225,11 +212,10 @@ export function useDataHistoryStorage({
     setWorking(true);
     setMigrationProgress(null);
     try {
-      const analytics = await action((migrated, total) => setMigrationProgress({ migrated, total }));
-      if (analytics === false) {
+      const completed = await action((migrated, total) => setMigrationProgress({ migrated, total }));
+      if (!completed) {
         return false;
       }
-      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { ...analytics, location: analyticsLocation });
       await loadBackendStatus();
       await onChanged?.();
       return true;
@@ -258,14 +244,14 @@ export function useDataHistoryStorage({
           await enableNativeHistoryStorage(onProgress),
           'Your history is now stored on disk — manage the folder from Settings.',
         );
-        return { backend: 'native' };
+        return true;
       }
       const result = await connectHistoryDirectory(onProgress);
       if (!result) {
         return false;
       }
       fireMigrationResultToast(result, 'Your history is now stored in the selected folder.');
-      return { backend: 'directory' };
+      return true;
     });
   }
 
@@ -277,14 +263,14 @@ export function useDataHistoryStorage({
           return false;
         }
         fireToast({ type: 'success', message: `History moved to ${newPath}` });
-        return { backend: 'native', action: 'relocate' };
+        return true;
       }
       const result = await connectHistoryDirectory(onProgress);
       if (!result) {
         return false;
       }
       fireMigrationResultToast(result, 'Your history was moved to the new folder.');
-      return { backend: 'directory', action: 'change-folder' };
+      return true;
     });
   }
 
@@ -298,7 +284,7 @@ export function useDataHistoryStorage({
             ? { type: 'success', message: 'Folder re-connected — new history will be saved there.' }
             : { type: 'warning', message: 'Permission was not granted.' },
         );
-        return { backend: 'directory', action: 'reconnect', granted };
+        return true;
       },
       { errorMessage: 'There was a problem re-connecting the Data History folder.' },
     );
@@ -312,7 +298,7 @@ export function useDataHistoryStorage({
       } else {
         fireMigrationResultToast(await disconnectHistoryDirectory(onProgress), 'Your history is now in browser storage.');
       }
-      return { backend: 'opfs' };
+      return true;
     });
   }
 

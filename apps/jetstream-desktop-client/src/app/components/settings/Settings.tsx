@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { DesktopUserPreferences, UpdatePolicy } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
+import { TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { isEscapeKey, useGlobalEventHandler, useTitle } from '@jetstream/shared/ui-utils';
 import { SoqlQueryFormatOptionsSchema } from '@jetstream/types';
@@ -22,7 +22,6 @@ import {
   SettingsSection,
   SettingsToggleRow,
   SoqlQueryFormatSettings,
-  useAnalytics,
 } from '@jetstream/ui-core';
 import { fromAppState, useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
@@ -48,7 +47,6 @@ const downloadPathCss = css`
 export const Settings = () => {
   useTitle(TITLES.SETTINGS);
   const isMounted = useRef(true);
-  const { trackEvent } = useAnalytics();
   const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
   const { serverUrl } = useAtomValue(fromAppState.applicationCookieState);
   const { version } = useAtomValue(fromAppState.appInfoState);
@@ -136,7 +134,6 @@ export const Settings = () => {
           ...prev,
           preferences: savedPreferences,
         }));
-        trackEvent(ANALYTICS_KEYS.settings_update_user);
       } catch (ex) {
         await showSavedPreferences(changes);
         logger.warn('Error updating user settings', ex);
@@ -173,7 +170,6 @@ export const Settings = () => {
           ...prev,
           preferences: savedPreferences,
         }));
-        trackEvent(ANALYTICS_KEYS.settings_update_user);
       } catch (ex) {
         logger.warn('Error choosing the download folder', ex);
         fireToast({

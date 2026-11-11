@@ -1,5 +1,4 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useFetchPageLayouts, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { Field, Maybe, NullNumberBehavior, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner, Tabs, Tooltip, fireToast } from '@jetstream/ui';
@@ -10,7 +9,6 @@ import {
   getInitialValues,
   getSecondaryTypeFromType,
   prepareDownloadResultsFile,
-  useAnalytics,
   useCreateFields,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
@@ -40,7 +38,6 @@ export const FormulaEvaluatorDeployModal = ({
   numberNullBehaviorState,
   onClose,
 }: FormulaEvaluatorDeployModalProps) => {
-  const { trackEvent } = useAnalytics();
   const { defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [fieldValid, setIsFieldValid] = useState(!!selectedField);
@@ -122,25 +119,14 @@ export const FormulaEvaluatorDeployModal = ({
         return;
       }
       await deployFields(prepareResults, Array.from(layoutData.selectedLayoutIds));
-      trackEvent(ANALYTICS_KEYS.formula_export_results, {
-        success: true,
-        permissionCount: selectedProfiles.length + selectedPermissionSets.length,
-        layoutCount: layoutData.selectedLayoutIds.size,
-      });
     } catch {
       fireToast({ type: 'error', message: 'There was an error preparing your field for deployment.' });
-      trackEvent(ANALYTICS_KEYS.formula_export_results, {
-        success: false,
-        permissionCount: selectedProfiles.length + selectedPermissionSets.length,
-        layoutCount: layoutData.selectedLayoutIds.size,
-      });
     }
   }
 
   function downloadResults() {
     setExportModalData(prepareDownloadResultsFile(results, [field], permissionData.profilesAndPermSetsById));
     setExportModalOpen(true);
-    trackEvent(ANALYTICS_KEYS.formula_export_deploy);
   }
 
   function handleDownloadResultsModalClosed() {
@@ -175,8 +161,6 @@ export const FormulaEvaluatorDeployModal = ({
           allowedTypes={['xlsx']}
           onModalClose={handleDownloadResultsModalClosed}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="formula_evaluator"
-          trackEvent={trackEvent}
         />
       )}
       {!exportModalOpen && (

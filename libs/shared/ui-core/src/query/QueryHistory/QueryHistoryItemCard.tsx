@@ -1,6 +1,6 @@
 import { IconObj } from '@jetstream/icon-factory';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, DATE_FORMATS } from '@jetstream/shared/constants';
+import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
@@ -11,7 +11,6 @@ import { formatDate } from 'date-fns/format';
 import clamp from 'lodash/clamp';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { useAnalytics } from '../..';
 import { MonacoEditor } from '../../app/MonacoEditor';
 import { QueryRestoreErrors } from '../RestoreQuery/query-restore-utils';
 import { RestoreQuery } from '../RestoreQuery/RestoreQuery';
@@ -45,7 +44,6 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
 }) => {
   const [currentItem, setCurrentItem] = useState(item);
   const { sObject, customLabel, label, soql, isTooling, runCount, lastRun } = currentItem;
-  const { trackEvent } = useAnalytics();
   const isMounted = useRef(true);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const timerRef = useRef<any>(null);
@@ -119,7 +117,6 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
     setEditedSoql(soql);
     setEditedCustomLabel(customLabel || label);
     setError(null);
-    trackEvent(ANALYTICS_KEYS.query_HistoryEditQueryOpened, { location: 'inline' });
   }
 
   function handleCancelEdit() {
@@ -145,12 +142,6 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
       let updatedItem = currentItem;
 
       updatedItem = await queryHistoryDb.updateSavedQuery(selectedOrg, updatedItem, editedSoql, editedCustomLabel.trim(), isTooling);
-
-      trackEvent(ANALYTICS_KEYS.query_HistoryUpdateQuery, {
-        location: 'inline',
-        soqlChanged,
-        nameChanged,
-      });
 
       // Update the local state to reflect the saved changes
       setCurrentItem(updatedItem);

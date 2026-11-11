@@ -14,9 +14,6 @@ export interface FileOrGoogleSelectorProps {
   hasExternalGoogleDriveAccess?: boolean;
   googleShowUpgradeToPro: boolean;
   initialSelectedTab?: 'local' | 'google';
-  source: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  trackEvent: (key: string, value?: Record<string, any>) => void;
 }
 
 export const FileOrGoogleSelector = ({
@@ -26,8 +23,6 @@ export const FileOrGoogleSelector = ({
   hasExternalGoogleDriveAccess,
   googleShowUpgradeToPro,
   initialSelectedTab = 'local',
-  source,
-  trackEvent,
 }: FileOrGoogleSelectorProps) => {
   if (hasExternalGoogleDriveAccess) {
     return (
@@ -66,7 +61,7 @@ export const FileOrGoogleSelector = ({
           {
             id: 'google',
             title: 'Google Drive',
-            content: <GoogleSelectedProUpgradeButton trackEvent={trackEvent} source={source} />,
+            content: <GoogleSelectedProUpgradeButton />,
           },
         ]}
       />

@@ -92,10 +92,6 @@ export const QueryWhereIsThisUsed = ({ org, sobject, field }: QueryWhereIsThisUs
             header={['Reference Type', 'Reference Label', 'Namespace']}
             fileNameParts={['dependencies', `${sobject}.${field}`]}
             onModalClose={() => setExportModalOpen(false)}
-            source="where_is_this_used"
-            // This one is too much trouble to pass down analytics dependency
-            // eslint-disable-next-line @typescript-eslint/no-empty-function
-            trackEvent={() => {}}
           />
         </div>
       )}

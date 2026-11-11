@@ -1,6 +1,6 @@
 import { DragDropProvider, type DragEndEvent } from '@dnd-kit/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
+import { TITLES } from '@jetstream/shared/constants';
 import {
   addOrgToGroup,
   createOrgGroup,
@@ -26,7 +26,7 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
 } from '@jetstream/ui';
-import { AddOrg, useAnalytics, useUpdateOrgs } from '@jetstream/ui-core';
+import { AddOrg, useUpdateOrgs } from '@jetstream/ui-core';
 import { fromAppState, getRecentlySelectedOrgForGroup, useCanPerformOperation } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
@@ -40,7 +40,6 @@ import { SalesforceOrgsActions } from './SalesforceOrgsActions';
 
 export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHandlerFn }) {
   useTitle(TITLES.ORG_GROUPS);
-  const { trackEvent } = useAnalytics();
   const selectedOrg = useAtomValue(fromAppState.selectedOrgStateWithoutPlaceholder);
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
   const [allOrgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
@@ -102,7 +101,6 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
         });
         // re-fetch just to make sure our state is accurate without blocking the UI
         getOrgGroups().then(setOrgGroupsFromDb);
-        trackEvent(ANALYTICS_KEYS.organizations_moved, { action });
       } catch (ex) {
         // revert org update
         setOrgs(allOrgsBackup);
@@ -115,7 +113,7 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
         logger.error('Org Group: Error moving org to group', ex);
       }
     },
-    [allOrgs, groups, uniqueId, setGroups, setOrgGroupsFromDb, setOrgs, setSelectedOrgId, trackEvent],
+    [allOrgs, groups, uniqueId, setGroups, setOrgGroupsFromDb, setOrgs, setSelectedOrgId],
   );
 
   const handleDragEnd = useCallback(
@@ -140,10 +138,8 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
   const handleCreateOrUpdate = async (orgGroup: OrgGroupCreateUpdatePayload, groupToUpdateId?: string) => {
     let createdOrgGroup: OrgGroup;
     if (groupToUpdateId) {
-      trackEvent(ANALYTICS_KEYS.organizations_updated, { count: groups.length });
       createdOrgGroup = await updateOrgGroup(groupToUpdateId, orgGroup);
     } else {
-      trackEvent(ANALYTICS_KEYS.organizations_created, { priorCount: groups.length });
       createdOrgGroup = await createOrgGroup(orgGroup);
     }
     setOrgGroupsFromDb(async (_prevGroups) => {
@@ -175,7 +171,6 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
         }),
       );
       handleCloseOrganizationModal();
-      trackEvent(ANALYTICS_KEYS.organizations_deleted, { priorCount: groups.length });
     }
   };
 
@@ -206,10 +201,6 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
         // Remove deleted orgs from state
         setOrgs(allOrgs.filter((org) => org.jetstreamOrganizationId !== organization.id));
         handleCloseOrganizationModal();
-        trackEvent(ANALYTICS_KEYS.organizations_deleted_with_orgs, {
-          priorCount: groups.length,
-          deletedOrgCount: organization.orgs.length,
-        });
         fireToast({
           message: `Organization "${organization.name}" and ${organization.orgs.length} ${pluralizeIfMultiple('org', organization.orgs)} deleted successfully`,
           type: 'success',
@@ -227,7 +218,6 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
 
   const handleOrgGroupChange = useCallback(
     (group?: Maybe<OrgGroupWithOrgs>) => {
-      trackEvent(ANALYTICS_KEYS.organizations_selected, { hasGroup: !!group, orgCount: group?.orgs.length ?? 0 });
       setActiveOrgGroupId(group?.id);
       if (group && (!selectedOrg || !group.orgs.find(({ uniqueId }) => uniqueId === selectedOrg.uniqueId))) {
         // Try to select the recently selected org for this group
@@ -255,16 +245,14 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
         }
       }
     },
-    [allOrgs, selectedOrg, setActiveOrgGroupId, setSelectedOrgId, trackEvent],
+    [allOrgs, selectedOrg, setActiveOrgGroupId, setSelectedOrgId],
   );
 
   const handleOpenCreateOrganizationModal = async () => {
-    trackEvent(ANALYTICS_KEYS.organizations_create_modal_open, { priorCount: groups.length });
     setModalState({ open: true });
   };
 
   const handleOpenEditOrganizationModal = async (organization: OrgGroupWithOrgs) => {
-    trackEvent(ANALYTICS_KEYS.organizations_edit_modal_open, { orgCount: organization.orgs.length });
     setModalState({ open: true, organization });
   };
 

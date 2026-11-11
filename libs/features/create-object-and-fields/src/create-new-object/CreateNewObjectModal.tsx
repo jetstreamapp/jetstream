@@ -1,5 +1,4 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -16,13 +15,7 @@ import {
   TabsRef,
   Tooltip,
 } from '@jetstream/ui';
-import {
-  ConfirmPageChange,
-  DeployMetadataProgressSummary,
-  DeployMetadataResultsTables,
-  OrgLabelBadge,
-  useAnalytics,
-} from '@jetstream/ui-core';
+import { ConfirmPageChange, DeployMetadataProgressSummary, DeployMetadataResultsTables, OrgLabelBadge } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent, useRef, useState } from 'react';
@@ -40,7 +33,6 @@ export interface CreateNewObjectModalProps {
 }
 
 export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> = ({ selectedOrg, onClose }) => {
-  const { trackEvent } = useAnalytics();
   const [{ defaultApiVersion, serverUrl }] = useAtom(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
 
@@ -70,18 +62,6 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
     if (!allValid || !payload) {
       return;
     }
-
-    trackEvent(ANALYTICS_KEYS.sobj_create_object, {
-      allowReports: payload.enableReports,
-      allowActivities: payload.enableActivities,
-      trackFieldHistory: payload.enableHistory,
-      allowInChatterGroups: payload.allowInChatterGroups,
-      allowSharingBulkStreaming: payload.enableBulkApi,
-      allowSearch: payload.enableSearch,
-      createTab,
-      selectedProfiles: selectedProfiles.length,
-      selectedPermissionSets: selectedPermissionSets.length,
-    });
 
     tabsRef.current?.changeTab('results');
     await deployMetadata({

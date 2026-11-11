@@ -1,5 +1,4 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { query } from '@jetstream/shared/data';
 import { formatNumber, useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
@@ -45,8 +44,6 @@ export interface ProfileOrPermSetPopoverProps {
   buttonTitle?: string;
   /** Opt-in: renders a "Manage Assignments" footer button. Honored only for standalone Permission Sets. */
   allowManageAssignments?: boolean;
-  /** Analytics tracker (from the host's useAnalytics). Optional — defaults to a no-op. */
-  trackEvent?: (key: string, value?: Record<string, any>) => void;
 }
 
 export function getProfileOrPermSetSetupUrl(recordType: ProfileOrPermSetRecordType, recordId: string) {
@@ -125,7 +122,6 @@ export const ProfileOrPermSetPopover: FunctionComponent<ProfileOrPermSetPopoverP
   displayValue,
   buttonTitle,
   allowManageAssignments = false,
-  trackEvent,
 }) => {
   const isMounted = useRef(true);
   const currentRequestRef = useRef(0);
@@ -217,7 +213,6 @@ export const ProfileOrPermSetPopover: FunctionComponent<ProfileOrPermSetPopoverP
 
   function handleOpenAssignmentModal() {
     setIsAssignmentModalOpen(true);
-    trackEvent?.(ANALYTICS_KEYS.permission_manager_assignments_opened, { recordType });
   }
 
   return (
@@ -393,7 +388,6 @@ export const ProfileOrPermSetPopover: FunctionComponent<ProfileOrPermSetPopoverP
           permissionSetLabel={headerInfo.label ?? effectiveRecordId}
           permissionSetName={headerInfo.name ?? undefined}
           isOwnedByProfile={meta?.IsOwnedByProfile}
-          trackEvent={trackEvent}
           onSaved={() => fetchAssignedUsers(searchTermDebounced)}
           onClose={() => setIsAssignmentModalOpen(false)}
         />
