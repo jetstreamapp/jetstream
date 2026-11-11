@@ -1,14 +1,18 @@
 import { css } from '@emotion/react';
 import { filterPermissionsSobjects } from '@jetstream/feature/manage-permissions';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { formatNumber, useNonInitialEffect, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJobNew, DescribeGlobalSObjectResult, FieldUsageAnalysisJob } from '@jetstream/types';
 import {
+  ariaDisabledButtonProps,
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
   fireToast,
+  getAriaKeyshortcuts,
+  getModifierKey,
   Icon,
+  KeyboardShortcut,
   Page,
   PageHeader,
   PageHeaderActions,
@@ -77,6 +81,9 @@ export const DataAnalysisSelection: FunctionComponent = () => {
     navigate({ pathname: 'analysis', search: new URLSearchParams({ job: jobHistoryKey }).toString() });
   }, [jobs, navigate, selectedOrg, selectedSObjects]);
 
+  const startDisabled = !selectedSObjects.length;
+  usePrimaryActionShortcut(handleStartJob, { disabled: startDisabled });
+
   return (
     <Page testId="data-analysis-page">
       <PageHeader>
@@ -101,10 +108,25 @@ export const DataAnalysisSelection: FunctionComponent = () => {
                 <Icon type="utility" icon="date_time" className="slds-button__icon" omitContainer title="Field Usage history" />
               </button>
             </Tooltip>
-            <button type="button" className="slds-button slds-button_brand" disabled={!selectedSObjects.length} onClick={handleStartJob}>
-              Start Field Usage Analysis
-              <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" omitContainer />
-            </button>
+            <Tooltip
+              openDelay={500}
+              content={
+                <div className="slds-p-bottom_small">
+                  <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                </div>
+              }
+            >
+              {/* Stays focusable while disabled so the shortcut tooltip stays reachable */}
+              <button
+                type="button"
+                className="slds-button slds-button_brand"
+                aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                {...ariaDisabledButtonProps(startDisabled, () => handleStartJob())}
+              >
+                Start Field Usage Analysis
+                <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" omitContainer />
+              </button>
+            </Tooltip>
           </PageHeaderActions>
         </PageHeaderRow>
         <PageHeaderRow>
