@@ -12,7 +12,7 @@ interface RestoreQueryProps {
   tooltip?: string;
   buttonProps?: ButtonHTMLAttributes<HTMLButtonElement>;
   startRestore?: () => void;
-  endRestore?: (isTooling: boolean, fatalError: boolean, errors?: QueryRestoreErrors) => void;
+  endRestore?: (fatalError: boolean, isTooling: boolean, errors?: QueryRestoreErrors) => void;
 }
 
 export const RestoreQuery: FunctionComponent<RestoreQueryProps> = ({
