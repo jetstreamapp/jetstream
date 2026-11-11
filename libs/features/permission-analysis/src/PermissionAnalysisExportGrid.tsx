@@ -28,6 +28,7 @@ import {
   pickAssignmentExportClickableColumnKeys,
   pickPermissionSetExportClickableColumnKeys,
   pickTabVisibilityExportClickableColumnKeys,
+  withFindingDetailsCell,
   type PermissionAnalysisFinding,
   type PermissionExportRow,
   type SobjectExportDetail,
@@ -308,22 +309,6 @@ type ContainerModalState = {
 
 type ExportFindingsModalState = FieldCellModalState | ContainerModalState | null;
 
-function mergeFindingCellClass<T extends RowWithKey>(
-  column: ColumnWithFilter<T>,
-  extraClass: (row: T) => string | undefined,
-): ColumnWithFilter<T> {
-  const prior = column.cellClass;
-  return {
-    ...column,
-    cellClass: (row: T) => {
-      const a = typeof prior === 'function' ? prior(row) : prior;
-      const b = extraClass(row);
-      const merged = [a, b].filter(Boolean).join(' ');
-      return merged.length > 0 ? merged : undefined;
-    },
-  } as ColumnWithFilter<T>;
-}
-
 /**
  * Read-only SOQL export rows with dynamic columns and quick filter.
  * Optional issue highlights for field permissions, permission set / profile rows, and assignments.
@@ -404,21 +389,14 @@ export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisE
     if (findingSurface === 'field_permissions' && fieldHighlights) {
       return baseColumns.map((col) => {
         const key = typeof col.key === 'string' ? col.key : '';
-        return mergeFindingCellClass(col, (row: RowWithKey) => {
+        return withFindingDetailsCell(col, (row: RowWithKey) => {
           const parentId = typeof row.ParentId === 'string' ? row.ParentId.trim() : '';
           const objectApi = typeof row.SobjectType === 'string' ? row.SobjectType.trim() : '';
           const fieldApi = typeof row.Field === 'string' ? row.Field.trim() : '';
           if (!parentId || !objectApi || !fieldApi) {
             return undefined;
           }
-          const severity = fieldPermissionCellSeverity(fieldHighlights, parentId, objectApi, fieldApi, key);
-          if (severity === 'error') {
-            return 'permission-finding-cell--error permission-finding-cell--clickable';
-          }
-          if (severity === 'warning') {
-            return 'permission-finding-severity-cell--warning permission-finding-cell--clickable';
-          }
-          return undefined;
+          return fieldPermissionCellSeverity(fieldHighlights, parentId, objectApi, fieldApi, key);
         });
       });
     }
@@ -427,7 +405,7 @@ export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisE
       return baseColumns.map((col) => {
         const key = typeof col.key === 'string' ? col.key : '';
         const isClickColumn = permissionSetClickColumns.includes(key);
-        return mergeFindingCellClass(col, (row: RowWithKey) => {
+        return withFindingDetailsCell(col, (row: RowWithKey) => {
           if (!isClickColumn) {
             return undefined;
           }
@@ -435,14 +413,7 @@ export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisE
           if (!rowId) {
             return undefined;
           }
-          const severity = containerSeverity.get(rowId);
-          if (severity === 'error') {
-            return 'permission-finding-cell--error permission-finding-cell--clickable';
-          }
-          if (severity === 'warning') {
-            return 'permission-finding-severity-cell--warning permission-finding-cell--clickable';
-          }
-          return undefined;
+          return containerSeverity.get(rowId);
         });
       });
     }
@@ -451,7 +422,7 @@ export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisE
       return baseColumns.map((col) => {
         const key = typeof col.key === 'string' ? col.key : '';
         const isClickColumn = assignmentClickColumns.includes(key);
-        return mergeFindingCellClass(col, (row: RowWithKey) => {
+        return withFindingDetailsCell(col, (row: RowWithKey) => {
           if (!isClickColumn) {
             return undefined;
           }
@@ -459,14 +430,7 @@ export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisE
           if (!permissionSetId) {
             return undefined;
           }
-          const severity = containerSeverity.get(permissionSetId);
-          if (severity === 'error') {
-            return 'permission-finding-cell--error permission-finding-cell--clickable';
-          }
-          if (severity === 'warning') {
-            return 'permission-finding-severity-cell--warning permission-finding-cell--clickable';
-          }
-          return undefined;
+          return containerSeverity.get(permissionSetId);
         });
       });
     }
@@ -475,7 +439,7 @@ export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisE
       return baseColumns.map((col) => {
         const key = typeof col.key === 'string' ? col.key : '';
         const isClickColumn = tabVisibilityClickColumns.includes(key);
-        return mergeFindingCellClass(col, (row: RowWithKey) => {
+        return withFindingDetailsCell(col, (row: RowWithKey) => {
           if (!isClickColumn) {
             return undefined;
           }
@@ -483,14 +447,7 @@ export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisE
           if (!parentId) {
             return undefined;
           }
-          const severity = containerSeverity.get(parentId);
-          if (severity === 'error') {
-            return 'permission-finding-cell--error permission-finding-cell--clickable';
-          }
-          if (severity === 'warning') {
-            return 'permission-finding-severity-cell--warning permission-finding-cell--clickable';
-          }
-          return undefined;
+          return containerSeverity.get(parentId);
         });
       });
     }
