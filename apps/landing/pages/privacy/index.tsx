@@ -14,7 +14,7 @@ export default function Page() {
   return (
     <div className="m-8">
       <div className="flex items-center justify-between gap-4">
-        <LastUpdated className="text-gray-500" day={9} month="September" year={2026} />
+        <LastUpdated className="text-gray-500" day={11} month="November" year={2026} />
         <PrintButton />
       </div>
       <h1>Privacy Policy</h1>
@@ -102,9 +102,7 @@ export default function Page() {
         Site. We refer to this automatically-collected information as “Device Information.”
       </p>
       <p className="mb-2 pl-2">
-        We collect Device Information using the following technologies. Where consent is required, such as for analytics cookies, we will
-        ask for your explicit consent before collecting this information. You may withdraw or change your consent at any time through the
-        application settings.
+        We collect Device Information using the following technologies. We do not use analytics or advertising cookies.
       </p>
       <ul className="list-disc pl-6">
         <li>
@@ -165,12 +163,9 @@ export default function Page() {
       <h2>SHARING YOUR PERSONAL INFORMATION</h2>
       <p className="mb-2 pl-2">
         We share your Personal Information with third parties to help us use your Personal Information, as described above. For example, we
-        use Stripe to power our payment collection. We use Amplitude to track what parts of the application is used and in which ways to
-        help make product decisions. We also use Google Analytics to help us understand how our customers use the Site - you can read more
-        about how Google uses your Personal Information here: https://www.google.com/intl/en/policies/privacy/. You can also opt-out of
-        Google Analytics here: https://tools.google.com/dlpage/gaoptout. Finally, we may also share your Personal Information to comply with
-        applicable laws and regulations, to respond to a subpoena, search warrant or other lawful request for information we receive, or to
-        otherwise protect our rights.
+        use Stripe to power our payment collection. Finally, we may also share your Personal Information to comply with applicable laws and
+        regulations, to respond to a subpoena, search warrant or other lawful request for information we receive, or to otherwise protect
+        our rights.
       </p>
       <p className="mb-2 pl-2">
         Refer to our{' '}
