@@ -19,6 +19,7 @@ import {
   SoapNil,
   FieldType as jetstreamFieldType,
 } from '@jetstream/types';
+import { MAX_SHEET_NAME_LENGTH, sanitizeSheetName } from '@jetstreamapp/simple-excel';
 import { ComposeFieldTypeof, FieldType, getField } from '@jetstreamapp/soql-parser-js';
 import { formatISO } from 'date-fns/formatISO';
 import { fromUnixTime } from 'date-fns/fromUnixTime';
@@ -971,14 +972,6 @@ function addSubqueryRecords(
   nestedPaths.forEach((nestedPath) => addSubqueryRecords(output, childRecords, nestedPath, subqueryFields));
 }
 
-/** Characters Excel does not allow in a worksheet name - Salesforce API names cannot contain them, but sanitize defensively */
-const EXCEL_FORBIDDEN_SHEET_NAME_CHARS = /[:\\/?*[\]]/g;
-const EXCEL_MAX_SHEET_NAME_LENGTH = 31;
-
-export function sanitizeExcelSheetName(name: string): string {
-  return name.replace(EXCEL_FORBIDDEN_SHEET_NAME_CHARS, '');
-}
-
 /**
  * Worksheet name for a subquery, which is its relationship path when that fits.
  *
@@ -986,40 +979,19 @@ export function sanitizeExcelSheetName(name: string): string {
  * which level it is - while keeping the prefix every level shares. A four level `ChildAccounts` query would
  * end up with `ChildAccounts.ChildAccounts.Chi` and `ChildAccounts.ChildAccounts.Ch4`. Naming the level by its
  * own relationship plus its depth stays inside the limit and says what the sheet actually holds.
+ *
+ * The engine's sanitizer is used directly (this lib cannot depend on `@jetstream/shared/ui-utils`), so a name that
+ * collides gets the same ` (2)` suffix here as in every other export.
  */
 export function getSubquerySheetName(relationshipPath: string, existingNames: string[] = []): string {
-  const sanitizedPath = sanitizeExcelSheetName(relationshipPath);
-  if (sanitizedPath.length <= EXCEL_MAX_SHEET_NAME_LENGTH) {
-    return getExcelSafeSheetName(sanitizedPath, existingNames);
+  // The engine keys its taken-name set by lowercase name, which is how it matches collisions case-insensitively
+  const takenNames = new Set(existingNames.map((name) => name.toLowerCase()));
+  if (relationshipPath.length <= MAX_SHEET_NAME_LENGTH) {
+    return sanitizeSheetName(relationshipPath, takenNames);
   }
-  const depthLabel = ` (L${getSubqueryPathDepth(sanitizedPath)})`;
-  const relationshipName = getSubqueryRelationshipName(sanitizedPath).substring(0, EXCEL_MAX_SHEET_NAME_LENGTH - depthLabel.length);
-  return getExcelSafeSheetName(`${relationshipName}${depthLabel}`, existingNames);
-}
-
-/**
- * Sheet names must be unique and have a maximum length of 31 characters.
- * @param name
- * @param existingNames
- * @returns
- */
-export function getExcelSafeSheetName(name: string, existingNames: string[] = []) {
-  const existingNamesSet = new Set(existingNames);
-  let suffixNum = existingNames.length;
-  if (!name) {
-    name = `Sheet${suffixNum}`;
-  } else if (name.length > 31) {
-    name = name.substring(0, 31);
-  }
-
-  while (existingNamesSet.has(name)) {
-    if (name.length + `${suffixNum}`.length > 31) {
-      name = `${name.substring(0, 31 - `${suffixNum}`.length)}`;
-    }
-    name = `${name}${suffixNum}`;
-    suffixNum++;
-  }
-  return name;
+  const depthLabel = ` (L${getSubqueryPathDepth(relationshipPath)})`;
+  const relationshipName = getSubqueryRelationshipName(relationshipPath).substring(0, MAX_SHEET_NAME_LENGTH - depthLabel.length);
+  return sanitizeSheetName(`${relationshipName}${depthLabel}`, takenNames);
 }
 
 // https://stackoverflow.com/questions/53228948/how-to-get-image-file-size-from-base-64-string-in-javascript

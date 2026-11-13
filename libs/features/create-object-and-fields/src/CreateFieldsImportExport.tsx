@@ -1,5 +1,6 @@
+import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
-import { parseFile } from '@jetstream/shared/ui-utils';
+import { getFileParseErrorMessage, getSkippedColumnsMessage, parseFile } from '@jetstream/shared/ui-utils';
 import { REGEX, ensureBoolean, unescapeCsvFormula } from '@jetstream/shared/utils';
 import { InputReadFileContent, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -54,8 +55,16 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows, onLo
   }
 
   async function handleImport({ content }: InputReadFileContent) {
+    let parsedFile: Awaited<ReturnType<typeof parseFile>>;
+    try {
+      parsedFile = await parseFile(content, { onParsedMultipleWorkbooks });
+    } catch (ex) {
+      logger.warn('Error reading import file', ex);
+      fireToast({ message: getFileParseErrorMessage(ex), type: 'error' });
+      return;
+    }
     // eslint-disable-next-line prefer-const
-    let { data, errors } = await parseFile(content, { onParsedMultipleWorkbooks });
+    let { data, errors, skippedColumnCount = 0 } = parsedFile;
     trackEvent(ANALYTICS_KEYS.sobj_create_field_import_fields, {
       numFields: data.length,
       hasErrors: errors.length,
@@ -84,6 +93,9 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows, onLo
     }
     // A CSV export escapes formula-like values with a leading quote, which is removed so an exported file imports unchanged
     const isCsvFile = typeof content === 'string';
+    if (skippedColumnCount > 0) {
+      fireToast({ message: getSkippedColumnsMessage(skippedColumnCount), type: 'warning' });
+    }
     // ensure all keys are lowercase to match up with expected field names
     data = data.map((row) => {
       return Object.keys(row).reduce((normalizedRow: Record<string, unknown>, key) => {
