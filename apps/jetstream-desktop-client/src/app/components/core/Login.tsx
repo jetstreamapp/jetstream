@@ -124,26 +124,30 @@ export function Login({ children }: LoginProps) {
           await refreshOrgsAndGroups();
         }
       })
+      .catch((ex) => logger.warn('Initial auth check failed', ex))
       .finally(() => setLoading(false));
 
     // Check auth occasionally in case of token expiry or revocation
     const interval = setInterval(() => {
-      window.electronAPI?.checkAuth().then(async (response) => {
-        if (response) {
-          const { authInfo, userProfile } = response;
-          if (!(await applySignedInUser(userProfile))) {
-            return;
+      window.electronAPI
+        ?.checkAuth()
+        .then(async (response) => {
+          if (response) {
+            const { authInfo, userProfile } = response;
+            if (!(await applySignedInUser(userProfile))) {
+              return;
+            }
+            setAuthInfo(authInfo);
+          } else {
+            // The session ended without going through `handleLogout` (expired or revoked) and this
+            // renderer stays mounted, so unbind the stores here too rather than leaving the departing
+            // account's local data readable until the next sign in.
+            clearLocalStorageScope();
+            setAuthInfo(undefined);
+            setUserProfile(DEFAULT_PROFILE);
           }
-          setAuthInfo(authInfo);
-        } else {
-          // The session ended without going through `handleLogout` (expired or revoked) and this
-          // renderer stays mounted, so unbind the stores here too rather than leaving the departing
-          // account's local data readable until the next sign in.
-          clearLocalStorageScope();
-          setAuthInfo(undefined);
-          setUserProfile(DEFAULT_PROFILE);
-        }
-      });
+        })
+        .catch((ex) => logger.warn('Periodic auth check failed', ex));
     }, CHECK_AUTH_TIMER_INTERVAL);
 
     return () => {

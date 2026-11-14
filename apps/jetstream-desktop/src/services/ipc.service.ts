@@ -544,7 +544,8 @@ const handleCheckAuthEvent: MainIpcHandler<'checkAuth'> = async (): Promise<
   // Check auth occasionally to ensure token is still valid
   const AUTH_CHECK_INTERVAL_HOURS = 3;
   const appData = dataService.getAppData();
-  const userProfile = dataService.getFullUserProfile();
+  // getFullUserProfile throws when signed out (e.g. right after logout), which must resolve to "not authenticated"
+  const userProfile = appData.userProfile ? dataService.getFullUserProfile() : undefined;
   const { deviceId, accessToken, lastChecked } = appData;
   if (accessToken && userProfile) {
     if (!lastChecked || lastChecked < addHours(new Date(), -AUTH_CHECK_INTERVAL_HOURS).getTime() || !dataService.isOrgStorageBound()) {
