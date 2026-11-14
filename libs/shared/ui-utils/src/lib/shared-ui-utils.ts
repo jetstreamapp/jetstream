@@ -106,13 +106,6 @@ export type WorkbookWriteResult = SimpleExcel.WorkbookWriteResult;
 export type XlsxError = SimpleExcel.XlsxError;
 export type XlsxErrorCode = SimpleExcel.XlsxErrorCode;
 
-/**
- * Opens an uploaded workbook the way every import reads it: error cells (#N/A, #REF!...) read as blank rather than
- * as their text, so a stray formula error is never loaded into Salesforce as a literal value.
- *
- * Damage the reader repairs (a text cell pointing at a shared string that does not exist) reads as blank, as in
- * Excel, so the load goes on - the tracker is the only place a file that loses values this way can show up.
- */
 /** Whether the signed-in user reads and writes spreadsheets with the new engine rather than SheetJS */
 export function isSimpleExcelEngineEnabled(): boolean {
   return isFeatureFlagEnabled('simple-excel-engine');
@@ -123,6 +116,13 @@ export function loadLegacySpreadsheetEngine() {
   return import('./legacy-spreadsheet-engine');
 }
 
+/**
+ * Opens an uploaded workbook the way every import reads it: error cells (#N/A, #REF!...) read as blank rather than
+ * as their text, so a stray formula error is never loaded into Salesforce as a literal value.
+ *
+ * Damage the reader repairs (a text cell pointing at a shared string that does not exist) reads as blank, as in
+ * Excel, so the load goes on - the tracker is the only place a file that loses values this way can show up.
+ */
 export function openWorkbookForImport(source: SimpleExcel.SourceInput): Promise<SimpleExcel.Workbook> {
   return openWorkbook(source, {
     errors: 'null',
@@ -1575,7 +1575,7 @@ export async function parseFile(
   // FileSelector reads .json as text, but bytes can arrive from Google Drive, where a workbook can be named anything -
   // a workbook has to reach the engine whatever it is called, so the name only decides for bytes that are not one
   if (isJsonExtension && !BINARY_WORKBOOK_KINDS.has(kind)) {
-    return parseJson(await bytesToText(source, encoding));
+    return parseJson(await bytesToText(source));
   }
   // Bytes are text when they look like it, when a UTF-16 byte-order mark says so (Excel's "Unicode Text" save, which
   // the sniffer cannot read), or when the file was picked as a csv/tsv and the bytes are not a workbook's (an empty
@@ -1585,7 +1585,7 @@ export async function parseFile(
     encoding !== 'utf-8' ||
     (!BINARY_WORKBOOK_KINDS.has(kind) && TEXT_EXTENSIONS.has(normalizeExtension(options.extension)));
   if (looksLikeText) {
-    return parseCsvContent(await bytesToText(source, encoding), options);
+    return parseCsvContent(await bytesToText(source), options);
   }
   return parseWorkbook(source, options);
 }
@@ -1613,26 +1613,9 @@ function textEncodingFromBom(head: Uint8Array): 'utf-8' | 'utf-16le' | 'utf-16be
   return 'utf-8';
 }
 
-async function bytesToText(
-  content: string | ArrayBuffer | Uint8Array | Blob,
-  encoding: 'utf-8' | 'utf-16le' | 'utf-16be' = 'utf-8',
-): Promise<string> {
-  if (isString(content)) {
-    return content;
-  }
-  const bytes = content instanceof Blob ? await content.arrayBuffer() : content;
-  // TextDecoder drops the byte-order mark it was told about
-  if (encoding !== 'utf-8') {
-    return new TextDecoder(encoding).decode(bytes);
-  }
-  // Text without a byte-order mark is UTF-8 whenever it decodes as UTF-8. When it does not, it is almost always a
-  // Windows code page file - Excel for Windows' "CSV (Comma delimited)" save - and decoding it as UTF-8 would load
-  // "Caf�" into Salesforce where the file says "Café".
-  try {
-    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-  } catch {
-    return new TextDecoder('windows-1252').decode(bytes);
-  }
+/** Text that arrived as bytes is decoded exactly like a text file picked from disk, see `decodeTextFile` */
+async function bytesToText(content: Uint8Array | Blob): Promise<string> {
+  return decodeTextFile(content instanceof Blob ? await content.arrayBuffer() : content);
 }
 
 // The engine's verdicts on what a file is, which the user fixes by saving the file differently - not engine failures
