@@ -21,3 +21,12 @@
 .slds-notify_toast {
   app-region: no-drag;
 }
+
+/*
+ * The navbar sits inside the header's drag wrapper (app.tsx) but is not a drag handle - only the global
+ * header row above it is. Without this, nav links cannot be clicked and double-clicking them zooms the
+ * window (Electron 44 / Chromium 152).
+ */
+.slds-context-bar {
+  app-region: no-drag;
+}
