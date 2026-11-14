@@ -23,14 +23,10 @@
 }
 
 /*
- * The navbar sits inside the header's drag wrapper (app.tsx). Carve out the nav item list and the trailing
- * content (Feedback, etc.) so they receive clicks. The list stretches to fill the row, so the whole nav row is
- * no-drag - the global header row above it remains the window's drag handle.
- * The trailing content is targeted by class rather than `> div` so the Navbar's hidden full-width measurement
- * layer never becomes part of the drag carve-out.
- * Without this, nav links cannot be clicked and double-clicking them zooms the window (Electron 44 / Chromium 152).
+ * The navbar sits inside the header's drag wrapper (app.tsx) but is not a drag handle - only the global
+ * header row above it is. Without this, nav links cannot be clicked and double-clicking them zooms the
+ * window (Electron 44 / Chromium 152).
  */
-.slds-context-bar__secondary > ul,
-.slds-context-bar__secondary > .navbar-trailing-content {
+.slds-context-bar {
   app-region: no-drag;
 }
