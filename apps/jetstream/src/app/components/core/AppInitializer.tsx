@@ -11,6 +11,7 @@ import {
   updateUserProfile,
 } from '@jetstream/shared/data';
 import { initErrorTracker, setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/ui-utils';
+import { getErrorTrackerEnvironment } from '@jetstream/shared/utils';
 import {
   Announcement,
   getAccessProfileFingerprint,
@@ -154,8 +155,8 @@ APP VERSION ${version}
   }, [announcements, onAnnouncements]);
 
   useEffect(() => {
-    initErrorTracker({ dsn: environment.sentryDsn, environment: appInfo.environment, version });
-  }, [appInfo.environment, version]);
+    initErrorTracker({ dsn: environment.sentryDsn, environment: getErrorTrackerEnvironment(appInfo), version });
+  }, [appInfo, version]);
 
   useEffect(() => {
     setErrorTrackerUser(userProfile);
