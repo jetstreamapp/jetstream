@@ -141,6 +141,7 @@ export const Navbar: FunctionComponent<NavbarProps> = ({ items, trailingContent 
 
         {trailingContent && (
           <div
+            className="navbar-trailing-content"
             css={css`
               flex: none;
               display: flex;
