@@ -2,7 +2,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { queryRemaining, queryRemainingSubqueryRecords } from '@jetstream/shared/data';
+import { isApiRequestError, queryRemaining, queryRemainingSubqueryRecords } from '@jetstream/shared/data';
 import { formatNumber, tracker } from '@jetstream/shared/ui-utils';
 import {
   flattenRecord,
@@ -480,7 +480,13 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
           setHasMoreRecords(false);
           setLoadMoreErrorMessage('Your query results expired. Re-run your query to load all records.');
         } else {
-          setLoadMoreErrorMessage('There was a problem loading the rest of the records.');
+          // A failed request carries the server's message, which is often Salesforce rejecting one page of the results
+          // (e.g. a record it cannot serialize) - without it the user has no way to tell what went wrong or how to fix it.
+          setLoadMoreErrorMessage(
+            isApiRequestError(ex) && ex.message
+              ? `There was a problem loading the rest of the records: ${ex.message}`
+              : 'There was a problem loading the rest of the records.',
+          );
           tracker.warn('Load Remaining Records failed', ex);
         }
       }

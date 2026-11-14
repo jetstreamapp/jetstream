@@ -227,6 +227,11 @@ export const httpLogger: HttpLogger<express.Request, express.Response> = pinoHtt
               'content-length': rawHeaders['content-length'],
             }
           : undefined,
+        // Set by the API error handler when Salesforce rejected the request (omitted from the log line otherwise).
+        // pino-http wraps this serializer a second time, so for request log lines `raw` is pino's wrapped response
+        // and the Express response (with `locals`) is one level further down.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        sfdcErrorCode: ((res.raw as any)?.raw?.locals ?? (res.raw as any)?.locals)?.sfdcErrorCode as string | undefined,
       };
     }),
   },

@@ -36,9 +36,20 @@ export class ApiRequestError extends Error {
   readonly ok: boolean;
   readonly headers: Headers;
   readonly type: string;
+  /** Salesforce's machine-readable error code (e.g. `INVALID_FIELD`), when the error response included one */
+  readonly errorCode?: string;
+  /**
+   * Picked up by the API's error handler and returned to the client as the response's `data`, so callers can key on
+   * the Salesforce error code instead of matching on message text.
+   */
+  readonly additionalData?: { code: string };
 
-  constructor(message: string | undefined, response: FetchResponse<unknown>) {
+  constructor(message: string | undefined, response: FetchResponse<unknown>, errorCode?: string) {
     super(message);
+    if (errorCode) {
+      this.errorCode = errorCode;
+      this.additionalData = { code: errorCode };
+    }
     if (response) {
       this.status = response.status;
       this.statusText = response.statusText;
@@ -440,7 +451,8 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
             return response as Response;
           }
 
-          throw new ApiRequestError(handleSalesforceApiError(outputType || 'json', responseText, response.status), response);
+          const { message, errorCode } = handleSalesforceApiError(outputType || 'json', responseText, response.status);
+          throw new ApiRequestError(message, response, errorCode);
         })
         .then((response) => {
           return response as Response;
@@ -529,51 +541,62 @@ function parseJsonResponse(responseText: string) {
     return JSON.parse(responseText);
   } catch (ex) {
     if (HTML_ERROR_PAGE_REGEX.test(responseText)) {
-      throw createBadGatewayError(handleSalesforceApiError('json', responseText));
+      throw createBadGatewayError(handleSalesforceApiError('json', responseText).message);
     }
     throw ex;
   }
 }
 
-function handleSalesforceApiError(outputType: ApiRequestOutputType, responseText?: string, status?: number) {
-  let output = responseText;
+/**
+ * Pulls the message and error code out of a Salesforce error body. Each API reports these in its own shape - REST as
+ * `[{ message, errorCode }]`, SOAP as a fault, Bulk v1 as an XML `error` element - and anything that does not parse
+ * falls back to the raw body as the message.
+ */
+export function handleSalesforceApiError(
+  outputType: ApiRequestOutputType,
+  responseText?: string,
+  status?: number,
+): { message: string | undefined; errorCode?: string } {
   // Checked ahead of the per-format parsing: each branch below falls back to the raw body when parsing
   // fails, which would otherwise surface an entire HTML document as the error message.
   if (typeof responseText === 'string' && HTML_ERROR_PAGE_REGEX.test(responseText)) {
-    return `Salesforce returned an error page instead of a response${
-      status ? ` (HTTP ${status})` : ''
-    }. The org may be temporarily unavailable or undergoing maintenance - please try again shortly.`;
+    return {
+      message: `Salesforce returned an error page instead of a response${
+        status ? ` (HTTP ${status})` : ''
+      }. The org may be temporarily unavailable or undergoing maintenance - please try again shortly.`,
+    };
   }
-  if (outputType === 'json' && typeof responseText === 'string') {
-    try {
-      const tempResult = JSON.parse(responseText) as { message: string } | { message: string }[];
-      output = (Array.isArray(tempResult) ? tempResult[0] : tempResult)?.message;
-    } catch {
-      output = responseText;
-    }
-    output = output || responseText;
-  } else if (outputType === 'soap' && typeof responseText === 'string') {
-    try {
-      const tempResult = parseXml(responseText) as unknown as SoapErrorResponse;
-      output = tempResult.Envelope.Body.Fault.faultstring;
-    } catch {
-      output = responseText;
-    }
-    output = output || responseText;
-  } else if (
-    outputType === 'xml' &&
-    typeof responseText === 'string' &&
-    responseText.includes(`xmlns="http://www.force.com/2009/06/asyncapi/dataload"`)
-  ) {
-    try {
-      const tempResult = parseXml(responseText) as unknown as BulkXmlErrorResponse;
-      output = tempResult.error.exceptionMessage;
-    } catch {
-      output = responseText;
-    }
-    output = output || responseText;
+  if (typeof responseText !== 'string') {
+    return { message: responseText };
   }
-  return output;
+  try {
+    if (outputType === 'json') {
+      const tempResult = JSON.parse(responseText) as SalesforceJsonError | SalesforceJsonError[];
+      const error = Array.isArray(tempResult) ? tempResult[0] : tempResult;
+      return { message: error?.message || responseText, errorCode: asErrorCode(error?.errorCode) };
+    }
+    if (outputType === 'soap') {
+      const { faultstring, faultcode } = (parseXml(responseText) as unknown as SoapErrorResponse).Envelope.Body.Fault;
+      // Fault codes are namespace-qualified (`sf:INVALID_SESSION_ID`), which is noise to anything keying on the code
+      return { message: faultstring || responseText, errorCode: asErrorCode(faultcode)?.replace(/^[^:]+:/, '') };
+    }
+    if (outputType === 'xml' && responseText.includes(`xmlns="http://www.force.com/2009/06/asyncapi/dataload"`)) {
+      const { exceptionMessage, exceptionCode } = (parseXml(responseText) as unknown as BulkXmlErrorResponse).error;
+      return { message: exceptionMessage || responseText, errorCode: asErrorCode(exceptionCode) };
+    }
+  } catch {
+    // unparseable body - fall through to the raw text
+  }
+  return { message: responseText };
+}
+
+interface SalesforceJsonError {
+  message?: string;
+  errorCode?: unknown;
+}
+
+function asErrorCode(value: unknown): string | undefined {
+  return typeof value === 'string' && value ? value : undefined;
 }
 
 /**

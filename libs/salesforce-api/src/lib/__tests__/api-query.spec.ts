@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiRequestError } from '../callout-adapter';
 import { ApiConnection } from '../connection';
 import { Logger } from '../types';
 
@@ -76,5 +77,32 @@ describe('caller-supplied Salesforce paths', () => {
       await expect(connection.org.streamDownload(url)).rejects.toThrow('blob field');
       expect(apiRequest).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('ApiQuery.queryComposite', () => {
+  beforeEach(() => {
+    apiRequest.mockReset();
+  });
+
+  it('throws the failed query subrequest as a 400 carrying the Salesforce error code', async () => {
+    apiRequest.mockResolvedValue({
+      compositeResponse: [
+        {
+          referenceId: 'queryResults',
+          httpStatusCode: 400,
+          body: [{ message: "No such column 'Foo' on entity 'Account'", errorCode: 'INVALID_FIELD' }],
+        },
+        { referenceId: 'queryColumns', httpStatusCode: 400, body: [] },
+      ],
+    });
+    const connection = buildConnection();
+
+    const error = await connection.query.queryComposite('SELECT Foo FROM Account').catch((ex) => ex);
+
+    expect(error).toBeInstanceOf(ApiRequestError);
+    expect(error.message).toBe("No such column 'Foo' on entity 'Account'");
+    expect(error.status).toBe(400);
+    expect(error.additionalData).toEqual({ code: 'INVALID_FIELD' });
   });
 });
