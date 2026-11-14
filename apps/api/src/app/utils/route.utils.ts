@@ -155,7 +155,6 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
             url: req.url,
             params: req.params,
             query: req.query,
-            body: req.body,
             userId: req.session.user?.id,
             requestId: res.locals.requestId,
           });
@@ -173,7 +172,6 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
           url: req.url,
           params: req.params,
           query: req.query,
-          body: req.body,
           userId: req.session.user?.id,
           requestId: res.locals.requestId,
         });
