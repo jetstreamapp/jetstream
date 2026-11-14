@@ -1562,18 +1562,21 @@ export async function parseFile(
   },
 ): Promise<ParsedFile> {
   options = options || {};
-  if (options.extension === INPUT_ACCEPT_FILETYPES.JSON) {
-    // FileSelector reads .json as text, but the signature permits bytes, so decode rather than assume
-    return parseJson(isString(content) ? content : await bytesToText(content));
-  }
+  const isJsonExtension = options.extension === INPUT_ACCEPT_FILETYPES.JSON;
   if (isString(content)) {
-    return parseCsvContent(content, options);
+    return isJsonExtension ? parseJson(content) : parseCsvContent(content, options);
   }
 
-  const source: Uint8Array | Blob = content instanceof ArrayBuffer ? new Uint8Array(content) : content;
+  // Checked by what the value is not, since an ArrayBuffer from another realm (an iframe, a test environment) fails `instanceof`
+  const source: Uint8Array | Blob = content instanceof Blob || ArrayBuffer.isView(content) ? content : new Uint8Array(content);
   const head = source instanceof Blob ? new Uint8Array(await source.slice(0, SNIFF_BYTES).arrayBuffer()) : source.subarray(0, SNIFF_BYTES);
   const kind = sniff(head);
   const encoding = textEncodingFromBom(head);
+  // FileSelector reads .json as text, but bytes can arrive from Google Drive, where a workbook can be named anything -
+  // a workbook has to reach the engine whatever it is called, so the name only decides for bytes that are not one
+  if (isJsonExtension && !BINARY_WORKBOOK_KINDS.has(kind)) {
+    return parseJson(await bytesToText(source, encoding));
+  }
   // Bytes are text when they look like it, when a UTF-16 byte-order mark says so (Excel's "Unicode Text" save, which
   // the sniffer cannot read), or when the file was picked as a csv/tsv and the bytes are not a workbook's (an empty
   // file included) - a workbook renamed to .csv has to reach the engine so the user is told what the file really is

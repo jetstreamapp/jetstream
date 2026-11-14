@@ -362,7 +362,10 @@ export interface LoadMultiObjectTemplateSheet {
   referenceIdHeader: string | null;
   /** Row 5, index preserving: a blank header keeps its position so later columns stay aligned with their data */
   columnHeaders: string[];
-  /** Rows 6 and below, each padded to the header width with '' for cells the file does not hold */
+  /**
+   * Rows 6 and below, each padded to the header width with '' for cells the file does not hold. A row can be wider
+   * than the header row - those cells are kept so the loader can warn that data without a header is left out.
+   */
   dataRows: CellValue[][];
 }
 
@@ -419,7 +422,7 @@ export async function openLoadMultiObjectTemplateWorkbook(source: SourceInput): 
           }
           // Rows arrive dense, with trailing empties trimmed and interior holes as null, so each is padded back out
           // to the header width - otherwise a blank cell in the last column would drop its key from the record
-          dataRows.push(Array.from({ length: columnHeaders.length }, (_, index) => row[index] ?? ''));
+          dataRows.push(Array.from({ length: Math.max(columnHeaders.length, row.length) }, (_, index) => row[index] ?? ''));
         }
       } catch (ex) {
         reportSpreadsheetReadError(ex, { operation: 'read-load-template-sheet' });

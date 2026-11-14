@@ -3,6 +3,7 @@ import { MAX_RECORDS_PER_GROUP } from '@jetstream/shared/constants';
 import { describeSObject } from '@jetstream/shared/data';
 import {
   formatNumber,
+  getSkippedColumnsMessage,
   LOAD_MULTI_OBJECT_TEMPLATE_LAYOUT,
   openLoadMultiObjectTemplateWorkbook,
   type LoadMultiObjectTemplateSheet,
@@ -266,6 +267,10 @@ export function applyDatasetConfiguration(
   return updatedDataset;
 }
 
+function isBlankCell(cell: unknown): boolean {
+  return cell == null || (typeof cell === 'string' && cell.trim() === '');
+}
+
 /**
  * Turns one worksheet of the template into a dataset. Every problem becomes an error on the dataset rather than
  * an exception, so a worksheet that is half-filled-in still renders in the preview with its problems annotated.
@@ -325,6 +330,23 @@ function buildDataset(sheetName: string, sheet: LoadMultiObjectTemplateSheet): L
       return currRow;
     }, {}),
   );
+
+  // A value under a blank header, or past the last header, has no field to go to. It is left out of the load, so
+  // the user is told rather than finding out from the records that were created without it.
+  const columnCount = sheet.dataRows.reduce((max, row) => Math.max(max, row.length), dataHeaders.length);
+  const skippedColumnCount = Array.from({ length: columnCount }, (_, columnIndex) => columnIndex).filter(
+    (columnIndex) => !dataHeaders[columnIndex] && sheet.dataRows.some((row) => !isBlankCell(row[columnIndex])),
+  ).length;
+  if (skippedColumnCount > 0) {
+    errors.push({
+      property: 'data',
+      worksheet: sheetName,
+      location: `${WORKSHEET_LOCATIONS.headerRow}`,
+      locationType: 'ROW',
+      severity: 'warning',
+      message: getSkippedColumnsMessage(skippedColumnCount),
+    });
+  }
 
   dataset.referenceColumnHeader = normalizeHeader(sheet.referenceIdHeader);
   const headers = populatedHeaders.filter((header) => normalizeHeader(header) !== dataset.referenceColumnHeader);

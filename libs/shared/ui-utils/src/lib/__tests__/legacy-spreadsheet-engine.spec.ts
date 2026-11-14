@@ -139,6 +139,14 @@ describe('parseFile with the flag off', () => {
     expect(data).toEqual([{ Name: 'Acme', Zip: '00501' }]);
   });
 
+  it('reads a workbook whose name ends in .json as a workbook, with either engine', async () => {
+    const bytes = writeWithSheetJs({ Accounts: [['Name'], ['Acme']] });
+
+    expect((await parseFile(bytes, { extension: '.json' })).data).toEqual([{ Name: 'Acme' }]);
+    setActiveFeatureFlags({ 'simple-excel-engine': true });
+    expect((await parseFile(bytes, { extension: '.json' })).data).toEqual([{ Name: 'Acme' }]);
+  });
+
   it('tells the user to remove the password from an encrypted workbook', async () => {
     const error = await parseFile(readRepoFile(ENCRYPTED_FIXTURE_PATH), { extension: '.xlsx' }).catch((ex: unknown) => ex);
 
@@ -281,5 +289,18 @@ describe('openLoadMultiObjectTemplateWorkbook with the flag off', () => {
       columnHeaders: ['Reference Id', 'LastName', 'Email'],
       dataRows: [['ref_1', 'Smith', '']],
     });
+  });
+
+  it('keeps cells past the header width so the loader can warn about them', async () => {
+    const bytes = writeWithSheetJs({
+      Contacts: [['Object', 'Contact'], ['Operation', 'Insert'], [], [], ['Reference Id', 'LastName'], ['ref_1', 'Smith', 'no header']],
+    });
+
+    const workbook = await openLoadMultiObjectTemplateWorkbook(bytes);
+    const sheet = await workbook.readSheet('Contacts');
+
+    // SheetJS pads the header row out to the sheet's used range, so the extra column arrives as a blank header
+    expect(sheet.columnHeaders).toEqual(['Reference Id', 'LastName', '']);
+    expect(sheet.dataRows).toEqual([['ref_1', 'Smith', 'no header']]);
   });
 });

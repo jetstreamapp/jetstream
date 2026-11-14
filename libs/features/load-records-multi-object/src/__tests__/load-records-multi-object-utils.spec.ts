@@ -252,7 +252,46 @@ describe('parseWorkbook', () => {
 
     expect(dataset.headers).toEqual(['Name']);
     expect(dataset.data).toEqual([{ 'Reference Id': 'rec1', Name: 'Acme' }]);
+    expect(dataset.errors).toEqual([
+      expect.objectContaining({
+        severity: 'warning',
+        locationType: 'ROW',
+        location: '5',
+        message: expect.stringContaining('1 column has data'),
+      }),
+    ]);
+  });
+
+  it('does not warn about a blank header when its column is empty', async () => {
+    const workbook = await buildWorkbook({
+      Sheet1: {
+        sobject: 'Account',
+        operation: 'Insert',
+        headers: ['Reference Id', '', 'Name'],
+        rows: [['rec1', '', 'Acme']],
+      },
+    });
+    const [dataset] = await parseDatasets(workbook);
+
+    expect(dataset.data).toEqual([{ 'Reference Id': 'rec1', Name: 'Acme' }]);
     expect(dataset.errors).toEqual([]);
+  });
+
+  it('warns when a row has data past the last header', async () => {
+    const workbook = await buildWorkbook({
+      Sheet1: {
+        sobject: 'Account',
+        operation: 'Insert',
+        headers: ['Reference Id', 'Name'],
+        rows: [['rec1', 'Acme', 'past the header row', 'so is this']],
+      },
+    });
+    const [dataset] = await parseDatasets(workbook);
+
+    expect(dataset.data).toEqual([{ 'Reference Id': 'rec1', Name: 'Acme' }]);
+    expect(dataset.errors).toEqual([
+      expect.objectContaining({ severity: 'warning', message: expect.stringContaining('2 columns have data') }),
+    ]);
   });
 
   it('fills in trailing columns a row does not include, so every record has every field', async () => {
