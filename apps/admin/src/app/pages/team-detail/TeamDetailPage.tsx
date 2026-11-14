@@ -7,6 +7,7 @@ import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { EntitlementList } from '../../components/EntitlementList';
 import { Alert, ErrorAlert } from '../../components/ErrorAlert';
+import { FeatureFlagStatusCard } from '../../components/FeatureFlagStatusCard';
 import { KeyValueList } from '../../components/KeyValueList';
 import { PageHeader } from '../../components/PageHeader';
 import { PageSpinner } from '../../components/Spinner';
@@ -104,6 +105,7 @@ export function TeamDetailPage() {
         <div className="space-y-4 lg:col-span-2">
           <TeamMembersCard team={team} onChanged={reload} />
           <TeamInvitationsCard team={team} onChanged={reload} />
+          <FeatureFlagStatusCard scope="team" entityId={team.id} flags={team.featureFlags} onChanged={reload} />
           <Card title="Subscriptions" flush>
             <SubscriptionTable subscriptions={team.subscriptions} />
           </Card>

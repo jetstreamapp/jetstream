@@ -1,4 +1,4 @@
-import { ArrowRightStartOnRectangleIcon, ChartBarIcon, PlusIcon, UserGroupIcon, UsersIcon } from '@heroicons/react/20/solid';
+import { ArrowRightStartOnRectangleIcon, ChartBarIcon, FlagIcon, PlusIcon, UserGroupIcon, UsersIcon } from '@heroicons/react/20/solid';
 import { ADMIN_LOGOUT_PATH, AdminSessionUser } from '@jetstream/admin/types';
 import { NavLink, Outlet, useNavigate } from 'react-router';
 import { apiPost, LOGIN_ROUTE, useApiQuery } from '../api/admin-api-client';
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', Icon: ChartBarIcon, end: true },
   { to: '/teams', label: 'Teams', Icon: UserGroupIcon, end: false },
   { to: '/users', label: 'Users', Icon: UsersIcon, end: false },
+  { to: '/feature-flags', label: 'Feature flags', Icon: FlagIcon, end: false },
 ];
 
 export function AppLayout() {

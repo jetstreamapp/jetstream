@@ -1,4 +1,5 @@
 export * from './lib/admin-common.types';
+export * from './lib/admin-feature-flags.types';
 export * from './lib/admin-metrics.types';
 export * from './lib/admin-stripe.types';
 export * from './lib/admin-teams.types';

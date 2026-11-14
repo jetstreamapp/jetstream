@@ -1,5 +1,6 @@
 import {
   ApproveTeamDomainRequestSchema,
+  FeatureFlagKeyParamsSchema,
   IdParamsSchema,
   PaginatedSearchQuerySchema,
   ProvisioningLookupParamsSchema,
@@ -10,12 +11,14 @@ import {
   StripeCustomerSearchQuerySchema,
   TeamInvitationParamsSchema,
   TeamMemberToAddSchema,
+  UpdateFeatureFlagOverridesRequestSchema,
   UpdateStripeCustomerProductionOrgIdRequestSchema,
   UserListQuerySchema,
 } from '@jetstream/admin/types';
 import { createRateLimit } from '@jetstream/api-config';
 import express from 'express';
 import { requireAdminRequestHeader, requireAdminSession } from '../auth/auth.middleware';
+import { getFeatureFlagOverrides, listFeatureFlags, updateFeatureFlagOverrides } from '../feature-flags/feature-flags.service';
 import { getDashboardSummary } from '../metrics/dashboard.db';
 import { getStripeCustomerSummary, searchStripeCustomers, updateStripeCustomerProductionOrgId } from '../stripe/stripe-customers.service';
 import { approveTeamDomain } from '../teams/team-domains.service';
@@ -137,4 +140,22 @@ apiRoutes.get(
 apiRoutes.get(
   '/users/:id',
   createRoute({ params: IdParamsSchema }, async ({ params }) => getUserDetail(params.id)),
+);
+
+apiRoutes.get(
+  '/feature-flags',
+  createRoute({}, async () => listFeatureFlags()),
+);
+
+apiRoutes.get(
+  '/feature-flags/:key/overrides',
+  createRoute({ params: FeatureFlagKeyParamsSchema }, async ({ params }) => getFeatureFlagOverrides(params.key)),
+);
+
+apiRoutes.post(
+  '/feature-flags/:key/overrides',
+  createRoute(
+    { params: FeatureFlagKeyParamsSchema, body: UpdateFeatureFlagOverridesRequestSchema },
+    async ({ params, body, admin, requestMetadata }) => updateFeatureFlagOverrides(params.key, body, admin, requestMetadata),
+  ),
 );

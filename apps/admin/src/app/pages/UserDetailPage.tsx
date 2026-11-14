@@ -8,6 +8,7 @@ import { Card } from '../components/Card';
 import { EntitlementList } from '../components/EntitlementList';
 import { ErrorAlert } from '../components/ErrorAlert';
 import { StripeIdLink } from '../components/ExternalLink';
+import { FeatureFlagStatusCard } from '../components/FeatureFlagStatusCard';
 import { KeyValueList } from '../components/KeyValueList';
 import { PageHeader } from '../components/PageHeader';
 import { PageSpinner } from '../components/Spinner';
@@ -166,6 +167,7 @@ export function UserDetailPage() {
               ]}
             />
           </Card>
+          <FeatureFlagStatusCard scope="user" entityId={user.id} flags={user.featureFlags} onChanged={reload} />
           <Card title="Subscriptions" flush>
             <SubscriptionTable subscriptions={user.subscriptions} />
           </Card>

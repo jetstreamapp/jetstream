@@ -3,6 +3,7 @@ import { prisma } from '@jetstream/api-config';
 import { Prisma } from '@jetstream/prisma';
 import { BILLABLE_ROLES, TEAM_MEMBER_STATUS_ACTIVE } from '@jetstream/types';
 import { z } from 'zod';
+import { getTeamFeatureFlagStatuses } from '../feature-flags/feature-flags.service';
 import { NotFoundError } from '../utils/route.utils';
 import {
   ENTITLEMENT_SELECT,
@@ -115,6 +116,7 @@ export async function getTeamDetail(teamId: string): Promise<TeamDetail> {
     throw new NotFoundError(`Team ${teamId} not found`);
   }
 
+  const featureFlags = await getTeamFeatureFlagStatuses(teamId);
   const now = new Date();
   const { billingAccount, members, invitations } = team;
 
@@ -134,6 +136,7 @@ export async function getTeamDetail(teamId: string): Promise<TeamDetail> {
       : null,
     subscriptions: team.subscriptions.map(toSubscriptionItem),
     entitlements: toEntitlementFlags(team.entitlements),
+    featureFlags,
     seats: {
       used: members.filter(({ role, status }) => status === TEAM_MEMBER_STATUS_ACTIVE && BILLABLE_ROLES.has(role)).length,
       reserved: invitations.filter(({ role, expiresAt }) => BILLABLE_ROLES.has(role) && expiresAt >= now).length,

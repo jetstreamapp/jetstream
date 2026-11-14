@@ -1,6 +1,7 @@
 import { TeamMemberRoleSchema } from '@jetstream/types';
 import { z } from 'zod';
 import { AuditLogItem, EntitlementFlags, EntitlementFlagsSchema, SubscriptionItem } from './admin-common.types';
+import { FeatureFlagEntityStatus } from './admin-feature-flags.types';
 import { STRIPE_CUSTOMER_ID_PATTERN, STRIPE_QUOTE_ID_PATTERN } from './admin-stripe.types';
 
 export interface TeamListItem {
@@ -81,6 +82,7 @@ export interface TeamDetail {
   billingAccount: TeamBillingAccountItem | null;
   subscriptions: SubscriptionItem[];
   entitlements: EntitlementFlags | null;
+  featureFlags: FeatureFlagEntityStatus[];
   seats: TeamSeatUsage;
   members: TeamMemberItem[];
   invitations: TeamInvitationItem[];

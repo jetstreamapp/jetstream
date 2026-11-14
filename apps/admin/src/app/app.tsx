@@ -1,6 +1,8 @@
 import { BrowserRouter, Route, Routes } from 'react-router';
 import { AppLayout } from './layout/AppLayout';
 import { DashboardPage } from './pages/DashboardPage';
+import { FeatureFlagDetailPage } from './pages/feature-flag-detail/FeatureFlagDetailPage';
+import { FeatureFlagsPage } from './pages/FeatureFlagsPage';
 import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { ProvisionTeamPage } from './pages/provision-team/ProvisionTeamPage';
@@ -19,6 +21,8 @@ export function App() {
           <Route path="teams" element={<TeamsPage />} />
           <Route path="teams/new" element={<ProvisionTeamPage />} />
           <Route path="teams/:teamId" element={<TeamDetailPage />} />
+          <Route path="feature-flags" element={<FeatureFlagsPage />} />
+          <Route path="feature-flags/:flagKey" element={<FeatureFlagDetailPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="users/:userId" element={<UserDetailPage />} />
           <Route path="*" element={<NotFoundPage />} />

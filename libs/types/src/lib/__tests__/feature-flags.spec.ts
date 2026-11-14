@@ -5,7 +5,7 @@
  * that skew: it is derived only from what was transmitted, and it is stable regardless of key order.
  */
 import { describe, expect, it } from 'vitest';
-import { ALL_FEATURE_FLAG_KEYS, serializeFeatureFlagsForSigning } from '../feature-flags';
+import { ALL_FEATURE_FLAG_KEYS, FEATURE_FLAGS, resolveFeatureFlagValue, serializeFeatureFlagsForSigning } from '../feature-flags';
 
 describe('serializeFeatureFlagsForSigning', () => {
   const userId = 'user-1';
@@ -56,5 +56,19 @@ describe('serializeFeatureFlagsForSigning', () => {
   it('coerces values to booleans so a truthy non-boolean cannot alter the byte sequence', () => {
     const coerced = serializeFeatureFlagsForSigning(userId, { 'flag-a': 'yes' } as unknown as Record<string, boolean>);
     expect(coerced).toBe(serializeFeatureFlagsForSigning(userId, { 'flag-a': true }));
+  });
+});
+
+describe('resolveFeatureFlagValue', () => {
+  const flag = ALL_FEATURE_FLAG_KEYS[0];
+
+  it('uses the code default when there are no overrides', () => {
+    expect(resolveFeatureFlagValue(flag, [])).toBe(FEATURE_FLAGS[flag].defaultValue);
+    expect(resolveFeatureFlagValue(flag, [null, undefined])).toBe(FEATURE_FLAGS[flag].defaultValue);
+  });
+
+  it('is enabled when any override is on, and a disabled override never turns a flag off', () => {
+    expect(resolveFeatureFlagValue(flag, [false, true])).toBe(true);
+    expect(resolveFeatureFlagValue(flag, [false])).toBe(FEATURE_FLAGS[flag].defaultValue);
   });
 });

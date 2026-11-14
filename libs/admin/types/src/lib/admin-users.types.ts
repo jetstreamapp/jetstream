@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { AuditLogItem, EntitlementFlags, PaginatedSearchQuerySchema, SortDirectionSchema, SubscriptionItem } from './admin-common.types';
+import { FeatureFlagEntityStatus } from './admin-feature-flags.types';
 
 /**
  * TEAM: an active member of an active team, whatever the team's billing status.
@@ -99,6 +100,7 @@ export interface UserDetail {
   billingAccount: { customerId: string; manualBilling: boolean } | null;
   subscriptions: SubscriptionItem[];
   entitlements: EntitlementFlags | null;
+  featureFlags: FeatureFlagEntityStatus[];
   salesforceOrgCount: number;
   webSessions: UserWebSessionItem[];
   externalSessions: UserExternalSessionItem[];
