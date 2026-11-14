@@ -21,3 +21,13 @@
 .slds-notify_toast {
   app-region: no-drag;
 }
+
+/*
+ * The navbar sits inside the header's drag wrapper (app.tsx). Carve out the nav items and trailing content
+ * (Feedback, etc.) so they receive clicks, while empty space in the row stays draggable.
+ * Without this, nav links cannot be clicked and double-clicking them zooms the window (Electron 44 / Chromium 152).
+ */
+.slds-context-bar__secondary > ul,
+.slds-context-bar__secondary > div {
+  app-region: no-drag;
+}
