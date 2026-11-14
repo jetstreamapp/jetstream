@@ -182,6 +182,34 @@ export const fileExtToGoogleDriveMimeType = {
   zip: MIME_TYPES.ZIP,
 };
 
+// Matched as case-insensitive substrings of the header name. IP/user headers, plus `referer`: it is a full URL
+// whose query string can carry OAuth `code`/`state` or tokens, and `urlQueryParams` does not cover header values.
+const ERROR_TRACKER_HEADER_DENYLIST = ['forwarded', '-ip', 'remote-', 'via', '-user', 'referer'];
+
+/**
+ * Sentry SDK `dataCollection` option for every error tracker (web, extension, desktop, api).
+ * Sentry 11 removed `sendDefaultPii`, and with `dataCollection` omitted it collects user info, cookies,
+ * unscrubbed headers, request/response bodies and stack-frame local variables. This starts from Sentry's
+ * documented `sendDefaultPii: false` equivalent and also drops query strings. Header values whose names
+ * look sensitive (auth, token, key, session, csrf...) are always filtered by the SDK itself.
+ */
+export const ERROR_TRACKER_DATA_COLLECTION = {
+  userInfo: false,
+  cookies: false,
+  httpHeaders: {
+    request: { deny: ERROR_TRACKER_HEADER_DENYLIST },
+    response: { deny: ERROR_TRACKER_HEADER_DENYLIST },
+  },
+  httpBodies: [],
+  // The SDK's sensitive-name filter misses OAuth `code`/`state`. The API attaches its own key-redacted `req.query`.
+  urlQueryParams: false,
+  genAI: { inputs: false, outputs: false },
+  databaseQueryData: false,
+  queues: false,
+  graphQL: { document: false, variables: false },
+  stackFrameVariables: false,
+};
+
 export const INDEXED_DB = {
   KEYS: {
     queryHistory: 'HISTORY:QUERY',
