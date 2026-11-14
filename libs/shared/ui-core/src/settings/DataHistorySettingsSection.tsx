@@ -1,6 +1,5 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DataHistorySettings, Maybe } from '@jetstream/types';
 import { ConfirmationModalPromise, fireToast, Spinner, UpgradeToProButton } from '@jetstream/ui';
 import { dataHistoryLimitsState } from '@jetstream/ui/app-state';
@@ -14,7 +13,6 @@ import {
 import { filesize } from 'filesize';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
-import { useAnalytics } from '../analytics';
 import { ViewDataHistoryLink } from '../app/DataHistoryLinks';
 import { useRequestPersistentStorage, useSetDataHistoryCaptureEnabled } from './data-history-hooks';
 import { DataHistoryStorageLocation } from './DataHistoryStorageLocation';
@@ -42,8 +40,7 @@ export interface DataHistorySettingsSectionProps {
 }
 
 export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSectionProps> = ({ hideViewHistoryLink }) => {
-  const { trackEvent } = useAnalytics();
-  const setCaptureEnabled = useSetDataHistoryCaptureEnabled({ analyticsLocation: 'settings' });
+  const setCaptureEnabled = useSetDataHistoryCaptureEnabled();
   // Seeded (non-null) by AppInitializer once initDataHistory() resolves — a hard refresh landing
   // directly here mounts before that finishes, so we gate the first load on it instead of bailing
   // to null forever
@@ -64,9 +61,7 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
     }
   }, []);
 
-  const { persistPromptEligible, persisted, requestingPersist, requestPersist } = useRequestPersistentStorage({
-    analyticsLocation: 'settings',
-  });
+  const { persistPromptEligible, persisted, requestingPersist, requestPersist } = useRequestPersistentStorage();
 
   useEffect(() => {
     if (limits != null) {
@@ -101,7 +96,6 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
     }
     try {
       await updateDataHistoryRetentionSettings({ retentionDays });
-      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { retentionDays, location: 'settings' });
       await loadSettingsAndHealth();
     } catch (ex) {
       logger.warn('[DATA_HISTORY] Error updating retention days', ex);
@@ -129,7 +123,6 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
           } kept — clear again once the current load finishes.`,
         });
       }
-      trackEvent(ANALYTICS_KEYS.data_history_delete_all);
       await loadSettingsAndHealth();
     } catch (ex) {
       logger.warn('[DATA_HISTORY] Error clearing data history', ex);
@@ -197,7 +190,7 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
           title="History limit"
           description={`Free accounts keep your ${limits?.maxEntries} most recent entries. Upgrade for unlimited entries and up to a year of history.`}
         >
-          <UpgradeToProButton trackEvent={trackEvent} source="data-history-settings" />
+          <UpgradeToProButton />
         </SettingsRow>
       )}
 

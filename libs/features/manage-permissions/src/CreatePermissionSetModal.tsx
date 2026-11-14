@@ -1,5 +1,4 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, multiWordObjectFilter } from '@jetstream/shared/utils';
 import { ListItem, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord, SalesforceOrgUi } from '@jetstream/types';
@@ -18,7 +17,7 @@ import {
   Textarea,
   getProfileOrPermSetSetupUrl,
 } from '@jetstream/ui';
-import { ConfirmPageChange, useAnalytics } from '@jetstream/ui-core';
+import { ConfirmPageChange } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FormEvent, FunctionComponent, useEffect, useMemo, useState } from 'react';
@@ -64,7 +63,6 @@ export const CreatePermissionSetModal: FunctionComponent<CreatePermissionSetModa
   initialCloneSourceId,
   onClose,
 }) => {
-  const { trackEvent } = useAnalytics();
   const { serverUrl } = useAtomValue(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
 
@@ -172,12 +170,6 @@ export const CreatePermissionSetModal: FunctionComponent<CreatePermissionSetModa
         setProgressMessage,
       );
       setResult(createResult);
-      trackEvent(ANALYTICS_KEYS.permission_manager_permission_set_created, {
-        cloned: !!cloneFromId,
-        clonedFrom: cloneFromId ? (cloneSourceIsProfile ? 'Profile' : 'PermissionSet') : undefined,
-        hasLicense: licenseId !== NO_LICENSE_ID,
-        failedPermissions: createResult.cloneSteps.reduce((total, { failed }) => total + failed, 0),
-      });
     } catch (ex) {
       setErrorMessage(getErrorMessage(ex));
     } finally {

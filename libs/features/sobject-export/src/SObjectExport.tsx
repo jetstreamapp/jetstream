@@ -28,7 +28,7 @@ import {
   Tooltip,
   getModifierKey,
 } from '@jetstream/ui';
-import { fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
+import { fromJetstreamEvents } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtomValue } from 'jotai';
@@ -91,7 +91,6 @@ export interface SObjectExportProps {}
 
 export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
   useTitle(TITLES.EXPORT_OBJECT_METADATA);
-  const { trackEvent } = useAnalytics();
   const selectedOrg = useAtomValue(selectedOrgState);
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
@@ -231,8 +230,6 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
           allowedTypes={['xlsx']}
           onModalClose={() => setExportDataModalOpen(false)}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="sobject_export"
-          trackEvent={trackEvent}
         />
       )}
       <Page testId="sobject-export-page">

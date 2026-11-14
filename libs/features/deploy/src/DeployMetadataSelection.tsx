@@ -1,5 +1,4 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import {
@@ -15,7 +14,7 @@ import {
   PageHeaderTitle,
   Tooltip,
 } from '@jetstream/ui';
-import { fromDeployMetadataState, RequireMetadataApiBanner, useAnalytics } from '@jetstream/ui-core';
+import { fromDeployMetadataState, RequireMetadataApiBanner } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent } from 'react';
@@ -34,21 +33,14 @@ const HEIGHT_BUFFER = 170;
 export interface DeployMetadataSelectionProps {}
 
 export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionProps> = () => {
-  const { trackEvent } = useAnalytics();
   const navigate = useNavigate();
   const selectedOrg = useAtomValue(selectedOrgState);
-  const analyticsSubmissionSelector = useAtomValue(fromDeployMetadataState.analyticsSubmissionSelector);
   const metadataItems = useAtomValue(fromDeployMetadataState.metadataItemsState);
   const hasSelectionsMade = useAtomValue(fromDeployMetadataState.hasSelectionsMadeSelector);
   const hasSelectionsMadeMessage = useAtomValue(fromDeployMetadataState.hasSelectionsMadeMessageSelector);
 
-  function trackContinue() {
-    trackEvent(ANALYTICS_KEYS.deploy_configuration, { page: 'initial-selection', ...analyticsSubmissionSelector });
-  }
-
   usePrimaryActionShortcut(
     () => {
-      trackContinue();
       navigate('deploy');
     },
     { disabled: !hasSelectionsMade },
@@ -79,7 +71,7 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
                   </div>
                 }
               >
-                <Link onClick={trackContinue} className="slds-button slds-button_brand" to="deploy">
+                <Link className="slds-button slds-button_brand" to="deploy">
                   Continue
                   <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
                 </Link>

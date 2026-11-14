@@ -2,7 +2,7 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { DropDown, FileDownloadModal, Icon } from '@jetstream/ui';
-import { fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
+import { fromJetstreamEvents } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent } from 'react';
@@ -58,17 +58,14 @@ export const AutomationPackageDropDown: FunctionComponent<AutomationPackageDropD
 export interface AutomationPackageDownloadModalProps {
   selectedOrg: SalesforceOrgUi;
   packageDownload: AutomationPackageDownload;
-  source: string;
   onClose: () => void;
 }
 
 export const AutomationPackageDownloadModal: FunctionComponent<AutomationPackageDownloadModalProps> = ({
   selectedOrg,
   packageDownload,
-  source,
   onClose,
 }) => {
-  const { trackEvent } = useAnalytics();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const { data, variant, missingItems } = packageDownload;
@@ -99,8 +96,6 @@ export const AutomationPackageDownloadModal: FunctionComponent<AutomationPackage
       allowedTypes={['zip']}
       onModalClose={onClose}
       emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-      source={source}
-      trackEvent={trackEvent}
     />
   );
 };

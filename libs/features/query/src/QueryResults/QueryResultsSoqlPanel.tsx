@@ -181,11 +181,7 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
               >
                 format
               </button>
-              <SoqlQueryFormatConfigPopover
-                location="QueryResultsSoqlPanel"
-                value={soqlQueryFormatOptions}
-                onChange={onSaveSoqlQueryFormatOptions}
-              />
+              <SoqlQueryFormatConfigPopover value={soqlQueryFormatOptions} onChange={onSaveSoqlQueryFormatOptions} />
             </span>
           </Grid>
         }

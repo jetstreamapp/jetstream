@@ -1,5 +1,4 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { queryAll, sobjectOperation } from '@jetstream/shared/data';
 import { tracker } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, multiWordObjectFilter, pluralizeFromNumber, splitArrayToMaxSize } from '@jetstream/shared/utils';
@@ -51,8 +50,6 @@ export interface ManagePermissionSetAssignmentsModalProps {
   permissionSetName?: string;
   /** Profile-owned permission sets cannot be assigned — the modal renders an explanation instead of the editor. */
   isOwnedByProfile?: boolean;
-  /** Analytics tracker (from the host's useAnalytics). Optional — defaults to a no-op. */
-  trackEvent?: (key: string, value?: Record<string, any>) => void;
   /** Assignments changed on the server — the host should refresh anything showing them. */
   onSaved: () => void;
   onClose: () => void;
@@ -101,7 +98,6 @@ export const ManagePermissionSetAssignmentsModal: FunctionComponent<ManagePermis
   permissionSetLabel,
   permissionSetName,
   isOwnedByProfile,
-  trackEvent,
   onSaved,
   onClose,
 }) => {
@@ -339,11 +335,6 @@ export const ManagePermissionSetAssignmentsModal: FunctionComponent<ManagePermis
         await loadAssignments();
         return;
       }
-
-      trackEvent?.(ANALYTICS_KEYS.permission_manager_assignments_saved, {
-        added: usersToAdd.length,
-        removed: removedRows.length,
-      });
       fireToast({ type: 'success', message: 'Permission set assignments were saved.' });
       onClose();
     } catch (ex) {

@@ -18,16 +18,7 @@ setup('login and ensure org exists', async ({ page, request }) => {
   console.log('Logging in as example user');
   const user = ENV.EXAMPLE_USER;
 
-  const cookieBannerAcceptButton = page.getByRole('button', { name: 'Accept' });
-
   await page.goto(baseApiURL);
-
-  try {
-    await cookieBannerAcceptButton.waitFor({ state: 'visible', timeout: 5000 });
-    await cookieBannerAcceptButton.click();
-  } catch {
-    console.log('Cookie banner not visible, skipping click.');
-  }
 
   await page.getByRole('link', { name: 'Log in' }).click();
   await page.getByLabel('Email Address').click();

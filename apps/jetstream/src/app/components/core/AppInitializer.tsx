@@ -18,9 +18,8 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
-import { fromJetstreamEvents, useAnalytics, useInitDataHistory } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useInitDataHistory } from '@jetstream/ui-core';
 import { DEFAULT_PROFILE, fetchLatestUserProfile, fromAppState } from '@jetstream/ui/app-state';
-import { CookieConsentBanner, useConditionalGoogleAnalytics } from '@jetstream/ui/cookie-consent-banner';
 import { ensureLocalStorageReady, initDexieDb, pruneAnalysisJobHistory } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
@@ -65,15 +64,12 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnou
   const onSaveSoqlQueryFormatOptions = useObservable(
     fromJetstreamEvents.getObservable('saveSoqlQueryFormatOptions') as Observable<JetstreamEventSaveSoqlQueryFormatOptionsPayload>,
   );
-  const [analytics, setAnalytics] = useAtom(fromAppState.analyticsState);
   const initDataHistoryAndSeedState = useInitDataHistory();
   const [searchParams, setSearchParams] = useSearchParams();
   const errorParam = searchParams.get('error');
   // Only ProviderNotAllowed sends these - they let the message name the methods the team permits
   const attemptedMethodParam = searchParams.get('attemptedMethod');
   const allowedMethodsParam = searchParams.get('allowedMethods');
-
-  useConditionalGoogleAnalytics(environment.googleAnalyticsSiteId, analytics === 'accepted');
 
   const recordSyncEntitlementEnabled = ability.can('access', 'RecordSync');
   const canSyncHistory = canPerformOperation(ability, 'history.sync');
@@ -165,8 +161,6 @@ APP VERSION ${version}
     setErrorTrackerUser(userProfile);
   }, [userProfile]);
 
-  useAnalytics(analytics !== 'accepted');
-
   useEffect(() => {
     if (onSaveSoqlQueryFormatOptions?.value) {
       (async () => {
@@ -254,12 +248,7 @@ APP VERSION ${version}
     return () => document.removeEventListener('visibilitychange', handleWindowFocus);
   }, [handleWindowFocus]);
 
-  return (
-    <Fragment>
-      <CookieConsentBanner onConsentChange={setAnalytics} />
-      {children}
-    </Fragment>
-  );
+  return <Fragment>{children}</Fragment>;
 };
 
 export default AppInitializer;

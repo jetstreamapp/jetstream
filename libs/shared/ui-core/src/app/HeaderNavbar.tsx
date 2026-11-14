@@ -2,7 +2,6 @@ import { css, SerializedStyles } from '@emotion/react';
 import { AppAbility, canAccessTool } from '@jetstream/acl';
 import type { ReleasePlatform } from '@jetstream/release-notes';
 import { jetstreamLogoProUrl, jetstreamLogoUrl } from '@jetstream/shared/assets';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { isBrowserExtension, isCanvasApp, openDesktopSettings } from '@jetstream/shared/ui-utils';
 import { AddOrgHandlerFn, ColorScheme, DropDownItem, UserProfileUi } from '@jetstream/types';
@@ -20,7 +19,6 @@ import { useAtomValue } from 'jotai';
 import { Fragment, lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useNavigate } from 'react-router';
-import { useAnalytics } from '../analytics';
 import Jobs from '../jobs/Jobs';
 import OrgsDropdown from '../orgs/OrgsDropdown';
 import { SelectedOrgReadOnly } from '../orgs/SelectedOrgReadOnly';
@@ -172,7 +170,6 @@ export const HeaderNavbar = ({
   onColorSchemeChange,
 }: HeaderNavbarProps) => {
   const navigate = useNavigate();
-  const { trackEvent } = useAnalytics();
   const ability = useAtomValue(abilityState);
   const userProfile = useAtomValue(userProfileState);
   const isReadOnlyUser = useAtomValue(isReadOnlyUserState);
@@ -196,7 +193,6 @@ export const HeaderNavbar = ({
     } else {
       setUserPreferences({ ...userPreferences, colorScheme: nextColorScheme });
     }
-    trackEvent(ANALYTICS_KEYS.settings_color_scheme_changed, { colorScheme: nextColorScheme });
   }
 
   function handleUserMenuSelection(id: string) {
@@ -349,12 +345,7 @@ export const HeaderNavbar = ({
     }
 
     if (!hasPaidPlan) {
-      return [
-        <UpgradeToProButton key="upgrade-to-pro" trackEvent={trackEvent} source="navbar" />,
-        ...toolItems,
-        ...whatsNewItems,
-        <HeaderHelpPopover key="help" />,
-      ];
+      return [<UpgradeToProButton key="upgrade-to-pro" />, ...toolItems, ...whatsNewItems, <HeaderHelpPopover key="help" />];
     }
 
     return [...toolItems, ...whatsNewItems, <HeaderHelpPopover key="help" />];
@@ -366,7 +357,6 @@ export const HeaderNavbar = ({
     isDesktop,
     isBillingEnabled,
     hasPaidPlan,
-    trackEvent,
     showFullscreenLink,
     instanceUrl,
     releaseNotePlatform,

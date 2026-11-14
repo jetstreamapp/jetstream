@@ -1,10 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import {
-  ANALYTICS_KEYS,
-  HTTP,
-  MAX_BINARY_DOWNLOAD_RECORDS_FREE_USER,
-  MAX_BINARY_DOWNLOAD_RECORDS_PAID_USER,
-} from '@jetstream/shared/constants';
+import { HTTP, MAX_BINARY_DOWNLOAD_RECORDS_FREE_USER, MAX_BINARY_DOWNLOAD_RECORDS_PAID_USER } from '@jetstream/shared/constants';
 import { downloadBinaryAttachmentsZip_WEB_EXTENSION } from '@jetstream/shared/data';
 import {
   formatNumber,
@@ -17,10 +12,10 @@ import {
   useNonInitialEffect,
   useSessionCsrfToken,
 } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getRecordIdFromAttributes, pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { getRecordIdFromAttributes, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJobNew, BinaryDownloadCompatibleObjectsSchema, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import { Icon, Modal, Radio, RadioGroup, ScopedNotification, Tooltip } from '@jetstream/ui';
-import { fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
+import { fromJetstreamEvents } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import z from 'zod';
 
@@ -58,7 +53,6 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
   hasPaidPlan,
 }) => {
   sobjectName = sobjectName?.toLowerCase() || null;
-  const { trackEvent } = useAnalytics();
   const csrfToken = useSessionCsrfToken();
   const [modalOpen, setModalOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -109,21 +103,13 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
       setDisabled(true);
       setDisabledReason('Select one or more records');
     }
-  }, [sobjectName, selectedRecords, trackEvent, hasRecords, hasPaidPlan]);
-
-  useEffect(() => {
-    if (visible) {
-      trackEvent(ANALYTICS_KEYS.attachment_QueriedEligibleObject, { sobjectName });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trackEvent, visible]);
+  }, [sobjectName, selectedRecords, hasRecords, hasPaidPlan]);
 
   async function handleOpenModal() {
     try {
       if (!sobjectName) {
         return;
       }
-      trackEvent(ANALYTICS_KEYS.attachment_ModalOpened, { selectedRecords: selectedRecords.length, sobjectName });
       setDisabledReason('');
       setErrorMessage(null);
       setIsDownloading(false);
@@ -134,7 +120,6 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
       setErrorMessage(
         'There was a problem initiating the download, your browser may not support this capability. Try refreshing the page and trying again.',
       );
-      trackEvent(ANALYTICS_KEYS.attachment_Error, { selectedRecords: selectedRecords.length, sobjectName, error: getErrorMessage(ex) });
       tracker.error('Error initiating zip download', ex);
     }
   }
@@ -169,11 +154,10 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
           fromJetstreamEvents.emit({ type: 'newJob', payload: [newJob] });
 
           // Close modal immediately - user can track progress in jobs panel
-          handleModalClose(false);
+          handleModalClose();
         } catch (ex) {
           logger.error('[ERROR] Desktop download failed!');
           logger.error(ex);
-          trackEvent(ANALYTICS_KEYS.attachment_Error, { selectedRecords: selectedRecords.length, sobjectName, error: getErrorMessage(ex) });
           tracker.error('Error in desktop zip download', ex);
         }
       } else if (isBrowserExtension()) {
@@ -185,7 +169,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
           nameFormat: fileNameFormat,
         });
         saveFile(response, fileName, 'application/zip;charset=utf-8');
-        handleModalClose(false);
+        handleModalClose();
       } else {
         // Web app: download so that the browser streams the file directly to get progress indication from the browser
         const form = document.createElement('form');
@@ -218,26 +202,20 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
         form.submit();
         form.remove();
 
-        handleModalClose(false);
+        handleModalClose();
       }
     } catch (ex) {
       logger.error('[ERROR] Attempting to download failed!');
       logger.error(ex);
       setErrorMessage('There was a problem initiating the download.');
       setIsDownloading(false);
-      trackEvent(ANALYTICS_KEYS.attachment_Error, { selectedRecords: selectedRecords.length, sobjectName, error: getErrorMessage(ex) });
       tracker.error('Error initiating zip download', ex);
     }
   }
 
-  function handleModalClose(cancel?: boolean) {
+  function handleModalClose() {
     setModalOpen(false);
     setIsDownloading(false);
-    if (cancel) {
-      trackEvent(ANALYTICS_KEYS.attachment_Canceled, { selectedRecords: selectedRecords.length, sobjectName });
-    } else {
-      trackEvent(ANALYTICS_KEYS.attachment_Downloaded, { selectedRecords: selectedRecords.length, sobjectName });
-    }
   }
 
   return (
@@ -258,11 +236,11 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
         <Modal
           closeOnBackdropClick={false}
           closeOnEsc={false}
-          onClose={() => handleModalClose(true)}
+          onClose={() => handleModalClose()}
           header="Download Attachments"
           footer={
             <Fragment>
-              <button className="slds-button slds-button_neutral" onClick={() => handleModalClose(true)} disabled={isDownloading}>
+              <button className="slds-button slds-button_neutral" onClick={() => handleModalClose()} disabled={isDownloading}>
                 Cancel
               </button>
               <button className="slds-button slds-button_brand" onClick={handleDownload} disabled={isDownloading}>

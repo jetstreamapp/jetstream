@@ -1,4 +1,3 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
@@ -12,7 +11,7 @@ import {
   RowWithKey,
   setColumnFromType,
 } from '@jetstream/ui';
-import { fromJetstreamEvents, MetadataRowConfiguration, useAnalytics } from '@jetstream/ui-core';
+import { fromJetstreamEvents } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useMemo, useState } from 'react';
@@ -29,7 +28,6 @@ export interface BulkUpdateProposedChangesPreviewProps {
   org: SalesforceOrgUi;
   sobject: string;
   proposedChanges: ProposedChangesResult;
-  configuration: MetadataRowConfiguration[];
   /** Total number of records that were fetched/targeted (impacted + unaffected) */
   totalFetched: number;
 }
@@ -42,10 +40,8 @@ export const BulkUpdateProposedChangesPreview: FunctionComponent<BulkUpdatePropo
   org,
   sobject,
   proposedChanges,
-  configuration,
   totalFetched,
 }) => {
-  const { trackEvent } = useAnalytics();
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontdoorLogin = useAtomValue(selectSkipFrontdoorAuth);
@@ -117,11 +113,6 @@ export const BulkUpdateProposedChangesPreview: FunctionComponent<BulkUpdatePropo
       header,
       fileNameParts: [sobject.toLowerCase(), variant === 'before' ? 'backup-before' : 'backup-after'],
     });
-    trackEvent(ANALYTICS_KEYS.mass_update_DownloadRecords, {
-      type: variant === 'before' ? 'preview-backup-before' : 'preview-backup-after',
-      numRows: data.length,
-      transformationOptions: configuration.map(({ transformationOptions }) => transformationOptions.option),
-    });
   }
 
   function handleDownloadClose() {
@@ -144,8 +135,6 @@ export const BulkUpdateProposedChangesPreview: FunctionComponent<BulkUpdatePropo
           fileNameParts={downloadModal.fileNameParts}
           onModalClose={handleDownloadClose}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="bulk_update_query_preview"
-          trackEvent={trackEvent}
         />
       )}
 

@@ -90,11 +90,7 @@ export function AdditionalSettings() {
                 </SettingsSection>
 
                 <SettingsSection id="query" title="Query">
-                  <SoqlQueryFormatSettings
-                    location="AdditionalSettings"
-                    value={soqlQueryFormatOptions}
-                    onChange={setSoqlQueryFormatOptions}
-                  />
+                  <SoqlQueryFormatSettings value={soqlQueryFormatOptions} onChange={setSoqlQueryFormatOptions} />
                 </SettingsSection>
               </>
             )}

@@ -1,7 +1,6 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DeployOptions, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal } from '@jetstream/ui';
-import { fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
+import { fromJetstreamEvents } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useState } from 'react';
@@ -16,7 +15,6 @@ export interface DeleteMetadataModalProps {
 }
 
 export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = ({ selectedOrg, selectedMetadata, onClose }) => {
-  const { trackEvent } = useAnalytics();
   const { google_apiKey, google_appId, google_clientId, defaultApiVersion } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [configModalOpen, setConfigModalOpen] = useState<boolean>(true);
@@ -32,7 +30,6 @@ export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = 
     setDeployOptions(deployOptions);
     setConfigModalOpen(false);
     setDeployStatusModalOpen(true);
-    trackEvent(ANALYTICS_KEYS.deploy_deployMetadata, { type: 'package-to-org', deployOptions });
   }
 
   function handleGoBackFromDeploy() {
@@ -90,8 +87,6 @@ export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = 
           data={deployResultsData}
           onModalClose={() => setDownloadResultsModalOpen(false)}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="deploy_metadata_delete_modal"
-          trackEvent={trackEvent}
         />
       )}
       {downloadPackageModalOpen && file && (
@@ -111,8 +106,6 @@ export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = 
             setConfigModalOpen(true);
           }}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="deploy_metadata_delete_modal"
-          trackEvent={trackEvent}
         />
       )}
     </Fragment>

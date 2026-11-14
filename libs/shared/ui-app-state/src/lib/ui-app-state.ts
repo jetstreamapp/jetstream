@@ -313,8 +313,6 @@ userProfilePromise.catch(() => undefined);
 
 export const userProfileState = atom<Promise<UserProfileUi> | UserProfileUi>(userProfilePromise);
 
-export const analyticsState = atom<'accepted' | 'rejected' | null>(null);
-
 /**
  * This is for internal use for derived state to avoid async issues.
  * Use `userProfileState` for components.

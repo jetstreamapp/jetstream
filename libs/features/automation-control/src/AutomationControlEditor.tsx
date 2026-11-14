@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
+import { TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useGoBackShortcut, usePrimaryActionShortcut, useTitle } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { FileExtAllTypes, ListMetadataResult, Maybe, MimeType, RetrievePackageFromListMetadataJob } from '@jetstream/types';
@@ -21,7 +21,7 @@ import {
   Tooltip,
   getModifierKey,
 } from '@jetstream/ui';
-import { RequireMetadataApiBanner, fromAutomationControlState, fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
+import { RequireMetadataApiBanner, fromAutomationControlState, fromJetstreamEvents } from '@jetstream/ui-core';
 import {
   applicationCookieState,
   googleDriveAccessState,
@@ -58,7 +58,6 @@ const HEIGHT_BUFFER = 170;
 
 export const AutomationControlEditor = () => {
   useTitle(TITLES.AUTOMATION_CONTROL);
-  const { trackEvent } = useAnalytics();
   const navigate = useNavigate();
 
   const selectedOrg = useAtomValue(selectedOrgState);
@@ -113,7 +112,6 @@ export const AutomationControlEditor = () => {
 
   function handleResetChanges() {
     resetChanges();
-    trackEvent(ANALYTICS_KEYS.automation_toggle_all, { type: 'reset' });
   }
 
   function handleReviewChanges() {
@@ -125,7 +123,6 @@ export const AutomationControlEditor = () => {
     }) as TableRowItem[];
     setDirtyRows(_dirtyRows);
     setSaveModalOpen(true);
-    trackEvent(ANALYTICS_KEYS.automation_review, { rows: _dirtyRows.length, objects: selectedSObjects.length });
   }
 
   const reviewChangesDisabled = loading || !dirtyCount || !deployAccess.allowed;
@@ -147,7 +144,6 @@ export const AutomationControlEditor = () => {
 
   function exportPackage() {
     setExportMetadataModalOpen(true);
-    trackEvent(ANALYTICS_KEYS.automation_export, { type: 'zip' });
   }
 
   async function handlePackageDownload(data: {
@@ -254,7 +250,6 @@ export const AutomationControlEditor = () => {
       });
     setExportDataModalData(exportData);
     setExportDataModalOpen(true);
-    trackEvent(ANALYTICS_KEYS.automation_export, { type: 'spreadsheet' });
   }
 
   return (
@@ -274,8 +269,6 @@ export const AutomationControlEditor = () => {
           fileNameParts={['automation']}
           onModalClose={() => setExportDataModalOpen(false)}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="automation_control"
-          trackEvent={trackEvent}
           escapeCsvFormulas
         />
       )}
@@ -293,8 +286,6 @@ export const AutomationControlEditor = () => {
           allowedTypes={['zip']}
           onCancel={() => setExportMetadataModalOpen(false)}
           onDownload={handlePackageDownload}
-          source="automation_control"
-          trackEvent={trackEvent}
         />
       )}
       <RequireMetadataApiBanner />

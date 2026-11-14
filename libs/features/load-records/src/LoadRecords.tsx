@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
+import { TITLES } from '@jetstream/shared/constants';
 import { clearCacheForOrg } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { formatNumber, useGoBackShortcut, usePrimaryActionShortcut, useTitle } from '@jetstream/shared/ui-utils';
@@ -26,7 +26,6 @@ import {
   getFieldMetadata,
   getMaxBatchSize,
   getRecommendedApiMode,
-  useAnalytics,
   ViewDataHistoryLink,
 } from '@jetstream/ui-core';
 import {
@@ -63,7 +62,6 @@ export const LoadRecords = () => {
   useTitle(TITLES.LOAD);
   const isMounted = useRef(true);
   const [searchParams, setSearchParams] = useSearchParams();
-  const { trackEvent } = useAnalytics();
 
   // Capture pre-fill params (e.g. from browser extension popover) once on mount
   const [initialObjectName] = useState(() => searchParams.get('objectName'));
@@ -403,13 +401,11 @@ export const LoadRecords = () => {
 
   function handleGoBackToPrev() {
     changeStep(-1);
-    trackEvent(ANALYTICS_KEYS.load_GoBackToPrevStep, { step: currentStepIdx });
   }
 
   // Only completed steps are clickable in the progress indicator, so this is always backwards navigation
   function handleJumpToStep(stepIdx: number) {
     setCurrentStepIdx(stepIdx);
-    trackEvent(ANALYTICS_KEYS.load_GoBackToPrevStep, { step: currentStepIdx, targetStep: stepIdx });
   }
 
   function changeStep(changeBy: number) {
@@ -446,7 +442,6 @@ export const LoadRecords = () => {
     resetSerialModeState();
     resetTrialRunState();
     resetTrialRunSizeState();
-    trackEvent(ANALYTICS_KEYS.load_StartOver, { page: currentStep.name });
   }
 
   async function handleFieldRefresh() {

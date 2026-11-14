@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiGetRecords } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
@@ -9,7 +8,6 @@ import { Card, FileDownloadModal, Grid, Icon, SalesforceLogin, ScopedNotificatio
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, useEffect, useState } from 'react';
-import { useAnalytics } from '../analytics';
 import ConfirmPageChange from '../app/ConfirmPageChange';
 import { fromJetstreamEvents } from '../jetstream-events';
 import LoadRecordsBulkApiResultsTable from '../load-records-results/LoadRecordsBulkApiResultsTable';
@@ -59,7 +57,6 @@ export const MassUpdateRecordsDeploymentRow = ({
   onModalOpenChange,
   onCheckStatusAgain,
 }: MassUpdateRecordsDeploymentRowProps) => {
-  const { trackEvent } = useAnalytics();
   const [downloadModalData, setDownloadModalData] = useState<DownloadModalData>({ open: false, data: [], header: [], fileNameParts: [] });
   const [resultsModalData, setResultsModalData] = useState<ViewModalData>({ open: false, data: [], header: [], type: 'results' });
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
@@ -99,11 +96,6 @@ export const MassUpdateRecordsDeploymentRow = ({
 
       if (action === 'view') {
         setResultsModalData({ ...resultsModalData, open: true, header, data: combinedResults, type });
-        trackEvent(ANALYTICS_KEYS.mass_update_DownloadRecords, {
-          type,
-          numRows: data.length,
-          transformationOptions: configuration.map(({ transformationOptions }) => transformationOptions.option),
-        });
       } else {
         setDownloadModalData({
           ...downloadModalData,
@@ -111,11 +103,6 @@ export const MassUpdateRecordsDeploymentRow = ({
           fileNameParts: ['mass-load'.toLocaleLowerCase(), sobject.toLocaleLowerCase(), type],
           header,
           data: combinedResults,
-        });
-        trackEvent(ANALYTICS_KEYS.mass_update_ViewRecords, {
-          type,
-          numRows: data.length,
-          transformationOptions: configuration.map(({ transformationOptions }) => transformationOptions.option),
         });
       }
     } catch (ex) {
@@ -149,12 +136,6 @@ export const MassUpdateRecordsDeploymentRow = ({
       header,
       fileNameParts: ['mass-load'.toLocaleLowerCase(), sobject.toLocaleLowerCase(), type],
     });
-    trackEvent(ANALYTICS_KEYS.mass_update_DownloadRecords, {
-      type,
-      numRows: data.length,
-      location: 'fromViewModal',
-      transformationOptions: configuration.map(({ transformationOptions }) => transformationOptions.option),
-    });
   }
 
   function handleModalClose() {
@@ -181,8 +162,6 @@ export const MassUpdateRecordsDeploymentRow = ({
           fileNameParts={downloadModalData.fileNameParts}
           onModalClose={handleModalClose}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="automation_control"
-          trackEvent={trackEvent}
         />
       )}
       {resultsModalData.open && (

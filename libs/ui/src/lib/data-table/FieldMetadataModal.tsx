@@ -58,14 +58,11 @@ export interface FieldMetadataModalProps {
   field: Field;
   columnName?: string;
   onClose: () => void;
-  /** Fired after the raw field JSON is downloaded (e.g. for analytics). */
-  onDownload?: () => void;
 }
 
-export const FieldMetadataModal: FunctionComponent<FieldMetadataModalProps> = ({ field, columnName, onClose, onDownload }) => {
+export const FieldMetadataModal: FunctionComponent<FieldMetadataModalProps> = ({ field, columnName, onClose }) => {
   const handleDownloadJson = () => {
     saveFile(JSON.stringify(field, null, 2), `field-metadata-${field.name}.json`, MIME_TYPES.JSON);
-    onDownload?.();
   };
 
   return (

@@ -1,13 +1,12 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
+import { TITLES } from '@jetstream/shared/constants';
 import { manualRequest } from '@jetstream/shared/data';
 import { tracker, useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ManualRequestPayload, ManualRequestResponse, Maybe, SalesforceApiHistoryRequest } from '@jetstream/types';
 import { AutoFullHeightContainer } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import { apiRequestHistoryDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
@@ -21,7 +20,6 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
   useTitle(TITLES.API_EXPLORER);
   const isMounted = useRef(true);
   const [{ defaultApiVersion }] = useAtom(applicationCookieState);
-  const { trackEvent } = useAnalytics();
   const selectedOrg = useAtomValue(selectedOrgState);
   const [request, setRequest] = useState<Maybe<SalesforceApiHistoryRequest>>();
   const [results, setResults] = useState<Maybe<ManualRequestResponse>>(null);
@@ -58,9 +56,6 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
             status: results.status || 200,
             statusText: results.statusText || 'OK',
           })
-          .then((_updatedHistoryItems) => {
-            trackEvent(ANALYTICS_KEYS.sfdcApi_Submitted, { success: true });
-          })
           .catch((ex) => {
             logger.warn('[ERROR] Could not save history', ex);
             tracker.error('Error saving API request history', ex);
@@ -77,7 +72,7 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
         setLoading(false);
       }
     },
-    [selectedOrg, trackEvent],
+    [selectedOrg],
   );
 
   return (

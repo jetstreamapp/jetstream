@@ -48,7 +48,6 @@ test.describe('Team Access Profiles', () => {
 
   test.beforeEach(async ({ page, authenticationPage }) => {
     await page.goto('/');
-    await authenticationPage.acceptCookieBanner();
   });
 
   test('admin limits a member to read only tools', async ({ teamCreationUtils3Users: tc, page, teamDashboardPage }) => {

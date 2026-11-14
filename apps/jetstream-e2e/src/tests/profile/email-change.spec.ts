@@ -34,7 +34,6 @@ function uniqueEmail(prefix: string) {
 test.describe('Email Address Change', () => {
   test.beforeEach(async ({ page, authenticationPage }) => {
     await page.goto('/');
-    await authenticationPage.acceptCookieBanner();
   });
 
   test('changes the email address end to end', async ({ page, authenticationPage, playwrightPage }) => {

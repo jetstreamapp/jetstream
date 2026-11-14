@@ -1,6 +1,5 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordStringFilter } from '@jetstream/shared/utils';
 import {
@@ -33,7 +32,6 @@ import {
   isAdditionalMapping,
   loadFieldMappingFromSavedMapping,
   resetFieldMapping,
-  useAnalytics,
 } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
@@ -82,7 +80,6 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     onFieldMappingChange,
     onRefreshFields,
   }) => {
-    const { trackEvent } = useAnalytics();
     const hasInitialized = useRef(false);
     const [csvFields, setCsvFields] = useState(() => new Set(inputHeader));
     const [objectFields, setObjectFields] = useState(() => new Set(fields.map((field) => field.name)));
@@ -123,7 +120,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
 
     useNonInitialEffect(() => {
       setActiveRow(fileData[debouncedSelectedValue] || fileData[0]);
-    }, [debouncedSelectedValue, fileData, trackEvent]);
+    }, [debouncedSelectedValue, fileData]);
 
     useNonInitialEffect(() => {
       setCsvFields(new Set(inputHeader));
@@ -205,18 +202,15 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
       switch (id) {
         case MAPPING_CLEAR:
           setFieldMapping(resetFieldMapping(inputHeader));
-          trackEvent(ANALYTICS_KEYS.load_MappingAutomationChanged, { action: id });
           break;
         case MAPPING_RESET:
           autoMapFields(org, inputHeader, fields, binaryAttachmentBodyField, loadType, externalId).then(setFieldMapping);
           setFilter(FILTER_ALL);
-          trackEvent(ANALYTICS_KEYS.load_MappingAutomationChanged, { action: id });
           break;
         case FILTER_ALL:
         case FILTER_MAPPED:
         case FILTER_UNMAPPED:
           setFilter(id as Filter);
-          trackEvent(ANALYTICS_KEYS.load_MappingFilterChanged, { filter: id });
           break;
         default:
           break;
@@ -227,7 +221,6 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     function handleLoadMapping(savedMapping: LoadSavedMappingItem) {
       const newMapping = loadFieldMappingFromSavedMapping(savedMapping, inputHeader, fields, binaryAttachmentBodyField);
       setFieldMapping(newMapping);
-      trackEvent(ANALYTICS_KEYS.load_SavedMappingLoaded);
       setKeyPrefix(new Date().getTime());
     }
 
@@ -237,7 +230,6 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
       } else {
         setActiveRowIndex(activeRowIndex + 1);
       }
-      trackEvent(ANALYTICS_KEYS.load_MappingRowPreviewChanged, { action, rowNumber: activeRowIndex });
     }
 
     async function handleCacheRefresh() {
@@ -268,7 +260,6 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     function handleAddAdditionalMapping(csvField: string) {
       const { mappingKey, fieldMappingItem } = initAdditionalFieldMappingItem(csvField);
       setFieldMapping((fieldMapping) => ({ ...fieldMapping, [mappingKey]: fieldMappingItem }));
-      trackEvent(ANALYTICS_KEYS.load_MappingAdditionalFieldAdded);
     }
 
     return (

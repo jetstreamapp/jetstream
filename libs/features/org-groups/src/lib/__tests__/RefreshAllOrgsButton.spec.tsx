@@ -1,4 +1,3 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -9,15 +8,10 @@ import { RefreshAllOrgsButton } from '../RefreshAllOrgsButton';
 const checkOrgHealth = vi.fn();
 const getOrgs = vi.fn();
 const fireToast = vi.fn();
-const trackEvent = vi.fn();
 
 vi.mock('@jetstream/shared/data', () => ({
   checkOrgHealth: (org: SalesforceOrgUi) => checkOrgHealth(org),
   getOrgs: () => getOrgs(),
-}));
-
-vi.mock('@jetstream/ui-core', () => ({
-  useAnalytics: () => ({ trackEvent }),
 }));
 
 vi.mock('@jetstream/ui/app-state', () => ({
@@ -59,7 +53,6 @@ describe('RefreshAllOrgsButton', () => {
     await waitFor(() => expect(getOrgs).toHaveBeenCalledTimes(1));
     expect(checkOrgHealth).toHaveBeenCalledTimes(3);
     expect(fireToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'success' }));
-    expect(trackEvent).toHaveBeenCalledWith(ANALYTICS_KEYS.sfdc_org_refresh_all, { orgCount: 3, successCount: 3, errorCount: 0 });
   });
 
   it('should keep refreshing the remaining orgs when one fails and report the partial result', async () => {
@@ -73,7 +66,6 @@ describe('RefreshAllOrgsButton', () => {
     await waitFor(() => expect(getOrgs).toHaveBeenCalledTimes(1));
     expect(checkOrgHealth).toHaveBeenCalledTimes(3);
     expect(fireToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'warning' }));
-    expect(trackEvent).toHaveBeenCalledWith(ANALYTICS_KEYS.sfdc_org_refresh_all, { orgCount: 3, successCount: 2, errorCount: 1 });
   });
 
   it('should report an error and still re-fetch orgs when every org fails', async () => {
@@ -84,7 +76,6 @@ describe('RefreshAllOrgsButton', () => {
 
     await waitFor(() => expect(getOrgs).toHaveBeenCalledTimes(1));
     expect(fireToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
-    expect(trackEvent).toHaveBeenCalledWith(ANALYTICS_KEYS.sfdc_org_refresh_all, { orgCount: 3, successCount: 0, errorCount: 3 });
   });
 
   it('should show progress and prevent a second refresh while one is in flight', async () => {

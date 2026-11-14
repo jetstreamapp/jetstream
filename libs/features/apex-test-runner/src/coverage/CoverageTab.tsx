@@ -1,8 +1,6 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import type { ApexCodeCoverageAggregateRecord, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, Icon, ScopedNotification, SearchInput, Spinner } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { fetchCoverageAggregates, fetchOrgWideCoverage } from '../apex-test-runner-data.utils';
 import CoverageSourceModal from './CoverageSourceModal';
@@ -13,7 +11,6 @@ export interface CoverageTabProps {
 }
 
 export const CoverageTab: FunctionComponent<CoverageTabProps> = ({ selectedOrg }) => {
-  const { trackEvent } = useAnalytics();
   const [coverageRecords, setCoverageRecords] = useState<ApexCodeCoverageAggregateRecord[]>([]);
   const [orgWideCoverage, setOrgWideCoverage] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,13 +38,9 @@ export const CoverageTab: FunctionComponent<CoverageTabProps> = ({ selectedOrg }
     loadCoverage();
   }, [loadCoverage]);
 
-  const handleRowSelection = useCallback(
-    (record: ApexCodeCoverageAggregateRecord) => {
-      setSelectedRecord(record);
-      trackEvent(ANALYTICS_KEYS.apex_tests_coverage_viewed);
-    },
-    [trackEvent],
-  );
+  const handleRowSelection = useCallback((record: ApexCodeCoverageAggregateRecord) => {
+    setSelectedRecord(record);
+  }, []);
 
   return (
     <div className="slds-is-relative">

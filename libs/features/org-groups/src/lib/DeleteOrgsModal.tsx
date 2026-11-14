@@ -1,10 +1,8 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { deleteOrg } from '@jetstream/shared/data';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Checkbox, Grid, Icon, Modal, RadioButton, RadioGroup, Spinner, fireToast } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import groupBy from 'lodash/groupBy';
 import sortBy from 'lodash/sortBy';
@@ -17,7 +15,6 @@ interface DeleteOrgsModalProps {
 }
 
 export const DeleteOrgsModal = ({ orgs, onClose, onDeleted }: DeleteOrgsModalProps) => {
-  const { trackEvent } = useAnalytics();
   const [selectedOrgIds, setSelectedOrgIds] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -84,13 +81,6 @@ export const DeleteOrgsModal = ({ orgs, onClose, onDeleted }: DeleteOrgsModalPro
     }
 
     setIsDeleting(false);
-    trackEvent(ANALYTICS_KEYS.sfdc_org_bulk_deleted, {
-      selectedCount: orgsToDelete.length,
-      successCount,
-      errorCount,
-      filterMode,
-      totalOrgCount: orgs.length,
-    });
 
     if (successCount > 0) {
       fireToast({

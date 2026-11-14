@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { useSetTraceFlag } from '@jetstream/connected-ui';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, INDEXED_DB, LOG_LEVELS, TITLES } from '@jetstream/shared/constants';
+import { INDEXED_DB, LOG_LEVELS, TITLES } from '@jetstream/shared/constants';
 import { anonymousApex, getLocalStore } from '@jetstream/shared/data';
 import {
   sanitizePastedEditorText,
@@ -31,7 +31,7 @@ import {
   ViewDocsLink,
   getModifierKey,
 } from '@jetstream/ui';
-import { MonacoEditor, useAnalytics } from '@jetstream/ui-core';
+import { MonacoEditor } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import { OnMount } from '@monaco-editor/react';
 import { useAtom, useAtomValue } from 'jotai';
@@ -60,7 +60,6 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const apexRef = useRef<editor.IStandaloneCodeEditor>(null);
   const logRef = useRef<editor.IStandaloneCodeEditor>(null);
   const { addDisposable } = useDisposables();
-  const { trackEvent } = useAnalytics();
   const { serverUrl } = useAtomValue(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const selectedOrg = useAtomValue(selectedOrgState);
@@ -207,15 +206,13 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
               tracker.error('Error saving apex history', ex);
             });
         }
-        trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: result.success });
       } catch (ex) {
         setResults(`There was a problem submitting the request\n${getErrorMessage(ex)}`);
-        trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: false });
       } finally {
         setLoading(false);
       }
     },
-    [selectedOrg, logLevel, trackEvent, notifyUser, setHistoryItems],
+    [selectedOrg, logLevel, notifyUser, setHistoryItems],
   );
 
   function handleEditorChange(value?: string, _event?: unknown) {

@@ -117,9 +117,8 @@ export interface LoadRecordsHistoryConfig {
 }
 
 /**
- * The built run snapshot: what is stored on the entry's `config` AND sent as the `load_Submitted`
- * analytics payload — one object serves both so the two can never drift. A type alias (not an
- * interface) so it stays assignable to the `Record<string, unknown>` both consumers take.
+ * The built run snapshot stored on the entry's `config`. A type alias (not an interface) so it stays
+ * assignable to the `Record<string, unknown>` the entry takes.
  */
 export type LoadRecordsHistorySnapshot = Omit<LoadRecordsHistoryConfig, 'fieldMapping' | 'retry' | 'isTrialRun'> & {
   isTrialRun: boolean;
@@ -172,8 +171,7 @@ export function buildLoadRecordsHistoryConfig({
 /**
  * Begin a history entry for a Load Records run — initial load, trial run, or retry (a retry links to
  * the run it retried via `parentKey`). Owns the envelope shared by every load-records entry; callers
- * pass the run snapshot they already built (see `buildLoadRecordsHistoryConfig`), so the same object
- * goes to analytics. The handle self-gates (captures nothing when disabled/opted out) and is never
+ * pass the run snapshot they already built (see `buildLoadRecordsHistoryConfig`). The handle self-gates (captures nothing when disabled/opted out) and is never
  * awaited on the load's critical path.
  */
 export function startLoadRecordsHistory({

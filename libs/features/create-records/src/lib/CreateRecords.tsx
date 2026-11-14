@@ -1,7 +1,6 @@
 import { css } from '@emotion/react';
 import { getPicklistValuesForRecordAndRecordType, removeUnavailablePicklistValues, UiRecordForm } from '@jetstream/record-form';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { describeSObject, sobjectOperation } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { filterCreateSobjects, isErrorResponse, tracker, useNonInitialEffect } from '@jetstream/shared/ui-utils';
@@ -28,7 +27,7 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { RequireMetadataApiBanner, useAnalytics } from '@jetstream/ui-core';
+import { RequireMetadataApiBanner } from '@jetstream/ui-core';
 import { EditFromErrors, handleEditFormErrorResponse, transformEditForm, validateEditForm } from '@jetstream/ui-core/shared';
 import { applicationCookieState, selectedOrgState, useOperationAccess } from '@jetstream/ui/app-state';
 import { recordSingleRecordAction, SingleRecordActionContext } from '@jetstream/ui/data-history';
@@ -40,7 +39,6 @@ const HEIGHT_BUFFER = 160;
 
 export const CreateRecords = () => {
   const isMounted = useRef(true);
-  const { trackEvent } = useAnalytics();
 
   const { defaultApiVersion } = useAtomValue(applicationCookieState);
   const selectedOrg = useAtomValue(selectedOrgState);
@@ -280,8 +278,6 @@ export const CreateRecords = () => {
         ...historyEntry,
         outcome: { succeeded: !isErrorResult, results: { result: recordResponse, record: retrievedRecord } },
       });
-
-      trackEvent(ANALYTICS_KEYS.create_record_save, { success: true });
     } catch (ex) {
       if (isMounted.current) {
         setFormErrors({ hasErrors: true, fieldErrors: {}, generalErrors: [getErrorMessage(ex) || 'An unknown problem has occurred.'] });
@@ -292,7 +288,6 @@ export const CreateRecords = () => {
         ...historyEntry,
         outcome: { succeeded: false, results: { error: getErrorMessage(ex) }, errorMessage: getErrorMessage(ex) },
       });
-      trackEvent(ANALYTICS_KEYS.create_record_save, { success: false });
     }
     if (isMounted.current) {
       setSaving(false);

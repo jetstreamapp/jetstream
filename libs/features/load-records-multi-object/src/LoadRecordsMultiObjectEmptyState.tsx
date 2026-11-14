@@ -5,7 +5,6 @@ import ExampleImage from './images/load-to-multiple-objects-example.png';
 
 export interface LoadRecordsMultiObjectEmptyStateProps {
   templateUrl: string;
-  onTemplateDownload: () => void;
 }
 
 const HOW_IT_WORKS: { icon: string; title: string; description: string }[] = [
@@ -33,22 +32,12 @@ const HOW_IT_WORKS: { icon: string; title: string; description: string }[] = [
 ];
 
 /** Pre-upload teaching state: the template CTA plus the mental model the template file itself cannot show */
-export const LoadRecordsMultiObjectEmptyState: FunctionComponent<LoadRecordsMultiObjectEmptyStateProps> = ({
-  templateUrl,
-  onTemplateDownload,
-}) => {
+export const LoadRecordsMultiObjectEmptyState: FunctionComponent<LoadRecordsMultiObjectEmptyStateProps> = ({ templateUrl }) => {
   return (
     <div className="slds-m-top_medium">
       <div className="slds-text-align_center slds-m-bottom_medium">
         <h2 className="slds-text-heading_medium slds-m-bottom_x-small">Prepare a file to get started</h2>
-        <a
-          className="slds-button slds-button_brand"
-          href={templateUrl}
-          target="_blank"
-          rel="noreferrer"
-          download
-          onClick={() => onTemplateDownload()}
-        >
+        <a className="slds-button slds-button_brand" href={templateUrl} target="_blank" rel="noreferrer" download>
           <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" />
           Download Excel Template
         </a>

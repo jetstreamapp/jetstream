@@ -1,12 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { describeSObject, query } from '@jetstream/shared/data';
 import { appActionObservable, escapeSoqlString, isValidSalesforceRecordId } from '@jetstream/shared/ui-utils';
 import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItemsTypeAhead, Grid, Icon, Tooltip } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useRef, useState } from 'react';
-import { useAnalytics } from '../analytics';
 
 export interface FormulaEvaluatorRecordSearchProps {
   selectedOrg: SalesforceOrgUi;
@@ -26,7 +24,6 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
   const nameField = useRef<{ selectedSObject: string; nameField: string }>(null);
   const [records, setRecords] = useState<ListItem<string, any>[]>([]);
   const [selectedRecord, setSelectedRecords] = useState<ListItem<string, any> | null>(null);
-  const { trackEvent } = useAnalytics();
 
   const handleSearch = useCallback(
     async (searchTerm: string) => {
@@ -96,7 +93,6 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
   function handleViewRecord() {
     if (selectedRecord) {
       appActionObservable.next({ action: 'VIEW_RECORD', payload: { recordId: selectedRecord.id } });
-      trackEvent(ANALYTICS_KEYS.query_RecordAction, { action: 'view', source: 'FORMULA_EDITOR' });
     }
   }
 

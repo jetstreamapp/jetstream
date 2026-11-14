@@ -1,6 +1,5 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { hasModifierKey, isHKey, tracker, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { SalesforceDeployHistoryItem, SalesforceDeploymentHistoryOrg, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -16,7 +15,7 @@ import {
   fireToast,
   getModifierKey,
 } from '@jetstream/ui';
-import { ConfirmPageChange, fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
+import { ConfirmPageChange, fromJetstreamEvents } from '@jetstream/ui-core';
 import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
@@ -48,7 +47,6 @@ interface DeployMetadataHistoryModalProps {
 }
 
 export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryModalProps) => {
-  const { trackEvent } = useAnalytics();
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(fromAppState.applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [isOpen, setIsOpen] = useState(false);
@@ -89,7 +87,7 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
       if (!isOpen && hasModifierKey(event as any) && isHKey(event as any)) {
         event.stopPropagation();
         event.preventDefault();
-        handleToggleOpen(true, 'keyboardShortcut');
+        handleToggleOpen(true);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -118,11 +116,8 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
     }
   }, [isOpen]);
 
-  function handleToggleOpen(open: boolean, source = 'buttonClick') {
+  function handleToggleOpen(open: boolean) {
     setIsOpen(open);
-    if (open) {
-      trackEvent(ANALYTICS_KEYS.deploy_history_opened, { source });
-    }
   }
 
   async function handleDownload(item: SalesforceDeployHistoryItem) {
@@ -134,7 +129,6 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
         org: orgsById[item.destinationOrg.uniqueId] || getPlaceholderOrg(item.destinationOrg),
         data: file,
       });
-      trackEvent(ANALYTICS_KEYS.deploy_history_download_package, { type: item.type, status: item.status });
     } catch (ex) {
       logger.warn('Failed to download deploy history item', ex);
       tracker.error('Failed to download deploy history item', ex);
@@ -157,7 +151,6 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
         org: orgsById[item.destinationOrg.uniqueId] || getPlaceholderOrg(item.destinationOrg),
         item,
       });
-      trackEvent(ANALYTICS_KEYS.deploy_history_view_details, { type: item.type, status: item.status });
     } catch (ex) {
       logger.warn('Failed to view history', ex);
       tracker.error('Failed to view history', ex);
@@ -189,10 +182,6 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
         ),
       });
       setViewItemModalState({ open: false, org: null, item: null });
-      trackEvent(ANALYTICS_KEYS.deploy_history_download_results, {
-        type: viewItemModalState.item.type,
-        status: viewItemModalState.item.status,
-      });
     }
   }
 
@@ -233,8 +222,6 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
           allowedTypes={['zip']}
           onModalClose={() => handleDownloadModalClose()}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="deploy_metadata_history_modal"
-          trackEvent={trackEvent}
         />
       )}
       {downloadItemModalState.open && downloadItemModalState.org && downloadItemModalState.data && (
@@ -251,8 +238,6 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
           data={downloadItemModalState.data}
           onModalClose={() => handleDownloadResultsModalClose()}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="deploy_metadata_history_modal"
-          trackEvent={trackEvent}
         />
       )}
       {viewItemModalState.open && viewItemModalState.org && viewItemModalState.item && (

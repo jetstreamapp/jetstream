@@ -1,9 +1,9 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, SFDC_BLANK_PICKLIST_VALUE, TITLES } from '@jetstream/shared/constants';
+import { SFDC_BLANK_PICKLIST_VALUE, TITLES } from '@jetstream/shared/constants';
 import { clearCacheForOrg } from '@jetstream/shared/data';
 import { sanitizePastedEditorText, useDisposables, usePrimaryActionShortcut, useTitle } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { DescribeGlobalSObjectResult, Field } from '@jetstream/types';
 import {
@@ -38,7 +38,6 @@ import {
   fromFormulaState,
   getFormulaData,
   registerCompletions,
-  useAnalytics,
 } from '@jetstream/ui-core';
 import { selectedOrgState, useCanPerformOperation } from '@jetstream/ui/app-state';
 import type { FieldSchema, FormulaContext, FormulaValue } from '@jetstreamapp/sf-formula-parser';
@@ -78,7 +77,6 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const { addDisposable } = useDisposables();
   const sobjectComboRef = useRef<SobjectComboboxRef>(null);
   const fieldsComboRef = useRef<SobjectFieldComboboxRef>(null);
-  const { trackEvent } = useAnalytics();
   const selectedOrg = useAtomValue(selectedOrgState);
   const canDeployMetadata = useCanPerformOperation('metadata.deploy');
   const [loading, setLoading] = useState(false);
@@ -189,20 +187,14 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
         });
         logger.log('results', result);
         setResults({ context, result, returnType });
-        trackEvent(ANALYTICS_KEYS.formula_execute, {
-          success: true,
-          fieldCount: categorizedFields.objectFields.length,
-          objectPrefix: recordId.substring(0, 3),
-        });
       } catch (ex) {
         logger.error(ex);
         setErrorMessage(getErrorMessage(ex));
-        trackEvent(ANALYTICS_KEYS.formula_execute, { success: false, ...getErrorMessageAndStackObj(ex) });
       } finally {
         setLoading(false);
       }
     },
-    [testFormulaDisabled, numberNullBehavior, returnType, trackEvent, recordId, selectedOrg, selectedUserId, sobjectName],
+    [testFormulaDisabled, numberNullBehavior, returnType, recordId, selectedOrg, selectedUserId, sobjectName],
   );
 
   const handleTestFormulaShortcut = useCallback(() => {

@@ -166,7 +166,7 @@ export const httpLogger: HttpLogger<express.Request, express.Response> = pinoHtt
   customLogLevel: getHttpLogLevel,
   autoLogging: {
     // ignore static files based on file extension
-    ignore: (req) => isStaticFileRequest(req.url) || req.url === '/healthz' || req.url === '/api/heartbeat' || req.url === '/api/analytics',
+    ignore: (req) => isStaticFileRequest(req.url) || req.url === '/healthz' || req.url === '/api/heartbeat',
   },
   customSuccessMessage(req, res) {
     if (res.statusCode === 404) {

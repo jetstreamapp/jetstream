@@ -33,7 +33,6 @@ setup('log in as example user', async ({ page }) => {
 
   await page.goto(baseApiURL);
 
-  await authenticationPage.acceptCookieBanner();
   await authenticationPage.loginOrGoToAppIfLoggedIn(user.email, ENV.EXAMPLE_USER_PASSWORD as string);
 
   // Handle TOS acceptance gate if the example user hasn't accepted the current version yet.
