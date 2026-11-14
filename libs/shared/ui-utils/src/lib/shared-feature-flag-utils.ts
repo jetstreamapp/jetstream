@@ -4,6 +4,7 @@ import {
   DEFAULT_FEATURE_FLAGS,
   FeatureFlags,
   serializeFeatureFlagsForSigning,
+  type FeatureFlagKey,
   type UserProfileUi,
 } from '@jetstream/types';
 
@@ -46,7 +47,24 @@ export async function applyVerifiedFeatureFlags<T extends Pick<UserProfileUi, 'i
   profile: T,
 ): Promise<T> {
   const featureFlags = await verifyAndExtractFeatureFlags(profile);
+  setActiveFeatureFlags(featureFlags);
   return { ...profile, featureFlags };
+}
+
+let activeFeatureFlags: FeatureFlags = { ...DEFAULT_FEATURE_FLAGS };
+
+/**
+ * Records the signed-in user's verified flags for code that runs outside React (file parsing, export jobs) and so
+ * cannot use the `useFeatureFlag` hook. `applyVerifiedFeatureFlags` calls this on every platform, so nothing else
+ * needs to - it is exported for tests.
+ */
+export function setActiveFeatureFlags(featureFlags: Partial<FeatureFlags>): void {
+  activeFeatureFlags = { ...DEFAULT_FEATURE_FLAGS, ...featureFlags };
+}
+
+/** Whether a flag is on for the signed-in user. Components should use the `useFeatureFlag` hook, which re-renders. */
+export function isFeatureFlagEnabled(key: FeatureFlagKey): boolean {
+  return activeFeatureFlags[key] ?? DEFAULT_FEATURE_FLAGS[key];
 }
 
 /**

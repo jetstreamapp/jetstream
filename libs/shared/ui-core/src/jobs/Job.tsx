@@ -124,7 +124,7 @@ export const Job: FunctionComponent<JobProps> = ({ job, cancelJob, dismiss }) =>
                     icon="warning"
                     className="slds-icon slds-icon-text-warning slds-icon_xx-small"
                     containerClassname="slds-icon_container slds-icon-utility-warning"
-                    description="job success"
+                    description="job finished with warnings"
                   />
                 </abbr>
               )}

@@ -19,6 +19,11 @@ export const FEATURE_FLAGS = {
     defaultValue: false,
     description: 'Manage Salesforce orgs authorized to use the Canvas app.',
   },
+  'simple-excel-engine': {
+    defaultValue: false,
+    description:
+      'Read and write spreadsheets with @jetstreamapp/simple-excel. When this is off, spreadsheets are read and written with SheetJS as before.',
+  },
   'team-access-profiles': {
     defaultValue: false,
     description:
