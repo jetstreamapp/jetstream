@@ -3,6 +3,7 @@ import { prisma } from '@jetstream/api-config';
 import { Prisma } from '@jetstream/prisma';
 import { TEAM_MEMBER_STATUS_ACTIVE, TEAM_STATUS_ACTIVE } from '@jetstream/types';
 import { z } from 'zod';
+import { getUserFeatureFlagStatuses } from '../feature-flags/feature-flags.service';
 import { NotFoundError } from '../utils/route.utils';
 import {
   ENTITLEMENT_SELECT,
@@ -180,8 +181,9 @@ export async function getUserDetail(userId: string): Promise<UserDetail> {
     throw new NotFoundError(`User ${userId} not found`);
   }
 
-  const [webSessions, auditLogs] = await Promise.all([
+  const [webSessions, featureFlags, auditLogs] = await Promise.all([
     getWebSessions(userId),
+    getUserFeatureFlagStatuses(userId),
     findAuditLogs(userAuditLogWhere(userId, user.billingAccount?.customerId), RECENT_ACTIVITY_LIMIT),
   ]);
   const { teamMembership } = user;
@@ -211,6 +213,7 @@ export async function getUserDetail(userId: string): Promise<UserDetail> {
     billingAccount: user.billingAccount,
     subscriptions: user.subscriptions.map(toSubscriptionItem),
     entitlements: toEntitlementFlags(user.entitlements),
+    featureFlags,
     salesforceOrgCount: user._count.salesforceOrgs,
     webSessions,
     externalSessions: user.webExtensionTokens.map(({ id, source, platform, appVersion, ipAddress, createdAt, expiresAt }) => ({

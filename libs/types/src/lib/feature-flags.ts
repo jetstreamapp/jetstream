@@ -41,6 +41,15 @@ export function isFeatureFlagKey(key: string): key is FeatureFlagKey {
 }
 
 /**
+ * The one definition of "most permissive wins": a flag is enabled when its code default or any
+ * applicable override (user, team) is on. Shared by the API resolver and the admin app so the
+ * "Effective" value shown to admins can never drift from what users actually get.
+ */
+export function resolveFeatureFlagValue(key: FeatureFlagKey, overrideValues: ReadonlyArray<boolean | null | undefined>): boolean {
+  return FEATURE_FLAGS[key].defaultValue || overrideValues.some((enabled) => enabled === true);
+}
+
+/**
  * Canonical, stable serialization of a user's resolved flags. Used by BOTH the server signer and the
  * browser verifier, so the byte sequence must be deterministic regardless of object key order. Keys
  * are sorted and values coerced to booleans.

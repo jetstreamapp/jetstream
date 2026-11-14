@@ -4,6 +4,7 @@ import {
   FeatureFlagKey,
   FeatureFlags,
   isFeatureFlagKey,
+  resolveFeatureFlagValue,
   TEAM_MEMBER_STATUS_ACTIVE,
   TeamStatusSchema,
 } from '@jetstream/types';
@@ -24,10 +25,14 @@ export async function resolveFeatureFlagsForUser({ userId, teamId }: { userId: s
     select: { key: true, enabled: true },
   });
 
+  const overrideValuesByKey = new Map<FeatureFlagKey, boolean[]>();
   for (const { key, enabled } of overrides) {
     if (isFeatureFlagKey(key)) {
-      result[key] = result[key] || enabled === true;
+      overrideValuesByKey.set(key, [...(overrideValuesByKey.get(key) ?? []), enabled]);
     }
+  }
+  for (const [key, overrideValues] of overrideValuesByKey) {
+    result[key] = resolveFeatureFlagValue(key, overrideValues);
   }
 
   return result;

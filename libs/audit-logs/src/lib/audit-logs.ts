@@ -71,6 +71,8 @@ export enum AuditLogAction {
   ADMIN_TEAM_MEMBER_ADDED = 'ADMIN_TEAM_MEMBER_ADDED',
   ADMIN_TEAM_DOMAIN_APPROVED = 'ADMIN_TEAM_DOMAIN_APPROVED',
   ADMIN_STRIPE_CUSTOMER_PRODUCTION_ORG_UPDATED = 'ADMIN_STRIPE_CUSTOMER_PRODUCTION_ORG_UPDATED',
+  ADMIN_FEATURE_FLAG_OVERRIDES_ENABLED = 'ADMIN_FEATURE_FLAG_OVERRIDES_ENABLED',
+  ADMIN_FEATURE_FLAG_OVERRIDES_REMOVED = 'ADMIN_FEATURE_FLAG_OVERRIDES_REMOVED',
 }
 
 export enum AuditLogResource {
@@ -86,6 +88,8 @@ export enum AuditLogResource {
   SALESFORCE_CANVAS_ORG = 'salesforce_canvas_org',
   /** A Stripe customer, keyed by its `cus_` id; the linked team or user is in the metadata */
   STRIPE_CUSTOMER = 'stripe_customer',
+  /** A feature flag, keyed by its flag key; the affected users or teams are in the metadata */
+  FEATURE_FLAG = 'feature_flag',
 }
 
 export interface CreateAuditLogParams {
