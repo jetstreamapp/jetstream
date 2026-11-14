@@ -237,13 +237,15 @@ describe('writeWorkbookLegacy', () => {
           ['Name', createdDate, 'TRUE', 'FALSE'],
         ],
         merges: ['C1:D1'],
-        widthSkipRowIndex: 0,
+        widthSkippedRowCount: 1,
         dateFormat: 'yyyy-mm-dd hh:mm:ss',
       },
     ]);
 
-    const worksheet = XLSX.read(await file.arrayBuffer(), { cellDates: true, cellNF: true }).Sheets['Field Permissions'];
+    const worksheet = XLSX.read(await file.arrayBuffer(), { cellDates: true, cellNF: true, cellStyles: true }).Sheets['Field Permissions'];
     expect(worksheet['!merges']).toEqual([{ s: { r: 0, c: 2 }, e: { r: 0, c: 3 } }]);
+    // The first row is not measured, so its columns start at the default width and only later rows can widen them
+    expect(worksheet['!cols']?.map(({ width }) => Math.round(width ?? 0))).toEqual([17, 'yyyy-mm-dd hh:mm:ss'.length + 2, 17, 17]);
     expect(worksheet['B3'].z).toBe('yyyy-mm-dd hh:mm:ss');
     // The date is checked through the new engine's reader, which hands back the wall-clock time that was written
     expect((await readSheets(file))['Field Permissions'][2]).toEqual(['Name', createdDate, 'TRUE', 'FALSE']);

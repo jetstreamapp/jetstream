@@ -162,16 +162,26 @@ export async function generateExcelWorkbookFromTable(
   if (!isSimpleExcelEngineEnabled()) {
     return writeWorkbookWithLegacyEngine(
       [
-        { sheetName: 'Object Permissions', worksheet: generateObjectWorksheet(objectData.columns, objectData.rows) },
-        { sheetName: 'Tab Visibility', worksheet: generateTabVisibilityWorksheet(tabVisibilityData.columns, tabVisibilityData.rows) },
-        { sheetName: 'Field Permissions', worksheet: generateFieldWorksheet(fieldData.columns, fieldData.rows) },
+        {
+          sheetName: 'Object Permissions',
+          worksheet: generateObjectWorksheet(objectData.columns, objectData.rows),
+          widthSkippedRowCount: 1,
+        },
+        {
+          sheetName: 'Tab Visibility',
+          worksheet: generateTabVisibilityWorksheet(tabVisibilityData.columns, tabVisibilityData.rows),
+          widthSkippedRowCount: 1,
+        },
+        { sheetName: 'Field Permissions', worksheet: generateFieldWorksheet(fieldData.columns, fieldData.rows), widthSkippedRowCount: 1 },
         {
           sheetName: 'System Permissions',
           worksheet: generateSystemPermissionWorksheet(systemPermissionData.columns, systemPermissionData.rows),
+          widthSkippedRowCount: 2,
         },
         ...setupEntityAccessData.map(({ sheetName, rowLabel, columns, rows }) => ({
           sheetName,
           worksheet: generateSetupEntityAccessWorksheet(rowLabel, columns, rows),
+          widthSkippedRowCount: 4,
         })),
       ],
       { onCellsTruncated },
@@ -224,19 +234,21 @@ export async function generateExcelWorkbookFromTable(
 /**
  * Writes the same prepared sheets with SheetJS, for users the `simple-excel-engine` flag is off for. SheetJS cannot
  * style cells, so the header rows are not bold.
+ *
+ * `widthSkippedRowCount` is the number of leading rows each sheet left out of its column width measurement before
+ * the new engine existed, kept as it was so the file looks the same with the flag off.
  */
 async function writeWorkbookWithLegacyEngine(
-  sheets: { sheetName: string; worksheet: PermissionWorksheet }[],
+  sheets: { sheetName: string; worksheet: PermissionWorksheet; widthSkippedRowCount: number }[],
   options: GenerateExcelWorkbookOptions,
 ): Promise<Blob> {
   const { writeWorkbookLegacy } = await loadLegacySpreadsheetEngine();
   return writeWorkbookLegacy(
-    sheets.map(({ sheetName, worksheet: { headerRows, dataRows, merges, dateColumnIndexes } }) => ({
+    sheets.map(({ sheetName, widthSkippedRowCount, worksheet: { headerRows, dataRows, merges, dateColumnIndexes } }) => ({
       name: sheetName,
       rows: [...headerRows, ...dataRows],
       merges,
-      // The merged group-header row above the column labels would dwarf every column
-      widthSkipRowIndex: headerRows.length > 1 ? 0 : undefined,
+      widthSkippedRowCount,
       dateFormat: dateColumnIndexes?.length ? AUDIT_DATE_EXCEL_FORMAT : undefined,
     })),
     options,

@@ -224,8 +224,11 @@ export interface LegacyWorksheet {
   rows: unknown[][];
   /** A1 ranges to merge, e.g. `B1:H1` */
   merges?: string[];
-  /** Index of the row that column widths must not be measured from (a merged group header would dwarf every column) */
-  widthSkipRowIndex?: number;
+  /**
+   * How many rows at the top column widths are not measured from (a merged group header would dwarf every column).
+   * Every column those rows reach is at least the default width instead.
+   */
+  widthSkippedRowCount?: number;
   /** Excel number format for `Date` cells */
   dateFormat?: string;
 }
@@ -233,11 +236,11 @@ export interface LegacyWorksheet {
 const LEGACY_SKIPPED_ROW_WIDTH = 15;
 
 /** Column widths from the widest value in each column, with `Date` cells measured as `dateFormat` renders them */
-function getColumnWidths({ rows, widthSkipRowIndex, dateFormat }: LegacyWorksheet): XLSX.ColInfo[] {
+function getColumnWidths({ rows, widthSkippedRowCount = 0, dateFormat }: LegacyWorksheet): XLSX.ColInfo[] {
   const widths: number[] = [];
   rows.forEach((row, rowIndex) => {
     row.forEach((value, columnIndex) => {
-      if (rowIndex === widthSkipRowIndex) {
+      if (rowIndex < widthSkippedRowCount) {
         widths[columnIndex] = LEGACY_SKIPPED_ROW_WIDTH;
         return;
       }
