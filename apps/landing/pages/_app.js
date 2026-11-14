@@ -1,3 +1,7 @@
+// DO NOT CHANGE ORDER OF IMPORTS - zod-config must load before anything that creates a schema
+import '../utils/zod-config';
+// DO NOT CHANGE ORDER OF IMPORTS
+
 import Layout from '../components/layouts/Layout';
 import './index.css';
 

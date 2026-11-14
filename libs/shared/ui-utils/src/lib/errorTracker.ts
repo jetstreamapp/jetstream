@@ -32,6 +32,11 @@ const ignoredMessagePatterns = [INVALID_QUERY_LOCATOR_REGEX];
 // a tab freeze/sleep. Every user-triggered read/write goes through `withReopenOnDatabaseClosed`, which
 // reopens and retries, so anything still reaching here is residual and not actionable.
 const ignoredExactMessages = new Set(['Canceled', 'ChunkLoadError', '(unknown)', 'DatabaseClosedError']);
+// Firefox's wording when a web worker fails to load its script. Monaco starts its workers from blob: URLs, and some
+// Firefox setups (extensions, proxies) block them; Monaco then runs that work on the main thread and the editor keeps
+// working, so there is nothing to fix. It arrives twice: from the blob: script itself, and as the worker's ErrorEvent
+// re-thrown from a setTimeout (whose stack only shows the error tracker).
+const WORKER_LOAD_FAILURE_MESSAGE = 'NetworkError: A network error occurred.';
 const extensionUrlPrefixes = ['chrome-extension://', 'moz-extension://', 'safari-web-extension://', 'safari-extension://'];
 
 const PER_SESSION_MINUTE_LIMIT = 10;
@@ -60,7 +65,20 @@ function isRateLimited(): boolean {
   return false;
 }
 
-function shouldIgnore(event: Sentry.ErrorEvent): boolean {
+function isWorkerLoadFailure(event: Sentry.ErrorEvent): boolean {
+  return (event.exception?.values ?? []).some(({ type, value, stacktrace }) => {
+    if (!value?.includes(WORKER_LOAD_FAILURE_MESSAGE)) {
+      return false;
+    }
+    return type === 'ErrorEvent' || !!stacktrace?.frames?.some(({ filename }) => filename?.startsWith('blob:'));
+  });
+}
+
+/** Whether an error is known noise that is dropped instead of reported */
+export function shouldIgnoreErrorEvent(event: Sentry.ErrorEvent): boolean {
+  if (isWorkerLoadFailure(event)) {
+    return true;
+  }
   const candidates: string[] = [];
   if (event.message) {
     candidates.push(event.message);
@@ -117,7 +135,7 @@ export function initErrorTracker(options: InitOptions): void {
       if (optedOut) {
         return null;
       }
-      if (shouldIgnore(event as Sentry.ErrorEvent)) {
+      if (shouldIgnoreErrorEvent(event as Sentry.ErrorEvent)) {
         return null;
       }
       if (isRateLimited()) {
