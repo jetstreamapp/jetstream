@@ -4,6 +4,7 @@ import {
   exchangeRefreshToken,
   getApiRequestFactoryFn,
   getUntrustedCertificateErrorMessage,
+  handleSalesforceApiError,
   MAX_REDIRECT_HOPS,
   resolveSameOriginRequestUrl,
   sanitizeCallerHeaders,
@@ -670,6 +671,7 @@ describe('callout-adapter XML parsing', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(ApiRequestError);
         expect((error as ApiRequestError).message).toContain('INVALID_SESSION_ID');
+        expect((error as ApiRequestError).errorCode).toBe('INVALID_SESSION_ID');
       }
     });
   });
@@ -694,6 +696,7 @@ describe('callout-adapter XML parsing', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(ApiRequestError);
         expect((error as ApiRequestError).message).toBe('Records not found for this batch');
+        expect((error as ApiRequestError).errorCode).toBe('InvalidBatch');
       }
     });
   });
@@ -1548,5 +1551,64 @@ describe('getUntrustedCertificateErrorMessage', () => {
     } finally {
       delete (process.versions as Record<string, string | undefined>).electron;
     }
+  });
+});
+
+describe('handleSalesforceApiError', () => {
+  it('reads the message and error code from a REST error array', () => {
+    expect(handleSalesforceApiError('json', JSON.stringify([{ message: 'Invalid DateTime', errorCode: 'UNKNOWN_EXCEPTION' }]))).toEqual({
+      message: 'Invalid DateTime',
+      errorCode: 'UNKNOWN_EXCEPTION',
+    });
+  });
+
+  it('reads the message from a single REST error object without an error code', () => {
+    expect(handleSalesforceApiError('json', JSON.stringify({ message: 'Something failed' }))).toEqual({
+      message: 'Something failed',
+      errorCode: undefined,
+    });
+  });
+
+  it('falls back to the raw body when a JSON error has no message', () => {
+    const body = JSON.stringify({ error: 'invalid_grant', error_description: 'expired access/refresh token' });
+    expect(handleSalesforceApiError('json', body)).toEqual({ message: body, errorCode: undefined });
+  });
+
+  it('falls back to the raw body when it is not valid JSON', () => {
+    expect(handleSalesforceApiError('json', 'Service Unavailable')).toEqual({ message: 'Service Unavailable' });
+  });
+
+  it('strips the namespace prefix from a SOAP fault code', () => {
+    const body = `<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:sf="http://soap.sforce.com/2006/04/metadata"><soapenv:Body><soapenv:Fault><faultcode>sf:INVALID_SESSION_ID</faultcode><faultstring>INVALID_SESSION_ID: Invalid Session ID</faultstring></soapenv:Fault></soapenv:Body></soapenv:Envelope>`;
+    expect(handleSalesforceApiError('soap', body)).toEqual({
+      message: 'INVALID_SESSION_ID: Invalid Session ID',
+      errorCode: 'INVALID_SESSION_ID',
+    });
+  });
+
+  it('reads the exception code from a Bulk API XML error', () => {
+    const body = `<?xml version="1.0" encoding="UTF-8"?><error xmlns="http://www.force.com/2009/06/asyncapi/dataload"><exceptionCode>InvalidBatch</exceptionCode><exceptionMessage>Records not found for this batch</exceptionMessage></error>`;
+    expect(handleSalesforceApiError('xml', body)).toEqual({ message: 'Records not found for this batch', errorCode: 'InvalidBatch' });
+  });
+
+  it('returns no error code for an HTML error page', () => {
+    expect(handleSalesforceApiError('json', '<!DOCTYPE html><html></html>', 503)).toEqual({
+      message:
+        'Salesforce returned an error page instead of a response (HTTP 503). The org may be temporarily unavailable or undergoing maintenance - please try again shortly.',
+    });
+  });
+});
+
+describe('ApiRequestError error code', () => {
+  it('exposes the Salesforce error code as additionalData so the API returns it to the client', () => {
+    const error = new ApiRequestError('Invalid DateTime', new Response(null, { status: 400 }), 'UNKNOWN_EXCEPTION');
+    expect(error.errorCode).toBe('UNKNOWN_EXCEPTION');
+    expect(error.additionalData).toEqual({ code: 'UNKNOWN_EXCEPTION' });
+  });
+
+  it('has no additionalData without an error code', () => {
+    const error = new ApiRequestError('Something failed', new Response(null, { status: 400 }));
+    expect(error.errorCode).toBeUndefined();
+    expect(error.additionalData).toBeUndefined();
   });
 });

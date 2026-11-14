@@ -364,6 +364,14 @@ describe('uncaughtErrorHandler Salesforce connection error normalization', () =>
     expect(res.status).toHaveBeenLastCalledWith(401);
   });
 
+  it('records the Salesforce error code for the request log line', async () => {
+    const apiRequestError = new ApiRequestError('Invalid DateTime', { status: 400 } as any, 'UNKNOWN_EXCEPTION');
+    const { res } = await handleError(new UserFacingError(apiRequestError));
+
+    expect((res.locals as Record<string, unknown>).sfdcErrorCode).toBe('UNKNOWN_EXCEPTION');
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Invalid DateTime', data: { code: 'UNKNOWN_EXCEPTION' } }));
+  });
+
   it('still passes through the upstream status for non-connection UserFacingErrors', async () => {
     const apiRequestError = new ApiRequestError('Some other Salesforce error', { status: 404 } as any);
     const { res } = await handleError(new UserFacingError(apiRequestError));

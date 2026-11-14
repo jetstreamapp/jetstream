@@ -223,6 +223,12 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     // Logger is not added to the response object in all cases depending on where error is encountered
     const responseLogger = getLogger();
 
+    // Written to the request's log line by the `res` serializer in api-logger. Error responses are otherwise not
+    // logged because their messages can contain customer data, but the code is a fixed Salesforce value.
+    if (err instanceof UserFacingError && err.apiRequestError?.errorCode) {
+      res.locals.sfdcErrorCode = err.apiRequestError.errorCode;
+    }
+
     // Known Salesforce connection/auth errors mean the org's stored credentials are dead (or the org is
     // unreachable) and the user must reconnect. The callout adapter surfaces these as specific error
     // messages, which we match to (1) mark the org invalid + signal the client and (2) normalize the
