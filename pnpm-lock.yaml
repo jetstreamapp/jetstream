@@ -72,6 +72,9 @@ importers:
       '@jetstreamapp/sf-formula-parser':
         specifier: ^2.2.3
         version: 2.2.3
+      '@jetstreamapp/simple-excel':
+        specifier: 0.3.0
+        version: 0.3.0
       '@jetstreamapp/simple-xml':
         specifier: ^1.2.1
         version: 1.2.1
@@ -3417,6 +3420,10 @@ packages:
 
   '@jetstreamapp/sf-formula-parser@2.2.3':
     resolution: {integrity: sha512-fwv5FICX/1890zIBnIXAfxRlncg0jADU+2WLZJh3IS+CQeO8IRzIeDDrVCkjKlDbtwA2JeOhGuP2relFqEWTQw==}
+
+  '@jetstreamapp/simple-excel@0.3.0':
+    resolution: {integrity: sha512-aV0oM3GX69njQuVhk+8oLuDYIftEVLqxs01wZY4zLzlEe/IrJkePN/tzb5W1Wz68E5pc3TO5q+RYZomGQjtbFg==}
+    engines: {node: '>=20.12'}
 
   '@jetstreamapp/simple-xml@1.2.1':
     resolution: {integrity: sha512-8dr7ZOUpFDG1gthA4ELPr21QU9mkerCkqlcvOev+yAKA9m7ZffwnxB4ttXrWhhf14OgT9XMVCKq+mk0uz3VhLw==}
@@ -20194,6 +20201,8 @@ snapshots:
       chalk: 4.1.2
 
   '@jetstreamapp/sf-formula-parser@2.2.3': {}
+
+  '@jetstreamapp/simple-excel@0.3.0': {}
 
   '@jetstreamapp/simple-xml@1.2.1': {}
 
