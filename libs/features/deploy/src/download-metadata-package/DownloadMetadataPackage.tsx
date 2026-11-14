@@ -1,7 +1,5 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useState } from 'react';
 import DownloadPackageWithFileSelector from '../utils/DownloadPackageWithFileSelector';
@@ -16,7 +14,6 @@ export const DownloadMetadataPackage: FunctionComponent<DownloadMetadataPackageP
   className,
   selectedOrg: initiallySelectedOrg,
 }) => {
-  const { trackEvent } = useAnalytics();
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initiallySelectedOrg);
   const [configModalOpen, setConfigModalOpen] = useState<boolean>(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
@@ -26,25 +23,21 @@ export const DownloadMetadataPackage: FunctionComponent<DownloadMetadataPackageP
   function handleClick() {
     setDestinationOrg(initiallySelectedOrg);
     setConfigModalOpen(true);
-    trackEvent(ANALYTICS_KEYS.deploy_downloadMetadataPkg);
   }
 
   function handleDownloadFromManifest(destinationOrg: SalesforceOrgUi, packageManifest: string) {
     setDestinationOrg(destinationOrg);
     handleDownload(packageManifest, null);
-    trackEvent(ANALYTICS_KEYS.deploy_downloadMetadataPkg, { type: 'from-manifest' });
   }
   function handleDownloadFromPackageNames(destinationOrg: SalesforceOrgUi, packageNames: string[]) {
     setDestinationOrg(destinationOrg);
     handleDownload(null, packageNames);
-    trackEvent(ANALYTICS_KEYS.deploy_downloadMetadataPkg, { type: 'from-package-names' });
   }
   function handleDownload(packageManifest: string | null, packageNames: string[] | null) {
     setPackageManifest(packageManifest);
     setPackageNames(packageNames);
     setConfigModalOpen(false);
     setDownloadResultsModalOpen(true);
-    trackEvent(ANALYTICS_KEYS.deploy_downloadMetadataPkg);
   }
 
   return (

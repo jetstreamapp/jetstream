@@ -1,5 +1,4 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { clearCacheForOrg } from '@jetstream/shared/data';
 import { addOrg, isEnterKey, isEscapeKey } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
@@ -27,7 +26,6 @@ import isString from 'lodash/isString';
 import startCase from 'lodash/startCase';
 import { Fragment, FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
-import { useAnalytics } from '..';
 
 const EMPTY_COLOR = '_none_';
 
@@ -54,8 +52,6 @@ export interface OrgInfoPopoverProps {
   loading?: boolean;
   disableOrgActions?: boolean;
   isReadOnly?: boolean;
-  /** Identifies where the popover was rendered from so org management usage can be attributed in analytics */
-  source?: 'org-groups' | 'org-dropdown' | 'read-only';
   dropdownIconProps?: Partial<IconProps>;
   iconButtonClassName?: string;
   onAddOrg?: (org: SalesforceOrgUi, switchActiveOrg: boolean) => void;
@@ -169,14 +165,12 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   loading,
   disableOrgActions,
   isReadOnly = false,
-  source,
   dropdownIconProps,
   iconButtonClassName,
   onAddOrg,
   onRemoveOrg,
   onUpdateOrg,
 }) => {
-  const { trackEvent } = useAnalytics();
   const { serverUrl } = useAtomValue(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const [orgLabel, setOrgLabel] = useState(org.label || org.username);
@@ -203,7 +197,6 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   const minWidth = Math.max(POPOVER_MIN_WIDTH, (tableWidth || 0) + POPOVER_PADDING);
 
   function handleFixOrg() {
-    trackEvent(ANALYTICS_KEYS.sfdc_org_add_org, { source, isReconnect: true });
     addOrg({ serverUrl, loginUrl: org.instanceUrl, loginHint: org.username }, (addedOrg: SalesforceOrgUi) => {
       onAddOrg?.(addedOrg, true);
     });
@@ -228,20 +221,17 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   }
 
   function handleSave() {
-    trackEvent(ANALYTICS_KEYS.sfdc_org_updated, { source, field: 'label' });
     onUpdateOrg?.(org, { label: orgLabel, color: getColor(orgColor) });
     // Save/Undo buttons unmount once the label is no longer dirty, so move focus back to the input to avoid losing it
     labelInputRef.current?.focus();
   }
 
   function handleColorSelection(color: ColorSwatchItem) {
-    trackEvent(ANALYTICS_KEYS.sfdc_org_updated, { source, field: 'color', clearedColor: !getColor(color.id) });
     setOrgColor(color.id);
     onUpdateOrg?.(org, { label: org.label, color: getColor(color.id) });
   }
 
   async function handleClearCache() {
-    trackEvent(ANALYTICS_KEYS.sfdc_org_clear_cache, { source });
     try {
       setDidClearCache(true);
       await clearCacheForOrg(org);
@@ -251,14 +241,10 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   }
 
   function handleRemoveOrg() {
-    trackEvent(ANALYTICS_KEYS.sfdc_org_removed, { source, hasConnectionError: hasError });
     onRemoveOrg?.(org);
   }
 
   function handlePopoverClose(isOpen: boolean) {
-    if (isOpen) {
-      trackEvent(ANALYTICS_KEYS.sfdc_org_info_opened, { source, isReadOnly, hasConnectionError: hasError });
-    }
     if (!isOpen && isDirty) {
       setOrgLabel(org.username);
     }

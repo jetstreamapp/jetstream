@@ -48,8 +48,6 @@ export interface ExpressionContainerProps {
   // if declared, these are called any time the resource changes
   getResourceTypeFns?: ExpressionGetResourceTypeFns;
   disableValueForOperators?: QueryFilterOperator[];
-  /** Invoked after the user accepts a suggestion to combine repeated conditions into an In / Not In condition */
-  onConvertToListOperator?: (suggestion: ListOperatorSuggestion) => void;
   onChange: (expression: ExpressionType) => void;
 }
 
@@ -454,7 +452,6 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     expressionInitValue,
     getResourceTypeFns,
     disableValueForOperators,
-    onConvertToListOperator,
     onChange,
   }) => {
     const [displayOption, setDisplayOption] = useState(DISPLAY_OPT_WRAP);
@@ -490,13 +487,9 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
       }
     }, [expression, onChange]);
 
-    const handleConvertToListOperator = useCallback(
-      (suggestion: ListOperatorSuggestion) => {
-        dispatch({ type: 'CONVERT_ROWS_TO_LIST_OPERATOR', payload: { suggestion } });
-        onConvertToListOperator?.(suggestion);
-      },
-      [onConvertToListOperator],
-    );
+    const handleConvertToListOperator = useCallback((suggestion: ListOperatorSuggestion) => {
+      dispatch({ type: 'CONVERT_ROWS_TO_LIST_OPERATOR', payload: { suggestion } });
+    }, []);
 
     const handleDismissSuggestion = useCallback(({ id }: ListOperatorSuggestion) => {
       setDismissedSuggestionIds((priorIds) => new Set(priorIds).add(id));

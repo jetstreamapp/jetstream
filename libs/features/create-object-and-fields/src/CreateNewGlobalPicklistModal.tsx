@@ -1,9 +1,8 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { REGEX, getErrorMessage } from '@jetstream/shared/utils';
 import { GlobalValueSetRequest, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, Grid, GridCol, Input, Modal, ScopedNotification, Spinner, Textarea } from '@jetstream/ui';
-import { createGlobalPicklist, generateApiNameFromLabel, useAnalytics } from '@jetstream/ui-core';
+import { createGlobalPicklist, generateApiNameFromLabel } from '@jetstream/ui-core';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { useAtom } from 'jotai';
 import { FunctionComponent, useEffect, useState } from 'react';
@@ -53,7 +52,6 @@ export interface CreateNewGlobalPicklistModalProps {
 }
 
 export const CreateNewGlobalPicklistModal: FunctionComponent<CreateNewGlobalPicklistModalProps> = ({ selectedOrg, onCreated }) => {
-  const { trackEvent } = useAnalytics();
   const [{ defaultApiVersion }] = useAtom(applicationCookieState);
   const [isOpen, setIsOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -78,8 +76,6 @@ export const CreateNewGlobalPicklistModal: FunctionComponent<CreateNewGlobalPick
 
       await createGlobalPicklist(selectedOrg, getPayload(picklistData), defaultApiVersion);
       onCreated(picklistData.name);
-
-      trackEvent(ANALYTICS_KEYS.sobj_create_field_global_picklist);
       handleCloseModal();
     } catch (ex) {
       setErrorMessage(`There was a problem creating the picklist. ${getErrorMessage(ex)}`);

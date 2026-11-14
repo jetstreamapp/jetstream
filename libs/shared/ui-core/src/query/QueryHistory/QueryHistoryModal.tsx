@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import { EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput, Spinner } from '@jetstream/ui';
@@ -10,8 +9,6 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import uniqBy from 'lodash/uniqBy';
 import { createRef, forwardRef, useCallback, useEffect, useState } from 'react';
 import { fromQueryHistoryState } from '../..';
-import { useAnalytics } from '../../analytics';
-import { QueryRestoreErrors } from '../RestoreQuery/query-restore-utils';
 import QueryHistoryEmptyState from './QueryHistoryEmptyState';
 import { QueryHistoryExportPopover } from './QueryHistoryExportPopover';
 import QueryHistoryItemCard from './QueryHistoryItemCard';
@@ -44,7 +41,6 @@ export interface QueryHistoryProps {
 }
 
 export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ selectedOrg, initialType, onRestore, onclose }, _ref) => {
-  const { trackEvent } = useAnalytics();
   const [whichType, setWhichType] = useState<QueryHistoryType>(() => initialType || 'HISTORY');
   const [whichOrg, setWhichOrg] = useState<WhichOrgType>('SELECTED');
   const ulRef = createRef<HTMLUListElement>();
@@ -115,14 +111,6 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ selectedO
     setShowingUpTo(SHOWING_STEP);
   }, [selectedObject, whichType, whichOrg]);
 
-  useNonInitialEffect(() => {
-    trackEvent(ANALYTICS_KEYS.query_HistoryChangeOrgs, { whichOrg });
-  }, [trackEvent, whichOrg]);
-
-  useNonInitialEffect(() => {
-    trackEvent(ANALYTICS_KEYS.query_HistoryTypeChanged, { whichType });
-  }, [trackEvent, whichType]);
-
   useEffect(() => {
     if (selectedObject) {
       setSqlFilterValue('');
@@ -140,14 +128,7 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ selectedO
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectObjectsList, sObjectFilterValue]);
 
-  function handleExecute({ createdAt, lastRun, runCount, isTooling, isFavorite }: QueryHistoryItem) {
-    trackEvent(ANALYTICS_KEYS.query_HistoryExecute, {
-      created: createdAt,
-      lastRun,
-      runCount,
-      isTooling,
-      isFavorite,
-    });
+  function handleExecute() {
     onclose();
   }
 
@@ -161,19 +142,17 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ selectedO
     setIsRestoring(true);
   }
 
-  function handleEndRestore(item: QueryHistoryItem, fatalError: boolean, errors?: QueryRestoreErrors) {
-    const { soql, createdAt, lastRun, runCount, isTooling, isFavorite } = item;
+  function handleEndRestore(item: QueryHistoryItem, fatalError: boolean) {
+    const { soql, isTooling } = item;
     setIsRestoring(false);
     if (!fatalError) {
       onRestore && onRestore(soql, isTooling);
       onclose();
     }
-    trackEvent(ANALYTICS_KEYS.query_HistoryRestore, { created: createdAt, lastRun, runCount, isTooling, isFavorite, fatalError, errors });
   }
 
   function showMore() {
     setShowingUpTo(showingUpTo + SHOWING_STEP);
-    trackEvent(ANALYTICS_KEYS.query_HistoryShowMore);
   }
 
   async function handleSaveFavorite(item: QueryHistoryItem, isFavorite: boolean) {
@@ -182,7 +161,6 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ selectedO
     } catch (ex) {
       logger.warn('[ERROR] Could not update query history', ex);
     }
-    trackEvent(ANALYTICS_KEYS.query_HistorySaveQueryToggled, { location: 'modal', isFavorite });
   }
 
   function handleSetWhichType(type: fromQueryHistoryState.QueryHistoryType) {
@@ -275,7 +253,7 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ selectedO
                   setRefreshCounter((prev) => prev + 1);
                 }}
                 startRestore={handleStartRestore}
-                endRestore={(fatalError, _isTooling, errors) => handleEndRestore(item, fatalError, errors)}
+                endRestore={(fatalError) => handleEndRestore(item, fatalError)}
               />
             ))}
             {queryHistory.length === 0 && (

@@ -1,5 +1,4 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { isAccessProfileSurfaceAllowed } from '@jetstream/types';
 import { Badge, Icon } from '@jetstream/ui';
@@ -7,7 +6,6 @@ import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { Link } from 'react-router';
-import { useAnalytics } from '../../analytics';
 
 const CURRENT_TIME = new Date().getTime();
 const IS_NEW =
@@ -15,7 +13,6 @@ const IS_NEW =
   (APP_ROUTES.DESKTOP_APPLICATION.NEW_UNTIL && APP_ROUTES.DESKTOP_APPLICATION.NEW_UNTIL >= CURRENT_TIME);
 
 export const AppHomeAlternativeApplicationFormats = () => {
-  const { trackEvent } = useAnalytics();
   const ability = useAtomValue(fromAppState.abilityState);
   const userProfile = useAtomValue(fromAppState.userProfileState);
   const hasExtensionAccess = ability.can('access', 'ChromeExtension');
@@ -80,24 +77,13 @@ export const AppHomeAlternativeApplicationFormats = () => {
           {((showExtension && !hasExtensionAccess) || (showDesktop && !hasDesktopAccess)) && (
             <p className="slds-m-bottom_x-small">
               {paidSubscriptionSubject} <strong>a paid subscription</strong>.{' '}
-              <Link
-                to={APP_ROUTES.BILLING.ROUTE}
-                onClick={() => trackEvent(ANALYTICS_KEYS.billing_page_accessed, { action: 'clicked', source: 'app_home' })}
-              >
-                Subscribe to Jetstream
-              </Link>
+              <Link to={APP_ROUTES.BILLING.ROUTE}>Subscribe to Jetstream</Link>
             </p>
           )}
           {showDesktop && (
             <>
               <h4 className="slds-text-title_caps">Desktop Application</h4>
-              <a
-                href={APP_ROUTES.DESKTOP_APPLICATION.ROUTE}
-                target="_blank"
-                className="slds-text-heading_x-small"
-                rel="noreferrer"
-                onClick={() => trackEvent(ANALYTICS_KEYS.desktop_app_download_link, { action: 'clicked', source: 'app_home' })}
-              >
+              <a href={APP_ROUTES.DESKTOP_APPLICATION.ROUTE} target="_blank" className="slds-text-heading_x-small" rel="noreferrer">
                 Download the Desktop Application
               </a>
               {!hasDesktopAccess && (
@@ -122,13 +108,7 @@ export const AppHomeAlternativeApplicationFormats = () => {
             <>
               <h4 className="slds-text-title_caps slds-m-top_xx-small">Browser Extension</h4>
               <p>
-                <a
-                  href={APP_ROUTES.BROWSER_EXTENSION.ROUTE}
-                  target="_blank"
-                  className="slds-text-heading_x-small"
-                  rel="noreferrer"
-                  onClick={() => trackEvent(ANALYTICS_KEYS.browser_extension_link, { action: 'clicked', source: 'app_home' })}
-                >
+                <a href={APP_ROUTES.BROWSER_EXTENSION.ROUTE} target="_blank" className="slds-text-heading_x-small" rel="noreferrer">
                   Download Chrome or Firefox Extension
                 </a>
               </p>

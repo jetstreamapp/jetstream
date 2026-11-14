@@ -1,28 +1,17 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SoqlQueryFormatOptions } from '@jetstream/types';
 import { Checkbox, Input } from '@jetstream/ui';
 import { useEffect, useState } from 'react';
-import { useAnalytics } from '../analytics';
 
 interface SoqlQueryFormatConfigProps {
   className?: string;
-  location: string;
   omitHeader?: boolean;
   value: SoqlQueryFormatOptions;
   onChange: (value: SoqlQueryFormatOptions) => void;
   onCancel?: () => void;
 }
 
-export const SoqlQueryFormatConfig = ({
-  className,
-  omitHeader = false,
-  value,
-  location,
-  onChange,
-  onCancel,
-}: SoqlQueryFormatConfigProps) => {
-  const { trackEvent } = useAnalytics();
+export const SoqlQueryFormatConfig = ({ className, omitHeader = false, value, onChange, onCancel }: SoqlQueryFormatConfigProps) => {
   const [currentValue, setCurrentValue] = useState(value);
   // Local state for input fields to allow clearing
   const [fieldMaxLineLengthInput, setFieldMaxLineLengthInput] = useState(String(value.fieldMaxLineLength ?? 1));
@@ -46,12 +35,10 @@ export const SoqlQueryFormatConfig = ({
     setFieldMaxLineLengthInput(String(value.fieldMaxLineLength ?? 1));
     setNumIndentInput(String(value.numIndent ?? 1));
     onCancel?.();
-    trackEvent(ANALYTICS_KEYS.soql_format_reset, { location, values: currentValue });
   }
 
   function handleSave() {
     onChange(currentValue);
-    trackEvent(ANALYTICS_KEYS.soql_format_saved, { location, values: currentValue });
   }
 
   return (

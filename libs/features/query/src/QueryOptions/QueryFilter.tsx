@@ -1,8 +1,6 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ExpressionType, ListItem, QueryFilterOperator, SalesforceOrgUi } from '@jetstream/types';
-import { ExpressionContainer, ListOperatorSuggestion } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
+import { ExpressionContainer } from '@jetstream/ui';
 import { QUERY_FIELD_FUNCTIONS, QUERY_OPERATORS, getResourceTypeFnsFromFields } from '@jetstream/ui-core/shared';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 
@@ -28,7 +26,6 @@ export const QueryFilter: FunctionComponent<QueryFilterProps> = ({
   onLoadRelatedFields,
 }) => {
   const isMounted = useRef(true);
-  const { trackEvent } = useAnalytics();
 
   const [initialQueryFilters] = useState(filtersOrHaving);
   const [getResourceTypeFns, setResourceTypeFns] = useState(() => getResourceTypeFnsFromFields(fields));
@@ -54,17 +51,6 @@ export const QueryFilter: FunctionComponent<QueryFilterProps> = ({
     [setFiltersOrHaving],
   );
 
-  const handleConvertToListOperator = useCallback(
-    ({ toOperator, rowKeys }: ListOperatorSuggestion) => {
-      trackEvent(ANALYTICS_KEYS.query_FilterConvertedToListOperator, {
-        operator: toOperator,
-        rowCount: rowKeys.length,
-        isHavingClause: !!isHavingClause,
-      });
-    },
-    [isHavingClause, trackEvent],
-  );
-
   return (
     <ExpressionContainer
       org={org}
@@ -79,7 +65,6 @@ export const QueryFilter: FunctionComponent<QueryFilterProps> = ({
       operators={QUERY_OPERATORS}
       getResourceTypeFns={getResourceTypeFns}
       disableValueForOperators={disableValueForOperators}
-      onConvertToListOperator={handleConvertToListOperator}
       onChange={handleChange}
     />
   );

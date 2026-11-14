@@ -3,8 +3,6 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { SoqlQueryFormatSettings } from '../SoqlQueryFormatSettings';
 
-vi.mock('../../analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
-
 const DEFAULT_OPTIONS = SoqlQueryFormatOptionsSchema.parse({});
 
 function renderSettings(value: SoqlQueryFormatOptions = DEFAULT_OPTIONS) {

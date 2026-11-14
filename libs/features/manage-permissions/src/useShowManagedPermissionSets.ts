@@ -1,7 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { setItemInLocalStorage } from '@jetstream/shared/ui-utils';
-import { useAnalytics } from '@jetstream/ui-core';
 import { STORAGE_KEYS } from '@jetstream/ui/app-state';
 import { useCallback, useState } from 'react';
 
@@ -19,20 +17,15 @@ function getStoredShowManagedPermissionSets(): boolean {
 
 /**
  * Owns whether permission sets from installed managed packages are offered for selection: the in-memory
- * flag, its persistence to local storage, and the analytics event fired on every change.
+ * flag and its persistence to local storage.
  */
 export function useShowManagedPermissionSets() {
-  const { trackEvent } = useAnalytics();
   const [showManagedPermissionSets, setShowManagedPermissionSets] = useState<boolean>(getStoredShowManagedPermissionSets);
 
-  const toggleShowManagedPermissionSets = useCallback(
-    (visible: boolean) => {
-      setShowManagedPermissionSets(visible);
-      setItemInLocalStorage(STORAGE_KEYS.PERMISSION_MANAGER_SHOW_MANAGED_PERM_SETS, String(visible));
-      trackEvent(ANALYTICS_KEYS.permission_manager_managed_perm_sets_toggled, { visible });
-    },
-    [trackEvent],
-  );
+  const toggleShowManagedPermissionSets = useCallback((visible: boolean) => {
+    setShowManagedPermissionSets(visible);
+    setItemInLocalStorage(STORAGE_KEYS.PERMISSION_MANAGER_SHOW_MANAGED_PERM_SETS, String(visible));
+  }, []);
 
   return { showManagedPermissionSets, toggleShowManagedPermissionSets };
 }

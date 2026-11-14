@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
+import { MIME_TYPES } from '@jetstream/shared/constants';
 import { saveFile, tracker, useGoBackShortcut, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, groupByFlat } from '@jetstream/shared/utils';
 import {
@@ -54,7 +54,7 @@ import {
   fireToast,
   getModifierKey,
 } from '@jetstream/ui';
-import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState, useAnalytics } from '@jetstream/ui-core';
+import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState, useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
@@ -161,7 +161,6 @@ export interface ManagePermissionsEditorProps {}
 
 export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorProps> = () => {
   const navigate = useNavigate();
-  const { trackEvent } = useAnalytics();
   const isMounted = useRef(true);
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
@@ -667,7 +666,6 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     const rows = getSetupEntityAccessRows(updatedMap).map((row) => dirtyRowsByKey[row.key] || row);
     setCustomPermissionRows(rows);
     setCustomPermissionFilter('');
-    trackEvent(ANALYTICS_KEYS.permission_manager_custom_permission_created);
   }
 
   function exportChanges() {
@@ -983,13 +981,6 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           }
           setLoading(false);
         }
-        trackEvent(ANALYTICS_KEYS.permission_manager_saved, {
-          dirtyObjectCount,
-          dirtyFieldCount,
-          dirtyTabVisibilityCount,
-          dirtySystemPermissionCount,
-          dirtyCustomPermissionCount,
-        });
       } catch (ex) {
         logger.error('Error saving permissions', ex);
         tracker.error('Error saving permissions', ex, {
@@ -1007,8 +998,6 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           setLoading(false);
         }
       }
-    } else {
-      trackEvent(ANALYTICS_KEYS.permission_manager_save_cancelled);
     }
   }
 
@@ -1018,7 +1007,6 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     // mirrored tab id is reset alongside it or the field-only toolbar controls stay hidden after a reload.
     setActiveTabId(initialTabId);
     await refetchMetadata();
-    trackEvent(ANALYTICS_KEYS.permission_manager_reload);
   }
 
   function resetChanges() {
@@ -1040,7 +1028,6 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       updatedSystemPermissionMap,
       updatedCustomPermissionMap,
     );
-    trackEvent(ANALYTICS_KEYS.permission_manager_reset);
   }
 
   function handleGoBack() {
@@ -1078,8 +1065,6 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           allowedTypes={['csv', 'xlsx', 'gdrive']}
           onCancel={() => setFileDownloadModalOpen(false)}
           onDownload={handleExport}
-          source="manage_permissions"
-          trackEvent={trackEvent}
         />
       )}
       {createCustomPermissionModalOpen && (

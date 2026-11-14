@@ -1,9 +1,7 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import type { SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, Grid, Icon, Input, ScopedNotification, Spinner } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback, useMemo, useState } from 'react';
 import { buildRunTestsPayload, runTestsAsync } from '../apex-test-runner-data.utils';
 import { useApexTestClasses } from '../useApexTestClasses';
@@ -19,7 +17,6 @@ export interface RunTestsTabProps {
 }
 
 export const RunTestsTab: FunctionComponent<RunTestsTabProps> = ({ selectedOrg, apiVersion, onRunStarted }) => {
-  const { trackEvent } = useAnalytics();
   const { testClasses, unknownClasses, loading, progressText, errorMessage, refresh } = useApexTestClasses(selectedOrg);
   const suitesState = useApexTestSuites(selectedOrg, apiVersion);
   const [selectedClasses, setSelectedClasses] = useState<Map<string, Set<string> | 'ALL'>>(() => new Map());
@@ -100,26 +97,17 @@ export const RunTestsTab: FunctionComponent<RunTestsTabProps> = ({ selectedOrg, 
     try {
       setLaunching(true);
       setLaunchError(null);
-      const hasMethodLevelSelection = Array.from(selectedClasses.values()).some((selection) => selection !== 'ALL');
       const asyncApexJobId = await runTestsAsync(
         selectedOrg,
         buildRunTestsPayload({ type: 'tests', classes: selectedClasses }, runOptions),
       );
-      trackEvent(ANALYTICS_KEYS.apex_tests_run, {
-        classCount: selectedClasses.size,
-        methodCount: selectedMethodCount,
-        hasMethodLevelSelection,
-        skipCodeCoverage: runOptions.skipCodeCoverage,
-        hasMaxFailedTests: runOptions.maxFailedTests !== undefined,
-        source: 'classes',
-      });
       onRunStarted(asyncApexJobId);
     } catch (ex) {
       setLaunchError(getErrorMessage(ex));
     } finally {
       setLaunching(false);
     }
-  }, [selectedOrg, selectedClasses, selectedMethodCount, runOptions, trackEvent, onRunStarted]);
+  }, [selectedOrg, selectedClasses, runOptions, onRunStarted]);
 
   const handleRunSuite = useCallback(
     async (suiteId: string) => {
@@ -127,11 +115,6 @@ export const RunTestsTab: FunctionComponent<RunTestsTabProps> = ({ selectedOrg, 
         setLaunching(true);
         setLaunchError(null);
         const asyncApexJobId = await runTestsAsync(selectedOrg, buildRunTestsPayload({ type: 'suite', suiteId }, runOptions));
-        trackEvent(ANALYTICS_KEYS.apex_tests_run, {
-          skipCodeCoverage: runOptions.skipCodeCoverage,
-          hasMaxFailedTests: runOptions.maxFailedTests !== undefined,
-          source: 'suite',
-        });
         onRunStarted(asyncApexJobId);
       } catch (ex) {
         setLaunchError(getErrorMessage(ex));
@@ -139,13 +122,12 @@ export const RunTestsTab: FunctionComponent<RunTestsTabProps> = ({ selectedOrg, 
         setLaunching(false);
       }
     },
-    [selectedOrg, runOptions, trackEvent, onRunStarted],
+    [selectedOrg, runOptions, onRunStarted],
   );
 
   const handleRefresh = useCallback(() => {
     refresh();
-    trackEvent(ANALYTICS_KEYS.apex_tests_class_refresh);
-  }, [refresh, trackEvent]);
+  }, [refresh]);
 
   return (
     <div className="slds-is-relative">

@@ -12,7 +12,7 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { FileFauxDownloadModal } from '@jetstream/ui';
-import { fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
+import { fromJetstreamEvents } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import isString from 'lodash/isString';
@@ -45,7 +45,6 @@ export const DownloadPackageWithFileSelector: FunctionComponent<DownloadPackageW
   packageNames,
   onClose,
 }) => {
-  const { trackEvent } = useAnalytics();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
 
@@ -133,8 +132,6 @@ export const DownloadPackageWithFileSelector: FunctionComponent<DownloadPackageW
           allowedTypes={type === 'manifest' ? ['xml'] : ['zip']}
           onCancel={() => onClose && onClose()}
           onDownload={type === 'manifest' ? handleManifestDownload : handlePackageDownload}
-          source="download_package"
-          trackEvent={trackEvent}
         />
       )}
     </Fragment>

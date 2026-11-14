@@ -43,7 +43,6 @@ async function enrollInTotp(page: Page) {
 test.describe('Team Dashboard', () => {
   test.beforeEach(async ({ page, authenticationPage }) => {
     await page.goto('/');
-    await authenticationPage.acceptCookieBanner();
   });
 
   test('Team dashboard access', async ({ teamDashboardPage, teamCreationUtils3Users: teamCreationUtils, page }) => {

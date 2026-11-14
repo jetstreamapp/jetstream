@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
+import { MIME_TYPES } from '@jetstream/shared/constants';
 import { getFilename, isBrowserExtension, isCanvasApp, isDesktop, isEnterKey, isImeComposing } from '@jetstream/shared/ui-utils';
 import {
   FileExtAllTypes,
@@ -45,8 +45,6 @@ export interface FileFauxDownloadModalProps {
   header?: string[] | Record<string, any[]>; // can be omitted if every field should be included in download, otherwise pass in a list of fields to include in file
   fileNameParts?: string[];
   alternateDownloadButton?: React.ReactNode; // If provided, then caller must manage what happens on click - used for URL links
-  source: string;
-  trackEvent: (key: string, value?: Record<string, any>) => void;
   onCancel: () => void;
   onDownload: (data: {
     fileName: string;
@@ -77,8 +75,6 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
   org,
   fileNameParts = ['items'],
   alternateDownloadButton,
-  source,
-  trackEvent,
   onCancel,
   onDownload,
 }) => {
@@ -163,7 +159,6 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
       }
 
       onDownload({ fileName, fileFormat: _fileFormat, mimeType, uploadToGoogle, googleFolder });
-      trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'FileFauxDownloadModal' });
       saveFileFormatToStorage(fileFormat, LS_KEY);
     } catch {
       // TODO: show error message somewhere
@@ -258,9 +253,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
               onChange={(value: string) => setFileFormat(value as FileExtZip)}
             />
           )}
-          {!googleIntegrationEnabled && googleShowUpgradeToPro && (
-            <GoogleSelectedProUpgradeButton trackEvent={trackEvent} source={source} />
-          )}
+          {!googleIntegrationEnabled && googleShowUpgradeToPro && <GoogleSelectedProUpgradeButton />}
           {hasGoogleInputConfigured && (allowedTypesSet.has('csv') || allowedTypesSet.has('xlsx') || allowedTypesSet.has('zip')) && (
             <Radio
               name="radio-download-file-format"

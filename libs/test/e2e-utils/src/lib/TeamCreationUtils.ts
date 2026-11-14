@@ -100,7 +100,6 @@ export class TeamCreationUtils {
         return context.newPage().then(async (page) => {
           const authPage = new AuthenticationPage(page);
           await page.goto('/');
-          await authPage.acceptCookieBanner();
           const user = await authPage.signUpAndVerifyEmail();
           await page.close();
           return { user, context };
@@ -110,7 +109,6 @@ export class TeamCreationUtils {
         return context.newPage().then(async (page) => {
           const authPage = new AuthenticationPage(page);
           await page.goto('/');
-          await authPage.acceptCookieBanner();
           const user = await authPage.signUpAndVerifyEmail();
           const otpSecret = await authPage.enrollInOtpForLoggedInUser();
           await page.close();
@@ -121,7 +119,6 @@ export class TeamCreationUtils {
         return context.newPage().then(async (page) => {
           const authPage = new AuthenticationPage(page);
           await page.goto('/');
-          await authPage.acceptCookieBanner();
           const user = await authPage.signUpAndVerifyEmail();
           const otpSecret = await authPage.enrollInOtpForLoggedInUser();
           await page.close();

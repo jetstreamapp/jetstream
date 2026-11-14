@@ -1,6 +1,5 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { convertDateToLocale, formatNumber, tracker, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { flattenRecord, getErrorMessage, getSuccessOrFailureChar, pluralizeFromNumber, pushAll } from '@jetstream/shared/utils';
 import {
@@ -18,7 +17,7 @@ import {
   ViewModalData,
 } from '@jetstream/types';
 import { FileDownloadModal, Grid, Icon, ProgressRing, Spinner, Tooltip } from '@jetstream/ui';
-import { fromJetstreamEvents, getFieldHeaderFromMapping, LoadRecordsResultsModal, useAnalytics } from '@jetstream/ui-core';
+import { fromJetstreamEvents, getFieldHeaderFromMapping, LoadRecordsResultsModal } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
@@ -100,7 +99,6 @@ export const LoadRecordsBatchApiResults = ({
   // Ref to avoid stale closures in stable useCallback/useEffect — always call onFinishRef.current
   const onFinishRef = useRef(onFinish);
   onFinishRef.current = onFinish;
-  const { trackEvent } = useAnalytics();
   const processingStatusRef = useRef<{ success: number; failure: number }>({ success: 0, failure: 0 });
   const processedRecordsRef = useRef<RecordResultWithRecord[]>([]);
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
@@ -384,7 +382,6 @@ export const LoadRecordsBatchApiResults = ({
       header,
       fileNameParts: [loadType.toLocaleLowerCase(), selectedSObject.toLocaleLowerCase(), type],
     });
-    trackEvent(ANALYTICS_KEYS.load_DownloadRecords, { loadType, type, numRows: combinedResults.length });
   }
 
   function handleViewRecords(type: 'results' | 'failures') {
@@ -409,7 +406,6 @@ export const LoadRecordsBatchApiResults = ({
       header,
       type,
     });
-    trackEvent(ANALYTICS_KEYS.load_ViewRecords, { loadType, type, numRows: combinedResults.length });
   }
 
   function handleDownloadRecordsFromModal(type: 'results' | 'failures', rows: any[]) {
@@ -422,7 +418,6 @@ export const LoadRecordsBatchApiResults = ({
       header,
       fileNameParts: [loadType.toLocaleLowerCase(), selectedSObject.toLocaleLowerCase(), type],
     });
-    trackEvent(ANALYTICS_KEYS.load_DownloadRecords, { loadType, type, numRows: rows.length, location: 'fromViewModal' });
   }
 
   function handleDownloadProcessingErrors() {
@@ -471,8 +466,6 @@ export const LoadRecordsBatchApiResults = ({
           fileNameParts={downloadModalData.fileNameParts}
           onModalClose={handleDownloadModalClose}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="load_records_results"
-          trackEvent={trackEvent}
         />
       )}
       {resultsModalData.open && (

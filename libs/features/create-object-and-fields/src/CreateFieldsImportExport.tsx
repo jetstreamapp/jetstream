@@ -1,4 +1,4 @@
-import { ANALYTICS_KEYS, INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
+import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { parseFile } from '@jetstream/shared/ui-utils';
 import { REGEX, ensureBoolean, unescapeCsvFormula } from '@jetstream/shared/utils';
 import { InputReadFileContent, SalesforceOrgUi } from '@jetstream/types';
@@ -21,7 +21,6 @@ import {
   fieldDefinitions,
   fromJetstreamEvents,
   getRowsForExport,
-  useAnalytics,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
@@ -36,7 +35,6 @@ export interface CreateFieldsImportExportProps {
 }
 
 export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows, onLoadFromOrg }: CreateFieldsImportExportProps) => {
-  const { trackEvent } = useAnalytics();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const popoverRef = useRef<PopoverRef>(null);
@@ -50,17 +48,11 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows, onLo
   function handleExport() {
     setExportData(getRowsForExport(rows));
     setExportModalOpen(true);
-    trackEvent(ANALYTICS_KEYS.sobj_create_field_export_fields, { numFields: rows.length });
   }
 
   async function handleImport({ content }: InputReadFileContent) {
     // eslint-disable-next-line prefer-const
     let { data, errors } = await parseFile(content, { onParsedMultipleWorkbooks });
-    trackEvent(ANALYTICS_KEYS.sobj_create_field_import_fields, {
-      numFields: data.length,
-      hasErrors: errors.length,
-      errors,
-    });
     if (errors.length) {
       fireToast({
         message: (
@@ -128,7 +120,6 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows, onLo
     if (id === 'export-example') {
       setExportData(CREATE_FIELDS_EXAMPLE_TEMPLATE);
       setExportModalOpen(true);
-      trackEvent(ANALYTICS_KEYS.sobj_create_field_export_example);
     }
   }
 
@@ -150,8 +141,6 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows, onLo
           escapeCsvFormulas
           onModalClose={() => handleCloseModal()}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="create_fields_import_export_modal"
-          trackEvent={trackEvent}
         />
       )}
       <ButtonGroupContainer>

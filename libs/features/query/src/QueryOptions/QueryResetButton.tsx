@@ -1,6 +1,5 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { Icon } from '@jetstream/ui';
-import { fromQueryState, useAnalytics } from '@jetstream/ui-core';
+import { fromQueryState } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import { useResetAtom } from 'jotai/utils';
 import { FunctionComponent } from 'react';
@@ -10,8 +9,6 @@ export interface QueryResetButtonProps {
 }
 
 export const QueryResetButton: FunctionComponent<QueryResetButtonProps> = ({ className }) => {
-  const { trackEvent } = useAnalytics();
-
   const resetFns = [
     useResetAtom(fromQueryState.sObjectsState),
     useResetAtom(fromQueryState.selectedSObjectState),
@@ -39,7 +36,6 @@ export const QueryResetButton: FunctionComponent<QueryResetButtonProps> = ({ cla
 
   function resetQuery() {
     resetFns.forEach((fn) => fn());
-    trackEvent(ANALYTICS_KEYS.query_ResetPage);
   }
 
   return (

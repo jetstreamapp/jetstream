@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { hasModifierKey, hasShiftModifierKey, isHKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { ButtonGroupContainer, getModifierKey, Icon, KeyboardShortcut, Tooltip } from '@jetstream/ui';
@@ -9,7 +8,6 @@ import { forwardRef, Fragment, useCallback, useEffect, useImperativeHandle, useS
 import { ErrorBoundary } from 'react-error-boundary';
 import { useLocation } from 'react-router';
 import { ErrorBoundaryFallback, fromQueryHistoryState } from '../..';
-import { useAnalytics } from '../../analytics';
 import { QueryHistoryModal, QueryHistoryType } from './QueryHistoryModal';
 
 export interface QueryHistoryRef {
@@ -31,7 +29,6 @@ export interface QueryHistoryProps {
 
 export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, selectedOrg, embedded = false, onRestore }, ref) => {
   const location = useLocation();
-  const { trackEvent } = useAnalytics();
   const [whichType, setWhichType] = useState<QueryHistoryType>('HISTORY');
 
   const [isOpen, setIsOpen] = useState(false);
@@ -39,7 +36,7 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
   useImperativeHandle(ref, () => {
     return {
       open: (type: fromQueryHistoryState.QueryHistoryType = 'HISTORY') => {
-        handleOpenModal(type, 'externalAction');
+        handleOpenModal(type);
       },
     };
   });
@@ -49,7 +46,7 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
       if (!isOpen && hasModifierKey(event as any) && isHKey(event as any)) {
         event.stopPropagation();
         event.preventDefault();
-        handleOpenModal(hasShiftModifierKey(event as any) ? 'SAVED' : 'HISTORY', 'keyboardShortcut');
+        handleOpenModal(hasShiftModifierKey(event as any) ? 'SAVED' : 'HISTORY');
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -65,10 +62,9 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
 
-  function handleOpenModal(type: fromQueryHistoryState.QueryHistoryType = 'HISTORY', source = 'buttonClick') {
+  function handleOpenModal(type: fromQueryHistoryState.QueryHistoryType = 'HISTORY') {
     setWhichType(type);
     setIsOpen(true);
-    trackEvent(ANALYTICS_KEYS.query_HistoryModalOpened, { source, type });
   }
 
   function handleModalClose() {

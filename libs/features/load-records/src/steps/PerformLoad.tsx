@@ -1,4 +1,4 @@
-import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
+import { DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useIntegerInput, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { flattenRecord, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import {
@@ -17,7 +17,6 @@ import {
   getFieldHeaderFromMapping,
   getMaxBatchSize,
   SkipDataHistoryCheckbox,
-  useAnalytics,
 } from '@jetstream/ui-core';
 import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { useAtom, useAtomValue } from 'jotai';
@@ -99,7 +98,6 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   onIsLoading,
 }) => {
   const hasZipAttachment = !!inputZipFileData;
-  const { trackEvent } = useAnalytics();
   const isLoadTypeAllowed = useAllowedLoadTypes().includes(loadType);
   const runIdCounter = useRef(0);
 
@@ -222,9 +220,6 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
    * the two must describe the same load the same way — with the envelope spelled out per call site,
    * the next config field added would land in one and not the other, and the divergence would only
    * show up as two history entries that no longer compare.
-   *
-   * Returns the run snapshot alongside the handle: it is the `load_Submitted` analytics payload too,
-   * so the call site sends the SAME object rather than restating the fields.
    */
   const startHistoryForRun = useCallback(
     ({ parentKey, ...runConfig }: LoadRunHistoryOptions) => {
@@ -250,7 +245,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         parentKey,
         config: runSnapshot,
       });
-      return { historyHandle, runSnapshot };
+      return { historyHandle };
     },
     [
       selectedOrg,
@@ -287,7 +282,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       const inputHeader = inputFileHeader ?? (inputFileDataToLoad[0] ? Object.keys(inputFileDataToLoad[0]) : []);
       // The handle self-gates (captures nothing when disabled/opted out) and is never awaited on the
       // load's critical path — it is threaded to the results component to record results as they land.
-      const { historyHandle, runSnapshot } = startHistoryForRun({
+      const { historyHandle } = startHistoryForRun({
         numRecords: inputFileData.length,
         hasZipAttachment,
         isTrialRun,
@@ -326,7 +321,6 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         setLoadState((prevState) => ({ ...prevState, loading: true }));
       }
       onIsLoading(true);
-      trackEvent(ANALYTICS_KEYS.load_Submitted, runSnapshot);
       document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
     }
   }
@@ -372,7 +366,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       const newRunId = ++runIdCounter.current;
 
       // A retry is captured as a NEW history entry linked to the original run via parentKey
-      const { historyHandle, runSnapshot } = startHistoryForRun({
+      const { historyHandle } = startHistoryForRun({
         numRecords: recordsToRetry.length,
         hasZipAttachment: !!(activeRun?.inputZipFileData ?? inputZipFileData),
         retry: { retryCount, retrySource, totalFailedCount },
@@ -402,10 +396,9 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       setActiveRunId(String(newRunId));
       setLoadState((prevState) => ({ ...prevState, loading: true }));
       onIsLoading(true);
-      trackEvent(ANALYTICS_KEYS.load_Submitted, runSnapshot);
       document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
     },
-    [activeRun, runs, onIsLoading, trackEvent, apiMode, batchSize, fieldMapping, inputZipFileData, startHistoryForRun],
+    [activeRun, runs, onIsLoading, apiMode, batchSize, fieldMapping, inputZipFileData, startHistoryForRun],
   );
 
   function hasDataInputError(): boolean {

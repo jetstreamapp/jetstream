@@ -1,8 +1,8 @@
 /**
  * Generates a Content-Security-Policy for the built docs site.
  *
- * Docusaurus emits a small number of inline <script> tags (the gtag bootstrap and the
- * color-mode/theme bootstrap). Allowing them via 'unsafe-inline' defeats the purpose of a CSP,
+ * Docusaurus emits a small number of inline <script> tags (such as the color-mode/theme
+ * bootstrap). Allowing them via 'unsafe-inline' defeats the purpose of a CSP,
  * so instead this script scans the build output, computes the sha256 hash of every executable
  * inline script, and produces a policy that allows exactly those scripts and nothing else.
  *

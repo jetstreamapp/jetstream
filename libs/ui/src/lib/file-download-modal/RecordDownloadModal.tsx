@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, MAX_RECORDS_PER_GROUP, MIME_TYPES } from '@jetstream/shared/constants';
+import { MAX_RECORDS_PER_GROUP, MIME_TYPES } from '@jetstream/shared/constants';
 import { describeSObject } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
@@ -111,7 +111,6 @@ export interface RecordDownloadModalProps {
   selectedRecords?: SalesforceRecord[];
   totalRecordCount?: number;
   includeDeletedRecords?: boolean;
-  source: string;
   /**
    * When provided, adds a "Load template (Excel)" format that generates a file in the
    * "Load Records to Multiple Objects" template format for the given object.
@@ -119,7 +118,6 @@ export interface RecordDownloadModalProps {
    * access profile does not include it.
    */
   loadTemplateOption?: { sobject: string; showLoadToolLink?: boolean };
-  trackEvent: (key: string, value?: Record<string, any>) => void;
   onModalClose: (canceled?: boolean) => void;
   onDownload?: (fileFormat: RecordDownloadFileFormat, whichFields: 'all' | 'specified', includeSubquery: boolean) => void;
   onDownloadFromServer?: (options: DownloadFromServerOpts) => void;
@@ -168,9 +166,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   selectedRecords,
   totalRecordCount,
   includeDeletedRecords = false,
-  source,
   loadTemplateOption,
-  trackEvent,
   onModalClose,
   onDownload,
   onDownloadFromServer,
@@ -545,7 +541,6 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       if (!isLoadTemplate) {
         saveFileFormatToStorage(fileFormat, LS_KEY);
       }
-      trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'RecordDownloadModal' });
     } catch (ex) {
       logger.error('Error downloading file', ex);
       tracker.error('Record download error', ex, {
@@ -717,9 +712,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   onChange={handleFileFormatChange}
                 />
               )}
-              {!googleIntegrationEnabled && googleShowUpgradeToPro && (
-                <GoogleSelectedProUpgradeButton trackEvent={trackEvent} source={source} />
-              )}
+              {!googleIntegrationEnabled && googleShowUpgradeToPro && <GoogleSelectedProUpgradeButton />}
               {fileFormat === 'gdrive' && (
                 <FileDownloadGoogle
                   google_apiKey={google_apiKey}

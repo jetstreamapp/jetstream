@@ -1,8 +1,6 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { appActionObservable } from '@jetstream/shared/ui-utils';
 import { CloneEditView, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, RecordLookupPopover } from '@jetstream/ui';
-import { useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 
@@ -12,8 +10,6 @@ interface LastCreatedRecordProps {
 }
 
 export function LastCreatedRecord({ selectedOrg, recordId }: LastCreatedRecordProps) {
-  const { trackEvent } = useAnalytics();
-
   const { serverUrl } = useAtomValue(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
 
@@ -32,7 +28,6 @@ export function LastCreatedRecord({ selectedOrg, recordId }: LastCreatedRecordPr
         appActionObservable.next({ action: 'VIEW_RECORD', payload: { recordId } });
         break;
     }
-    trackEvent(ANALYTICS_KEYS.create_record_action, { action, source: 'CREATE_RECORD' });
   }
 
   return (

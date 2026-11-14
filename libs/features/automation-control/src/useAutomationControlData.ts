@@ -1,9 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { tracker } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { AutomationControlHistorySource, AutomationControlRestoreAction, SalesforceOrgUi } from '@jetstream/types';
-import { useAnalytics } from '@jetstream/ui-core';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { Subscription } from 'rxjs';
 import {
@@ -678,7 +676,6 @@ export function useAutomationControlData({
 }) {
   const isMounted = useRef(true);
   const fetchSubscription = useRef<Subscription | null>(null);
-  const { trackEvent } = useAnalytics();
 
   const [state, dispatch] = useReducer(reducer, {
     loading: false,
@@ -723,11 +720,10 @@ export function useAutomationControlData({
 
   useEffect(() => {
     isMounted.current = true;
-    trackEvent(ANALYTICS_KEYS.automation_selection, { selectedSObjects: selectedSObjects.length, types: selectedAutomationTypes });
     return () => {
       isMounted.current = false;
     };
-  }, [selectedAutomationTypes, selectedSObjects.length, trackEvent]);
+  }, [selectedAutomationTypes, selectedSObjects.length]);
 
   useEffect(() => {
     return () => {
@@ -741,16 +737,11 @@ export function useAutomationControlData({
 
   const resetChanges = useCallback(() => {
     dispatch({ type: 'RESET' });
-    trackEvent(ANALYTICS_KEYS.automation_toggle_all, { type: 'reset' });
-  }, [trackEvent]);
+  }, []);
 
-  const toggleAll = useCallback(
-    (value: boolean) => {
-      dispatch({ type: 'TOGGLE_ALL', payload: { value } });
-      trackEvent(ANALYTICS_KEYS.automation_toggle_all, { type: value ? 'all' : 'none' });
-    },
-    [trackEvent],
-  );
+  const toggleAll = useCallback((value: boolean) => {
+    dispatch({ type: 'TOGGLE_ALL', payload: { value } });
+  }, []);
 
   const tableRowsChange = useCallback((rows: readonly TableRowOrItemOrChild[]) => {
     dispatch({ type: 'TABLE_ROWS_CHANGED', payload: { rows } });
@@ -791,7 +782,6 @@ export function useAutomationControlData({
 
   const refreshProcessBuilders = useCallback(async () => {
     dispatch({ type: 'FETCH_REFRESH', payload: { selectedTypes: ['FlowProcessBuilder'] } });
-    trackEvent(ANALYTICS_KEYS.automation_process_builder_refresh);
     try {
       const records = await getProcessBuildersMetadata(selectedOrg, defaultApiVersion, selectedSObjects, true);
       dispatch({ type: 'FETCH_SUCCESS', payload: { type: 'FlowProcessBuilder', records } });
@@ -800,7 +790,7 @@ export function useAutomationControlData({
     } finally {
       dispatch({ type: 'FETCH_FINISH' });
     }
-  }, [defaultApiVersion, selectedOrg, selectedSObjects, trackEvent]);
+  }, [defaultApiVersion, selectedOrg, selectedSObjects]);
 
   const stageHistoryRestore = useCallback(
     (action: AutomationControlRestoreAction, source: AutomationControlHistorySource, snapshot: TableRowItemSnapshot[]) => {

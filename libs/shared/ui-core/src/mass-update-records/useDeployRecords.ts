@@ -1,5 +1,4 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiAddBatchToJob, bulkApiCloseJob, bulkApiCreateJob, bulkApiGetJob } from '@jetstream/shared/data';
 import {
   checkIfBulkApiJobIsDone,
@@ -16,10 +15,9 @@ import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { formatDate } from 'date-fns/format';
 import { useAtom } from 'jotai';
 import { useCallback, useEffect, useRef } from 'react';
-import { useAnalytics } from '../analytics';
 import { captureMassUpdateResults, MassUpdateHistoryContext, MassUpdateSource, startMassUpdateHistory } from './data-history-capture';
 import { DeployResults, MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
-import { getEffectiveRecordLimit, getFieldsToQuery, prepareRecords, queryAndPrepareRecordsForUpdate } from './mass-update-records.utils';
+import { getFieldsToQuery, prepareRecords, queryAndPrepareRecordsForUpdate } from './mass-update-records.utils';
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -40,7 +38,6 @@ export function useDeployRecords(
   const unmountAbortController = useRef<AbortController | null>(null);
   const isPolling = useRef(false);
   const { notifyUser } = useBrowserNotifications(serverUrl);
-  const { trackEvent } = useAnalytics();
   /**
    * Capture contexts for deployments that are still IN FLIGHT, keyed by sobject — the poll loop is
    * driven by rows that carry no handle, so it has to look its deployment's context up. Entries are
@@ -302,13 +299,6 @@ export function useDeployRecords(
    */
   const loadDataForRows = useCallback(
     async (rows: MetadataRow[], options: { batchSize: number; serialMode: boolean; skipHistory?: boolean }) => {
-      trackEvent(ANALYTICS_KEYS.mass_update_Submitted, {
-        batchSize: options.batchSize,
-        serialMode: options.serialMode,
-        numObjects: rows.length,
-        hasRecordLimit: rows.some((row) => !!getEffectiveRecordLimit(row.limit)),
-        source,
-      });
       for (const row of rows) {
         try {
           await loadDataForRow(row, options);
@@ -334,7 +324,7 @@ export function useDeployRecords(
         }
       }
     },
-    [trackEvent, source, loadDataForRow, onDeployResults, takeHistoryCapture],
+    [loadDataForRow, onDeployResults, takeHistoryCapture],
   );
 
   /**
@@ -360,12 +350,6 @@ export function useDeployRecords(
       configuration: MetadataRowConfiguration[];
       skipHistory?: boolean;
     }) => {
-      trackEvent(ANALYTICS_KEYS.mass_update_Submitted, {
-        batchSize,
-        serialMode,
-        numObjects: initialRecords.length,
-        source,
-      });
       const deployResults: DeployResults = {
         done: false,
         processingStartTime: convertDateToLocale(new Date()),
@@ -428,7 +412,7 @@ export function useDeployRecords(
         logger.error('Error loading data for row', ex);
       }
     },
-    [trackEvent, source, onDeployResults, performLoad, beginHistoryCapture, takeHistoryCapture],
+    [onDeployResults, performLoad, beginHistoryCapture, takeHistoryCapture],
   );
 
   const pollResults = useCallback(

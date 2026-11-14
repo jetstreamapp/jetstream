@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
+import { MIME_TYPES } from '@jetstream/shared/constants';
 import { getFilenameWithoutOrg, prepareCsvFile, saveFile } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import { QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
@@ -7,7 +7,6 @@ import { Icon, Popover, PopoverRef, Radio, RadioGroup } from '@jetstream/ui';
 import { getDexieDb, withReopenOnDatabaseClosed } from '@jetstream/ui/db';
 import isDate from 'lodash/isDate';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useAnalytics } from '../..';
 
 type ExportScope = 'ALL' | 'CURRENT';
 type ExportType = 'ALL' | 'FAVORITES';
@@ -19,7 +18,6 @@ export interface QueryHistoryExportPopoverProps {
 
 export const QueryHistoryExportPopover: FunctionComponent<QueryHistoryExportPopoverProps> = ({ selectedOrg, whichType }) => {
   const popoverRef = useRef<PopoverRef>(null);
-  const { trackEvent } = useAnalytics();
   const [exportScope, setExportScope] = useState<ExportScope>('ALL');
   const [exportType, setExportType] = useState<ExportType>(() => (whichType === 'SAVED' ? 'FAVORITES' : 'ALL'));
   const [isExporting, setIsExporting] = useState(false);
@@ -70,13 +68,6 @@ export const QueryHistoryExportPopover: FunctionComponent<QueryHistoryExportPopo
       const csvContent = prepareCsvFile(csvData, Object.keys(csvData[0]));
       const filename = `${getFilenameWithoutOrg(['soql-export'])}.csv`;
       saveFile(csvContent, filename, MIME_TYPES.CSV);
-
-      // Track event
-      trackEvent(ANALYTICS_KEYS.query_HistoryExport, {
-        exportType: exportScope,
-        whichType,
-        count: queryHistory.length,
-      });
 
       // Close popover
       popoverRef.current?.close();

@@ -1,10 +1,9 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { salesforceApiReq } from '@jetstream/shared/data';
 import { SalesforceApiRequest } from '@jetstream/types';
 import { AutoFullHeightContainer, ColumnWithFilter, DataTree, Grid, Icon, Modal, setColumnFromType, Spinner } from '@jetstream/ui';
-import { ErrorBoundaryFallback, useAnalytics } from '@jetstream/ui-core';
+import { ErrorBoundaryFallback } from '@jetstream/ui-core';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -17,7 +16,6 @@ export interface SalesforceApiExamplesModalProps {
 
 export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamplesModalProps> = ({ onExecute }) => {
   const isMounted = useRef(true);
-  const { trackEvent } = useAnalytics();
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [requests, setRequests] = useState<SalesforceApiRequest[]>([]);
@@ -85,7 +83,6 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
   function handleExecute(request: SalesforceApiRequest) {
     logger.info('[SALESFORCE API]', { request });
     onExecute(request);
-    trackEvent(ANALYTICS_KEYS.sfdcApi_Sample, { group: request.groupName, name: request.name });
     setIsOpen(false);
   }
 

@@ -1,6 +1,5 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiAbortJob, bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
 import { checkIfBulkApiJobIsDone, convertDateToLocale, formatNumber, tracker, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { buildBulkResultRow, getErrorMessage, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
@@ -40,7 +39,6 @@ import {
   LoadRecordsResultsModal,
   fromJetstreamEvents,
   getFieldHeaderFromMapping,
-  useAnalytics,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { DataHistoryEntryHandle, buildBulkJobHistoryCounts } from '@jetstream/ui/data-history';
@@ -138,7 +136,6 @@ export const LoadRecordsBulkApiResults = ({
   const onFinishRef = useRef(onFinish);
   // eslint-disable-next-line react-hooks/refs -- latest-ref pattern: the render-time assignment is the point
   onFinishRef.current = onFinish;
-  const { trackEvent } = useAnalytics();
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
@@ -263,7 +260,6 @@ export const LoadRecordsBulkApiResults = ({
 
   /** Polling gave up on a long-running job - check it right away and start a fresh polling window */
   function handleResumePolling() {
-    trackEvent(ANALYTICS_KEYS.load_PollingResumed, { loadType });
     setPollingTimedOut(false);
     setIntervalCount(0);
     pollJobStatus();
@@ -344,7 +340,6 @@ export const LoadRecordsBulkApiResults = ({
           // Guarded so a status change (e.g. abort) after timing out doesn't re-fire the event.
           if (!pollingTimedOut) {
             setPollingTimedOut(true);
-            trackEvent(ANALYTICS_KEYS.load_PollingTimedOut, { loadType, checkCount: intervalCount });
           }
         } else {
           pollingTimerRef.current = setTimeout(() => {
@@ -632,7 +627,6 @@ export const LoadRecordsBulkApiResults = ({
       const header = getLoadResultsHeader(getFieldHeaderFromMapping(fieldMapping));
       if (action === 'view') {
         setResultsModalData({ ...downloadModalData, open: true, header, data: combinedResults, type });
-        trackEvent(ANALYTICS_KEYS.load_DownloadRecords, { loadType, type, numRows: combinedResults.length, scope });
       } else {
         setDownloadModalData({
           ...downloadModalData,
@@ -641,7 +635,6 @@ export const LoadRecordsBulkApiResults = ({
           header,
           data: combinedResults,
         });
-        trackEvent(ANALYTICS_KEYS.load_ViewRecords, { loadType, type, numRows: combinedResults.length, scope });
       }
 
       if (removedBatches) {
@@ -687,7 +680,6 @@ export const LoadRecordsBulkApiResults = ({
       header,
       fileNameParts: [loadType.toLocaleLowerCase(), selectedSObject.toLocaleLowerCase(), type],
     });
-    trackEvent(ANALYTICS_KEYS.load_DownloadRecords, { loadType, type, numRows: rows.length, location: 'fromViewModal' });
   }
 
   function handleModalClose() {
@@ -727,8 +719,6 @@ export const LoadRecordsBulkApiResults = ({
           fileNameParts={downloadModalData.fileNameParts}
           onModalClose={handleModalClose}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="load_records_results"
-          trackEvent={trackEvent}
         />
       )}
       {resultsModalData.open && (

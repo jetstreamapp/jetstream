@@ -40,16 +40,6 @@ const webSubProcessors = [
     salesforceCanvas: false,
   },
   {
-    name: 'Amplitude',
-    function: 'Telemetry',
-    location: 'US',
-    optional: 'Yes, opt-in via cookie consent banner.',
-    web: true,
-    extension: false,
-    desktop: false,
-    salesforceCanvas: false,
-  },
-  {
     name: 'Cloudflare',
     function: 'CDN / DDoS Protection / WAF / DNS',
     location: 'US',
@@ -66,16 +56,6 @@ const webSubProcessors = [
     optional: 'Yes',
     web: true,
     extension: false,
-    desktop: false,
-    salesforceCanvas: false,
-  },
-  {
-    name: 'Google Ads',
-    function: 'Analytics',
-    location: 'US',
-    optional: 'Yes, opt-in via cookie consent banner.',
-    web: true,
-    extension: true,
     desktop: false,
     salesforceCanvas: false,
   },
@@ -124,6 +104,11 @@ const webSubProcessors = [
 // Newest first. Adding a sub-processor starts the 30-day objection window in DPA Section 7.
 const changeHistory = [
   {
+    date: 'November 11, 2026',
+    description:
+      'Removed Amplitude and Google Ads (Google Analytics). Jetstream no longer collects product usage analytics, and the cookie consent banner was removed from the application and website.',
+  },
+  {
     date: 'September 24, 2026',
     description:
       'Added Anthropic for AI assistance with troubleshooting and internal operations. Merged the two Better Stack entries into one, which now also lists the browser extension and desktop app because their account activity appears in server logs.',
@@ -134,7 +119,7 @@ export default function Page() {
   return (
     <div className="m-8">
       <div className="flex items-center justify-between gap-4">
-        <LastUpdated className="text-gray-500" day={24} month="September" year={2026} />
+        <LastUpdated className="text-gray-500" day={11} month="November" year={2026} />
         <PrintButton />
       </div>
       <h1>Jetstream Sub-Processors</h1>

@@ -6,7 +6,7 @@ import { disconnectSocket, initSocket, registerMiddleware } from '@jetstream/sha
 import { setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/ui-utils';
 import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi, SoqlQueryFormatOptions } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
-import { fromJetstreamEvents, useAnalytics, useInitDataHistory } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useInitDataHistory } from '@jetstream/ui-core';
 import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
 import { ensureLocalStorageReady, initDexieDb, pruneAnalysisJobHistory } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
@@ -143,8 +143,6 @@ APP VERSION ${version}
   }, [userProfile]);
 
   useDesktopErrorTracker({ version, environment: appInfo.environment });
-
-  useAnalytics();
 
   useEffect(() => {
     if (onSaveSoqlQueryFormatOptions?.value) {

@@ -3,7 +3,6 @@ import { applicationCookieState, googleDriveAccessState, selectedOrgState } from
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { useMemo, useState } from 'react';
-import { useAnalytics } from '../analytics';
 import { fromJetstreamEvents } from '../jetstream-events';
 
 export interface GridDownloadModalProps<T extends object = RowWithKey> {
@@ -12,8 +11,6 @@ export interface GridDownloadModalProps<T extends object = RowWithKey> {
   rows: readonly T[];
   /** Words combined into the download filename; org + timestamp are appended automatically. */
   fileNameParts: string[];
-  /** Analytics source; defaults to the joined `fileNameParts`. */
-  source?: string;
   modalHeader?: string;
   /**
    * Prefix CSV cells that a spreadsheet would evaluate as a formula with a single quote (see
@@ -34,12 +31,10 @@ export function GridDownloadModal<T extends object = RowWithKey>({
   columns,
   rows,
   fileNameParts,
-  source,
   modalHeader = 'Download',
   escapeCsvFormulas = false,
   onClose,
 }: GridDownloadModalProps<T>) {
-  const { trackEvent } = useAnalytics();
   const selectedOrg = useAtomValue(selectedOrgState);
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
@@ -57,14 +52,12 @@ export function GridDownloadModal<T extends object = RowWithKey>({
       data={exportData.data}
       header={exportData.header}
       fileNameParts={fileNameParts}
-      source={source ?? fileNameParts.join('_')}
       googleIntegrationEnabled={hasGoogleDriveAccess}
       googleShowUpgradeToPro={googleShowUpgradeToPro}
       google_apiKey={google_apiKey}
       google_appId={google_appId}
       google_clientId={google_clientId}
       emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-      trackEvent={trackEvent}
       escapeCsvFormulas={escapeCsvFormulas}
       onModalClose={onClose}
     />
@@ -77,8 +70,6 @@ export interface GridDownloadButtonProps<T extends object = RowWithKey> {
   rows: readonly T[];
   /** Words combined into the download filename; org + timestamp are appended automatically. */
   fileNameParts: string[];
-  /** Analytics source; defaults to the joined `fileNameParts`. */
-  source?: string;
   modalHeader?: string;
   /**
    * Prefix CSV cells that a spreadsheet would evaluate as a formula with a single quote (see
@@ -104,7 +95,6 @@ export function GridDownloadButton<T extends object = RowWithKey>({
   columns,
   rows,
   fileNameParts,
-  source,
   modalHeader = 'Download',
   escapeCsvFormulas = false,
   label = 'Download',
@@ -131,7 +121,6 @@ export function GridDownloadButton<T extends object = RowWithKey>({
           columns={columns}
           rows={rows}
           fileNameParts={fileNameParts}
-          source={source}
           modalHeader={modalHeader}
           escapeCsvFormulas={escapeCsvFormulas}
           onClose={() => setIsModalOpen(false)}

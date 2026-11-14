@@ -1,6 +1,5 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { query } from '@jetstream/shared/data';
 import { appActionObservable, hasModifierKey, isUKey, useDebounce, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { QueryResults, SalesforceOrgUi } from '@jetstream/types';
@@ -21,7 +20,6 @@ import {
 import { applicationCookieState, selectedOrgState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useAnalytics } from '../analytics';
 import { getSearchUserSoql } from './record-utils';
 
 interface User {
@@ -58,7 +56,6 @@ export const UserSearchPopover: FunctionComponent = () => {
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const selectedOrg = useAtomValue(selectedOrgState);
-  const { trackEvent } = useAnalytics();
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -73,7 +70,6 @@ export const UserSearchPopover: FunctionComponent = () => {
     }
     setLoading(true);
     const currentSearchValue = currentSearchRef.current;
-    trackEvent(ANALYTICS_KEYS.user_search_did_search);
     query<User>(selectedOrg, getSearchUserSoql(searchTermDebounced))
       .then((users) => {
         if (currentSearchRef.current === currentSearchValue) {
@@ -88,7 +84,7 @@ export const UserSearchPopover: FunctionComponent = () => {
     return () => {
       currentSearchRef.current = currentSearchRef.current + 1;
     };
-  }, [isOpen, searchTermDebounced, selectedOrg, trackEvent]);
+  }, [isOpen, searchTermDebounced, selectedOrg]);
 
   const onKeydown = useCallback((event: KeyboardEvent) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,7 +98,6 @@ export const UserSearchPopover: FunctionComponent = () => {
   function handleViewRecord(user: User) {
     if (user) {
       appActionObservable.next({ action: 'VIEW_RECORD', payload: { recordId: user.Id } });
-      trackEvent(ANALYTICS_KEYS.query_RecordAction, { action: 'view', source: 'USER_SEARCH' });
     }
   }
 
@@ -118,7 +113,6 @@ export const UserSearchPopover: FunctionComponent = () => {
       size="large"
       onChange={(isOpen) => {
         setIsOpen(isOpen);
-        isOpen && trackEvent(ANALYTICS_KEYS.user_search_opened);
       }}
       header={
         <header className="slds-popover__header slds-grid">
@@ -175,7 +169,6 @@ export const UserSearchPopover: FunctionComponent = () => {
                     org: selectedOrg,
                     serverUrl,
                     skipFrontDoorAuth,
-                    onCopy: (type) => trackEvent(ANALYTICS_KEYS.user_search_copy_item, { type }),
                   }),
                   children: (
                     <Grid align="spread">
@@ -216,13 +209,11 @@ function getListItemContent({
   org,
   serverUrl,
   skipFrontDoorAuth,
-  onCopy,
 }: {
   user: User;
   org: SalesforceOrgUi;
   serverUrl: string;
   skipFrontDoorAuth: boolean;
-  onCopy: (type: string) => void;
 }) {
   const { Alias, Email, Id, IsActive, Name, Profile, Username, UserType, UserRole } = user;
   return (
@@ -234,14 +225,14 @@ function getListItemContent({
         <span className="text-bold" title={Email}>
           Email:
         </span>{' '}
-        <CopyToClipboard content={Email} copied={() => onCopy('email')} />
+        <CopyToClipboard content={Email} />
         {Email}
       </p>
       <p>
         <span className="text-bold" title={Username}>
           Username:
         </span>{' '}
-        <CopyToClipboard content={Username} copied={() => onCopy('username')} />
+        <CopyToClipboard content={Username} />
         {Username}
       </p>
       {Profile?.Id && Profile?.Name && (
@@ -266,7 +257,7 @@ function getListItemContent({
       )}
       {!IsActive && <p className="slds-text-color_destructive">Inactive</p>}
       <p className="slds-text-body_small slds-text-color_weak slds-truncate">
-        <CopyToClipboard content={Id} copied={() => onCopy('id')} />
+        <CopyToClipboard content={Id} />
         {Id}
       </p>
       {UserType !== 'Standard' && <p>{UserType}</p>}

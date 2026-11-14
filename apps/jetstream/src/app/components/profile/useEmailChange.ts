@@ -1,7 +1,6 @@
 import type { UserProfileUiWithIdentities } from '@jetstream/auth/types';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { cancelEmailChange, getFullUserProfile, requestEmailChange, StepUpCancelledError } from '@jetstream/shared/data';
-import { useAnalytics, useStepUpAuth } from '@jetstream/ui-core';
+import { useStepUpAuth } from '@jetstream/ui-core';
 import { useCallback } from 'react';
 
 /**
@@ -9,7 +8,6 @@ import { useCallback } from 'react';
  * other profile mutation inline.
  */
 export function useEmailChange({ onProfileUpdated }: { onProfileUpdated: (profile: UserProfileUiWithIdentities) => void }) {
-  const { trackEvent } = useAnalytics();
   const { runWithStepUp } = useStepUpAuth();
 
   /** @returns false when the user dismissed the step-up prompt, so the caller can stay on the form. */
@@ -29,17 +27,15 @@ export function useEmailChange({ onProfileUpdated }: { onProfileUpdated: (profil
         throw ex;
       }
       onProfileUpdated(await getFullUserProfile());
-      trackEvent(ANALYTICS_KEYS.settings_email_change_action, { action: 'request' });
       return true;
     },
-    [onProfileUpdated, runWithStepUp, trackEvent],
+    [onProfileUpdated, runWithStepUp],
   );
 
   const cancelChange = useCallback(async () => {
     await cancelEmailChange();
     onProfileUpdated(await getFullUserProfile());
-    trackEvent(ANALYTICS_KEYS.settings_email_change_action, { action: 'cancel' });
-  }, [onProfileUpdated, trackEvent]);
+  }, [onProfileUpdated]);
 
   return { requestChange, cancelChange };
 }
