@@ -182,7 +182,9 @@ export const fileExtToGoogleDriveMimeType = {
   zip: MIME_TYPES.ZIP,
 };
 
-const ERROR_TRACKER_IP_HEADER_DENYLIST = ['forwarded', '-ip', 'remote-', 'via', '-user'];
+// Matched as case-insensitive substrings of the header name. IP/user headers, plus `referer`: it is a full URL
+// whose query string can carry OAuth `code`/`state` or tokens, and `urlQueryParams` does not cover header values.
+const ERROR_TRACKER_HEADER_DENYLIST = ['forwarded', '-ip', 'remote-', 'via', '-user', 'referer'];
 
 /**
  * Sentry SDK `dataCollection` option for every error tracker (web, extension, desktop, api).
@@ -195,8 +197,8 @@ export const ERROR_TRACKER_DATA_COLLECTION = {
   userInfo: false,
   cookies: false,
   httpHeaders: {
-    request: { deny: ERROR_TRACKER_IP_HEADER_DENYLIST },
-    response: { deny: ERROR_TRACKER_IP_HEADER_DENYLIST },
+    request: { deny: ERROR_TRACKER_HEADER_DENYLIST },
+    response: { deny: ERROR_TRACKER_HEADER_DENYLIST },
   },
   httpBodies: [],
   // The SDK's sensitive-name filter misses OAuth `code`/`state`. The API attaches its own key-redacted `req.query`.

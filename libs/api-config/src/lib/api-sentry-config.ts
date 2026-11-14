@@ -101,13 +101,14 @@ const SENSITIVE_KEY_SUBSTRINGS = [
   'bearer',
 ];
 // Exact match (case-insensitive) — short ambiguous keys we only redact when they are the WHOLE key,
-// so `code`/`sid`/`pin` don't also nuke `statusCode`, `osId`, etc.
-const SENSITIVE_KEY_EXACT = new Set(['code', 'otp', 'mfa', 'sid', 'pin', 'auth']);
+// so `code`/`sid`/`pin`/`state` don't also nuke `statusCode`, `osId`, `RelayState`, etc.
+const SENSITIVE_KEY_EXACT = new Set(['code', 'state', 'otp', 'mfa', 'sid', 'pin', 'auth']);
 const REDACTED = '[REDACTED]';
 const MAX_REDACT_DEPTH = 6;
 // URL strings keep their path but lose the query string and fragment, which can carry OAuth `code`/`state` or
 // tokens. Callers attach `req.query` separately as an object, where sensitive keys are redacted individually.
-const URL_KEYS = new Set(['url', 'full_url', 'fullurl', 'originalurl']);
+// `referer`/`referrer` are URLs too (the SDK already drops the request header, this covers manually attached ones).
+const URL_KEYS = new Set(['url', 'full_url', 'fullurl', 'originalurl', 'referer', 'referrer']);
 
 function stripQueryString(url: string): string {
   const queryOrFragmentIndex = url.search(/[?#]/);

@@ -59,10 +59,13 @@ describe('scrubSensitiveEventData', () => {
         request: {
           url: '/oauth/sfdc/callback?code=oauth-code',
           full_url: 'https://getjetstream.app/oauth/sfdc/callback?code=oauth-code#frag',
-          query: { code: 'oauth-code', page: '2' },
+          query: { code: 'oauth-code', state: 'oauth-state', page: '2' },
         },
       },
-      request: { url: 'https://getjetstream.app/api/verify?token=abc' },
+      request: {
+        url: 'https://getjetstream.app/api/verify?token=abc',
+        headers: { referer: 'https://getjetstream.app/app/page?token=abc#frag' },
+      },
     } as unknown as Sentry.Event;
 
     const scrubbed = scrubSensitiveEventData(event);
@@ -73,8 +76,9 @@ describe('scrubSensitiveEventData', () => {
     expect(request.url).toBe('/oauth/sfdc/callback');
     expect(request.full_url).toBe('https://getjetstream.app/oauth/sfdc/callback');
     expect(scrubbed.request?.url).toBe('https://getjetstream.app/api/verify');
+    expect(scrubbed.request?.headers?.referer).toBe('https://getjetstream.app/app/page');
     // the query object is still sent, with sensitive keys redacted individually
-    expect(request.query).toEqual({ code: '[REDACTED]', page: '2' });
+    expect(request.query).toEqual({ code: '[REDACTED]', state: '[REDACTED]', page: '2' });
   });
 
   it('does not over-redact ambiguous short keys used as substrings (statusCode, osId)', () => {
