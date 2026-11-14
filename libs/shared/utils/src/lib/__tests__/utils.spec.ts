@@ -8,6 +8,7 @@ import {
   decodeURIComponentSafe,
   flattenRecord,
   getErrorMessage,
+  getErrorTrackerEnvironment,
   getFullNameFromListMetadata,
   getIdAndObjFromRecordUrl,
   getIdFromRecordUrl,
@@ -31,6 +32,17 @@ import {
   toNumber,
   truncate,
 } from '../utils';
+
+describe('utils.getErrorTrackerEnvironment', () => {
+  it('reports the stage for production-like deployments', () => {
+    expect(getErrorTrackerEnvironment({ environment: 'production', stage: 'production' })).toEqual('production');
+    expect(getErrorTrackerEnvironment({ environment: 'production', stage: 'staging' })).toEqual('staging');
+  });
+
+  it('reports development even though the stage defaults to production', () => {
+    expect(getErrorTrackerEnvironment({ environment: 'development', stage: 'production' })).toEqual('development');
+  });
+});
 
 describe('utils.getSubquerySheetName', () => {
   it('uses the relationship path when it fits', () => {

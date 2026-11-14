@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ERROR_TRACKER_DATA_COLLECTION } from '@jetstream/shared/constants';
 import { INVALID_QUERY_LOCATOR_REGEX, redactSensitiveTelemetryData } from '@jetstream/shared/utils';
-import { Environment, UserProfileUi } from '@jetstream/types';
+import { Environment, Stage, UserProfileUi } from '@jetstream/types';
 import * as Sentry from '@sentry/react';
 import { scrubErrorTrackerBreadcrumb, scrubErrorTrackerEvent } from './errorTracker.redaction';
 
@@ -45,7 +45,7 @@ let pendingUser: { id?: string; email?: string } | null | undefined;
 
 interface InitOptions {
   dsn?: string | null;
-  environment?: Environment;
+  environment?: Environment | Stage;
   version?: string;
 }
 

@@ -1,4 +1,5 @@
 import { ERROR_TRACKER_DATA_COLLECTION } from '@jetstream/shared/constants';
+import { getErrorTrackerEnvironment } from '@jetstream/shared/utils';
 import * as Sentry from '@sentry/node';
 import type { NextFunction, Request, Response } from 'express';
 import { LRUCache } from 'lru-cache';
@@ -15,7 +16,7 @@ if (isEnabled) {
   Sentry.init({
     dsn: ENV.SENTRY_DSN,
     release: ENV.VERSION || undefined,
-    environment: ENV.ENVIRONMENT,
+    environment: getErrorTrackerEnvironment({ environment: ENV.ENVIRONMENT, stage: ENV.STAGE }),
     dataCollection: ERROR_TRACKER_DATA_COLLECTION,
     tracesSampleRate: 0,
     // Sentry 10 never captured Express errors on its own (we never called setupExpressErrorHandler), so keep it

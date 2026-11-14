@@ -6,6 +6,7 @@ import {
   BulkJobBatchInfo,
   BulkJobBatchInfoUntyped,
   BulkJobUntyped,
+  Environment,
   HttpMethod,
   InsertUpdateUpsertDelete,
   ListItem,
@@ -17,6 +18,7 @@ import {
   SalesforceOrgUi,
   SalesforceRecord,
   SoapNil,
+  Stage,
   FieldType as jetstreamFieldType,
 } from '@jetstream/types';
 import { MAX_SHEET_NAME_LENGTH, sanitizeSheetName } from '@jetstreamapp/simple-excel';
@@ -51,6 +53,15 @@ export function getDefaultAppState(initial?: Maybe<Partial<ApplicationState>>): 
     google_clientId: 'unset',
     ...initial,
   };
+}
+
+/**
+ * Environment name attached to error reports. Staging runs with `environment: 'production'`, so the
+ * stage is what tells a staging report from a production one. Local development leaves the stage at
+ * its `production` default, so `environment` still wins there.
+ */
+export function getErrorTrackerEnvironment({ environment, stage }: Pick<ApplicationState, 'environment' | 'stage'>): Environment | Stage {
+  return environment === 'production' ? stage : environment;
 }
 
 export function getErrorMessage(error: unknown): string {
