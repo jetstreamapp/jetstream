@@ -106,7 +106,7 @@ const changeHistory = [
   {
     date: 'November 11, 2026',
     description:
-      'Removed Amplitude and Google Ads (Google Analytics). Jetstream no longer collects product usage analytics, and the cookie consent banner was removed from the application and website.',
+      'Removed Amplitude and Google Ads (Google Analytics). Jetstream no longer tracks individual product usage events, and the cookie consent banner was removed from the application and website. Cookieless, aggregate page-view statistics are still collected through Cloudflare.',
   },
   {
     date: 'September 24, 2026',
