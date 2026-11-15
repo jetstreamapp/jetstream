@@ -511,6 +511,8 @@ model LoginActivity {
   @@index([userId, createdAt, id])
   // For team-scoped audit queries (captures pre-auth events that have no userId)
   @@index([teamId, createdAt, id])
+  // For retention cleanup (DELETE WHERE createdAt <= x) and security-anomaly cron queries over a recent time window
+  @@index([createdAt])
 }
 
 model EmailActivity {
@@ -763,6 +765,7 @@ model SalesforceOrg {
 
   @@unique([jetstreamUserId2, uniqueId], name: "uniqueOrg", map: "unique_org")
   @@index([expirationScheduledFor])
+  @@index([jetstreamOrganizationId])
   @@index([nextExpirationNotificationDate])
   @@map("salesforce_org")
 }
