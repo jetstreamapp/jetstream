@@ -305,8 +305,18 @@ export const QueryBuilder = () => {
 
   useNonInitialEffect(() => {
     setPageTitle(isTooling ? METADATA_QUERY_TITLE : SOBJECT_QUERY_TITLE);
-    resetState();
-  }, [isTooling, resetState]);
+  }, [isTooling]);
+
+  // Reset only on a user-initiated toggle. Query restore also changes `isTooling`, and resetting in an
+  // effect on that value would wipe the state that restore just applied.
+  const handleQueryTypeChange = useCallback(
+    (value: boolean) => {
+      setIsTooling(value);
+      setSobjects(null);
+      resetState();
+    },
+    [resetState, setIsTooling, setSobjects],
+  );
 
   // The subquery config panel is ephemeral UI. Clear it on unmount so it never
   // re-opens when the user navigates away and later returns to this page.
@@ -352,7 +362,7 @@ export const QueryBuilder = () => {
                   onText="Metadata Query"
                   hideLabel
                   checked={isTooling}
-                  onChange={setIsTooling}
+                  onChange={handleQueryTypeChange}
                 />
               }
             />
@@ -396,6 +406,7 @@ export const QueryBuilder = () => {
                 recentItemsEnabled
                 recentItemsKey="sobject"
                 isTooling={isTooling}
+                resetOnToolingChange={false}
                 initialSearchTerm={sObjectFilterTerm}
                 onSobjects={handleSobjectsChange}
                 onSelectedSObject={handleSelectedSObject}
