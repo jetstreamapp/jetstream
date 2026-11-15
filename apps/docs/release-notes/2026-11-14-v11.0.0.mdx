@@ -1,0 +1,59 @@
+---
+slug: v11.0.0
+title: 11.0.0 - Usage analytics removed, clearer deploy and query errors
+date: '2026-11-14'
+tags: [web, desktop, extension]
+versions:
+  web: 11.0.0
+  desktop: 5.0.0
+  extension: 4.0.0
+summary: Jetstream no longer tracks product usage, and the cookie consent banner is gone. The desktop app now requires macOS 13 or later.
+highlights:
+  - title: Usage analytics and the cookie banner are removed
+    description: Jetstream no longer records product usage events or sets analytics cookies, so the cookie consent banner and the Share usage analytics setting are gone.
+  - title: Desktop app requires macOS 13 or later
+    description: The desktop app no longer runs on macOS 12 Monterey.
+    platforms: [desktop]
+  - title: Deploy errors are visible in Automation Control
+    description: The Review Changes modal shows a results summary, highlights failed rows, and lists each error in a new Error Message column.
+    docLink: /automation-control
+  - title: Load All Records shows the Salesforce error
+    description: When Salesforce rejects a page of results, the error popover now includes the message Salesforce returned.
+    docLink: /query/results
+  - title: Restoring a query from history works across query types
+    description: Restoring a query from history closes the modal and keeps the restored query, including when it switches between object and metadata (Tooling API) queries.
+    docLink: /query
+---
+
+{/* truncate */}
+
+## What's new
+
+### Usage analytics and the cookie banner are removed
+
+Jetstream no longer records product usage events, and Google Analytics is removed from the app and the website. No analytics or advertising cookies are set, so the cookie consent banner and the **Share usage analytics** setting are gone. Cookieless, aggregate page-view statistics are still collected.
+
+The privacy policy and the sub-processor list are updated to match.
+
+### Desktop app requires macOS 13 or later
+
+The desktop app no longer runs on macOS 12 Monterey. If you are on Monterey, upgrade macOS before updating the desktop app, or use Jetstream in the browser. Windows requirements are unchanged.
+
+### Deploy errors are visible in Automation Control
+
+The Review Changes modal now makes failed deployments easier to find:
+
+- A summary above the table shows how many items succeeded and how many failed.
+- Failed rows are highlighted in red.
+- A new Error Message column shows the full error for each failed item, including items that could not be retrieved.
+- Items that failed to retrieve keep their error state when the deploy starts. They used to show a loading spinner that never finished.
+
+### Load All Records shows the Salesforce error
+
+When Salesforce rejects one page of results while **Load All Records** is running, the error popover now includes the message Salesforce returned. It used to say only that there was a problem loading the rest of the records.
+
+### Other fixes
+
+- Restoring a query from history now closes the history modal and keeps the restored query when it switches between object and metadata (Tooling API) queries. Previously the restored query was cleared.
+- The Anonymous Apex Submit button and its keyboard shortcut are disabled while the editor is empty, where submitting used to show a raw validation error.
+- Error reports sent to Jetstream no longer include the API names of custom objects and fields.

@@ -1,5 +1,39 @@
 [
   {
+    "slug": "v11.0.0",
+    "title": "11.0.0 - Usage analytics removed, clearer deploy and query errors",
+    "date": "2026-11-14",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "11.0.0", "desktop": "5.0.0", "extension": "4.0.0" },
+    "summary": "Jetstream no longer tracks product usage, and the cookie consent banner is gone. The desktop app now requires macOS 13 or later.",
+    "highlights": [
+      {
+        "title": "Usage analytics and the cookie banner are removed",
+        "description": "Jetstream no longer records product usage events or sets analytics cookies, so the cookie consent banner and the Share usage analytics setting are gone."
+      },
+      {
+        "title": "Desktop app requires macOS 13 or later",
+        "description": "The desktop app no longer runs on macOS 12 Monterey.",
+        "platforms": ["desktop"]
+      },
+      {
+        "title": "Deploy errors are visible in Automation Control",
+        "description": "The Review Changes modal shows a results summary, highlights failed rows, and lists each error in a new Error Message column.",
+        "docLink": "/automation-control"
+      },
+      {
+        "title": "Load All Records shows the Salesforce error",
+        "description": "When Salesforce rejects a page of results, the error popover now includes the message Salesforce returned.",
+        "docLink": "/query/results"
+      },
+      {
+        "title": "Restoring a query from history works across query types",
+        "description": "Restoring a query from history closes the modal and keeps the restored query, including when it switches between object and metadata (Tooling API) queries.",
+        "docLink": "/query"
+      }
+    ]
+  },
+  {
     "slug": "v10.31.1",
     "title": "10.31.1 - History sync in access profiles and security fixes",
     "date": "2026-11-08",
