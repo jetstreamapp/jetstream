@@ -342,7 +342,6 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
           url: req.url,
           params: req.params,
           query: req.query,
-          body: req.body,
           userId: req.session.user?.id,
           requestId: res.locals.requestId,
         });
@@ -504,7 +503,6 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
         url: req.url,
         params: req.params,
         query: req.query,
-        body: req.body,
         userId: req.session.user?.id,
         requestId: res.locals.requestId,
       });
