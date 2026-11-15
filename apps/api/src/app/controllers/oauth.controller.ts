@@ -18,6 +18,7 @@ import { z } from 'zod';
 import * as jetstreamOrganizationsDb from '../db/organization.db';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import * as sfdcEncService from '../services/salesforce-org-encryption.service';
+import { assertOrgConnectAllowed } from '../utils/access-profile.utils';
 import { getDevClientOriginFromRequest } from '../utils/oauth.utils';
 import { createRoute, RouteValidator } from '../utils/route.utils';
 
@@ -300,6 +301,13 @@ export async function initConnectionFromOAuthResponse({
       );
     }
   }
+
+  // Same match createOrUpdateSalesforceOrg uses to replace a sandbox that was refreshed (new org id, same username)
+  const existingOrgs = await salesforceOrgsDb.findByUserId(userId);
+  const isExistingOrg = existingOrgs.some(
+    ({ uniqueId, username }) => uniqueId === salesforceOrgUi.uniqueId || (!!identity.username && username === identity.username),
+  );
+  await assertOrgConnectAllowed(userId, { isExistingOrg });
 
   const { org: salesforceOrg, created } = await salesforceOrgsDb.createOrUpdateSalesforceOrg(userId, salesforceOrgUi);
   return { salesforceOrg, created };

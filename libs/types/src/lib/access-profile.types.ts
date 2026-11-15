@@ -410,6 +410,8 @@ export type TeamAccessProfileRequest = z.infer<typeof TeamAccessProfileRequestSc
 
 export interface AccessProfilePolicyWarning {
   type: 'MISSING_REQUIRED_OPERATION' | 'ESCAPE_HATCH' | 'NO_SURFACES';
+  /** Where the editor shows the warning: beside an action, at the top of the actions section, or beside the applications */
+  target: AccessProfileOperationKey | 'operations' | 'surfaces';
   message: string;
 }
 
@@ -427,13 +429,15 @@ export function getAccessProfilePolicyWarnings(
   const warnings: AccessProfilePolicyWarning[] = [];
 
   ACCESS_PROFILE_TOOLS.filter(({ key }) => tools.has(key)).forEach(({ label, requiredOperations }) => {
-    const missingOperations = requiredOperations.filter((operation) => !operations.has(operation));
-    if (missingOperations.length) {
-      warnings.push({
-        type: 'MISSING_REQUIRED_OPERATION',
-        message: `${label} is enabled, but "${missingOperations.map((operation) => operationLabels.get(operation)).join('", "')}" is not. The tool opens with those actions hidden.`,
+    requiredOperations
+      .filter((operation) => !operations.has(operation))
+      .forEach((operation) => {
+        warnings.push({
+          type: 'MISSING_REQUIRED_OPERATION',
+          target: operation,
+          message: `${label} is enabled, but "${operationLabels.get(operation)}" is not. The tool opens with those actions hidden.`,
+        });
       });
-    }
   });
 
   const enabledEscapeHatches = ACCESS_PROFILE_TOOLS.filter(({ key, isEscapeHatch }) => isEscapeHatch && tools.has(key));
@@ -441,6 +445,7 @@ export function getAccessProfilePolicyWarnings(
   if (enabledEscapeHatches.length && hiddenOperations.length) {
     warnings.push({
       type: 'ESCAPE_HATCH',
+      target: 'operations',
       message: `${enabledEscapeHatches.map(({ label }) => label).join(' and ')} can still ${hiddenOperations
         .map((operation) => operationLabels.get(operation)?.toLowerCase())
         .join(', ')} even though those actions are hidden elsewhere. Turn the tool off if that matters.`,
@@ -450,6 +455,7 @@ export function getAccessProfilePolicyWarnings(
   if (policy.surfaces.length === 0) {
     warnings.push({
       type: 'NO_SURFACES',
+      target: 'surfaces',
       message: 'No application is enabled, so members with this profile can sign in to manage their profile but cannot use any tools.',
     });
   }

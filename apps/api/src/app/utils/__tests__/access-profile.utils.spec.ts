@@ -6,7 +6,7 @@ vi.mock('../error-handler', () => ({
 }));
 
 import * as userDb from '../../db/user.db';
-import { assertHistorySyncAllowed } from '../access-profile.utils';
+import { assertHistorySyncAllowed, assertOrgConnectAllowed } from '../access-profile.utils';
 
 const mockFindAccessProfile = vi.mocked(userDb.findActiveTeamAccessProfile);
 
@@ -39,5 +39,33 @@ describe('assertHistorySyncAllowed', () => {
     });
 
     await expect(assertHistorySyncAllowed('user-1')).rejects.toThrow('syncing history');
+  });
+});
+
+describe('assertOrgConnectAllowed', () => {
+  const withoutConnect = { id: 'p', version: 1, policy: { v: 1, tools: [], operations: [], surfaces: [] } };
+
+  beforeEach(() => {
+    mockFindAccessProfile.mockReset();
+  });
+
+  it('refuses a new org when the profile excludes orgs.connect', async () => {
+    mockFindAccessProfile.mockResolvedValue(withoutConnect);
+
+    await expect(assertOrgConnectAllowed('user-1', { isExistingOrg: false })).rejects.toThrow('connecting Salesforce orgs');
+  });
+
+  it('allows re-authorizing an org the member already has', async () => {
+    mockFindAccessProfile.mockResolvedValue(withoutConnect);
+
+    await expect(assertOrgConnectAllowed('user-1', { isExistingOrg: true })).resolves.toBeUndefined();
+  });
+
+  it('allows a new org for a member without a profile or with orgs.connect', async () => {
+    mockFindAccessProfile.mockResolvedValue(null);
+    await expect(assertOrgConnectAllowed('user-1', { isExistingOrg: false })).resolves.toBeUndefined();
+
+    mockFindAccessProfile.mockResolvedValue({ ...withoutConnect, policy: { ...withoutConnect.policy, operations: ['orgs.connect'] } });
+    await expect(assertOrgConnectAllowed('user-1', { isExistingOrg: false })).resolves.toBeUndefined();
   });
 });
