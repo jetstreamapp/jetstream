@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { fireToast, Spinner } from '@jetstream/ui';
-import { dexieDataSync } from '@jetstream/ui/db';
+import { dataSync } from '@jetstream/ui/db';
 import { useState } from 'react';
 import { SettingsRow, SettingsToggleRow } from './layout/SettingsSection';
 
@@ -18,7 +18,7 @@ export const HistorySyncSettings = ({ enabled, onChange, deniedReason }: History
   async function handleReset() {
     try {
       setResetting(true);
-      await dexieDataSync.reset(enabled);
+      await dataSync.reset();
       fireToast({ message: 'Sync reset successfully', type: 'success' });
     } catch (ex) {
       logger.error('[DB] Error resetting sync', ex);

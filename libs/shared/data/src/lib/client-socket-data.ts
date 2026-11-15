@@ -5,6 +5,32 @@ import { io, Socket } from 'socket.io-client';
 
 let socket: Socket<DefaultEventsMap, DefaultEventsMap> | null = null;
 
+/**
+ * Listeners registered through `socketClient`, kept apart from the socket itself: the socket is torn
+ * down and re-created (sign out, token change, sync toggled), and a listener attached to the old one
+ * would silently stop firing. Every new socket gets them all re-attached.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Listener = (...args: any[]) => void;
+const listenersByEvent = new Map<string, Set<Listener>>();
+
+function addListener(event: string, callback: Listener) {
+  const listeners = listenersByEvent.get(event) ?? new Set<Listener>();
+  listeners.add(callback);
+  listenersByEvent.set(event, listeners);
+  socket?.on(event, callback);
+}
+
+function removeListener(event: string, callback?: Listener) {
+  if (callback) {
+    listenersByEvent.get(event)?.delete(callback);
+    socket?.off(event, callback);
+  } else {
+    listenersByEvent.delete(event);
+    socket?.off(event);
+  }
+}
+
 // websocket could introduce a 10 second delay in the connection if it fails, but that is fine for our use-case
 // websocket first does not rely on sticky sessions - so this is more reliable for most users
 // but some corporate users may not have the ability to perform websocket connections
@@ -29,6 +55,12 @@ export function initSocket(serverUrl?: string, additionalHeaders?: Record<string
       withCredentials: true,
       transports,
     });
+  }
+
+  for (const [event, listeners] of listenersByEvent) {
+    for (const listener of listeners) {
+      socket.on(event, listener);
+    }
   }
 
   socket.on('connect', () => {
@@ -77,23 +109,28 @@ function emit<T = any>(channel: SocketEvent, event: T, callback?: (data: SocketA
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function subscribe<T = any>(channel: SocketEvent, callback: (data: T) => void) {
-  if (!socket) {
-    return;
-  }
-  return socket.on(channel, callback);
+  addListener(channel, callback);
 }
 
+/** Without a callback, every listener for the channel is removed */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function unsubscribe<T = any>(channel: SocketEvent, callback?: (data: SocketAck<T>) => void) {
-  if (!socket) {
-    callback?.({ success: false, error: 'Socket not initialized' });
-    return;
-  }
-  return socket.off(channel, callback);
+function unsubscribe<T = any>(channel: SocketEvent, callback?: (data: T) => void) {
+  removeListener(channel, callback);
+}
+
+/** Called every time the socket connects, including each reconnect after a drop */
+function onConnect(callback: () => void) {
+  addListener('connect', callback);
+}
+
+function offConnect(callback: () => void) {
+  removeListener('connect', callback);
 }
 
 export const socketClient = {
   emit,
   subscribe,
   unsubscribe,
+  onConnect,
+  offConnect,
 };

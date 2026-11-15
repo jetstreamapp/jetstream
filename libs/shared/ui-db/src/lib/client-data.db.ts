@@ -2,19 +2,14 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB, LEGACY_LOCAL_STORAGE_KEYS } from '@jetstream/shared/constants';
 import { createUserLocalStore, getLocalStore, getUnscopedLocalStore, hasLocalStore, setLocalStore } from '@jetstream/shared/data';
-import { delay } from '@jetstream/shared/utils';
 import { ApiHistoryItem, LoadSavedMappingItem, QueryHistoryItem } from '@jetstream/types';
 import Dexie, { type Table } from 'dexie';
-import 'dexie-observable';
-import 'dexie-syncable';
-import { initializeDexieSync } from './client-data-sync.db';
 import { registerDbHooks } from './db-hooks';
+import { dataSync } from './sync';
 import {
   AdoptableTables,
   createDexieInstance,
   DEXIE_DB_BASE_NAME,
-  DEXIE_DB_SYNC_NAME,
-  dexieDataSync,
   getDexieDb,
   getHashedRecordKey,
   getScopedDexieDbName,
@@ -55,8 +50,6 @@ const LEGACY_CLAIM_OWNER_KEY = 'JETSTREAM_LEGACY_STORE_CLAIM_OWNER';
 const LEGACY_ADOPTION_ATTEMPTS_KEY = 'JETSTREAM_LEGACY_STORE_ADOPTION_ATTEMPTS';
 const MAX_LEGACY_ADOPTION_ATTEMPTS = 3;
 
-let syncProtocolRegistered = false;
-
 /**
  * The first user this page scoped local storage to. Deliberately never cleared — it has to outlive
  * a logout so {@link isDifferentUserThanPageSession} can tell "the same user signed back in" apart
@@ -72,9 +65,6 @@ class DexieInitializer {
   /** Resolves once the current scope's full init (legacy adoption) has finished or been abandoned. */
   private initSettledPromise: Promise<void> | null = null;
   private resolveInitSettled: (() => void) | null = null;
-
-  /** Tracks whether the current instance has an active sync connection (reset per user). */
-  private hasConnectedSync = false;
 
   static getInstance(): DexieInitializer {
     if (!this.instance) {
@@ -154,7 +144,8 @@ class DexieInitializer {
     this.scopedUserId = null;
     this.scopeReadyPromise = null;
     this.initPromise = null;
-    this.hasConnectedSync = false;
+    // Stop before the database is released - the engine is bound to the departing user's instance
+    dataSync.stop();
     setDexieDbInstance(null);
     setLocalStore(null);
     // Per-user state outside the database (data history file stores) unbinds on the same signal
@@ -200,27 +191,17 @@ class DexieInitializer {
     } else if (!this.scopedUserId) {
       return;
     }
-    // Sync is disabled — disconnect if we have an active connection, otherwise no-op
     if (!enable) {
-      if (this.hasConnectedSync) {
-        await dexieDataSync.disconnect();
-        this.hasConnectedSync = false;
-      }
+      dataSync.stop();
       return;
     }
     // The scope failed to build (stores unbound) — there is no database to sync against
     if (!hasDexieDb()) {
       return;
     }
-    // Register the sync protocol once per process (the protocol name is instance-independent)
-    if (!syncProtocolRegistered) {
-      initializeDexieSync(DEXIE_DB_SYNC_NAME);
-      syncProtocolRegistered = true;
+    if (!dataSync.isRunning()) {
+      dataSync.start(getDexieDb());
     }
-    // sometimes the connection does not initialize properly, delaying to ensure it does
-    await delay(1000);
-    await dexieDataSync.connect();
-    this.hasConnectedSync = true;
   }
 
   private async _init(userId: string) {

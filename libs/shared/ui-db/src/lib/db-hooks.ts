@@ -1,5 +1,6 @@
 import { DataHistoryItem, QueryHistoryItem } from '@jetstream/types';
 import { saveQueryHistoryObject } from './query-history-object.db';
+import { createSyncCaptureMiddleware, dataSync } from './sync';
 import type { DexieDb } from './ui-db';
 
 /**
@@ -10,6 +11,12 @@ import type { DexieDb } from './ui-db';
  * effects — the database is now created per user, so hooks must be registered per instance.
  */
 export function registerDbHooks(db: DexieDb) {
+  /**
+   * Queue every local change to a syncable table for history sync. Registered even when sync is off,
+   * so nothing is missed if the user turns it on later.
+   */
+  db.use(createSyncCaptureMiddleware(() => dataSync.notifyLocalChange()));
+
   /**
    * Boolean fields cannot be indexes, so we store a string version of the same field
    */

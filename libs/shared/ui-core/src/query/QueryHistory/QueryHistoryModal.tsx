@@ -4,7 +4,7 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import { EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput, Spinner } from '@jetstream/ui';
-import { getDexieDb, queryHistoryDb } from '@jetstream/ui/db';
+import { dataSync, getDexieDb, queryHistoryDb } from '@jetstream/ui/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import uniqBy from 'lodash/uniqBy';
 import { createRef, forwardRef, useCallback, useEffect, useState } from 'react';
@@ -105,6 +105,11 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ selectedO
     [filterRecordsFn, showingUpTo, refreshCounter],
     0,
   );
+
+  // History made on another device should be here when the modal opens, not whenever the next sync happens to run
+  useEffect(() => {
+    dataSync.syncNow();
+  }, []);
 
   // reset load more when specific properties changes
   useEffect(() => {

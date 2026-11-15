@@ -14,6 +14,7 @@ export * from './lib/sso-certificate-expiration';
 export * from './lib/sso-requirement';
 export * from './lib/subquery-path-utils';
 export * from './lib/subquery-record-utils';
+export * from './lib/sync-conflict';
 export * from './lib/team-seats';
 export * from './lib/telemetry-redaction';
 export * from './lib/utils';

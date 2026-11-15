@@ -26,7 +26,7 @@ import { assertHistorySyncAllowed } from '../utils/access-profile.utils';
 import { getPendingSessionRedirectPath } from '../utils/pending-session.utils';
 import { redirect, sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
-import { routeDefinition as dataSyncController } from './data-sync.controller';
+import { routeDefinition as dataSyncController, handlePullV2, handleSyncV2 } from './data-sync.controller';
 
 export const routeDefinition = {
   initAuthMiddleware: {
@@ -99,6 +99,20 @@ export const routeDefinition = {
     responseType: z.any(),
     validators: {
       ...dataSyncController.push.validators,
+    } satisfies RouteValidator,
+  },
+  dataSyncPullV2: {
+    controllerFn: () => dataSyncPullV2,
+    responseType: z.any(),
+    validators: {
+      ...dataSyncController.pullV2.validators,
+    } satisfies RouteValidator,
+  },
+  dataSyncSyncV2: {
+    controllerFn: () => dataSyncSyncV2,
+    responseType: z.any(),
+    validators: {
+      ...dataSyncController.syncV2.validators,
     } satisfies RouteValidator,
   },
   notifications: {
@@ -362,6 +376,16 @@ const dataSyncPull = createRoute(routeDefinition.dataSyncPull.validators, async 
     limit,
   });
   sendJson(res, response);
+});
+
+const dataSyncPullV2 = createRoute(routeDefinition.dataSyncPullV2.validators, async ({ user, query }, _, res) => {
+  sendJson(res, await handlePullV2({ userId: user.id, ...query }));
+});
+
+const dataSyncSyncV2 = createRoute(routeDefinition.dataSyncSyncV2.validators, async ({ user, body }, req, res) => {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const deviceId = req.get(HTTP.HEADERS.X_EXT_DEVICE_ID)!;
+  sendJson(res, await handleSyncV2({ userId: user.id, body, origin: { deviceId } }));
 });
 
 /**

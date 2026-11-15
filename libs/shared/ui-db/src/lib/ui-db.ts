@@ -13,8 +13,6 @@ import type {
   RecentHistoryItem,
 } from '@jetstream/types';
 import Dexie, { type EntityTable } from 'dexie';
-import 'dexie-observable';
-import 'dexie-syncable';
 
 /**
  * This library is intentionally kept very small to allow importing in browser extension without importing the entire ui-core
@@ -52,7 +50,46 @@ export type DexieDb = Dexie & {
   data_history: EntityTable<DataHistoryItem, 'key'>;
   data_history_config: EntityTable<DataHistoryConfigItem, 'key'>;
   automation_control_history: EntityTable<AutomationControlHistoryEntry, 'key'>;
+  /** Local changes to syncable tables that the server has not accepted yet - one entry per record */
+  _sync_outbox: EntityTable<SyncOutboxEntry, 'key'>;
+  /** The server revision this device last received (or had accepted) for each synced record */
+  _sync_meta: EntityTable<SyncMetaEntry, 'key'>;
+  /** Singleton row holding the sync cursor */
+  _sync_state: EntityTable<SyncStateEntry, 'id'>;
 };
+
+export interface SyncOutboxEntry {
+  /** Key of the changed record - also this entry's primary key, so repeated edits collapse into one entry */
+  key: string;
+  table: SyncableEntity;
+  op: 'put' | 'delete';
+  /**
+   * Regenerated on every local change. An entry is only removed once the server has answered for the
+   * exact change that was sent, so an edit made while a push is in flight is never lost.
+   */
+  nonce: string;
+  changedAt: Date;
+  /** Set when the server reported the change can never be accepted as-is; cleared by the next local edit */
+  error?: string | null;
+}
+
+export interface SyncMetaEntry {
+  key: string;
+  revision: number;
+}
+
+export const SYNC_STATE_ID = 'state';
+
+export interface SyncStateEntry {
+  id: typeof SYNC_STATE_ID;
+  /** Server revision this device is caught up to */
+  cursor: number;
+  lastSyncedAt: Date | null;
+  /** Null until the local data has been reconciled against the server from scratch */
+  reconciledAt: Date | null;
+  /** Unpushed deletes left behind by the previous (dexie-syncable) engine have been carried over */
+  legacyAddonStateMigrated?: boolean;
+}
 
 export type SyncableEntity = keyof typeof SyncableTables;
 
@@ -137,40 +174,24 @@ export const getHashedRecordKey = sha1Hex;
  * for normal reads/writes.
  */
 export const DEXIE_DB_BASE_NAME = isWebExtension() ? 'jetstream-web-extension' : 'jetstream';
-/**
- * Sync protocol name — a stable identifier registered once with `Dexie.Syncable`,
- * independent of the per-user database name.
- */
-export const DEXIE_DB_SYNC_NAME = DEXIE_DB_BASE_NAME;
-export const DEXIE_DB_SYNC_PATH = '/';
+export const SYNC_OUTBOX_TABLE = '_sync_outbox';
 
-// dexie-observable coordinates multi-tab state through localStorage and writes a brand-new
-// `Dexie.Observable/deadnode:<id>` key on every unload with no try/catch — for users whose
-// localStorage sits at quota this throws an unhandled QuotaExceededError on page close (new keys
-// fail even when same-size overwrites succeed). Cross-tab signaling still requires REAL localStorage
-// writes (other tabs listen for storage events), so wrap the impl to swallow storage failures rather
-// than replacing it. Must run before any `new Dexie(...)` (see `createDexieInstance`) — the addon
-// captures the impl at construction, so this stays at module scope.
-const DexieObservable = (Dexie as unknown as { Observable?: { localStorageImpl?: unknown } }).Observable;
-if (DexieObservable && typeof localStorage !== 'undefined') {
-  DexieObservable.localStorageImpl = {
-    getItem: (key: string) => localStorage.getItem(key),
-    setItem: (key: string, value: string) => {
-      try {
-        localStorage.setItem(key, value);
-      } catch (ex) {
-        logger.warn('[DB] localStorage write failed', key, ex);
-      }
-    },
-    removeItem: (key: string) => {
-      try {
-        localStorage.removeItem(key);
-      } catch (ex) {
-        logger.warn('[DB] localStorage remove failed', key, ex);
-      }
-    },
-  };
-}
+/**
+ * Stores created by the dexie-observable / dexie-syncable addons this app used for history sync
+ * before it had its own sync engine (`./sync`). The addons injected these into every schema version,
+ * so they are declared from version 1 to match what is already on disk: declaring them any later (or
+ * not at all) makes Dexie drop or re-create them during the upgrade.
+ *
+ * Kept, unused, so that (a) a tab still running the previous build keeps working after another tab
+ * upgrades the database, (b) the release can be rolled back, and (c) the first sync on the new engine
+ * can carry over deletes the addon had not pushed yet. Safe to remove in a later schema version.
+ */
+const LEGACY_SYNC_ADDON_STORES = {
+  _changes: '++rev',
+  _syncNodes: '++id,myRevision,lastHeartBeat,&url,isMaster,type,status',
+  _intercomm: '++id,destinationNode',
+  _uncommittedChanges: '++id,node',
+};
 
 export const SyncableEntities = new Set<SyncableEntity>(Object.keys(SyncableTables) as Array<SyncableEntity>);
 
@@ -189,6 +210,7 @@ function applySchema(db: DexieDb) {
     _query_history_object: 'key,org,sObject,[org+sObject]',
     query_history: 'key,org,sObject,updatedAt,lastRun,isFavoriteIdx,[sObject+org],[sObject+isFavoriteIdx],[org+isFavoriteIdx]',
     load_saved_mapping: 'key,sobject,*csvFields,*sobjectFields',
+    ...LEGACY_SYNC_ADDON_STORES,
   });
 
   db.version(2).stores({
@@ -225,6 +247,13 @@ function applySchema(db: DexieDb) {
   db.version(6).stores({
     automation_control_history: 'key,[org+createdAt]',
   });
+
+  /** History sync bookkeeping - see `./sync` */
+  db.version(7).stores({
+    _sync_outbox: 'key',
+    _sync_meta: 'key',
+    _sync_state: 'id',
+  });
 }
 
 /**
@@ -245,8 +274,8 @@ let dexieDbInstance: DexieDb | null = null;
 
 /**
  * Swap the active database instance, closing the one being replaced. Closing releases the
- * IndexedDB connection and stops dexie-observable's heartbeat and any dexie-syncable connection
- * on the departing user's database, so no background work continues against it after a logout
+ * IndexedDB connection on the departing user's database, so no background work (including a sync
+ * cycle still in flight, which is bound to its own instance) continues against it after a logout
  * or user switch.
  */
 export function setDexieDbInstance(db: DexieDb | null) {
@@ -277,10 +306,10 @@ export function hasDexieDb(): boolean {
 }
 
 /**
- * dexie-observable can close the shared connection permanently mid-session (its multi-tab heartbeat
- * calls `db.close()` when a frozen/slept tab's sync node has been reaped by another tab), after which
- * every write throws DatabaseClosedError until the page reloads. Reopening restores full function —
- * the observable addon recreates its sync node on open — so retry the operation once after reopening.
+ * The shared connection can be closed mid-session - another tab running a newer build upgrades the
+ * schema (`versionchange`), or the browser drops it - after which every write throws
+ * DatabaseClosedError until the page reloads. Reopening restores full function, so retry the
+ * operation once after reopening.
  */
 export async function withReopenOnDatabaseClosed<T>(operation: () => Promise<T>): Promise<T> {
   try {
@@ -307,40 +336,3 @@ export function wrapApiWithReopenOnDatabaseClosed<T extends Record<string, (...a
     Object.entries(api).map(([name, fn]) => [name, (...args: never[]) => withReopenOnDatabaseClosed(() => fn(...args))]),
   ) as T;
 }
-
-export const dexieDataSync = {
-  connect: async () => {
-    const db = getDexieDb();
-    const status = await db.syncable.getStatus('/');
-    if (status === -1 /** SyncStatus.ERROR */) {
-      logger.warn('[DB][SYNC] Resetting sync due to error status');
-      await db.syncable.delete(DEXIE_DB_SYNC_PATH);
-    }
-    await db.syncable.connect(DEXIE_DB_SYNC_NAME, '/');
-  },
-  disconnect: async () => {
-    await getDexieDb().syncable.disconnect(DEXIE_DB_SYNC_PATH);
-  },
-  reset: async (reconnect?: boolean) => {
-    const db = getDexieDb();
-    try {
-      await Promise.race([
-        db.syncable.disconnect(DEXIE_DB_SYNC_PATH),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Disconnect timeout')), 5000)),
-      ]);
-    } catch (ex) {
-      // may not have been connected
-      logger.error('[DB][SYNC] Error resetting sync', ex);
-    }
-    try {
-      await db.syncable.delete(DEXIE_DB_SYNC_PATH);
-      if (reconnect) {
-        await dexieDataSync.connect();
-      }
-    } catch (ex) {
-      logger.error('[DB][SYNC] Error resetting sync', ex);
-      // Rethrown so a user-initiated reset does not report success when it failed
-      throw ex;
-    }
-  },
-};

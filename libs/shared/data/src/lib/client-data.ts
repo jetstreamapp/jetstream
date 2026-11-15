@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { READ_METADATA_MAX_FULL_NAMES } from '@jetstream/api-types';
 import type {
   LoginActivityUserFacing,
   LoginConfiguration,
@@ -20,7 +21,6 @@ import type {
   UserSessionAndExtTokensAndActivityWithLocation,
   UserSessionWithLocationAndUser,
 } from '@jetstream/auth/types';
-import { READ_METADATA_MAX_FULL_NAMES } from '@jetstream/api-types';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
 import {
@@ -67,8 +67,6 @@ import {
   Maybe,
   OperationReturnType,
   OrgGroup,
-  PullResponse,
-  PullResponseSchema,
   QueryResult,
   QueryResults,
   RecordResult,
@@ -81,8 +79,9 @@ import {
   SoqlQueryFormatOptions,
   StripePriceKey,
   StripeUserFacingCustomer,
-  SyncRecord,
-  SyncRecordOperation,
+  SyncV2Op,
+  SyncV2Response,
+  SyncV2ResponseSchema,
   TeamAccessProfileRequest,
   TeamInvitationRequest,
   TeamInvitationUpdateRequest,
@@ -102,7 +101,6 @@ import {
 import { parseISO } from 'date-fns/parseISO';
 import isFunction from 'lodash/isFunction';
 import isNil from 'lodash/isNil';
-import orderBy from 'lodash/orderBy';
 import { AxiosAdapterConfig, handleExternalRequest, handleRequest, transformListMetadataResponse } from './client-data-data-helper';
 import { getStandardValueSetTypes } from './standardValueSet';
 
@@ -496,99 +494,16 @@ export async function getSubscriptions(): Promise<{
   return handleRequest({ method: 'GET', url: '/api/billing/subscriptions' }).then(unwrapResponseIgnoreCache);
 }
 
-async function dataSyncPull({ updatedAt, lastKey }: { updatedAt?: Maybe<Date>; lastKey?: Maybe<string> }): Promise<PullResponse> {
-  return handleRequest({ method: 'GET', url: `/api/data-sync/pull`, params: { updatedAt, lastKey, limit: 100 } })
+export async function dataSyncV2Pull({ cursor }: { cursor: number }): Promise<SyncV2Response> {
+  return handleRequest({ method: 'GET', url: `/api/data-sync/v2/pull`, params: { cursor } })
     .then(unwrapResponseIgnoreCache)
-    .then((data) => PullResponseSchema.parse(data));
+    .then((data) => SyncV2ResponseSchema.parse(data));
 }
 
-export async function dataSyncPullAll({ updatedAt }: { updatedAt?: Maybe<Date> }): Promise<PullResponse> {
-  let hasMore = false;
-  let lastKey = null as Maybe<string>;
-  let currentResponse: PullResponse;
-  let records: PullResponse['records'] = [];
-
-  do {
-    currentResponse = await dataSyncPull({ updatedAt, lastKey });
-    hasMore = currentResponse.hasMore;
-    updatedAt = currentResponse.updatedAt;
-    lastKey = currentResponse.lastKey;
-    records = [...records, ...currentResponse.records];
-  } while (hasMore);
-
-  // De-duplicate as a safety measure
-  const uniqueRecords = new Map<string, SyncRecord>();
-  records.forEach((record) => {
-    uniqueRecords.set(record.key, record);
-  });
-  records = Array.from(uniqueRecords.values());
-
-  currentResponse.records = records;
-  return currentResponse;
-}
-
-export async function dataSyncPushChanges({
-  clientId,
-  records,
-  updatedAt,
-  includeAllIfUpdatedAtNull,
-}: {
-  clientId: string;
-  records: SyncRecordOperation[];
-  updatedAt?: Maybe<Date>;
-  includeAllIfUpdatedAtNull: boolean;
-}): Promise<PullResponse> {
-  return handleRequest({
-    method: 'POST',
-    url: `/api/data-sync/push`,
-    params: { clientId, updatedAt, includeAllIfUpdatedAtNull },
-    data: records,
-  })
+export async function dataSyncV2Sync({ cursor, ops }: { cursor: number; ops: SyncV2Op[] }): Promise<SyncV2Response> {
+  return handleRequest({ method: 'POST', url: `/api/data-sync/v2/sync`, data: { cursor, ops } })
     .then(unwrapResponseIgnoreCache)
-    .then((data) => PullResponseSchema.parse(data));
-}
-
-export async function dataSyncPushAllChanges({
-  clientId,
-  records,
-  chunkSize,
-  updatedAt,
-}: {
-  clientId: string;
-  records: SyncRecordOperation[];
-  chunkSize: number;
-  updatedAt?: Maybe<Date>;
-}): Promise<PullResponse> {
-  let currentResponse: PullResponse | null = null;
-  let responseRecords: PullResponse['records'] = [];
-
-  const chunks = splitArrayToMaxSize(orderBy(Object.values(records), 'lastRun', 'asc'), chunkSize);
-  // On first iteration, pull all records if updatedAt is null - updatedAt is only null on initial sync or if the user resets the sync state
-  let includeAllIfUpdatedAtNull = true;
-  for (const chunk of chunks) {
-    currentResponse = await dataSyncPushChanges({
-      clientId,
-      records: chunk,
-      updatedAt,
-      includeAllIfUpdatedAtNull,
-    });
-    responseRecords = [...responseRecords, ...currentResponse.records];
-    includeAllIfUpdatedAtNull = false;
-  }
-
-  if (!currentResponse) {
-    throw new Error('No response from server');
-  }
-
-  // Since server sends back all records, there is a chance we may get duplicates
-  const uniqueRecords = new Map<string, SyncRecord>();
-  responseRecords.forEach((record) => {
-    uniqueRecords.set(record.key, record);
-  });
-  responseRecords = Array.from(uniqueRecords.values());
-
-  currentResponse.records = responseRecords;
-  return currentResponse;
+    .then((data) => SyncV2ResponseSchema.parse(data));
 }
 
 export async function getOrgs(): Promise<SalesforceOrgUi[]> {

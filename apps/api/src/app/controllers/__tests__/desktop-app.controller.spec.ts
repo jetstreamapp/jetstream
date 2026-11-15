@@ -113,7 +113,14 @@ vi.mock('../../services/external-auth.service', () => ({
 vi.mock('../../services/jwt-token-encryption.service', () => ({ decryptJwtToken: mocks.decryptJwtToken }));
 vi.mock('../../utils/response.handlers', () => ({ sendJson: mocks.sendJson, redirect: mocks.redirect }));
 vi.mock('../data-sync.controller', () => ({
-  routeDefinition: { pull: { validators: { hasSourceOrg: false } }, push: { validators: { hasSourceOrg: false } } },
+  routeDefinition: {
+    pull: { validators: { hasSourceOrg: false } },
+    push: { validators: { hasSourceOrg: false } },
+    pullV2: { validators: { hasSourceOrg: false } },
+    syncV2: { validators: { hasSourceOrg: false } },
+  },
+  handlePullV2: vi.fn(),
+  handleSyncV2: vi.fn(),
 }));
 
 const userProfile = { id: 'user-1', email: 'test@example.com', name: 'Test User' };

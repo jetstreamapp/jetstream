@@ -21,15 +21,15 @@ const ignoredMessageSubstrings = [
   // The frontend cannot fix these (expired/revoked session); user is shown an in-app error state.
   'An unknown error has occurred (HTTP 401)',
   'An unknown error has occurred (HTTP 403)',
-  // dexie-observable's unload-time localStorage write for users at storage quota — guarded in ui-db,
-  // but old bundles remain in the field.
+  // dexie-observable's unload-time localStorage write for users at storage quota. The addon is no
+  // longer used, but old bundles remain in the field.
   'Dexie.Observable/deadnode',
 ];
 // Expired/evicted Salesforce query cursor — the user must re-run their query; nothing to fix client-side.
 // Shared with the UI so the "your query results expired" messaging and this ignore rule match the same errors.
 const ignoredMessagePatterns = [INVALID_QUERY_LOCATOR_REGEX];
-// 'DatabaseClosedError' matches the exception TYPE: dexie-observable closes the shared connection after
-// a tab freeze/sleep. Every user-triggered read/write goes through `withReopenOnDatabaseClosed`, which
+// 'DatabaseClosedError' matches the exception TYPE: the shared connection can be closed mid-session
+// (e.g. another tab upgrading the schema). Every user-triggered read/write goes through `withReopenOnDatabaseClosed`, which
 // reopens and retries, so anything still reaching here is residual and not actionable.
 const ignoredExactMessages = new Set(['Canceled', 'ChunkLoadError', '(unknown)', 'DatabaseClosedError']);
 // Firefox's wording when a web worker fails to load its script. Monaco starts its workers from blob: URLs, and some

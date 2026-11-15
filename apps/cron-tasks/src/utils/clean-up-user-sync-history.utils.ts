@@ -2,7 +2,8 @@ import { Prisma, PrismaClient } from '@jetstream/prisma';
 import { addDays, startOfDay } from 'date-fns';
 import { logger } from '../config/logger.config';
 
-export const DELETED_AT_THRESHOLD = 60;
+/** How long a delete marker is kept so that every device gets to hear about the delete */
+export const TOMBSTONE_RETENTION_DAYS = 365;
 export const EXCESS_THRESHOLD = 750;
 /**
  * Any records over this amount will get purged regardless of age (favorited query history is always kept)
@@ -15,7 +16,7 @@ export const OLDER_THAN_THRESHOLD = 90;
  * Favorited query history is never deleted.
  */
 function getDeletableRecordsFilter(userId: string, entity: string): Prisma.UserSyncDataWhereInput {
-  const filter: Prisma.UserSyncDataWhereInput = { userId, entity };
+  const filter: Prisma.UserSyncDataWhereInput = { userId, entity, deletedAt: null };
   if (entity === 'query_history') {
     filter.data = {
       path: ['isFavorite'],
@@ -27,31 +28,23 @@ function getDeletableRecordsFilter(userId: string, entity: string): Prisma.UserS
 
 export async function cleanUpUserSyncHistory(prisma: PrismaClient) {
   const now = startOfDay(new Date());
-  const deletedAtThreshold = addDays(now, DELETED_AT_THRESHOLD * -1);
   const olderThanThreshold = addDays(now, OLDER_THAN_THRESHOLD * -1);
 
-  // 1. Delete records that were marked deleted at least 60 days ago
+  // Tombstones (deletedAt set) hold no payload and are how other devices learn about a delete, so they
+  // are kept far longer than any device is realistically offline. A device that comes back after even
+  // longer simply keeps its own copy of those records - nothing else is affected.
   const deletedResult = await prisma.userSyncData.deleteMany({
-    where: {
-      deletedAt: {
-        not: null,
-        lte: deletedAtThreshold,
-      },
-    },
+    where: { deletedAt: { not: null, lte: addDays(now, TOMBSTONE_RETENTION_DAYS * -1) } },
   });
-  logger.info(`Deleted ${deletedResult.count} records with deletedAt older than 60 days`);
+  logger.info(`Deleted ${deletedResult.count} records with deletedAt older than ${TOMBSTONE_RETENTION_DAYS} days`);
 
-  // 2. For each (userId, entity) group, if total records > 750, remove older records (updated more than 90 days ago)
-  // For 'query_history', only delete records where data.isFavorite is false.
-  // We'll use Prisma's JSON filtering for PostgreSQL on the data field.
-
-  // First, get distinct (userId, entity) pairs
-  const groups = await prisma.userSyncData.findMany({
-    select: {
-      userId: true,
-      entity: true,
-    },
-    distinct: ['userId', 'entity'],
+  // For each (userId, entity) group with more than 750 live records, remove older records (updated
+  // more than 90 days ago). For 'query_history', only records where data.isFavorite is false.
+  const groups = await prisma.userSyncData.groupBy({
+    by: ['userId', 'entity'],
+    where: { deletedAt: null },
+    _count: { _all: true },
+    having: { id: { _count: { gt: EXCESS_THRESHOLD } } },
   });
 
   const results: {
@@ -61,10 +54,8 @@ export async function cleanUpUserSyncHistory(prisma: PrismaClient) {
     deletedCount: number;
   }[] = [];
 
-  for (const { userId, entity } of groups) {
-    const total = await prisma.userSyncData.count({
-      where: { userId, entity },
-    });
+  for (const { userId, entity, _count } of groups) {
+    const total = _count._all;
 
     /**
      * If user has a ton of records within the normal time-period threshold, purge stuff regardless

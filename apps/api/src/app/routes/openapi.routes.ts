@@ -548,6 +548,12 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
       '/api/data-sync/push': {
         post: { ...getRequest({ ...dataSyncController.push.validators, tags: ['dataSync'] }) },
       },
+      '/api/data-sync/v2/pull': {
+        get: { ...getRequest({ ...dataSyncController.pullV2.validators, tags: ['dataSync'] }) },
+      },
+      '/api/data-sync/v2/sync': {
+        post: { ...getRequest({ ...dataSyncController.syncV2.validators, tags: ['dataSync'] }) },
+      },
 
       // Orgs Controller Routes (prefix: /api)
       '/api/orgs/health-check': {
@@ -960,6 +966,12 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
       '/desktop-app/data-sync/push': {
         post: { ...getRequest({ ...desktopController.dataSyncPush.validators, tags: ['desktop'] }) },
       },
+      '/desktop-app/data-sync/v2/pull': {
+        get: { ...getRequest({ ...desktopController.dataSyncPullV2.validators, tags: ['desktop'] }) },
+      },
+      '/desktop-app/data-sync/v2/sync': {
+        post: { ...getRequest({ ...desktopController.dataSyncSyncV2.validators, tags: ['desktop'] }) },
+      },
       '/desktop-app/v1/notifications': {
         get: { ...getRequest({ ...desktopController.notifications.validators, tags: ['desktop'] }) },
       },
@@ -992,6 +1004,12 @@ export function getOpenApiSpec(): ReturnType<typeof createDocument> {
       },
       '/web-extension/data-sync/push': {
         post: { ...getRequest({ ...webExtensionController.dataSyncPush.validators, tags: ['webExtension'] }) },
+      },
+      '/web-extension/data-sync/v2/pull': {
+        get: { ...getRequest({ ...webExtensionController.dataSyncPullV2.validators, tags: ['webExtension'] }) },
+      },
+      '/web-extension/data-sync/v2/sync': {
+        post: { ...getRequest({ ...webExtensionController.dataSyncSyncV2.validators, tags: ['webExtension'] }) },
       },
       '/web-extension/feedback': {
         post: {

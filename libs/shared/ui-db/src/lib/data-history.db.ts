@@ -12,8 +12,8 @@ import { LocalOnlyTables, getDexieDb, wrapApiWithReopenOnDatabaseClosed } from '
  * Row-level persistence for the local Data History feature (searchable catalog only — payload
  * files live in the pluggable file store owned by `@jetstream/ui/data-history`).
  *
- * Wrapped in `wrapApiWithReopenOnDatabaseClosed` like every other `*Db` api here: dexie-observable
- * can close the shared connection mid-session (see the note on that helper), and because history
+ * Wrapped in `wrapApiWithReopenOnDatabaseClosed` like every other `*Db` api here: the shared
+ * connection can be closed mid-session (see the note on that helper), and because history
  * capture swallows its own errors by design, an unwrapped DatabaseClosedError would silently stop
  * ALL capture for the rest of the session with nothing surfaced to the user.
  */
