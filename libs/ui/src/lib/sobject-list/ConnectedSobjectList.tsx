@@ -37,6 +37,11 @@ export interface ConnectedSobjectListProps {
   sobjects: Maybe<DescribeGlobalSObjectResult[]>;
   selectedSObject: Maybe<DescribeGlobalSObjectResult>;
   isTooling?: boolean;
+  /**
+   * Clear objects and selection when `isTooling` changes (default).
+   * Disable when the parent also changes `isTooling` programmatically (e.g. restoring a query) and handles user-initiated changes itself.
+   */
+  resetOnToolingChange?: boolean;
   initialSearchTerm?: string;
   recentItemsEnabled?: boolean;
   recentItemsKey?: RecentHistoryItemType;
@@ -52,6 +57,7 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   sobjects,
   selectedSObject,
   isTooling,
+  resetOnToolingChange = true,
   initialSearchTerm,
   recentItemsEnabled,
   recentItemsKey,
@@ -138,7 +144,7 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   }, [selectedOrg, loading, errorMessage, sobjects, onSobjects, loadObjects]);
 
   useNonInitialEffect(() => {
-    if (selectedOrg) {
+    if (selectedOrg && resetOnToolingChange) {
       onSobjects(null);
       onSelectedSObject(null);
       // loadObjects called by different useEffect
