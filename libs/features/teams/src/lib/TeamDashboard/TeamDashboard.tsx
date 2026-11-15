@@ -516,6 +516,7 @@ export function TeamDashboard() {
                 configuredSsoProvider={configuredSsoProvider}
                 onGlobalAction={handleTeamGlobalAction}
                 onUserAction={handleUserAction}
+                onRefresh={fetchTeam}
               />
             )}
           </div>
