@@ -10,16 +10,17 @@ import {
   ACCESS_PROFILE_TOOLS,
   AccessProfileOperationKey,
   AccessProfilePolicyRequest,
+  AccessProfilePolicyWarning,
   AccessProfileSurfaceKey,
   AccessProfileToolGroup,
   AccessProfileToolKey,
+  FULL_ACCESS_POLICY,
   getAccessProfilePolicyWarnings,
   TeamAccessProfile,
   TeamUserFacing,
 } from '@jetstream/types';
 import { Checkbox, Input, Modal, ScopedNotification, Spinner, Textarea } from '@jetstream/ui';
 import { useMemo, useState } from 'react';
-import { ACCESS_PROFILE_PRESETS } from './access-profile.utils';
 
 interface TeamAccessProfileEditorModalProps {
   teamId: string;
@@ -39,9 +40,11 @@ export function TeamAccessProfileEditorModal({ teamId, accessProfile, onClose }:
   const [description, setDescription] = useState(accessProfile?.description ?? '');
   const [isDefault, setIsDefault] = useState(accessProfile?.isDefault ?? false);
   const [policy, setPolicy] = useState<AccessProfilePolicyRequest>(
-    accessProfile ? accessProfile.policy : (ACCESS_PROFILE_PRESETS[0]?.policy ?? { tools: [], operations: [], surfaces: [] }),
+    // A new profile starts with everything selected so the admin only has to remove what members should not have
+    accessProfile
+      ? accessProfile.policy
+      : { tools: FULL_ACCESS_POLICY.tools, operations: FULL_ACCESS_POLICY.operations, surfaces: FULL_ACCESS_POLICY.surfaces },
   );
-  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(isNew ? (ACCESS_PROFILE_PRESETS[0]?.id ?? null) : null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -50,19 +53,10 @@ export function TeamAccessProfileEditorModal({ teamId, accessProfile, onClose }:
   const enabledSurfaces = useMemo(() => new Set(policy.surfaces), [policy.surfaces]);
   const warnings = useMemo(() => getAccessProfilePolicyWarnings(policy), [policy]);
   const trimmedName = name.trim();
+  const warningsFor = (target: AccessProfilePolicyWarning['target']) => warnings.filter((warning) => warning.target === target);
 
   function updatePolicy(nextPolicy: AccessProfilePolicyRequest) {
     setPolicy(nextPolicy);
-    setSelectedPresetId(null);
-  }
-
-  function applyPreset(presetId: string) {
-    const preset = ACCESS_PROFILE_PRESETS.find(({ id }) => id === presetId);
-    if (!preset) {
-      return;
-    }
-    setPolicy(preset.policy);
-    setSelectedPresetId(preset.id);
   }
 
   /** Turning a tool on also turns on the operations it needs, turning it off leaves operations alone */
@@ -164,29 +158,6 @@ export function TeamAccessProfileEditorModal({ teamId, accessProfile, onClose }:
           </ScopedNotification>
         )}
 
-        {isNew && (
-          <fieldset className="slds-form-element slds-m-bottom_small">
-            <legend className="slds-form-element__legend slds-form-element__label">Start from</legend>
-            <div className="slds-form-element__control">
-              <div className="slds-button-group" role="group">
-                {ACCESS_PROFILE_PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    className={selectedPresetId === preset.id ? 'slds-button slds-button_brand' : 'slds-button slds-button_neutral'}
-                    aria-pressed={selectedPresetId === preset.id}
-                    title={preset.description}
-                    disabled={loading}
-                    onClick={() => applyPreset(preset.id)}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </fieldset>
-        )}
-
         <Input id="access-profile-name" label="Name" isRequired>
           <input
             id="access-profile-name"
@@ -242,16 +213,26 @@ export function TeamAccessProfileEditorModal({ teamId, accessProfile, onClose }:
         <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
           Actions that are turned off are hidden in every tool, for example the delete button in query results.
         </p>
+        <InlineWarnings warnings={warningsFor('operations')} />
         {ACCESS_PROFILE_OPERATIONS.map(({ key, label, description }) => (
-          <Checkbox
-            key={key}
-            id={`access-profile-operation-${key}`}
-            checked={enabledOperations.has(key)}
-            label={label}
-            helpText={description}
-            disabled={loading}
-            onChange={(checked) => setOperationEnabled(key, checked)}
-          />
+          <div key={key}>
+            <Checkbox
+              id={`access-profile-operation-${key}`}
+              checked={enabledOperations.has(key)}
+              label={label}
+              helpText={description}
+              disabled={loading}
+              onChange={(checked) => setOperationEnabled(key, checked)}
+            />
+            <InlineWarnings warnings={warningsFor(key)} />
+            {key === 'orgs.connect' && !enabledOperations.has(key) && (
+              <InlineWarnings
+                messages={[
+                  'Members will not be able to add new Salesforce orgs, but can keep using, and re-authorize, the orgs they have already connected.',
+                ]}
+              />
+            )}
+          </div>
         ))}
 
         <h3 className="slds-text-heading_small" css={sectionHeadingStyles}>
@@ -262,6 +243,7 @@ export function TeamAccessProfileEditorModal({ teamId, accessProfile, onClose }:
           already signed in within a few hours. Turning off the web application still lets members sign in to it, but Jetstream refuses to
           connect it to Salesforce.
         </p>
+        <InlineWarnings warnings={warningsFor('surfaces')} />
         {ACCESS_PROFILE_SURFACES.map(({ key, label, description }) => (
           <Checkbox
             key={key}
@@ -273,16 +255,6 @@ export function TeamAccessProfileEditorModal({ teamId, accessProfile, onClose }:
             onChange={(checked) => setSurfaceEnabled(key, checked)}
           />
         ))}
-
-        {warnings.length > 0 && (
-          <ScopedNotification theme="warning" className="slds-m-top_small">
-            <ul className="slds-list_dotted">
-              {warnings.map(({ message }) => (
-                <li key={message}>{message}</li>
-              ))}
-            </ul>
-          </ScopedNotification>
-        )}
       </form>
     </Modal>
   );
@@ -328,5 +300,20 @@ function ToolGroup({
         ))}
       </div>
     </div>
+  );
+}
+
+/** Warnings sit beside the setting they describe so they are not lost below the fold of a long modal */
+function InlineWarnings({ warnings = [], messages = [] }: { warnings?: AccessProfilePolicyWarning[]; messages?: string[] }) {
+  const allMessages = [...warnings.map(({ message }) => message), ...messages];
+  if (!allMessages.length) {
+    return null;
+  }
+  return (
+    <ScopedNotification theme="warning" className="slds-m-top_x-small slds-m-bottom_small">
+      {allMessages.map((message) => (
+        <p key={message}>{message}</p>
+      ))}
+    </ScopedNotification>
   );
 }

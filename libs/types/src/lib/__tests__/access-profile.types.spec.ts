@@ -163,6 +163,7 @@ describe('getAccessProfilePolicyWarnings', () => {
     expect(warnings).toEqual([
       {
         type: 'MISSING_REQUIRED_OPERATION',
+        target: 'records.write',
         message: expect.stringContaining('Load Records is enabled, but "Create and update records" is not.'),
       },
     ]);
@@ -178,6 +179,7 @@ describe('getAccessProfilePolicyWarnings', () => {
     expect(warnings).toEqual([
       {
         type: 'ESCAPE_HATCH',
+        target: 'operations',
         message: expect.stringContaining('Anonymous Apex can still delete records, deploy metadata and change configuration'),
       },
     ]);

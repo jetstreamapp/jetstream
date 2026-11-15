@@ -57,7 +57,7 @@ test.describe('Team Access Profiles', () => {
     const request = await csrfRequest(page);
     const accessProfileName = 'Read only E2E';
 
-    await test.step('Admin creates an access profile from a preset', async () => {
+    await test.step('Admin creates an access profile', async () => {
       await page.goto('/app/home');
       await teamDashboardPage.goToTeamDashboardPage();
       await expect(teamDashboardPage.accessProfilesCard).toBeVisible();
@@ -65,7 +65,9 @@ test.describe('Team Access Profiles', () => {
       await teamDashboardPage.accessProfilesCard.getByRole('button', { name: 'New Access Profile' }).click();
       const modal = teamDashboardPage.accessProfileEditorModal;
       await expect(modal.getByRole('heading', { name: 'New Access Profile' })).toBeVisible();
-      await modal.getByRole('button', { name: 'Read only' }).click();
+      // A new profile starts with everything selected, so remove the tools this member should not have
+      await modal.getByText('Load Records', { exact: true }).click();
+      await modal.getByText('Anonymous Apex', { exact: true }).click();
       await modal.getByLabel('Name').fill(accessProfileName);
       await modal.getByRole('button', { name: 'Save' }).click();
       await expect(modal).toBeHidden();

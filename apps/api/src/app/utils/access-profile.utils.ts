@@ -12,3 +12,17 @@ export async function assertHistorySyncAllowed(userId: string) {
     throw new NotAllowedError(ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['history.sync']);
   }
 }
+
+/**
+ * Refuses connecting a Salesforce org that is new to the member when their team access profile excludes
+ * `orgs.connect`. Re-authorizing an org they already have (an expired token or a refreshed sandbox) is always allowed,
+ * otherwise an org that needs a new login would lock the member out of Jetstream.
+ */
+export async function assertOrgConnectAllowed(userId: string, { isExistingOrg }: { isExistingOrg: boolean }) {
+  if (isExistingOrg) {
+    return;
+  }
+  if (!isAccessProfileOperationAllowed(await findActiveTeamAccessProfile({ userId }), 'orgs.connect')) {
+    throw new NotAllowedError(ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES['orgs.connect']);
+  }
+}

@@ -1,9 +1,10 @@
 import { css } from '@emotion/react';
 import { LoginConfigurationWithCallbacks } from '@jetstream/auth/types';
 import { TeamAccessProfile, TeamGlobalAction, TeamSeatSummary, TeamTableAction, TeamUserFacing, UserProfileUi } from '@jetstream/types';
-import { ButtonGroupContainer, Card } from '@jetstream/ui';
+import { ButtonGroupContainer, Card, Icon, Spinner } from '@jetstream/ui';
 import { abilityState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
+import { useState } from 'react';
 import { TeamSeatsSummary } from '../team-seats/TeamSeatsSummary';
 import { TeamInviteTable } from './TeamInviteTable';
 import { TeamMemberRow } from './TeamMemberRow';
@@ -25,6 +26,8 @@ export interface TeamMembersTableProps {
   configuredSsoProvider?: LoginConfigurationWithCallbacks['ssoProvider'] | null;
   onGlobalAction: (action: TeamGlobalAction) => Promise<void>;
   onUserAction: (payload: TeamTableAction) => Promise<unknown>;
+  /** Re-fetches the team so members, invitations and seats reflect changes made elsewhere */
+  onRefresh: () => Promise<void>;
 }
 
 export function TeamMembersTable({
@@ -41,8 +44,19 @@ export function TeamMembersTable({
   configuredSsoProvider,
   onGlobalAction,
   onUserAction,
+  onRefresh,
 }: TeamMembersTableProps) {
   const ability = useAtomValue(abilityState);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   const canReadAuthActivity = ability.can('read', 'TeamMemberAuthActivity');
   const canReadSession = ability.can('read', 'TeamMemberSession');
@@ -67,6 +81,16 @@ export function TeamMembersTable({
       icon={{ type: 'standard', icon: 'people' }}
       actions={
         <ButtonGroupContainer>
+          <button
+            type="button"
+            data-testid="team-members-refresh-button"
+            className="slds-button slds-button_neutral"
+            disabled={refreshing}
+            onClick={handleRefresh}
+          >
+            <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+            Refresh
+          </button>
           {canReadAuthActivity && (
             <button className="slds-button slds-button_neutral" onClick={() => onGlobalAction('view-auth-activity')}>
               View Auth Activity
@@ -97,6 +121,7 @@ export function TeamMembersTable({
         </ButtonGroupContainer>
       }
     >
+      {refreshing && <Spinner />}
       {seats && (
         <TeamSeatsSummary seats={seats} hasManualBilling={hasManualBilling} manageSeatsDisabledReason={manageSeatsDisabledReason} />
       )}

@@ -73,8 +73,8 @@ Actions are limited in every tool where they appear. Buttons for an action that 
 A few things to keep in mind:
 
 - A tool can be included without the actions it uses. For example, Load Records without **Create and update records** only offers delete loads (when **Delete records** is included), and Manage Permissions without **Deploy metadata and change configuration** lets the member view permissions but not save changes.
-- Members without **Connect Salesforce orgs** can keep using, and reconnect, the orgs they have already connected. A member with no connected orgs cannot use Jetstream, which is why every preset includes this action.
-- **Sync history to the Jetstream server** is enforced by the server for the web application, desktop application and browser extension, so history from a member without it is never stored on Jetstream's servers. Data already synced before the action was removed stays on the server until the member is removed or their data is deleted. Only the Everything preset includes this action, so turn it on for members who should be able to sync.
+- Members without **Connect Salesforce orgs** can keep using, and reconnect, the orgs they have already connected. A member with no connected orgs cannot use Jetstream, so turn this action off only for members who already have all the orgs they need, or who should not add others. The Jetstream server enforces it for the web application: a connection to an org the member does not already have is refused, while re-authorizing an existing org always works.
+- **Sync history to the Jetstream server** is enforced by the server for the web application, desktop application and browser extension, so history from a member without it is never stored on Jetstream's servers. Data already synced before the action was removed stays on the server until the member is removed or their data is deleted. Turn it off for members whose history should stay on their own device.
 - Anonymous Apex and the Salesforce API tool can create, update and delete records and change metadata on their own, even when those actions are not included. Leave these tools out of profiles for members who should not make changes.
 
 ### Which applications members can use
@@ -91,29 +91,13 @@ Members without the web application can still sign in to it, because their profi
 
 Admins and Billing members who turn off the web application in their own profile can still manage the team.
 
-## Presets
-
-When you create a profile, start from one of these presets and adjust it as needed. Every preset includes the web application, desktop application and browser extension.
-
-| Preset           | Tools                                                                                                                                                                                                                     | Actions                                                           |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Read only        | Query Records, Permission Analysis, Data Analysis, Export Object Metadata                                                                                                                                                 | Connect Salesforce orgs                                           |
-| Data steward     | Query Records, Load Records, Update Records Without a File, Create New Record, Data History, Data Analysis                                                                                                                | Create and update records, Connect Salesforce orgs                |
-| Salesforce admin | Query Records, Automation Control, Manage Permissions, Permission Analysis, Data Analysis, Deploy and Compare Metadata, Create Object and Fields, Record Type Picklist Manager, Formula Evaluator, Export Object Metadata | Deploy metadata and change configuration, Connect Salesforce orgs |
-| Everything       | Every current tool                                                                                                                                                                                                        | Every action                                                      |
-
-:::note[Everything is not the same as Full access]
-A profile created from the **Everything** preset includes the tools that exist today. Tools added to Jetstream later are not added to it, or to any other profile, automatically. Members without a profile have Full access and receive new tools as they are released.
-:::
-
 ## Creating an access profile
 
 1. In the **Access Profiles** card, click **New Access Profile**
-2. Under **Start from**, choose a preset
-3. Enter a **Name** and an optional **Description**. Each profile on your team needs a different name.
-4. Adjust the tools, actions and where members can sign in. Selecting a group, such as **Data**, selects every tool in it, and selecting a tool also selects the actions it needs.
-5. Optionally select **Default profile for new members**
-6. Click **Save**
+2. Enter a **Name** and an optional **Description**. Each profile on your team needs a different name.
+3. Choose the tools, actions and where members can sign in. A new profile starts with every tool, action and application selected, so deselect what members should not have. Selecting a group, such as **Data**, selects every tool in it, and selecting a tool also selects the actions it needs.
+4. Optionally select **Default profile for new members**
+5. Click **Save**
 
 The profile editor shows a warning when a combination might not do what you expect, such as a tool that is included without the actions it needs, or Anonymous Apex or the Salesforce API tool included in a profile that leaves out record or metadata changes.
 
