@@ -21,27 +21,12 @@ import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { OrgsCombobox } from '../orgs/OrgsCombobox';
+import { parseMyDomainBase } from '../orgs/salesforce-login-url.utils';
 import { useSettingsSearch } from './layout/settings-search';
 
 const CARD_TITLE = 'Salesforce Managed Package Authorized Orgs';
 const CARD_DESCRIPTION =
   'Authorize your production org id and My Domain so it can load the Jetstream Managed Package. All sandboxes that share the same My Domain are covered automatically.';
-
-/**
- * Best-effort parse of the "My Domain" base from a connected org's instance URL, so we can prefill the
- * form. Mirrors the server's parseMyDomainBase; the field stays editable if the URL is unusual.
- *   https://acme.my.salesforce.com               -> "acme"
- *   https://acme--uat.sandbox.my.salesforce.com  -> "acme"
- */
-function parseMyDomainBaseFromInstanceUrl(instanceUrl: string): string {
-  try {
-    const { hostname } = new URL(instanceUrl);
-    const [subdomain] = hostname.split('.');
-    return subdomain?.split('--')[0] ?? '';
-  } catch {
-    return '';
-  }
-}
 
 /** Whether this card manages the current user's personal orgs or a team's shared orgs. */
 export type CanvasOrgScope = { type: 'user' } | { type: 'team'; teamId: string };
@@ -126,7 +111,7 @@ export function SalesforceCanvasOrgs({ scope, canManage = true }: SalesforceCanv
             className="slds-button slds-button_neutral"
             type="button"
             disabled={atLimit}
-            title={atLimit ? `You have reached the limit of ${SALESFORCE_CANVAS_ORG_LIMIT} orgs` : undefined}
+            title={atLimit ? 'Only one org can be authorized. Remove it first, or contact support if you need more.' : undefined}
             onClick={() => setAddModalOpen(true)}
           >
             Authorize Org
@@ -212,12 +197,20 @@ function AddCanvasOrgModal({
     }
   }
 
+  /** Lets users paste a full Salesforce url into the My Domain field and keeps just the domain name */
+  function normalizeMyDomainField(value: string) {
+    const myDomainBase = parseMyDomainBase(value);
+    if (myDomainBase && myDomainBase !== value) {
+      setValue('myDomainBase', myDomainBase, { shouldValidate: true, shouldDirty: true });
+    }
+  }
+
   const [prefillOrg, setPrefillOrg] = useState<SalesforceOrgUi | null>(null);
 
   function handlePrefillFromOrg(selectedOrg: SalesforceOrgUi) {
     setPrefillOrg(selectedOrg);
     setValue('organizationId', selectedOrg.organizationId, { shouldValidate: true, shouldDirty: true });
-    setValue('myDomainBase', parseMyDomainBaseFromInstanceUrl(selectedOrg.instanceUrl), { shouldValidate: true, shouldDirty: true });
+    setValue('myDomainBase', parseMyDomainBase(selectedOrg.instanceUrl) ?? '', { shouldValidate: true, shouldDirty: true });
     setValue('orgName', selectedOrg.orgName || selectedOrg.label, { shouldValidate: true, shouldDirty: true });
   }
 
@@ -259,6 +252,7 @@ function AddCanvasOrgModal({
         )}
         <Input
           label="Production Organization Id"
+          labelHelp="Your production org's 15 or 18 character id, starting with 00D. Find it in Setup > Company Information."
           errorMessage={errors.organizationId?.message}
           hasError={!!errors.organizationId}
           isRequired
@@ -268,19 +262,28 @@ function AddCanvasOrgModal({
         <Input
           className="slds-m-top_small"
           label="My Domain"
+          labelHelp="Paste your Salesforce url or just the name (for example, acme for acme.my.salesforce.com). All sandboxes that share this My Domain can use the Managed Package."
           errorMessage={errors.myDomainBase?.message}
           hasError={!!errors.myDomainBase}
           isRequired
         >
-          <input className="slds-input" type="text" {...register('myDomainBase')} placeholder="acme" />
+          <input
+            className="slds-input"
+            type="text"
+            {...register('myDomainBase', { onBlur: (event) => normalizeMyDomainField(event.target.value) })}
+            onPaste={(event) => {
+              const pastedMyDomainBase = parseMyDomainBase(event.clipboardData.getData('text'));
+              if (pastedMyDomainBase) {
+                event.preventDefault();
+                setValue('myDomainBase', pastedMyDomainBase, { shouldValidate: true, shouldDirty: true });
+              }
+            }}
+            placeholder="acme or https://acme.my.salesforce.com"
+          />
         </Input>
         <Input className="slds-m-top_small" label="Label (optional)" errorMessage={errors.orgName?.message} hasError={!!errors.orgName}>
           <input className="slds-input" type="text" {...register('orgName')} placeholder="Acme Production" />
         </Input>
-        <p className="slds-m-top_small slds-text-color_weak">
-          Enter your production org id and just the My Domain name (for example, <code>acme</code> for <code>acme.my.salesforce.com</code>).
-          All sandboxes that share this My Domain will be able to use the Managed Package.
-        </p>
       </form>
     </Modal>
   );

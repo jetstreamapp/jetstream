@@ -129,3 +129,18 @@ export function parseSalesforceLoginUrl(input: string): ParsedLoginUrl {
     loginUrl: `https://${myDomain}${MY_SALESFORCE_SUFFIX}`,
   };
 }
+
+/**
+ * Reduces whatever a user pasted (a bare word, a My Domain host, a Lightning url or a deep link) to just
+ * the My Domain name, e.g. `acme`. Sandbox names and environment segments are dropped because every
+ * sandbox of an org shares the production org's My Domain name.
+ *   https://acme--uat.sandbox.lightning.force.com/lightning/page/home -> "acme"
+ */
+export function parseMyDomainBase(input: string): string | null {
+  const parsed = parseSalesforceLoginUrl(input);
+  if (!parsed.success) {
+    return null;
+  }
+  const [firstSegment] = parsed.myDomain.split('.');
+  return firstSegment.split('--')[0] || null;
+}
