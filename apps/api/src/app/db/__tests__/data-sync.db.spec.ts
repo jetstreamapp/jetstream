@@ -2,8 +2,8 @@
  * Coverage for syncRecordChanges:
  *  - Routing matrix (create/update/delete vs. existing-record state).
  *  - INSERT ... ON CONFLICT DO UPDATE is the idempotent path used for creates;
- *    we assert against the unique-index columns (not a named constraint, which
- *    does not exist for user_hashed_key_org — see migration 20250208000003).
+ *    we assert against the unique-index columns (not a named constraint — the
+ *    unique keys on this table are plain indexes).
  *  - All recordsToCreate get bundled into a single multi-row INSERT.
  *  - findByIdsIncludingOtherModifiedRecords is invoked with the union of touched
  *    record IDs plus any RETURNING ids from the upsert path, so concurrent
@@ -13,22 +13,31 @@
  *  - Keyset pagination over (updatedAt, key) returns every record exactly once,
  *    even when keys do not sort in updatedAt order or a page ends mid-timestamp.
  */
+import { ExistingSyncRow, resolveSyncOp } from '@jetstream/shared/utils';
 import { addMinutes, addSeconds, subMinutes } from 'date-fns';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { findByUpdatedAt, MAX_PULL, MAX_SYNC, syncRecordChanges } from '../data-sync.db';
+import { findByUpdatedAt, hashRecordSyncKey, MAX_PULL, MAX_SYNC, parseSyncOps, pullV2, syncRecordChanges, syncV2 } from '../data-sync.db';
 
 const prismaMock = vi.hoisted(() => {
+  // The existing-record lookup runs inside the transaction, so the transaction client shares the
+  // top-level findMany mock - tests queue results in call order regardless of which client is used.
+  const findMany = vi.fn();
+  const findUniqueSyncState = vi.fn();
   const txClient = {
     userSyncData: {
+      findMany,
       updateMany: vi.fn(),
       update: vi.fn(),
     },
+    userSyncState: { findUnique: findUniqueSyncState },
     $queryRaw: vi.fn(),
+    $executeRaw: vi.fn(),
   };
   return {
     userSyncData: {
-      findMany: vi.fn(),
+      findMany,
     },
+    userSyncState: { findUnique: findUniqueSyncState },
     $transaction: vi.fn(async (callback: (tx: typeof txClient) => Promise<unknown>) => callback(txClient)),
     __tx: txClient,
   };
@@ -93,7 +102,9 @@ function makeDelete(overrides: Partial<{ key: string; hashedKey: string; deleted
   };
 }
 
-function mockExistingRecords(rows: Array<{ id: string; key: string; updatedAt: Date; deletedAt: Date | null }>) {
+function mockExistingRecords(
+  rows: Array<{ id: string; key: string; updatedAt: Date; deletedAt: Date | null; clientUpdatedAt?: Date | null }>,
+) {
   // First call: lookup of existing records by hashedKey (data-sync.db.ts:180-186)
   // Second call: findByIdsIncludingOtherModifiedRecords returns the post-write view (line 325)
   prismaMock.userSyncData.findMany.mockResolvedValueOnce(rows).mockResolvedValueOnce([]);
@@ -138,7 +149,7 @@ describe('syncRecordChanges — create routing', () => {
     // Index-based conflict target — a named-constraint reference (e.g. ON CONFLICT
     // ON CONSTRAINT user_hashed_key_org) would error at runtime because the migration
     // only created a unique index, not a constraint.
-    expect(staticSql).toContain('ON CONFLICT ("userId", "hashedKey", "orgId")');
+    expect(staticSql).toContain(`ON CONFLICT ("userId", "hashedKey") DO UPDATE`);
     expect(staticSql).not.toContain('ON CONSTRAINT');
     expect(staticSql).toContain('DO UPDATE');
     expect(staticSql).toContain('EXCLUDED."data"');
@@ -408,7 +419,7 @@ describe('findByUpdatedAt — keyset pagination', () => {
     return { id: `id-${userId}-${index}`, userId, key, updatedAt };
   }
 
-  /** Mirrors the client's dataSyncPullAll loop: each response's cursor is sent with the next request */
+  /** Mirrors how a v1 client pulls: each response's cursor is sent with the next request */
   async function pullAll() {
     const pulledKeys: string[] = [];
     let updatedAt: Date | null = null;
@@ -503,5 +514,259 @@ describe('findByUpdatedAt — keyset pagination', () => {
     expect(prismaMock.userSyncData.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { userId: USER_ID, updatedAt: { gt: updatedAt } } }),
     );
+  });
+});
+
+describe('resolveSyncOp', () => {
+  const NOW = new Date('2026-08-01T12:00:00Z');
+
+  function makeOp(overrides: Partial<{ type: 'put' | 'delete'; clientUpdatedAt: Date; baseRevision: number | null }> = {}) {
+    const base = {
+      key: 'qh_key1',
+      entity: 'query_history' as const,
+      clientUpdatedAt: overrides.clientUpdatedAt ?? subMinutes(NOW, 5),
+      baseRevision: overrides.baseRevision,
+    };
+    return overrides.type === 'delete'
+      ? { ...base, type: 'delete' as const }
+      : { ...base, type: 'put' as const, orgId: ORG_ID, data: { foo: 'bar' } };
+  }
+
+  function makeExisting(overrides: Partial<ExistingSyncRow> = {}): ExistingSyncRow {
+    return {
+      key: 'qh_key1',
+      revision: 10,
+      clientUpdatedAt: subMinutes(NOW, 10),
+      updatedAt: subMinutes(NOW, 10),
+      deletedAt: null,
+      ...overrides,
+    };
+  }
+
+  it('writes when the server has never seen the record', () => {
+    const op = makeOp();
+    expect(resolveSyncOp(op, undefined, NOW)).toEqual({ action: 'write', clientUpdatedAt: op.clientUpdatedAt });
+  });
+
+  it('accepts an edit based on the current revision even when the client clock is far behind', () => {
+    // Device clock is an hour slow, but it edited the exact version the server holds - no conflict
+    const op = makeOp({ clientUpdatedAt: subMinutes(NOW, 70), baseRevision: 10 });
+    const existing = makeExisting();
+    const decision = resolveSyncOp(op, existing, NOW);
+    // The stored edit time must not move backwards, or an older edit from another device could win later
+    expect(decision).toEqual({ action: 'write', clientUpdatedAt: existing.clientUpdatedAt });
+  });
+
+  it('rejects a stale-based edit that is older than the server version', () => {
+    const op = makeOp({ clientUpdatedAt: subMinutes(NOW, 30), baseRevision: 7 });
+    expect(resolveSyncOp(op, makeExisting(), NOW)).toEqual({ action: 'reject' });
+  });
+
+  it('accepts a stale-based edit that is newer than the server version', () => {
+    const op = makeOp({ clientUpdatedAt: subMinutes(NOW, 1), baseRevision: 7 });
+    expect(resolveSyncOp(op, makeExisting(), NOW)).toEqual({ action: 'write', clientUpdatedAt: op.clientUpdatedAt });
+  });
+
+  it('accepts a tie so that re-sending the same change is idempotent', () => {
+    const existing = makeExisting();
+    const op = makeOp({ clientUpdatedAt: existing.clientUpdatedAt as Date, baseRevision: null });
+    expect(resolveSyncOp(op, existing, NOW).action).toBe('write');
+  });
+
+  it('clamps a client clock that is running ahead to the server time', () => {
+    const op = makeOp({ clientUpdatedAt: addMinutes(NOW, 600) });
+    expect(resolveSyncOp(op, undefined, NOW)).toEqual({ action: 'write', clientUpdatedAt: NOW });
+  });
+
+  it('un-deletes when the edit is newer than the tombstone and keeps the tombstone otherwise', () => {
+    const tombstone = makeExisting({ deletedAt: subMinutes(NOW, 10) });
+    expect(resolveSyncOp(makeOp({ clientUpdatedAt: subMinutes(NOW, 2) }), tombstone, NOW).action).toBe('write');
+    expect(resolveSyncOp(makeOp({ clientUpdatedAt: subMinutes(NOW, 20) }), tombstone, NOW).action).toBe('reject');
+  });
+
+  it('rejects a delete that is older than an edit made on another device', () => {
+    const op = makeOp({ type: 'delete', clientUpdatedAt: subMinutes(NOW, 30), baseRevision: 7 });
+    expect(resolveSyncOp(op, makeExisting(), NOW)).toEqual({ action: 'reject' });
+  });
+
+  it('treats deleting an existing tombstone as already done', () => {
+    const tombstone = makeExisting({ deletedAt: subMinutes(NOW, 10) });
+    expect(resolveSyncOp(makeOp({ type: 'delete' }), tombstone, NOW)).toEqual({ action: 'noop', revision: 10 });
+  });
+
+  it('falls back to the server write time for rows that have no client edit time', () => {
+    const existing = makeExisting({ clientUpdatedAt: null, updatedAt: subMinutes(NOW, 10) });
+    expect(resolveSyncOp(makeOp({ clientUpdatedAt: subMinutes(NOW, 20) }), existing, NOW).action).toBe('reject');
+    expect(resolveSyncOp(makeOp({ clientUpdatedAt: subMinutes(NOW, 5) }), existing, NOW).action).toBe('write');
+  });
+});
+
+describe('parseSyncOps', () => {
+  const validOp = { type: 'put', key: 'qh_a', entity: 'query_history', clientUpdatedAt: '2026-08-01T00:00:00.000Z', data: { soql: 'x' } };
+
+  it('reports a bad op as invalid without affecting the others', () => {
+    const parsed = parseSyncOps([validOp, { type: 'put', key: 'qh_b' }, { ...validOp, key: 'qh_c', entity: 'not_a_thing' }]);
+    expect(parsed.map(({ valid }) => valid)).toEqual([true, false, false]);
+  });
+
+  it('reports a key repeated in the request as invalid', () => {
+    const parsed = parseSyncOps([validOp, { ...validOp, type: 'delete' }]);
+    expect(parsed.map(({ valid }) => valid)).toEqual([true, false]);
+  });
+
+  it('rejects reserved object keys', () => {
+    expect(parseSyncOps([{ ...validOp, key: '__proto__' }])[0].valid).toBe(false);
+  });
+
+  it('reports strings Postgres cannot store as invalid instead of letting them fail the whole insert', () => {
+    const parsed = parseSyncOps([
+      validOp,
+      { ...validOp, key: 'qh_nul\u0000key' },
+      { ...validOp, key: 'qh_nul_value', data: { soql: 'a\u0000b' } },
+      { ...validOp, key: 'qh_nul_prop', data: { nested: [{ 'bad\u0000prop': 1 }] } },
+      { ...validOp, key: 'qh_lone_surrogate', data: { soql: 'a\ud800b' } },
+      { ...validOp, key: 'qh_emoji', data: { soql: 'valid pair \ud83d\ude00' } },
+    ]);
+    expect(parsed.map(({ valid }) => valid)).toEqual([true, false, false, false, false, true]);
+  });
+});
+
+describe('syncV2', () => {
+  const validOp = { type: 'put', key: 'qh_a', entity: 'query_history', clientUpdatedAt: '2026-08-01T00:00:00.000Z', data: { soql: 'x' } };
+
+  beforeEach(() => {
+    prismaMock.userSyncData.findMany.mockReset();
+    prismaMock.userSyncState.findUnique.mockReset();
+  });
+
+  it('asks the client to reset when its cursor is ahead of the server', async () => {
+    prismaMock.userSyncState.findUnique.mockResolvedValue({ revision: BigInt(5) });
+
+    const response = await syncV2({ userId: USER_ID, cursor: 9, ops: [validOp] });
+
+    expect(response).toEqual({ results: [], changes: [], cursor: 5, hasMore: false, resetRequired: true });
+    expect(prismaMock.__tx.$queryRaw).not.toHaveBeenCalled();
+  });
+
+  it('locks the user before reading, writes accepted ops in one statement and reports per-op results', async () => {
+    prismaMock.userSyncState.findUnique.mockResolvedValueOnce({ revision: BigInt(20) }).mockResolvedValueOnce({ revision: BigInt(22) });
+    prismaMock.userSyncData.findMany
+      // existing rows for the ops
+      .mockResolvedValueOnce([
+        {
+          key: 'qh_stale',
+          hashedKey: hashRecordSyncKey('qh_stale'),
+          revision: BigInt(15),
+          clientUpdatedAt: new Date('2026-09-01T00:00:00Z'),
+          updatedAt: new Date('2026-09-01T00:00:00Z'),
+          deletedAt: null,
+        },
+      ])
+      // full row for the rejected op
+      .mockResolvedValueOnce([
+        {
+          key: 'qh_stale',
+          hashedKey: hashRecordSyncKey('qh_stale'),
+          entity: 'query_history',
+          orgId: ORG_ID,
+          data: { soql: 'server' },
+          revision: BigInt(15),
+          clientUpdatedAt: new Date('2026-09-01T00:00:00Z'),
+          deletedAt: null,
+        },
+      ])
+      // changes from other clients since the cursor
+      .mockResolvedValueOnce([]);
+    prismaMock.__tx.$queryRaw.mockResolvedValue([{ hashedKey: hashRecordSyncKey('qh_a'), revision: BigInt(22) }]);
+
+    const response = await syncV2({
+      userId: USER_ID,
+      cursor: 20,
+      ops: [validOp, { ...validOp, key: 'qh_stale', baseRevision: 3 }, { type: 'put', key: 'qh_bad' }],
+    });
+
+    expect(prismaMock.__tx.$executeRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      prismaMock.userSyncData.findMany.mock.invocationCallOrder[0],
+    );
+    expect(prismaMock.__tx.$queryRaw).toHaveBeenCalledOnce();
+    const { staticSql } = getQueryRawCall();
+    expect(staticSql).toMatch(/ON CONFLICT \("userId", "hashedKey"\) DO UPDATE/);
+
+    expect(response.results[0]).toEqual({ status: 'accepted', revision: 22 });
+    expect(response.results[1]).toMatchObject({ status: 'rejected', record: { key: 'qh_stale', revision: 15, data: { soql: 'server' } } });
+    expect(response.results[2].status).toBe('invalid');
+    expect(response).toMatchObject({ cursor: 22, hasMore: false, resetRequired: false });
+  });
+});
+
+describe('pullV2 — revision pagination', () => {
+  interface RevisionRow {
+    key: string;
+    revision: bigint;
+    deletedAt: Date | null;
+  }
+  let rows: RevisionRow[] = [];
+
+  beforeEach(() => {
+    prismaMock.userSyncState.findUnique.mockReset();
+    prismaMock.userSyncData.findMany.mockReset();
+    prismaMock.userSyncData.findMany.mockImplementation(
+      async ({ where, take }: { where: { revision: { gt: bigint; lte: bigint } }; take: number }) =>
+        rows
+          .filter(({ revision }) => revision > where.revision.gt && revision <= where.revision.lte)
+          .sort((left, right) => Number(left.revision - right.revision))
+          .slice(0, take)
+          .map((row) => ({ ...row, entity: 'query_history', orgId: ORG_ID, data: { soql: row.key }, clientUpdatedAt: null })),
+    );
+  });
+
+  afterEach(() => {
+    prismaMock.userSyncData.findMany.mockReset();
+  });
+
+  it('returns every record exactly once across pages and ends on the user revision', async () => {
+    // Revisions have gaps (an upsert that updates consumes two), which must not matter
+    rows = Array.from({ length: 450 }, (_, i) => ({ key: `qh_${i}`, revision: BigInt(i * 2 + 1), deletedAt: null }));
+    prismaMock.userSyncState.findUnique.mockResolvedValue({ revision: BigInt(1000) });
+
+    const pulledKeys: string[] = [];
+    let cursor = 0;
+    let hasMore = true;
+    let requestCount = 0;
+    while (hasMore) {
+      const response = await pullV2({ userId: USER_ID, cursor, limit: 200 });
+      pulledKeys.push(...response.changes.map(({ key }) => key));
+      ({ cursor, hasMore } = response);
+      requestCount++;
+    }
+
+    expect(requestCount).toBe(3);
+    expect(pulledKeys).toEqual(rows.map(({ key }) => key));
+    expect(cursor).toBe(1000);
+  });
+
+  it('never returns rows above the counter value read before the query', async () => {
+    // A row committed after the counter was read must wait for the next pull instead of being
+    // returned alongside a cursor that does not cover it.
+    rows = [
+      { key: 'qh_1', revision: BigInt(1), deletedAt: null },
+      { key: 'qh_2', revision: BigInt(2), deletedAt: null },
+    ];
+    prismaMock.userSyncState.findUnique.mockResolvedValue({ revision: BigInt(1) });
+
+    const response = await pullV2({ userId: USER_ID, cursor: 0, limit: 200 });
+
+    expect(response.changes.map(({ key }) => key)).toEqual(['qh_1']);
+    expect(response.cursor).toBe(1);
+  });
+
+  it('strips the payload from tombstones and flags a cursor that is ahead of the server', async () => {
+    rows = [{ key: 'qh_1', revision: BigInt(1), deletedAt: new Date() }];
+    prismaMock.userSyncState.findUnique.mockResolvedValue({ revision: BigInt(1) });
+
+    const response = await pullV2({ userId: USER_ID, cursor: 0, limit: 200 });
+    expect(response.changes[0]).toMatchObject({ key: 'qh_1', deleted: true, data: {} });
+
+    expect((await pullV2({ userId: USER_ID, cursor: 50, limit: 200 })).resetRequired).toBe(true);
   });
 });

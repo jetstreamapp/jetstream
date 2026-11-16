@@ -45,8 +45,8 @@ router.get('/api/me', async (_req) => {
  * Data History Sync Routes
  * ************************************
  */
-router.get('/api/data-sync/pull', dataSyncController.pull.controllerFn());
-router.post('/api/data-sync/push', dataSyncController.push.controllerFn());
+router.get('/api/data-sync/v2/pull', dataSyncController.pull.controllerFn());
+router.post('/api/data-sync/v2/sync', dataSyncController.sync.controllerFn());
 
 /**
  * ************************************

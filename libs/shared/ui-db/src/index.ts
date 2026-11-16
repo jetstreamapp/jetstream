@@ -7,4 +7,5 @@ export * from './lib/db-hooks';
 export * from './lib/query-history-object.db';
 export * from './lib/query-history.db';
 export * from './lib/recent-history-items.db';
+export * from './lib/sync';
 export * from './lib/ui-db';

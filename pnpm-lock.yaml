@@ -180,15 +180,9 @@ importers:
       dexie:
         specifier: ^4.4.7
         version: 4.4.7
-      dexie-observable:
-        specifier: ^4.0.1-beta.13
-        version: 4.0.1-beta.13(dexie@4.4.7)
       dexie-react-hooks:
         specifier: ^4.4.0
         version: 4.4.0(dexie@4.4.7)(react@19.3.1)
-      dexie-syncable:
-        specifier: ^4.0.1-beta.13
-        version: 4.0.1-beta.13(dexie-observable@4.0.1-beta.13(dexie@4.4.7))(dexie@4.4.7)
       document.contains:
         specifier: ^1.0.2
         version: 1.0.2
@@ -8765,22 +8759,11 @@ packages:
   devlop@1.1.0:
     resolution: {integrity: sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==}
 
-  dexie-observable@4.0.1-beta.13:
-    resolution: {integrity: sha512-axmgPk7yjoPwj+0DdQIE5s1MBXi+6XcIFIjBKdQAmSGpsLQSth/LHvMOQ3q3Wj6pwIE5hqIxg2GL75sVqQbhEw==}
-    peerDependencies:
-      dexie: ^3.0.2 || ^4.0.1-alpha.5
-
   dexie-react-hooks@4.4.0:
     resolution: {integrity: sha512-ObLXBS5+4BJU8vtSvBx6b9fY6zZYgniAtwxzjCHsUQadgbqYN6935X2/1TWw4Rf2N1aZV1io5/ziox4vKuxABA==}
     peerDependencies:
       dexie: '>=4.2.0-alpha.1 <5.0.0'
       react: '>=16'
-
-  dexie-syncable@4.0.1-beta.13:
-    resolution: {integrity: sha512-D9GPf8Uxs4cW0leAmL07oNQ5rq1wRlRpPp/XkMLHbJqOv2tq/s5FHPBagKv7F7vUKbSUf6zb4aFwV4+7vJQWZg==}
-    peerDependencies:
-      dexie: ^3.0.2 || ^4.0.1-alpha.5
-      dexie-observable: ^4.0.1-beta.13
 
   dexie@4.4.7:
     resolution: {integrity: sha512-wemFiCl3DTCnfzyqepUTX1ugbYbkTrw3aEZOG7YjAOUoEQB5g5PrEywPzk5JpbX/SxqQ9IvjUpxCDIEjoOWEfA==}
@@ -26120,19 +26103,10 @@ snapshots:
     dependencies:
       dequal: 2.0.3
 
-  dexie-observable@4.0.1-beta.13(dexie@4.4.7):
-    dependencies:
-      dexie: 4.4.7
-
   dexie-react-hooks@4.4.0(dexie@4.4.7)(react@19.3.1):
     dependencies:
       dexie: 4.4.7
       react: 19.3.1
-
-  dexie-syncable@4.0.1-beta.13(dexie-observable@4.0.1-beta.13(dexie@4.4.7))(dexie@4.4.7):
-    dependencies:
-      dexie: 4.4.7
-      dexie-observable: 4.0.1-beta.13(dexie@4.4.7)
 
   dexie@4.4.7: {}
 

@@ -16,8 +16,8 @@ export const routeDefinition = {
       hasSourceOrg: false,
     } satisfies RouteValidator,
   },
-  push: {
-    controllerFn: () => push,
+  sync: {
+    controllerFn: () => sync,
     validators: {
       query: z.any(),
       body: z.any(),
@@ -40,7 +40,7 @@ const pull = createRoute(routeDefinition.pull.validators, async ({ query }) => {
   try {
     const { authTokens, extIdentifier } = getTokens();
 
-    return await fetch(`${ENV.SERVER_URL}/desktop-app/data-sync/pull?${new URLSearchParams(query).toString()}`, {
+    return await fetch(`${ENV.SERVER_URL}/desktop-app/data-sync/v2/pull?${new URLSearchParams(query).toString()}`, {
       method: 'GET',
       headers: {
         Accept: 'application/json',
@@ -52,11 +52,11 @@ const pull = createRoute(routeDefinition.pull.validators, async ({ query }) => {
   }
 });
 
-const push = createRoute(routeDefinition.push.validators, async ({ query, body }) => {
+const sync = createRoute(routeDefinition.sync.validators, async ({ query, body }) => {
   try {
     const { authTokens, extIdentifier } = getTokens();
 
-    return await fetch(`${ENV.SERVER_URL}/desktop-app/data-sync/push?${new URLSearchParams(query).toString()}`, {
+    return await fetch(`${ENV.SERVER_URL}/desktop-app/data-sync/v2/sync?${new URLSearchParams(query).toString()}`, {
       method: 'POST',
       headers: {
         Accept: 'application/json',

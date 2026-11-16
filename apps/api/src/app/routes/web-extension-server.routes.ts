@@ -123,6 +123,8 @@ routes.delete('/auth/logout', STRICT_AuthRateLimit, authMiddleware, webExtension
  */
 routes.get('/data-sync/pull', authMiddleware, dataSyncRateLimit, webExtensionController.routeDefinition.dataSyncPull.controllerFn());
 routes.post('/data-sync/push', authMiddleware, dataSyncRateLimit, webExtensionController.routeDefinition.dataSyncPush.controllerFn());
+routes.get('/data-sync/v2/pull', authMiddleware, dataSyncRateLimit, webExtensionController.routeDefinition.dataSyncPullV2.controllerFn());
+routes.post('/data-sync/v2/sync', authMiddleware, dataSyncRateLimit, webExtensionController.routeDefinition.dataSyncSyncV2.controllerFn());
 
 routes.post(
   '/feedback',

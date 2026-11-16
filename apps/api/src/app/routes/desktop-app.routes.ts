@@ -100,6 +100,8 @@ routes.delete('/auth/logout', STRICT_AuthRateLimit, authMiddleware, desktopAppCo
  */
 routes.get('/data-sync/pull', authMiddleware, dataSyncRateLimit, desktopAppController.routeDefinition.dataSyncPull.controllerFn());
 routes.post('/data-sync/push', authMiddleware, dataSyncRateLimit, desktopAppController.routeDefinition.dataSyncPush.controllerFn());
+routes.get('/data-sync/v2/pull', authMiddleware, dataSyncRateLimit, desktopAppController.routeDefinition.dataSyncPullV2.controllerFn());
+routes.post('/data-sync/v2/sync', authMiddleware, dataSyncRateLimit, desktopAppController.routeDefinition.dataSyncSyncV2.controllerFn());
 
 routes.get('/v1/notifications', STRICT_2X_AuthRateLimit, authMiddleware, desktopAppController.routeDefinition.notifications.controllerFn());
 

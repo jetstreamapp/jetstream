@@ -156,6 +156,8 @@ routes.delete('/me/profile/2fa/:type', userController.deleteAuthFactor.controlle
  */
 routes.get('/data-sync/pull', dataSyncRateLimit, verifyEntitlement('recordSync'), dataSyncController.pull.controllerFn());
 routes.post('/data-sync/push', dataSyncRateLimit, verifyEntitlement('recordSync'), dataSyncController.push.controllerFn());
+routes.get('/data-sync/v2/pull', dataSyncRateLimit, verifyEntitlement('recordSync'), dataSyncController.pullV2.controllerFn());
+routes.post('/data-sync/v2/sync', dataSyncRateLimit, verifyEntitlement('recordSync'), dataSyncController.syncV2.controllerFn());
 
 /**
  * ************************************

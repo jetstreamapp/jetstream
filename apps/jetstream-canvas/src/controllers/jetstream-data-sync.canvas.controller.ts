@@ -9,8 +9,8 @@ export const routeDefinition = {
       hasSourceOrg: false,
     } satisfies RouteValidator,
   },
-  push: {
-    controllerFn: () => push,
+  sync: {
+    controllerFn: () => sync,
     validators: {
       query: z.any(),
       body: z.any(),
@@ -22,7 +22,7 @@ export const routeDefinition = {
 const pull = createRoute(routeDefinition.pull.validators, async (_args, _req) => {
   try {
     // const { authTokens, extIdentifier } = await getTokens();
-    // return await fetch(`${environment.serverUrl}/web-extension/data-sync/pull?${new URLSearchParams(query).toString()}`, {
+    // return await fetch(`${environment.serverUrl}/web-extension/data-sync/v2/pull?${new URLSearchParams(query).toString()}`, {
     //   method: 'GET',
     //   headers: {
     //     Accept: 'application/json',
@@ -36,10 +36,10 @@ const pull = createRoute(routeDefinition.pull.validators, async (_args, _req) =>
   }
 });
 
-const push = createRoute(routeDefinition.push.validators, async (_args, _req) => {
+const sync = createRoute(routeDefinition.sync.validators, async (_args, _req) => {
   try {
     // const { authTokens, extIdentifier } = await getTokens();
-    // return await fetch(`${environment.serverUrl}/web-extension/data-sync/push?${new URLSearchParams(query).toString()}`, {
+    // return await fetch(`${environment.serverUrl}/web-extension/data-sync/v2/sync?${new URLSearchParams(query).toString()}`, {
     //   method: 'POST',
     //   headers: {
     //     Accept: 'application/json',

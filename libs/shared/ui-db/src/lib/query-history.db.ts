@@ -34,7 +34,8 @@ async function setAsFavorite(
   customLabel?: string,
 ): Promise<QueryHistoryItem | undefined> {
   const dexieDb = getDexieDb();
-  const updates: Partial<QueryHistoryItem> = { isFavorite };
+  // Every edit bumps updatedAt - it is what decides which device wins when both changed the record
+  const updates: Partial<QueryHistoryItem> = { isFavorite, updatedAt: new Date() };
   // update custom label if provided
   if (customLabel) {
     updates.customLabel = customLabel;
@@ -45,7 +46,7 @@ async function setAsFavorite(
 
 async function updateCustomLabel(key: QueryHistoryItem['key'], customLabel: string | null): Promise<QueryHistoryItem | undefined> {
   const dexieDb = getDexieDb();
-  const updates: Partial<QueryHistoryItem> = { customLabel: customLabel || null };
+  const updates: Partial<QueryHistoryItem> = { customLabel: customLabel || null, updatedAt: new Date() };
   await dexieDb.query_history.update(key, updates);
   return await dexieDb.query_history.get(key);
 }

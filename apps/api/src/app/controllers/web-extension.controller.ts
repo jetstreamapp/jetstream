@@ -13,7 +13,7 @@ import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { UserProfileUiSchema } from '@jetstream/types';
 import { fromUnixTime } from 'date-fns';
 import { z } from 'zod';
-import { routeDefinition as dataSyncController } from '../controllers/data-sync.controller';
+import { routeDefinition as dataSyncController, handlePullV2, handleSyncV2 } from '../controllers/data-sync.controller';
 import * as userSyncDbService from '../db/data-sync.db';
 import * as userDbService from '../db/user.db';
 import { checkUserEntitlement } from '../db/user.db';
@@ -97,6 +97,20 @@ export const routeDefinition = {
     responseType: z.any(),
     validators: {
       ...dataSyncController.push.validators,
+    } satisfies RouteValidator,
+  },
+  dataSyncPullV2: {
+    controllerFn: () => dataSyncPullV2,
+    responseType: z.any(),
+    validators: {
+      ...dataSyncController.pullV2.validators,
+    } satisfies RouteValidator,
+  },
+  dataSyncSyncV2: {
+    controllerFn: () => dataSyncSyncV2,
+    responseType: z.any(),
+    validators: {
+      ...dataSyncController.syncV2.validators,
     } satisfies RouteValidator,
   },
 };
@@ -321,6 +335,16 @@ const dataSyncPull = createRoute(routeDefinition.dataSyncPull.validators, async 
     limit,
   });
   sendJson(res, response);
+});
+
+const dataSyncPullV2 = createRoute(routeDefinition.dataSyncPullV2.validators, async ({ user, query }, _, res) => {
+  sendJson(res, await handlePullV2({ userId: user.id, ...query }));
+});
+
+const dataSyncSyncV2 = createRoute(routeDefinition.dataSyncSyncV2.validators, async ({ user, body }, req, res) => {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const deviceId = req.get(HTTP.HEADERS.X_EXT_DEVICE_ID)! || req.get(HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID)!;
+  sendJson(res, await handleSyncV2({ userId: user.id, body, origin: { deviceId } }));
 });
 
 /**

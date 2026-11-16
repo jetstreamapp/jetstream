@@ -28,7 +28,7 @@ const MAX_SYNC_DATA_DEPTH = 100;
  *   characters, so 128 KiB leaves room for the org/object prefix.
  * - data: the largest real payload is a query-history item (SOQL plus label/metadata, ~110 KB worst
  *   case) or a saved load mapping with a few hundred fields, so 512 KiB is roughly 4x headroom.
- * - records per push: clients push in batches of 50 (MAX_PUSH_SIZE in @jetstream/shared/ui-db).
+ * - records per push: clients push at most 50 records per request (the sync engine in @jetstream/ui/db).
  * - push total: 5 MiB bounds a single request well below the global 20 MB JSON body limit while still
  *   allowing a full batch of unusually large records.
  *
@@ -75,10 +75,32 @@ const stripReservedKeys = (value: unknown, seen = new WeakSet<object>(), depth =
   }
 };
 
+/**
+ * Postgres cannot store a NUL character in text or jsonb, and jsonb rejects unpaired surrogates. One
+ * such string would otherwise fail the insert for every record in the request.
+ */
+const UNPAIRED_SURROGATE_REGEX = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+const isStorableString = (value: string) => !value.includes('\u0000') && !UNPAIRED_SURROGATE_REGEX.test(value);
+
+const hasUnstorableString = (value: unknown, seen = new WeakSet<object>()): boolean => {
+  if (typeof value === 'string') {
+    return !isStorableString(value);
+  }
+  if (value === null || typeof value !== 'object' || seen.has(value)) {
+    return false;
+  }
+  seen.add(value);
+  if (Array.isArray(value)) {
+    return value.some((item) => hasUnstorableString(item, seen));
+  }
+  return Object.entries(value).some(([prop, propValue]) => !isStorableString(prop) || hasUnstorableString(propValue, seen));
+};
+
 const SyncRecordKeySchema = z
   .string()
   .max(MAX_SYNC_KEY_LENGTH, { message: `Sync record key exceeds the maximum length of ${MAX_SYNC_KEY_LENGTH}` })
-  .refine((key) => !RESERVED_OBJECT_KEYS.includes(key), { message: 'Sync record key uses a reserved name' });
+  .refine((key) => !RESERVED_OBJECT_KEYS.includes(key), { message: 'Sync record key uses a reserved name' })
+  .refine(isStorableString, { message: 'Sync record key contains characters that cannot be stored' });
 
 const SyncRecordDataSchema = z.record(z.string(), z.unknown()).transform((data, ctx) => {
   try {
@@ -87,6 +109,10 @@ const SyncRecordDataSchema = z.record(z.string(), z.unknown()).transform((data, 
     // Surface the depth-cap breach as a normal Zod validation issue (clean 400) rather than a
     // raw thrown Error that would bubble out of the transform as an unhandled 500.
     ctx.addIssue('Sync record data exceeds the maximum allowed nesting depth');
+    return z.NEVER;
+  }
+  if (hasUnstorableString(data)) {
+    ctx.addIssue('Sync record data contains characters that cannot be stored');
     return z.NEVER;
   }
   if (JSON.stringify(data).length > MAX_SYNC_RECORD_DATA_LENGTH) {
@@ -173,6 +199,92 @@ export const PullResponseSchema = z.object({
   lastKey: z.string().nullish(),
 });
 export type PullResponse = z.infer<typeof PullResponseSchema>;
+
+/**
+ * Sync protocol v2
+ *
+ * The cursor is the per-user `revision` of `user_sync_data` (a monotonic change number assigned by
+ * the database), not a timestamp. Conflicts are resolved per record: an edit made on top of the
+ * version the server still holds is always accepted, otherwise the latest client edit time wins.
+ */
+export const MAX_SYNC_V2_PULL = 200;
+
+const SyncV2OpBaseSchema = z.object({
+  key: SyncRecordKeySchema,
+  entity: SyncTypeSchema,
+  /** When the edit (or delete) happened on the client, by the client clock */
+  clientUpdatedAt: DateTimeSchema,
+  /** Server revision of this record the client last saw, or null if the client has never received it */
+  baseRevision: z.number().int().nonnegative().nullish(),
+});
+
+export const SyncV2PutOpSchema = SyncV2OpBaseSchema.extend({
+  type: z.literal('put'),
+  orgId: z.string().max(255).nullish(),
+  data: SyncRecordDataSchema,
+});
+export type SyncV2PutOp = z.infer<typeof SyncV2PutOpSchema>;
+
+export const SyncV2DeleteOpSchema = SyncV2OpBaseSchema.extend({
+  type: z.literal('delete'),
+});
+export type SyncV2DeleteOp = z.infer<typeof SyncV2DeleteOpSchema>;
+
+export const SyncV2OpSchema = z.discriminatedUnion('type', [SyncV2PutOpSchema, SyncV2DeleteOpSchema]);
+export type SyncV2Op = z.infer<typeof SyncV2OpSchema>;
+
+/**
+ * Request body. Each op is validated on its own by the server so that one bad record is reported
+ * back as `invalid` instead of failing (and forever blocking) the whole batch - only the request
+ * level caps are enforced here.
+ */
+export const SyncV2RequestSchema = z.object({
+  cursor: z.number().int().nonnegative().nullish(),
+  ops: z
+    .array(z.unknown())
+    .max(MAX_SYNC_RECORDS_PER_PUSH, { message: `Cannot sync more than ${MAX_SYNC_RECORDS_PER_PUSH} records at a time` })
+    .refine((ops) => JSON.stringify(ops).length <= MAX_SYNC_PUSH_LENGTH, {
+      message: `Sync push exceeds the maximum serialized size of ${MAX_SYNC_PUSH_LENGTH}`,
+    }),
+});
+export type SyncV2Request = { cursor?: Maybe<number>; ops: SyncV2Op[] };
+
+export const SyncV2RecordSchema = z.object({
+  key: z.string(),
+  // Loose on purpose: an out-dated client must not choke on an entity added later
+  entity: z.union([SyncTypeSchema, z.string()]),
+  orgId: z.string().nullish(),
+  data: z.record(z.string(), z.unknown()),
+  revision: z.number(),
+  clientUpdatedAt: DateTimeSchema.nullish(),
+  deleted: z.boolean(),
+});
+export type SyncV2Record = z.infer<typeof SyncV2RecordSchema>;
+
+export const SyncV2OpResultSchema = z.discriminatedUnion('status', [
+  /** The change was written; `revision` is the record's new server revision */
+  z.object({ status: z.literal('accepted'), revision: z.number() }),
+  /** The server holds a newer version, which the client must take */
+  z.object({ status: z.literal('rejected'), record: SyncV2RecordSchema }),
+  /** The op can never be accepted as sent (failed validation) - retrying it unchanged is pointless */
+  z.object({ status: z.literal('invalid'), message: z.string() }),
+]);
+export type SyncV2OpResult = z.infer<typeof SyncV2OpResultSchema>;
+
+export const SyncV2ResponseSchema = z.object({
+  /** One result per op, in request order */
+  results: SyncV2OpResultSchema.array(),
+  /** Records changed by other clients since the request cursor, in revision order */
+  changes: SyncV2RecordSchema.array(),
+  cursor: z.number(),
+  hasMore: z.boolean(),
+  /** The request cursor is ahead of the server (e.g. restored database) - the client must reconcile from scratch */
+  resetRequired: z.boolean(),
+});
+export type SyncV2Response = z.infer<typeof SyncV2ResponseSchema>;
+
+export const SyncV2PokeSchema = z.object({ revision: z.number() });
+export type SyncV2Poke = z.infer<typeof SyncV2PokeSchema>;
 
 export type SyncableRecord = QueryHistoryItem | LoadSavedMappingItem | RecentHistoryItem;
 

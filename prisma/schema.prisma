@@ -55,6 +55,7 @@ model User {
   salesforceCanvasOrgs SalesforceCanvasOrg[]
   subscriptions        Subscription[]
   syncData             UserSyncData[]
+  syncState            UserSyncState?
   teamMembership       TeamMember?
   webExtensionTokens   WebExtensionToken[]
 
@@ -814,23 +815,44 @@ model sessions {
 }
 
 model UserSyncData {
-  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  userId    String    @db.Uuid
-  orgId     String?
-  key       String
-  hashedKey String    @db.Char(40)
-  entity    String
-  data      Json
-  createdAt DateTime  @default(now()) @db.Timestamp(6)
-  updatedAt DateTime  @updatedAt @db.Timestamp(6)
-  deletedAt DateTime? @db.Timestamp(6)
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId          String    @db.Uuid
+  orgId           String?
+  key             String
+  hashedKey       String    @db.Char(40)
+  entity          String
+  data            Json
+  /// Per-user monotonic change number. Assigned by the `user_sync_data_assign_revision` trigger on every
+  /// insert and update (the value written by the application is ignored), so it is the sync cursor.
+  revision        BigInt    @default(0)
+  /// When the record was last edited on a client (client clock). Used for last-write-wins conflict
+  /// resolution - `updatedAt` is the server write time and must never be compared with client times.
+  clientUpdatedAt DateTime? @db.Timestamp(3)
+  createdAt       DateTime  @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime  @updatedAt @db.Timestamp(6)
+  deletedAt       DateTime? @db.Timestamp(6)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, hashedKey], name: "userHashedKey", map: "user_sync_data_user_hashed_key")
+  @@unique([userId, revision], name: "userRevision", map: "user_sync_data_user_revision")
+  // Superseded by userHashedKey. Kept for one release so API instances still running the previous
+  // build (ON CONFLICT on this index) keep working during a rolling deploy - drop in a follow-up.
   @@unique([userId, hashedKey, orgId], name: "userHashedKeyOrg", map: "user_hashed_key_org")
   @@index([userId, entity, updatedAt])
   @@index([deletedAt])
   @@map("user_sync_data")
+}
+
+/// Per-user revision counter for `user_sync_data`. A separate row (rather than max(revision)) so a
+/// revision is never reused after rows are hard-deleted, and so its row lock serializes a user's writers.
+model UserSyncState {
+  userId   String @id @db.Uuid
+  revision BigInt @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sync_state")
 }
 
 model AuditLog {

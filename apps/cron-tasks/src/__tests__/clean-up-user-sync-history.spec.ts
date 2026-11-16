@@ -6,10 +6,10 @@ import { createHash } from 'node:crypto';
 import { v4 as uuid } from 'uuid';
 import {
   cleanUpUserSyncHistory,
-  DELETED_AT_THRESHOLD,
   EXCESS_THRESHOLD,
   EXTREME_EXCESS_THRESHOLD,
   OLDER_THAN_THRESHOLD,
+  TOMBSTONE_RETENTION_DAYS,
 } from '../utils/clean-up-user-sync-history.utils';
 
 dotenv.config();
@@ -86,7 +86,7 @@ describe('UserSyncData Cleanup Integration Test', () => {
     // await prisma.user.deleteMany({});
   });
 
-  it('should delete all deletedAt records beyond threshold', async () => {
+  it('should only delete soft-deleted records (tombstones) past the retention period', async () => {
     const userId = uuid();
     const orgId = uuid();
 
@@ -101,7 +101,7 @@ describe('UserSyncData Cleanup Integration Test', () => {
       orgId,
       isFavorite: false,
       updatedAt: new Date(),
-      deletedAt: addDays(new Date(), (DELETED_AT_THRESHOLD - 1) * -1),
+      deletedAt: addDays(new Date(), (TOMBSTONE_RETENTION_DAYS - 1) * -1),
     });
 
     const syncRecordsAfterThreshold = generateSyncRecords({
@@ -111,7 +111,7 @@ describe('UserSyncData Cleanup Integration Test', () => {
       orgId,
       isFavorite: false,
       updatedAt: new Date(),
-      deletedAt: addDays(new Date(), (DELETED_AT_THRESHOLD + 1) * -1),
+      deletedAt: addDays(new Date(), (TOMBSTONE_RETENTION_DAYS + 1) * -1),
     });
 
     const { count } = await prisma.userSyncData.createMany({
@@ -124,7 +124,7 @@ describe('UserSyncData Cleanup Integration Test', () => {
 
     await cleanUpUserSyncHistory(prisma);
 
-    // should delete all soft-deleted records beyond expiration date
+    // only tombstones past the retention period are removed
     dbCount = await prisma.userSyncData.count();
     expect(dbCount).toEqual(200);
   });
