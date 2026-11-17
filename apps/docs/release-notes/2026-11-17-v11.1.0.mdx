@@ -1,0 +1,58 @@
+---
+slug: v11.1.0
+title: 11.1.0 - History sync fixes and access profile updates
+date: '2026-11-17'
+tags: [web, desktop, extension]
+versions:
+  web: 11.1.0
+  desktop: 5.1.0
+  extension: 4.1.0
+summary: History sync now reliably carries favorites, labels and mapping edits between devices. Access profiles are easier to set up, and a profile that excludes connecting orgs is now enforced on the server.
+highlights:
+  - title: More reliable history sync
+    description: Favorites, labels, run counts and saved mapping edits now reach your other devices.
+    docLink: /history-data-sync
+  - title: Access profile editor updates
+    description: New profiles start with everything selected, and warnings appear next to the setting they describe.
+    platforms: [web]
+    docLink: /team-management/access-profiles
+  - title: Connecting orgs enforced for access profiles
+    description: Members on a profile without "Connect Salesforce orgs" can no longer add new orgs, but can still re-authorize existing ones.
+    platforms: [web]
+    docLink: /team-management/access-profiles
+  - title: Refresh team members
+    description: A Refresh button on the Team Members card reloads members, invitations and seats.
+    platforms: [web]
+    docLink: /team-management
+---
+
+{/* truncate */}
+
+## What's new
+
+### More reliable history sync
+
+History sync covers query history, saved load mappings, recent items and API request history. This release replaces the sync engine, which fixes several cases where changes did not reach other devices:
+
+- Favorites, labels, run counts and mapping edits made on one device now appear on the others. Favorites and labels set from the History modal were previously not saved to the server.
+- A missed update no longer causes rows to be skipped permanently, and one rejected record no longer blocks the rest of a device's changes.
+- The first sync on a device, and Reset Sync, merges history that has drifted apart: an item is a favorite if either copy was, the highest run count is kept, and a custom label is kept.
+- Sync runs on load, after local changes, when the browser comes back online, when the tab becomes visible, when Query History opens, and every 10 minutes.
+
+### Access profile editor updates
+
+- A new access profile starts with every tool, action and application selected. The "Start from" presets are gone.
+- Warnings now appear beside the setting they describe instead of in a banner at the bottom of the modal.
+- Turning off "Connect Salesforce orgs" shows a note that members cannot add new orgs but can keep using and re-authorize existing ones.
+
+### Connecting orgs enforced for access profiles
+
+When a member's access profile excludes "Connect Salesforce orgs", the server now refuses to add a new org during the Salesforce login callback. Re-authorizing an existing org, including a sandbox that was refreshed, is always allowed.
+
+### Refresh team members
+
+The Team Members card has a Refresh button that reloads the team's members, invitations and seats.
+
+### Other fixes
+
+- Faster lookups for org groups and login activity retention on the server.
