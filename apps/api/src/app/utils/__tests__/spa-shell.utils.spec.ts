@@ -12,7 +12,7 @@ describe('applyEnvironmentFavicons', () => {
     expect(applyEnvironmentFavicons(HTML, 'production')).toBe(HTML);
   });
 
-  it.each(['development', 'staging'])('swaps every sized favicon in %s and nothing else', (environment) => {
+  it.each(['development', 'staging'] as const)('swaps every sized favicon in %s and nothing else', (environment) => {
     const result = applyEnvironmentFavicons(HTML, environment);
     expect(result).toContain(`/assets/images/favicon-${environment}-32x32.png`);
     expect(result).toContain(`/assets/images/favicon-${environment}-16x16.png`);

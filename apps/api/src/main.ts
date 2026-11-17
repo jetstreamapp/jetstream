@@ -412,7 +412,9 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     // throwing here would crash the worker and take down /healthz, /api, webhooks too.
     let jetstreamIndexHtml: string | null = null;
     try {
-      jetstreamIndexHtml = applyEnvironmentFavicons(readFileSync(join(__dirname, '../jetstream/index.html'), 'utf8'), ENV.ENVIRONMENT);
+      // Staging runs with ENVIRONMENT='production', so STAGE is what tells it apart from real production
+      const faviconEnvironment = ENV.ENVIRONMENT === 'development' ? 'development' : ENV.STAGE;
+      jetstreamIndexHtml = applyEnvironmentFavicons(readFileSync(join(__dirname, '../jetstream/index.html'), 'utf8'), faviconEnvironment);
     } catch (error) {
       logger.error(
         { err: error },
