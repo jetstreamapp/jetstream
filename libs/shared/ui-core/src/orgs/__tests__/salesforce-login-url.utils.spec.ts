@@ -1,6 +1,6 @@
 import { SFDC_MY_DOMAIN_LOGIN_URL_REGEX } from '@jetstream/shared/constants';
 import { describe, expect, it } from 'vitest';
-import { parseSalesforceLoginUrl } from '../salesforce-login-url.utils';
+import { parseMyDomainBase, parseSalesforceLoginUrl } from '../salesforce-login-url.utils';
 
 describe('parseSalesforceLoginUrl', () => {
   describe('production and developer domains', () => {
@@ -169,5 +169,22 @@ describe('parseSalesforceLoginUrl', () => {
         expect(reparsed.loginUrl).toBe(result.loginUrl);
       }
     });
+  });
+});
+
+describe('parseMyDomainBase', () => {
+  it.each([
+    ['acme', 'acme'],
+    ['https://acme.my.salesforce.com/', 'acme'],
+    ['https://acme.lightning.force.com/lightning/page/home', 'acme'],
+    ['https://acme--uat.sandbox.my.salesforce.com', 'acme'],
+    ['acme.develop', 'acme'],
+    ['  ACME  ', 'acme'],
+  ])('reduces %s to the My Domain name', (input, expected) => {
+    expect(parseMyDomainBase(input)).toBe(expected);
+  });
+
+  it.each([[''], ['evil.com'], ['https://login.salesforce.com']])('returns null for %s', (input) => {
+    expect(parseMyDomainBase(input)).toBeNull();
   });
 });

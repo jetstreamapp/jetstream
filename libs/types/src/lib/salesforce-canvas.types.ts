@@ -1,12 +1,12 @@
 import { z } from 'zod';
 
 /**
- * Default number of Salesforce orgs an entitled user/team may authorize for the Canvas app.
- * A single production org already covers all of its sandboxes (matched by My Domain base), so the
- * cap is generous headroom for genuine multi-org cases (consultants, M&A) rather than a per-sandbox
- * limit. Shared between the create endpoint (enforcement) and the UI (disable "Authorize Org" at the cap).
+ * Number of Salesforce orgs an entitled user/team may authorize themselves. A single production org
+ * already covers all of its sandboxes (matched by My Domain base). Additional orgs for genuine
+ * multi-org cases are added by staff directly in the database, which bypasses this cap.
+ * Shared between the create endpoint (enforcement) and the UI (disable "Authorize Org" at the cap).
  */
-export const SALESFORCE_CANVAS_ORG_LIMIT = 10;
+export const SALESFORCE_CANVAS_ORG_LIMIT = 1;
 
 /** A Salesforce org id: 15- or 18-character, always beginning with the `00D` key prefix. */
 export const SALESFORCE_ORG_ID_REGEX = /^00D[A-Za-z0-9]{12}([A-Za-z0-9]{3})?$/;

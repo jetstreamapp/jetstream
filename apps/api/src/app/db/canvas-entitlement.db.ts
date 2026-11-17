@@ -132,7 +132,7 @@ export async function createCanvasOrg({
   const currentCount = await prisma.salesforceCanvasOrg.count({ where: ownerWhere(owner) });
   if (currentCount >= getCanvasOrgLimit()) {
     throw new UserFacingError(
-      `You have reached the limit of ${getCanvasOrgLimit()} authorized orgs. Remove an existing org or contact support if you need more.`,
+      `You have reached the limit of ${getCanvasOrgLimit()} authorized org${getCanvasOrgLimit() === 1 ? '' : 's'}. Remove the existing org or contact support if you need more.`,
     );
   }
 
