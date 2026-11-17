@@ -64,6 +64,7 @@ import {
   setCacheControlForApiRoutes,
   setPermissionPolicy,
 } from './app/routes/route.middleware';
+import { environmentFaviconMiddleware } from './app/utils/environment-favicon.utils';
 import { gzipBodyPassthrough } from './app/utils/gzip-body-passthrough.middleware';
 import { healthCheck, setNoStoreHeaders, uncaughtErrorHandler } from './app/utils/response.handlers';
 import {
@@ -75,7 +76,6 @@ import {
   removeOpenerPolicyForPopupPages,
 } from './app/utils/security-headers';
 import { handleWorkerExit, primaryClusterInitSideEffects, shutdownPrimaryGracefully } from './app/utils/server-process.utils';
-import { applyEnvironmentFavicons } from './app/utils/spa-shell.utils';
 import { environment } from './environments/environment';
 
 // Runs in the cluster primary and in every worker, since each one executes this entry point
@@ -363,6 +363,8 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   // into a black box. Cache-Control is written by hand because express.static's `maxAge` cannot add directives.
   app.use(
     '/assets/images',
+    // Staging runs with ENVIRONMENT='production', so STAGE is what tells it apart from real production
+    environmentFaviconMiddleware(ENV.ENVIRONMENT === 'development' ? 'development' : ENV.STAGE),
     express.static(join(__dirname, './assets/images'), {
       cacheControl: false,
       setHeaders: (res) => {
@@ -412,9 +414,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     // throwing here would crash the worker and take down /healthz, /api, webhooks too.
     let jetstreamIndexHtml: string | null = null;
     try {
-      // Staging runs with ENVIRONMENT='production', so STAGE is what tells it apart from real production
-      const faviconEnvironment = ENV.ENVIRONMENT === 'development' ? 'development' : ENV.STAGE;
-      jetstreamIndexHtml = applyEnvironmentFavicons(readFileSync(join(__dirname, '../jetstream/index.html'), 'utf8'), faviconEnvironment);
+      jetstreamIndexHtml = readFileSync(join(__dirname, '../jetstream/index.html'), 'utf8');
     } catch (error) {
       logger.error(
         { err: error },

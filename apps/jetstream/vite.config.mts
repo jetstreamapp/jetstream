@@ -7,7 +7,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { defineConfig } from 'vite';
 import { DEV_SERVER_HOST, devServerBannerPlugin, resolveDevServerPort } from './vite.dev-port.mts';
-import { baseHrefPlugin, cspNoncePlugin, devFaviconPlugin } from './vite.plugins.mts';
+import { baseHrefPlugin, cspNoncePlugin } from './vite.plugins.mts';
 
 dns.setDefaultResultOrder('verbatim');
 
@@ -55,7 +55,6 @@ export default defineConfig(async ({ command }) => ({
       jsxImportSource: '@emotion/react',
     }),
     baseHrefPlugin(),
-    devFaviconPlugin(),
     cspNoncePlugin(),
     devServerBannerPlugin(API_SERVER_URL),
     nxReadySignal(),

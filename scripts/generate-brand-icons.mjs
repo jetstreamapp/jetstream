@@ -32,7 +32,7 @@ const TEAL_GRADIENT = { from: '#0d9488', to: '#0e7490' };
 const VARIANTS = {
   // Web app, landing page, browser extension, canvas app
   product: { tile: TEAL_GRADIENT, mark: '#ffffff', bars: '#e4e4e4' },
-  // Web app served by a development server, so a localhost tab is never mistaken for production
+  // Web app and landing page on a non-production server, so those tabs are never mistaken for production
   development: { tile: '#c2410c', mark: '#ffffff', bars: '#fed7aa' },
   staging: { tile: '#6d28d9', mark: '#ffffff', bars: '#ddd6fe' },
   docs: { tile: '#ffffff', mark: '#0e7490', bars: '#0d9488', outline: '#c9d6d5' },
@@ -137,8 +137,10 @@ await writePngs(
 );
 
 console.log('Development and staging');
-await writePngs('development', sizedNames('favicon-development', FAVICON_SIZES));
-await writePngs('staging', sizedNames('favicon-staging', FAVICON_SIZES));
+for (const environment of ['development', 'staging']) {
+  write(join(SHARED_IMAGES_DIR, `favicon-${environment}.ico`), await renderIco(environment));
+  await writePngs(environment, sizedNames(`favicon-${environment}`, FAVICON_SIZES));
+}
 
 console.log('Docs');
 write(join(SHARED_IMAGES_DIR, 'favicon-docs.ico'), await renderIco('docs'));

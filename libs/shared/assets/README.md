@@ -31,14 +31,15 @@ colour there and re-run it rather than exporting a file by hand.
 | Colour                 | Meaning                                                  | Files                                                                               |
 | ---------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | Teal gradient          | The product: web app, landing, browser extension, canvas | `favicon.ico`, `favicon-*`, `apple-icon-*`, `android-icon-*`, `ms-icon-*`, `jetstream-icon-pro-*.png` |
-| Orange                 | Web app in development                                   | `favicon-development-*`                                                             |
-| Violet                 | Web app on staging                                       | `favicon-staging-*`                                                                 |
+| Orange                 | Web app and landing in development                       | `favicon-development.ico`, `favicon-development-*`                                  |
+| Violet                 | Web app and landing on staging                           | `favicon-staging.ico`, `favicon-staging-*`                                          |
 | White tile, teal mark  | Docs                                                     | `favicon-docs.ico`                                                                  |
 | Red                    | Admin                                                    | `apps/admin/public/favicon.*`                                                       |
 
 The desktop app icons in `desktop/` use the same teal but are not generated (macOS needs a padded squircle and `.icns`).
-The web app picks its environment favicons at serve time: `applyEnvironmentFavicons` in the API and `devFaviconPlugin`
-in the Vite dev server.
+Pages always link the plain `favicon.ico` / `favicon-*` URLs. Outside production the API answers those requests with
+the matching environment file (`environmentFaviconMiddleware`), which covers the web app, the landing and auth pages,
+and both dev servers, since they proxy `/assets` to the API.
 
 ## How each app gets the files
 
