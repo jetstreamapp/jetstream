@@ -41,6 +41,7 @@ export function SfdcPageRecordQuickView({ sfHost, recordId, sobject, onClose }: 
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [recordData, setRecordData] = useState<RecordField[] | null>(null);
+  const [recordJson, setRecordJson] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const searchTermDebounced = useDebounce(searchTerm, 300);
 
@@ -62,6 +63,9 @@ export function SfdcPageRecordQuickView({ sfHost, recordId, sobject, onClose }: 
           .then((response) => response[0]);
 
         if (cancelled) return;
+
+        const { attributes: _attributes, ...recordWithoutAttributes } = record;
+        setRecordJson(JSON.stringify(recordWithoutAttributes, null, 2));
 
         // Transform record into fields array
         const fields: RecordField[] = orderObjectsBy(
@@ -154,6 +158,12 @@ export function SfdcPageRecordQuickView({ sfHost, recordId, sobject, onClose }: 
         </span>
         <div className="slds-col_bump-left slds-shrink-none">
           {/* TODO: minimize/expand if we want to */}
+          <CopyToClipboard
+            content={recordJson}
+            disabled={!recordJson}
+            icon={{ type: 'utility', icon: 'copy', description: 'Copy record to clipboard' }}
+            className="slds-m-right_x-small"
+          />
           <button className="slds-button slds-button_icon slds-button_icon" title="Close" onClick={onClose}>
             <Icon type="utility" icon="close" className="slds-icon slds-icon-text-default slds-icon_x-small" />
           </button>
