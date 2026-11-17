@@ -1,5 +1,38 @@
 [
   {
+    "slug": "v11.1.0",
+    "title": "11.1.0 - History sync fixes and access profile updates",
+    "date": "2026-11-17",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "11.1.0", "desktop": "5.1.0", "extension": "4.1.0" },
+    "summary": "History sync now reliably carries favorites, labels and mapping edits between devices. Access profiles are easier to set up, and a profile that excludes connecting orgs is now enforced on the server.",
+    "highlights": [
+      {
+        "title": "More reliable history sync",
+        "description": "Favorites, labels, run counts and saved mapping edits now reach your other devices.",
+        "docLink": "/history-data-sync"
+      },
+      {
+        "title": "Access profile editor updates",
+        "description": "New profiles start with everything selected, and warnings appear next to the setting they describe.",
+        "platforms": ["web"],
+        "docLink": "/team-management/access-profiles"
+      },
+      {
+        "title": "Connecting orgs enforced for access profiles",
+        "description": "Members on a profile without \"Connect Salesforce orgs\" can no longer add new orgs, but can still re-authorize existing ones.",
+        "platforms": ["web"],
+        "docLink": "/team-management/access-profiles"
+      },
+      {
+        "title": "Refresh team members",
+        "description": "A Refresh button on the Team Members card reloads members, invitations and seats.",
+        "platforms": ["web"],
+        "docLink": "/team-management"
+      }
+    ]
+  },
+  {
     "slug": "v11.0.0",
     "title": "11.0.0 - Usage analytics removed, clearer deploy and query errors",
     "date": "2026-11-14",
