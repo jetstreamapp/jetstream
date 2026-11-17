@@ -26,7 +26,7 @@ const config: Config = {
   // Brand images live in libs/shared/assets and are exposed here under /images/**; ./static keeps robots.txt etc.
   staticDirectories: ['static', '../../libs/shared/assets/public'],
   onBrokenLinks: 'throw',
-  favicon: 'images/favicon-inverse.ico',
+  favicon: 'images/favicon-docs.ico',
   organizationName: 'jetstream', // Usually your GitHub org/user name.
   projectName: 'jetstream', // Usually your repo name.
   trailingSlash: false,

@@ -22,6 +22,24 @@ Logo naming: `jetstream-logo*` is the wordmark, `jetstream-icon*` the mark. Suff
 the historical file served at that URL; `jetstream-icon-inverse-white.svg` is the true white-on-transparent mark and
 `jetstream-icon-bare-dark.svg` the darker bare variant the landing page uses.
 
+## Tile icons are generated
+
+The favicons, touch icons and extension icons are all the same mark on a coloured tile, and colour is the only thing
+that differs between surfaces. They are written by `pnpm icons:brand` (`scripts/generate-brand-icons.mjs`) - change a
+colour there and re-run it rather than exporting a file by hand.
+
+| Colour                 | Meaning                                                  | Files                                                                               |
+| ---------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Teal gradient          | The product: web app, landing, browser extension, canvas | `favicon.ico`, `favicon-*`, `apple-icon-*`, `android-icon-*`, `ms-icon-*`, `jetstream-icon-pro-*.png` |
+| Orange                 | Web app in development                                   | `favicon-development-*`                                                             |
+| Violet                 | Web app on staging                                       | `favicon-staging-*`                                                                 |
+| White tile, teal mark  | Docs                                                     | `favicon-docs.ico`                                                                  |
+| Red                    | Admin                                                    | `apps/admin/public/favicon.*`                                                       |
+
+The desktop app icons in `desktop/` use the same teal but are not generated (macOS needs a padded squircle and `.icns`).
+The web app picks its environment favicons at serve time: `applyEnvironmentFavicons` in the API and `devFaviconPlugin`
+in the Vite dev server.
+
 ## How each app gets the files
 
 Everything under `public/` is copied verbatim into the API's `assets/` output, so every file is reachable at
