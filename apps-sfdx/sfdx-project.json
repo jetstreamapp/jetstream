@@ -2,8 +2,8 @@
   "packageDirectories": [
     {
       "package": "Jetstream for Salesforce",
-      "versionName": "v0.1",
-      "versionNumber": "0.1.0.NEXT",
+      "versionName": "v1.0.0",
+      "versionNumber": "1.0.0.NEXT",
       "ancestorVersion": "HIGHEST",
       "path": "canvas-app/jetstream",
       "default": true,
@@ -32,6 +32,7 @@
   ],
   "packageAliases": {
     "Jetstream for Salesforce": "0HoWj0000000B8LKAU",
-    "Jetstream for Salesforce@0.1.0-1": "04tWj000000v9BRIAY"
+    "Jetstream for Salesforce@0.1.0-1": "04tWj000000v9BRIAY",
+    "Jetstream for Salesforce@1.0.0-1": "04tWj000003YaCDIA0"
   }
 }
