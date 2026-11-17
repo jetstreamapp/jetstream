@@ -1,0 +1,47 @@
+---
+id: web-application
+title: Web Application
+description: Use Jetstream in your browser with nothing to install, and compare it with the desktop application, browser extension and Salesforce managed package.
+keywords: [salesforce, salesforce admin, salesforce developer, jetstream, web application, web app, platforms]
+sidebar_label: Web Application
+slug: /web-application
+---
+
+The web application is the quickest way to use Jetstream. There is nothing to install, and it is available on every plan,
+including the free plan.
+
+## Getting started
+
+1. [Sign up](https://getjetstream.app/auth/signup/) or [log in](https://getjetstream.app/auth/login/) to Jetstream.
+2. Click **+ Add Org** at the top of the page and log in to Salesforce to connect your org. See
+   [Adding your first org](/#adding-your-first-org) for the details, including the permissions Jetstream asks for.
+3. Choose a tool from the navigation bar or the home page.
+
+You can connect as many Salesforce orgs as you like and switch between them from the org dropdown. Use
+[org groups](./org-groups.mdx) to keep orgs for different companies or projects apart.
+
+## How the web application connects to Salesforce
+
+The web application connects to your orgs with OAuth 2.0, so Jetstream never sees your Salesforce password. Requests to Salesforce
+are sent through Jetstream's servers, and the tokens used to reach your orgs are encrypted before they are stored. See
+[Security](./security.mdx) and [Salesforce Data Access](./salesforce-data-access.mdx) for more detail.
+
+If your organization does not want requests to pass through Jetstream's servers, the
+[desktop application](./desktop-app.mdx), [browser extension](./browser-extension/browser-extension.mdx) and
+[Salesforce managed package](./managed-package/managed-package.mdx) all communicate with Salesforce directly from your computer.
+
+## Choosing a platform
+
+Jetstream is available in four forms, and you can use more than one. They share most of the same tools.
+
+|                                | Web application    | [Desktop application](./desktop-app.mdx) | [Browser extension](./browser-extension/browser-extension.mdx) | [Salesforce managed package](./managed-package/managed-package.mdx) |
+| ------------------------------ | ------------------ | ---------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Plan                           | All plans          | Paid plans                               | Paid plans                                                     | Team and Enterprise                                                 |
+| Where it runs                  | Any modern browser | macOS and Windows                        | Chrome and Firefox                                             | Inside Salesforce                                                   |
+| Installation                   | None               | Installed on your computer               | Installed in your browser                                      | Installed in your Salesforce org by an administrator                |
+| How orgs are connected         | Add each org       | Add each org                             | Uses the Salesforce org you are logged in to                   | Uses the org it is installed in                                     |
+| Work with more than one org    | Yes                | Yes                                      | One org at a time                                              | One org at a time                                                   |
+| Requests to Salesforce         | Through Jetstream  | Directly from your computer              | Directly from your browser                                     | Directly from your browser                                          |
+| Users need a Jetstream account | Yes                | Yes                                      | Yes                                                            | No                                                                  |
+
+Each platform's page lists the features that are not yet available on it.

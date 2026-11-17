@@ -18,18 +18,14 @@ sidebar_label: Salesforce Managed Package
 slug: /managed-package
 ---
 
-import { JetstreamProLogo } from '@site/src/shared-components/JetstreamProLogo';
+import { ManagedPackageVersions } from '@site/src/shared-components/ManagedPackageVersions';
 
-:::tip
+:::info
 
-**Jetstream for Salesforce** is currently in early access. If you're interested in using it or want to learn more,
-reach out to our support team or your account manager for more information and to request access.
+Jetstream for Salesforce is available on our Team and Enterprise plans.
+[Learn more about our plans and pricing](https://getjetstream.app/pricing/).
 
 :::
-
-<JetstreamProLogo width="200px" />
-
-**Jetstream for Salesforce requires a paid subscription.**
 
 ## What is Jetstream for Salesforce?
 
@@ -51,12 +47,69 @@ While the Managed Package provides convenient access to Jetstream features withi
 
 ## Getting Started
 
-Reach out to our [support team](mailto:sales@getjetstream.app) for installation instructions.
+Setting up Jetstream for Salesforce takes four steps. The first is done in Jetstream by a team admin, and the rest are done in
+Salesforce by a Salesforce administrator.
 
-After the package is installed, an administrator needs to complete two steps before users can access Jetstream for Salesforce:
+1. [Authorize your Salesforce org](#authorize-your-salesforce-org) from the Jetstream Team Dashboard.
+2. [Install the package](#install-the-package) in your Salesforce org.
+3. [Assign the **Jetstream** permission set](#assign-the-jetstream-permission-set) to each user who needs access.
+4. [Configure the connected app](#configure-the-connected-app) to pre-authorize those users.
 
-1. [Assign the **Jetstream** permission set](#assign-the-jetstream-permission-set) to each user who needs access.
-2. [Configure the connected app](#configure-the-connected-app) to pre-authorize those users.
+### Authorize your Salesforce org
+
+The package only loads in Salesforce orgs that your team has authorized. Until an org is authorized, users who open the app in
+Salesforce see **This org isn't authorized**.
+
+A team admin authorizes the org from the Jetstream web app:
+
+1. Go to **Settings > Team Dashboard** and find the **Salesforce Managed Package Authorized Orgs** card.
+2. Click **Authorize Org**.
+3. Enter your **production** org id. This is the 15 or 18 character id starting with `00D`, found in Salesforce under
+   **Setup > Company Information**.
+4. Enter your **My Domain** name, for example `acme` for `acme.my.salesforce.com`. You can also paste your Salesforce url and
+   Jetstream keeps just the name.
+5. Optionally add a name to help your team recognize the org, then save.
+
+Things to know:
+
+- **One production org and all of its sandboxes.** Every sandbox that shares the production org's My Domain can use the package,
+  so you only authorize production. If you need to authorize more than one production org, contact
+  [support](mailto:support@getjetstream.app).
+- **Removing the org turns off access** for it and its sandboxes the next time the app is opened. Access also ends if your team's
+  subscription ends.
+- Only team admins can add or remove an authorized org.
+
+The card is shown to teams on a plan that includes Jetstream for Salesforce. If you do not see it, contact
+[support](mailto:support@getjetstream.app).
+
+:::tip
+
+The people who use Jetstream inside Salesforce do not need a Jetstream account or a seat on your team. They only need access in
+Salesforce, which you grant in the steps below.
+
+:::
+
+### Install the package
+
+Use the links below to install the package, or to upgrade an org that already has an older version installed.
+
+<ManagedPackageVersions />
+
+1. Click the **Production** or **Sandbox** link for the latest version and log in to the org as a Salesforce administrator. If
+   your org requires logging in through My Domain, replace `login.salesforce.com` or `test.salesforce.com` in the link with your
+   My Domain, for example `https://acme.my.salesforce.com/packaging/installPackage.apexp?p0=...`.
+2. Enter the **installation password**. Contact [support](mailto:support@getjetstream.app) to get the password. The same
+   password is used for every version.
+3. Choose **Install for Admins Only**. Access for everyone else is granted with the Jetstream permission set in the next step.
+4. Click **Install** (or **Upgrade**) and wait for the installation to finish. Salesforce sends an email when it is complete.
+
+To install with the Salesforce CLI instead, use the package version id from the table:
+
+```bash
+sf package install --package <package version id> --installation-key <installation password> --target-org <org alias> --wait 10
+```
+
+Upgrading to a newer version keeps your permission set assignments, connected app configuration and each user's preferences.
 
 ### Assign the Jetstream permission set
 
@@ -108,8 +161,8 @@ Salesforce user, so use their Salesforce profile and permission sets to prevent 
 
 :::
 
-The custom permissions are included in recent versions of the package. If you do not see them under **Custom Permissions** when
-editing a permission set, upgrade Jetstream for Salesforce to the latest version.
+The custom permissions are included in version 1.0.0 and later. If you do not see them under **Custom Permissions** when editing
+a permission set, [upgrade Jetstream for Salesforce](#install-the-package) to the latest version.
 
 ### How it works
 
@@ -175,6 +228,12 @@ Salesforce API tool can make any change the user's Salesforce permissions allow,
 changes.
 
 ## Troubleshooting
+
+### "This org isn't authorized"
+
+The org has not been authorized, or its authorization was removed. Ask a Jetstream team admin to
+[authorize the production org](#authorize-your-salesforce-org) from the Team Dashboard, then reload the app. In a sandbox, confirm
+that its My Domain starts with the same name as the authorized production org.
 
 ### "Your browsing session has ended or is invalid"
 

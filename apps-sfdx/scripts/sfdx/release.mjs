@@ -8,8 +8,9 @@
  *   1. Bumps `versionName` / `versionNumber` in sfdx-project.json
  *   2. Creates a new package version (`sf package version create`)
  *   3. Optionally promotes it to "released"
- *   4. Commits the bump, tags `salesforce-vX.Y.Z`, and cuts a GitHub release
- *   5. Writes a rich job summary including the install URL
+ *   4. Regenerates the released version list shown on the docs site
+ *   5. Commits the bump, tags `salesforce-vX.Y.Z`, and cuts a GitHub release
+ *   6. Writes a rich job summary including the install URL
  *
  * Uses only Node built-ins so CI does not need to install apps-sfdx dependencies.
  *
@@ -21,6 +22,7 @@ import { execFileSync } from 'node:child_process';
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DOCS_PACKAGE_VERSIONS_FILE, writeDocsPackageVersions } from './docs-package-versions.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 // apps-sfdx root – sf commands must run here so they can locate sfdx-project.json
@@ -92,10 +94,25 @@ if (promote && !isDryRun) {
   console.log('Promoted.');
 }
 
-// ── 4. Commit, tag, push, GitHub release ────────────────────────────────────
+// ── 4. Regenerate the docs version list ─────────────────────────────────────
+// The package version already exists at this point, so a failure here must not stop the bump from
+// being committed and tagged. The list is rebuilt from the Dev Hub, so the next release (or running
+// docs-package-versions.mjs by hand) repairs it.
+let docsVersionsError = null;
+if (!isDryRun) {
+  console.log('\nRegenerating the docs package version list...');
+  try {
+    writeDocsPackageVersions(PACKAGE_NAME);
+  } catch (error) {
+    docsVersionsError = error.message;
+    console.error(`Warning: could not regenerate the docs package version list: ${docsVersionsError}`);
+  }
+}
+
+// ── 5. Commit, tag, push, GitHub release ────────────────────────────────────
 if (!isDryRun) {
   console.log('\nCommitting version bump and creating tag...');
-  git(['add', 'sfdx-project.json']);
+  git(['add', 'sfdx-project.json', DOCS_PACKAGE_VERSIONS_FILE]);
   git(['commit', '-m', `chore: release salesforce ${tag.replace(TAG_PREFIX, 'v')}`]);
   git(['tag', tag]);
   git(['push', 'origin', 'HEAD']);
@@ -107,7 +124,7 @@ if (!isDryRun) {
   });
 }
 
-// ── 5. Job summary ──────────────────────────────────────────────────────────
+// ── 6. Job summary ──────────────────────────────────────────────────────────
 writeSummary();
 console.log('\nDone.');
 
@@ -144,7 +161,14 @@ function writeSummary() {
     `**Install URL:** ${installUrl()}`,
     '',
     '> An installation key is required to install.',
-    ''
+    '',
+    ...(docsVersionsError
+      ? [
+          `> ⚠️ The docs version list was not updated: ${docsVersionsError}`,
+          '> Run `node apps-sfdx/scripts/sfdx/docs-package-versions.mjs` and commit the result.',
+          ''
+        ]
+      : [])
   ];
   const summary = lines.join('\n');
   console.log(`\n${summary}`);
