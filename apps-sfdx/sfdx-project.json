@@ -4,6 +4,7 @@
       "package": "Jetstream for Salesforce",
       "versionName": "v0.1",
       "versionNumber": "0.1.0.NEXT",
+      "ancestorVersion": "HIGHEST",
       "path": "canvas-app/jetstream",
       "default": true,
       "versionDescription": "Jetstream brings its powerful Salesforce workspace directly into your org. Query, load, update, automate, and manage your data and metadata — all without leaving Salesforce. Built for admins, developers, and power users who want to work faster and with more confidence."
