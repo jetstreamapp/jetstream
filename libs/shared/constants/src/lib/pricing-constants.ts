@@ -41,6 +41,7 @@ export const PRICING_COPY = {
       'SSO via OIDC and SAML',
       'View & Manage team member session activity',
       'Role-based access control',
+      'Jetstream for Salesforce managed package',
       'SOC 2 Type II report available under NDA',
     ],
   },
