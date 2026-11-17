@@ -21,6 +21,20 @@ export const baseHrefPlugin: () => PluginOption = () => {
 };
 
 /**
+ * Swaps the favicons for the development set while the dev server is running, so a localhost tab is never mistaken
+ * for production. The API server does the same for the built app (`applyEnvironmentFavicons`).
+ */
+export const devFaviconPlugin: () => PluginOption = () => {
+  return {
+    name: 'dev-favicon',
+    apply: 'serve',
+    transformIndexHtml(html) {
+      return html.replace(/\/assets\/images\/favicon-(\d+x\d+\.png)/g, '/assets/images/favicon-development-$1');
+    },
+  };
+};
+
+/**
  * Stamps `nonce="__CSP_NONCE__"` onto every <script> and modulepreload <link> emitted into
  * index.html — including Vite's build-injected hashed entry/chunk tags — so they satisfy the
  * strict `script-src 'strict-dynamic' 'nonce-...'` CSP. The API server replaces the

@@ -75,6 +75,7 @@ import {
   removeOpenerPolicyForPopupPages,
 } from './app/utils/security-headers';
 import { handleWorkerExit, primaryClusterInitSideEffects, shutdownPrimaryGracefully } from './app/utils/server-process.utils';
+import { applyEnvironmentFavicons } from './app/utils/spa-shell.utils';
 import { environment } from './environments/environment';
 
 // Runs in the cluster primary and in every worker, since each one executes this entry point
@@ -411,7 +412,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     // throwing here would crash the worker and take down /healthz, /api, webhooks too.
     let jetstreamIndexHtml: string | null = null;
     try {
-      jetstreamIndexHtml = readFileSync(join(__dirname, '../jetstream/index.html'), 'utf8');
+      jetstreamIndexHtml = applyEnvironmentFavicons(readFileSync(join(__dirname, '../jetstream/index.html'), 'utf8'), ENV.ENVIRONMENT);
     } catch (error) {
       logger.error(
         { err: error },

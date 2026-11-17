@@ -634,6 +634,9 @@ importers:
       release-it:
         specifier: ^21.1.2
         version: 21.1.2(@types/node@24.13.6)(magicast@0.5.5)(supports-color@7.2.0)
+      sharp:
+        specifier: 0.35.5
+        version: 0.35.5(@types/node@24.13.6)
       start-server-and-test:
         specifier: ^3.0.13
         version: 3.0.13(supports-color@7.2.0)
@@ -19623,8 +19626,7 @@ snapshots:
 
   '@iarna/toml@3.0.0': {}
 
-  '@img/colour@1.1.0':
-    optional: true
+  '@img/colour@1.1.0': {}
 
   '@img/sharp-darwin-arm64@0.35.5':
     optionalDependencies:
@@ -33080,7 +33082,6 @@ snapshots:
       '@img/sharp-win32-ia32': 0.35.5
       '@img/sharp-win32-x64': 0.35.5
       '@types/node': 24.13.6
-    optional: true
 
   shebang-command@1.2.0:
     dependencies:

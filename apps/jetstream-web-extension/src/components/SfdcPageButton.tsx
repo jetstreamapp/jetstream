@@ -254,10 +254,18 @@ export function SfdcPageButton() {
           outline: none;
           text-align: center;
 
+          .jetstream-icon-tile {
+            transition: fill 0.3s ease;
+          }
+
           &:hover {
             opacity: 1;
             ${buttonPosition.location}: 0px;
             transform: scale(${buttonPosition.activeScale});
+
+            .jetstream-icon-tile {
+              fill: #0d9488;
+            }
           }
         `}
         onClick={() => setIsOpen(true)}
