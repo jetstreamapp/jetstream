@@ -127,6 +127,19 @@ An access profile chooses which Jetstream tools and actions a team member can us
 
 Access profiles keep people focused and help prevent mistakes, but they are not a security control and never change anyone's Salesforce permissions. See [Access Profiles](/team-management/access-profiles) for the full list of tools and actions, and how changes reach members.
 
+## Salesforce Managed Package Authorized Orgs
+
+[Jetstream for Salesforce](/managed-package) is a managed package that runs Jetstream inside Salesforce. It only loads in orgs that
+your team has authorized, so a team admin adds your production org from the **Salesforce Managed Package Authorized Orgs** card
+before the package is installed.
+
+- Click **Authorize Org** and enter your production org id and My Domain name
+- Each team can authorize one production org, which also covers all of its sandboxes that share the same My Domain
+- Contact [support](mailto:support@getjetstream.app) if you need to authorize more than one production org
+- Removing the org turns off the package for that org and its sandboxes
+
+See [Authorize your Salesforce org](/managed-package#authorize-your-salesforce-org) for the full setup steps.
+
 ## Team Members
 
 The Team Members table displays all active members, inactive members, and pending invitations.

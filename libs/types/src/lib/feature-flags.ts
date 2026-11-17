@@ -16,7 +16,7 @@ export const FEATURE_FLAGS = {
     description: 'Data and record analysis tools.',
   },
   'salesforce-canvas': {
-    defaultValue: false,
+    defaultValue: true,
     description: 'Manage Salesforce orgs authorized to use the Canvas app.',
   },
   'simple-excel-engine': {
