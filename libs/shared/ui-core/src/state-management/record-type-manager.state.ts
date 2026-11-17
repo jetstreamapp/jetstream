@@ -18,5 +18,9 @@ export const recordTypesByFullName = atom((get) => {
 
 export const selectedRecordTypes = atom((get) => {
   const itemsById = get(recordTypesByFullName);
-  return get(selectedRecordTypeIds).map((id) => itemsById[id]);
+  // The list is refetched while a selection is still held (e.g. navigating back from the editor), so an id may
+  // briefly, or permanently if the record type was deleted, have no matching item.
+  return get(selectedRecordTypeIds)
+    .map((id) => itemsById[id])
+    .filter(Boolean);
 });

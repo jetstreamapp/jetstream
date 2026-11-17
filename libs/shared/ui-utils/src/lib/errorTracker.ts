@@ -47,6 +47,7 @@ const rateLimitState: { minute: number[]; total: number } = { minute: [], total:
 let initialized = false;
 let optedOut = false;
 let pendingUser: { id?: string; email?: string } | null | undefined;
+let pendingTags: Record<string, string> = {};
 
 interface InitOptions {
   dsn?: string | null;
@@ -151,6 +152,19 @@ export function initErrorTracker(options: InitOptions): void {
   if (pendingUser !== undefined) {
     Sentry.setUser(pendingUser);
   }
+  Sentry.setTags(pendingTags);
+}
+
+/**
+ * Attach tags to all subsequent error reports, so events can be filtered by them (e.g. which feature flags the user
+ * has). Tags set before the tracker is initialized are applied when it is.
+ */
+export function setErrorTrackerTags(tags: Record<string, string>): void {
+  pendingTags = { ...pendingTags, ...tags };
+  if (!initialized || optedOut) {
+    return;
+  }
+  Sentry.setTags(tags);
 }
 
 /**

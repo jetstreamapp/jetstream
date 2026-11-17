@@ -7,6 +7,7 @@ import {
   type FeatureFlagKey,
   type UserProfileUi,
 } from '@jetstream/types';
+import { setErrorTrackerTags } from './errorTracker';
 
 /**
  * Browser-side verification of the feature flag signature produced by the server (ECDSA P-256).
@@ -60,6 +61,8 @@ let activeFeatureFlags: FeatureFlags = { ...DEFAULT_FEATURE_FLAGS };
  */
 export function setActiveFeatureFlags(featureFlags: Partial<FeatureFlags>): void {
   activeFeatureFlags = { ...DEFAULT_FEATURE_FLAGS, ...featureFlags };
+  // Tag error reports with the user's flags, so a staged rollout can be compared against everyone else
+  setErrorTrackerTags(Object.fromEntries(ALL_FEATURE_FLAG_KEYS.map((key) => [`flag.${key}`, activeFeatureFlags[key] ? 'on' : 'off'])));
 }
 
 /** Whether a flag is on for the signed-in user. Components should use the `useFeatureFlag` hook, which re-renders. */
