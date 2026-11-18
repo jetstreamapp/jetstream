@@ -1,5 +1,25 @@
 [
   {
+    "slug": "v11.1.1",
+    "title": "11.1.1 - Fixes for file downloads and Record Type Manager",
+    "date": "2026-11-18",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "11.1.1", "desktop": "5.1.1", "extension": "4.1.1" },
+    "summary": "Fixes file downloads that could fail in a tab left open across a Jetstream update, and an error when returning to the record type list in Record Type Manager.",
+    "highlights": [
+      {
+        "title": "File downloads no longer fail in long-open tabs",
+        "description": "Record, file, and bulk job downloads could fail in a browser tab that was left open while Jetstream was updated.",
+        "platforms": ["web"]
+      },
+      {
+        "title": "Record Type Manager error fixed",
+        "description": "Going back from the editor to the record type list no longer causes an error.",
+        "docLink": "/deploy/record-type-picklist-manager"
+      }
+    ]
+  },
+  {
     "slug": "v11.1.0",
     "title": "11.1.0 - History sync fixes and access profile updates",
     "date": "2026-11-17",
