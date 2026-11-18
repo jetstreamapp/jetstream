@@ -8,7 +8,10 @@
 import { ALL_FEATURE_FLAG_KEYS, DEFAULT_FEATURE_FLAGS, FeatureFlags, serializeFeatureFlagsForSigning } from '@jetstream/types';
 import { createPrivateKey, sign } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { applyVerifiedFeatureFlags, verifyAndExtractFeatureFlags } from '../shared-feature-flag-utils';
+import { setErrorTrackerTags } from '../errorTracker';
+import { applyVerifiedFeatureFlags, setActiveFeatureFlags, verifyAndExtractFeatureFlags } from '../shared-feature-flag-utils';
+
+vi.mock('../errorTracker', () => ({ setErrorTrackerTags: vi.fn() }));
 
 vi.mock('@jetstream/shared/client-logger', () => ({
   logger: { warn: vi.fn(), log: vi.fn(), info: vi.fn(), error: vi.fn() },
@@ -197,5 +200,21 @@ describe('applyVerifiedFeatureFlags', () => {
       featureFlagsSignature: 'not-a-real-signature',
     });
     expect(result.featureFlags).toEqual(DEFAULT_FEATURE_FLAGS);
+  });
+});
+
+describe('setActiveFeatureFlags', () => {
+  it('tags error reports with every flag so a staged rollout can be told apart', () => {
+    setActiveFeatureFlags({ [FLAG]: !DEFAULT_FEATURE_FLAGS[FLAG] });
+
+    expect(setErrorTrackerTags).toHaveBeenLastCalledWith(
+      Object.fromEntries(
+        ALL_FEATURE_FLAG_KEYS.map((key) => {
+          const enabled = key === FLAG ? !DEFAULT_FEATURE_FLAGS[key] : DEFAULT_FEATURE_FLAGS[key];
+          return [`flag.${key}`, enabled ? 'on' : 'off'];
+        }),
+      ),
+    );
+    setActiveFeatureFlags({});
   });
 });

@@ -10,7 +10,7 @@ import {
   registerMiddleware,
   updateUserProfile,
 } from '@jetstream/shared/data';
-import { initErrorTracker, setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/ui-utils';
+import { initErrorTracker, preloadLegacySpreadsheetEngine, setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/ui-utils';
 import { getErrorTrackerEnvironment } from '@jetstream/shared/utils';
 import {
   Announcement,
@@ -161,6 +161,12 @@ APP VERSION ${version}
   useEffect(() => {
     setErrorTrackerUser(userProfile);
   }, [userProfile]);
+
+  useEffect(() => {
+    if (activeUserId) {
+      preloadLegacySpreadsheetEngine();
+    }
+  }, [activeUserId]);
 
   useEffect(() => {
     if (onSaveSoqlQueryFormatOptions?.value) {

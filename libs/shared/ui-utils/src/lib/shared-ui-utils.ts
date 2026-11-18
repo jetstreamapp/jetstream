@@ -112,8 +112,34 @@ export function isSimpleExcelEngineEnabled(): boolean {
 }
 
 /** SheetJS is only ever loaded through here, so it stays out of the bundle of users on the new engine */
-export function loadLegacySpreadsheetEngine() {
-  return import('./legacy-spreadsheet-engine');
+export async function loadLegacySpreadsheetEngine() {
+  try {
+    return await import('./legacy-spreadsheet-engine');
+  } catch (ex) {
+    // The chunk is gone once a newer version is deployed, and Chrome never retries a failed dynamic import within
+    // the same page, so reloading is the only thing that gets the user going again.
+    throw new Error('The spreadsheet engine could not be loaded. Refresh the page and try again.', { cause: ex });
+  }
+}
+
+/**
+ * Downloads SheetJS while the browser is idle for users who are still on it, so the first export or import does not
+ * depend on a chunk that a deploy may have removed since the page was opened. Only apps that are served over the
+ * network need this - the desktop app and the browser extension load the chunk from their own package.
+ */
+export function preloadLegacySpreadsheetEngine(): void {
+  if (isSimpleExcelEngineEnabled()) {
+    return;
+  }
+  const preload = () => {
+    // A failure here is reported when the user actually needs the engine
+    loadLegacySpreadsheetEngine().catch(() => undefined);
+  };
+  if (typeof globalThis.requestIdleCallback === 'function') {
+    globalThis.requestIdleCallback(preload, { timeout: 10_000 });
+  } else {
+    setTimeout(preload, 2_000);
+  }
 }
 
 /**

@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 import { logger } from '@jetstream/shared/client-logger';
 import { getCanvasPreferences, updateCanvasPreferences } from '@jetstream/shared/data';
-import { initErrorTracker, setErrorTrackerUser, useObservable } from '@jetstream/shared/ui-utils';
+import { initErrorTracker, preloadLegacySpreadsheetEngine, setErrorTrackerUser, useObservable } from '@jetstream/shared/ui-utils';
 import { JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
 import { AppLoading, fromJetstreamEvents, useInitDataHistory } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
@@ -71,6 +71,10 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
       setErrorTrackerUser({ id: org.userId, email: org.email });
     }
   }, [org]);
+
+  useEffect(() => {
+    preloadLegacySpreadsheetEngine();
+  }, []);
 
   useEffect(() => {
     // wait until this data has initialized before proceeding
