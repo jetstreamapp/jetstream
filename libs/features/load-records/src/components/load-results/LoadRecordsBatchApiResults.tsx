@@ -17,14 +17,18 @@ import {
   ViewModalData,
 } from '@jetstream/types';
 import { FileDownloadModal, Grid, Icon, ProgressRing, Spinner, Tooltip } from '@jetstream/ui';
-import { fromJetstreamEvents, getFieldHeaderFromMapping, LoadRecordsResultsModal } from '@jetstream/ui-core';
+import {
+  fromJetstreamEvents,
+  getFieldHeaderFromMapping,
+  LoadRecordsBatchApiResultsTable,
+  LoadRecordsResultsModal,
+} from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { LoadFailureReach, settleHistoryForFailedLoad } from '../../utils/data-history-capture';
 import { loadBatchApiData, LoadTypeDisplayNames, prepareData } from '../../utils/load-records-process';
-import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
 import { buildBatchApiResultRow, getLoadResultsHeader } from './load-results-utils';
 import { extractRetryRecords, registerRetryRecord } from './retry-record-map';
 
@@ -58,6 +62,7 @@ export interface LoadRecordsBatchApiResultsProps {
   batchSize: number;
   insertNulls: boolean;
   assignmentRuleId?: Maybe<string>;
+  bypassDuplicateRules?: boolean;
   serialMode: boolean;
   dateFormat: string;
   /** Already-prepared records for retry — skips prepareData when provided */
@@ -85,6 +90,7 @@ export const LoadRecordsBatchApiResults = ({
   batchSize,
   insertNulls,
   assignmentRuleId,
+  bypassDuplicateRules,
   serialMode,
   dateFormat,
   preparedInputData,
@@ -265,6 +271,7 @@ export const LoadRecordsBatchApiResults = ({
         type: loadType,
         batchSize,
         assignmentRuleId,
+        bypassDuplicateRules,
         serialMode,
         externalId,
         binaryBodyField: Object.values(fieldMapping).find((field) => field.isBinaryBodyField)?.targetField,

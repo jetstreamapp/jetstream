@@ -94,6 +94,16 @@ export type RecordsSaveOutcome =
   | { results: SobjectCollectionResponse; errorMessage?: undefined }
   | { results?: undefined; errorMessage: string };
 
+/** Options chosen under "Save Options" in the Preview Changes modal, handed to the host with every inline-edit save */
+export interface RecordsSaveOptions {
+  /** Records per API call */
+  batchSize: number;
+  /** Send the batches one at a time instead of all at once */
+  serialMode: boolean;
+  /** Save records that a duplicate rule flags with an alert instead of failing them */
+  bypassDuplicateRules: boolean;
+}
+
 /**
  * Snapshots handed to the host after an inline-edit save settles (see
  * `SalesforceRecordDataTableProps.onRecordsSaveCapture`) — captured BEFORE the table mutates its rows.
@@ -101,6 +111,7 @@ export type RecordsSaveOutcome =
 export type RecordsSaveCaptureInfo = {
   editedRecords: RecordExport;
   priorRecords: RecordExport;
+  saveOptions: RecordsSaveOptions;
 } & RecordsSaveOutcome;
 
 /**

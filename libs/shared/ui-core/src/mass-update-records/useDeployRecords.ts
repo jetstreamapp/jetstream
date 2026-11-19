@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { bulkApiAddBatchToJob, bulkApiCloseJob, bulkApiCreateJob, bulkApiGetJob } from '@jetstream/shared/data';
+import { bulkApiAddBatchToJob, bulkApiCloseJob, bulkApiCreateJob, bulkApiGetJob, sobjectOperation } from '@jetstream/shared/data';
 import {
   checkIfBulkApiJobIsDone,
   checkStatusWithRetry,
@@ -9,19 +9,40 @@ import {
   useBrowserNotifications,
 } from '@jetstream/shared/ui-utils';
 import { delay, getErrorMessage, isFatalBulkApiError, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { BulkJobBatchInfo, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { BulkJobBatchInfo, BulkJobResultRecord, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { formatDate } from 'date-fns/format';
 import { useAtom } from 'jotai';
+import clamp from 'lodash/clamp';
 import { useCallback, useEffect, useRef } from 'react';
+import { MAX_BATCH } from '../load/load-records-utils';
 import { captureMassUpdateResults, MassUpdateHistoryContext, MassUpdateSource, startMassUpdateHistory } from './data-history-capture';
-import { DeployResults, MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
-import { getFieldsToQuery, prepareRecords, queryAndPrepareRecordsForUpdate } from './mass-update-records.utils';
+import { DeployResults, MassUpdateDeployOptions, MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
+import {
+  buildMassUpdateCombinedResults,
+  convertBatchApiResultToBulkResult,
+  convertRecordForBatchApi,
+  getFieldsToQuery,
+  getMassUpdateResultsHeader,
+  prepareRecords,
+  queryAndPrepareRecordsForUpdate,
+} from './mass-update-records.utils';
 
 const POLL_INTERVAL_MS = 5000;
 
 type PollableRow = Pick<MetadataRow, 'deployResults' | 'sobject'>;
+
+interface PerformLoadOptions extends Pick<MassUpdateDeployOptions, 'batchSize' | 'serialMode' | 'bypassDuplicateRules'> {
+  deployResults: DeployResults;
+  sobject: string;
+  fields: string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  records: any[];
+  configuration: MetadataRowConfiguration[];
+  /** This attempt's capture handle, started by the caller (fire-and-forget and self-gating) */
+  historyHandle: DataHistoryEntryHandle;
+}
 
 function isAwaitingResults({ deployResults }: PollableRow) {
   return !deployResults.done && !!deployResults.jobInfo?.id;
@@ -56,18 +77,26 @@ export function useDeployRecords(
       sobject,
       batchSize,
       serialMode,
+      bypassDuplicateRules,
       configuration,
       limit,
       skipHistory,
-    }: {
+    }: MassUpdateDeployOptions & {
       sobject: string;
-      batchSize: number;
-      serialMode: boolean;
       configuration: MetadataRowConfiguration[];
       limit?: Maybe<number>;
-      skipHistory?: boolean;
     }): DataHistoryEntryHandle => {
-      const handle = startMassUpdateHistory({ org, source, sobject, batchSize, serialMode, configuration, limit, skipHistory });
+      const handle = startMassUpdateHistory({
+        org,
+        source,
+        sobject,
+        batchSize,
+        serialMode,
+        bypassDuplicateRules,
+        configuration,
+        limit,
+        skipHistory,
+      });
       historyCaptureRef.current[sobject] = { handle, batchSize, configuration };
       return handle;
     },
@@ -101,6 +130,83 @@ export function useDeployRecords(
   }, [takeHistoryCapture]);
 
   /**
+   * Update records with the Batch API (sObject Collections), which is the only transport that honors the duplicate rule
+   * header - the Bulk API silently ignores it. Requests are sent one at a time and each returns its own results, so
+   * unlike a bulk job there is nothing to poll: the deployment is finished when this resolves.
+   */
+  const performBatchApiLoad = useCallback(
+    async ({
+      deployResults,
+      sobject,
+      fields,
+      records,
+      batchSize,
+      configuration,
+      historyHandle,
+    }: Omit<PerformLoadOptions, 'serialMode' | 'bypassDuplicateRules'>) => {
+      const resultsHeader = getMassUpdateResultsHeader(configuration);
+      const results: BulkJobResultRecord[] = [];
+      let success = 0;
+      let failure = 0;
+
+      historyHandle.setSubmittedCount(records.length);
+      historyHandle.writeInputRows(records, fields);
+
+      const publishProgress = (changes: Partial<DeployResults> = {}) => {
+        deployResults = {
+          ...deployResults,
+          ...changes,
+          records,
+          // `results` is appended to in place rather than copied per request - it is only read on demand (view/download),
+          // and copying it for every 200 records makes a large update quadratic
+          batchApiResults: { total: records.length, success, failure, results },
+          lastChecked: formatDate(new Date(), 'h:mm:ss'),
+        };
+        isMounted.current && onDeployResults(sobject, deployResults);
+      };
+
+      publishProgress({ status: 'In Progress' });
+
+      for (const batch of splitArrayToMaxSize(records, clamp(batchSize, 1, MAX_BATCH))) {
+        // The unmount cleanup already abandoned this deployment's capture, so there is nothing left to settle
+        if (!isMounted.current) {
+          return;
+        }
+        let batchResults: BulkJobResultRecord[];
+        try {
+          const response = await sobjectOperation(
+            org,
+            sobject,
+            'update',
+            { records: batch.map((record) => convertRecordForBatchApi(record, fields)) },
+            { allOrNone: false, bypassDuplicateRules: true },
+          );
+          batchResults = batch.map((record, i) =>
+            response[i]
+              ? convertBatchApiResultToBulkResult(response[i], record)
+              : { Id: record.Id || null, Success: false, Created: false, Error: 'Salesforce did not return a result for this record' },
+          );
+        } catch (ex) {
+          // The request itself failed, so nothing is known about these records - report each one as failed and keep
+          // going, the same way a rejected bulk batch does not stop the batches after it
+          logger.error('Error updating batch', ex);
+          const errorMessage = getErrorMessage(ex);
+          batchResults = batch.map((record) => ({ Id: record.Id || null, Success: false, Created: false, Error: errorMessage }));
+        }
+
+        batchResults.forEach(({ Success }) => (Success ? success++ : failure++));
+        results.push(...batchResults);
+        historyHandle.appendResultsRows(buildMassUpdateCombinedResults(batchResults, batch), resultsHeader);
+        publishProgress();
+      }
+
+      publishProgress({ done: true, status: 'Finished', processingEndTime: convertDateToLocale(new Date()) });
+      takeHistoryCapture(sobject)?.handle.finish({ counts: { total: records.length, success, failure } });
+    },
+    [org, onDeployResults, takeHistoryCapture],
+  );
+
+  /**
    * Submit bulk update job
    */
   const performLoad = useCallback(
@@ -111,18 +217,14 @@ export function useDeployRecords(
       records,
       batchSize,
       serialMode,
+      bypassDuplicateRules,
+      configuration,
       historyHandle,
-    }: {
-      deployResults: DeployResults;
-      sobject: string;
-      fields: string[];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      records: any[];
-      batchSize: number;
-      serialMode: boolean;
-      /** This attempt's capture handle, started by the caller (fire-and-forget and self-gating) */
-      historyHandle: DataHistoryEntryHandle;
-    }) => {
+    }: PerformLoadOptions) => {
+      if (bypassDuplicateRules) {
+        await performBatchApiLoad({ deployResults, sobject, fields, records, batchSize, configuration, historyHandle });
+        return;
+      }
       deployResults = { ...deployResults };
 
       // Recorded BEFORE the job is created so a failed `bulkApiCreateJob` still leaves an entry that
@@ -216,11 +318,11 @@ export function useDeployRecords(
       deployResults.lastChecked = formatDate(new Date(), 'h:mm:ss');
       isMounted.current && onDeployResults(sobject, { ...deployResults });
     },
-    [org, onDeployResults],
+    [org, onDeployResults, performBatchApiLoad],
   );
 
   const loadDataForRow = useCallback(
-    async (row: MetadataRow, { batchSize, serialMode, skipHistory }: { batchSize: number; serialMode: boolean; skipHistory?: boolean }) => {
+    async (row: MetadataRow, { batchSize, serialMode, bypassDuplicateRules, skipHistory }: MassUpdateDeployOptions) => {
       // `loadDataForRows` keeps iterating after the host unmounts; a row started now would register
       // its capture AFTER the unmount cleanup ran, so nothing would ever settle it
       if (!isMounted.current) {
@@ -248,6 +350,7 @@ export function useDeployRecords(
         sobject: row.sobject,
         batchSize,
         serialMode,
+        bypassDuplicateRules,
         configuration: row.configuration,
         limit: row.limit,
         skipHistory,
@@ -287,6 +390,8 @@ export function useDeployRecords(
         records,
         batchSize,
         serialMode,
+        bypassDuplicateRules,
+        configuration: row.configuration,
         historyHandle,
       });
     },
@@ -298,7 +403,7 @@ export function useDeployRecords(
    * Alternatively, loadDataForProvidedRecords can be used if all the records are already obtained with proper fields included
    */
   const loadDataForRows = useCallback(
-    async (rows: MetadataRow[], options: { batchSize: number; serialMode: boolean; skipHistory?: boolean }) => {
+    async (rows: MetadataRow[], options: MassUpdateDeployOptions) => {
       for (const row of rows) {
         try {
           await loadDataForRow(row, options);
@@ -337,18 +442,16 @@ export function useDeployRecords(
       fields,
       batchSize,
       serialMode,
+      bypassDuplicateRules,
       configuration,
       skipHistory,
-    }: {
+    }: MassUpdateDeployOptions & {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       records: any[];
       sobject: string;
       /** Fields to include in load */
       fields: string[];
-      batchSize: number;
-      serialMode: boolean;
       configuration: MetadataRowConfiguration[];
-      skipHistory?: boolean;
     }) => {
       const deployResults: DeployResults = {
         done: false,
@@ -379,7 +482,7 @@ export function useDeployRecords(
 
         // Registered BEFORE prepareRecords so a transformation failure is recorded against THIS
         // attempt — the catch below is what settles it in that case
-        const historyHandle = beginHistoryCapture({ sobject, batchSize, serialMode, configuration, skipHistory });
+        const historyHandle = beginHistoryCapture({ sobject, batchSize, serialMode, bypassDuplicateRules, configuration, skipHistory });
 
         const records = prepareRecords(initialRecords, configuration);
 
@@ -393,6 +496,8 @@ export function useDeployRecords(
           records,
           batchSize,
           serialMode,
+          bypassDuplicateRules,
+          configuration,
           historyHandle,
         });
       } catch (ex) {

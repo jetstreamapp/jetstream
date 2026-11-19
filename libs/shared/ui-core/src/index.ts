@@ -54,6 +54,7 @@ export * from './jobs/Job';
 export * from './jobs/Jobs';
 export * from './jobs/jobs.state';
 export * from './jobs/JobWorker';
+export * from './load-records-results/LoadRecordsBatchApiResultsTable';
 export * from './load-records-results/LoadRecordsBulkApiResultsTable';
 export * from './load-records-results/LoadRecordsBulkApiResultsTableRow';
 export * from './load-records-results/LoadRecordsResultsTableProcessingErrRow';

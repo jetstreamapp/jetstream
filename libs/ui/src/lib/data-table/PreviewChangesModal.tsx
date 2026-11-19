@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { BYPASS_DUPLICATE_RULES_HELP_TEXT, BYPASS_DUPLICATE_RULES_LABEL } from '@jetstream/shared/constants';
 import { formatNumber, hasCtrlOrMeta, isEnterKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { ACCESS_PROFILE_OPERATION_NOT_ALLOWED_MESSAGES, Field, Maybe, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
 import { ChangeEvent, Fragment, FunctionComponent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -301,8 +302,11 @@ export interface PreviewChangesModalProps {
   batchSize: Maybe<number>;
   /** Send the batches one at a time instead of all at once. */
   serialMode: boolean;
+  /** Save records that a duplicate rule flags with an alert instead of failing them. */
+  bypassDuplicateRules: boolean;
   onBatchSizeChange: (batchSize: Maybe<number>) => void;
   onSerialModeChange: (serialMode: boolean) => void;
+  onBypassDuplicateRulesChange: (bypassDuplicateRules: boolean) => void;
   onSave: () => void | Promise<void>;
   /** Open the host's file-download modal (CSV/Excel/JSON/Google Drive) with the given data. */
   onDownload: (config: DownloadConfig) => void;
@@ -334,8 +338,10 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
   saveResults,
   batchSize,
   serialMode,
+  bypassDuplicateRules,
   onBatchSizeChange,
   onSerialModeChange,
+  onBypassDuplicateRulesChange,
   onSave,
   onDownload,
   isHidden,
@@ -649,6 +655,14 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
                       labelHelp="Serial mode saves the batches one-by-one instead of all at the same time."
                       disabled={isSaving}
                       onChange={onSerialModeChange}
+                    />
+                    <Checkbox
+                      id="preview-changes-bypass-duplicate-rules"
+                      checked={bypassDuplicateRules}
+                      label={BYPASS_DUPLICATE_RULES_LABEL}
+                      labelHelp={BYPASS_DUPLICATE_RULES_HELP_TEXT}
+                      disabled={isSaving}
+                      onChange={onBypassDuplicateRulesChange}
                     />
                     <Input
                       id="preview-changes-batch-size"

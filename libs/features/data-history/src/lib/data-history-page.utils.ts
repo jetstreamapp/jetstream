@@ -271,6 +271,7 @@ const CONFIG_DISPLAY_FIELDS: Array<{
   },
   { key: 'batchSize', label: 'Batch Size' },
   { key: 'serialMode', label: 'Serial Mode' },
+  { key: 'bypassDuplicateRules', label: 'Bypass Duplicate Rules', show: (value) => value === true },
   { key: 'recordLimit', label: 'Record Limit' },
   { key: 'insertNulls', label: 'Insert Null Values' },
   // Only meaningful when a date field was part of the load

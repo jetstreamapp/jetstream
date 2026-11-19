@@ -14,6 +14,7 @@ export const routeDefinition = {
         method: SalesforceApiRequestSchema.shape.method,
         isTooling: z.coerce.boolean().optional().default(false),
         assignmentRuleId: z.string().optional().default('FALSE'),
+        bypassDuplicateRules: BooleanQueryParamSchema,
       }),
     } satisfies RouteValidator,
   },
@@ -28,6 +29,7 @@ export const routeDefinition = {
       query: z.object({
         externalId: z.string().nullish(),
         allOrNone: BooleanQueryParamSchema,
+        bypassDuplicateRules: BooleanQueryParamSchema,
       }),
     } satisfies RouteValidator,
   },
@@ -35,7 +37,7 @@ export const routeDefinition = {
 
 const binaryUpload = createRoute(routeDefinition.binaryUpload.validators, async ({ query, jetstreamConn }, req) => {
   try {
-    const { assignmentRuleId, isTooling, method, url } = query;
+    const { assignmentRuleId, bypassDuplicateRules, isTooling, method, url } = query;
     const body = req.request.body;
 
     const contentType = req.request.headers.get('content-type');
@@ -56,7 +58,8 @@ const binaryUpload = createRoute(routeDefinition.binaryUpload.validators, async 
           [HTTP.HEADERS.CONTENT_TYPE]: contentType,
           // https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/headers_autoassign.htm
           // default is true
-          'Sforce-Auto-Assign': assignmentRuleId || 'FALSE',
+          [HTTP.HEADERS.SFORCE_AUTO_ASSIGN]: assignmentRuleId || 'FALSE',
+          ...(bypassDuplicateRules ? { [HTTP.HEADERS.SFORCE_DUPLICATE_RULE]: 'allowSave=true' } : {}),
         },
         isTooling,
         rawBody: true,
@@ -75,7 +78,7 @@ const binaryUpload = createRoute(routeDefinition.binaryUpload.validators, async 
 const recordOperation = createRoute(routeDefinition.recordOperation.validators, async ({ body, params, query, jetstreamConn }, _req) => {
   try {
     const { sobject, operation } = params;
-    const { allOrNone, externalId } = query;
+    const { allOrNone, bypassDuplicateRules, externalId } = query;
     // ids and records can be one or an array
     const { ids, records } = body;
 
@@ -85,6 +88,7 @@ const recordOperation = createRoute(routeDefinition.recordOperation.validators, 
       externalId,
       records,
       allOrNone,
+      bypassDuplicateRules,
       ids,
       //  isTooling,
     });

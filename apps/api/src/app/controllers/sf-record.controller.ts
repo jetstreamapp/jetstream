@@ -16,6 +16,7 @@ export const routeDefinition = {
         method: SalesforceApiRequestSchema.shape.method,
         isTooling: z.coerce.boolean().optional().default(false),
         assignmentRuleId: z.string().optional().default('FALSE'),
+        bypassDuplicateRules: BooleanQueryParamSchema,
       }),
     } satisfies RouteValidator,
   },
@@ -31,6 +32,7 @@ export const routeDefinition = {
       query: z.object({
         externalId: z.string().nullish(),
         allOrNone: BooleanQueryParamSchema,
+        bypassDuplicateRules: BooleanQueryParamSchema,
       }),
     } satisfies RouteValidator,
   },
@@ -38,7 +40,7 @@ export const routeDefinition = {
 
 const binaryUpload = createRoute(routeDefinition.binaryUpload.validators, async ({ query, jetstreamConn }, req, res, next) => {
   try {
-    const { assignmentRuleId, isTooling, method, url } = query;
+    const { assignmentRuleId, bypassDuplicateRules, isTooling, method, url } = query;
 
     const contentType = req.headers['content-type'];
     if (!contentType?.startsWith('multipart/form-data')) {
@@ -55,7 +57,8 @@ const binaryUpload = createRoute(routeDefinition.binaryUpload.validators, async 
           [HTTP.HEADERS.CONTENT_TYPE]: contentType,
           // https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/headers_autoassign.htm
           // default is true
-          'Sforce-Auto-Assign': assignmentRuleId || 'FALSE',
+          [HTTP.HEADERS.SFORCE_AUTO_ASSIGN]: assignmentRuleId || 'FALSE',
+          ...(bypassDuplicateRules ? { [HTTP.HEADERS.SFORCE_DUPLICATE_RULE]: 'allowSave=true' } : {}),
         },
         isTooling,
         rawBody: true,
@@ -76,7 +79,7 @@ const recordOperation = createRoute(
   async ({ body, params, query, jetstreamConn }, _, res, next) => {
     try {
       const { sobject, operation } = params;
-      const { allOrNone, externalId } = query;
+      const { allOrNone, bypassDuplicateRules, externalId } = query;
       // ids and records can be one or an array
       const { ids, records } = body;
 
@@ -86,6 +89,7 @@ const recordOperation = createRoute(
         externalId,
         records,
         allOrNone,
+        bypassDuplicateRules,
         ids,
         //  isTooling,
       });

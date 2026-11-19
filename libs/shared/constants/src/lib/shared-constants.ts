@@ -28,6 +28,13 @@ export const SFDC_DEFAULT_API_VERSION = '68.0';
 export const SESSION_EXP_DAYS = 2;
 export const SFDC_BULK_API_NULL_VALUE = '#N/A';
 export const SFDC_BLANK_PICKLIST_VALUE = '--None--';
+
+/** Shared copy for the "bypass duplicate rules" save option, which is offered everywhere records are updated */
+export const BYPASS_DUPLICATE_RULES_LABEL = 'Bypass Duplicate Rules';
+export const BYPASS_DUPLICATE_RULES_HELP_TEXT =
+  'Saves records even when a duplicate rule flags them as a possible duplicate ("Use one of these records?"). This only applies to duplicate rules with an action of Allow and Alert. Rules with an action of Block cannot be bypassed.';
+/** Salesforce's Bulk API ignores the duplicate rule header, so bulk updates have to switch to the Batch API to honor it */
+export const BYPASS_DUPLICATE_RULES_BATCH_API_HELP_TEXT = `${BYPASS_DUPLICATE_RULES_HELP_TEXT} The Bulk API cannot bypass duplicate rules, so records are updated with the Batch API instead, 200 records at a time, which is slower and uses more API calls for large updates.`;
 export const HTTP_SOURCE_DESKTOP = 'JETSTREAM_DESKTOP';
 
 /**
@@ -82,6 +89,8 @@ export const HTTP = {
     /** Comma separated uniqueIds of the orgs whose inactivity clock this request reset */
     X_SFDC_ORG_ACTIVITY: 'X-SFDC-ORG-ACTIVITY',
     X_SFDC_Session: 'X-SFDC-SESSION',
+    SFORCE_AUTO_ASSIGN: 'Sforce-Auto-Assign',
+    SFORCE_DUPLICATE_RULE: 'Sforce-Duplicate-Rule-Header',
     X_INCLUDE_CALL_OPTIONS: 'X_INCLUDE_CALL_OPTIONS',
     X_CACHE_RESPONSE: 'X-CACHE-RESPONSE',
     X_CACHE_KEY: 'X-CACHE-KEY',

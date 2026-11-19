@@ -1092,6 +1092,7 @@ export async function sobjectUploadBinaryUpload(
     method: HttpMethod;
     isTooling?: Maybe<boolean>;
     assignmentRuleId?: Maybe<string>;
+    bypassDuplicateRules?: boolean;
   },
 ): Promise<SobjectCollectionResponse> {
   return handleRequest({ method: 'POST', url: `/api/record/upload`, params: { ...options }, data: body }, { org }).then(
@@ -1110,6 +1111,8 @@ export async function sobjectOperation<O extends SobjectOperation>(
   query: {
     externalId?: string;
     allOrNone?: boolean;
+    /** Save records that a duplicate rule flags with an alert instead of failing them (create, update, upsert) */
+    bypassDuplicateRules?: boolean;
   } = {},
 ): Promise<OperationReturnType<O, any>> {
   // FIXME: add type for R as the first generic type in function

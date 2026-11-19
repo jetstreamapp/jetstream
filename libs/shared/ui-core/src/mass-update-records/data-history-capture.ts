@@ -45,6 +45,7 @@ export function startMassUpdateHistory({
   sobject,
   batchSize,
   serialMode,
+  bypassDuplicateRules,
   configuration,
   limit,
   skipHistory,
@@ -54,6 +55,8 @@ export function startMassUpdateHistory({
   sobject: string;
   batchSize: number;
   serialMode: boolean;
+  /** The update is saved with the Batch API rather than a Bulk API job, which changes the recorded api */
+  bypassDuplicateRules?: boolean;
   configuration: MetadataRowConfiguration[];
   limit?: Maybe<number>;
   skipHistory?: boolean;
@@ -62,12 +65,13 @@ export function startMassUpdateHistory({
     org,
     source: source === 'QUERY' ? 'mass-update-from-query' : 'mass-update',
     operation: 'update',
-    api: 'bulk-v1',
+    api: bypassDuplicateRules ? 'collections' : 'bulk-v1',
     sobjects: [sobject],
     // Snapshot the transformation/criteria configuration (field metadata is intentionally omitted — too large)
     config: {
       serialMode,
       batchSize,
+      bypassDuplicateRules: !!bypassDuplicateRules,
       // Recorded so an entry that updated a subset does not read as though it processed everything
       recordLimit: getEffectiveRecordLimit(limit) ?? undefined,
       transformations: configuration.map(({ selectedField, transformationOptions }) => ({

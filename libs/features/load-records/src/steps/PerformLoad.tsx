@@ -1,4 +1,4 @@
-import { DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
+import { BYPASS_DUPLICATE_RULES_HELP_TEXT, BYPASS_DUPLICATE_RULES_LABEL, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useIntegerInput, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { flattenRecord, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import {
@@ -136,6 +136,10 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
 
   const loadTypeLabel = startCase(loadType.toLowerCase());
   const [assignmentRuleId, setAssignmentRuleId] = useState<Maybe<string>>(null);
+  const [bypassDuplicateRulesSelected, setBypassDuplicateRules] = useState(false);
+  // Only the Batch API honors the duplicate rule header, and deleting a record cannot create a duplicate
+  const canBypassDuplicateRules = apiMode === 'BATCH' && loadType !== 'DELETE';
+  const bypassDuplicateRules = canBypassDuplicateRules && bypassDuplicateRulesSelected;
 
   // Runs model: tracks all load attempts (original + retries)
   const [runs, setRuns] = useState<LoadRun[]>([]);
@@ -229,6 +233,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         batchSize,
         insertNulls,
         serialMode,
+        bypassDuplicateRules,
         hasDateFieldMapped,
         dateFormat,
         fieldMapping,
@@ -259,6 +264,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       batchSize,
       insertNulls,
       serialMode,
+      bypassDuplicateRules,
       hasDateFieldMapped,
       dateFormat,
       fieldMapping,
@@ -439,6 +445,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             batchSize={run.batchSize}
             insertNulls={insertNulls}
             assignmentRuleId={assignmentRuleId}
+            bypassDuplicateRules={bypassDuplicateRules}
             serialMode={serialMode}
             dateFormat={dateFormat}
             preparedInputData={run.preparedInputData}
@@ -462,6 +469,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     externalId,
     insertNulls,
     assignmentRuleId,
+    bypassDuplicateRules,
     serialMode,
     dateFormat,
     handleFinishLoad,
@@ -525,6 +533,15 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           labelHelp="Serial mode processes the batches one-by-one instead of parallel. The Batch API always processes data in serial mode."
           disabled={loading || apiMode !== 'BULK'}
           onChange={setSerialMode}
+        />
+
+        <Checkbox
+          id={'bypass-duplicate-rules'}
+          checked={bypassDuplicateRules}
+          label={BYPASS_DUPLICATE_RULES_LABEL}
+          labelHelp={`${BYPASS_DUPLICATE_RULES_HELP_TEXT} Only available with the Batch API - the Bulk API cannot bypass duplicate rules.`}
+          disabled={loading || !canBypassDuplicateRules}
+          onChange={setBypassDuplicateRules}
         />
 
         <LoadRecordsAssignmentRules selectedOrg={selectedOrg} selectedSObject={selectedSObject} onAssignmentRule={setAssignmentRuleId} />
@@ -690,6 +707,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
               batchSize={batchSize ?? getMaxBatchSize(apiMode)}
               insertNulls={insertNulls}
               assignmentRuleId={assignmentRuleId}
+              bypassDuplicateRules={bypassDuplicateRules}
               serialMode={serialMode}
               dateFormat={dateFormat}
               historyHandle={activeTrialRun.historyHandle}

@@ -1,3 +1,4 @@
+import { HTTP } from '@jetstream/shared/constants';
 import {
   CompositeResponse,
   DescribeGlobalResult,
@@ -33,6 +34,7 @@ export class ApiSObject extends SalesforceApi {
     externalId,
     allOrNone = true,
     isTooling = false,
+    bypassDuplicateRules = false,
     ids,
     records,
   }: {
@@ -42,6 +44,11 @@ export class ApiSObject extends SalesforceApi {
     allOrNone?: Maybe<boolean>;
     ids?: Maybe<string | string[]>;
     isTooling?: Maybe<boolean>;
+    /**
+     * Save records that a duplicate rule flags with an alert ("Use one of these records?") instead of failing them.
+     * Rules whose action is Block still reject the record. Only applies to create, update and upsert.
+     */
+    bypassDuplicateRules?: Maybe<boolean>;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     records?: Maybe<any | any[]>;
   }): Promise<OperationReturnType<O>> {
@@ -56,6 +63,8 @@ export class ApiSObject extends SalesforceApi {
 
     // POST https://MyDomainName.my.salesforce.com/services/data/v60.0/composite/sobjects/
     const BASE_URL = this.getRestApiUrl('/composite', isTooling);
+    // https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/headers_duplicaterules.htm
+    const writeHeaders = bypassDuplicateRules ? { [HTTP.HEADERS.SFORCE_DUPLICATE_RULE]: 'allowSave=true' } : undefined;
 
     switch (operation) {
       case 'retrieve': {
@@ -91,6 +100,7 @@ export class ApiSObject extends SalesforceApi {
           method: 'POST',
           sessionInfo: this.sessionInfo,
           url: `${BASE_URL}/sobjects`, // VALIDATE URL
+          headers: writeHeaders,
           body: {
             allOrNone,
             records: records.map((record) => ({ ...record, attributes: { type: sobject }, Id: undefined })),
@@ -108,6 +118,7 @@ export class ApiSObject extends SalesforceApi {
           method: 'PATCH',
           sessionInfo: this.sessionInfo,
           url: `${BASE_URL}/sobjects`, // VALIDATE URL
+          headers: writeHeaders,
           body: {
             allOrNone,
             records: records.map((record) => ({ ...record, attributes: { type: sobject }, Id: record.Id })),
@@ -126,6 +137,7 @@ export class ApiSObject extends SalesforceApi {
           method: 'PATCH',
           sessionInfo: this.sessionInfo,
           url: `${BASE_URL}/sobjects/${sobject}/${externalId}`,
+          headers: writeHeaders,
           body: {
             allOrNone,
             records: records.map((record) => ({ ...record, attributes: { type: sobject } })),

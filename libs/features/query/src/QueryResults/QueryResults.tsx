@@ -46,6 +46,7 @@ import {
   KeyboardShortcut,
   MAX_SAVE_BATCH_SIZE,
   RecordsSaveCaptureInfo,
+  RecordsSaveOptions,
   SalesforceRecordDataTable,
   Spinner,
   Toolbar,
@@ -466,14 +467,15 @@ export const QueryResults = React.memo(() => {
    */
   async function handleUpdateRecords(
     modifiedRecords: any[],
-    { batchSize, serialMode }: { batchSize: number; serialMode: boolean },
+    { batchSize, serialMode, bypassDuplicateRules }: RecordsSaveOptions,
   ): Promise<SobjectCollectionResponse> {
     const type = sobject || modifiedRecords?.[0]?.attributes?.type;
     if (!type) {
       return [];
     }
     const batches = splitArrayToMaxSize(modifiedRecords, Math.min(Math.max(batchSize, 1), MAX_SAVE_BATCH_SIZE));
-    const updateBatch = (records: any[]) => sobjectOperation(selectedOrg, type, 'update', { records }, { allOrNone: false });
+    const updateBatch = (records: any[]) =>
+      sobjectOperation(selectedOrg, type, 'update', { records }, { allOrNone: false, bypassDuplicateRules });
 
     let results: SobjectCollectionResponse = [];
     if (serialMode) {
@@ -493,7 +495,7 @@ export const QueryResults = React.memo(() => {
    */
   function handleRecordsSaveCapture(info: RecordsSaveCaptureInfo) {
     const type = sobject || undefined;
-    const { editedRecords, priorRecords, results, errorMessage } = info;
+    const { editedRecords, priorRecords, saveOptions, results, errorMessage } = info;
     // No `results` means the save call itself threw — record the attempt as failed for every record
     const total = results?.length ?? editedRecords.data.length;
     const successCount = results?.filter(({ success }) => success).length ?? 0;
@@ -503,7 +505,7 @@ export const QueryResults = React.memo(() => {
       operation: 'update',
       api: 'collections',
       sobjects: type ? [type] : [],
-      config: { numRecords: total, header: editedRecords.header },
+      config: { numRecords: total, header: editedRecords.header, bypassDuplicateRules: saveOptions.bypassDuplicateRules },
       inputSource: { type: 'inline' },
       request: { header: editedRecords.header, edited: editedRecords.data, prior: priorRecords.data },
       results: results ? buildResultsExport(editedRecords, results).data : { error: errorMessage },

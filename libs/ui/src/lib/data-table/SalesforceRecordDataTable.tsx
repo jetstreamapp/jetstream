@@ -39,7 +39,13 @@ import { fireToast } from '../toast/AppToast';
 import Spinner from '../widgets/Spinner';
 import Tooltip from '../widgets/Tooltip';
 import { DataTableSubqueryContext } from './data-table-context';
-import { RecordsSaveCaptureInfo, RecordsSaveOutcome, buildEditedRecordsExport, buildPriorRecordsExport } from './data-table-history-export';
+import {
+  RecordsSaveCaptureInfo,
+  RecordsSaveOptions,
+  RecordsSaveOutcome,
+  buildEditedRecordsExport,
+  buildPriorRecordsExport,
+} from './data-table-history-export';
 import { applyPasteCellsToRows, revertCellsInRows } from './data-table-paste-utils';
 import {
   ColumnWithFilter,
@@ -155,7 +161,7 @@ export interface SalesforceRecordDataTableProps {
   onEdit: (record: any, source: 'ROW_ACTION' | 'RELATED_RECORD_POPOVER') => void;
   onClone: (record: any, source: 'ROW_ACTION' | 'RELATED_RECORD_POPOVER') => void;
   onView: (record: any, source: 'ROW_ACTION' | 'RELATED_RECORD_POPOVER') => void;
-  onUpdateRecords: (records: any[], options: { batchSize: number; serialMode: boolean }) => Promise<SobjectCollectionResponse>;
+  onUpdateRecords: (records: any[], options: RecordsSaveOptions) => Promise<SobjectCollectionResponse>;
   onDelete: (record: any) => void;
   onUndelete: (record: any) => void;
   onGetAsApex: (record: any) => void;
@@ -238,6 +244,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     // and re-opening the modal — e.g. after a governor-limit failure the user lowers the batch size and retries.
     const [batchSize, setBatchSize] = useState<Maybe<number>>(MAX_SAVE_BATCH_SIZE);
     const [serialMode, setSerialMode] = useState(false);
+    const [bypassDuplicateRules, setBypassDuplicateRules] = useState(false);
 
     // Undo/redo history of `rows` snapshots for the current editing session (Ctrl/Cmd+Z). Each edit-commit
     // and paste pushes the pre-change rows. Snapshots are array references — edits create new row objects
@@ -646,11 +653,16 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
      * saved in Salesforce, so a capture failure must never reach the save's catch (which would leave rows
      * dirty and invite a duplicate save).
      */
-    const captureSaveForHistory = (rowsToCapture: RowSalesforceRecordWithKey[], outcome: RecordsSaveOutcome) => {
+    const captureSaveForHistory = (
+      rowsToCapture: RowSalesforceRecordWithKey[],
+      saveOptions: RecordsSaveOptions,
+      outcome: RecordsSaveOutcome,
+    ) => {
       try {
         onRecordsSaveCapture?.({
           editedRecords: buildEditedRecordsExport(rowsToCapture),
           priorRecords: buildPriorRecordsExport(rowsToCapture),
+          saveOptions,
           ...outcome,
         });
       } catch (ex) {
@@ -685,6 +697,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       // Saving commits values into `_record`, which would corrupt pre-save snapshots — drop undo history.
       undoStackRef.current = [];
       redoStackRef.current = [];
+      const saveOptions: RecordsSaveOptions = { batchSize: batchSize ?? MAX_SAVE_BATCH_SIZE, serialMode, bypassDuplicateRules };
       try {
         const modifiedRecords = dirtyRows.map((row) =>
           nullifyEmptyStrings(
@@ -697,14 +710,11 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
             ),
           ),
         );
-        const results = await onUpdateRecords(modifiedRecords, {
-          batchSize: batchSize ?? MAX_SAVE_BATCH_SIZE,
-          serialMode,
-        });
+        const results = await onUpdateRecords(modifiedRecords, saveOptions);
         setLastSaveResults(results);
 
         // Capture BEFORE the newRows mapping below mutates each row's `_record` in place.
-        captureSaveForHistory(dirtyRows, { results });
+        captureSaveForHistory(dirtyRows, saveOptions, { results });
 
         const failedResultsById = results.reduce<Record<string, ErrorResult>>((acc, result, i) => {
           if (!result.success) {
@@ -756,7 +766,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         // A thrown save (network error, expired session, timeout) still gets captured to Data
         // History — a timed-out request may even have applied server-side, so "no record of the
         // attempt" is the worst outcome.
-        captureSaveForHistory(dirtyRows, { errorMessage: getErrorMessage(ex) || 'The save request failed' });
+        captureSaveForHistory(dirtyRows, saveOptions, { errorMessage: getErrorMessage(ex) || 'The save request failed' });
         fireToast({
           message: `There was a problem saving your records. ${getErrorMessage(ex) || ''}`,
           type: 'error',
@@ -906,8 +916,10 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
             saveResults={lastSaveResults}
             batchSize={batchSize}
             serialMode={serialMode}
+            bypassDuplicateRules={bypassDuplicateRules}
             onBatchSizeChange={setBatchSize}
             onSerialModeChange={setSerialMode}
+            onBypassDuplicateRulesChange={setBypassDuplicateRules}
             onSave={handleSaveRecords}
             onDownload={handleDownload}
             isHidden={!!downloadConfig}

@@ -106,6 +106,7 @@ export interface LoadRecordsHistoryConfig {
   batchSize: Maybe<number>;
   insertNulls: boolean;
   serialMode: boolean;
+  bypassDuplicateRules?: boolean;
   hasDateFieldMapped: boolean;
   dateFormat: string;
   fieldMapping: FieldMapping;
@@ -141,6 +142,7 @@ export function buildLoadRecordsHistoryConfig({
   batchSize,
   insertNulls,
   serialMode,
+  bypassDuplicateRules = false,
   hasDateFieldMapped,
   dateFormat,
   fieldMapping,
@@ -157,6 +159,7 @@ export function buildLoadRecordsHistoryConfig({
     batchSize,
     insertNulls,
     serialMode,
+    bypassDuplicateRules,
     hasDateFieldMapped,
     dateFormat,
     isTrialRun,
