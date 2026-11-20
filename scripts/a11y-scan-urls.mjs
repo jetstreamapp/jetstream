@@ -7,6 +7,11 @@
  *   node scripts/a11y-scan-urls.mjs <baseUrl> <path> [path...]
  *   node scripts/a11y-scan-urls.mjs http://localhost:3000 / /pricing /auth/login /auth/signup
  *   node scripts/a11y-scan-urls.mjs http://localhost:3000 --sitemap   # scan every URL in /sitemap.xml
+ *   node scripts/a11y-scan-urls.mjs http://localhost:3000 --storage-state=state.json /auth/verify
+ *
+ * Pages are loaded logged out unless --storage-state points at a Playwright storage state file. A page
+ * that redirects somewhere else (a protected form bouncing to the login page) is reported and skipped
+ * rather than scanned under the requested page's key.
  *
  * Results are written to apps/jetstream-e2e/a11y-results/ using url-derived scan keys, so
  * scripts/a11y-merge-baseline.mjs can fold them into the same baseline/evidence set.
@@ -19,10 +24,18 @@ import { chromium } from '@playwright/test';
 const WCAG_21_AA_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 const RESULTS_DIR = 'apps/jetstream-e2e/a11y-results';
 
-const [baseUrl, ...args] = process.argv.slice(2);
+const STORAGE_STATE_FLAG = '--storage-state=';
+
+const [baseUrl, ...allArgs] = process.argv.slice(2);
+const storageState = allArgs.find((arg) => arg.startsWith(STORAGE_STATE_FLAG))?.slice(STORAGE_STATE_FLAG.length);
+const args = allArgs.filter((arg) => !arg.startsWith(STORAGE_STATE_FLAG));
 if (!baseUrl || !args.length) {
-  console.error('Usage: node scripts/a11y-scan-urls.mjs <baseUrl> <path...> | --sitemap');
+  console.error('Usage: node scripts/a11y-scan-urls.mjs <baseUrl> [--storage-state=<file>] <path...> | --sitemap');
   process.exit(1);
+}
+
+function normalizePathname(pathname) {
+  return pathname.replace(/\/+$/, '') || '/';
 }
 
 /**
@@ -72,7 +85,7 @@ if (!paths.length) {
 function getScanTarget(path) {
   const url = new URL(path, baseUrl).toString();
   const { hostname, port, pathname, protocol } = new URL(url);
-  const normalizedPathname = pathname.replace(/\/+$/, '') || '/';
+  const normalizedPathname = normalizePathname(pathname);
   const pathKey = normalizedPathname.replaceAll('/', '_').replace(/^_/, '') || 'root';
   return { url, normalizedPathname, scanKey: `url-${hostname}-${port || (protocol === 'https:' ? '443' : '80')}-${pathKey}` };
 }
@@ -94,11 +107,11 @@ mkdirSync(RESULTS_DIR, { recursive: true });
 
 const browser = await chromium.launch();
 // @axe-core/playwright requires a page created from an explicit context
-const context = await browser.newContext();
+const context = await browser.newContext(storageState ? { storageState } : {});
 const page = await context.newPage();
 let totalSeriousOrCritical = 0;
 
-for (const { url, scanKey } of targetsByScanKey.values()) {
+for (const { url, scanKey, normalizedPathname } of targetsByScanKey.values()) {
   let response;
   try {
     response = await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
@@ -118,6 +131,14 @@ for (const { url, scanKey } of targetsByScanKey.values()) {
   // A 404/500 still navigates: scanning the error page would record clean evidence under this key
   if (response && !response.ok()) {
     console.error(`${url}\n  responded ${response.status()}, scan skipped`);
+    process.exitCode = 1;
+    continue;
+  }
+  // A redirect still responds 200: a protected form sends a logged-out visitor to the login page, whose
+  // results would be recorded under this page's key and url
+  const finalUrl = new URL(page.url());
+  if (finalUrl.origin !== new URL(url).origin || normalizePathname(finalUrl.pathname) !== normalizedPathname) {
+    console.error(`${url}\n  redirected to ${finalUrl.href}, scan skipped (pass --storage-state for pages that need a session)`);
     process.exitCode = 1;
     continue;
   }

@@ -17,9 +17,10 @@ const EXCLUDED_ROUTES = new Set(['DESKTOP_APPLICATION', 'BROWSER_EXTENSION', 'TE
 // The shared E2E user has no team, so the router bounces TEAM_DASHBOARD to /home for it. It is
 // swept separately below as a freshly created team admin.
 const TEAM_ADMIN_ROUTES = new Set(['TEAM_DASHBOARD']);
-// Their baselined nested-interactive nodes live in the sobject list rows: scanning before the rows
-// render would pass with zero nodes, and a merge from that run would ratchet the baseline to zero.
-const SOBJECT_LIST_ROUTES = new Set(['CREATE_FIELDS', 'PERMISSION_ANALYSIS', 'PERMISSION_MANAGER']);
+// Their baselined nested-interactive nodes live in the rows of the selection lists (objects, profiles,
+// permission sets): scanning before the rows render would pass with zero nodes, and a merge from that
+// run would ratchet the baseline to zero.
+const SELECTION_LIST_ROUTES = new Set(['CREATE_FIELDS', 'PERMISSION_ANALYSIS', 'PERMISSION_MANAGER']);
 
 const routesToScan = Object.entries(APP_ROUTES).filter(
   ([routeKey, { ROUTE }]) => !EXCLUDED_ROUTES.has(routeKey) && !TEAM_ADMIN_ROUTES.has(routeKey) && !ROUTE.startsWith('http'),
@@ -45,6 +46,17 @@ async function gotoRoute(page: Page, route: string) {
   await expect(page.getByRole('banner')).toBeVisible();
 }
 
+/**
+ * The object list and the profile/permission set lists load independently. Wait for all of them to
+ * finish, with rows or their empty state, and fail when one could not load: a scan of a list that is
+ * still loading or errored has none of the row controls the baseline covers.
+ */
+async function waitForSelectionListsLoaded(page: Page) {
+  await expect(page.getByRole('option').first()).toBeVisible({ timeout: 30000 });
+  await expect(page.locator('.slds-spinner')).toHaveCount(0, { timeout: 30000 });
+  await expect(page.getByText(/There was an error loading .+ for the selected org/)).toHaveCount(0);
+}
+
 test.describe('a11y page sweep', () => {
   for (const [routeKey, { ROUTE }] of routesToScan) {
     test(`${routeKey} (${ROUTE})`, async ({ page, apiRequestUtils }, testInfo) => {
@@ -55,8 +67,8 @@ test.describe('a11y page sweep', () => {
       // scan meaningless — select the default org first so real page content is evaluated.
       await apiRequestUtils.selectDefaultOrg();
       await gotoRoute(page, ROUTE);
-      if (SOBJECT_LIST_ROUTES.has(routeKey)) {
-        await expect(page.getByRole('option').first()).toBeVisible({ timeout: 30000 });
+      if (SELECTION_LIST_ROUTES.has(routeKey)) {
+        await waitForSelectionListsLoaded(page);
       }
 
       await runA11yScan(page, testInfo, scanKey);
