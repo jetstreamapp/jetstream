@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveCanvasScopeId, extractSandboxName, parseCanvasAccessPolicy } from '../canvas.utils';
+import { deriveCanvasScopeId, extractSandboxName, isSandboxHost, parseCanvasAccessPolicy } from '../canvas.utils';
 
 describe('extractSandboxName', () => {
   it('extracts the sandbox name from a My Domain sandbox host', () => {
@@ -18,6 +18,21 @@ describe('extractSandboxName', () => {
     expect(extractSandboxName(undefined)).toBeNull();
     expect(extractSandboxName(null)).toBeNull();
     expect(extractSandboxName('')).toBeNull();
+  });
+});
+
+describe('isSandboxHost', () => {
+  it('detects sandbox and scratch org hosts', () => {
+    expect(isSandboxHost('https://acme--uat.sandbox.my.salesforce.com')).toBe(true);
+    expect(isSandboxHost('https://acme--uat.sandbox.lightning.force.com')).toBe(true);
+    expect(isSandboxHost('https://speed-ability-1234-dev-ed.scratch.my.salesforce.com')).toBe(true);
+  });
+
+  it('returns false for production, developer edition and missing hosts', () => {
+    expect(isSandboxHost('https://acme.my.salesforce.com')).toBe(false);
+    expect(isSandboxHost('https://sandbox-fans-dev-ed.develop.my.salesforce.com')).toBe(false);
+    expect(isSandboxHost(undefined)).toBe(false);
+    expect(isSandboxHost(null)).toBe(false);
   });
 });
 

@@ -11,7 +11,7 @@ import localforage from 'localforage';
 import React, { FunctionComponent, use, useEffect, useState } from 'react';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { getCanvasOrg, getCanvasStorageScopeId } from '../../utils/canvas.utils';
+import { getCanvasOrg, getCanvasOrgDetails, getCanvasStorageScopeId } from '../../utils/canvas.utils';
 import { canvasColorSchemeState } from './useCanvasColorScheme';
 
 // IndexedDB database holding the localforage stores. The default instance is configured here for
@@ -75,6 +75,19 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
   useEffect(() => {
     preloadLegacySpreadsheetEngine();
   }, []);
+
+  // The signed request has no sandbox flag or edition, so the org type badge would otherwise always say
+  // "Production". The initial value is a guess from the host; this fills in the real Organization record.
+  useEffect(() => {
+    if (!org) {
+      return;
+    }
+    getCanvasOrgDetails(org)
+      .then((orgDetails) => setSalesforceOrgs([{ ...org, ...orgDetails }]))
+      .catch((ex) => {
+        logger.warn('[CANVAS] Error getting org info', ex);
+      });
+  }, [org, setSalesforceOrgs]);
 
   useEffect(() => {
     // wait until this data has initialized before proceeding
