@@ -54,10 +54,22 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
   const [isRemoving, setIsRemoving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const soqlEditorId = useId();
+  const cardRef = useRef<HTMLElement>(null);
   // Escape while editing cancels the edit (and is consumed here) instead of closing the whole
   // Query History modal and discarding the unsaved changes with it. Inside the SOQL editor the first
   // Escape only leaves the editor, as its name announces, so a stray press doesn't discard the edit.
-  useEscapeToCloseLayer(isEditing, () => handleCancelEdit(), { codeEditorEscapeLeavesEditor: true });
+  // Several cards can be in edit mode at once, so the press belongs to the card that holds focus.
+  useEscapeToCloseLayer(
+    isEditing,
+    () => {
+      // Still consumed while a save is in flight (the modal must not close), but the edit cannot be
+      // cancelled any more: the save would persist anyway, behind a card showing the old text
+      if (!isSaving) {
+        handleCancelEdit();
+      }
+    },
+    { codeEditorEscapeLeavesEditor: true, followsFocus: true, getLayerElement: () => cardRef.current },
+  );
   const editButtonRef = useRef<HTMLButtonElement>(null);
   const [editedSoql, setEditedSoql] = useState(soql);
   const [editedCustomLabel, setEditedCustomLabel] = useState(customLabel || label);
@@ -192,6 +204,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
 
   return (
     <Card
+      ref={cardRef}
       className="modal-card-override"
       actionsAlignment={isEditing ? 'start' : undefined}
       icon={isTooling ? METADATA_QUERY_ICON : SOBJECT_QUERY_ICON}
