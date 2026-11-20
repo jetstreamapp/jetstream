@@ -25,9 +25,6 @@
     "libs/features/debug-log-viewer/src/DebugLogViewerTable.tsx": {
       "click-events-have-key-events": 1
     },
-    "libs/features/load-records/src/components/load-results/LoadRecordsBatchApiResultsTable.tsx": {
-      "control-has-associated-label": 1
-    },
     "libs/features/load-records/src/components/load-results/LoadRecordsCustomMetadataResultsTable.tsx": {
       "control-has-associated-label": 1
     },
@@ -48,6 +45,9 @@
     "libs/features/permission-analysis/src/PermissionAnalysisObjectPermissionsTree.tsx": {
       "click-events-have-key-events": 1,
       "no-static-element-interactions": 1
+    },
+    "libs/shared/ui-core/src/load-records-results/LoadRecordsBatchApiResultsTable.tsx": {
+      "control-has-associated-label": 1
     },
     "libs/shared/ui-core/src/load-records-results/LoadRecordsBulkApiResultsTable.tsx": {
       "control-has-associated-label": 1

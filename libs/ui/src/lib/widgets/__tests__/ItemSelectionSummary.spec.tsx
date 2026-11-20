@@ -1,3 +1,4 @@
+import { axeScan } from '@jetstream/test-utils';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ItemSelectionSummary } from '../ItemSelectionSummary';
@@ -14,6 +15,16 @@ describe('ItemSelectionSummary', () => {
     fireEvent.click(screen.getByRole('button', { name: /2 items selected/ }));
 
     expect(await screen.findByRole('button', { name: 'Clear All' })).toBeTruthy();
+  });
+
+  it('has no axe violations with the selection popover open', async () => {
+    const { baseElement } = render(<ItemSelectionSummary items={items} onClearItem={vi.fn()} onClearAll={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /2 items selected/ }));
+    await screen.findByRole('button', { name: 'Clear All' });
+
+    const results = await axeScan(baseElement);
+
+    expect(results.violations).toEqual([]);
   });
 
   it('keeps a disabled trigger focusable but does not open on click', () => {
