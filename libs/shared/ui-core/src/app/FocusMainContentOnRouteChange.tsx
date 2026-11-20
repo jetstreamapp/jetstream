@@ -1,4 +1,4 @@
-import { focusContainer, MAIN_CONTENT_ID } from '@jetstream/ui';
+import { focusContainer, focusHashTargetWhenMounted, MAIN_CONTENT_ID } from '@jetstream/ui';
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router';
 
@@ -24,7 +24,8 @@ export { MAIN_CONTENT_ID };
  *
  * When the navigation carries a `#hash`, focus (and scroll to) the element with that id instead —
  * this is how in-app deep links (e.g. Settings#data-history) land the user on the right section.
- * The target may mount after async data loads, so it is polled for briefly.
+ * The target may mount after async data loads, so it is polled for briefly — until the user presses a
+ * key or pointer button, after which a late target no longer takes focus from what they moved on to.
  *
  * Neither target needs a `tabIndex`: focus is moved with `focusContainer`, which adds one only for that
  * moment.
@@ -72,34 +73,16 @@ export function FocusMainContentOnRouteChange() {
     }
 
     if (hash) {
-      let attemptsRemaining = 20;
-      let cancelled = false;
-      const tryFocusHashTarget = () => {
-        if (cancelled) {
-          return;
-        }
-        const target = document.getElementById(hash.slice(1));
-        if (target) {
-          target.scrollIntoView?.({ block: 'start' });
-          focusContainer(target);
-          return;
-        }
-        attemptsRemaining--;
-        if (attemptsRemaining > 0) {
-          window.setTimeout(tryFocusHashTarget, 50);
-          return;
-        }
+      return focusHashTargetWhenMounted(hash, {
         // The target never showed up (still loading, or not rendered for this user) — land on the main content
         // like any other navigation instead of leaving focus on <body>, unless the user has already moved on
-        const container = document.getElementById(MAIN_CONTENT_ID);
-        if (container && (!document.activeElement || document.activeElement === document.body)) {
-          focusContainer(container);
-        }
-      };
-      tryFocusHashTarget();
-      return () => {
-        cancelled = true;
-      };
+        onTargetMissing: () => {
+          const container = document.getElementById(MAIN_CONTENT_ID);
+          if (container && (!document.activeElement || document.activeElement === document.body)) {
+            focusContainer(container);
+          }
+        },
+      });
     }
 
     const container = document.getElementById(MAIN_CONTENT_ID);

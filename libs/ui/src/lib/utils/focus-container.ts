@@ -28,3 +28,51 @@ export function focusContainer(element: HTMLElement, options?: FocusOptions) {
   element.addEventListener('blur', release);
   element.addEventListener('pointerdown', release, { capture: true });
 }
+
+const HASH_TARGET_POLL_INTERVAL_MS = 50;
+const HASH_TARGET_POLL_ATTEMPTS = 20;
+
+/**
+ * Scrolls to and focuses the element a `#hash` deep link names, waiting briefly for it to mount: a
+ * section often renders after async data loads, which the browser's native fragment jump misses.
+ *
+ * The wait ends as soon as the user presses a key or a pointer button. From then on they are working
+ * somewhere else, and a target that mounts late must not pull focus and scroll away from them.
+ *
+ * `onTargetMissing` runs when the target never mounted and the user has not interacted in the meantime.
+ *
+ * @returns a function that stops waiting, for effect cleanup
+ */
+export function focusHashTargetWhenMounted(hash: string, { onTargetMissing }: { onTargetMissing?: () => void } = {}): () => void {
+  const targetId = hash.replace(/^#/, '');
+  let attemptsRemaining = HASH_TARGET_POLL_ATTEMPTS;
+  let timeoutId: number | undefined;
+
+  const stopWaiting = () => {
+    window.clearTimeout(timeoutId);
+    window.removeEventListener('keydown', stopWaiting, { capture: true });
+    window.removeEventListener('pointerdown', stopWaiting, { capture: true });
+  };
+
+  const tryFocusTarget = () => {
+    const target = document.getElementById(targetId);
+    if (target) {
+      stopWaiting();
+      target.scrollIntoView?.({ block: 'start' });
+      focusContainer(target);
+      return;
+    }
+    attemptsRemaining--;
+    if (attemptsRemaining > 0) {
+      timeoutId = window.setTimeout(tryFocusTarget, HASH_TARGET_POLL_INTERVAL_MS);
+      return;
+    }
+    stopWaiting();
+    onTargetMissing?.();
+  };
+
+  window.addEventListener('keydown', stopWaiting, { capture: true });
+  window.addEventListener('pointerdown', stopWaiting, { capture: true });
+  tryFocusTarget();
+  return stopWaiting;
+}
