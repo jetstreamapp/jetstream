@@ -198,7 +198,7 @@ export default function Page() {
                   aria-describedby={tier.id}
                   className={classNames(
                     tier.mostPopular
-                      ? 'bg-cyan-700 text-white shadow-xs hover:bg-cyan-600 focus-visible:outline-cyan-700'
+                      ? 'bg-cyan-700 text-white shadow-xs hover:bg-cyan-800 focus-visible:outline-cyan-700'
                       : 'bg-white/10 text-white hover:bg-white/20 focus-visible:outline-white',
                     'block rounded-md px-3 py-2 text-center text-sm/6 font-semibold focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2',
                   )}
