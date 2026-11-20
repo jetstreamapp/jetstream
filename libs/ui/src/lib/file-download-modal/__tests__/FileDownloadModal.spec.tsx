@@ -1,4 +1,5 @@
 import { prepareExcelFile } from '@jetstream/shared/ui-utils';
+import { axeScan } from '@jetstream/test-utils';
 import { FileExtAllTypes, SalesforceOrgUi } from '@jetstream/types';
 import { XlsxError } from '@jetstreamapp/simple-excel';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -115,5 +116,20 @@ describe('FileDownloadModal failed download', () => {
     );
     expect(screen.queryByText('modal closed')).toBeNull();
     expect(screen.getByRole('button', { name: /^Download$/i })).toBeTruthy();
+  });
+});
+
+describe('FileDownloadModal accessibility', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  test('has no axe violations', async () => {
+    setup(['xlsx', 'csv', 'gdrive']);
+
+    const results = await axeScan(document.body);
+
+    expect(results.violations).toEqual([]);
   });
 });

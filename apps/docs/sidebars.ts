@@ -12,6 +12,7 @@ const sidebar = {
         'getting-started/troubleshooting',
         'getting-started/org-groups',
         'getting-started/feedback',
+        'getting-started/accessibility',
         'getting-started/history-data-sync/history-data-sync',
       ],
     },
