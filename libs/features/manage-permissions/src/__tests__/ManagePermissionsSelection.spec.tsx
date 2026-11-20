@@ -30,7 +30,6 @@ vi.mock('@jetstream/ui/app-state', async (importOriginal) => {
 
 vi.mock('@jetstream/ui-core', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@jetstream/ui-core')>()),
-  useAnalytics: () => ({ trackEvent: vi.fn() }),
   RequireMetadataApiBanner: () => null,
 }));
 
