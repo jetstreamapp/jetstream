@@ -6,6 +6,9 @@ import { DropDownItem } from '@jetstream/types';
 import { Badge, Card, ConfirmationModalPromise, DropDown, fireToast, Input, Spinner } from '@jetstream/ui';
 import { FormEvent, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 
+const SETUP_BUTTON_ID = 'mfa-totp-setup-button';
+const CARD_HEADING_ID = 'mfa-totp-card-heading';
+
 export interface Profile2faOtpProps {
   isConfigured: boolean;
   isEnabled: boolean;
@@ -78,6 +81,7 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
       }
       setIsLoading(true);
       onUpdate(await saveOtpAuthFactor(twoFaCode));
+      focusCardAction();
     } catch (ex) {
       logger.error('Failed to save 2fa', ex);
       fireToast({ message: getErrorMessage(ex), type: 'error' });
@@ -90,6 +94,22 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
     setEditIsActive(false);
     setTwoFaCode('');
     setIsLoading(false);
+    focusCardAction();
+  }
+
+  /**
+   * Save and Cancel unmount the set-up form they live in, which would drop keyboard focus to <body> —
+   * land on the card action that replaces it (Set Up after cancel, the actions menu after a save),
+   * or the card heading when the enabled factor can't be disabled and so has no actions menu
+   */
+  function focusCardAction() {
+    window.setTimeout(() => {
+      const cardAction =
+        document.getElementById(SETUP_BUTTON_ID) ??
+        document.querySelector<HTMLElement>('[data-testid="mfa-totp-menu-button"]') ??
+        document.getElementById(CARD_HEADING_ID);
+      cardAction?.focus();
+    });
   }
 
   const menuItems = useMemo(() => {
@@ -99,18 +119,18 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
         id: 'disable',
         value: 'Disable',
         trailingDivider: true,
-        icon: { type: 'utility', icon: 'toggle_off', description: 'Disable' },
+        icon: { type: 'utility', icon: 'toggle_off' },
       });
     } else if (!isEnabled && canEnable) {
       items.push({
         id: 'enable',
         value: 'Enable',
         trailingDivider: true,
-        icon: { type: 'utility', icon: 'toggle_on', description: 'Disable' },
+        icon: { type: 'utility', icon: 'toggle_on' },
       });
     }
     if (canDisabled) {
-      items.push({ id: 'delete', value: 'Delete', icon: { type: 'utility', icon: 'delete', description: 'Delete' } });
+      items.push({ id: 'delete', value: 'Delete', icon: { type: 'utility', icon: 'delete' } });
     }
     return items;
   }, [canDisabled, canEnable, isEnabled]);
@@ -123,7 +143,9 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
     <Card
       title={
         <>
-          Authenticator App
+          <span id={CARD_HEADING_ID} tabIndex={-1}>
+            Authenticator App
+          </span>
           {isEnabled && (
             <Badge className="slds-m-left_x-small" type="success">
               Active
@@ -135,7 +157,7 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
       actions={
         <>
           {!isConfigured && canEnable && (
-            <button className="slds-button slds-button_neutral" onClick={() => setEditIsActive(true)}>
+            <button id={SETUP_BUTTON_ID} className="slds-button slds-button_neutral" onClick={() => setEditIsActive(true)}>
               Set Up
             </button>
           )}
@@ -144,6 +166,7 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
               testId="mfa-totp-menu-button"
               dropDownClassName="slds-dropdown_actions"
               position="right"
+              description="Authenticator app actions"
               items={menuItems}
               onSelected={handleMenuAction}
             />
@@ -157,7 +180,7 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
       {!canEnable && <p className="text-italic">This authentication factor is not allowed for your account.</p>}
       {editIsActive && otp2fa && (
         <form onSubmit={handleSave}>
-          <h5>Scan the QR code with your authenticator app</h5>
+          <h3 className="slds-text-heading_small">Scan the QR code with your authenticator app</h3>
           <img src={otp2fa.imageUri} alt="qr code" className="slds-box slds-box_xx-small" />
           <p>
             Or enter the following secret in your authenticator app: <span data-testid="totp-secret">{otp2fa.secretToken}</span>

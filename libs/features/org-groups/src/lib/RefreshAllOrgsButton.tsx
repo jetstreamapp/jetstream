@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
 import { ORG_INACTIVITY_EXPIRATION_DAYS, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { Icon, Spinner, Tooltip, fireToast } from '@jetstream/ui';
+import { ariaDisabledButtonProps, AssistiveStatus, fireToast, Icon, Spinner, Tooltip } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useSetAtom } from 'jotai';
@@ -75,18 +75,24 @@ export const RefreshAllOrgsButton = ({ className, orgs }: RefreshAllOrgsButtonPr
   }
 
   return (
-    <Tooltip
-      content={`Salesforce ends a connection when an org has not been used for ${ORG_INACTIVITY_EXPIRATION_DAYS} days. Refreshing checks every connection and resets the ${ORG_INACTIVITY_EXPIRATION_DAYS}-day clock so your orgs stay connected.`}
-    >
-      <button
-        className={classNames('slds-button slds-button_neutral slds-is-relative', className)}
-        onClick={handleRefreshAllOrgs}
-        disabled={isRefreshing}
+    <>
+      <Tooltip
+        content={`Salesforce ends a connection when an org has not been used for ${ORG_INACTIVITY_EXPIRATION_DAYS} days. Refreshing checks every connection and resets the ${ORG_INACTIVITY_EXPIRATION_DAYS}-day clock so your orgs stay connected.`}
       >
-        <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-        {isRefreshing ? `Refreshing ${completedCount} of ${orgs.length}` : 'Refresh All Orgs'}
-        {isRefreshing && <Spinner size="small" />}
-      </button>
-    </Tooltip>
+        {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
+        <button
+          className={classNames('slds-button slds-button_neutral slds-is-relative', className)}
+          aria-busy={isRefreshing || undefined}
+          {...ariaDisabledButtonProps(isRefreshing, () => handleRefreshAllOrgs())}
+        >
+          <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+          {isRefreshing ? `Refreshing ${completedCount} of ${orgs.length}` : 'Refresh All Orgs'}
+          {isRefreshing && <Spinner size="small" />}
+        </button>
+      </Tooltip>
+      {/* Announced once when the refresh starts (a per-org count would queue an announcement for every
+          completion); the completion toast announces the outcome */}
+      <AssistiveStatus message={isRefreshing ? `Refreshing ${orgs.length} orgs` : ''} />
+    </>
   );
 };

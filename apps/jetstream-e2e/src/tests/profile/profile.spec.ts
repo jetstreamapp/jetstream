@@ -53,7 +53,7 @@ test.describe('Profile', () => {
 
       await expect(page.getByRole('button', { name: 'Password Options' })).toBeVisible();
 
-      await expect(page.getByRole('heading', { name: 'Authenticator App Active' }).locator('span')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Authenticator App Active' }).getByText('Active', { exact: true })).toBeVisible();
       await expect(page.getByRole('heading', { name: 'Email Active' }).locator('span')).toBeVisible();
 
       await page.getByTestId('mfa-email-menu-button').click();
