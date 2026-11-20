@@ -30,3 +30,22 @@
 .slds-context-bar {
   app-region: no-drag;
 }
+
+/*
+ * The focused skip link shows in the top-left corner, where macOS draws the window controls over the
+ * page (hidden title bar) and the header drag region would turn a click on it into a window drag.
+ *
+ * The link has to stay first in the DOM to be the first tab stop, so its own no-drag rect is applied
+ * BEFORE the header's drag rects and loses to them (document order, last one wins - see the toast rule
+ * above). While it is focused, the header therefore stops being a drag handle altogether.
+ */
+.desktop-skip-to-content {
+  app-region: no-drag;
+}
+body:has(.desktop-skip-to-content:focus) .desktop-header-drag-region,
+body:has(.desktop-skip-to-content:focus) .desktop-header-drag-region * {
+  app-region: no-drag !important;
+}
+.desktop-skip-to-content:focus {
+  left: 88px;
+}

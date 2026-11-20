@@ -250,16 +250,25 @@ function AddCanvasOrgModal({
             <p className="slds-m-bottom_small slds-text-color_weak slds-text-body_small">Or enter the details manually.</p>
           </>
         )}
+        {/* ids associate each <label> with its input; without them the required fields had no accessible name */}
         <Input
+          id="canvas-org-organization-id"
           label="Production Organization Id"
           labelHelp="Your production org's 15 or 18 character id, starting with 00D. Find it in Setup > Company Information."
           errorMessage={errors.organizationId?.message}
           hasError={!!errors.organizationId}
           isRequired
         >
-          <input className="slds-input" type="text" {...register('organizationId')} placeholder="00Dxxxxxxxxxxxxxxx" />
+          <input
+            id="canvas-org-organization-id"
+            className="slds-input"
+            type="text"
+            {...register('organizationId')}
+            placeholder="00Dxxxxxxxxxxxxxxx"
+          />
         </Input>
         <Input
+          id="canvas-org-my-domain"
           className="slds-m-top_small"
           label="My Domain"
           labelHelp="Paste your Salesforce url or just the name (for example, acme for acme.my.salesforce.com). All sandboxes that share this My Domain can use the Managed Package."
@@ -268,6 +277,7 @@ function AddCanvasOrgModal({
           isRequired
         >
           <input
+            id="canvas-org-my-domain"
             className="slds-input"
             type="text"
             {...register('myDomainBase', { onBlur: (event) => normalizeMyDomainField(event.target.value) })}
@@ -281,8 +291,14 @@ function AddCanvasOrgModal({
             placeholder="acme or https://acme.my.salesforce.com"
           />
         </Input>
-        <Input className="slds-m-top_small" label="Label (optional)" errorMessage={errors.orgName?.message} hasError={!!errors.orgName}>
-          <input className="slds-input" type="text" {...register('orgName')} placeholder="Acme Production" />
+        <Input
+          id="canvas-org-name"
+          className="slds-m-top_small"
+          label="Label (optional)"
+          errorMessage={errors.orgName?.message}
+          hasError={!!errors.orgName}
+        >
+          <input id="canvas-org-name" className="slds-input" type="text" {...register('orgName')} placeholder="Acme Production" />
         </Input>
       </form>
     </Modal>

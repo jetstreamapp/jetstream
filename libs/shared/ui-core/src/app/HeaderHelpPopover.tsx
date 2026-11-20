@@ -37,6 +37,21 @@ export const HeaderHelpPopover: FunctionComponent<HeaderHelpPopoverProps> = () =
                 <span className="slds-truncate" title="Documentation">
                   Documentation
                 </span>
+                <span className="slds-assistive-text"> (opens in a new tab)</span>
+                <Icon
+                  type="utility"
+                  icon="new_window"
+                  className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-left_xx-small"
+                  omitContainer
+                />
+              </a>
+            </li>
+            <li className="slds-box slds-box_x-small slds-m-bottom_x-small">
+              <a href="https://docs.getjetstream.app/accessibility" target="_blank" rel="noreferrer" onClick={() => closePopover()}>
+                <span className="slds-truncate" title="Accessibility">
+                  Accessibility
+                </span>
+                <span className="slds-assistive-text"> (opens in a new tab)</span>
                 <Icon
                   type="utility"
                   icon="new_window"
@@ -64,6 +79,7 @@ export const HeaderHelpPopover: FunctionComponent<HeaderHelpPopoverProps> = () =
       buttonProps={{
         className:
           'slds-button slds-button_icon slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
+        'aria-label': 'Help',
       }}
     >
       <Icon type="utility" icon="help" className="slds-button__icon slds-global-header__icon" omitContainer />
