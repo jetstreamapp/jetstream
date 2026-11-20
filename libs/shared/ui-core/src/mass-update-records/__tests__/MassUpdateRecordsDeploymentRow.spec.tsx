@@ -15,9 +15,7 @@ vi.doMock('@jetstream/ui/app-state', () => ({
   selectSkipFrontdoorAuth: atom(false),
 }));
 
-vi.doMock('../../analytics', () => ({
-  useAnalytics: () => ({ trackEvent: vi.fn() }),
-}));
+vi.doMock('../../analytics', () => ({}));
 
 const { MassUpdateRecordsDeploymentRow } = await import('../MassUpdateRecordsDeploymentRow');
 
