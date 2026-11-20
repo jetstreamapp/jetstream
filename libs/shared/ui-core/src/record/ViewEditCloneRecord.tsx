@@ -179,6 +179,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   const [formIsDirty, setIsFormDirty] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
+  const saveInFlightRef = useRef(false);
   const [formErrors, setFormErrors] = useState<EditFromErrors>({ hasErrors: false, fieldErrors: {}, generalErrors: [] });
   const [modalTitle, setModalTitle] = useState(() => getModalTitle(action));
   const [isViewAsJson, setIsViewAsJson] = useState(false);
@@ -329,6 +330,11 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   }
 
   async function handleSave(ignoreValidationErrors = false) {
+    // `saving` state lags a render behind: two shortcut presses queued in the same tick would both get
+    // through and, in create/clone mode, create the record twice
+    if (saveInFlightRef.current) {
+      return;
+    }
     let record = transformEditForm(sobjectFields || [], modifiedRecord);
     const currentFormErrors = validateEditForm(sobjectFields || [], record);
 
@@ -342,6 +348,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       setFormErrors({ hasErrors: false, fieldErrors: {}, generalErrors: [] });
     }
 
+    saveInFlightRef.current = true;
     setSaving(true);
 
     // Identity of the Data History entry, shared by the success and thrown-error paths below.
@@ -401,6 +408,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
         outcome: { succeeded: false, results: { error: getErrorMessage(ex) }, errorMessage: getErrorMessage(ex) },
       });
     }
+    saveInFlightRef.current = false;
     if (isMounted.current) {
       setSaving(false);
     }
