@@ -19,9 +19,6 @@ vi.doMock('@jetstream/ui/app-state', () => ({
   selectSkipFrontdoorAuth: atom(false),
 }));
 
-const trackEvent = vi.fn();
-vi.doMock('../../analytics', () => ({ useAnalytics: () => ({ trackEvent }) }));
-
 const { UserSearchPopover } = await import('../UserSearchPopover');
 const { ViewRecordModalStandIn } = await import('./ViewRecordModalStandIn');
 
