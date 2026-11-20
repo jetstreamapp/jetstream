@@ -149,7 +149,9 @@ export const DataHistoryTable: FunctionComponent<DataHistoryTableProps> = ({
   );
 
   return (
-    <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={10} recalculateKey={recalculateKey}>
+    // minHeight keeps the table usable at high zoom / with many banners stacked above — the page
+    // scrolls instead of the table collapsing to nothing
+    <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={10} minHeight="300px" recalculateKey={recalculateKey}>
       <DataTable<DataHistoryTableRowItem>
         aria-label="Data history"
         data={rows}

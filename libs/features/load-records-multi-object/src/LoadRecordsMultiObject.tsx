@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import { INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
@@ -23,6 +24,7 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
   Spinner,
+  ariaDisabledButtonProps,
   fireToast,
 } from '@jetstream/ui';
 import { SkipDataHistoryCheckbox } from '@jetstream/ui-core';
@@ -180,7 +182,16 @@ export const LoadRecordsMultiObject = () => {
     <div>
       <p className="slds-form-element__label slds-m-bottom_xx-small">
         Upload a file based on the{' '}
-        <a href={templateUrl} target="_blank" rel="noreferrer" download>
+        <a
+          href={templateUrl}
+          target="_blank"
+          rel="noreferrer"
+          download
+          // Underline so the link is distinguishable from surrounding text without relying on color (WCAG 1.4.1)
+          css={css`
+            text-decoration: underline;
+          `}
+        >
           Excel template
         </a>
       </p>
@@ -232,8 +243,7 @@ export const LoadRecordsMultiObject = () => {
             <button
               data-testid="prev-step-button"
               className="slds-button slds-button_neutral"
-              disabled={prevStepDisabled}
-              onClick={() => changeStep(-1)}
+              {...ariaDisabledButtonProps(prevStepDisabled, () => changeStep(-1))}
             >
               <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" />
               Go Back
@@ -241,8 +251,7 @@ export const LoadRecordsMultiObject = () => {
             <button
               data-testid="next-step-button"
               className="slds-button slds-button_brand"
-              disabled={nextStepDisabled || fileParsing}
-              onClick={() => changeStep(1)}
+              {...ariaDisabledButtonProps(nextStepDisabled || fileParsing, () => changeStep(1))}
             >
               Continue to Load
             </button>

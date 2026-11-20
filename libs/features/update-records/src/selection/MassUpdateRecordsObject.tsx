@@ -1,5 +1,5 @@
 import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, GridCol, Tooltip } from '@jetstream/ui';
+import { DisabledReasonButton, Grid, GridCol } from '@jetstream/ui';
 import { MassUpdateRecordObjectHeading, MassUpdateRecordsObjectRow, MetadataRow } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback } from 'react';
 import { useMassUpdateFieldItems } from './useMassUpdateFieldItems';
@@ -61,17 +61,19 @@ export const MassUpdateRecordsObject: FunctionComponent<MassUpdateRecordsObjectP
           <Grid align="spread" verticalAlign="center">
             <MassUpdateRecordObjectHeading isValid={row.isValid} sobject={row.sobject} validationResults={row.validationResults} />
             <div>
-              <Tooltip
-                content={
-                  row.isValid
-                    ? 'Configure this object before you can validate the number of impacted records.'
-                    : 'Check the number of records that will be updated'
-                }
+              {/* Stays focusable while disabled so keyboard users can reach the tooltip explaining why
+                  validation is unavailable, and the reason is read as the button's description; the
+                  aria-label scopes the accessible name per object since every card renders this same button */}
+              <DisabledReasonButton
+                className="slds-button slds-button_neutral"
+                aria-label={`Validate Results for ${row.sobject}`}
+                disabled={!row.isValid}
+                disabledReason="Configure this object before you can validate the number of impacted records."
+                tooltip="Check the number of records that will be updated"
+                onClick={() => validateRowRecords(row.sobject)}
               >
-                <button className="slds-button slds-button_neutral" disabled={!row.isValid} onClick={() => validateRowRecords(row.sobject)}>
-                  Validate Results
-                </button>
-              </Tooltip>
+                Validate Results
+              </DisabledReasonButton>
             </div>
           </Grid>
         </GridCol>

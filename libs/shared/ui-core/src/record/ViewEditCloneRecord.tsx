@@ -5,7 +5,13 @@ import { getPicklistValuesForRecordAndRecordType, UiRecordForm } from '@jetstrea
 import { logger } from '@jetstream/shared/client-logger';
 import { SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
 import { clearCacheForOrg, describeGlobal, describeSObject, query, sobjectOperation } from '@jetstream/shared/data';
-import { copyRecordsToClipboard, isErrorResponse, tracker, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import {
+  copyRecordsToClipboard,
+  isErrorResponse,
+  tracker,
+  useNonInitialEffect,
+  usePrimaryActionShortcut,
+} from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
   AsyncJobNew,
@@ -22,10 +28,14 @@ import {
   SalesforceRecord,
 } from '@jetstream/types';
 import {
+  ariaDisabledButtonProps,
+  AssistiveStatus,
   Breadcrumbs,
   ButtonGroupContainer,
   DownloadFromServerOpts,
   DropDown,
+  getAriaKeyshortcuts,
+  getModifierKey,
   Grid,
   Icon,
   Modal,
@@ -49,7 +59,7 @@ import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { useAtomValue } from 'jotai';
 import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
-import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { MonacoEditor } from '../app/MonacoEditor';
 import { fromJetstreamEvents } from '../jetstream-events';
 import { ViewChildRecords } from './ViewChildRecords';
@@ -125,6 +135,11 @@ export interface ViewEditCloneRecordProps {
   onSave: (saved: { recordId: string; sobjectName: string }) => void;
   onFetch?: (recordId: string, record: any) => void;
   onFetchError?: (recordId: string, sobjectName: string) => void;
+  /**
+   * Rendered inside the modal body. The modal's focus manager marks everything outside it aria-hidden,
+   * so an owner's live region ("Record saved" after the post-save remount) is only read from in here.
+   */
+  liveRegion?: ReactNode;
 }
 
 export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = ({
@@ -136,6 +151,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   onClose,
   onChangeAction,
   onSave,
+  liveRegion,
   onFetch,
   onFetchError,
 }) => {
@@ -163,6 +179,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   const [formIsDirty, setIsFormDirty] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
+  const saveInFlightRef = useRef(false);
   const [formErrors, setFormErrors] = useState<EditFromErrors>({ hasErrors: false, fieldErrors: {}, generalErrors: [] });
   const [modalTitle, setModalTitle] = useState(() => getModalTitle(action));
   const [isViewAsJson, setIsViewAsJson] = useState(false);
@@ -313,6 +330,11 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   }
 
   async function handleSave(ignoreValidationErrors = false) {
+    // `saving` state lags a render behind: two shortcut presses queued in the same tick would both get
+    // through and, in create/clone mode, create the record twice
+    if (saveInFlightRef.current) {
+      return;
+    }
     let record = transformEditForm(sobjectFields || [], modifiedRecord);
     const currentFormErrors = validateEditForm(sobjectFields || [], record);
 
@@ -326,6 +348,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       setFormErrors({ hasErrors: false, fieldErrors: {}, generalErrors: [] });
     }
 
+    saveInFlightRef.current = true;
     setSaving(true);
 
     // Identity of the Data History entry, shared by the success and thrown-error paths below.
@@ -385,6 +408,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
         outcome: { succeeded: false, results: { error: getErrorMessage(ex) }, errorMessage: getErrorMessage(ex) },
       });
     }
+    saveInFlightRef.current = false;
     if (isMounted.current) {
       setSaving(false);
     }
@@ -548,6 +572,14 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   }
 
   const isSaveButtonDisabled = loading || saving || !initialRecord;
+
+  // Enter never submits: the form is long and a stray Enter in a field must not save. Cmd/Ctrl+Enter
+  // is the app-wide primary-action shortcut and is announced on the Save button.
+  usePrimaryActionShortcut(() => handleSave(), {
+    scope: 'dialog',
+    disabled: isSaveButtonDisabled || action === 'view',
+    commitFocusedField: true,
+  });
   const showSaveWithErrorsButton = !isSaveButtonDisabled && formErrors.hasErrors;
 
   return (
@@ -616,6 +648,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                         <span>Copy to Clipboard</span>
                       </button>
                       <DropDown
+                        description="More copy formats"
                         className="slds-button_last"
                         dropDownClassName="slds-dropdown_actions"
                         position="right"
@@ -757,11 +790,17 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                       Cancel
                     </button>
                     <ButtonGroupContainer>
-                      <button className="slds-button slds-button_brand" onClick={() => handleSave()} disabled={isSaveButtonDisabled}>
+                      <button
+                        className="slds-button slds-button_brand"
+                        // The shortcut is conveyed by aria-keyshortcuts; repeating it in a title would double the announcement
+                        aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                        {...ariaDisabledButtonProps(isSaveButtonDisabled, () => handleSave())}
+                      >
                         Save
                       </button>
                       {showSaveWithErrorsButton && (
                         <DropDown
+                          description="More save options"
                           className="slds-button_last"
                           dropDownClassName="slds-dropdown_actions"
                           position="right"
@@ -783,6 +822,9 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
         >
           <div ref={modalBodyRef}>
             {(loading || saving) && <Spinner />}
+            {/* The spinner is the only sign that Save/Load is in progress, so mirror it for screen readers */}
+            <AssistiveStatus message={saving ? 'Saving record' : loading ? 'Loading record' : ''} />
+            {liveRegion}
             {!loading && initialRecord && (
               <>
                 {/* Create and Edit do not show child records */}
