@@ -1,6 +1,6 @@
 # syntax = docker/dockerfile:1
 
-ARG NODE_VERSION=24.22.1
+ARG NODE_VERSION=24.22.3
 ARG ENVIRONMENT=production
 
 FROM node:${NODE_VERSION}-slim AS base
@@ -10,7 +10,7 @@ WORKDIR /app
 
 # Set production environment.
 ENV NODE_ENV=production
-ARG PNPM_VERSION=12.18.0
+ARG PNPM_VERSION=12.21.0
 RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 
 # Throw-away build stage to reduce size of final image
