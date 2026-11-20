@@ -16,7 +16,7 @@ export default function Page() {
             Don't hesitate to reach out to us via email at{' '}
             <a
               href="mailto:support@getjetstream.app"
-              className="text-cyan-700 underline hover:text-cyan-600"
+              className="text-cyan-700 underline hover:text-cyan-800"
               target="_blank"
               rel="noreferrer"
             >
@@ -25,7 +25,7 @@ export default function Page() {
             if you have any questions or have feedback on what we can do better.
           </p>
           <div className="mt-6">
-            <Link href={ROUTES.HOME} className="text-base font-medium text-cyan-700 hover:text-cyan-600">
+            <Link href={ROUTES.HOME} className="text-base font-medium text-cyan-700 hover:text-cyan-800">
               Go back home<span aria-hidden="true"> &rarr;</span>
             </Link>
           </div>
