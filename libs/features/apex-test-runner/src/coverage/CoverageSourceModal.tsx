@@ -45,9 +45,10 @@ const coverageStyles = css`
     font-size: 0.75rem;
     font-weight: 700;
   }
+  /* Darker than the gutter green: the glyph is the non-colour cue, so it needs 3:1+ on the light editor */
   .${COVERAGE_COVERED_GLYPH_CLASS}::before {
     content: '${COVERED_GLYPH}';
-    color: rgb(45, 200, 64);
+    color: rgb(20, 110, 40);
   }
   .${COVERAGE_UNCOVERED_GLYPH_CLASS}::before {
     content: '${UNCOVERED_GLYPH}';
@@ -60,6 +61,9 @@ const coverageStyles = css`
     .${COVERAGE_UNCOVERED_CLASS} {
       background: rgba(254, 92, 76, 0.25);
     }
+    .${COVERAGE_COVERED_GLYPH_CLASS}::before {
+      color: rgb(45, 200, 64);
+    }
   }
   @media (prefers-color-scheme: dark) {
     body.slds-color-scheme--system {
@@ -68,6 +72,9 @@ const coverageStyles = css`
       }
       .${COVERAGE_UNCOVERED_CLASS} {
         background: rgba(254, 92, 76, 0.25);
+      }
+      .${COVERAGE_COVERED_GLYPH_CLASS}::before {
+        color: rgb(45, 200, 64);
       }
     }
   }
