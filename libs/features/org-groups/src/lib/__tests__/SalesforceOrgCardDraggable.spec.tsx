@@ -9,7 +9,6 @@ import { ORG_GROUP_DRAG_INSTRUCTIONS, ORG_GROUP_DRAG_PLUGINS } from '../org-grou
 vi.doMock('@jetstream/ui-core', () => ({
   AddOrg: ({ label }: { label: string }) => <button type="button">{label}</button>,
   OrgInfoPopover: () => null,
-  useAnalytics: () => ({ trackEvent: vi.fn() }),
   useOrgExpiration: () => ({ status: 'connected', expiryDate: null, daysUntilExpiration: null }),
   useUpdateOrgs: () => ({
     actionInProgress: false,

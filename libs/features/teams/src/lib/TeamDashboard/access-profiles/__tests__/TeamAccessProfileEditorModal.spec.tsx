@@ -10,15 +10,6 @@ const { createTeamAccessProfile, updateTeamAccessProfile } = vi.hoisted(() => ({
 
 vi.mock('@jetstream/shared/data', () => ({ createTeamAccessProfile, updateTeamAccessProfile }));
 
-/** The text a screen reader reads as the element's description (its aria-describedby targets, in order) */
-function getDescription(element: HTMLElement) {
-  return (element.getAttribute('aria-describedby') ?? '')
-    .split(' ')
-    .filter(Boolean)
-    .map((id) => document.getElementById(id)?.textContent ?? '')
-    .join(' ');
-}
-
 async function setup() {
   const onClose = vi.fn();
   render(<TeamAccessProfileEditorModal teamId="team-1" onClose={onClose} />);
@@ -69,7 +60,7 @@ describe('TeamAccessProfileEditorModal', () => {
 
   it('announces policy warnings through a live region that is mounted before they appear', async () => {
     await setup();
-    fireEvent.click(screen.getByRole('button', { name: 'Data steward' }));
+    // New profiles start with full access, which has nothing to warn about
     expect(getWarningAnnouncement()).toBe('');
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Create and update records' }));
@@ -77,10 +68,9 @@ describe('TeamAccessProfileEditorModal', () => {
     await waitFor(() => expect(getWarningAnnouncement()).toContain('is enabled, but "Create and update records" is not.'));
   });
 
-  it('describes each preset button with its description and groups each tool section under its name', async () => {
+  it('groups each tool section under its name', async () => {
     await setup();
 
-    expect(getDescription(screen.getByRole('button', { name: 'Read only' }))).toBe('Query data and run analyses, no changes');
     const [firstToolGroup] = ACCESS_PROFILE_TOOL_GROUPS;
     const [firstTool] = ACCESS_PROFILE_TOOLS.filter(({ group }) => group === firstToolGroup.key);
     const toolGroup = screen.getByRole('group', { name: firstToolGroup.label });

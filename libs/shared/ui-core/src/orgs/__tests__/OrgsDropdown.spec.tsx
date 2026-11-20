@@ -42,7 +42,6 @@ vi.doMock('@jetstream/ui/app-state', () => ({
 
 vi.doMock('../..', async () => ({
   ...(await vi.importActual<typeof import('../OrgsCombobox')>('../OrgsCombobox')),
-  useAnalytics: () => ({ trackEvent: vi.fn() }),
   useOrgPermissions: () => ({ hasMetadataAccess: true }),
 }));
 
