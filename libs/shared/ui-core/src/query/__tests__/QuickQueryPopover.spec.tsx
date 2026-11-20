@@ -62,7 +62,6 @@ vi.doMock('react-router', async (importOriginal) => ({
   useNavigate: () => navigateMock,
 }));
 
-vi.doMock('../../analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 vi.doMock('../../jetstream-events', () => ({ fromJetstreamEvents: { emit: vi.fn() } }));
 vi.doMock('../../settings/SoqlQueryFormatConfigPopover', () => ({ SoqlQueryFormatConfigPopover: () => null }));
 vi.doMock('../QueryHistory/QueryHistoryModal', () => ({ QueryHistoryModal: () => null }));
