@@ -46,7 +46,10 @@ export const HistorySyncSettings = ({ enabled, onChange, deniedReason }: History
         title="Reset sync"
         description="If your history looks different on another device, push and pull everything again from the Jetstream server."
       >
-        <button className="slds-button slds-button_neutral slds-is-relative" {...ariaDisabledButtonProps(resetting || !!deniedReason, handleReset)}>
+        <button
+          className="slds-button slds-button_neutral slds-is-relative"
+          {...ariaDisabledButtonProps(resetting || !!deniedReason, handleReset)}
+        >
           {resetting && <Spinner size="x-small" />}
           Reset Sync
         </button>
