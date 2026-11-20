@@ -2,9 +2,9 @@ import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { DownloadType, LoadDataBatchApiProgress, Maybe, PrepareDataResponseError } from '@jetstream/types';
 import { Grid, Icon, Spinner } from '@jetstream/ui';
-import { LoadRecordsResultsTableProcessingErrRow } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
+import { LoadRecordsResultsTableProcessingErrRow } from './LoadRecordsResultsTableProcessingErrRow';
 
 export interface LoadRecordsBatchApiResultsTableProps {
   processingErrors: Maybe<PrepareDataResponseError[]>;

@@ -1,3 +1,4 @@
+import { BYPASS_DUPLICATE_RULES_BATCH_API_HELP_TEXT, BYPASS_DUPLICATE_RULES_LABEL } from '@jetstream/shared/constants';
 import { useGoBackShortcut, useIntegerInput, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { Maybe } from '@jetstream/types';
 import {
@@ -44,6 +45,7 @@ export const MassUpdateRecordsDeployment = () => {
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
   const batchSizeInput = useIntegerInput(batchSize, setBatchSize);
   const [serialMode, setSerialMode] = useState(false);
+  const [bypassDuplicateRules, setBypassDuplicateRules] = useState(false);
   const [skipDataHistory, setSkipDataHistory] = useState(false);
   const setDeploymentState = useSetAtom(fromMassUpdateState.rowsMapState);
 
@@ -70,7 +72,7 @@ export const MassUpdateRecordsDeployment = () => {
 
   async function handleDeploy() {
     setLoading(true);
-    await loadDataForRows(rows, { batchSize: batchSize ?? 10000, serialMode, skipHistory: skipDataHistory });
+    await loadDataForRows(rows, { batchSize: batchSize ?? 10000, serialMode, bypassDuplicateRules, skipHistory: skipDataHistory });
     pollResultsUntilDone(getRows);
   }
 
@@ -147,6 +149,14 @@ export const MassUpdateRecordsDeployment = () => {
             labelHelp="Serial mode processes the batches one-by-one instead of parallel."
             disabled={loading}
             onChange={setSerialMode}
+          />
+          <Checkbox
+            id={'bypass-duplicate-rules'}
+            checked={bypassDuplicateRules}
+            label={BYPASS_DUPLICATE_RULES_LABEL}
+            labelHelp={BYPASS_DUPLICATE_RULES_BATCH_API_HELP_TEXT}
+            disabled={loading}
+            onChange={setBypassDuplicateRules}
           />
           <Input
             id="batch-size"

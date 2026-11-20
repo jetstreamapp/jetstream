@@ -149,6 +149,18 @@ Choose this option if you would like blank values in your file to clear the valu
 
 This determines if records will be processed in parallel or not. This option is only available to be modified with the Bulk API.
 
+### Bypass Duplicate Rules
+
+When a Salesforce duplicate rule is configured to alert on possible duplicates, Salesforce rejects those records with the error **Use one of these records?**. Choose this option to save those records anyway.
+
+This option is only available with the Batch API. The Salesforce Bulk API does not support bypassing duplicate rules.
+
+:::note
+
+This only applies to duplicate rules with an action of **Allow** and **Alert**. Rules with an action of **Block** cannot be bypassed.
+
+:::
+
 ### Batch Size
 
 The batch size determines how many records will be loaded at once.

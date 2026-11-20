@@ -10,6 +10,7 @@ import { useAtomValue } from 'jotai';
 import { Fragment, useEffect, useState } from 'react';
 import ConfirmPageChange from '../app/ConfirmPageChange';
 import { fromJetstreamEvents } from '../jetstream-events';
+import LoadRecordsBatchApiResultsTable from '../load-records-results/LoadRecordsBatchApiResultsTable';
 import LoadRecordsBulkApiResultsTable from '../load-records-results/LoadRecordsBulkApiResultsTable';
 import LoadRecordsResultsModal from '../load/LoadRecordsResultsModal';
 import MassUpdateRecordTransformationText from './MassUpdateRecordTransformationText';
@@ -63,8 +64,17 @@ export const MassUpdateRecordsDeploymentRow = ({
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
 
-  const { done, processingErrors, status, fatalErrorMessage, statusCheckFailed, jobInfo, processingEndTime, processingStartTime } =
-    deployResults;
+  const {
+    done,
+    processingErrors,
+    status,
+    fatalErrorMessage,
+    statusCheckFailed,
+    jobInfo,
+    batchApiResults,
+    processingEndTime,
+    processingStartTime,
+  } = deployResults;
   const effectiveLimit = getEffectiveRecordLimit(limit);
 
   useEffect(() => {
@@ -107,6 +117,29 @@ export const MassUpdateRecordsDeploymentRow = ({
       }
     } catch (ex) {
       logger.warn(ex);
+    }
+  }
+
+  /** Batch API results are already in memory, so unlike a bulk batch there is nothing to fetch */
+  function handleDownloadOrViewBatchApiRecords(action: DownloadAction, type: DownloadType) {
+    if (!batchApiResults) {
+      return;
+    }
+    const combinedResults = buildMassUpdateCombinedResults(batchApiResults.results, deployResults.records, {
+      includeSuccesses: type === 'results',
+    });
+    const header = getMassUpdateResultsHeader(configuration);
+
+    if (action === 'view') {
+      setResultsModalData({ ...resultsModalData, open: true, header, data: combinedResults, type });
+    } else {
+      setDownloadModalData({
+        ...downloadModalData,
+        open: true,
+        fileNameParts: ['mass-load'.toLocaleLowerCase(), sobject.toLocaleLowerCase(), type],
+        header,
+        data: combinedResults,
+      });
     }
   }
 
@@ -236,8 +269,24 @@ export const MassUpdateRecordsDeploymentRow = ({
               onDownloadProcessingErrors={handleDownloadProcessingErrors}
             />
           )}
+          {batchApiResults && (
+            <LoadRecordsBatchApiResultsTable
+              processingErrors={processingErrors}
+              processingStatus={batchApiResults}
+              failedProcessingStage={false}
+              inProgress={!done}
+              failed={status === 'Error'}
+              startTime={processingStartTime || ''}
+              endTime={processingEndTime}
+              processingStartTime={processingStartTime}
+              processingEndTime={processingEndTime}
+              onDownload={(type) => handleDownloadOrViewBatchApiRecords('download', type)}
+              onViewResults={(type) => handleDownloadOrViewBatchApiRecords('view', type)}
+              onDownloadProcessingErrors={handleDownloadProcessingErrors}
+            />
+          )}
         </div>
-        {done && !jobInfo && status !== 'Error' && (
+        {done && !jobInfo && !batchApiResults && status !== 'Error' && (
           <ScopedNotification theme="info" className="slds-m-around_small">
             No records met criteria
           </ScopedNotification>

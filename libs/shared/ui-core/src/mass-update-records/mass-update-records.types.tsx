@@ -1,4 +1,13 @@
-import { BulkJobWithBatches, DescribeSObjectResult, Field, ListItem, Maybe, PrepareDataResponseError } from '@jetstream/types';
+import {
+  BulkJobResultRecord,
+  BulkJobWithBatches,
+  DescribeSObjectResult,
+  Field,
+  ListItem,
+  LoadDataBatchApiProgress,
+  Maybe,
+  PrepareDataResponseError,
+} from '@jetstream/types';
 
 export interface MetadataRow {
   /** Confirmed all input is valid, but does not indicate that the row has been validated */
@@ -31,6 +40,8 @@ export interface DeployResults {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   records: any[];
   jobInfo?: BulkJobWithBatches;
+  /** Set instead of `jobInfo` when the records were saved with the Batch API - see {@link MassUpdateBatchApiResults} */
+  batchApiResults?: MassUpdateBatchApiResults;
   batchIdToIndex: Record<string, number>;
   numberOfBatches?: number;
   processingErrors: PrepareDataResponseError[];
@@ -40,6 +51,28 @@ export interface DeployResults {
   fatalErrorMessage?: Maybe<string>;
   /** Polling gave up on the job's status; the job itself is unaffected and keeps running in Salesforce */
   statusCheckFailed?: boolean;
+}
+
+/**
+ * Progress and per-record results of an update that was saved with the Batch API (sObject Collections) rather than a
+ * Bulk API job. Used when duplicate rules are bypassed, which the Bulk API does not support. There is no job to poll:
+ * every request returns its results, so they are held here.
+ */
+export interface MassUpdateBatchApiResults extends LoadDataBatchApiProgress {
+  /** One result per record processed so far, in submit order, so it zips to `DeployResults.records` by index */
+  results: BulkJobResultRecord[];
+}
+
+/** Options chosen under "Advanced Options" for a mass update */
+export interface MassUpdateDeployOptions {
+  batchSize: number;
+  serialMode: boolean;
+  /**
+   * Save records that a duplicate rule flags with an alert instead of failing them. Switches the update from the Bulk API
+   * to the Batch API, since the Bulk API ignores the duplicate rule header.
+   */
+  bypassDuplicateRules?: boolean;
+  skipHistory?: boolean;
 }
 
 export interface ValidationResults {

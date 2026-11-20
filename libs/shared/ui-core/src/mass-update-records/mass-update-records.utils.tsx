@@ -3,7 +3,15 @@ import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { queryAll, queryAllFromList } from '@jetstream/shared/data';
 import { escapeSoqlString } from '@jetstream/shared/ui-utils';
 import { BULK_RESULTS_BASE_HEADER, buildBulkResultRow } from '@jetstream/shared/utils';
-import { BulkJobResultRecord, DescribeGlobalSObjectResult, ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
+import {
+  BulkJobResultRecord,
+  DescribeGlobalSObjectResult,
+  ListItem,
+  Maybe,
+  RecordResult,
+  SalesforceOrgUi,
+  SalesforceRecord,
+} from '@jetstream/types';
 import { FieldType, Query, composeQuery, getField, isQueryValid } from '@jetstreamapp/soql-parser-js';
 import lodashGet from 'lodash/get';
 import isNil from 'lodash/isNil';
@@ -257,6 +265,33 @@ export function buildMassUpdateCombinedResults(
     }
   });
   return combinedResults;
+}
+
+/**
+ * Convert a record prepared for a Bulk API CSV into the body the Batch API expects, keeping the two transports
+ * equivalent: a blank value means "leave this field alone" in a CSV, so it is omitted here, and the CSV null marker
+ * becomes a real `null`. Only the submitted `fields` are sent, which drops any "value from another field" source columns.
+ */
+export function convertRecordForBatchApi(record: Record<string, unknown>, fields: string[]): Record<string, unknown> {
+  const output: Record<string, unknown> = {};
+  fields.forEach((field) => {
+    const value = record[field];
+    if (isNil(value) || value === '') {
+      return;
+    }
+    output[field] = value === SFDC_BULK_API_NULL_VALUE ? null : value;
+  });
+  return output;
+}
+
+/** Normalize a Batch API record result to the Bulk API result shape, so both transports share the results views and files */
+export function convertBatchApiResultToBulkResult(result: RecordResult, sourceRecord: Record<string, unknown>): BulkJobResultRecord {
+  return {
+    Id: result.id || (sourceRecord?.Id as string) || null,
+    Success: result.success,
+    Created: false,
+    Error: result.success ? null : result.errors.map(({ statusCode, message }) => `${statusCode}: ${message}`).join('\n'),
+  };
 }
 
 /** Slice the source records submitted for a given batch, matching the CSV split order */

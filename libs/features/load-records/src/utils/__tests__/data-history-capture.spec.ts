@@ -83,6 +83,7 @@ describe('buildLoadRecordsHistoryConfig', () => {
       batchSize: 5000,
       insertNulls: false,
       serialMode: false,
+      bypassDuplicateRules: false,
       hasDateFieldMapped: true,
       dateFormat: 'MM-DD-YYYY',
       isTrialRun: false,
@@ -91,6 +92,10 @@ describe('buildLoadRecordsHistoryConfig', () => {
       timesSameDataSubmitted: 1,
       numStaticFields: 2,
     });
+  });
+
+  it('records that duplicate rules were bypassed', () => {
+    expect(buildLoadRecordsHistoryConfig({ ...baseConfigArgs, bypassDuplicateRules: true }).bypassDuplicateRules).toBe(true);
   });
 
   it('records the trial-run size when this is a trial run', () => {

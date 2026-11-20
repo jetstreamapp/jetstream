@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { HTTP } from '@jetstream/shared/constants';
 import {
   bulkApiAddBatchToJob,
   bulkApiCloseJob,
@@ -261,7 +262,7 @@ export async function loadBatchApiData(
   statusCallback: (records: RecordResultWithRecord[]) => void,
   checkIfAborted: () => boolean,
 ) {
-  const { org, sObject, type, externalId, assignmentRuleId } = payload;
+  const { org, sObject, type, externalId, assignmentRuleId, bypassDuplicateRules } = payload;
   try {
     const { batchRecordMap, batchRecordBlobMap, batchRecordBlobNameMap, batches, failedRecords } = await getBatchApiBatches(payload);
 
@@ -301,7 +302,9 @@ export async function loadBatchApiData(
 
         // https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/headers_autoassign.htm
         // default is true
-        const autoAssignHeader = { 'Sforce-Auto-Assign': assignmentRuleId || 'FALSE' };
+        const autoAssignHeader = { [HTTP.HEADERS.SFORCE_AUTO_ASSIGN]: assignmentRuleId || 'FALSE' };
+        // https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/headers_duplicaterules.htm
+        const duplicateRuleHeader = bypassDuplicateRules ? { [HTTP.HEADERS.SFORCE_DUPLICATE_RULE]: 'allowSave=true' } : {};
         let response: SobjectCollectionResponse = [];
 
         // Upload binary data
@@ -326,6 +329,7 @@ export async function loadBatchApiData(
             method,
             isTooling: false,
             assignmentRuleId,
+            bypassDuplicateRules: !!bypassDuplicateRules,
           });
         } else {
           response = await genericRequest<SobjectCollectionResponse>(org, {
@@ -335,6 +339,7 @@ export async function loadBatchApiData(
             isTooling: false,
             headers: {
               ...autoAssignHeader,
+              ...duplicateRuleHeader,
             },
           });
         }

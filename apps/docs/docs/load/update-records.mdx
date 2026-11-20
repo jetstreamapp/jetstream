@@ -106,6 +106,13 @@ Jetstream will load your records to Salesforce using the Salesforce Bulk API.
 
 - **Serial Mode** - By default, Salesforce will process your records in parallel. If this causes issues with record locks, you can try Serial Mode.
 - **Batch Size** - This setting controls how many records will be updated in one transaction. Normally the default of 10,000 is fine, but if you are hitting CPU timeouts you can lower this to a very low number.
+- **Bypass Duplicate Rules** - Saves records even when a duplicate rule flags them as a possible duplicate, which Salesforce otherwise rejects with the error **Use one of these records?**. This only applies to duplicate rules with an action of **Allow** and **Alert**. Rules with an action of **Block** cannot be bypassed.
+
+:::note
+
+The Salesforce Bulk API does not support bypassing duplicate rules. When **Bypass Duplicate Rules** is enabled, Jetstream updates your records with the Batch API instead, 200 records at a time. This is slower and uses more API calls for large updates, and there is no bulk job to view in Salesforce.
+
+:::
 
 :::note
 

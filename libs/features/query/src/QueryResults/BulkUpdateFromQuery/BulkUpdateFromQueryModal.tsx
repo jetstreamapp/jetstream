@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { BYPASS_DUPLICATE_RULES_BATCH_API_HELP_TEXT, BYPASS_DUPLICATE_RULES_LABEL } from '@jetstream/shared/constants';
 import { clearCacheForOrg } from '@jetstream/shared/data';
 import { convertDateToLocale, filterLoadSobjects, formatNumber, tracker, useIntegerInput } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getRecordIdFromAttributes, pluralizeFromNumber } from '@jetstream/shared/utils';
@@ -103,6 +104,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
   const batchSizeInput = useIntegerInput(batchSize, setBatchSize);
   const [serialMode, setSerialMode] = useState(false);
+  const [bypassDuplicateRules, setBypassDuplicateRules] = useState(false);
   const [skipDataHistory, setSkipDataHistory] = useState(false);
   const [deployResults, setDeployResults] = useAtom(deployResultsState);
   const [didDeploy, setDidDeploy] = useState(false);
@@ -301,6 +303,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
         fields: ['Id', ...selectedConfig.map(({ selectedField }) => selectedField!).filter(Boolean)],
         batchSize: batchSize ?? 10000,
         serialMode,
+        bypassDuplicateRules,
         configuration: selectedConfig,
         skipHistory: skipDataHistory,
       });
@@ -516,6 +519,14 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
               labelHelp="Serial mode processes the batches one-by-one instead of parallel."
               disabled={loading || deployInProgress}
               onChange={setSerialMode}
+            />
+            <Checkbox
+              id={'bypass-duplicate-rules'}
+              checked={bypassDuplicateRules}
+              label={BYPASS_DUPLICATE_RULES_LABEL}
+              labelHelp={BYPASS_DUPLICATE_RULES_BATCH_API_HELP_TEXT}
+              disabled={loading || deployInProgress}
+              onChange={setBypassDuplicateRules}
             />
             <Input
               id="batch-size"

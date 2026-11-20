@@ -69,6 +69,16 @@ On the left side of each record, there are four icons.
 - The **copy** icon is used to clone the record and you can make any adjustments to fields prior to saving.
 - The **code** icon will turn the record into Apex code that you can use to create a record that looks just like the on in your query results.
 
+### Editing records in the table
+
+You can also edit field values directly in the results table. After making your changes, review them and click **Save**.
+
+**Save Options** lets you adjust how the records are saved:
+
+- **Serial Mode** - Saves the batches one-by-one instead of all at the same time.
+- **Batch Size** - How many records are saved with each API call, up to 200.
+- **Bypass Duplicate Rules** - Saves records even when a duplicate rule flags them as a possible duplicate, which Salesforce otherwise rejects with the error **Use one of these records?**. This only applies to duplicate rules with an action of **Allow** and **Alert**. Rules with an action of **Block** cannot be bypassed.
+
 ### Bulk Record Actions
 
 If you select one or more records, the settings icon button at the top of the page will be enabled and within the menu you can:

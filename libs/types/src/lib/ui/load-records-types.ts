@@ -121,6 +121,8 @@ export interface LoadDataPayload {
   serialMode?: Maybe<boolean>;
   externalId?: Maybe<string>; // required for upsert, ignored for all others.
   assignmentRuleId?: Maybe<string>; // only allowed for lead / case
+  /** Batch API only - the Bulk API ignores the duplicate rule header */
+  bypassDuplicateRules?: Maybe<boolean>;
   binaryBodyField?: Maybe<string>;
 }
 

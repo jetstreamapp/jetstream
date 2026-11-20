@@ -16,6 +16,8 @@ export interface LoadRecordsResultsProps {
   batchSize: number;
   insertNulls: boolean;
   assignmentRuleId?: Maybe<string>;
+  /** Batch API only - the Bulk API ignores the duplicate rule header */
+  bypassDuplicateRules?: boolean;
   serialMode: boolean;
   dateFormat: string;
   /** Already-prepared records for retry — skips prepareData when provided */
@@ -43,6 +45,7 @@ export const LoadRecordsResults: FunctionComponent<LoadRecordsResultsProps> = ({
   batchSize,
   insertNulls,
   assignmentRuleId,
+  bypassDuplicateRules,
   serialMode,
   dateFormat,
   preparedInputData,
@@ -90,6 +93,7 @@ export const LoadRecordsResults: FunctionComponent<LoadRecordsResultsProps> = ({
           batchSize={batchSize}
           insertNulls={insertNulls}
           assignmentRuleId={assignmentRuleId}
+          bypassDuplicateRules={bypassDuplicateRules}
           serialMode={serialMode}
           dateFormat={dateFormat}
           preparedInputData={preparedInputData}
