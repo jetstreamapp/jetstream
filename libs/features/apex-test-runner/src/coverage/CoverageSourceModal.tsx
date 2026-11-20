@@ -8,11 +8,16 @@ import { fetchApexClassOrTriggerBody, fetchCoverageDetail } from '../apex-test-r
 import { getCoveragePercentage } from './coverage-utils';
 import {
   COVERAGE_COVERED_CLASS,
+  COVERAGE_COVERED_GLYPH_CLASS,
   COVERAGE_COVERED_GUTTER_CLASS,
   COVERAGE_UNCOVERED_CLASS,
+  COVERAGE_UNCOVERED_GLYPH_CLASS,
   COVERAGE_UNCOVERED_GUTTER_CLASS,
   useCoverageDecorations,
 } from './useCoverageDecorations';
+
+const COVERED_GLYPH = '✓';
+const UNCOVERED_GLYPH = '✗';
 
 /**
  * Light styles on the bare selector, dark overrides scoped to the explicit dark scheme class and to
@@ -32,12 +37,32 @@ const coverageStyles = css`
   .${COVERAGE_UNCOVERED_GUTTER_CLASS} {
     border-left: 3px solid rgb(234, 0, 30);
   }
+  /* Glyph-margin marks give a non-colour cue for each line's coverage (WCAG 1.4.1) */
+  .${COVERAGE_COVERED_GLYPH_CLASS}::before,
+  .${COVERAGE_UNCOVERED_GLYPH_CLASS}::before {
+    display: block;
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  /* Darker than the gutter green: the glyph is the non-colour cue, so it needs 3:1+ on the light editor */
+  .${COVERAGE_COVERED_GLYPH_CLASS}::before {
+    content: '${COVERED_GLYPH}';
+    color: rgb(20, 110, 40);
+  }
+  .${COVERAGE_UNCOVERED_GLYPH_CLASS}::before {
+    content: '${UNCOVERED_GLYPH}';
+    color: rgb(234, 0, 30);
+  }
   body.slds-color-scheme--dark {
     .${COVERAGE_COVERED_CLASS} {
       background: rgba(69, 198, 90, 0.2);
     }
     .${COVERAGE_UNCOVERED_CLASS} {
       background: rgba(254, 92, 76, 0.25);
+    }
+    .${COVERAGE_COVERED_GLYPH_CLASS}::before {
+      color: rgb(45, 200, 64);
     }
   }
   @media (prefers-color-scheme: dark) {
@@ -47,6 +72,9 @@ const coverageStyles = css`
       }
       .${COVERAGE_UNCOVERED_CLASS} {
         background: rgba(254, 92, 76, 0.25);
+      }
+      .${COVERAGE_COVERED_GLYPH_CLASS}::before {
+        color: rgb(45, 200, 64);
       }
     }
   }
@@ -118,7 +146,7 @@ export const CoverageSourceModal: FunctionComponent<CoverageSourceModalProps> = 
               padding-left: 4px;
             `}
           >
-            Covered
+            {COVERED_GLYPH} Covered
           </span>
           <span
             className="slds-m-left_small"
@@ -127,7 +155,7 @@ export const CoverageSourceModal: FunctionComponent<CoverageSourceModalProps> = 
               padding-left: 4px;
             `}
           >
-            Uncovered
+            {UNCOVERED_GLYPH} Uncovered
           </span>
         </Grid>
       }
@@ -161,7 +189,7 @@ export const CoverageSourceModal: FunctionComponent<CoverageSourceModalProps> = 
             height="68vh"
             language="apex"
             value={body}
-            options={{ readOnly: true, minimap: { enabled: false }, contextmenu: false }}
+            options={{ readOnly: true, minimap: { enabled: false }, contextmenu: false, glyphMargin: true }}
             onMount={onEditorMount}
           />
         )}

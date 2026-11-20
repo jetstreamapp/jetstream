@@ -1,6 +1,6 @@
 import { getErrorMessage } from '@jetstream/shared/utils';
 import type { ApexCodeCoverageAggregateRecord, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, Icon, ScopedNotification, SearchInput, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Grid, Icon, ScopedNotification, SearchInput, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { fetchCoverageAggregates, fetchOrgWideCoverage } from '../apex-test-runner-data.utils';
 import CoverageSourceModal from './CoverageSourceModal';
@@ -57,11 +57,11 @@ export const CoverageTab: FunctionComponent<CoverageTabProps> = ({ selectedOrg }
         )}
         <SearchInput id="coverage-search" placeholder="Filter classes and triggers" onChange={setSearchTerm} />
         <div className="slds-col_bump-left">
+          {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
           <button
             className="slds-button slds-button_neutral"
-            disabled={loading}
-            onClick={loadCoverage}
             title="Coverage data only changes when tests are run"
+            {...ariaDisabledButtonProps(loading, () => loadCoverage())}
           >
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
             Refresh

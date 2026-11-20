@@ -1,5 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { tracker } from '@jetstream/shared/ui-utils';
+import { formatNumber, tracker } from '@jetstream/shared/ui-utils';
+import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
   AutomationControlActivationState,
   AutomationControlHistoryAction,
@@ -19,6 +20,7 @@ import {
   AutomationControlDeploymentItem,
   DeploymentItem,
   MetadataCompositeResponseError,
+  StagedHistoryRestore,
   StagedHistoryRestoreResult,
   TableRowItem,
   TableRowItemChild,
@@ -45,6 +47,33 @@ export function getRestoreActionLabel(action: AutomationControlRestoreAction) {
 /** e.g. "Oct 20, 2026, 3:15 PM" */
 export function formatHistoryDate(date: Date) {
   return format(date, 'PPp');
+}
+
+/** Shown (and announced) while the current state loads for a rollback/re-deploy chosen from history */
+export function getPendingRestoreMessage(action: AutomationControlRestoreAction, deployedAt: Date) {
+  return `Loading the current state from Salesforce to ${getRestoreActionLabel(action)} the changes deployed ${formatHistoryDate(deployedAt)}`;
+}
+
+/** Condensed screen reader announcement of the staged restore banner */
+export function getStagedRestoreAnnouncement({ action, source, result }: StagedHistoryRestore) {
+  const { stagedCount, unchangedCount, missingItems } = result;
+  const actionLabel = getRestoreActionLabel(action);
+  const deployedAt = formatHistoryDate(source.createdAt);
+  const sentences =
+    stagedCount > 0
+      ? [
+          `${formatNumber(stagedCount)} ${pluralizeFromNumber('change', stagedCount)} staged to ${actionLabel} the changes deployed ${deployedAt}. Review them and deploy when you are ready.`,
+        ]
+      : [`Nothing to ${actionLabel} from the changes deployed ${deployedAt}.`];
+  if (unchangedCount > 0) {
+    sentences.push(
+      `${formatNumber(unchangedCount)} ${pluralizeFromNumber('item', unchangedCount)} already ${unchangedCount === 1 ? 'matches' : 'match'}.`,
+    );
+  }
+  if (missingItems.length > 0) {
+    sentences.push(`${formatNumber(missingItems.length)} ${pluralizeFromNumber('item', missingItems.length)} could not be staged.`);
+  }
+  return sentences.join(' ');
 }
 
 export function getHistoryStatus({ successCount, errorCount, incompleteCount }: AutomationControlHistoryEntry): {

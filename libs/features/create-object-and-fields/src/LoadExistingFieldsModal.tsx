@@ -4,26 +4,27 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import {
+  ariaDisabledButtonProps,
   ColumnWithFilter,
   ComboboxWithItems,
   DataTable,
+  fireToast,
   Icon,
   Modal,
   NotSeeingRecentMetadataPopover,
-  SELECT_COLUMN_KEY,
   ScopedNotification,
   SearchInput,
+  SELECT_COLUMN_KEY,
   SelectColumn,
   SelectFormatter,
-  Spinner,
-  fireToast,
   setColumnFromType,
+  Spinner,
 } from '@jetstream/ui';
 import {
+  buildCustomFieldQuery,
   CustomFieldRecord,
   ExistingFieldRow,
   FieldValues,
-  buildCustomFieldQuery,
   getDeveloperNameFromFieldApiName,
   getExistingFieldRows,
   mapFieldToFieldValues,
@@ -264,10 +265,10 @@ export const LoadExistingFieldsModal: FunctionComponent<LoadExistingFieldsModalP
           <button className="slds-button slds-button_neutral" onClick={onClose} disabled={submitting}>
             Cancel
           </button>
+          {/* Stays focusable while its own click disables it — native disabled would drop focus to <body> */}
           <button
             className="slds-button slds-button_brand slds-is-relative"
-            onClick={handleLoadFields}
-            disabled={selectedRows.size === 0 || submitting}
+            {...ariaDisabledButtonProps(selectedRows.size === 0 || submitting, () => handleLoadFields())}
           >
             {submitting ? (
               <Spinner size="x-small" />
