@@ -17,7 +17,6 @@ vi.mock('@jetstream/ui/app-state', async (importOriginal) => {
 });
 
 vi.mock('@jetstream/ui-core', () => ({
-  useAnalytics: () => ({ trackEvent: vi.fn() }),
   ConfirmPageChange: () => null,
 }));
 
