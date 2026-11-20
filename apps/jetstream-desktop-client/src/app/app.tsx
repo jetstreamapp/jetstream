@@ -68,6 +68,7 @@ export const App = () => {
                   <ViewEditCloneRecordWrapper />
                   <div>
                     <div
+                      className="desktop-header-drag-region"
                       css={css`
                         app-region: drag;
                       `}
