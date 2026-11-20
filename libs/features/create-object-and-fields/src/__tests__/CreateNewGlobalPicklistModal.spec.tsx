@@ -4,7 +4,6 @@ const { createGlobalPicklistMock } = vi.hoisted(() => ({ createGlobalPicklistMoc
 vi.mock('@jetstream/ui-core', () => ({
   createGlobalPicklist: createGlobalPicklistMock,
   generateApiNameFromLabel: (label: string) => label.replace(/\W/g, '_'),
-  useAnalytics: () => ({ trackEvent: vi.fn() }),
 }));
 
 vi.mock('@jetstream/ui/app-state', async () => {

@@ -7,6 +7,7 @@ import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
   ConnectedSobjectListMultiSelectRef,
+  HiddenProfilesNotice,
   Icon,
   KeyboardShortcut,
   ListWithFilterMultiSelect,
@@ -20,7 +21,6 @@ import {
   Tooltip,
   getAriaKeyshortcuts,
   getModifierKey,
-  HiddenProfilesNotice,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, filterCreateFieldsSobjects } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';

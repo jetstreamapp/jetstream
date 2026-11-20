@@ -26,7 +26,6 @@ const mockState = vi.hoisted(() => ({
 vi.mock('@jetstream/ui-core', () => ({
   ConfirmPageChange: () => null,
   fromJetstreamEvents: { emit: () => undefined },
-  useAnalytics: () => ({ trackEvent: () => undefined }),
 }));
 
 vi.mock('@jetstream/ui/app-state', async () => {

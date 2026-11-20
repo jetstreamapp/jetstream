@@ -33,7 +33,6 @@ vi.mock('@jetstream/ui-core', async () => {
       pendingHistoryRestore: atom(null),
     },
     fromJetstreamEvents: { emit: () => undefined },
-    useAnalytics: () => ({ trackEvent: () => undefined }),
   };
 });
 

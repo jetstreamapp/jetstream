@@ -8,12 +8,12 @@ import {
   AutoFullHeightContainer,
   DataTable,
   DisabledReasonButton,
+  getWrappedTextRowHeight,
   Grid,
   Icon,
   Modal,
   ScopedNotification,
   Spinner,
-  getWrappedTextRowHeight,
 } from '@jetstream/ui';
 import { ConfirmPageChange } from '@jetstream/ui-core';
 import { useOperationAccess } from '@jetstream/ui/app-state';
