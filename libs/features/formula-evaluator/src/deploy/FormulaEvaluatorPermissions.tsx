@@ -3,11 +3,11 @@ import { ListItem, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord,
 import {
   Grid,
   GridCol,
+  HiddenProfilesNotice,
   ListWithFilterMultiSelect,
   ProfileOrPermSetPopover,
   ProfileOrPermSetRecordType,
   ScopedNotification,
-  HiddenProfilesNotice,
 } from '@jetstream/ui';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';

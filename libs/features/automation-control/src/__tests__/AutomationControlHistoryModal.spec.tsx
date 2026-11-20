@@ -27,7 +27,6 @@ vi.mock('@jetstream/ui/db', () => ({
 
 vi.mock('@jetstream/ui-core', () => ({
   fromJetstreamEvents: { emit: () => undefined },
-  useAnalytics: () => ({ trackEvent: () => undefined }),
 }));
 
 vi.mock('@jetstream/ui/app-state', async () => {

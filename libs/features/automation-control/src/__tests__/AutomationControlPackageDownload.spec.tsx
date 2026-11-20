@@ -19,7 +19,6 @@ vi.hoisted(() => {
 vi.mock('@jetstream/ui/app-state', () => ({ applicationCookieState: {}, googleDriveAccessState: {} }));
 vi.mock('@jetstream/ui-core', () => ({
   fromJetstreamEvents: { emit: vi.fn() },
-  useAnalytics: () => ({ trackEvent: vi.fn() }),
 }));
 
 import { act, render, screen } from '@testing-library/react';

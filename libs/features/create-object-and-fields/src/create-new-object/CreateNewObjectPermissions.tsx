@@ -4,12 +4,12 @@ import {
   EmptyState,
   Grid,
   GridCol,
+  HiddenProfilesNotice,
   ListWithFilterMultiSelect,
   ProfileOrPermSetPopover,
   ProfileOrPermSetRecordType,
   Radio,
   RadioGroup,
-  HiddenProfilesNotice,
 } from '@jetstream/ui';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';

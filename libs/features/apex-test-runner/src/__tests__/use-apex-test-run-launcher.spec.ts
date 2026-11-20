@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { runTestsAsync } from '../apex-test-runner-data.utils';
 import { useApexTestRunLauncher } from '../useApexTestRunLauncher';
 
-vi.mock('@jetstream/ui-core', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 vi.mock('../useApexTestClasses', () => ({ useApexTestClasses: () => ({ testClasses: [], unknownClasses: [] }) }));
 vi.mock('../useApexTestSuites', () => ({ useApexTestSuites: () => ({}) }));
 vi.mock('../apex-test-runner-data.utils', () => ({
