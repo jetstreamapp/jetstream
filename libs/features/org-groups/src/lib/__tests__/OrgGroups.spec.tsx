@@ -12,7 +12,6 @@ const deleteOrgGroup = vi.fn();
 const deleteOrg = vi.fn();
 const getOrgGroups = vi.fn();
 const getOrgs = vi.fn();
-const trackEvent = vi.fn();
 
 // The real app-state module fetches app info, the profile and org groups at module load. These stubs mirror
 // just the atoms the page touches, keeping the same unwrap() shape so the page's async updater writes resolve.
@@ -61,7 +60,6 @@ vi.doMock('@jetstream/ui-core', () => ({
   AddOrg: ({ label }: { label: string }) => <button type="button">{label}</button>,
   ConfirmPageChange: () => null,
   OrgInfoPopover: () => null,
-  useAnalytics: () => ({ trackEvent }),
   useOrgExpiration: () => ({ status: 'connected', expiryDate: null, daysUntilExpiration: null }),
   useUpdateOrgs: () => ({
     actionInProgress: false,

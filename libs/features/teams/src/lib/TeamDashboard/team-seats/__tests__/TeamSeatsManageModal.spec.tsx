@@ -7,9 +7,7 @@ vi.mock('@jetstream/shared/data', () => ({
   updateTeamSeats: vi.fn(),
 }));
 
-vi.mock('@jetstream/ui-core', () => ({
-  useAnalytics: () => ({ trackEvent: vi.fn() }),
-}));
+vi.mock('@jetstream/ui-core', () => ({}));
 
 import { previewTeamSeats, updateTeamSeats } from '@jetstream/shared/data';
 import { TeamSeatChangePreview, TeamSeatSummary } from '@jetstream/types';

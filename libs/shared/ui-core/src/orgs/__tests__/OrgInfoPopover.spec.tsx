@@ -11,9 +11,7 @@ vi.doMock('@jetstream/ui/app-state', () => ({
   selectSkipFrontdoorAuth: atom(false),
 }));
 
-vi.doMock('../..', () => ({
-  useAnalytics: () => ({ trackEvent: vi.fn() }),
-}));
+vi.doMock('../..', () => ({}));
 
 // Held outside the factory so the spec can assert on it: a dynamic import of the library from
 // the spec would make the nx boundary rule treat every static import of it in ui-core as an error
