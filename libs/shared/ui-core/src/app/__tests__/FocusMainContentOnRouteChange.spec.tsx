@@ -185,6 +185,50 @@ describe('FocusMainContentOnRouteChange', () => {
     }
   });
 
+  test('a #hash deep link waits for a target that mounts late', () => {
+    vi.useFakeTimers();
+    try {
+      const { navigate, mainContent } = renderShell('/home');
+      fireEvent.pointerDown(document.body);
+
+      navigate('/load#late-section');
+      const lateSection = document.createElement('section');
+      lateSection.id = 'late-section';
+      mainContent.appendChild(lateSection);
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+
+      expect(document.activeElement).toBe(lateSection);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test('a #hash target that mounts after the user moved on does not take focus from them', () => {
+    vi.useFakeTimers();
+    try {
+      const { navigate, mainContent } = renderShell('/home');
+      fireEvent.pointerDown(document.body);
+
+      navigate('/load#late-section');
+      const insideMain = screen.getByRole('button', { name: 'Inside main' });
+      insideMain.focus();
+      fireEvent.keyDown(insideMain, { key: 'Tab' });
+      const lateSection = document.createElement('section');
+      lateSection.id = 'late-section';
+      mainContent.appendChild(lateSection);
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+
+      expect(document.activeElement).toBe(insideMain);
+      expect(lateSection.hasAttribute('tabindex')).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   // Deliberately last: the "has the user interacted yet?" record is per-mount, so the interactions
   // every test above performs must not leak into this one.
   test('leaves focus alone on the redirect that happens before the user has interacted (app load)', () => {

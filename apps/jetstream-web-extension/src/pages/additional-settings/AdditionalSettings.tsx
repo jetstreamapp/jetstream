@@ -1,6 +1,6 @@
 import {
   AutoFullHeightContainer,
-  focusContainer,
+  focusHashTargetWhenMounted,
   Page,
   PageHeader,
   PageHeaderRow,
@@ -69,27 +69,7 @@ export function AdditionalSettings() {
     if (!hash) {
       return;
     }
-    let attemptsRemaining = 20;
-    let cancelled = false;
-    const tryFocusHashTarget = () => {
-      if (cancelled) {
-        return;
-      }
-      const target = document.getElementById(hash.slice(1));
-      if (target) {
-        target.scrollIntoView?.({ block: 'start' });
-        focusContainer(target);
-        return;
-      }
-      attemptsRemaining--;
-      if (attemptsRemaining > 0) {
-        window.setTimeout(tryFocusHashTarget, 50);
-      }
-    };
-    tryFocusHashTarget();
-    return () => {
-      cancelled = true;
-    };
+    return focusHashTargetWhenMounted(hash);
   }, []);
 
   return (
