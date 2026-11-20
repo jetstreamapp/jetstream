@@ -24,6 +24,19 @@ export interface EscapeLayerOptions {
    * the same press would close the layer and throw away what was just typed.
    */
   codeEditorEscapeLeavesEditor?: boolean;
+  /**
+   * For a layer that is part of the page rather than floating over it, and can be open several times at once
+   * (two query history cards in edit mode): Escape goes to the instance that contains the event target instead
+   * of whichever opened last. Requires `getLayerElement`. When focus is in none of them, the most recently
+   * opened one still handles the press.
+   */
+  followsFocus?: boolean;
+}
+
+interface OpenLayer {
+  id: symbol;
+  followsFocus: boolean;
+  getElement: () => Element | null | undefined;
 }
 
 /**
@@ -42,7 +55,24 @@ function isLayerBuriedUnderModal(target: EventTarget | null, layerElement: Eleme
  * INNERMOST one. Every active instance registers a document capture listener, but only the
  * instance on top of this stack acts; the others ignore the event and wait their turn.
  */
-const openLayerStack: symbol[] = [];
+const openLayerStack: OpenLayer[] = [];
+
+/**
+ * The layer that owns this Escape press: the topmost one, unless the top of the stack is a run of
+ * `followsFocus` layers, where the one containing the event target wins.
+ */
+function getHandlingLayerId(target: EventTarget | null): symbol | undefined {
+  const topLayer = openLayerStack[openLayerStack.length - 1];
+  if (!topLayer?.followsFocus || !(target instanceof Node)) {
+    return topLayer?.id;
+  }
+  for (let i = openLayerStack.length - 1; i >= 0 && openLayerStack[i].followsFocus; i--) {
+    if (openLayerStack[i].getElement()?.contains(target)) {
+      return openLayerStack[i].id;
+    }
+  }
+  return topLayer.id;
+}
 
 /**
  * While a transient layer (combobox/picklist/dropdown menu, date picker popup, popover) is open,
@@ -70,7 +100,7 @@ const openLayerStack: symbol[] = [];
 export function useEscapeToCloseLayer(
   isOpen: boolean,
   onEscape: () => void,
-  { getLayerElement, codeEditorEscapeLeavesEditor = false }: EscapeLayerOptions = {},
+  { getLayerElement, codeEditorEscapeLeavesEditor = false, followsFocus = false }: EscapeLayerOptions = {},
 ) {
   const onEscapeRef = useRef(onEscape);
   onEscapeRef.current = onEscape;
@@ -84,7 +114,7 @@ export function useEscapeToCloseLayer(
     }
 
     const layerId = Symbol('escape-layer');
-    openLayerStack.push(layerId);
+    openLayerStack.push({ id: layerId, followsFocus, getElement: () => getLayerElementRef.current?.() });
 
     // The swallower outlives this effect (see below), so it only touches the document and window captured
     // here: in jsdom the globals can be gone by the time it is cleaned up
@@ -135,9 +165,9 @@ export function useEscapeToCloseLayer(
       if (codeEditorEscapeLeavesEditor && event.target instanceof Element && event.target.closest('.monaco-editor')) {
         return;
       }
-      // An inner layer is open above this one — its own listener (registered later, so it runs
-      // after this no-op) consumes the press and closes just that layer
-      if (openLayerStack[openLayerStack.length - 1] !== layerId) {
+      // Another layer owns this press: an inner one open above this one, or a sibling `followsFocus` layer
+      // that holds focus. Its own listener consumes the press and closes just that layer
+      if (getHandlingLayerId(event.target) !== layerId) {
         return;
       }
       if (isLayerBuriedUnderModal(event.target, getLayerElementRef.current?.())) {
@@ -159,13 +189,13 @@ export function useEscapeToCloseLayer(
 
     document.addEventListener('keydown', handleKeyDown, { capture: true });
     return () => {
-      const stackIndex = openLayerStack.indexOf(layerId);
+      const stackIndex = openLayerStack.findIndex(({ id }) => id === layerId);
       if (stackIndex >= 0) {
         openLayerStack.splice(stackIndex, 1);
       }
       document.removeEventListener('keydown', handleKeyDown, { capture: true });
     };
-  }, [isOpen, propagation, codeEditorEscapeLeavesEditor]);
+  }, [isOpen, propagation, codeEditorEscapeLeavesEditor, followsFocus]);
 }
 
 export default useEscapeToCloseLayer;

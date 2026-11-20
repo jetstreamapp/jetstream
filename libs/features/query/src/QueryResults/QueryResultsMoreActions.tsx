@@ -6,7 +6,7 @@ import { DropDown, Input, getSfdcRetUrl, salesforceLoginAndRedirect, useConfirma
 import { fromJetstreamEvents } from '@jetstream/ui-core';
 import { useCanPerformOperation } from '@jetstream/ui/app-state';
 import { Query } from '@jetstreamapp/soql-parser-js';
-import { Fragment, FunctionComponent, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import BulkUpdateFromQueryModal from './BulkUpdateFromQuery/BulkUpdateFromQueryModal';
 import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 
@@ -36,7 +36,6 @@ const BatchSize = ({ type = 'BULK', onBatchSizeChange }: { type?: 'BATCH' | 'BUL
         className="slds-input"
         placeholder="Set batch size"
         value={String(batchSize)}
-        aria-describedby={'batch-size-error'}
         onChange={(ev) => {
           setBatchSize(parseInt(ev.target.value.replaceAll(REGEX.NOT_NUMERIC, '') || '0', 10));
         }}
@@ -76,6 +75,21 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
   const [openModal, setOpenModal] = useState<false | 'bulk-update' | 'apex'>(false);
   const canWriteRecords = useCanPerformOperation('records.write');
   const canDeleteRecords = useCanPerformOperation('records.delete');
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  // Closing the bulk update modal after a deploy refreshes the records, which disables this trigger
+  // while the query re-runs — and a disabled button cannot take the focus the modal hands back. The
+  // hand-off is finished here once the trigger is enabled again — unless the user has moved on while
+  // the query ran (typing in the SOQL panel or a column filter), where taking focus would eat their keys.
+  const focusTriggerWhenEnabledRef = useRef(false);
+
+  useEffect(() => {
+    if (!disabled && focusTriggerWhenEnabledRef.current) {
+      focusTriggerWhenEnabledRef.current = false;
+      if (!document.activeElement || document.activeElement === document.body) {
+        triggerRef.current?.focus();
+      }
+    }
+  }, [disabled]);
 
   function handleAction(id: 'bulk-delete' | 'bulk-undelete' | 'get-as-apex' | 'open-in-new-tab' | 'bulk-update' | 'new-record') {
     logger.log({ id, selectedRows });
@@ -218,7 +232,10 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
 
   function handleBulkUpdateModalClose(didUpdate = false) {
     setOpenModal(false);
-    didUpdate && refreshRecords();
+    if (didUpdate) {
+      focusTriggerWhenEnabledRef.current = true;
+      refreshRecords();
+    }
   }
 
   return (
@@ -230,6 +247,7 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
         leadingIcon={{ icon: 'settings', type: 'utility', description: 'More Actions' }}
         actionText="Record actions"
         disabled={disabled}
+        triggerRef={triggerRef}
         items={[
           ...(canWriteRecords
             ? [

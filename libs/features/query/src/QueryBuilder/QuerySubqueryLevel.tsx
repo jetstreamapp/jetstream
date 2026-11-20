@@ -439,6 +439,9 @@ export const QuerySubqueryLevel: FunctionComponent<QuerySubqueryLevelProps> = ({
         initOpenIds={focusedSectionId ? [focusedSectionId] : []}
         scrollInitOpenIdIntoView
         allowMultiple={false}
+        // An object can have dozens of child relationships — one tab stop with ArrowUp/ArrowDown
+        // between headers keeps the rest of the page reachable by keyboard
+        singleTabStop
         sections={visibleChildRelationships.map((childRelationship) => ({
           id: getSectionId(currentRelationshipPath, childRelationship),
           testId: childRelationship.relationshipName,
