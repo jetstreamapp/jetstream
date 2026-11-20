@@ -20,7 +20,7 @@ ignoreWorkspaceRootCheck: true
 minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
   - "@jetstreamapp/*"
-  - electron@44.11.3
+  - electron@44.11.5
 
 # Allow scripts from these specific libraries
 allowBuilds:
