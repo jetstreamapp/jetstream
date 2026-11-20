@@ -21,13 +21,14 @@ import { selectedOrgState } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useId, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import * as fromMassUpdateState from '../mass-update-records.state';
 import MassUpdateRecordsObjects from './MassUpdateRecordsObjects';
 import { useMassUpdateFieldItems } from './useMassUpdateFieldItems';
 
 const HEIGHT_BUFFER = 170;
+const REVIEW_BLOCKED_REASON = 'Validate all objects to ensure configuration is valid before continuing';
 
 export interface MassUpdateRecordsSelectionProps {}
 
@@ -60,6 +61,7 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
   } = useMassUpdateFieldItems(selectedOrg, selectedSObjects);
 
   const [allRowsValidated, setAllRowsValidated] = useState(false);
+  const reviewBlockedReasonId = useId();
 
   useEffect(() => clearResults(), [clearResults]);
 
@@ -126,19 +128,26 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
                     <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
                   </div>
                 ) : (
-                  'Validate all objects to ensure configuration is valid before continuing'
+                  REVIEW_BLOCKED_REASON
                 )
               }
             >
               <Link
                 className="slds-button slds-button_brand"
                 aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                aria-describedby={allRowsValidated ? undefined : reviewBlockedReasonId}
                 to="deployment"
                 {...ariaDisabledButtonProps(!allRowsValidated, () => handleContinue())}
               >
                 Review Changes
               </Link>
             </Tooltip>
+            {/* The tooltip only exists while open and describes its wrapper, so the link references this copy */}
+            {!allRowsValidated && (
+              <span id={reviewBlockedReasonId} className="slds-assistive-text">
+                {REVIEW_BLOCKED_REASON}
+              </span>
+            )}
           </PageHeaderActions>
         </PageHeaderRow>
         <PageHeaderRow>

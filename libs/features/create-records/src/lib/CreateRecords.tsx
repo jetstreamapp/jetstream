@@ -15,10 +15,10 @@ import {
   SalesforceRecord,
 } from '@jetstream/types';
 import {
-  ariaDisabledButtonProps,
   AutoFullHeightContainer,
   ComboboxWithItems,
   ConnectedSobjectList,
+  DisabledReasonButton,
   fireToast,
   getAriaKeyshortcuts,
   getModifierKey,
@@ -30,7 +30,6 @@ import {
   PageHeaderTitle,
   ScopedNotification,
   Spinner,
-  Tooltip,
   useAnnouncer,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner } from '@jetstream/ui-core';
@@ -351,26 +350,23 @@ export const CreateRecords = () => {
                 Clear
               </button>
             )}
-            <Tooltip
-              openDelay={500}
-              content={
-                writeAccess.deniedReason ?? (
-                  <div className="slds-p-bottom_small">
-                    <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
-                  </div>
-                )
+            {/* Stays focusable while disabled so keyboard users can reach the shortcut tooltip, focus is
+                preserved while a save is in flight, and a denied write is read as the button's description */}
+            <DisabledReasonButton
+              className="slds-button slds-button_brand"
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+              disabled={saveDisabled}
+              disabledReason={writeAccess.deniedReason}
+              tooltipOpenDelay={500}
+              tooltip={
+                <div className="slds-p-bottom_small">
+                  <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                </div>
               }
+              onClick={() => handleSave()}
             >
-              {/* Stays focusable while disabled so keyboard users can reach the shortcut tooltip,
-                  and focus is preserved while a save is in flight */}
-              <button
-                className="slds-button slds-button_brand"
-                aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
-                {...ariaDisabledButtonProps(saveDisabled, () => handleSave())}
-              >
-                Save
-              </button>
-            </Tooltip>
+              Save
+            </DisabledReasonButton>
           </PageHeaderActions>
         </PageHeaderRow>
         <PageHeaderRow>
