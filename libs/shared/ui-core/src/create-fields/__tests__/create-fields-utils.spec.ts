@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'vitest';
 import type { FieldValues } from '../create-fields-types';
-import { convertFormulaSecondaryTypeToEvaluatorType, ensureValidSecondaryType, fieldDefinitions } from '../create-fields-utils';
+import {
+  convertFormulaSecondaryTypeToEvaluatorType,
+  ensureValidSecondaryType,
+  fieldDefinitions,
+  getQueryForAllCustomFieldsForObjects,
+} from '../create-fields-utils';
 
 describe('create-fields-utils#convertFormulaSecondaryTypeToEvaluatorType', () => {
   test.each([
@@ -75,5 +80,21 @@ describe.each(['fullName', 'relationshipName'] as const)('create-fields-utils#fi
     const start = performance.now();
     expect(validate(`${'A'.repeat(50_000)}!`, fieldValues)).toBe(false);
     expect(performance.now() - start).toBeLessThan(100);
+  });
+});
+
+describe('getQueryForAllCustomFieldsForObjects', () => {
+  test('sorts by DurableId without a LIMIT so that it can be cursor paged', () => {
+    const query = getQueryForAllCustomFieldsForObjects(['Account', 'Contact']);
+    expect(query).toContain(`EntityDefinition.QualifiedApiName IN ('Account', 'Contact')`);
+    expect(query).toContain(`QualifiedApiName LIKE '%__c'`);
+    expect(query).toContain('ORDER BY DurableId ASC');
+    expect(query).not.toContain('DurableId >');
+    expect(query).not.toContain('LIMIT');
+  });
+
+  test('resumes after the provided DurableId cursor', () => {
+    const query = getQueryForAllCustomFieldsForObjects(['Account'], 'Account.00N000000000001');
+    expect(query).toContain(`QualifiedApiName LIKE '%__c' AND DurableId > 'Account.00N000000000001'`);
   });
 });
