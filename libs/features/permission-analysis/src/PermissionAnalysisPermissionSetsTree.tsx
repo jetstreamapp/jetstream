@@ -291,8 +291,8 @@ function renderPermissionSetGroupCell(
   setupLogin: { org: SalesforceOrgUi; serverUrl: string; skipFrontDoorAuth: boolean },
   onOpenFindings: (permissionSetId: string) => void,
   resolveSetupTarget: (permissionSetId: string) => { recordType: ProfileOrPermSetRecordType; recordId: string },
-  openInSetupTitle: string,
-  findingsForContainerButtonTitle: string,
+  /** "profile" or "permission set" — names the per-group controls, which otherwise repeat identically for every group */
+  containerNoun: string,
   { groupKey, childRows, isExpanded, toggleGroup }: RenderGroupCellProps<PermissionSetAssignmentsTreeRow>,
 ) {
   const permissionSetId = String(groupKey);
@@ -347,6 +347,8 @@ function renderPermissionSetGroupCell(
           type="button"
           className="slds-button slds-button_reset slds-p-around_xx-small"
           title={isExpanded ? 'Collapse' : 'Expand'}
+          // Every group repeats this control — the name carries which group it expands
+          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${titleLabel}`}
           aria-expanded={isExpanded}
           css={css`
             flex-shrink: 0;
@@ -360,7 +362,6 @@ function renderPermissionSetGroupCell(
             icon={isExpanded ? 'chevrondown' : 'chevronright'}
             className="slds-icon slds-icon-text-default slds-icon_x-small"
             omitContainer
-            description={isExpanded ? 'Collapse' : 'Expand'}
           />
         </button>
         <Popover
@@ -397,6 +398,8 @@ function renderPermissionSetGroupCell(
               min-width: 0;
               text-align: left;
             `}
+            // Modifier-click deep link is a mouse-only shortcut on top of the popover trigger — not a control of its own
+            role="presentation"
             onClick={(event: MouseEvent<HTMLSpanElement>) => {
               if (event.shiftKey || event.ctrlKey || event.metaKey) {
                 if (!canDeepLink) {
@@ -453,7 +456,7 @@ function renderPermissionSetGroupCell(
           serverUrl={setupLogin.serverUrl}
           skipFrontDoorAuth={setupLogin.skipFrontDoorAuth}
           returnUrl={returnUrl}
-          title={openInSetupTitle}
+          title={`Open ${containerNoun} ${titleLabel} in Salesforce Setup`}
           omitIcon
           className={OBJECT_TYPE_ACTION_BUTTON_CLASSNAME}
           onClick={(event) => {
@@ -466,7 +469,8 @@ function renderPermissionSetGroupCell(
           <button
             type="button"
             className="slds-button slds-button_icon slds-button_icon-bare"
-            title={findingsForContainerButtonTitle}
+            title={`View issues for ${containerNoun} ${titleLabel}`}
+            aria-label={`View issues for ${containerNoun} ${titleLabel}`}
             onClick={(event) => {
               event.stopPropagation();
               onOpenFindings(permissionSetId);
@@ -477,7 +481,6 @@ function renderPermissionSetGroupCell(
               icon={severity === 'error' ? 'error' : 'warning'}
               className={severity === 'error' ? 'slds-button__icon slds-icon-text-error' : 'slds-button__icon slds-icon-text-warning'}
               omitContainer
-              description="View issues"
             />
           </button>
         )}
@@ -522,8 +525,7 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
 }) => {
   const isProfilesTree = treePresentation === 'profiles';
   const groupColumnName = isProfilesTree ? 'Profile' : 'Permission Set';
-  const openInSetupTitle = isProfilesTree ? 'Open this profile in Salesforce Setup' : 'Open this permission set in Salesforce Setup';
-  const findingsForContainerButtonTitle = isProfilesTree ? 'View issues for this profile' : 'View issues for this permission set';
+  const containerNoun = isProfilesTree ? 'profile' : 'permission set';
 
   const rowByPermissionSetId = useMemo(() => {
     const map = new Map<string, PermissionExportRow>();
@@ -684,8 +686,7 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
           setupLogin,
           openFindingsForPermissionSet,
           resolveSetupTarget,
-          openInSetupTitle,
-          findingsForContainerButtonTitle,
+          containerNoun,
           props,
         ),
       getValue: ({ row }) => {
@@ -729,13 +730,14 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
             return null;
           }
           const userReturnUrl = getSalesforceUserManageSetupUrl(userId);
+          const userDisplayName = assigneeDisplayById.get(userId)?.name ?? userId;
           const openUserButton = (
             <SalesforceLogin
               org={setupLogin.org}
               serverUrl={setupLogin.serverUrl}
               skipFrontDoorAuth={setupLogin.skipFrontDoorAuth}
               returnUrl={userReturnUrl}
-              title="Open this user in Salesforce Setup"
+              title={`Open user ${userDisplayName} in Salesforce Setup`}
               omitIcon
               className={OBJECT_TYPE_ACTION_BUTTON_CLASSNAME}
               onClick={(event) => {
@@ -852,8 +854,7 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
     setupLogin,
     openFindingsForPermissionSet,
     resolveSetupTarget,
-    openInSetupTitle,
-    findingsForContainerButtonTitle,
+    containerNoun,
     assigneeDisplayById,
     assigneeDisplayLoading,
   ]);
