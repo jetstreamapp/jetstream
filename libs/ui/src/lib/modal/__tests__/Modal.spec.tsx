@@ -125,6 +125,42 @@ describe('Modal', () => {
     await waitFor(() => expect(document.activeElement).toBe(opener));
   });
 
+  // Safari and Firefox on macOS press a button without focusing it
+  it('returns focus to the opener when the browser did not focus it on click', async () => {
+    render(<AutoFocusOpenerHarness />);
+    const opener = screen.getByRole('button', { name: 'Open' });
+    expect(document.activeElement).toBe(document.body);
+
+    fireEvent.pointerDown(opener);
+    fireEvent.click(opener);
+    const nameInput = await screen.findByLabelText('Name');
+    await waitFor(() => expect(document.activeElement).toBe(nameInput));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(opener));
+  });
+
+  it('does not borrow an old click as the opener once focus has moved elsewhere', async () => {
+    render(<AutoFocusOpenerHarness />);
+    const opener = screen.getByRole('button', { name: 'Open' });
+    fireEvent.pointerDown(opener);
+    const other = document.createElement('button');
+    document.body.appendChild(other);
+    other.focus();
+    other.blur();
+
+    fireEvent.click(opener);
+    await screen.findByLabelText('Name');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    // Nothing was focused when the modal opened, so there is no opener to return to
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(document.activeElement).not.toBe(opener);
+    other.remove();
+  });
+
   it('leaves an Escape to a widget inside that handled its keydown (a code editor closing its autocomplete)', () => {
     const onClose = vi.fn();
     render(
