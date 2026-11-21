@@ -5,6 +5,7 @@ import { getErrorMessage } from '@jetstream/shared/utils';
 import { DropDownItem } from '@jetstream/types';
 import { Badge, Card, ConfirmationModalPromise, DropDown, fireToast, Input, Spinner } from '@jetstream/ui';
 import { FormEvent, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
+import { focusWhenAvailable } from '../focus-when-available';
 
 const SETUP_BUTTON_ID = 'mfa-totp-setup-button';
 const CARD_HEADING_ID = 'mfa-totp-card-heading';
@@ -103,13 +104,12 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
    * or the card heading when the enabled factor can't be disabled and so has no actions menu
    */
   function focusCardAction() {
-    window.setTimeout(() => {
-      const cardAction =
+    focusWhenAvailable(
+      () =>
         document.getElementById(SETUP_BUTTON_ID) ??
         document.querySelector<HTMLElement>('[data-testid="mfa-totp-menu-button"]') ??
-        document.getElementById(CARD_HEADING_ID);
-      cardAction?.focus();
-    });
+        document.getElementById(CARD_HEADING_ID),
+    );
   }
 
   const menuItems = useMemo(() => {

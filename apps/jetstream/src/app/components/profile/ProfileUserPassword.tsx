@@ -8,6 +8,7 @@ import { ConfirmationModalPromise, DropDown, FormRowItem, Icon, Input, ReadOnlyF
 import { FunctionComponent, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { focusWhenAvailable } from './focus-when-available';
 
 function getFormSchema(email: string, name: string) {
   return z
@@ -168,12 +169,11 @@ function SetPassword({ email, name, onSetPassword }: { email: string; name: stri
    * the control that replaces it (Set Password after cancel, the Password Options menu after a save)
    */
   function focusPasswordControl() {
-    window.setTimeout(() => {
-      const control =
+    focusWhenAvailable(
+      () =>
         document.getElementById(SET_PASSWORD_BUTTON_ID) ??
-        document.querySelector<HTMLElement>(`[data-testid="${PASSWORD_OPTIONS_TEST_ID}"]`);
-      control?.focus();
-    });
+        document.querySelector<HTMLElement>(`[data-testid="${PASSWORD_OPTIONS_TEST_ID}"]`),
+    );
   }
 
   if (changePasswordActive) {
