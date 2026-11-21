@@ -8,7 +8,7 @@ import {
   SetupEntityAccessPermissionTypes,
   SetupEntityAccessType,
 } from '@jetstream/types';
-import { AutoFullHeightContainer, ColumnWithFilter, DataTable, DataTableRef } from '@jetstream/ui';
+import { AutoFullHeightContainer, ColumnWithFilter, DataTable, DataTableRef, useAnnouncer } from '@jetstream/ui';
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { applyPastedPermissionCells, resetGridChanges, updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
 import { SETUP_ENTITY_ACCESS_CATALOGS } from './utils/setup-entity-access-utils';
@@ -59,6 +59,8 @@ export const ManagePermissionsEditorSetupEntityAccessTable = forwardRef<any, Man
     const tableRef = useRef<DataTableRef<PermissionTableSetupEntityAccessCell>>(null);
     const [dirtyRows, setDirtyRows] = useState<Record<string, DirtyRow<PermissionTableSetupEntityAccessCell>>>({});
     const rowLabel = SETUP_ENTITY_ACCESS_CATALOGS[setupEntityType].label;
+    // One table-level live region announces summary-cell column actions for every column
+    const { announce, announcer } = useAnnouncer();
 
     useImperativeHandle<any, ManagePermissionsEditorTableRef>(ref, () => ({
       resetChanges() {
@@ -97,6 +99,7 @@ export const ManagePermissionsEditorSetupEntityAccessTable = forwardRef<any, Man
 
     return (
       <div>
+        {announcer}
         <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={15}>
           <DataTable
             ref={tableRef}
@@ -118,6 +121,7 @@ export const ManagePermissionsEditorSetupEntityAccessTable = forwardRef<any, Man
                 onToggleErrorsOnly,
                 onColumnAction: handleColumnAction,
                 onBulkAction: onBulkUpdate,
+                announce,
               } as PermissionManagerTableContext
             }
             rowHeight={24}

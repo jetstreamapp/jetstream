@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { ColumnWithFilter, Grid, Icon, Modal, ViewDocsLink } from '@jetstream/ui';
 import { GridDownloadModal } from '@jetstream/ui-core';
-import { FunctionComponent, ReactNode, useState } from 'react';
+import { FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { getFindingCodeDisplayParts, getFindingLabelForCode, type PermissionAnalysisFinding } from './permission-export-result-view';
 
 /** Deep link to the issue code reference table in the docs. Undefined only if the route ever loses its DOCS entry. */
@@ -118,6 +118,20 @@ export const PermissionAnalysisFindingsModal: FunctionComponent<PermissionAnalys
   // Modal `hide` UNMOUNTS its content, so the download modal's state and rendering must live HERE
   // (the component that stays mounted) — not inside the footer, where hiding would destroy it
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const downloadButtonRef = useRef<HTMLButtonElement>(null);
+  const returnFocusToDownloadRef = useRef(false);
+
+  // Hiding the modal unmounted the Download button that opened the download modal, so hand focus back to it once
+  // this modal's content remounts (a frame later, after the modal has finished placing its own initial focus)
+  useEffect(() => {
+    if (isDownloadModalOpen || !returnFocusToDownloadRef.current) {
+      return;
+    }
+    returnFocusToDownloadRef.current = false;
+    const frame = requestAnimationFrame(() => downloadButtonRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [isDownloadModalOpen]);
+
   if (!open) {
     return null;
   }
@@ -133,6 +147,7 @@ export const PermissionAnalysisFindingsModal: FunctionComponent<PermissionAnalys
         footer={
           <Grid align="spread" verticalAlign="center">
             <button
+              ref={downloadButtonRef}
               type="button"
               className="slds-button slds-button_neutral"
               disabled={findings.length === 0}
@@ -301,7 +316,10 @@ export const PermissionAnalysisFindingsModal: FunctionComponent<PermissionAnalys
           fileNameParts={['permission-analysis-issues']}
           modalHeader="Download Issues"
           escapeCsvFormulas
-          onClose={() => setIsDownloadModalOpen(false)}
+          onClose={() => {
+            returnFocusToDownloadRef.current = true;
+            setIsDownloadModalOpen(false);
+          }}
         />
       )}
     </>

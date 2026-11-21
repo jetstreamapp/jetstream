@@ -50,7 +50,8 @@ export function DeployButton({ modifiedValues, configurationErrors, handleDeploy
   const hasModifiedValue = modifiedValues.length !== 0;
 
   const buttonLabel = hasModifiedValue ? `Deploy Changes (${formatNumber(modifiedValues.length)})` : 'Deploy Changes';
-  const disabledReason = hasModifiedValue ? deployAccess.deniedReason : 'Change one or more values to enable deployment.';
+  // Access comes first: a member who cannot deploy at all should hear that, not be told to make a change they cannot use
+  const disabledReason = deployAccess.deniedReason || (hasModifiedValue ? null : 'Change one or more values to enable deployment.');
   // The configuration errors are a nested list, too rich for a plain-text reason: they show in the tooltip, and a
   // hidden copy is linked as the button's description so screen readers hear them too
   const showConfigurationErrors = !disabledReason && !!configurationErrors;

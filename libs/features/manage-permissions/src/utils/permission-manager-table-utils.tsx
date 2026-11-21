@@ -1967,7 +1967,8 @@ export const PinnedSelectAllRendererWrapper = ({
         : action === 'unselectAll'
           ? `Unselected all visible rows${scopedSuffix}`
           : `Reset visible rows to previous selection${scopedSuffix}`;
-    announce(outcome);
+    // Optional at runtime: every table builds its context with a cast, so a table that forgets `announce` must not throw
+    announce?.(outcome);
   }
 
   return (
