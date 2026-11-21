@@ -227,10 +227,19 @@ const OrgCheckbox = ({
       id={`org-${org.uniqueId}`}
       checked={checked}
       label={org.username}
-      // A second label rather than click handlers: clicking anywhere in the org's details still toggles
-      // the checkbox (as it always has), natively and without a mouse-only path
+      // The details are the checkbox's description (read once, after its name). Clicking them still toggles the
+      // checkbox, as it always has; a second <label> would instead make them part of the accessible name too, and
+      // keyboard users already have the checkbox itself
       helpText={
-        <label htmlFor={`org-${org.uniqueId}`} className="slds-show slds-m-left_large">
+        // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+        <span
+          className="slds-show slds-m-left_large"
+          onClick={() => {
+            if (!disabled) {
+              onChange();
+            }
+          }}
+        >
           <span className="slds-show slds-text-body_small slds-text-color_weak">
             <span className="slds-show">Org Id: {org.organizationId}</span>
             <span className="slds-show">{org.instanceUrl}</span>
@@ -239,7 +248,7 @@ const OrgCheckbox = ({
             <span className="slds-show slds-m-top_xx-small slds-text-body_small slds-text-color_weak">{updatedAtText}</span>
           )}
           {org.connectionError && <Badge type="error">Connection Error</Badge>}
-        </label>
+        </span>
       }
       disabled={disabled}
       onChange={() => onChange()}

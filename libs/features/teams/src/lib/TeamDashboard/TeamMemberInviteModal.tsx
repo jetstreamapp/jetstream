@@ -102,6 +102,8 @@ export function TeamMemberInviteModal({
         id="team-member-invite-form"
         onSubmit={(event) => {
           event.preventDefault();
+          // Enter can submit while the field is still focused, before blur has had a chance to run the SSO check
+          setCheckedEmail(email);
           if (invalidEmail || !email || seatBlocked) {
             setInvalidEmail(!email || invalidEmail);
             return;
@@ -129,7 +131,11 @@ export function TeamMemberInviteModal({
             id="invite-email"
             className="slds-input"
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(event) => {
+              setEmail(event.target.value);
+              // An edit invalidates the last check; it re-runs on blur or submit instead of flashing per keystroke
+              setCheckedEmail('');
+            }}
             disabled={loading}
             maxLength={255}
             type="email"
