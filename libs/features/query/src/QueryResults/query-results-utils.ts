@@ -1,6 +1,15 @@
 import { QueryResult } from '@jetstream/types';
 import { FieldType as QueryFieldType, isFieldSubquery } from '@jetstreamapp/soql-parser-js';
 
+/**
+ * SOQL for the records a lookup column points at. FIELDS(STANDARD) gives a useful starting set of columns
+ * without knowing anything about the object, but the Tooling API does not support it.
+ */
+export function buildRelatedRecordsSoql(sobject: string, recordIds: string[], isTooling: boolean) {
+  const fields = isTooling ? 'Id' : 'FIELDS(STANDARD)';
+  return `SELECT ${fields} FROM ${sobject} WHERE Id IN (${recordIds.map((recordId) => `'${recordId}'`).join(', ')})`;
+}
+
 export function getTotalRecordCount(queryResult: QueryResult<unknown>, records: unknown[]) {
   if (queryResult.done) {
     // A COUNT() query returns no records, so totalSize is the only place the count exists
