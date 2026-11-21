@@ -29,3 +29,35 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
   }
   globalThis.ResizeObserver = ResizeObserverShim as unknown as typeof ResizeObserver;
 }
+
+/**
+ * p-queue 10 is an `EventTarget` and calls `process.getBuiltinModule('node:events').setMaxListeners()` on
+ * itself when `process` exists. In a real browser there is no `process`, so that is skipped, but in jsdom
+ * the queue is a jsdom `EventTarget`, which Node's `setMaxListeners` rejects with an `ERR_INVALID_ARG_TYPE`.
+ * Swallow that one failure so specs behave like the browser.
+ */
+const originalGetBuiltinModule = process.getBuiltinModule?.bind(process);
+if (originalGetBuiltinModule) {
+  process.getBuiltinModule = ((id: string) => {
+    const builtinModule = originalGetBuiltinModule(id);
+    if (id !== 'node:events' && id !== 'events') {
+      return builtinModule;
+    }
+    return new Proxy(builtinModule as object, {
+      get(target, property, receiver) {
+        if (property !== 'setMaxListeners') {
+          return Reflect.get(target, property, receiver);
+        }
+        return (...args: unknown[]) => {
+          try {
+            return (target as typeof import('node:events')).setMaxListeners(
+              ...(args as Parameters<typeof import('node:events').setMaxListeners>),
+            );
+          } catch {
+            // jsdom EventTarget instances are not accepted by Node's implementation
+          }
+        };
+      },
+    });
+  }) as typeof process.getBuiltinModule;
+}
