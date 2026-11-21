@@ -5,7 +5,7 @@ import { PassThrough, Writable } from 'node:stream';
 import { describe, expect, it, vi } from 'vitest';
 import * as salesforceOrgsDb from '../../db/salesforce-org.db';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../error-handler';
-import { pipeWebStreamToResponse, streamParsedCsvAsJson, uncaughtErrorHandler } from '../response.handlers';
+import { isLandingDocumentFile, pipeWebStreamToResponse, streamParsedCsvAsJson, uncaughtErrorHandler } from '../response.handlers';
 
 const prismaMocks = vi.hoisted(() => {
   class PrismaClientKnownRequestError extends Error {
@@ -597,5 +597,26 @@ describe('streamParsedCsvAsJson errors', () => {
     await vi.waitFor(() => expect(res.status).toHaveBeenCalledWith(400));
 
     expect(res.json).toHaveBeenCalledWith({ error: true, success: false, message: 'Error streaming CSV' });
+  });
+});
+
+describe('isLandingDocumentFile', () => {
+  it.each([
+    '/app/dist/apps/landing/index.html',
+    '/app/dist/apps/landing/auth/login/index.html',
+    '/app/dist/apps/landing/_next/data/mJ4qFe9C83SI0ywF9uzH4/index.json',
+    '/app/dist/apps/landing/_next/data/mJ4qFe9C83SI0ywF9uzH4/blog/post/soc2-type-2.json',
+    'C:\\app\\dist\\apps\\landing\\_next\\data\\build\\index.json',
+  ])('treats %s as a document that must not be cached', (filePath) => {
+    expect(isLandingDocumentFile(filePath)).toBe(true);
+  });
+
+  it.each([
+    '/app/dist/apps/landing/_next/static/chunks/main-4f2a.js',
+    '/app/dist/apps/landing/_next/static/css/app-9c1b.css',
+    '/app/dist/apps/landing/manifest.json',
+    '/app/dist/apps/landing/release-notes.json',
+  ])('leaves %s cacheable', (filePath) => {
+    expect(isLandingDocumentFile(filePath)).toBe(false);
   });
 });

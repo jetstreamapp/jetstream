@@ -27,6 +27,13 @@ describe('getCookieConfig', () => {
     expect(config.callbackUrl.name).toBe('jetstream-auth.callback-url');
     expect(config.callbackUrl.options.secure).toBe(false);
   });
+
+  it('keeps every cookie HttpOnly except the one the login page reads from JavaScript', () => {
+    const cookiesReadableByScript = Object.entries(getCookieConfig(true))
+      .filter(([, { options }]) => !options.httpOnly)
+      .map(([key]) => key);
+    expect(cookiesReadableByScript).toEqual(['lastLoginMethod']);
+  });
 });
 
 describe('hashPassword', () => {

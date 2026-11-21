@@ -50,6 +50,15 @@ export function setNoStoreHeaders(res: Pick<ServerResponse, 'setHeader'>) {
   res.setHeader('Expires', '0');
 }
 
+/**
+ * Files in the landing build that carry page content rather than hashed assets: the HTML documents and the
+ * page-props JSON Next.js fetches on client-side navigation (`/_next/data/<buildId>/<page>.json`)
+ */
+export function isLandingDocumentFile(filePath: string) {
+  const normalizedPath = filePath.replaceAll('\\', '/');
+  return normalizedPath.endsWith('.html') || (normalizedPath.includes('/_next/data/') && normalizedPath.endsWith('.json'));
+}
+
 export function setCsrfCookie(res: Response) {
   const { csrfToken, cookie: csrfCookie } = createCSRFToken({ secret: ENV.JETSTREAM_AUTH_SECRET });
   const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);

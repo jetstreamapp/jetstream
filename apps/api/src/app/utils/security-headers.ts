@@ -98,16 +98,17 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
     // same-origin /_next/static chunks) + a third-party host allowlist. blob: is intentionally NOT
     // here — blob: workers resolve via worker-src/child-src below, so keeping it out of script-src
     // avoids a page-level script sink.
+    // No Google host is listed: this policy has no 'strict-dynamic', so every host here is live, and
+    // Google's script hosts serve JSONP endpoints that turn an allowlisted host into a CSP bypass. The
+    // landing and auth pages load no Google script (Google login is a server-side redirect); the pages
+    // that do are /app (buildAppCspDirectives) and the Google Picker relay pages, which set their own policy.
     scriptSrc: [
       "'self'",
       nonceDirective,
-      'https://*.google.com',
-      'https://*.gstatic.com',
       'https://challenges.cloudflare.com',
       'https://checkout.stripe.com',
       'https://connect-js.stripe.com',
       'https://js.stripe.com',
-      'https://maps.googleapis.com',
       'https://static.cloudflareinsights.com',
       'https://*.js.stripe.com',
     ],
@@ -165,6 +166,10 @@ const APP_GOOGLE_FRAME_SRC = [
   'https://docs.google.com',
   'https://drive.google.com',
 ];
+// Google Sign-In (gsi/client) and the Google API loader (api.js) used by the Drive file picker, plus Google Maps,
+// which Stripe's address element loads on the billing page. These are only the fallback for browsers without
+// 'strict-dynamic' support; everywhere else the nonce decides.
+const APP_GOOGLE_SCRIPT_SRC = ['https://accounts.google.com', 'https://apis.google.com', 'https://maps.googleapis.com'];
 const APP_GOOGLE_CONNECT_SRC = [
   'https://accounts.google.com',
   'https://apis.google.com',
@@ -202,7 +207,11 @@ export function buildAppCspDirectives(extraFrameAncestors: string[] = []): CspDi
     // so 'strict-dynamic' is safe here. Browsers with strict-dynamic support ignore the inherited
     // host allowlist; older browsers (no strict-dynamic) fall back to it instead of a blanket
     // `https:` scheme source. blob: stays out of the /app script-src — workers load via worker-src.
-    scriptSrc: ["'strict-dynamic'", ...(Array.isArray(scriptSrc) ? scriptSrc.filter((source) => source !== 'blob:') : [])],
+    scriptSrc: [
+      "'strict-dynamic'",
+      ...(Array.isArray(scriptSrc) ? scriptSrc.filter((source) => source !== 'blob:') : []),
+      ...APP_GOOGLE_SCRIPT_SRC,
+    ],
     imgSrc: Array.isArray(imgSrc) ? imgSrc.filter((source) => !IMG_SOURCES_EXCLUDED_FROM_APP.includes(source as string)) : imgSrc,
     frameSrc: narrowGoogleWildcards(directives.frameSrc, APP_GOOGLE_FRAME_SRC),
     connectSrc: narrowGoogleWildcards(directives.connectSrc, APP_GOOGLE_CONNECT_SRC),
@@ -261,6 +270,10 @@ export function removeOpenerPolicyForPopupPages(req: Request, res: Response, nex
   next();
 }
 
+// Matches the HSTS setting on the Cloudflare zones, which is the header browsers actually receive. Kept in step so
+// the policy does not weaken if a request ever reaches the origin without passing through Cloudflare.
+const ONE_YEAR_IN_SECONDS = 31_536_000;
+
 export function buildHstsConfig() {
   if (!ENV.JETSTREAM_SERVER_URL.startsWith('https://')) {
     return false;
@@ -274,7 +287,7 @@ export function buildHstsConfig() {
   }
 
   return {
-    maxAge: 15_552_000,
+    maxAge: ONE_YEAR_IN_SECONDS,
     includeSubDomains: true,
     preload: ENV.ENVIRONMENT === 'production' && hostname === 'getjetstream.app',
   };

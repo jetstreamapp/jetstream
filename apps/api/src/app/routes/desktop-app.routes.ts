@@ -38,7 +38,7 @@ routes.use(
       directives: {
         defaultSrc: ["'self'"],
         baseUri: ["'self'"],
-        fontSrc: ["'self'", 'https:'],
+        fontSrc: ["'self'", 'data:'],
         frameAncestors: ["'self'"],
         frameSrc: ["'self'", 'https://accounts.google.com', 'https://docs.google.com', 'https://drive.google.com'],
         imgSrc: ["'self'", '*.googleusercontent.com'],
@@ -50,7 +50,8 @@ routes.use(
           (_req: express.Request, res: express.Response) => `'nonce-${res.locals.cspNonce}'`,
         ],
         scriptSrcAttr: ["'none'"],
-        styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
+        // No stylesheet is loaded from another origin; Google's sign-in and Picker scripts only add inline <style> elements
+        styleSrc: ["'self'", "'unsafe-inline'"],
         connectSrc: ["'self'", 'https://www.googleapis.com', 'https://oauth2.googleapis.com'],
         upgradeInsecureRequests: [],
         // Report violations on these relay pages to the same handler as the rest of the app.

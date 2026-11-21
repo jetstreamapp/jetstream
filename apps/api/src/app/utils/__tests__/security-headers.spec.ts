@@ -28,7 +28,7 @@ describe('security headers', () => {
 
   it('enables HSTS for HTTPS staging without preload', () => {
     expect(buildHstsConfig()).toEqual({
-      maxAge: 15_552_000,
+      maxAge: 31_536_000,
       includeSubDomains: true,
       preload: false,
     });
@@ -39,7 +39,7 @@ describe('security headers', () => {
     apiConfigMock.ENV.JETSTREAM_SERVER_URL = 'https://getjetstream.app';
 
     expect(buildHstsConfig()).toEqual({
-      maxAge: 15_552_000,
+      maxAge: 31_536_000,
       includeSubDomains: true,
       preload: true,
     });
@@ -84,6 +84,9 @@ describe('security headers', () => {
     expect(scriptSrc).not.toContain("'strict-dynamic'");
     expect(scriptSrc).toContain("'self'");
     expect(scriptSrc).toContain('https://*.js.stripe.com');
+    // No 'strict-dynamic' here, so every listed host is live. Google's script hosts serve JSONP endpoints,
+    // and the landing and auth pages load no Google script, so none may be allowlisted.
+    expect(scriptSrc.filter((source) => typeof source === 'string' && /google|gstatic/.test(source))).toEqual([]);
     // blob: must NOT be a script source on any policy — blob: workers resolve via worker-src/child-src
     // instead, so blob: stays out of script-src where it would be a page-level script sink.
     expect(scriptSrc).not.toContain('blob:');
@@ -100,6 +103,10 @@ describe('security headers', () => {
     expect(scriptSrc).not.toContain('blob:');
     expect(scriptSrc).toContain("'self'");
     expect(scriptSrc).toContain('https://js.stripe.com');
+    // Google Sign-In and the Google API loader, as specific hosts rather than wildcards
+    expect(scriptSrc).toContain('https://accounts.google.com');
+    expect(scriptSrc).toContain('https://apis.google.com');
+    expect(scriptSrc.filter((source) => typeof source === 'string' && /\*\.(google|gstatic)/.test(source))).toEqual([]);
   });
 
   it('builds a tighter /app img-src that drops legacy/landing-only hosts but keeps app hosts', () => {
