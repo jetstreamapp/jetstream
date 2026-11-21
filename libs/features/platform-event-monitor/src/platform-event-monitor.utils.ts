@@ -178,3 +178,27 @@ class CometdReplayExtension implements Extension {
     return message;
   }
 }
+
+export interface PublishEventResponse {
+  success: boolean;
+  eventId?: string;
+  errorMessage?: string;
+}
+
+/**
+ * Screen reader text for the publish outcome, which renders visually as a static notification.
+ *
+ * Deliberately worded differently from that notification ("Event Id: ..."): the same text twice would make a
+ * `getByText` locator match both elements and fail under Playwright's strict mode.
+ */
+export function getPublishStatusMessage(publishLoading: boolean, response: PublishEventResponse | null): string {
+  if (publishLoading) {
+    return 'Publishing event';
+  }
+  if (!response) {
+    return '';
+  }
+  return response.success
+    ? `Event published with id ${response.eventId}`
+    : `There was an error publishing your event: ${response.errorMessage}`;
+}

@@ -18,6 +18,7 @@ import { useOperationAccess } from '@jetstream/ui/app-state';
 import { formatRelative } from 'date-fns/formatRelative';
 import { Fragment, FunctionComponent, useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { PlatformEventObject } from './platform-event-monitor.types';
+import { getPublishStatusMessage, PublishEventResponse } from './platform-event-monitor.utils';
 
 export interface PlatformEventMonitorPublisherCardProps {
   selectedOrg: SalesforceOrgUi;
@@ -61,9 +62,7 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
   const [publishLoading, setPublishLoading] = useState(false);
   const [publishKey, setPublishKey] = useState<number>(1);
   const [publishEventRecord, setPublishEventRecord] = useState<SalesforceRecord>({});
-  const [publishEventResponse, setPublishEventResponse] = useState<{ success: boolean; eventId?: string; errorMessage?: string } | null>(
-    null,
-  );
+  const [publishEventResponse, setPublishEventResponse] = useState<PublishEventResponse | null>(null);
 
   useEffect(() => {
     isMounted.current = true;
@@ -161,13 +160,7 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
   }
 
   // The publish outcome renders as a static notification, which screen readers do not announce
-  const publishStatusMessage = publishLoading
-    ? 'Publishing event'
-    : publishEventResponse
-      ? publishEventResponse.success
-        ? `Event published with id ${publishEventResponse.eventId}`
-        : `There was an error publishing your event: ${publishEventResponse.errorMessage}`
-      : '';
+  const publishStatusMessage = getPublishStatusMessage(publishLoading, publishEventResponse);
 
   return (
     <Card

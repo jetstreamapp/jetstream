@@ -51,7 +51,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   const [activeLog, setActiveLog] = useState<string>('');
 
   // Activating a log row loads it into the Monaco pane on the right with no visible focus change —
-  // announce each load (clear-then-set, so re-selecting a cached log announces again)
+  // announce each load (the live region clears then re-sets, so a repeat message is still spoken)
   const { announce, announcer } = useAnnouncer();
   const [userDebug, setUserDebug] = useState(false);
   const [textFilter, setTextFilter] = useState<string>('');

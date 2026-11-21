@@ -120,7 +120,9 @@ export const PlatformEventMonitorSubscribe: FunctionComponent<PlatformEventMonit
           className={currentEventSubscribed ? 'slds-button slds-button_neutral' : 'slds-button slds-button_brand'}
           onClick={(event) => {
             if (currentEventSubscribed) {
-              selectedSubscribeEvent && unsubscribe(selectedSubscribeEvent);
+              if (selectedSubscribeEvent) {
+                unsubscribe(selectedSubscribeEvent);
+              }
             } else {
               handleSubscribe(event);
             }
