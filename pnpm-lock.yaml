@@ -334,8 +334,8 @@ importers:
         specifier: ^1.6.5
         version: 1.6.5
       stripe:
-        specifier: ^22.6.2
-        version: 22.6.2(@types/node@24.13.6)
+        specifier: ^23.1.0
+        version: 23.1.0(@types/node@24.13.6)
       tar:
         specifier: ^7.5.20
         version: 7.5.23
@@ -13966,11 +13966,11 @@ packages:
     resolution: {integrity: sha512-ErcwpJBYr8EfX/Br7JauOIGXoRE92w0hVtuS9j92UFgbATxA+WRSIZksSUDzEeItfWB/0QCEprTZT55RSINUHQ==}
     engines: {node: '>=22'}
 
-  stripe@22.6.2:
-    resolution: {integrity: sha512-PwRE2scocvXqDKPiskMa5vRJEAEkq46W69XyUYmAwrNSLr675lQnfqLwnsndAWizwgihOWw/irLmoFRo3ez7ew==}
-    engines: {node: '>=18'}
+  stripe@23.1.0:
+    resolution: {integrity: sha512-fVUfMSfTPoukfoV//MUKAx2+YxyKmYaYtnAL9VkfnHfaPNQylFdWZMD+zgUFerI8rjbaiER8Vzj2XEUQ2AhAsQ==}
+    engines: {node: '>=20'}
     peerDependencies:
-      '@types/node': '>=18'
+      '@types/node': '>=20'
     peerDependenciesMeta:
       '@types/node':
         optional: true
@@ -32930,7 +32930,7 @@ snapshots:
 
   strip-json-comments@5.1.0: {}
 
-  stripe@22.6.2(@types/node@24.13.6):
+  stripe@23.1.0(@types/node@24.13.6):
     optionalDependencies:
       '@types/node': 24.13.6
 

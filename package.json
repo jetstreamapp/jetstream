@@ -353,7 +353,7 @@
     "socket.io": "^4.8.4",
     "socket.io-client": "^4.8.4",
     "split.js": "^1.6.5",
-    "stripe": "^22.6.2",
+    "stripe": "^23.1.0",
     "tar": "^7.5.22",
     "tiny-request-router": "^1.2.2",
     "tslib": "^2.9.1",
