@@ -398,8 +398,8 @@ importers:
         specifier: 8.8.0
         version: 8.8.0(@types/node@24.13.6)
       '@maxim_mazurok/gapi.client.drive-v3':
-        specifier: 0.3.20261106
-        version: 0.3.20261106
+        specifier: 0.4.20261114
+        version: 0.4.20261114
       '@nx/devkit':
         specifier: 24.0.6
         version: 24.0.6(nx@24.0.6(@swc-node/register@1.12.1(@swc/core@1.16.22(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@7.2.0)(typescript@6.0.3))(@swc/core@1.16.22(@swc/helpers@0.5.24)))
@@ -3732,8 +3732,8 @@ packages:
   '@maxim_mazurok/gapi.client.discovery-v1@0.6.20200806':
     resolution: {integrity: sha512-QN6aGmIbLXcJW0SEf8tz9UWCpQTBMy2u4xSuZ04YofzMGknhWwMeUecySLntCZYAEstHzDoSgwxCf5Gb8GqIRQ==}
 
-  '@maxim_mazurok/gapi.client.drive-v3@0.3.20261106':
-    resolution: {integrity: sha512-fcJbK5JOhn2FQ91LXgSeBHivx7+6Gbd/1SDGqdYmr+gPkTI9Gga3w3TU7BuwhUXfWyBGiZh5GOHavAzr8Z+pbQ==}
+  '@maxim_mazurok/gapi.client.drive-v3@0.4.20261114':
+    resolution: {integrity: sha512-yw/njML28cx1uU2fPKjIp9jSSf7emyBULRVJdNU1oTYRt6Xdf4XBl9tVsnQ66PWCLSZwzf3I1TwpIvczlcfwzA==}
 
   '@mdn/browser-compat-data@8.1.4':
     resolution: {integrity: sha512-Cgp3OP3u9x57kT1sZPI115SP5H1IyaBhdDPnvnHRYZ1988kW83wuqcIdcMinLJXlMKOL5Y2cufWHzngh5cVtow==}
@@ -20437,7 +20437,7 @@ snapshots:
       '@types/gapi.client': 1.0.8
       '@types/gapi.client.discovery-v1': 0.0.4
 
-  '@maxim_mazurok/gapi.client.drive-v3@0.3.20261106':
+  '@maxim_mazurok/gapi.client.drive-v3@0.4.20261114':
     dependencies:
       '@types/gapi.client': 1.0.8
       '@types/gapi.client.discovery-v1': 0.0.4
