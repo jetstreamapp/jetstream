@@ -191,7 +191,7 @@ importers:
         version: 18.0.10
       electron-app-universal-protocol-client:
         specifier: ^2.1.1
-        version: 2.1.1(electron@44.11.5(supports-color@7.2.0))
+        version: 2.1.1(electron@45.3.4(supports-color@7.2.0))
       electron-log:
         specifier: ^5.4.4
         version: 5.4.4
@@ -578,8 +578,8 @@ importers:
         specifier: ^10.1.0
         version: 10.1.0
       electron:
-        specifier: ^44.11.5
-        version: 44.11.5(supports-color@7.2.0)
+        specifier: ^45.3.4
+        version: 45.3.4(supports-color@7.2.0)
       electron-builder:
         specifier: ^26.18.0
         version: 26.18.0(electron-builder-squirrel-windows@26.18.0)(supports-color@7.2.0)
@@ -8788,8 +8788,8 @@ packages:
     resolution: {integrity: sha512-bO3y10YikuUwUuDUQRM4KfwNkKhnpVO7IPdbsrejwN9/AABJzzTQ4GeHwyzNSrVO+tEH3/Np255a3sVZpZDjvg==}
     engines: {node: '>=8.0.0'}
 
-  electron@44.11.5:
-    resolution: {integrity: sha512-FgtBBAgWRyT/k2LbXDvlnHQRtc35sfp4UaWjYvktsh2HWWYSnfA/DnYGEOxQUZXpcp4EELj37x5zSSrh585nwg==}
+  electron@45.3.4:
+    resolution: {integrity: sha512-cqU5u6arfGd9KJvCODjj32ckxkDQbweTL3v8J51tAsKGmDWYKcAqszvie0NDKBIGl6Ze19QTL74yIAUHrqNDig==}
     engines: {node: '>= 22.12.0'}
     hasBin: true
 
@@ -25859,9 +25859,9 @@ snapshots:
 
   ejs@5.0.1: {}
 
-  electron-app-universal-protocol-client@2.1.1(electron@44.11.5(supports-color@7.2.0)):
+  electron-app-universal-protocol-client@2.1.1(electron@45.3.4(supports-color@7.2.0)):
     dependencies:
-      electron: 44.11.5(supports-color@7.2.0)
+      electron: 45.3.4(supports-color@7.2.0)
       typed-emitter: 2.1.0
 
   electron-builder-squirrel-windows@26.18.0(dmg-builder@26.18.0)(supports-color@7.2.0):
@@ -25932,7 +25932,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  electron@44.11.5(supports-color@7.2.0):
+  electron@45.3.4(supports-color@7.2.0):
     dependencies:
       '@electron-internal/extract-zip': 1.0.8
       '@electron/get': 5.1.0(supports-color@7.2.0)
