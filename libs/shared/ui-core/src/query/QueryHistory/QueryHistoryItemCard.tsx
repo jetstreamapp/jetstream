@@ -2,9 +2,10 @@ import { IconObj } from '@jetstream/icon-factory';
 import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
-import { ButtonGroupContainer, Card, CopyToClipboard, Grid, GridCol, Icon, Spinner, Textarea } from '@jetstream/ui';
+import { Badge, ButtonGroupContainer, Card, CopyToClipboard, Grid, GridCol, Icon, Spinner, Textarea } from '@jetstream/ui';
 import { queryHistoryDb } from '@jetstream/ui/db';
 import { isQueryValid } from '@jetstreamapp/soql-parser-js';
 import { formatDate } from 'date-fns/format';
@@ -12,6 +13,7 @@ import clamp from 'lodash/clamp';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { MonacoEditor } from '../../app/MonacoEditor';
+import { OrgLabelBadge } from '../../orgs/OrgLabelBadge';
 import { QueryRestoreErrors } from '../RestoreQuery/query-restore-utils';
 import { RestoreQuery } from '../RestoreQuery/RestoreQuery';
 import { SoqlValidIndicator } from '../ValidQueryText';
@@ -24,7 +26,10 @@ const REM_PER_LINE = 1.1;
 export interface QueryHistoryItemCardProps {
   isOnSavedQueries: boolean;
   item: QueryHistoryItem;
-  selectedOrg: SalesforceOrgUi;
+  /** The org the query was run against - undefined when that org is no longer connected */
+  itemOrg: SalesforceOrgUi | undefined;
+  /** Queries from several orgs are listed together, so each card says which org it belongs to */
+  showOrg: boolean;
   onExecute: (item: QueryHistoryItem) => void;
   onSave: (item: QueryHistoryItem, value: boolean) => void;
   onQueryUpdated?: () => void;
@@ -35,7 +40,8 @@ export interface QueryHistoryItemCardProps {
 export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> = ({
   isOnSavedQueries,
   item,
-  selectedOrg,
+  itemOrg,
+  showOrg,
   onExecute,
   onSave,
   onQueryUpdated,
@@ -43,7 +49,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
   endRestore,
 }) => {
   const [currentItem, setCurrentItem] = useState(item);
-  const { sObject, customLabel, label, soql, isTooling, runCount, lastRun } = currentItem;
+  const { sObject, customLabel, label, soql, isTooling, runCount, recordCount, lastRun } = currentItem;
   const isMounted = useRef(true);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const timerRef = useRef<any>(null);
@@ -135,13 +141,17 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
       return;
     }
 
+    if (!itemOrg) {
+      return;
+    }
+
     try {
       setIsSaving(true);
       setError(null);
 
       let updatedItem = currentItem;
 
-      updatedItem = await queryHistoryDb.updateSavedQuery(selectedOrg, updatedItem, editedSoql, editedCustomLabel.trim(), isTooling);
+      updatedItem = await queryHistoryDb.updateSavedQuery(itemOrg, updatedItem, editedSoql, editedCustomLabel.trim(), isTooling);
 
       // Update the local state to reflect the saved changes
       setCurrentItem(updatedItem);
@@ -192,7 +202,15 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
               <span>{customLabel ?? label}</span>
             )}
           </GridCol>
-          <GridCol className="slds-text-body_small slds-text-color_weak">{sObject}</GridCol>
+          <GridCol className="slds-text-body_small slds-text-color_weak">
+            {sObject}
+            {showOrg && itemOrg && <OrgLabelBadge className="slds-m-left_x-small" org={itemOrg} />}
+            {showOrg && !itemOrg && (
+              <Badge className="slds-m-left_x-small" type="inverse" title="The org this query was run against is no longer connected">
+                Org not connected
+              </Badge>
+            )}
+          </GridCol>
         </Grid>
       }
       actions={
@@ -230,7 +248,12 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
                   Save
                 </button>
               )}
-              <button className="slds-button slds-button_neutral" onClick={handleEdit}>
+              <button
+                className="slds-button slds-button_neutral"
+                onClick={handleEdit}
+                disabled={!itemOrg}
+                title={itemOrg ? undefined : 'Connect the org this query belongs to before editing it'}
+              >
                 <Icon type="utility" icon="edit" description="Edit query" className="slds-button__icon slds-button__icon_left" />
                 Edit
               </button>
@@ -265,6 +288,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
       <Grid wrap className="slds-m-bottom_x-small slds-scrollable_x">
         <GridCol size={12} className="slds-text-body_small slds-text-color_weak slds-m-bottom_xx-small">
           Last Run: {formatDate(lastRun, DATE_FORMATS.FULL)} - Run: {runCount} {pluralizeFromNumber('time', runCount)}
+          {typeof recordCount === 'number' && ` - ${formatNumber(recordCount)} ${pluralizeFromNumber('record', recordCount)}`}
         </GridCol>
         {error && (
           <GridCol size={12}>

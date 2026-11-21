@@ -301,7 +301,7 @@ export const QueryResults = React.memo(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg]);
 
-  async function saveQueryHistory(soql: string, sObject: string, tooling: boolean) {
+  async function saveQueryHistory(soql: string, sObject: string, tooling: boolean, totalSize: number) {
     let sObjectLabel: string | undefined = undefined;
     // if object name did not change since last query, use data from location
     if (locationState?.sobject) {
@@ -315,6 +315,8 @@ export const QueryResults = React.memo(() => {
           sObjectLabel,
           isTooling: tooling,
           incrementRunCount: true,
+          // Big objects report -1 because Salesforce does not count them
+          recordCount: totalSize >= 0 ? totalSize : undefined,
         });
       } catch (ex) {
         logger.warn(ex);
@@ -385,7 +387,9 @@ export const QueryResults = React.memo(() => {
       const sobjectName = results.parsedQuery?.sObject || results.columns?.entityName;
       if (sobjectName) {
         // this is async, but don't block on results
-        saveQueryHistory(soqlQuery, sobjectName, tooling).catch((ex) => logger.warn('Error saving query history', ex));
+        saveQueryHistory(soqlQuery, sobjectName, tooling, results.queryResults.totalSize).catch((ex) =>
+          logger.warn('Error saving query history', ex),
+        );
       }
       setSobject(sobjectName);
     } catch (ex) {
@@ -428,10 +432,8 @@ export const QueryResults = React.memo(() => {
    */
   function handleLoadMore(results: IQueryResults<any>) {
     if (isMounted.current) {
-      const sobjectName = results.parsedQuery?.sObject || results.columns?.entityName;
       const allRecords = results.queryResults.records;
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
-      sobjectName && saveQueryHistory(soql, sobjectName, isTooling);
       setRecordCount(getTotalRecordCount(results.queryResults, allRecords));
       setTotalRecordCount(getTotalRecordCount(results.queryResults, allRecords));
       setRecords(allRecords);

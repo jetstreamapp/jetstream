@@ -4,8 +4,10 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import { EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput, Spinner } from '@jetstream/ui';
+import { salesforceOrgsById } from '@jetstream/ui/app-state';
 import { dataSync, getDexieDb, queryHistoryDb } from '@jetstream/ui/db';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { useAtomValue } from 'jotai';
 import uniqBy from 'lodash/uniqBy';
 import { createRef, forwardRef, useCallback, useEffect, useState } from 'react';
 import { fromQueryHistoryState } from '../..';
@@ -43,6 +45,7 @@ export interface QueryHistoryProps {
 export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ selectedOrg, initialType, onRestore, onclose }, _ref) => {
   const [whichType, setWhichType] = useState<QueryHistoryType>(() => initialType || 'HISTORY');
   const [whichOrg, setWhichOrg] = useState<WhichOrgType>('SELECTED');
+  const orgsById = useAtomValue(salesforceOrgsById);
   const ulRef = createRef<HTMLUListElement>();
 
   const [selectedObject, setSelectedObject] = useState(SOBJECT_ALL);
@@ -250,7 +253,8 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ selectedO
                 key={item.key}
                 isOnSavedQueries={whichType === 'SAVED'}
                 item={item}
-                selectedOrg={selectedOrg}
+                itemOrg={orgsById[item.org]}
+                showOrg={whichOrg === 'ALL'}
                 onExecute={handleExecute}
                 onSave={handleSaveFavorite}
                 onQueryUpdated={() => {
