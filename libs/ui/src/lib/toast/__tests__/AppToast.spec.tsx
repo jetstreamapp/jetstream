@@ -66,6 +66,11 @@ describe('AppToast', () => {
     vi.useFakeTimers();
     const { container } = setup();
     fire('First');
+    // AppToast re-checks `:hover` when its toasts change, and jsdom has no real pointer, so mirror the simulated one
+    let isPointerOver = false;
+    const originalMatches = container.matches.bind(container);
+    vi.spyOn(container, 'matches').mockImplementation((selector) => (selector === ':hover' ? isPointerOver : originalMatches(selector)));
+    isPointerOver = true;
     fireEvent.mouseEnter(container);
 
     fire('Second');
@@ -74,6 +79,7 @@ describe('AppToast', () => {
     expect(queryToast('First')).toBeTruthy();
     expect(queryToast('Second')).toBeTruthy();
 
+    isPointerOver = false;
     fireEvent.mouseLeave(container);
     advance(DEFAULT_DURATION - 1);
     expect(queryToast('First')).toBeTruthy();

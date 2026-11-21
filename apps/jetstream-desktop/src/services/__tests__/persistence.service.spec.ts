@@ -14,7 +14,6 @@ const mockFileModes = new Map<string, number>();
 const TEST_USER_DATA = '/tmp/test-jetstream';
 const APP_DATA_FILE = `${TEST_USER_DATA}/app-data.json`;
 /** Pre-user-scoping shared file that existing installs still have on disk */
-const LEGACY_ORGS_FILE = `${TEST_USER_DATA}/orgs.json`;
 
 /** Mirrors getOrgsFilePathForUser in the service under test */
 function orgsFileFor(userId: string) {
@@ -47,16 +46,6 @@ function testOrg(overrides: Record<string, unknown> = {}) {
 vi.mock('electron', () => ({
   app: {
     getPath: vi.fn(() => TEST_USER_DATA),
-  },
-  safeStorage: {
-    encryptString: vi.fn((data: string) => Buffer.from(`SAFE${data}`)),
-    decryptString: vi.fn((data: Buffer) => {
-      const str = data.toString('utf8');
-      if (str.startsWith('SAFE')) {
-        return str.slice(4);
-      }
-      throw new Error('safeStorage: unable to decrypt');
-    }),
   },
 }));
 
@@ -162,14 +151,14 @@ describe('persistence.service', () => {
       expect(service.isFreshProfile()).toBe(true);
     });
 
-    it('creates a plain JSON file when file does not exist (no safeStorage)', async () => {
+    it('creates a plain JSON file when file does not exist', async () => {
       const service = await importService();
       service.getAppData();
 
       // The file should exist now
       expect(mockFs.has(APP_DATA_FILE)).toBe(true);
 
-      // The file should be valid plain JSON (not safeStorage binary)
+      // The file should be valid plain JSON
       const content = mockFs.get(APP_DATA_FILE)!.toString('utf8');
       expect(() => JSON.parse(content)).not.toThrow();
     });
@@ -187,20 +176,7 @@ describe('persistence.service', () => {
       expect(service.isFreshProfile()).toBe(false);
     });
 
-    it('falls back to safeStorage for legacy encrypted files', async () => {
-      const appData = { deviceId: 'legacy-device', accessToken: 'legacy-token' };
-      // Simulate a safeStorage-encrypted file (our mock prefixes with "SAFE")
-      mockFs.set(APP_DATA_FILE, Buffer.from(`SAFE${JSON.stringify(appData)}`));
-
-      const service = await importService();
-      const result = service.getAppData();
-      expect(result.deviceId).toBe('legacy-device');
-      expect(result.accessToken).toBe('legacy-token');
-      expect(service.isFreshProfile()).toBe(false);
-    });
-
-    it('starts fresh when file cannot be read by either method', async () => {
-      // Write something that is neither valid JSON nor safeStorage-decodable
+    it('starts fresh when the file is not valid JSON', async () => {
       mockFs.set(APP_DATA_FILE, Buffer.from([0x00, 0x01, 0x02, 0x03]));
 
       const service = await importService();
@@ -212,7 +188,7 @@ describe('persistence.service', () => {
   });
 
   describe('setAppData', () => {
-    it('writes plain JSON without safeStorage encryption', async () => {
+    it('writes plain JSON', async () => {
       const service = await importService();
       service.getAppData(); // initialize
 
@@ -226,26 +202,6 @@ describe('persistence.service', () => {
       const parsed = JSON.parse(content);
       expect(parsed.deviceId).toBe('new-device');
       expect(parsed.accessToken).toBe('new-token');
-    });
-
-    it('migrates legacy safeStorage file to plain JSON on write', async () => {
-      // Start with a safeStorage file
-      const legacyData = { deviceId: 'legacy-device', accessToken: 'legacy-token' };
-      mockFs.set(APP_DATA_FILE, Buffer.from(`SAFE${JSON.stringify(legacyData)}`));
-
-      const service = await importService();
-      const appData = service.getAppData();
-      expect(appData.deviceId).toBe('legacy-device');
-
-      // Re-save — should write plain JSON
-      service.setAppData(appData);
-
-      const content = mockFs.get(APP_DATA_FILE)!.toString('utf8');
-      expect(() => JSON.parse(content)).not.toThrow();
-      expect(JSON.parse(content).deviceId).toBe('legacy-device');
-
-      // The file should NOT start with "SAFE" anymore
-      expect(content.startsWith('SAFE')).toBe(false);
     });
   });
 
@@ -367,7 +323,7 @@ describe('persistence.service', () => {
       const service = await importService();
       service.getSalesforceOrgs();
 
-      // File should NOT be created (no safeStorage fallback)
+      // File should NOT be created
       expect(mockFs.has(SFDC_ORGS_FILE)).toBe(false);
     });
 
@@ -560,185 +516,6 @@ describe('persistence.service', () => {
   });
 
   // ────────────────────────────────────────────────
-  // LEGACY ORGS FILE MIGRATION
-  // ────────────────────────────────────────────────
-
-  describe('legacy orgs file migration', () => {
-    /** Builds a legacy shared orgs.json in the portable format, encrypted for the given user */
-    async function writeLegacyPortableFile(user: typeof USER_A, uniqueId: string) {
-      const setup = await importService();
-      setup.bindOrgStorageToUser(user);
-      setup.createOrUpdateSalesforceOrg(testOrg({ uniqueId }));
-      setup.createOrgGroup({ name: 'Legacy Group', description: null });
-      const data = mockFs.get(orgsFileFor(user.userId))!;
-      mockFs.clear();
-      mockFs.set(LEGACY_ORGS_FILE, data);
-      vi.resetModules();
-    }
-
-    it('migrates a portable legacy file to the owning user scoped file', async () => {
-      await writeLegacyPortableFile(USER_A, 'legacy-org');
-
-      const service = await importService();
-      service.bindOrgStorageToUser(USER_A);
-
-      expect(service.getSalesforceOrgs()).toHaveLength(1);
-      expect(service.getSalesforceOrgs()[0].uniqueId).toBe('legacy-org');
-      expect(service.getOrgGroups()).toHaveLength(1);
-
-      // Scoped file written, legacy file retired to a backup rather than deleted
-      expect(mockFs.has(orgsFileFor(USER_A.userId))).toBe(true);
-      expect(mockFs.has(LEGACY_ORGS_FILE)).toBe(false);
-      const migratedBackups = [...mockFs.keys()].filter((key) => key.includes('.migrated-'));
-      expect(migratedBackups).toHaveLength(1);
-      // The rename preserves the legacy mode bits and the backup is never written again,
-      // so permissions have to be tightened explicitly
-      expect(mockFileModes.get(migratedBackups[0])).toBe(0o600);
-    });
-
-    it('keeps the legacy file when the migration write fails, rather than retiring data that was never copied', async () => {
-      await writeLegacyPortableFile(USER_A, 'legacy-org');
-      const writeFileAtomic = (await import('write-file-atomic')).default;
-      const { writeFileSync } = await import('fs');
-
-      const service = await importService();
-      service.bindOrgStorageToUser(USER_A);
-
-      // The migration write cannot land — both the atomic write and its fallback fail
-      vi.mocked(writeFileAtomic.sync).mockImplementationOnce(() => {
-        throw Object.assign(new Error('ENOSPC: no space left on device'), { code: 'ENOSPC' });
-      });
-      vi.mocked(writeFileSync).mockImplementationOnce(() => {
-        throw Object.assign(new Error('ENOSPC: no space left on device'), { code: 'ENOSPC' });
-      });
-
-      // The read still succeeds off the adopted in-memory data — a failed migration is not a failed read
-      expect(service.getSalesforceOrgs()).toHaveLength(1);
-
-      // Nothing was persisted, so the legacy file has to stay put as the source of truth for the retry
-      expect(mockFs.has(orgsFileFor(USER_A.userId))).toBe(false);
-      expect(mockFs.has(LEGACY_ORGS_FILE)).toBe(true);
-      expect([...mockFs.keys()].filter((key) => key.includes('.migrated-'))).toHaveLength(0);
-
-      // The failed write has to be reported as what it is. Without the guard around the migration
-      // write this still leaves the legacy file alone, but by way of readOrgs' outer catch, which
-      // logs an unrelated read failure and leaves retirement to notice the missing scoped file.
-      const logger = await import('electron-log');
-      expect(logger.default.error).toHaveBeenCalledWith(expect.stringContaining('Failed to persist migrated orgs'), expect.anything());
-    });
-
-    it('tightens permissions on the legacy file when retirement fails', async () => {
-      await writeLegacyPortableFile(USER_A, 'legacy-org');
-      const { renameSync } = await import('fs');
-
-      const service = await importService();
-      service.bindOrgStorageToUser(USER_A);
-
-      // Retirement cannot rename — e.g. a profile directory this user cannot write to
-      vi.mocked(renameSync).mockImplementationOnce(() => {
-        throw Object.assign(new Error('EACCES: permission denied'), { code: 'EACCES' });
-      });
-
-      expect(service.getSalesforceOrgs()).toHaveLength(1);
-
-      // The legacy file still holds the encrypted tokens and nothing will ever rewrite it,
-      // so this is the last chance to stop it sitting there readable by other local accounts
-      expect(mockFs.has(LEGACY_ORGS_FILE)).toBe(true);
-      expect(mockFileModes.get(LEGACY_ORGS_FILE)).toBe(0o600);
-    });
-
-    it('leaves the legacy file untouched for a user that does not own it', async () => {
-      await writeLegacyPortableFile(USER_A, 'legacy-org');
-      const legacyData = Buffer.from(mockFs.get(LEGACY_ORGS_FILE)!);
-
-      // A different account signs in first
-      const service = await importService();
-      service.bindOrgStorageToUser(USER_B);
-
-      expect(service.getSalesforceOrgs()).toEqual([]);
-      // The legacy file is intact — not migrated, not quarantined, not deleted
-      expect(mockFs.get(LEGACY_ORGS_FILE)).toEqual(legacyData);
-      expect([...mockFs.keys()].filter((key) => key.includes('.corrupt-'))).toHaveLength(0);
-      // ...but a file that never decrypts is never rewritten, so its permissions are tightened
-      expect(mockFileModes.get(LEGACY_ORGS_FILE)).toBe(0o600);
-
-      // ...and the rightful owner can still claim it afterwards
-      service.clearOrgState();
-      service.bindOrgStorageToUser(USER_A);
-      expect(service.getSalesforceOrgs()).toHaveLength(1);
-      expect(service.getSalesforceOrgs()[0].uniqueId).toBe('legacy-org');
-    });
-
-    it('migrates a legacy safeStorage file and re-encrypts org tokens portably', async () => {
-      const legacyPayload = {
-        jetstreamOrganizations: [],
-        salesforceOrgs: [
-          testOrg({
-            uniqueId: 'safe-org',
-            // safeStorage-encrypted token, base64 encoded, as older versions persisted it
-            accessToken: Buffer.from('SAFEsecret-token').toString('base64'),
-            filterText: 'safe-org',
-          }),
-        ],
-      };
-      mockFs.set(LEGACY_ORGS_FILE, Buffer.from(`SAFE${JSON.stringify(legacyPayload)}`));
-
-      const service = await importService();
-      service.bindOrgStorageToUser(USER_A);
-
-      const orgs = service.getSalesforceOrgs();
-      expect(orgs).toHaveLength(1);
-      // Token moved from machine-scoped safeStorage to the portable format
-      expect(orgs[0].accessToken.startsWith('jsek:')).toBe(true);
-      expect(service.decryptTokenPortable(orgs[0].accessToken)).toBe('secret-token');
-
-      expect(mockFs.has(orgsFileFor(USER_A.userId))).toBe(true);
-      expect(mockFs.has(LEGACY_ORGS_FILE)).toBe(false);
-    });
-
-    it('only migrates once — a later legacy file does not overwrite scoped data', async () => {
-      const service = await importService();
-      service.bindOrgStorageToUser(USER_A);
-      service.createOrUpdateSalesforceOrg(testOrg({ uniqueId: 'current-org' }));
-
-      // A stale legacy file reappears (e.g. restored from a backup)
-      mockFs.set(LEGACY_ORGS_FILE, Buffer.from(`SAFE${JSON.stringify({ jetstreamOrganizations: [], salesforceOrgs: [] })}`));
-
-      service.clearOrgState();
-      service.bindOrgStorageToUser(USER_A);
-
-      expect(service.getSalesforceOrgs()).toHaveLength(1);
-      expect(service.getSalesforceOrgs()[0].uniqueId).toBe('current-org');
-      expect(mockFs.has(LEGACY_ORGS_FILE)).toBe(true);
-    });
-
-    it('retries adoption after a transient read failure instead of stranding the legacy file', async () => {
-      await writeLegacyPortableFile(USER_A, 'legacy-org');
-      const { readFileSync } = await import('fs');
-
-      const service = await importService();
-      service.bindOrgStorageToUser(USER_A);
-
-      // The legacy file is momentarily unreadable — a locked file on a roaming/VDI profile share
-      vi.mocked(readFileSync).mockImplementationOnce(() => {
-        throw Object.assign(new Error('EBUSY: resource busy or locked'), { code: 'EBUSY' });
-      });
-      expect(service.getSalesforceOrgs()).toEqual([]);
-
-      // Nothing was written, so the legacy file is still there to be claimed
-      expect(mockFs.has(LEGACY_ORGS_FILE)).toBe(true);
-      expect(mockFs.has(orgsFileFor(USER_A.userId))).toBe(false);
-
-      // Next cold cache (auth verify or restart) picks it up
-      service.clearOrgState();
-      service.bindOrgStorageToUser(USER_A);
-      expect(service.getSalesforceOrgs()).toHaveLength(1);
-      expect(service.getSalesforceOrgs()[0].uniqueId).toBe('legacy-org');
-      expect(mockFs.has(LEGACY_ORGS_FILE)).toBe(false);
-    });
-  });
-
-  // ────────────────────────────────────────────────
   // VDI LIFECYCLE SCENARIOS
   // ────────────────────────────────────────────────
 
@@ -870,6 +647,31 @@ describe('persistence.service', () => {
       expect(mockFs.has(SFDC_ORGS_FILE)).toBe(false);
       const backupKeys = [...mockFs.keys()].filter((k) => k.includes('.corrupt-'));
       expect(backupKeys).toHaveLength(1);
+    });
+  });
+
+  describe('token encryption', () => {
+    it('round-trips a token with the signed-in user key', async () => {
+      const service = await importService();
+      service.bindOrgStorageToUser(USER_A);
+
+      const encrypted = service.encryptTokenPortable('access refresh');
+
+      expect(encrypted.startsWith('jsek:')).toBe(true);
+      expect(service.decryptTokenPortable(encrypted)).toBe('access refresh');
+    });
+
+    it('refuses to encrypt without a user key instead of using a machine-bound fallback', async () => {
+      const service = await importService();
+
+      expect(() => service.encryptTokenPortable('access refresh')).toThrow('Portable encryption key not available');
+    });
+
+    it('rejects tokens that are not in the portable format so the org can be re-authorized', async () => {
+      const service = await importService();
+      service.bindOrgStorageToUser(USER_A);
+
+      expect(() => service.decryptTokenPortable(Buffer.from('legacy-safe-storage-token').toString('base64'))).toThrow('re-authorized');
     });
   });
 });

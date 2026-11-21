@@ -97,7 +97,7 @@ export interface JetstreamPriceByKey {
 }
 
 /** Pinned Stripe API version, shared by every process that constructs a Stripe client. */
-export const STRIPE_API_VERSION = '2026-08-26.dahlia';
+export const STRIPE_API_VERSION = '2026-10-28.endive';
 
 export const STRIPE_PRICE_KEYS = ['TEAM_ANNUAL', 'TEAM_MONTHLY', 'PRO_ANNUAL', 'PRO_MONTHLY'] as const;
 export type StripePriceKey = (typeof STRIPE_PRICE_KEYS)[number];

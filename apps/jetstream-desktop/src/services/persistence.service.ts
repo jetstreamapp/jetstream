@@ -15,7 +15,7 @@ import {
 import { DEFAULT_FEATURE_FLAGS, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from 'crypto';
 import { fromUnixTime } from 'date-fns';
-import { app, safeStorage } from 'electron';
+import { app } from 'electron';
 import logger from 'electron-log';
 import { chmodSync, existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'fs';
 import { jwtDecode } from 'jwt-decode';
@@ -25,18 +25,6 @@ import writeFileAtomic from 'write-file-atomic';
 const userData = app.getPath('userData');
 const APP_DATA_FILE = join(userData, 'app-data.json');
 const USER_PREFERENCES_FILE = join(userData, 'preferences.json');
-
-/**
- * Pre-user-scoping org file, shared by every account that signed in on this machine.
- *
- * Only ever read, never written to. Read on any cold-cache read where the signed-in user has no
- * scoped file yet — so a user who does not own it (or whose migration fails) retries on every
- * subsequent read, not just once. It is retired once the scoped file exists, which stands in for a
- * contents check because the migrating write is atomic: it either lands whole or leaves nothing to
- * find. Retirement renames rather than deletes, so the non-atomic fallback write failing halfway
- * still leaves the data recoverable. See `adoptLegacyOrgsFile` and `retireLegacyOrgsFile`.
- */
-const LEGACY_SFDC_ORGS_FILE = join(userData, 'orgs.json');
 
 /** Magic bytes identifying the portable AES-256-GCM encryption format */
 const JSEK_MAGIC = Buffer.from('JSEK');
@@ -154,46 +142,43 @@ function decryptOrgsData(data: Buffer, key: Buffer): string {
   return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
 }
 
-/** Prefix identifying a portably-encrypted token string (vs legacy safeStorage base64) */
+/** Prefix identifying a portably-encrypted token string */
 const PORTABLE_TOKEN_PREFIX = 'jsek:';
 
 /**
  * Encrypts a token string using the portable AES-256-GCM key.
  * Returns a prefixed base64 string: "jsek:<base64(iv + authTag + ciphertext)>"
- * Falls back to safeStorage if the portable key is not available.
+ * Throws when no portable key is available: a machine-bound fallback (safeStorage/DPAPI) would not
+ * survive roaming/VDI profiles, which is the reason the portable format exists.
  */
 export function encryptTokenPortable(plaintext: string): string {
   const session = ORG_SESSION;
-  if (session) {
-    const iv = randomBytes(12);
-    const cipher = createCipheriv('aes-256-gcm', session.key, iv);
-    const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
-    const authTag = cipher.getAuthTag();
-    return PORTABLE_TOKEN_PREFIX + Buffer.concat([iv, authTag, encrypted]).toString('base64');
+  if (!session) {
+    throw new Error('Portable encryption key not available to encrypt token');
   }
-  return safeStorage.encryptString(plaintext).toString('base64');
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', session.key, iv);
+  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return PORTABLE_TOKEN_PREFIX + Buffer.concat([iv, authTag, encrypted]).toString('base64');
 }
 
-/**
- * Decrypts a token string, auto-detecting portable vs legacy safeStorage format.
- * Tries portable first (prefixed with "jsek:"), then falls back to safeStorage.
- */
+/** Decrypts a token string produced by `encryptTokenPortable`. */
 export function decryptTokenPortable(encoded: string): string {
-  if (encoded.startsWith(PORTABLE_TOKEN_PREFIX)) {
-    const session = ORG_SESSION;
-    if (!session) {
-      throw new Error('Portable encryption key not available to decrypt token');
-    }
-    const data = Buffer.from(encoded.slice(PORTABLE_TOKEN_PREFIX.length), 'base64');
-    const iv = data.subarray(0, 12);
-    const authTag = data.subarray(12, 28);
-    const encrypted = data.subarray(28);
-    const decipher = createDecipheriv('aes-256-gcm', session.key, iv);
-    decipher.setAuthTag(authTag);
-    return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+  if (!encoded.startsWith(PORTABLE_TOKEN_PREFIX)) {
+    throw new Error('Unrecognized token format - the org needs to be re-authorized');
   }
-  // Legacy safeStorage format
-  return safeStorage.decryptString(Buffer.from(encoded, 'base64'));
+  const session = ORG_SESSION;
+  if (!session) {
+    throw new Error('Portable encryption key not available to decrypt token');
+  }
+  const data = Buffer.from(encoded.slice(PORTABLE_TOKEN_PREFIX.length), 'base64');
+  const iv = data.subarray(0, 12);
+  const authTag = data.subarray(12, 28);
+  const encrypted = data.subarray(28);
+  const decipher = createDecipheriv('aes-256-gcm', session.key, iv);
+  decipher.setAuthTag(authTag);
+  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
 }
 
 /**
@@ -209,26 +194,19 @@ function chmodBestEffort(path: string): void {
   }
 }
 
-function writeFile(path: string, data: string, encrypt = false) {
-  let _data: string | Buffer = data;
-  if (encrypt) {
-    _data = safeStorage.encryptString(data);
-  }
+function writeFile(path: string, data: string) {
   try {
-    writeFileAtomic.sync(path, _data, { mode: SECURE_FILE_MODE });
+    writeFileAtomic.sync(path, data, { mode: SECURE_FILE_MODE });
   } catch (error) {
     logger.error(`Error writing file ${path}:`, error);
-    writeFileSync(path, Buffer.isBuffer(_data) ? new Uint8Array(_data) : _data, { mode: SECURE_FILE_MODE });
+    writeFileSync(path, data, { mode: SECURE_FILE_MODE });
     // writeFileSync's mode only applies when it creates the file; explicitly chmod so a pre-existing
     // world-readable file is tightened even when the atomic write (which replaces the inode) failed.
     chmodBestEffort(path);
   }
 }
 
-function readFile(path: string, decrypt = false) {
-  if (decrypt) {
-    return safeStorage.decryptString(readFileSync(path));
-  }
+function readFile(path: string) {
   return readFileSync(path, 'utf8');
 }
 
@@ -265,29 +243,16 @@ export function getAppData(): AppData {
       APP_DATA = appData;
       return appData;
     }
-    // Try plain JSON first (new format), then safeStorage (legacy) for backward compat.
-    // safeStorage uses OS credentials (DPAPI on Windows) which don't persist across
-    // VDI/AVD sessions, so new writes always use plain JSON.
     let appData: AppData;
     try {
-      // New format: plain JSON
       const text = readFileSync(APP_DATA_FILE, 'utf8');
       const result = AppDataSchema.safeParse(JSON.parse(text));
       appData = result.success ? result.data : createFreshAppData();
-    } catch {
-      // Plain JSON read/parse failed — try safeStorage (legacy encrypted format).
-      // readFileSync(path, 'utf8') on binary data doesn't throw, but JSON.parse will,
-      // so we land here for both missing-file and safeStorage-encrypted-file cases.
-      try {
-        const text = safeStorage.decryptString(readFileSync(APP_DATA_FILE));
-        logger.info('Read app-data from legacy safeStorage format — will migrate to plain JSON on next write');
-        const result = AppDataSchema.safeParse(JSON.parse(text));
-        appData = result.success ? result.data : createFreshAppData();
-      } catch (safeStorageError) {
-        logger.warn('Unable to read app-data (not valid JSON and safeStorage decrypt failed). Starting fresh.', safeStorageError);
-        appData = createFreshAppData();
-        writeFile(APP_DATA_FILE, JSON.stringify(appData));
-      }
+    } catch (parseError) {
+      // Missing, unreadable, or not valid JSON (e.g. a file from an old release that encrypted it)
+      logger.warn('Unable to read app-data (not valid JSON). Starting fresh.', parseError);
+      appData = createFreshAppData();
+      writeFile(APP_DATA_FILE, JSON.stringify(appData));
     }
     APP_DATA = appData;
     return appData;
@@ -473,36 +438,17 @@ function readOrgs(): OrgsPersistence {
       return { jetstreamOrganizations: JETSTREAM_ORGS, salesforceOrgs: SALESFORCE_ORGS };
     }
     const session = ORG_SESSION;
-    // No user to attribute a read to — cold start before auth completes, or after logout. Portable
-    // data cannot be decrypted without the key anyway, and the legacy safeStorage file technically
-    // could be (it is keyed to the machine, not the user) but reading it here would hand one
-    // account's orgs to whoever happened to launch the app, which is the shared-file bug this
-    // scoping exists to close. The caller retries once auth lands and binds a user.
+    // No user to attribute a read to — cold start before auth completes, or after logout. The data
+    // cannot be decrypted without the user's key anyway. The caller retries once auth lands and
+    // binds a user.
     if (!session) {
       logger.info('Orgs requested before org storage is bound to a user — returning empty');
       return { jetstreamOrganizations: [], salesforceOrgs: [] };
     }
 
     if (!existsSync(session.path)) {
-      // First read for this user: adopt the pre-user-scoping orgs.json if it proves to be theirs,
-      // otherwise start empty. Nothing is written unless there is something to write, so a failed
-      // adoption is retried the next time the cache is cold (auth verify or restart) rather than
-      // being sealed off forever by an empty placeholder file.
-      const adopted = adoptLegacyOrgsFile(session);
-      JETSTREAM_ORGS = adopted?.jetstreamOrganizations ?? [];
-      SALESFORCE_ORGS = adopted?.salesforceOrgs ?? [];
-      if (adopted) {
-        try {
-          saveOrgs();
-          retireLegacyOrgsFile(session, adopted);
-        } catch (ex) {
-          // saveOrgs throws so mutations can surface a failed write, but a migration write is not a
-          // mutation — the adopted data is already in memory and the legacy file is still the source
-          // of truth, so the read succeeds and the next cold read retries. Skipping retirement on the
-          // way out is the point: a legacy file that was never copied must not be renamed away.
-          logger.error('Failed to persist migrated orgs — leaving the legacy file in place to retry on the next read', ex);
-        }
-      }
+      JETSTREAM_ORGS = [];
+      SALESFORCE_ORGS = [];
       return { jetstreamOrganizations: JETSTREAM_ORGS, salesforceOrgs: SALESFORCE_ORGS };
     }
 
@@ -539,104 +485,6 @@ function readOrgs(): OrgsPersistence {
   } catch (ex) {
     logger.error('Error reading orgs file', ex);
     return { jetstreamOrganizations: [], salesforceOrgs: [] };
-  }
-}
-
-/**
- * Reads the pre-user-scoping `orgs.json` and returns its contents if it belongs to the signed-in
- * user, otherwise null.
- *
- * That file was shared by every account that used the machine, so the only way to claim it is to
- * decrypt it. If it does not decrypt with this user's key it belongs to a different account (or
- * predates a server secret rotation) and is left completely untouched — the point of user scoping
- * is that signing in never destroys data that might be someone else's.
- *
- * Nothing is cached or written here; the caller owns persisting the result, so any failure leaves
- * the legacy file exactly as it was and the next read tries again.
- */
-function adoptLegacyOrgsFile(session: OrgSession): OrgsPersistence | null {
-  if (!existsSync(LEGACY_SFDC_ORGS_FILE)) {
-    return null;
-  }
-  try {
-    const rawData = readFileSync(LEGACY_SFDC_ORGS_FILE);
-    const isPortable = rawData.subarray(0, 4).equals(JSEK_MAGIC);
-    let orgsJson: string;
-    try {
-      // safeStorage predates per-user keys entirely and is machine- rather than user-scoped, so
-      // ownership can't be proven for those files. The first account to sign in claims it, which
-      // matches the single-shared-file behavior it was originally written under.
-      orgsJson = isPortable ? decryptOrgsData(rawData, session.key) : safeStorage.decryptString(rawData);
-    } catch (decryptError) {
-      // A portable file that will not decrypt was written with another account's key, so ownership is
-      // the only explanation. safeStorage is keyed to the OS credential store instead, so its failures
-      // are just as likely to be a profile that moved machines or a VDI session that rotated its DPAPI
-      // key. The file is left alone either way — the distinction only matters when reading these logs.
-      logger.info(
-        isPortable
-          ? 'Legacy orgs file did not decrypt for this user — it belongs to a different account, leaving it untouched'
-          : 'Legacy safeStorage orgs file did not decrypt — the OS credential store cannot read it (different machine or VDI session, or corruption), leaving it untouched',
-        decryptError,
-      );
-      // Contents are left alone, but a file that will not decrypt is never migrated and never
-      // written again, so this is the only chance to tighten whatever (potentially world-readable)
-      // mode bits predate SECURE_FILE_MODE. The owning account reads it just the same at 0600.
-      chmodBestEffort(LEGACY_SFDC_ORGS_FILE);
-      return null;
-    }
-
-    const { jetstreamOrganizations, salesforceOrgs } = OrgsPersistenceSchema.parse(JSON.parse(orgsJson));
-    return {
-      jetstreamOrganizations,
-      salesforceOrgs: isPortable ? salesforceOrgs : salesforceOrgs.map(reEncryptLegacyOrgToken),
-    };
-  } catch (ex) {
-    logger.error('Error reading legacy orgs file — leaving it in place to retry on the next read', ex);
-    return null;
-  }
-}
-
-/**
- * Retires the legacy file once its contents are confirmed in the user's scoped file. Kept as a
- * timestamped backup rather than deleted — a silent bug here costs the user every saved org.
- */
-function retireLegacyOrgsFile(session: OrgSession, { jetstreamOrganizations, salesforceOrgs }: OrgsPersistence): void {
-  try {
-    if (!existsSync(session.path)) {
-      logger.error('Migration wrote no scoped orgs file — leaving the legacy file in place to retry on the next read');
-      // Nothing ever writes this file again, so it keeps whatever (potentially world-readable) mode
-      // bits predate SECURE_FILE_MODE unless it is tightened here.
-      chmodBestEffort(LEGACY_SFDC_ORGS_FILE);
-      return;
-    }
-    const migratedBackupPath = `${LEGACY_SFDC_ORGS_FILE}.migrated-${Date.now()}`;
-    renameSync(LEGACY_SFDC_ORGS_FILE, migratedBackupPath);
-    // A rename preserves the legacy file's mode bits, and this backup is never written again, so
-    // it would keep whatever (potentially world-readable) permissions predate SECURE_FILE_MODE.
-    chmodBestEffort(migratedBackupPath);
-    logger.info(
-      `Migrated ${salesforceOrgs.length} orgs and ${jetstreamOrganizations.length} groups to ${basename(
-        session.path,
-      )} — original preserved at ${migratedBackupPath}`,
-    );
-  } catch (ex) {
-    // The scoped file already holds the data, so the stale legacy file is simply ignored from here.
-    logger.error('Failed to retire the legacy orgs file after migration — leaving it on disk', ex);
-    // Same reason as the migrated backup above: a legacy file that survives retirement is never
-    // written again, so this is the only chance to stop it sitting there world-readable. Rename can
-    // fail on a directory this user cannot write while chmod on a file they own still succeeds.
-    chmodBestEffort(LEGACY_SFDC_ORGS_FILE);
-  }
-}
-
-/** Re-encrypts a legacy safeStorage org token with the portable key so it survives machine changes. */
-function reEncryptLegacyOrgToken(org: SalesforceOrgServer): SalesforceOrgServer {
-  try {
-    const tokenPlaintext = safeStorage.decryptString(Buffer.from(org.accessToken, 'base64'));
-    return { ...org, accessToken: encryptTokenPortable(tokenPlaintext) };
-  } catch {
-    logger.warn({ uniqueId: org.uniqueId }, 'Failed to migrate token for org — token will need re-auth');
-    return org;
   }
 }
 
