@@ -114,8 +114,16 @@ export function TeamMemberInviteModal({
           min-height: 200px;
         `}
       >
-        {errorMessage && <ScopedNotification theme="error">{errorMessage}</ScopedNotification>}
-        {ssoWarning && <ScopedNotification theme="warning">{ssoWarning}</ScopedNotification>}
+        {errorMessage && (
+          <ScopedNotification theme="error" className="slds-m-bottom_small">
+            {errorMessage}
+          </ScopedNotification>
+        )}
+        {ssoWarning && (
+          <ScopedNotification theme="warning" className="slds-m-bottom_small">
+            {ssoWarning}
+          </ScopedNotification>
+        )}
 
         <TeamMemberRoleDropdown role={role} disabled={loading} limitBasedOnCurrentRole={userRole} onChange={(value) => setRole(value)} />
 

@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { ScopedNotification } from '@jetstream/ui';
 import { SeatGate, SeatGateEvaluation } from './seat-gate';
@@ -27,7 +28,15 @@ export interface SeatChangeNoticeProps {
  */
 export function SeatChangeNotice(props: SeatChangeNoticeProps) {
   return (
-    <div id={SEAT_CHANGE_NOTICE_ID}>
+    <div
+      id={SEAT_CHANGE_NOTICE_ID}
+      // The wrapper is always mounted, so only space it out when the explanation inside it rendered something
+      css={css`
+        &:not(:empty) {
+          margin-bottom: 0.75rem;
+        }
+      `}
+    >
       <SeatChangeNoticeContent {...props} />
     </div>
   );
