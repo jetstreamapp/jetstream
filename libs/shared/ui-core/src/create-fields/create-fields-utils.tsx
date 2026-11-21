@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
-import { describeGlobal, genericRequest, queryAllFromList, queryWithCache } from '@jetstream/shared/data';
+import { describeGlobal, genericRequest, queryAllUsingCursor, queryWithCache } from '@jetstream/shared/data';
 import { REGEX, ensureBoolean, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   CompositeResponse,
@@ -13,7 +13,7 @@ import {
   ToolingApiResponse,
 } from '@jetstream/types';
 import { FormulaReturnType } from '@jetstreamapp/sf-formula-parser';
-import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
+import { Condition, WhereClause, composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import isBoolean from 'lodash/isBoolean';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
@@ -979,9 +979,9 @@ export async function prepareCreateFieldsCompositeRequests(
   apiVersion: string,
   allFields: CreateFieldsResults[],
 ) {
-  const existingFields = await queryAllFromList<EntityParticleRecord>(org, getQueriesForAllCustomFieldsForObjects(sobjects), true);
+  const existingFields = await getAllCustomFieldsForObjects(org, sobjects);
 
-  const existingFieldsByFullName = existingFields.queryResults.records.reduce((output: Record<string, string>, record) => {
+  const existingFieldsByFullName = existingFields.reduce((output: Record<string, string>, record) => {
     const [, fieldId] = record.DurableId.split('.');
     output[`${record.EntityDefinition.QualifiedApiName}.${record.QualifiedApiName}`.toLowerCase()] = fieldId;
     return output;
@@ -1252,43 +1252,49 @@ export function prepareDownloadResultsFile(
   };
 }
 
-export function getQueriesForAllCustomFieldsForObjects(allSobjects: string[]): string[] {
-  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY).map((sobjects) => {
-    return composeQuery({
-      fields: [getField('EntityDefinition.QualifiedApiName'), getField('DurableId'), getField('QualifiedApiName')],
-      sObject: 'EntityParticle',
-      where: {
-        left: {
-          field: 'EntityDefinition.QualifiedApiName',
-          operator: 'IN',
-          value: sobjects,
-          literalType: 'STRING',
-        },
+/**
+ * EntityParticle does not support queryMore, so objects with more custom fields than fit in one batch
+ * fail with a normal query. Each chunk of objects is paged with a DurableId cursor instead.
+ */
+async function getAllCustomFieldsForObjects(org: SalesforceOrgUi, allSobjects: string[]): Promise<EntityParticleRecord[]> {
+  const records: EntityParticleRecord[] = [];
+  for (const sobjects of splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY)) {
+    const { queryResults } = await queryAllUsingCursor<EntityParticleRecord>(
+      org,
+      (afterDurableId) => getQueryForAllCustomFieldsForObjects(sobjects, afterDurableId),
+      ({ DurableId }) => DurableId,
+      true,
+    );
+    records.push(...queryResults.records);
+  }
+  return records;
+}
+
+/**
+ * Sorted by DurableId so that it can be paged with `queryAllUsingCursor`, do not add a LIMIT.
+ */
+export function getQueryForAllCustomFieldsForObjects(sobjects: string[], afterDurableId?: Maybe<string>): string {
+  const isCustomField: Condition = { field: 'QualifiedApiName', operator: 'LIKE', value: '%__c', literalType: 'STRING' };
+  const customFieldCondition: WhereClause = afterDurableId
+    ? {
+        left: isCustomField,
         operator: 'AND',
-        right: {
-          left: {
-            field: 'QualifiedApiName',
-            operator: 'LIKE',
-            value: '%__c',
-            literalType: 'STRING',
-          },
-        },
-      },
-      orderBy: [
-        {
-          // EntityDefinition.QualifiedApiName is not supported in order by
-          field: 'EntityDefinitionId',
-          order: 'ASC',
-        },
-        {
-          field: 'QualifiedApiName',
-          order: 'ASC',
-        },
-      ],
-    });
+        right: { left: { field: 'DurableId', operator: '>', value: afterDurableId, literalType: 'STRING' } },
+      }
+    : { left: isCustomField };
+
+  const query = composeQuery({
+    fields: [getField('EntityDefinition.QualifiedApiName'), getField('DurableId'), getField('QualifiedApiName')],
+    sObject: 'EntityParticle',
+    where: {
+      left: { field: 'EntityDefinition.QualifiedApiName', operator: 'IN', value: sobjects, literalType: 'STRING' },
+      operator: 'AND',
+      right: customFieldCondition,
+    },
+    orderBy: [{ field: 'DurableId', order: 'ASC' }],
   });
-  logger.log('getQueriesForAllCustomFieldsForObjects()', queries);
-  return queries;
+  logger.log('getQueryForAllCustomFieldsForObjects()', query);
+  return query;
 }
 
 export function getSecondaryTypeFromType(value: string) {
