@@ -1,5 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { AccessProfilePolicySchema, SalesforceOrgUi, type AccessProfilePolicy } from '@jetstream/types';
+import { query } from '@jetstream/shared/data';
+import { AccessProfilePolicySchema, SalesforceOrgUi, SObjectOrganization, type AccessProfilePolicy } from '@jetstream/types';
 import isPlainObject from 'lodash/isPlainObject';
 
 export type CanvasAccessPolicy = Pick<AccessProfilePolicy, 'tools' | 'operations'>;
@@ -41,6 +42,15 @@ export function parseCanvasAccessPolicy(accessProfile: unknown): CanvasAccessPol
   return { tools, operations: Array.from(new Set([...operations, 'orgs.connect' as const])) };
 }
 
+/**
+ * The signed request does not say whether the org is a sandbox, so this is read from the My Domain host
+ * (`acme--uat.sandbox.my.salesforce.com`, `*.scratch.my.salesforce.com`). It gives the org badge the right
+ * value on first render; `getCanvasOrgDetails` then replaces it with what the Organization record says.
+ */
+export function isSandboxHost(hostOrUrl: string | undefined | null): boolean {
+  return !!hostOrUrl && /\.(sandbox|scratch)\./i.test(hostOrUrl);
+}
+
 export function getCanvasOrg(): SalesforceOrgUi {
   const { client, context } = window.sr;
   const { organization, user } = context;
@@ -57,6 +67,34 @@ export function getCanvasOrg(): SalesforceOrgUi {
     organizationId: organization.organizationId,
     username: user.userName,
     displayName: user.fullName,
+    orgName: organization.name,
+    orgNamespacePrefix: organization.namespacePrefix,
+    orgIsSandbox: isSandboxHost(client.instanceUrl || context.environment?.locationUrl),
+  };
+}
+
+/**
+ * Org details that are not part of the signed request (sandbox flag, edition, instance), read from the
+ * Organization record the same way the other platforms do when an org is connected.
+ */
+export async function getCanvasOrgDetails(org: SalesforceOrgUi): Promise<Partial<SalesforceOrgUi>> {
+  const { queryResults } = await query<SObjectOrganization>(
+    org,
+    `SELECT Id, Name, Country, OrganizationType, InstanceName, IsSandbox, LanguageLocaleKey, NamespacePrefix, TrialExpirationDate FROM Organization`,
+  );
+  const [organization] = queryResults.records;
+  if (!organization) {
+    return {};
+  }
+  return {
+    orgName: organization.Name || org.orgName,
+    orgCountry: organization.Country,
+    orgOrganizationType: organization.OrganizationType,
+    orgInstanceName: organization.InstanceName,
+    orgIsSandbox: organization.IsSandbox ?? org.orgIsSandbox,
+    orgLanguageLocaleKey: organization.LanguageLocaleKey,
+    orgNamespacePrefix: organization.NamespacePrefix,
+    orgTrialExpirationDate: organization.TrialExpirationDate,
   };
 }
 
