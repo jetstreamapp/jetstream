@@ -70,8 +70,8 @@ importers:
         specifier: ^7.0.7
         version: 7.0.7(@standard-schema/spec@1.1.0)(ajv@6.15.0)(joi@18.3.2)(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(valibot@1.4.2(typescript@6.0.3))(zod@4.6.7)
       '@jetstreamapp/sf-formula-parser':
-        specifier: ^2.2.3
-        version: 2.2.3
+        specifier: ^2.2.4
+        version: 2.2.4
       '@jetstreamapp/simple-excel':
         specifier: 0.3.0
         version: 0.3.0
@@ -79,8 +79,8 @@ importers:
         specifier: ^1.2.1
         version: 1.2.1
       '@jetstreamapp/soql-parser-js':
-        specifier: ^8.1.3
-        version: 8.1.3
+        specifier: ^8.1.4
+        version: 8.1.4
       '@marsidev/react-turnstile':
         specifier: ^1.6.3
         version: 1.6.3(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -3412,8 +3412,8 @@ packages:
     resolution: {integrity: sha512-LvVYn83nnXPl+Rg98nvcFgjx6nRMTArhSn6RAX/w3ELn54S8A42TYZvsCMdGUqTM8S0wyXbtlQdU6Hi6dykj9g==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
 
-  '@jetstreamapp/sf-formula-parser@2.2.3':
-    resolution: {integrity: sha512-fwv5FICX/1890zIBnIXAfxRlncg0jADU+2WLZJh3IS+CQeO8IRzIeDDrVCkjKlDbtwA2JeOhGuP2relFqEWTQw==}
+  '@jetstreamapp/sf-formula-parser@2.2.4':
+    resolution: {integrity: sha512-exMS1QAFL4o6MEwziXVEwB+oWabzWIJ7IW/DiuAdmzFJMsh7OshccBy8fLZAOn1m/cDwWzKhx094KuSsOTvklQ==}
 
   '@jetstreamapp/simple-excel@0.3.0':
     resolution: {integrity: sha512-aV0oM3GX69njQuVhk+8oLuDYIftEVLqxs01wZY4zLzlEe/IrJkePN/tzb5W1Wz68E5pc3TO5q+RYZomGQjtbFg==}
@@ -3422,8 +3422,8 @@ packages:
   '@jetstreamapp/simple-xml@1.2.1':
     resolution: {integrity: sha512-8dr7ZOUpFDG1gthA4ELPr21QU9mkerCkqlcvOev+yAKA9m7ZffwnxB4ttXrWhhf14OgT9XMVCKq+mk0uz3VhLw==}
 
-  '@jetstreamapp/soql-parser-js@8.1.3':
-    resolution: {integrity: sha512-TnMcSWfHxbEEPd0zm6kG0FzxCBvWRS8x3r8k2wOrzjWcufhsiOGiAg4Oy8cXYqe7QvEY6R3ZQ0fpmzB/6zG53A==}
+  '@jetstreamapp/soql-parser-js@8.1.4':
+    resolution: {integrity: sha512-1ouFoPDMKi2v58Eia2Ml3pw7a5XLIiKRq0gnLR2ijC2yTsT5kmQYWbtOYYQ9LGbdzagrZcfOO//uVDkRA9mOJw==}
     hasBin: true
 
   '@jridgewell/gen-mapping@0.3.13':
@@ -20173,13 +20173,13 @@ snapshots:
       '@types/yargs': 17.0.35
       chalk: 4.1.2
 
-  '@jetstreamapp/sf-formula-parser@2.2.3': {}
+  '@jetstreamapp/sf-formula-parser@2.2.4': {}
 
   '@jetstreamapp/simple-excel@0.3.0': {}
 
   '@jetstreamapp/simple-xml@1.2.1': {}
 
-  '@jetstreamapp/soql-parser-js@8.1.3': {}
+  '@jetstreamapp/soql-parser-js@8.1.4': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
