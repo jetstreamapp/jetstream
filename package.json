@@ -176,7 +176,7 @@
     "@nx/workspace": "24.0.6",
     "@playwright/test": "^1.65.1",
     "@release-it/bumper": "^8.0.1",
-    "@sentry/vite-plugin": "^5.4.1",
+    "@sentry/vite-plugin": "^11.14.0",
     "@swc-node/register": "1.12.1",
     "@swc/cli": "0.8.2",
     "@swc/core": "1.16.22",
