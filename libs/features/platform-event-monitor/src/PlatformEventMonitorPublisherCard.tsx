@@ -165,7 +165,7 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
     ? 'Publishing event'
     : publishEventResponse
       ? publishEventResponse.success
-        ? `Event published. Event Id: ${publishEventResponse.eventId}`
+        ? `Event published with id ${publishEventResponse.eventId}`
         : `There was an error publishing your event: ${publishEventResponse.errorMessage}`
       : '';
 

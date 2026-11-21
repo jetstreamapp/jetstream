@@ -58,7 +58,8 @@ export const TestRunDetail: FunctionComponent<TestRunDetailProps> = ({
       );
     }
     if ((runFinished || pollingResumed) && document.activeElement === document.body) {
-      statusRef.current?.focus();
+      // Nothing was focused, so don't scroll an idle reader away from where they were
+      statusRef.current?.focus({ preventScroll: true });
     }
   }, [run, inProgress, pollingTimedOut, methodsRun, announce]);
 

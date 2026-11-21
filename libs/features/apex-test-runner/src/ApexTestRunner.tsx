@@ -3,8 +3,8 @@ import { TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { usePrimaryActionShortcut, useTitle } from '@jetstream/shared/ui-utils';
 import {
-  ariaDisabledButtonProps,
   AutoFullHeightContainer,
+  DisabledReasonButton,
   getAriaKeyshortcuts,
   getModifierKey,
   Icon,
@@ -17,7 +17,6 @@ import {
   ScopedNotification,
   Tabs,
   TabsRef,
-  Tooltip,
 } from '@jetstream/ui';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
@@ -104,26 +103,23 @@ export const ApexTestRunner: FunctionComponent = () => {
               onRunSuite={runSuite}
               onOpenManager={() => setSuiteManagerOpen(true)}
             />
-            <Tooltip
-              openDelay={500}
-              content={
+            {/* Stays focusable while disabled so the reason and shortcut tooltip stay reachable and focus survives the launch */}
+            <DisabledReasonButton
+              className="slds-button slds-button_brand"
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+              disabled={runDisabled}
+              disabledReason={launching ? null : 'Select at least one test class to run'}
+              tooltipOpenDelay={500}
+              tooltip={
                 <div className="slds-p-bottom_small">
                   <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
                 </div>
               }
+              onClick={() => runSelectedTests()}
             >
-              {/* Stays focusable while disabled so the shortcut tooltip stays reachable and focus
-                  survives the launch */}
-              <button
-                type="button"
-                className="slds-button slds-button_brand"
-                aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
-                {...ariaDisabledButtonProps(runDisabled, () => runSelectedTests())}
-              >
-                <Icon type="utility" icon="play" className="slds-button__icon slds-button__icon_left" omitContainer />
-                Run Selected Tests
-              </button>
-            </Tooltip>
+              <Icon type="utility" icon="play" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Run Selected Tests
+            </DisabledReasonButton>
           </PageHeaderActions>
         </PageHeaderRow>
       </PageHeader>
