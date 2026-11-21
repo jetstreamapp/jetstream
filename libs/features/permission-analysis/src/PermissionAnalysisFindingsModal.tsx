@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { ColumnWithFilter, Grid, Icon, Modal, ViewDocsLink } from '@jetstream/ui';
 import { GridDownloadModal } from '@jetstream/ui-core';
-import { FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, ReactNode, useRef, useState } from 'react';
 import { getFindingCodeDisplayParts, getFindingLabelForCode, type PermissionAnalysisFinding } from './permission-export-result-view';
 
 /** Deep link to the issue code reference table in the docs. Undefined only if the route ever loses its DOCS entry. */
@@ -119,18 +119,16 @@ export const PermissionAnalysisFindingsModal: FunctionComponent<PermissionAnalys
   // (the component that stays mounted) — not inside the footer, where hiding would destroy it
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const downloadButtonRef = useRef<HTMLButtonElement>(null);
-  const returnFocusToDownloadRef = useRef(false);
+  // Hiding the modal unmounts the Download button that opened the download modal. When this modal's content
+  // remounts, its focus manager would otherwise land on the first tabbable control (Close), so point it back at
+  // the button the user came from. Set through `initialFocus` because the focus manager moves focus after mount,
+  // so focusing the button ourselves in an effect or animation frame loses that race.
+  const [returnFocusToDownload, setReturnFocusToDownload] = useState(false);
 
-  // Hiding the modal unmounted the Download button that opened the download modal, so hand focus back to it once
-  // this modal's content remounts (a frame later, after the modal has finished placing its own initial focus)
-  useEffect(() => {
-    if (isDownloadModalOpen || !returnFocusToDownloadRef.current) {
-      return;
-    }
-    returnFocusToDownloadRef.current = false;
-    const frame = requestAnimationFrame(() => downloadButtonRef.current?.focus());
-    return () => cancelAnimationFrame(frame);
-  }, [isDownloadModalOpen]);
+  function handleClose() {
+    setReturnFocusToDownload(false);
+    onClose();
+  }
 
   if (!open) {
     return null;
@@ -143,6 +141,7 @@ export const PermissionAnalysisFindingsModal: FunctionComponent<PermissionAnalys
         header={title}
         tagline={tagline}
         hide={isDownloadModalOpen}
+        initialFocus={returnFocusToDownload ? downloadButtonRef : undefined}
         closeOnBackdropClick
         footer={
           <Grid align="spread" verticalAlign="center">
@@ -156,12 +155,12 @@ export const PermissionAnalysisFindingsModal: FunctionComponent<PermissionAnalys
               <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
               Download
             </button>
-            <button type="button" className="slds-button slds-button_neutral" onClick={onClose}>
+            <button type="button" className="slds-button slds-button_neutral" onClick={handleClose}>
               Close
             </button>
           </Grid>
         }
-        onClose={onClose}
+        onClose={handleClose}
         className="slds-p-around_small"
       >
         <div
@@ -317,7 +316,7 @@ export const PermissionAnalysisFindingsModal: FunctionComponent<PermissionAnalys
           modalHeader="Download Issues"
           escapeCsvFormulas
           onClose={() => {
-            returnFocusToDownloadRef.current = true;
+            setReturnFocusToDownload(true);
             setIsDownloadModalOpen(false);
           }}
         />

@@ -44,6 +44,15 @@ describe('DeployButton', () => {
     );
   });
 
+  it('puts the denied reason ahead of the "make a change" hint when nothing has changed', () => {
+    deployAccess = { allowed: false, deniedReason: 'Your Jetstream access does not include deploying metadata.' };
+    render(<DeployButton modifiedValues={[]} handleDeploy={vi.fn()} />);
+
+    expect(getDescription(screen.getByRole('button', { name: 'Deploy Changes' }))).toBe(
+      'Your Jetstream access does not include deploying metadata.',
+    );
+  });
+
   it('describes itself with the configuration errors', () => {
     deployAccess = { allowed: true };
     render(
