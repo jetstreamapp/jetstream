@@ -2241,12 +2241,13 @@ export const RowActionRenderer = ({ commitEdit, row }: RenderCellProps<Permissio
       ref={popoverRef}
       size={type === 'object' ? 'large' : 'medium'}
       placement="bottom"
+      // The trigger sits in a grid cell outside the page's tab order, so Tab out of an untrapped popover
+      // has nowhere sensible to go: it jumped to the top of the page and left the popover open behind it
+      trapFocus
       onChange={handlePopoverChange}
       header={
         <header className="slds-popover__header">
-          <h2 className="slds-text-heading_small" id="background-jobs" title="Background Jobs">
-            Apply change to row
-          </h2>
+          <h2 className="slds-text-heading_small">Apply change to row</h2>
         </header>
       }
       footer={
