@@ -2,7 +2,19 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { AutomationControlHistorySource, AutomationControlRestoreAction, SalesforceOrgUi } from '@jetstream/types';
 import type { Column } from '@jetstream/ui';
-import { AutoFullHeightContainer, DataTable, Grid, Icon, Modal, ScopedNotification, Spinner, getWrappedTextRowHeight } from '@jetstream/ui';
+import {
+  ariaDisabledButtonProps,
+  AssistiveStatus,
+  AutoFullHeightContainer,
+  DataTable,
+  DisabledReasonButton,
+  getWrappedTextRowHeight,
+  Grid,
+  Icon,
+  Modal,
+  ScopedNotification,
+  Spinner,
+} from '@jetstream/ui';
 import { ConfirmPageChange } from '@jetstream/ui-core';
 import { useOperationAccess } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
@@ -128,10 +140,8 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
 }) => {
   /** History entry of this modal's deploy, referenced by the rollback entry if Rollback is clicked */
   const deployHistorySource = useRef<AutomationControlHistorySource | null>(null);
-  const { preparingVariant, packageDownload, packageError, preparePackage, closePackageDownload } = useAutomationPackageDownload(
-    selectedOrg,
-    defaultApiVersion,
-  );
+  const { preparingVariant, packageDownload, packageError, preparePackage, closePackageDownload, packageTriggerRef, modalInitialFocus } =
+    useAutomationPackageDownload(selectedOrg, defaultApiVersion);
   const deployAccess = useOperationAccess('metadata.deploy');
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [deploymentItemMap, setDeploymentItemMap] = useState<DeploymentItemMap>(() => getDeploymentItemMap(rows));
@@ -142,6 +152,8 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   const [didDeploy, setDidDeploy] = useState(false);
   const [didRollback, setDidRollback] = useState(false);
   const [didDeployMetadata, setDidDeployMetadata] = useState(false);
+  const primaryButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
 
   const deploymentItemRows: DeploymentItemRow[] = useMemo(
     () =>
@@ -169,6 +181,19 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
     const errorCount = deploymentItems.filter(({ status }) => status === 'Error').length;
     return { errorCount, message: `${successCount} succeeded, ${errorCount} failed.` };
   }, [didDeploy, inProgress, deploymentItems]);
+
+  // Mirrors what sighted users see (spinner, per-row status column, modal header) for each phase:
+  // initial metadata retrieval, deploy/rollback progress, and the final outcome with counts
+  const assistiveMessage = useMemo(() => {
+    if (inProgress) {
+      return currentStep === 0 ? 'Loading current automation metadata for review' : modalLabel;
+    }
+    if (deployResultsSummary) {
+      return `${modalLabel}. ${deployResultsSummary.message}`;
+    }
+    const errorCount = deploymentItems.filter(({ status }) => status === 'Error').length;
+    return `Ready to review. ${deploymentItems.length} changes loaded${errorCount ? `, ${errorCount} with errors` : ''}.`;
+  }, [inProgress, currentStep, modalLabel, deploymentItems, deployResultsSummary]);
 
   const handlePreparePayloads = useCallback(() => {
     return preparePayloads(defaultApiVersion, selectedOrg, deploymentItemMap).subscribe({
@@ -276,6 +301,13 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
     return save;
   }
 
+  /** Cancel stays focusable while deploying and unmounts once the deploy finishes, so focus moves to the primary button */
+  function moveFocusOffCancel() {
+    if (cancelButtonRef.current && document.activeElement === cancelButtonRef.current) {
+      primaryButtonRef.current?.focus();
+    }
+  }
+
   function handleDeployMetadata(currDeploymentItemMap: DeploymentItemMap, isRollback?: boolean) {
     const deployResultsByKey: Record<string, AutomationControlDeploymentItem> = {};
     const saveHistory = startHistoryRecording(currDeploymentItemMap, !!isRollback);
@@ -311,6 +343,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
               return output;
             }, {}),
           }));
+          moveFocusOffCancel();
           setInProgress(false);
           setNextButtonLabel('Close');
           setDidDeploy(true);
@@ -323,6 +356,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
         },
         complete: () => {
           logger.log('handleDeployMetadata - complete()');
+          moveFocusOffCancel();
           setInProgress(false);
           setDidDeployMetadata(true);
           setNextButtonLabel('Close');
@@ -369,49 +403,69 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
     }
   }
 
+  // Only the first step deploys, so the deploy permission gates just that step
+  const nextButtonDisabled = inProgress || (currentStep === 0 && !deployAccess.allowed);
+
   return (
     <Fragment>
       <ConfirmPageChange actionInProgress={inProgress} />
       <Modal
         size="lg"
         header={modalLabel}
+        tagline="Each row shows the current (old) and pending (new) active state. Deploying applies the new values to the selected org, and successful changes can be rolled back afterwards."
         closeOnBackdropClick={false}
         closeOnEsc={false}
         hide={!!packageDownload}
+        initialFocus={modalInitialFocus}
         onClose={() => handleCloseModal()}
         footer={
           <Grid align="spread" verticalAlign="center">
             <AutomationPackageDropDown
               disabled={inProgress}
               isPreparing={!!preparingVariant}
+              triggerRef={packageTriggerRef}
               onSelected={(variant) => preparePackage(getPackageItemsFromRows(rows, variant), variant)}
             />
             <div>
+              {/* The footer buttons stay focusable while a deploy is in flight, so focus is not dropped mid-operation */}
               {!didDeploy && (
-                <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={inProgress}>
+                <button
+                  ref={cancelButtonRef}
+                  className="slds-button slds-button_neutral"
+                  {...ariaDisabledButtonProps(inProgress, () => onClose())}
+                >
                   Cancel
                 </button>
               )}
               {didDeploy && !didRollback && (
-                <button
+                <DisabledReasonButton
                   className="slds-button slds-button_neutral"
-                  onClick={() => handleRollbackMetadata()}
-                  title={deployAccess.deniedReason ?? 'Revert all successfully deployed items'}
+                  tooltip={inProgress ? undefined : 'Revert all successfully deployed items'}
                   disabled={inProgress || !deployAccess.allowed}
+                  disabledReason={deployAccess.deniedReason}
+                  onClick={() => {
+                    handleRollbackMetadata();
+                    // This button unmounts when the rollback finishes — hand focus to the primary
+                    // button (which becomes "Close") so focus survives the removal
+                    primaryButtonRef.current?.focus();
+                  }}
                 >
                   <Icon type="utility" icon="undo" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Rollback
-                </button>
+                </DisabledReasonButton>
               )}
               {/* The first step's next button deploys, later steps only close the modal */}
-              <button
+              <DisabledReasonButton
+                ref={primaryButtonRef}
                 className="slds-button slds-button_brand"
+                // the tooltip wrapper breaks SLDS's adjacent-button spacing
+                tooltipClassName="slds-m-left_xx-small"
+                disabled={nextButtonDisabled}
+                disabledReason={currentStep === 0 ? deployAccess.deniedReason : undefined}
                 onClick={() => setCurrentStep(currentStep + 1)}
-                disabled={inProgress || (currentStep === 0 && !deployAccess.allowed)}
-                title={currentStep === 0 ? deployAccess.deniedReason : undefined}
               >
                 {nextButtonLabel}
-              </button>
+              </DisabledReasonButton>
             </div>
           </Grid>
         }
@@ -427,6 +481,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
             min-height: 50vh;
           `}
         >
+          <AssistiveStatus debounceMs={500} message={assistiveMessage} />
           {inProgress && <Spinner />}
           {deployResultsSummary && (
             <div className="slds-m-bottom_x-small">

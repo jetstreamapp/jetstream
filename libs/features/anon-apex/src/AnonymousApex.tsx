@@ -17,6 +17,7 @@ import { getErrorMessage } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ApexHistoryItem, ListItem } from '@jetstream/types';
 import {
+  AssistiveStatus,
   AutoFullHeightContainer,
   Badge,
   Card,
@@ -29,6 +30,7 @@ import {
   Spinner,
   Tooltip,
   ViewDocsLink,
+  getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
 import { MonacoEditor } from '@jetstream/ui-core';
@@ -80,6 +82,13 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const [historyItems, setHistoryItems] = useAtom(fromApexState.apexHistoryState);
   const debouncedApex = useDebounce(apex, 1000);
   const hasApex = apex.trim().length > 0;
+
+  // The result badge in the card heading appears silently — mirror execution progress + outcome
+  const executionStatusMessage = loading
+    ? 'Executing Apex'
+    : resultsStatus.hasResults
+      ? `Apex execution finished: ${resultsStatus.label}`
+      : '';
 
   /** Add trace for 1 hour so that any background jobs are logged even if dev console is not open */
   useSetTraceFlag(selectedOrg, 1);
@@ -208,6 +217,8 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
         }
       } catch (ex) {
         setResults(`There was a problem submitting the request\n${getErrorMessage(ex)}`);
+        // Without a status the result badge and the execution announcement both stay empty
+        setResultsStatus({ hasResults: true, success: false, label: 'Request Failed' });
       } finally {
         setLoading(false);
       }
@@ -305,7 +316,12 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
                     </div>
                   }
                 >
-                  <button className="slds-button slds-button_brand" disabled={!hasApex} onClick={() => onSubmit(apex)}>
+                  <button
+                    className="slds-button slds-button_brand"
+                    disabled={!hasApex}
+                    aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                    onClick={() => onSubmit(apex)}
+                  >
                     <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
                     Submit
                   </button>
@@ -331,6 +347,8 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
               </Grid>
               <MonacoEditor
                 height="80vh"
+                label="Anonymous Apex code"
+                primaryActionLabel="execute the code"
                 defaultLanguage="apex"
                 value={apex}
                 options={{ contextmenu: false }}
@@ -364,7 +382,12 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
                 )}
               </div>
             }
-            actions={<CopyToClipboard type="button" content={results} disabled={!results} />}
+            actions={
+              <>
+                <AssistiveStatus debounceMs={300} message={executionStatusMessage} />
+                <CopyToClipboard type="button" buttonText="Copy Results" content={results} disabled={!results} />
+              </>
+            }
           >
             {loading && <Spinner />}
             <AnonymousApexFilter
@@ -376,6 +399,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
             />
             <MonacoEditor
               height="80vh"
+              label="Apex execution log"
               defaultLanguage="apex-log"
               options={{
                 readOnly: true,

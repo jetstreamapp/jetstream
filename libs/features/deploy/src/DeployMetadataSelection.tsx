@@ -4,6 +4,7 @@ import { SplitWrapper as Split } from '@jetstream/splitjs';
 import {
   AutoFullHeightContainer,
   ButtonGroupContainer,
+  getAriaKeyshortcuts,
   getModifierKey,
   Icon,
   KeyboardShortcut,
@@ -71,7 +72,11 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
                   </div>
                 }
               >
-                <Link className="slds-button slds-button_brand" to="deploy">
+                <Link
+                  className="slds-button slds-button_brand"
+                  aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                  to="deploy"
+                >
                   Continue
                   <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
                 </Link>

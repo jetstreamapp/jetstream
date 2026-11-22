@@ -26,6 +26,7 @@ import {
   Spinner,
   Tooltip,
   ViewDocsLink,
+  getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
 import {
@@ -336,7 +337,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                 <RadioGroup label="How to handle null values for numbers" formControlClassName="slds-grid">
                   <Radio
                     id="null-zero"
-                    name="null-zero"
+                    name="number-null-behavior"
                     label="Treat as zero"
                     value="ZERO"
                     checked={numberNullBehavior === 'ZERO'}
@@ -345,7 +346,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                   />
                   <Radio
                     id="null-blank"
-                    name="null-blank"
+                    name="number-null-behavior"
                     label="Treat as blank"
                     value="BLANK"
                     checked={numberNullBehavior === 'BLANK'}
@@ -356,7 +357,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                 <RadioGroup label="Formula source" isButtonGroup>
                   <RadioButton
                     id="source-new"
-                    name="source-new"
+                    name="formula-source"
                     label="New Formula"
                     value="NEW"
                     checked={sourceType === 'NEW'}
@@ -365,7 +366,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                   />
                   <RadioButton
                     id="source-existing"
-                    name="source-existing"
+                    name="formula-source"
                     label="From Salesforce Field"
                     value="EXISTING"
                     checked={sourceType === 'EXISTING'}
@@ -419,6 +420,8 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                 <MonacoEditor
                   className="slds-m-top_small"
                   height="95%"
+                  label="Formula"
+                  primaryActionLabel="test the formula"
                   defaultLanguage="sfdc-formula"
                   value={formulaValue}
                   options={{
@@ -460,6 +463,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                   >
                     <button
                       className="slds-button slds-button_brand slds-button_last"
+                      aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
                       disabled={testFormulaDisabled}
                       onClick={() => handleTestFormula(formulaValue)}
                     >

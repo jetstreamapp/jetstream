@@ -35,6 +35,7 @@ export const AnonymousApexHistory: FunctionComponent<AnonymousApexHistoryProps> 
           <select
             className="slds-select"
             id="apex-history"
+            aria-label="Apex history"
             // value={`${year}`}
             onChange={handleChange}
           >

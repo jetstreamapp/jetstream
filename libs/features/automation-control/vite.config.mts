@@ -12,6 +12,7 @@ export default defineConfig(() => ({
     environment: 'jsdom',
     include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
+    setupFiles: ['../../test-utils/src/test-setup-dom.ts'],
     passWithNoTests: true,
     coverage: {
       reportsDirectory: '../../../coverage/libs/features/automation-control',

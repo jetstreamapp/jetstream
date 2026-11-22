@@ -434,4 +434,9 @@ export interface PermissionManagerTableContext {
   onRowAction: (action: 'selectAll' | 'unselectAll' | 'reset', columnKey: string) => void;
   onColumnAction: (action: 'selectAll' | 'unselectAll' | 'reset', columnKey: string) => void;
   onBulkAction: (rows: PermissionTableCellExtended[]) => void;
+  /**
+   * Announce an action outcome to screen readers via the table-level live region (one per table, shared by every column).
+   * Optional because tables build this context with a cast, so a table that omits it compiles — consumers must tolerate that.
+   */
+  announce?: (message: string) => void;
 }

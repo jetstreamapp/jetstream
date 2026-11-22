@@ -4,12 +4,12 @@ import {
   EmptyState,
   Grid,
   GridCol,
+  HiddenProfilesNotice,
   ListWithFilterMultiSelect,
   ProfileOrPermSetPopover,
   ProfileOrPermSetRecordType,
   Radio,
   RadioGroup,
-  HiddenProfilesNotice,
 } from '@jetstream/ui';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
@@ -212,6 +212,7 @@ export const CreateNewObjectPermissions = ({ selectedOrg, loading }: CreateNewOb
 
         {objectPermissionsState.scope === 'ALL' && (
           <CreateNewObjectPermissionsCheckboxes
+            id="all"
             label="All Profiles and Permission Sets"
             loading={loading}
             objectPermissions={objectPermissionsState.permissions}
@@ -227,6 +228,7 @@ export const CreateNewObjectPermissions = ({ selectedOrg, loading }: CreateNewOb
               .map((item) => (
                 <Fragment key={item.value}>
                   <CreateNewObjectPermissionsCheckboxes
+                    id={item.value}
                     label={item.label}
                     loading={loading}
                     objectPermissions={objectPermissionsState.permissions[item.value]}

@@ -13,6 +13,7 @@ import {
   Spinner,
   Tooltip,
   fireToast,
+  getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
 import { ConfirmPageChange, fromJetstreamEvents } from '@jetstream/ui-core';
@@ -201,6 +202,7 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
         <button
           className={classNames('slds-button slds-button_neutral slds-m-right_xx-small', className)}
           aria-haspopup="true"
+          aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'h'])}
           title="View deployment history"
           onClick={() => handleToggleOpen(true)}
         >
