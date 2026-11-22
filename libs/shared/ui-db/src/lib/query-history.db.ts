@@ -106,6 +106,8 @@ async function updateSavedQuery(
     // Create new item with updated SOQL but preserve metadata
     const newItem: QueryHistoryItem = {
       ...oldItem,
+      // The count belongs to the query that produced it, so it does not carry over to different SOQL
+      recordCount: oldItem.key === newKey ? oldItem.recordCount : null,
       key: newKey,
       hashedKey: await getHashedRecordKey(newKey),
       sObject,
@@ -158,6 +160,7 @@ async function getOrInitQueryHistoryItem(
     soql,
     org: org.uniqueId,
     runCount: existingItem?.runCount || 0,
+    recordCount: existingItem?.recordCount,
     sObject,
     lastRun: new Date(),
     isTooling,
@@ -178,6 +181,7 @@ async function saveQueryHistoryItem(
     incrementRunCount,
     isFavorite,
     isTooling,
+    recordCount,
     sObjectLabel,
   }: {
     sObjectLabel?: string;
@@ -185,6 +189,7 @@ async function saveQueryHistoryItem(
     isFavorite?: boolean;
     isTooling?: boolean;
     incrementRunCount?: boolean;
+    recordCount?: number;
   } = {},
 ): Promise<QueryHistoryItem> {
   const queryHistoryItem = await getOrInitQueryHistoryItem(org, soql, sObject, sObjectLabel, customLabel, isTooling);
@@ -197,6 +202,7 @@ async function saveQueryHistoryItem(
   queryHistoryItem.label = sObjectLabel ?? queryHistoryItem.label;
   queryHistoryItem.customLabel = customLabel ?? queryHistoryItem.customLabel;
   queryHistoryItem.isTooling = isTooling ?? queryHistoryItem.isTooling;
+  queryHistoryItem.recordCount = recordCount ?? queryHistoryItem.recordCount;
 
   await getDexieDb().query_history.put(queryHistoryItem);
   return queryHistoryItem;

@@ -300,6 +300,8 @@ export interface QueryHistoryItem {
   createdAt: Date;
   updatedAt: Date;
   runCount: number;
+  /** Total records the query matched the last time it ran - absent for items that have not run since this was tracked */
+  recordCount?: Maybe<number>;
   isTooling: boolean;
   isFavorite: boolean;
   /** Set in a hook, no need to set */
