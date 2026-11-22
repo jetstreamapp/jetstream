@@ -1,6 +1,6 @@
 import { axeScan } from '@jetstream/test-utils';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { KeyboardEvent as ReactKeyboardEvent, useState } from 'react';
+import { KeyboardEvent as ReactKeyboardEvent, useRef, useState } from 'react';
 import { EscapeLayerPropagationContext, useEscapeToCloseLayer } from '../useEscapeToCloseLayer';
 
 /** The hook is the only behavior under test, so a layer renders nothing of its own. */
@@ -115,6 +115,17 @@ function UnmountableInnerLayerHarness({ onOuterEscape, onInnerEscape }: { onOute
       <button type="button" onClick={() => setIsInnerMounted(false)}>
         Unmount inner
       </button>
+    </div>
+  );
+}
+
+/** An inline editing region that can be open several times at once, like two query history cards in edit mode. */
+function FocusFollowingLayer({ name, onEscape }: { name: string; onEscape: () => void }) {
+  const elementRef = useRef<HTMLDivElement>(null);
+  useEscapeToCloseLayer(true, onEscape, { followsFocus: true, getLayerElement: () => elementRef.current });
+  return (
+    <div ref={elementRef}>
+      <button type="button">{name}</button>
     </div>
   );
 }
@@ -507,5 +518,45 @@ describe('useEscapeToCloseLayer', () => {
     pressEscape(textarea);
     expect(onEscape).toHaveBeenCalledTimes(1);
     editor.remove();
+  });
+
+  it('with followsFocus, Escape goes to the sibling layer that holds focus rather than the one opened last', () => {
+    const onFirstEscape = vi.fn();
+    const onSecondEscape = vi.fn();
+    render(
+      <div>
+        <FocusFollowingLayer name="First" onEscape={onFirstEscape} />
+        <FocusFollowingLayer name="Second" onEscape={onSecondEscape} />
+        <button type="button">Outside</button>
+      </div>,
+    );
+
+    pressEscape(screen.getByRole('button', { name: 'First' }));
+    expect(onFirstEscape).toHaveBeenCalledTimes(1);
+    expect(onSecondEscape).not.toHaveBeenCalled();
+
+    pressEscape(screen.getByRole('button', { name: 'Second' }));
+    expect(onSecondEscape).toHaveBeenCalledTimes(1);
+
+    // Focus in neither: the most recently opened one still owns the press
+    pressEscape(screen.getByRole('button', { name: 'Outside' }));
+    expect(onFirstEscape).toHaveBeenCalledTimes(1);
+    expect(onSecondEscape).toHaveBeenCalledTimes(2);
+  });
+
+  it('with followsFocus, a layer opened above still owns Escape even while focus is inside a focus-following layer', () => {
+    const onInlineEscape = vi.fn();
+    const onOverlayEscape = vi.fn();
+    render(
+      <div>
+        <FocusFollowingLayer name="Inline" onEscape={onInlineEscape} />
+        <Layer isOpen onEscape={onOverlayEscape} />
+      </div>,
+    );
+
+    pressEscape(screen.getByRole('button', { name: 'Inline' }));
+
+    expect(onOverlayEscape).toHaveBeenCalledTimes(1);
+    expect(onInlineEscape).not.toHaveBeenCalled();
   });
 });
