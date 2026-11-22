@@ -9,7 +9,7 @@ import { queryHistoryDb } from '@jetstream/ui/db';
 import { isQueryValid } from '@jetstreamapp/soql-parser-js';
 import { formatDate } from 'date-fns/format';
 import clamp from 'lodash/clamp';
-import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { MonacoEditor } from '../../app/MonacoEditor';
 import { QueryRestoreErrors } from '../RestoreQuery/query-restore-utils';
@@ -42,6 +42,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
   startRestore,
   endRestore,
 }) => {
+  const soqlInputId = `query-history-soql-${useId().replace(/:/g, '')}`;
   const [currentItem, setCurrentItem] = useState(item);
   const { sObject, customLabel, label, soql, isTooling, runCount, lastRun } = currentItem;
   const isMounted = useRef(true);
@@ -278,7 +279,8 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
           {soql && (
             <div>
               <Textarea
-                id="soql"
+                id={soqlInputId}
+                skipLabelFor
                 label={
                   <span>
                     SOQL Query
@@ -287,6 +289,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
                 }
               >
                 <MonacoEditor
+                  label="SOQL Query"
                   height={`${clamp(lineCount * REM_PER_LINE, 2, 11)}rem`}
                   language="soql"
                   value={isEditing ? editedSoql : soql}

@@ -50,6 +50,7 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = memo(
       <Fragment>
         <Textarea
           id="soql-textarea"
+          skipLabelFor
           label={
             <>
               Generated SOQL
@@ -66,6 +67,7 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = memo(
             `}
           >
             <MonacoEditor
+              label="Generated SOQL"
               height={height}
               language="soql"
               value={soql}

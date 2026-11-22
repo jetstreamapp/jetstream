@@ -4,7 +4,7 @@ import { ColorScheme } from '@jetstream/types';
 import { getModifierKey, getSpokenKeyboardShortcut, monacoEditorOwnsEscape } from '@jetstream/ui';
 import EditorImpl, { DiffEditor as DiffEditorImpl, DiffEditorProps, EditorProps, OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
-import { KeyboardEvent, useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
+import { KeyboardEvent, useCallback, useId, useMemo, useRef, useSyncExternalStore } from 'react';
 import { getEditorAccessibilitySupport } from '../settings/editor-screen-reader-mode';
 
 const SCHEME_CLASS_PREFIX = 'slds-color-scheme--';
@@ -196,6 +196,28 @@ function useEditorAriaLabel(baseLabel: string | undefined, primaryActionLabel: s
 }
 
 /**
+ * Monaco's inputs ship with neither an id nor a name, which browsers flag (autofill + devtools
+ * "form field should have an id or name", and a `<label for>` that matches nothing).
+ * Chrome renders TWO inputs: a contenteditable `.native-edit-context` div that receives typing, and a
+ * hidden IME `<textarea>`. The edit context gets `fallbackId` (the label target); the textarea gets a
+ * derived id/name. Anything a caller already stamped is left alone, so call sites that need a specific
+ * id can set it in their own `onMount`.
+ */
+function stampEditorInputAttributes(editorInstance: editor.ICodeEditor, fallbackId: string) {
+  const editorNode = editorInstance.getDomNode();
+  const editContext = editorNode?.querySelector<HTMLElement>('.native-edit-context');
+  const imeTextarea = editorNode?.querySelector<HTMLTextAreaElement>('textarea');
+  if (editContext) {
+    editContext.id ||= fallbackId;
+  }
+  if (imeTextarea) {
+    const textareaId = editContext ? `${fallbackId}-ime` : fallbackId;
+    imeTextarea.id ||= textareaId;
+    imeTextarea.name ||= textareaId;
+  }
+}
+
+/**
  * Escape moves focus to the next tab stop after the editor, so Monaco's capture of Tab is not a
  * keyboard trap (WCAG 2.1.2).
  *
@@ -206,13 +228,15 @@ function useEditorAriaLabel(baseLabel: string | undefined, primaryActionLabel: s
  */
 function useExitOnEscape(onMount: OnMount | undefined) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const editorInputId = `monaco-editor-${useId().replace(/:/g, '')}`;
 
   const handleMount = useCallback<OnMount>(
     (editorInstance, monaco) => {
       editorRef.current = editorInstance;
+      stampEditorInputAttributes(editorInstance, editorInputId);
       onMount?.(editorInstance, monaco);
     },
-    [onMount],
+    [onMount, editorInputId],
   );
 
   const handleKeyDownCapture = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
@@ -278,6 +302,16 @@ export function MonacoEditor({ label, primaryActionLabel, ...props }: MonacoEdit
 export function MonacoDiffEditor(props: DiffEditorProps) {
   const theme = useMonacoTheme();
   const options = useEditorOptions(props.options);
+  const editorInputId = `monaco-diff-editor-${useId().replace(/:/g, '')}`;
+  const { onMount } = props;
+  const handleMount = useCallback<NonNullable<DiffEditorProps['onMount']>>(
+    (diffEditor, monaco) => {
+      stampEditorInputAttributes(diffEditor.getOriginalEditor(), `${editorInputId}-original`);
+      stampEditorInputAttributes(diffEditor.getModifiedEditor(), `${editorInputId}-modified`);
+      onMount?.(diffEditor, monaco);
+    },
+    [onMount, editorInputId],
+  );
   return (
     <ClassNames>
       {({ css, cx }) => (
@@ -285,6 +319,7 @@ export function MonacoDiffEditor(props: DiffEditorProps) {
           {...props}
           theme={theme}
           options={options}
+          onMount={handleMount}
           wrapperProps={buildEditorBorderWrapperProps(css, cx, props.wrapperProps)}
         />
       )}
