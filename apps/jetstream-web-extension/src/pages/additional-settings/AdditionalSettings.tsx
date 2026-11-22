@@ -1,6 +1,15 @@
-import { AutoFullHeightContainer, Page, PageHeader, PageHeaderRow, PageHeaderTitle, ScopedNotification } from '@jetstream/ui';
+import {
+  AutoFullHeightContainer,
+  focusHashTargetWhenMounted,
+  Page,
+  PageHeader,
+  PageHeaderRow,
+  PageHeaderTitle,
+  ScopedNotification,
+} from '@jetstream/ui';
 import {
   DataHistorySettingsSection,
+  EditorSettingsSection,
   HistorySyncSettings,
   SettingsGroup,
   SettingsLayout,
@@ -9,6 +18,7 @@ import {
   SettingsToggleRow,
   SoqlQueryFormatSettings,
 } from '@jetstream/ui-core';
+import { useEffect } from 'react';
 import { AppWrapper } from '../../core/AppWrapper';
 import { applyExtensionThemeBeforeMount } from '../../core/ExtensionThemeApplier';
 import { useExtensionSettings } from '../../hooks/useExtensionSettings';
@@ -50,6 +60,18 @@ export function AdditionalSettings() {
     { id: 'data-storage', label: 'Data & Storage' },
   ];
 
+  // This page lives outside the SPA router, so the `#data-history` deep link from Data History has
+  // no FocusMainContentOnRouteChange to land it. The target section mounts after its settings load
+  // asynchronously — the browser's native fragment jump misses it — so poll briefly, then focus and
+  // scroll it the same way the in-app deep link does.
+  useEffect(() => {
+    const { hash } = window.location;
+    if (!hash) {
+      return;
+    }
+    return focusHashTargetWhenMounted(hash);
+  }, []);
+
   return (
     <div className="slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
       <Page testId="billing-page">
@@ -87,6 +109,7 @@ export function AdditionalSettings() {
                       onChange={(value) => setCrashReportingEnabled(value)}
                     /> */}
                   </SettingsGroup>
+                  <EditorSettingsSection />
                 </SettingsSection>
 
                 <SettingsSection id="query" title="Query">

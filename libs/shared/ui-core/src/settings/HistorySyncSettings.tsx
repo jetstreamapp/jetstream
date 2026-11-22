@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { fireToast, Spinner } from '@jetstream/ui';
+import { ariaDisabledButtonProps, fireToast, Spinner } from '@jetstream/ui';
 import { dataSync } from '@jetstream/ui/db';
 import { useState } from 'react';
 import { SettingsRow, SettingsToggleRow } from './layout/SettingsSection';
@@ -46,7 +46,10 @@ export const HistorySyncSettings = ({ enabled, onChange, deniedReason }: History
         title="Reset sync"
         description="If your history looks different on another device, push and pull everything again from the Jetstream server."
       >
-        <button className="slds-button slds-button_neutral slds-is-relative" disabled={resetting || !!deniedReason} onClick={handleReset}>
+        <button
+          className="slds-button slds-button_neutral slds-is-relative"
+          {...ariaDisabledButtonProps(resetting || !!deniedReason, handleReset)}
+        >
           {resetting && <Spinner size="x-small" />}
           Reset Sync
         </button>

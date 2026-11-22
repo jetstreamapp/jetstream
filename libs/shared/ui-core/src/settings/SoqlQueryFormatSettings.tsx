@@ -111,6 +111,8 @@ export const SoqlQueryFormatSettings = ({ value, onChange }: SoqlQueryFormatSett
   }
 
   function handleResetToDefaults() {
+    // The button unmounts once the options are back at their defaults - keep keyboard focus in the group
+    document.getElementById('setting-soql-format-fieldMaxLineLength')?.focus();
     setNumericDrafts({});
     save(DEFAULT_OPTIONS);
   }
