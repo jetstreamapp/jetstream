@@ -1,10 +1,11 @@
 /* eslint-disable import/first -- vi.mock calls must be evaluated before the modules they intercept are imported */
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 const operationAccess = vi.hoisted(() => ({ current: { allowed: true } as { allowed: boolean; deniedReason?: string } }));
 
 vi.mock('@jetstream/ui/app-state', () => ({ useOperationAccess: () => operationAccess.current }));
 
 import { render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ViewOrCompareMetadataModalFooter } from '../ViewOrCompareMetadataModalFooter';
 
 /** The text a screen reader reads as the element's description (its aria-describedby targets, in order) */

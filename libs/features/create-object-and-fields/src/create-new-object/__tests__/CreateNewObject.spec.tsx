@@ -1,4 +1,6 @@
 /* eslint-disable import/first -- vi.mock calls must be evaluated before the modules they intercept are imported */
+import { describe, expect, it, vi } from 'vitest';
+
 vi.mock('@jetstream/ui/app-state', () => ({
   useOperationAccess: () => ({ allowed: false, deniedReason: 'Your access does not include deploying metadata' }),
 }));
@@ -7,7 +9,6 @@ vi.mock('../CreateNewObjectModal', () => ({ CreateNewObjectModal: () => <div rol
 
 import { SalesforceOrgUi } from '@jetstream/types';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
 import { CreateNewObject } from '../CreateNewObject';
 
 describe('CreateNewObject', () => {

@@ -1,4 +1,6 @@
 /* eslint-disable import/first -- vi.mock calls must be evaluated before the modules they intercept are imported */
+import { describe, expect, it, vi } from 'vitest';
+
 // The `@jetstream/ui` barrel pulls in a drag-and-drop dependency that reads `ResizeObserver` at module evaluation
 vi.hoisted(() => {
   if (typeof globalThis.ResizeObserver === 'undefined') {
@@ -24,7 +26,6 @@ vi.mock('@jetstream/ui-core', () => ({
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useRef } from 'react';
-import { describe, expect, it, vi } from 'vitest';
 import { AutomationPackageDropDown } from '../AutomationControlPackageDownload';
 
 function PackageDropDown({ isPreparing, onSelected = vi.fn() }: { isPreparing: boolean; onSelected?: (variant: string) => void }) {

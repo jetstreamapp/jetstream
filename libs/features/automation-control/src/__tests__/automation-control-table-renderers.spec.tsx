@@ -1,4 +1,6 @@
 /* eslint-disable import/first -- vi.mock calls must be evaluated before the modules they intercept are imported */
+import { describe, expect, it, vi } from 'vitest';
+
 // The `@jetstream/ui` barrel pulls in a drag-and-drop dependency that reads `ResizeObserver` at module evaluation
 vi.hoisted(() => {
   if (typeof globalThis.ResizeObserver === 'undefined') {
@@ -21,7 +23,6 @@ vi.mock('@jetstream/ui/app-state', () => ({}));
 
 import type { RenderCellProps } from '@jetstream/ui';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
 import { HistoryActivationStateRenderer, HistoryItemStatusRenderer } from '../automation-control-table-renderers';
 import { HistoryItemRow } from '../automation-control-types';
 

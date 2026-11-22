@@ -1,4 +1,6 @@
 /* eslint-disable import/first -- vi.mock calls must be evaluated before the modules they intercept are imported */
+import { describe, expect, it, vi } from 'vitest';
+
 const { createGlobalPicklistMock } = vi.hoisted(() => ({ createGlobalPicklistMock: vi.fn() }));
 
 vi.mock('@jetstream/ui-core', () => ({
@@ -13,7 +15,6 @@ vi.mock('@jetstream/ui/app-state', async () => {
 
 import { SalesforceOrgUi } from '@jetstream/types';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
 import { CreateNewGlobalPicklistModal } from '../CreateNewGlobalPicklistModal';
 
 describe('CreateNewGlobalPicklistModal', () => {
