@@ -2,11 +2,11 @@ import { css, SerializedStyles } from '@emotion/react';
 import { getOrgType } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { ListItem, ListItemGroup, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Badge, ComboboxWithGroupedItems, Icon } from '@jetstream/ui';
+import { Badge, ComboboxWithGroupedItems, ComboboxWithGroupedItemsRef, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import groupBy from 'lodash/groupBy';
 import sortBy from 'lodash/sortBy';
-import { Fragment, FunctionComponent, ReactNode, useMemo } from 'react';
+import { Fragment, FunctionComponent, ReactNode, Ref, useMemo } from 'react';
 import { calculateOrgExpiration, getOrgExpirationBadge, OrgExpirationStatus } from './useOrgExpiration';
 
 /**
@@ -168,6 +168,8 @@ function groupOrgs(orgs: SalesforceOrgUi[]): ListItemGroup<string, SalesforceOrg
 }
 
 export interface OrgsComboboxProps {
+  /** Lets a parent move focus into the org switcher, e.g. after the selected org (and its info popover) is removed */
+  ref?: Ref<ComboboxWithGroupedItemsRef>;
   orgs: SalesforceOrgUi[];
   selectedOrg: Maybe<SalesforceOrgUi>;
   label?: string;
@@ -187,6 +189,7 @@ export interface OrgsComboboxProps {
 }
 
 export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
+  ref,
   orgs,
   selectedOrg,
   label = 'Orgs',
@@ -215,6 +218,7 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
       data-testid="orgs-combobox-container"
     >
       <ComboboxWithGroupedItems
+        ref={ref}
         comboboxProps={{
           isRequired,
           label,

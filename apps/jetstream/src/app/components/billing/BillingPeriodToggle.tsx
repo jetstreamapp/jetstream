@@ -18,6 +18,11 @@ const toggleStyles = css`
     display: flex;
     align-items: center;
     justify-content: center;
+    /* fieldset reset */
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
   }
 
   .toggle-wrapper {
@@ -27,7 +32,6 @@ const toggleStyles = css`
     padding: 4px;
     display: flex;
     align-items: center;
-    cursor: pointer;
     transition: background 0.2s ease;
   }
 
@@ -43,6 +47,12 @@ const toggleStyles = css`
     z-index: 2;
     min-width: 80px;
     text-align: center;
+  }
+
+  /* The radio itself is visually hidden — show its keyboard focus on the option label */
+  .toggle-option:has(input:focus-visible) {
+    outline: 2px solid var(--slds-g-color-brand-base-50, #0176d3);
+    outline-offset: 2px;
   }
 
   .toggle-option.active {
@@ -66,33 +76,43 @@ const toggleStyles = css`
   }
 `;
 
+/**
+ * Monthly / Annual switch. Semantically a two-option radio group (arrow keys move between the
+ * options, Tab enters and leaves the group once) dressed as a sliding toggle — the radios are
+ * visually hidden inside their option labels.
+ */
 export const BillingPeriodToggle = ({ isAnnual, onChange }: BillingPeriodToggleProps) => {
   return (
     <div css={toggleStyles}>
       <div className="billing-toggle-wrapper">
-        <div className="billing-toggle-container">
-          <div className="toggle-wrapper" onClick={() => onChange(!isAnnual)}>
-            <div className={`toggle-slider ${isAnnual ? 'annual' : ''}`} />
-            <div
-              className={`toggle-option ${!isAnnual ? 'active' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onChange(false);
-              }}
-            >
+        <fieldset className="billing-toggle-container">
+          <legend className="slds-assistive-text">Billing period</legend>
+          <div className="toggle-wrapper">
+            <div className={`toggle-slider ${isAnnual ? 'annual' : ''}`} aria-hidden="true" />
+            <label className={`toggle-option ${!isAnnual ? 'active' : ''}`}>
+              <input
+                type="radio"
+                name="billing-period"
+                value="monthly"
+                className="slds-assistive-text"
+                checked={!isAnnual}
+                onChange={() => onChange(false)}
+              />
               Monthly
-            </div>
-            <div
-              className={`toggle-option ${isAnnual ? 'active' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onChange(true);
-              }}
-            >
+            </label>
+            <label className={`toggle-option ${isAnnual ? 'active' : ''}`}>
+              <input
+                type="radio"
+                name="billing-period"
+                value="annual"
+                className="slds-assistive-text"
+                checked={isAnnual}
+                onChange={() => onChange(true)}
+              />
               Annual
-            </div>
+            </label>
           </div>
-        </div>
+        </fieldset>
       </div>
     </div>
   );

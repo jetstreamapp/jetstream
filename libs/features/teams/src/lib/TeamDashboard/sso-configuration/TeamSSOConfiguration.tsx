@@ -216,6 +216,7 @@ export function TeamSSOConfiguration({
                     className="slds-button_last"
                     dropDownClassName="slds-dropdown_actions"
                     position="right"
+                    description="SSO configuration actions"
                     onSelected={(id) => {
                       if (id === 'delete') {
                         handleDelete();

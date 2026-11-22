@@ -8,6 +8,7 @@ import { ConfirmationModalPromise, DropDown, FormRowItem, Icon, Input, ReadOnlyF
 import { FunctionComponent, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { focusWhenAvailable } from './focus-when-available';
 
 function getFormSchema(email: string, name: string) {
   return z
@@ -56,7 +57,7 @@ export const ProfileUserPassword: FunctionComponent<ProfileUserPasswordProps> = 
       items.push({
         id: 'reset-password',
         value: 'Reset Password',
-        icon: { type: 'utility', icon: 'refresh', description: 'Reset password' },
+        icon: { type: 'utility', icon: 'refresh' },
       });
     }
 
@@ -64,7 +65,7 @@ export const ProfileUserPassword: FunctionComponent<ProfileUserPasswordProps> = 
       items.push({
         id: 'remove-password',
         value: 'Remove Password',
-        icon: { type: 'utility', icon: 'delete', description: 'Delete password' },
+        icon: { type: 'utility', icon: 'delete' },
       });
     }
     return items;
@@ -99,7 +100,13 @@ export const ProfileUserPassword: FunctionComponent<ProfileUserPasswordProps> = 
     return (
       <FormRowItem>
         <ReadOnlyFormItem label="Password" horizontal omitEdit>
-          <DropDown items={items} buttonClassName="slds-button" buttonContent={'Password Options'} onSelected={handleSelection} />
+          <DropDown
+            testId={PASSWORD_OPTIONS_TEST_ID}
+            items={items}
+            buttonClassName="slds-button"
+            buttonContent={'Password Options'}
+            onSelected={handleSelection}
+          />
         </ReadOnlyFormItem>
       </FormRowItem>
     );
@@ -111,6 +118,10 @@ export const ProfileUserPassword: FunctionComponent<ProfileUserPasswordProps> = 
 
   return null;
 };
+
+/** Focus targets for when the set-password form unmounts under the keyboard user */
+const SET_PASSWORD_BUTTON_ID = 'profile-set-password-button';
+const PASSWORD_OPTIONS_TEST_ID = 'profile-password-options-menu-button';
 
 function SetPassword({ email, name, onSetPassword }: { email: string; name: string; onSetPassword: (password: string) => Promise<void> }) {
   const [changePasswordActive, setChangePasswordActive] = useState(false);
@@ -139,6 +150,7 @@ function SetPassword({ email, name, onSetPassword }: { email: string; name: stri
     try {
       setLoading(true);
       await onSetPassword(data.password);
+      focusPasswordControl();
     } catch {
       //TODO: handle error
     } finally {
@@ -149,6 +161,19 @@ function SetPassword({ email, name, onSetPassword }: { email: string; name: stri
   function handleCancelEdit() {
     setChangePasswordActive(false);
     reset({ confirmPassword: '', password: '' });
+    focusPasswordControl();
+  }
+
+  /**
+   * Save and Cancel unmount the form they live in, which would drop keyboard focus to <body> — land on
+   * the control that replaces it (Set Password after cancel, the Password Options menu after a save)
+   */
+  function focusPasswordControl() {
+    focusWhenAvailable(
+      () =>
+        document.getElementById(SET_PASSWORD_BUTTON_ID) ??
+        document.querySelector<HTMLElement>(`[data-testid="${PASSWORD_OPTIONS_TEST_ID}"]`),
+    );
   }
 
   if (changePasswordActive) {
@@ -214,7 +239,7 @@ function SetPassword({ email, name, onSetPassword }: { email: string; name: stri
   return (
     <FormRowItem>
       <ReadOnlyFormItem label="Password" horizontal omitEdit>
-        <button className="slds-button" onClick={() => setChangePasswordActive(true)}>
+        <button id={SET_PASSWORD_BUTTON_ID} className="slds-button" onClick={() => setChangePasswordActive(true)}>
           Set Password
         </button>
       </ReadOnlyFormItem>
