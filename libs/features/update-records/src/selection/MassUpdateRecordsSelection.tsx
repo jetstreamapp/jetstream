@@ -12,6 +12,8 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
   Tooltip,
+  ariaDisabledButtonProps,
+  getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
 import { filterMassUpdateSobject } from '@jetstream/ui-core';
@@ -19,13 +21,14 @@ import { selectedOrgState } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useId, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import * as fromMassUpdateState from '../mass-update-records.state';
 import MassUpdateRecordsObjects from './MassUpdateRecordsObjects';
 import { useMassUpdateFieldItems } from './useMassUpdateFieldItems';
 
 const HEIGHT_BUFFER = 170;
+const REVIEW_BLOCKED_REASON = 'Validate all objects to ensure configuration is valid before continuing';
 
 export interface MassUpdateRecordsSelectionProps {}
 
@@ -58,6 +61,7 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
   } = useMassUpdateFieldItems(selectedOrg, selectedSObjects);
 
   const [allRowsValidated, setAllRowsValidated] = useState(false);
+  const reviewBlockedReasonId = useId();
 
   useEffect(() => clearResults(), [clearResults]);
 
@@ -106,29 +110,43 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
           />
           <PageHeaderActions colType="actions" buttonType="separate">
             {rows.length > 1 && (
-              <button className="slds-button slds-button_neutral" disabled={!allRowsValid} onClick={validateAllRowRecords}>
+              <button
+                className="slds-button slds-button_neutral"
+                {...ariaDisabledButtonProps(!allRowsValid, () => validateAllRowRecords())}
+              >
                 Validate All
               </button>
             )}
-            {allRowsValidated ? (
-              <Tooltip
-                openDelay={500}
-                content={
+            {/* One stable element for both states: the old disabled-button/Link swap replaced the DOM
+                node (losing focus continuity), and a natively disabled button is unfocusable, so
+                keyboard users could never reach the tooltip explaining why they cannot continue */}
+            <Tooltip
+              openDelay={500}
+              content={
+                allRowsValidated ? (
                   <div className="slds-p-bottom_small">
                     <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
                   </div>
-                }
+                ) : (
+                  REVIEW_BLOCKED_REASON
+                )
+              }
+            >
+              <Link
+                className="slds-button slds-button_brand"
+                aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                aria-describedby={allRowsValidated ? undefined : reviewBlockedReasonId}
+                to="deployment"
+                {...ariaDisabledButtonProps(!allRowsValidated, () => handleContinue())}
               >
-                <Link className="slds-button slds-button_brand" to="deployment" onClick={handleContinue}>
-                  Review Changes
-                </Link>
-              </Tooltip>
-            ) : (
-              <Tooltip content={allRowsValidated ? '' : 'Validate all objects to ensure configuration is valid before continuing'}>
-                <button className="slds-button slds-button_brand" disabled>
-                  Review Changes
-                </button>
-              </Tooltip>
+                Review Changes
+              </Link>
+            </Tooltip>
+            {/* The tooltip only exists while open and describes its wrapper, so the link references this copy */}
+            {!allRowsValidated && (
+              <span id={reviewBlockedReasonId} className="slds-assistive-text">
+                {REVIEW_BLOCKED_REASON}
+              </span>
             )}
           </PageHeaderActions>
         </PageHeaderRow>

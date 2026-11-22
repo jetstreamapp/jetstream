@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { Field, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ControlledInput, DatePicker, DateTime, DropDown, Grid, Input, Picklist, RecordLookupCombobox } from '@jetstream/ui';
 import { formatISO } from 'date-fns/formatISO';
-import { FunctionComponent, useMemo, useState } from 'react';
+import { FunctionComponent, useId, useMemo, useState } from 'react';
 
 const manualInputTypes = new Set(['date', 'datetime', 'boolean', 'picklist', 'multipicklist']);
 
@@ -52,6 +52,7 @@ export const MassUpdateRecordsObjectRowValueStaticInput: FunctionComponent<MassU
           className="slds-button_last"
           dropDownClassName="slds-dropdown_actions"
           position="right"
+          description="Value input options"
           items={[{ id: 'manual-toggle', value: useManualInput ? 'Use Automatic Input' : 'Use Text Input' }]}
           disabled={disabled}
           onSelected={(_item) => setUseManualInput(!useManualInput)}
@@ -70,10 +71,13 @@ const StaticInputContent = ({
   value,
   onChange,
 }: MassUpdateRecordsObjectRowValueStaticInputProps & { useManualInput: boolean; picklistItems: ListItem[] }) => {
+  // Per-instance ids: one object row per object renders this, so static ids collided and each
+  // <label htmlFor> resolved to the first row only
+  const inputId = useId();
   if (!useManualInput && selectedField?.type === 'date') {
     return (
       <DatePicker
-        id="static-value-date"
+        id={`${inputId}-date`}
         label="Provided Value"
         className="slds-m-right_x-small slds-grow"
         isRequired
@@ -88,7 +92,7 @@ const StaticInputContent = ({
     return (
       <DateTime
         dateProps={{
-          id: 'static-value-date',
+          id: `${inputId}-date`,
           label: 'Provided Value',
           isRequired: true,
           disabled,
@@ -178,9 +182,9 @@ const StaticInputContent = ({
         min-width: 240px;
       `}
     >
-      <Input id="static-value-option" label="Provided Value" isRequired>
+      <Input id={`${inputId}-option`} label="Provided Value" isRequired>
         <ControlledInput
-          id="static-value-option"
+          id={`${inputId}-option`}
           className="slds-input"
           placeholder="Value to set on each record"
           value={value}
