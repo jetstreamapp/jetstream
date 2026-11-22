@@ -17,6 +17,40 @@ import { ariaDisabledButtonProps } from '../form/button/aria-disabled-button.uti
 import Icon from '../widgets/Icon';
 import { PortalProvider } from './PortalContext';
 
+const OPENER_SELECTOR = 'button, a[href], [role="button"], [tabindex]';
+
+/**
+ * Safari and Firefox on macOS do not focus a button when it is clicked, so by the time a modal mounts the control that
+ * opened it is not `document.activeElement` and there is nothing to hand focus back to on close (it lands on <body>, and
+ * the next Tab starts from the top of the page). Remember the control the pointer last pressed so the modal can still
+ * find its opener. Any focus change makes `activeElement` authoritative again, so the memory is dropped then.
+ */
+let lastPointerPressedControl: HTMLElement | null = null;
+if (typeof document !== 'undefined') {
+  document.addEventListener(
+    'pointerdown',
+    ({ target }) => {
+      lastPointerPressedControl = target instanceof Element ? target.closest<HTMLElement>(OPENER_SELECTOR) : null;
+    },
+    true,
+  );
+  document.addEventListener(
+    'focusin',
+    () => {
+      lastPointerPressedControl = null;
+    },
+    true,
+  );
+}
+
+function getOpenerElement(): HTMLElement | null {
+  const { activeElement } = document;
+  if (activeElement instanceof HTMLElement && activeElement !== document.body) {
+    return activeElement;
+  }
+  return lastPointerPressedControl?.isConnected ? lastPointerPressedControl : null;
+}
+
 export interface ModalProps {
   testId?: string;
   className?: string;
@@ -87,9 +121,7 @@ export const Modal = ({
   // The element that opened the modal, captured during the first render — before any child with
   // `autoFocus` mounts. floating-ui records its return-focus target one render later, so a child that
   // autofocuses becomes that target and, being gone with the modal, leaves focus on <body> at close.
-  const [openerAtMount] = useState(() =>
-    document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null,
-  );
+  const [openerAtMount] = useState(getOpenerElement);
   useEffect(() => {
     if (hide) {
       return;
