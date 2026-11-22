@@ -1,4 +1,6 @@
 /* eslint-disable import/first -- vi.mock calls must be evaluated before the modules they intercept are imported */
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 const PROFILES_AND_PERM_SETS = {
   fetchMetadata: vi.fn(),
   loading: false,
@@ -50,7 +52,6 @@ import { STORAGE_KEYS } from '@jetstream/ui/app-state';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createStore, Provider } from 'jotai';
 import { MemoryRouter } from 'react-router';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ManagePermissionsSelection } from '../ManagePermissionsSelection';
 
 const CUSTOM_PERMISSION_SET_ID = '0PS000000000001';

@@ -1,4 +1,6 @@
 /* eslint-disable import/first -- vi.mock calls must be evaluated before the modules they intercept are imported */
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 vi.mock('../utils/permission-set-create-utils', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../utils/permission-set-create-utils')>()),
   createPermissionSet: vi.fn(),
@@ -22,7 +24,6 @@ vi.mock('@jetstream/ui-core', () => ({
 
 import { SalesforceOrgUi } from '@jetstream/types';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CreatePermissionSetModal } from '../CreatePermissionSetModal';
 import { PermissionSetCreateResult, createPermissionSet, fetchPermissionSetLicenses } from '../utils/permission-set-create-utils';
 

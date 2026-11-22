@@ -1,3 +1,5 @@
+import { describe, expect, it, vi } from 'vitest';
+
 // The ui barrel transitively loads modules that fetch the user profile at import time
 vi.mock('@jetstream/ui/app-state', () => ({
   fromAppState: {},
@@ -6,7 +8,6 @@ vi.mock('@jetstream/ui/app-state', () => ({
 import { DataTableGenericContext } from '@jetstream/ui';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
 import { RowActionRenderer } from '../permission-manager-table-utils';
 
 const row = {
