@@ -4,6 +4,7 @@ import {
   buildAppCspDirectives,
   buildAppStyleNonceReportOnlyDirectives,
   buildCspDirectives,
+  buildGooglePickerRelayCspDirectives,
   buildHstsConfig,
   isStyleNonceReportOnlyEnabled,
   removeOpenerPolicyForPopupPages,
@@ -20,6 +21,12 @@ const apiConfigMock = vi.hoisted(() => ({
 vi.mock('@jetstream/api-config', () => apiConfigMock);
 
 describe('security headers', () => {
+  const res = { locals: { cspNonce: 'test-nonce' } };
+  const resolve = (sources: unknown) =>
+    (sources as Array<string | ((req: unknown, response: typeof res) => string)>).map((source) =>
+      typeof source === 'function' ? source({}, res) : source,
+    );
+
   beforeEach(() => {
     apiConfigMock.ENV.ENVIRONMENT = 'staging';
     apiConfigMock.ENV.STAGE = 'staging';
@@ -161,12 +168,6 @@ describe('security headers', () => {
   });
 
   describe('style nonce report-only trial', () => {
-    const res = { locals: { cspNonce: 'test-nonce' } };
-    const resolve = (sources: unknown) =>
-      (sources as Array<string | ((req: unknown, response: typeof res) => string)>).map((source) =>
-        typeof source === 'function' ? source({}, res) : source,
-      );
-
     it('allows style elements by nonce only, without unsafe-inline or another origin', () => {
       const directives = buildAppStyleNonceReportOnlyDirectives();
 
@@ -200,6 +201,26 @@ describe('security headers', () => {
       apiConfigMock.ENV.STAGE = stage;
 
       expect(isStyleNonceReportOnlyEnabled()).toBe(expected);
+    });
+  });
+
+  describe('Google Picker relay policy', () => {
+    it('allows only the Google hosts the relay pages load and no scheme-wide sources', () => {
+      const directives = buildGooglePickerRelayCspDirectives();
+
+      expect(resolve(directives.scriptSrc)).toEqual([
+        "'self'",
+        'https://apis.google.com',
+        'https://accounts.google.com',
+        "'nonce-test-nonce'",
+      ]);
+      expect(directives.styleSrc).toEqual(["'self'", "'unsafe-inline'"]);
+      expect(directives.fontSrc).toEqual(["'self'", 'data:']);
+      expect(directives.reportUri).toBeDefined();
+      Object.values(directives)
+        .flat()
+        .filter((source) => typeof source === 'string')
+        .forEach((source) => expect(source).not.toBe('https:'));
     });
   });
 

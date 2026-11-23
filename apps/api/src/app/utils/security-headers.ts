@@ -245,6 +245,29 @@ export function isStyleNonceReportOnlyEnabled() {
 }
 
 /**
+ * Policy for the desktop app and browser extension sign-in and Google Drive Picker relay pages. Both surfaces serve
+ * the same landing-build pages, so they share one policy and cannot drift apart.
+ */
+export function buildGooglePickerRelayCspDirectives(): CspDirectives {
+  return {
+    defaultSrc: ["'self'"],
+    baseUri: ["'self'"],
+    fontSrc: ["'self'", 'data:'],
+    frameAncestors: ["'self'"],
+    frameSrc: ["'self'", 'https://accounts.google.com', 'https://docs.google.com', 'https://drive.google.com'],
+    imgSrc: ["'self'", '*.googleusercontent.com'],
+    objectSrc: ["'none'"],
+    scriptSrc: ["'self'", 'https://apis.google.com', 'https://accounts.google.com', nonceDirective],
+    scriptSrcAttr: ["'none'"],
+    // No stylesheet is loaded from another origin; Google's sign-in and Picker scripts only add inline <style> elements
+    styleSrc: ["'self'", "'unsafe-inline'"],
+    connectSrc: ["'self'", 'https://www.googleapis.com', 'https://oauth2.googleapis.com'],
+    upgradeInsecureRequests: [],
+    ...CSP_REPORTING_DIRECTIVES,
+  };
+}
+
+/**
  * Pages that run inside a popup and hand their result back through `window.opener`. A page with any
  * Cross-Origin-Opener-Policy value - `same-origin-allow-popups` included - that is reached after a cross-origin hop
  * (Salesforce or Google login), or that is opened by another origin (the browser extension, canvas running inside a

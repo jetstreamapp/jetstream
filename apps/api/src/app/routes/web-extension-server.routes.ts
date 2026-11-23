@@ -5,7 +5,7 @@ import * as userFeedbackController from '../controllers/user-feedback.controller
 import * as webExtensionController from '../controllers/web-extension.controller';
 import * as externalAuthService from '../services/external-auth.service';
 import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
-import { CSP_REPORTING_DIRECTIVES } from '../utils/security-headers';
+import { buildGooglePickerRelayCspDirectives } from '../utils/security-headers';
 import { dataSyncRateLimit, deprecatedRouteMiddleware, feedbackRateLimit, feedbackUploadMiddleware } from './route.middleware';
 
 export const LAX_AuthRateLimit = createRateLimit('web-ext_lax', {
@@ -38,30 +38,7 @@ routes.use(
   helmet({
     crossOriginOpenerPolicy: false,
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        baseUri: ["'self'"],
-        fontSrc: ["'self'", 'data:'],
-        frameAncestors: ["'self'"],
-        frameSrc: ["'self'", 'https://accounts.google.com', 'https://docs.google.com', 'https://drive.google.com'],
-        imgSrc: ["'self'", '*.googleusercontent.com'],
-        objectSrc: ["'none'"],
-        scriptSrc: [
-          "'self'",
-          'https://apis.google.com',
-          'https://accounts.google.com',
-          (_req: express.Request, res: express.Response) => `'nonce-${res.locals.cspNonce}'`,
-        ],
-        scriptSrcAttr: ["'none'"],
-        // No stylesheet is loaded from another origin; Google's sign-in and Picker scripts only add inline <style> elements
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        connectSrc: ["'self'", 'https://www.googleapis.com', 'https://oauth2.googleapis.com'],
-        upgradeInsecureRequests: [],
-        // Report violations on these relay pages to the same handler as the rest of the app.
-        ...CSP_REPORTING_DIRECTIVES,
-      },
-    },
+    contentSecurityPolicy: { directives: buildGooglePickerRelayCspDirectives() },
   }),
 );
 
