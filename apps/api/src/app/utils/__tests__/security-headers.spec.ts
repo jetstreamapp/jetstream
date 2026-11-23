@@ -4,6 +4,7 @@ import {
   buildAppCspDirectives,
   buildAppStyleNonceReportOnlyDirectives,
   buildCspDirectives,
+  buildGooglePickerRelayCspDirectives,
   buildHstsConfig,
   isStyleNonceReportOnlyEnabled,
   removeOpenerPolicyForPopupPages,
@@ -20,6 +21,12 @@ const apiConfigMock = vi.hoisted(() => ({
 vi.mock('@jetstream/api-config', () => apiConfigMock);
 
 describe('security headers', () => {
+  const res = { locals: { cspNonce: 'test-nonce' } };
+  const resolve = (sources: unknown) =>
+    (sources as Array<string | ((req: unknown, response: typeof res) => string)>).map((source) =>
+      typeof source === 'function' ? source({}, res) : source,
+    );
+
   beforeEach(() => {
     apiConfigMock.ENV.ENVIRONMENT = 'staging';
     apiConfigMock.ENV.STAGE = 'staging';
@@ -28,7 +35,7 @@ describe('security headers', () => {
 
   it('enables HSTS for HTTPS staging without preload', () => {
     expect(buildHstsConfig()).toEqual({
-      maxAge: 15_552_000,
+      maxAge: 31_536_000,
       includeSubDomains: true,
       preload: false,
     });
@@ -39,7 +46,7 @@ describe('security headers', () => {
     apiConfigMock.ENV.JETSTREAM_SERVER_URL = 'https://getjetstream.app';
 
     expect(buildHstsConfig()).toEqual({
-      maxAge: 15_552_000,
+      maxAge: 31_536_000,
       includeSubDomains: true,
       preload: true,
     });
@@ -84,6 +91,9 @@ describe('security headers', () => {
     expect(scriptSrc).not.toContain("'strict-dynamic'");
     expect(scriptSrc).toContain("'self'");
     expect(scriptSrc).toContain('https://*.js.stripe.com');
+    // No 'strict-dynamic' here, so every listed host is live. Google's script hosts serve JSONP endpoints,
+    // and the landing and auth pages load no Google script, so none may be allowlisted.
+    expect(scriptSrc.filter((source) => typeof source === 'string' && /google|gstatic/.test(source))).toEqual([]);
     // blob: must NOT be a script source on any policy — blob: workers resolve via worker-src/child-src
     // instead, so blob: stays out of script-src where it would be a page-level script sink.
     expect(scriptSrc).not.toContain('blob:');
@@ -100,6 +110,10 @@ describe('security headers', () => {
     expect(scriptSrc).not.toContain('blob:');
     expect(scriptSrc).toContain("'self'");
     expect(scriptSrc).toContain('https://js.stripe.com');
+    // Google Sign-In and the Google API loader, as specific hosts rather than wildcards
+    expect(scriptSrc).toContain('https://accounts.google.com');
+    expect(scriptSrc).toContain('https://apis.google.com');
+    expect(scriptSrc.filter((source) => typeof source === 'string' && /\*\.(google|gstatic)/.test(source))).toEqual([]);
   });
 
   it('builds a tighter /app img-src that drops legacy/landing-only hosts but keeps app hosts', () => {
@@ -154,12 +168,6 @@ describe('security headers', () => {
   });
 
   describe('style nonce report-only trial', () => {
-    const res = { locals: { cspNonce: 'test-nonce' } };
-    const resolve = (sources: unknown) =>
-      (sources as Array<string | ((req: unknown, response: typeof res) => string)>).map((source) =>
-        typeof source === 'function' ? source({}, res) : source,
-      );
-
     it('allows style elements by nonce only, without unsafe-inline or another origin', () => {
       const directives = buildAppStyleNonceReportOnlyDirectives();
 
@@ -193,6 +201,26 @@ describe('security headers', () => {
       apiConfigMock.ENV.STAGE = stage;
 
       expect(isStyleNonceReportOnlyEnabled()).toBe(expected);
+    });
+  });
+
+  describe('Google Picker relay policy', () => {
+    it('allows only the Google hosts the relay pages load and no scheme-wide sources', () => {
+      const directives = buildGooglePickerRelayCspDirectives();
+
+      expect(resolve(directives.scriptSrc)).toEqual([
+        "'self'",
+        'https://apis.google.com',
+        'https://accounts.google.com',
+        "'nonce-test-nonce'",
+      ]);
+      expect(directives.styleSrc).toEqual(["'self'", "'unsafe-inline'"]);
+      expect(directives.fontSrc).toEqual(["'self'", 'data:']);
+      expect(directives.reportUri).toBeDefined();
+      Object.values(directives)
+        .flat()
+        .filter((source) => typeof source === 'string')
+        .forEach((source) => expect(source).not.toBe('https:'));
     });
   });
 

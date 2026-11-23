@@ -66,7 +66,7 @@ import {
 } from './app/routes/route.middleware';
 import { environmentFaviconMiddleware } from './app/utils/environment-favicon.utils';
 import { gzipBodyPassthrough } from './app/utils/gzip-body-passthrough.middleware';
-import { healthCheck, setNoStoreHeaders, uncaughtErrorHandler } from './app/utils/response.handlers';
+import { healthCheck, isLandingDocumentFile, setNoStoreHeaders, uncaughtErrorHandler } from './app/utils/response.handlers';
 import {
   buildAppCspDirectives,
   buildAppStyleNonceReportOnlyDirectives,
@@ -375,11 +375,12 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   );
   app.use('/assets', express.static(join(__dirname, './assets'), { maxAge: '1m' }));
   app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
-  // Landing HTML is public, but scanners flag any cacheable HTML document; the hashed /_next assets stay cacheable
+  // Landing HTML and its /_next/data page-props JSON are public, but scanners flag any cacheable document;
+  // the hashed /_next/static assets stay cacheable
   app.use(
     express.static(join(__dirname, '../landing'), {
       setHeaders: (res, filePath) => {
-        if (filePath.endsWith('.html')) {
+        if (isLandingDocumentFile(filePath)) {
           setNoStoreHeaders(res);
         }
       },

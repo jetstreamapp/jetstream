@@ -5,7 +5,7 @@ import * as desktopAppController from '../controllers/desktop-app.controller';
 import * as userFeedbackController from '../controllers/user-feedback.controller';
 import * as externalAuthService from '../services/external-auth.service';
 import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
-import { CSP_REPORTING_DIRECTIVES } from '../utils/security-headers';
+import { buildGooglePickerRelayCspDirectives } from '../utils/security-headers';
 import { dataSyncRateLimit, deprecatedRouteMiddleware, feedbackRateLimit, feedbackUploadMiddleware } from './route.middleware';
 
 export const LAX_AuthRateLimit = createRateLimit('desktop_lax', {
@@ -34,29 +34,7 @@ routes.use(
   helmet({
     crossOriginOpenerPolicy: false,
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        baseUri: ["'self'"],
-        fontSrc: ["'self'", 'https:'],
-        frameAncestors: ["'self'"],
-        frameSrc: ["'self'", 'https://accounts.google.com', 'https://docs.google.com', 'https://drive.google.com'],
-        imgSrc: ["'self'", '*.googleusercontent.com'],
-        objectSrc: ["'none'"],
-        scriptSrc: [
-          "'self'",
-          'https://apis.google.com',
-          'https://accounts.google.com',
-          (_req: express.Request, res: express.Response) => `'nonce-${res.locals.cspNonce}'`,
-        ],
-        scriptSrcAttr: ["'none'"],
-        styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
-        connectSrc: ["'self'", 'https://www.googleapis.com', 'https://oauth2.googleapis.com'],
-        upgradeInsecureRequests: [],
-        // Report violations on these relay pages to the same handler as the rest of the app.
-        ...CSP_REPORTING_DIRECTIVES,
-      },
-    },
+    contentSecurityPolicy: { directives: buildGooglePickerRelayCspDirectives() },
   }),
 );
 

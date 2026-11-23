@@ -119,7 +119,8 @@ export function getCookieConfig(useSecureCookies: boolean): CookieConfig {
     redirectUrl: {
       name: `jetstream-auth.redirect-url`,
       options: {
-        httpOnly: false,
+        // Only the server reads this, on the way back from login
+        httpOnly: true,
         sameSite: 'lax',
         path: '/',
         secure: useSecureCookies,
