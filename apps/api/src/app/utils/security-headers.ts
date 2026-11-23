@@ -55,7 +55,6 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
       'https://docs.getjetstream.app',
       'https://hooks.stripe.com',
       'https://js.stripe.com',
-      'https://maps.googleapis.com',
       'https://release-updates.getjetstream.app',
       'https://*.js.stripe.com',
       // Scope WebSocket connections to the app's own origin instead of a blanket `wss:`.
@@ -156,7 +155,7 @@ const IMG_SOURCES_EXCLUDED_FROM_APP = [
 // Broad Google wildcards that the /app does NOT need — the SPA only ever calls specific Google hosts
 // directly, and the Google Drive Picker runs as a popup served by the desktop/web-extension picker
 // routes (it is never framed inline in /app), so /app needs only its own Sign-In / gapi / Drive /
-// OAuth / OIDC endpoints. `*.gstatic.com` is left untouched (Fonts / Maps static, not Drive-Picker
+// OAuth / OIDC endpoints. `*.gstatic.com` is left untouched (Fonts static, not Drive-Picker
 // related).
 const APP_GOOGLE_WILDCARDS = ['https://*.google.com', 'https://*.googleapis.com'];
 const APP_GOOGLE_FRAME_SRC = [
@@ -166,10 +165,9 @@ const APP_GOOGLE_FRAME_SRC = [
   'https://docs.google.com',
   'https://drive.google.com',
 ];
-// Google Sign-In (gsi/client) and the Google API loader (api.js) used by the Drive file picker, plus Google Maps,
-// which Stripe's address element loads on the billing page. These are only the fallback for browsers without
-// 'strict-dynamic' support; everywhere else the nonce decides.
-const APP_GOOGLE_SCRIPT_SRC = ['https://accounts.google.com', 'https://apis.google.com', 'https://maps.googleapis.com'];
+// Google Sign-In (gsi/client) and the Google API loader (api.js) used by the Drive file picker. These are only the
+// fallback for browsers without 'strict-dynamic' support; everywhere else the nonce decides.
+const APP_GOOGLE_SCRIPT_SRC = ['https://accounts.google.com', 'https://apis.google.com'];
 const APP_GOOGLE_CONNECT_SRC = [
   'https://accounts.google.com',
   'https://apis.google.com',

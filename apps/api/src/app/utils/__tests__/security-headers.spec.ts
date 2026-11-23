@@ -114,6 +114,8 @@ describe('security headers', () => {
     expect(scriptSrc).toContain('https://accounts.google.com');
     expect(scriptSrc).toContain('https://apis.google.com');
     expect(scriptSrc.filter((source) => typeof source === 'string' && /\*\.(google|gstatic)/.test(source))).toEqual([]);
+    // Nothing in the app loads Google Maps
+    expect(JSON.stringify(buildAppCspDirectives())).not.toContain('maps.googleapis.com');
   });
 
   it('builds a tighter /app img-src that drops legacy/landing-only hosts but keeps app hosts', () => {
