@@ -10,6 +10,7 @@ import {
   hasModifierKey,
   isMKey,
   recordActionModalClosedObservable$,
+  setItemInLocalStorage,
   setItemInSessionStorage,
   useBrowserNotifications,
   useGlobalEventHandler,
@@ -47,6 +48,7 @@ import {
   MAX_SAVE_BATCH_SIZE,
   RecordsSaveCaptureInfo,
   RecordsSaveOptions,
+  RelatedRecordsQueryTarget,
   SalesforceRecordDataTable,
   Spinner,
   Toolbar,
@@ -75,7 +77,7 @@ import classNames from 'classnames';
 import { useAtom, useAtomValue } from 'jotai';
 import isString from 'lodash/isString';
 import React, { Fragment, useCallback, useEffect, useRef, useState } from 'react';
-import { Link, NavLink, useLocation, useNavigate } from 'react-router';
+import { Link, NavLink, useHref, useLocation, useNavigate } from 'react-router';
 import { filter } from 'rxjs/operators';
 import IncludeDeletedRecordsToggle from '../QueryOptions/IncludeDeletedRecords';
 import QueryResultsAttachmentDownload, { binaryCompatibleObjects } from './QueryResultsAttachmentDownload';
@@ -84,7 +86,7 @@ import QueryResultsDownloadButton from './QueryResultsDownloadButton';
 import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 import QueryResultsMoreActions from './QueryResultsMoreActions';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
-import { getTotalRecordCount, reorderSubqueryFields } from './query-results-utils';
+import { buildRelatedRecordsSoql, getTotalRecordCount, reorderSubqueryFields } from './query-results-utils';
 import { useQueryResultsFetchMetadata } from './useQueryResultsFetchMetadata';
 
 type SourceAction = 'STANDARD' | 'ORG_CHANGE' | 'BULK_DELETE' | 'HISTORY' | 'RECORD_ACTION' | 'RECORD_BULK_ACTION' | 'MANUAL' | 'RELOAD';
@@ -225,6 +227,24 @@ export const QueryResults = React.memo(() => {
   );
 
   useGlobalEventHandler('keydown', onKeydown);
+
+  const queryResultsHref = useHref({
+    pathname: `${APP_ROUTES.QUERY.ROUTE}/results`,
+    ...(APP_ROUTES.QUERY.SEARCH_PARAM ? { search: `?${APP_ROUTES.QUERY.SEARCH_PARAM}` } : {}),
+  });
+
+  /**
+   * Opens the records a lookup column points at as a new query in a new tab, so the current results are kept.
+   * The SOQL is handed over through localStorage because a new tab gets neither router state nor this tab's
+   * sessionStorage - the new tab picks it up on load and clears it.
+   */
+  const handleQueryRelatedRecords = useCallback(
+    ({ sobject, recordIds }: RelatedRecordsQueryTarget) => {
+      setItemInLocalStorage('query', JSON.stringify({ soql: buildRelatedRecordsSoql(sobject, recordIds, isTooling), isTooling }));
+      window.open(queryResultsHref, '_blank', 'noopener,noreferrer');
+    },
+    [isTooling, queryResultsHref],
+  );
 
   const executeQueryRef = useRef(executeQuery);
   executeQueryRef.current = executeQuery;
@@ -883,6 +903,7 @@ export const QueryResults = React.memo(() => {
               onSubqueryFieldReorder={handleSubqueryFieldsChanged}
               onFilteredRowsChanged={setFilteredRows}
               onLoadMoreRecords={handleLoadMore}
+              onQueryRelatedRecords={handleQueryRelatedRecords}
               onRecordsSaveCapture={handleRecordsSaveCapture}
               onEdit={(record) => {
                 handleCloneEditView(record, 'edit');

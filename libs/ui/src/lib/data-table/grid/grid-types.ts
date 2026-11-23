@@ -425,7 +425,8 @@ export type ContextAction =
   | 'COPY_TABLE'
   | 'COPY_TABLE_JSON'
   | 'COPY_TABLE_CSV'
-  | 'VIEW_FIELD_METADATA';
+  | 'VIEW_FIELD_METADATA'
+  | 'QUERY_RELATED_RECORDS';
 
 export type ContextMenuActionData<T extends object> = {
   row: T;

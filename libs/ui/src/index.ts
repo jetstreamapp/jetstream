@@ -29,6 +29,8 @@ export * from './lib/data-table/FieldMetadataModal';
 export * from './lib/data-table/grid/rdg-compat';
 export * from './lib/data-table/gridExport';
 export * from './lib/data-table/PreviewChangesModal';
+export { MAX_RELATED_RECORD_IDS } from './lib/data-table/related-records-query';
+export type { RelatedRecordsQueryTarget } from './lib/data-table/related-records-query';
 export * from './lib/data-table/SalesforceRecordDataTable';
 export * from './lib/docked-composer/DockedComposer';
 export * from './lib/expression-group/expression-list-operator-utils';

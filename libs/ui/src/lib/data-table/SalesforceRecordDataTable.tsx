@@ -70,6 +70,7 @@ import { replaceSubqueryOnRecord } from './grid/grid-row-utils';
 import { RowsChangeData } from './grid/rdg-compat';
 import { getRowErrorMessages, mapSaveErrorsToRow, summarizeRowErrors, validateRow } from './grid/validate-cell-value';
 import { DownloadConfig, MAX_SAVE_BATCH_SIZE, PreviewChangesModal } from './PreviewChangesModal';
+import { RelatedRecordsQueryTarget, getRelatedRecordsMenuItem, getRelatedRecordsQueryTarget } from './related-records-query';
 import { usePreviewChangesShortcut } from './usePreviewChangesShortcut';
 
 const SFDC_EMPTY_ID = '000000000000000AAA';
@@ -166,6 +167,8 @@ export interface SalesforceRecordDataTableProps {
   onUndelete: (record: any) => void;
   onGetAsApex: (record: any) => void;
   onReloadQuery: () => void;
+  /** Adds a context menu action on lookup columns that asks the host to query the records the column points at */
+  onQueryRelatedRecords?: (target: RelatedRecordsQueryTarget) => void;
   /**
    * Fired after a save settles (resolved OR threw) with Data-History-ready snapshots (edited/prior values
    * + outcome), captured BEFORE the save mutates each row's `_record` in place. Optional so `libs/ui`
@@ -206,6 +209,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     onDelete,
     onUndelete,
     onGetAsApex,
+    onQueryRelatedRecords,
     onRecordsSaveCapture,
     canWriteRecords = true,
     canDeleteRecords = true,
@@ -357,9 +361,25 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
           }
           return;
         }
+        if (item.value === 'QUERY_RELATED_RECORDS') {
+          const target = getRelatedRecordsQueryTarget(data.column, data.rows);
+          if (target?.recordIds.length) {
+            onQueryRelatedRecords?.(target);
+          }
+          return;
+        }
         copySalesforceRecordTableDataToClipboard(item.value, fields, data);
       },
-      [fields],
+      [fields, onQueryRelatedRecords],
+    );
+
+    // Lookup columns get an extra action for querying the records they point at
+    const getContextMenuItems = useCallback(
+      (data: ContextMenuActionData<RowWithKey>): ContextMenuItem<ContextAction>[] => {
+        const target = onQueryRelatedRecords ? getRelatedRecordsQueryTarget(data.column, data.rows) : null;
+        return target ? [...TABLE_CONTEXT_MENU_ITEMS, getRelatedRecordsMenuItem(target)] : TABLE_CONTEXT_MENU_ITEMS;
+      },
+      [onQueryRelatedRecords],
     );
 
     // Offer "View field metadata" on a column header only when we have that field's describe stashed on
@@ -986,7 +1006,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
               onRevertCells={handleRevertCells}
               isCellDirty={isCellDirty}
               context={tableContext}
-              contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
+              contextMenuItems={getContextMenuItems}
               contextMenuAction={handleContextMenuAction}
               getColumnHeaderMenuItems={getColumnHeaderMenuItems}
             />

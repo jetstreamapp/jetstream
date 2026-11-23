@@ -1,6 +1,6 @@
 import { parseQuery } from '@jetstreamapp/soql-parser-js';
 import { describe, expect, it } from 'vitest';
-import { applyColumnOrderToFields, getTotalRecordCount, reorderSubqueryFields } from '../query-results-utils';
+import { applyColumnOrderToFields, buildRelatedRecordsSoql, getTotalRecordCount, reorderSubqueryFields } from '../query-results-utils';
 
 function subqueryFieldNamesFor(fields: any[], relationshipName: string): string[] {
   const match = fields.find((field) => field.type === 'FieldSubquery' && field.subquery.relationshipName === relationshipName);
@@ -102,5 +102,21 @@ describe('getTotalRecordCount', () => {
     const records = [{ Id: '001000000000001' }];
 
     expect(getTotalRecordCount({ totalSize: 5000, done: false, records }, records)).toBe(5000);
+  });
+});
+
+describe('buildRelatedRecordsSoql', () => {
+  const recordIds = ['001000000000001AAA', '001000000000002AAA'];
+
+  it('selects the standard fields for the provided ids', () => {
+    const soql = buildRelatedRecordsSoql('Account', recordIds, false);
+    expect(soql).toBe("SELECT FIELDS(STANDARD) FROM Account WHERE Id IN ('001000000000001AAA', '001000000000002AAA')");
+    expect(parseQuery(soql).sObject).toBe('Account');
+  });
+
+  it('selects only the id for tooling queries', () => {
+    expect(buildRelatedRecordsSoql('ApexClass', recordIds, true)).toBe(
+      "SELECT Id FROM ApexClass WHERE Id IN ('001000000000001AAA', '001000000000002AAA')",
+    );
   });
 });
