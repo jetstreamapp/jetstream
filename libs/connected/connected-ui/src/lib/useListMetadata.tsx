@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { METADATA_TYPES_WITH_NESTED_FOLDERS } from '@jetstream/shared/constants';
 import { listMetadata as listMetadataApi, queryAll, queryWithCache } from '@jetstream/shared/data';
 import { tracker } from '@jetstream/shared/ui-utils';
-import { groupByFlat, orderObjectsBy, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { getErrorMessage, groupByFlat, orderObjectsBy, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ListMetadataQuery, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { formatRelative } from 'date-fns/formatRelative';
@@ -121,8 +121,9 @@ async function fetchListMetadata(
         });
       }
     } catch (ex) {
-      // IsPersonType is only available in orgs where this feature is enabled - so if it fails we don't need to monkey-patch
-      logger.error('Error monkey-patching PersonAccount record types', ex);
+      // IsPersonType only exists in orgs with Person Accounts enabled (INVALID_FIELD otherwise).
+      // This is expected, there is nothing to monkey-patch, so don't log it as an error.
+      logger.warn('Skipping PersonAccount record type patch', getErrorMessage(ex));
     }
   }
 

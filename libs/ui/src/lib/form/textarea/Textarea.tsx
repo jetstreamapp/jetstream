@@ -9,6 +9,11 @@ export interface TextareaProps {
   labelClassName?: string;
   label?: string | ReactNode;
   hideLabel?: boolean;
+  /**
+   * Render the label without `for`. Use when the control is created asynchronously (e.g. Monaco) and
+   * names itself via aria-label, otherwise the browser flags a `for` that matches nothing at render time.
+   */
+  skipLabelFor?: boolean;
   labelHelp?: string | null;
   helpText?: React.ReactNode | string;
   hasError?: boolean;
@@ -25,6 +30,7 @@ export const Textarea: FunctionComponent<TextareaProps> = ({
   labelClassName,
   label,
   hideLabel,
+  skipLabelFor,
   labelHelp,
   helpText,
   hasError,
@@ -38,7 +44,10 @@ export const Textarea: FunctionComponent<TextareaProps> = ({
     <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
       {label && (
         <Fragment>
-          <label className={classNames('slds-form-element__label', labelClassName, { 'slds-assistive-text': hideLabel })} htmlFor={id}>
+          <label
+            className={classNames('slds-form-element__label', labelClassName, { 'slds-assistive-text': hideLabel })}
+            htmlFor={skipLabelFor ? undefined : id}
+          >
             {isRequired && (
               <abbr className="slds-required" title="required">
                 *{' '}
@@ -55,6 +64,7 @@ export const Textarea: FunctionComponent<TextareaProps> = ({
           hasError,
           errorMessageId,
           labelHelp && !hideLabel && id ? `${id}-label-help-text` : undefined,
+          id,
         )}
       </div>
       {helpText && <div className="slds-form-element__help">{helpText}</div>}

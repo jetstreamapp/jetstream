@@ -25,20 +25,30 @@ function mergeIdLists(...idLists: unknown[]) {
  * `aria-invalid` plus the error-message association when the wrapper is in an error state.
  * A caller-provided `aria-invalid` wins; a caller-provided `aria-describedby` is MERGED with the
  * wrapper's help/error ids (replacing it silently dropped the help text association).
+ * When `controlId` is provided, the first control without its own id receives it so the wrapper's
+ * `<label for>` always resolves to a real element.
  */
 export function associateErrorsWithControls(
   children: ReactNode,
   hasError: boolean | undefined,
   errorMessageId: string | undefined,
   helpTextId?: string,
+  controlId?: string,
 ) {
   const describedBy = [helpTextId, hasError && errorMessageId ? errorMessageId : undefined].filter(Boolean).join(' ') || undefined;
+  let hasAssignedControlId = false;
   return Children.map(children, (child) => {
     if (!isStampableControl(child)) {
       return child;
     }
     const childProps = child.props;
+    let id = childProps.id;
+    if (!id && controlId && !hasAssignedControlId) {
+      id = controlId;
+      hasAssignedControlId = true;
+    }
     return cloneElement(child, {
+      id,
       'aria-invalid': childProps['aria-invalid'] ?? (hasError || undefined),
       'aria-describedby': mergeIdLists(childProps['aria-describedby'], describedBy),
     });
