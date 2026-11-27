@@ -57,7 +57,13 @@ const HOME_ITEMS: HomeCard[] = [
   {
     title: 'Deploy',
     icon: { type: 'standard', icon: 'asset_relationship' },
-    items: [APP_ROUTES.DEPLOY_METADATA, APP_ROUTES.CREATE_FIELDS, APP_ROUTES.RECORD_TYPE_MANAGER, APP_ROUTES.FORMULA_EVALUATOR],
+    items: [
+      APP_ROUTES.DEPLOY_METADATA,
+      APP_ROUTES.ORG_ALIGNMENT,
+      APP_ROUTES.CREATE_FIELDS,
+      APP_ROUTES.RECORD_TYPE_MANAGER,
+      APP_ROUTES.FORMULA_EVALUATOR,
+    ],
   },
   {
     title: 'Developer Tools',

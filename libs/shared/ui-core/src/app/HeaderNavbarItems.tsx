@@ -147,6 +147,13 @@ function navbarItems(analysisToolsEnabled: boolean): NavbarItemConfig[] {
           label: APP_ROUTES.DEPLOY_METADATA.TITLE,
         },
         {
+          id: 'org-alignment',
+          path: APP_ROUTES.ORG_ALIGNMENT.ROUTE,
+          search: APP_ROUTES.ORG_ALIGNMENT.SEARCH_PARAM,
+          title: APP_ROUTES.ORG_ALIGNMENT.DESCRIPTION,
+          label: APP_ROUTES.ORG_ALIGNMENT.TITLE,
+        },
+        {
           id: 'deploy-sobject-metadata',
           path: APP_ROUTES.CREATE_FIELDS.ROUTE,
           search: APP_ROUTES.CREATE_FIELDS.SEARCH_PARAM,

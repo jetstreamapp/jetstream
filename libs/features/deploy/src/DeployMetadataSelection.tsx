@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
-import { usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
+import { isBrowserExtension, isCanvasApp, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import {
   AutoFullHeightContainer,
@@ -39,6 +40,7 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
   const metadataItems = useAtomValue(fromDeployMetadataState.metadataItemsState);
   const hasSelectionsMade = useAtomValue(fromDeployMetadataState.hasSelectionsMadeSelector);
   const hasSelectionsMadeMessage = useAtomValue(fromDeployMetadataState.hasSelectionsMadeMessageSelector);
+  const isSingleOrgMode = isBrowserExtension() || isCanvasApp();
 
   usePrimaryActionShortcut(
     () => {
@@ -58,6 +60,15 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
             docsPath="/deploy-metadata"
           />
           <PageHeaderActions colType="actions" buttonType="separate">
+            {!isSingleOrgMode && (
+              <Link
+                className="slds-button slds-button_neutral collapsible-button collapsible-button-xl"
+                to={APP_ROUTES.ORG_ALIGNMENT.ROUTE}
+              >
+                <Icon type="utility" icon="sync" className="slds-button__icon slds-button__icon_left" omitContainer />
+                <span>Org Alignment</span>
+              </Link>
+            )}
             <DeployMetadataHistoryModal className="collapsible-button collapsible-button-xl" />
             <ButtonGroupContainer>
               <DownloadMetadataPackage className="collapsible-button collapsible-button-xl" selectedOrg={selectedOrg} />

@@ -16,6 +16,7 @@ type RouteKey =
   | 'PERMISSION_ANALYSIS'
   | 'DATA_ANALYSIS'
   | 'DEPLOY_METADATA'
+  | 'ORG_ALIGNMENT'
   | 'CREATE_FIELDS'
   | 'FORMULA_EVALUATOR'
   | 'RECORD_TYPE_MANAGER'
@@ -170,6 +171,13 @@ export const APP_ROUTES: RouteMap = {
     DOCS: 'https://docs.getjetstream.app/deploy-metadata',
     TITLE: 'Deploy and Compare Metadata',
     DESCRIPTION: 'Move metadata between orgs, compare metadata between orgs, import/export metadata',
+  },
+  ORG_ALIGNMENT: {
+    TOOL: 'deploy-metadata',
+    ...getRoutePath('/org-alignment'),
+    DOCS: 'https://docs.getjetstream.app/deploy-metadata',
+    TITLE: 'Org Alignment',
+    DESCRIPTION: 'Compare two orgs for metadata drift and deploy chosen differences in either direction',
   },
   CREATE_FIELDS: {
     TOOL: 'create-fields',

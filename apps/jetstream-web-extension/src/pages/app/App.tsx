@@ -6,7 +6,7 @@ import { CreateFields, CreateFieldsSelection, CreateObjectAndFields } from '@jet
 import { DataAnalysis, DataAnalysisSelection, FieldUsageAnalysisView } from '@jetstream/feature/data-analysis';
 import { DataHistory } from '@jetstream/feature/data-history';
 import { DebugLogViewer } from '@jetstream/feature/debug-log-viewer';
-import { DeployMetadata, DeployMetadataDeployment, DeployMetadataSelection } from '@jetstream/feature/deploy';
+import { DeployMetadata, DeployMetadataDeployment, DeployMetadataSelection, OrgAlignment } from '@jetstream/feature/deploy';
 import { FormulaEvaluator } from '@jetstream/feature/formula-evaluator';
 import { LoadRecords } from '@jetstream/feature/load-records';
 import { LoadRecordsMultiObject } from '@jetstream/feature/load-records-multi-object';
@@ -108,6 +108,7 @@ export function App() {
                   <Route path="deploy" element={<DeployMetadataDeployment />} />
                   <Route path="*" element={<Navigate to=".." />} />
                 </Route>
+                <Route path={APP_ROUTES.ORG_ALIGNMENT.ROUTE} element={<OrgAlignment />} />
                 <Route path={APP_ROUTES.CREATE_FIELDS.ROUTE} element={<CreateObjectAndFields />}>
                   <Route index element={<CreateFieldsSelection />} />
                   <Route path="configurator" element={<CreateFields />} />

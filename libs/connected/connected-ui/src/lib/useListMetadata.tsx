@@ -335,6 +335,48 @@ export async function getFullFolderPathByFolderDeveloperName(
 }
 
 /**
+ * Fetch and normalize all ListMetadataResult entries for a single metadata type on an org.
+ * Handles folder-based types, nested folder paths, PersonAccount RecordTypes, CustomMetadata
+ * SystemModstamp enrichment, and Salesforce duplicate deduplication.
+ */
+export async function fetchListMetadataForType(
+  selectedOrg: SalesforceOrgUi,
+  query: ListMetadataQueryExtended,
+  options: {
+    skipRequestCache?: boolean;
+    skipCacheIfOlderThan?: number;
+  } = {},
+): Promise<ListMetadataResultItem> {
+  const { skipRequestCache = false, skipCacheIfOlderThan } = options;
+  const item: ListMetadataResultItem = {
+    type: query.type,
+    folder: query.folder,
+    inFolder: query.inFolder ?? false,
+    loading: true,
+    error: null,
+    lastRefreshed: null,
+    items: [],
+  };
+
+  let responseItem: ListMetadataResultItem;
+  if (item.inFolder) {
+    responseItem = await fetchListMetadataForItemsInFolder(selectedOrg, item, skipRequestCache, skipCacheIfOlderThan);
+  } else {
+    responseItem = await fetchListMetadata(selectedOrg, item, skipRequestCache, skipCacheIfOlderThan);
+  }
+
+  if (item.type.endsWith('Folder')) {
+    await mutateFullNameForFolderToIncludeFullPath(selectedOrg, responseItem);
+  }
+
+  if (responseItem?.items) {
+    responseItem.items = dedupeListMetadataItems(responseItem.items);
+  }
+
+  return responseItem;
+}
+
+/**
  * Hook to call ListMetadata
  * This will make 1 api call per type (or more if folders)
  *

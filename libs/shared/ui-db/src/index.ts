@@ -4,6 +4,7 @@ export * from './lib/automation-control-history.db';
 export * from './lib/client-data.db';
 export * from './lib/data-history.db';
 export * from './lib/db-hooks';
+export * from './lib/org-alignment.db';
 export * from './lib/query-history-object.db';
 export * from './lib/query-history.db';
 export * from './lib/recent-history-items.db';

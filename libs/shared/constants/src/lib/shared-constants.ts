@@ -276,6 +276,7 @@ export const TITLES = {
   DATA_HISTORY: 'Data History | Jetstream',
   DEBUG_LOGS: 'Debug Logs | Jetstream',
   DEPLOY_METADATA: 'Deploy Metadata | Jetstream',
+  ORG_ALIGNMENT: 'Org Alignment | Jetstream',
   EXPORT_OBJECT_METADATA: 'Export Object Metadata | Jetstream',
   FEEDBACK: 'Feedback | Jetstream',
   FORMULA_EVALUATOR: 'Formula Evaluator | Jetstream',

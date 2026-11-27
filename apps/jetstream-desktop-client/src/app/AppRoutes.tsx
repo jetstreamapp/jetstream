@@ -64,6 +64,7 @@ const DeployMetadataSelection = lazy(() =>
 const DeployMetadataDeployment = lazy(() =>
   import('@jetstream/feature/deploy').then((module) => ({ default: module.DeployMetadataDeployment })),
 );
+const OrgAlignment = lazy(() => import('@jetstream/feature/deploy').then((module) => ({ default: module.OrgAlignment })));
 
 const CreateObjectAndFields = lazy(() =>
   import('@jetstream/feature/create-object-and-fields').then((module) => ({ default: module.CreateObjectAndFields })),
@@ -262,6 +263,14 @@ export const AppRoutes = () => {
           <Route path="deploy" element={<DeployMetadataDeployment />} />
           <Route path="*" element={<Navigate to=".." />} />
         </Route>
+        <Route
+          path={APP_ROUTES.ORG_ALIGNMENT.ROUTE}
+          element={
+            <OrgSelectionRequired>
+              <OrgAlignment />
+            </OrgSelectionRequired>
+          }
+        />
         <Route
           path={APP_ROUTES.CREATE_FIELDS.ROUTE}
           element={

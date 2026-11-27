@@ -22,6 +22,7 @@ export * from './lib/ui/automation-control-history.types';
 export * from './lib/ui/deploy-types';
 export * from './lib/ui/load-records-results-types';
 export * from './lib/ui/load-records-types';
+export * from './lib/ui/org-alignment.types';
 export * from './lib/ui/organization.types';
 export * from './lib/ui/permission-manager-types';
 export * from './lib/ui/types';

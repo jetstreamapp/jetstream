@@ -418,6 +418,20 @@ export const analysisToolsAccessState = atom((get) => {
   };
 });
 
+/**
+ * Access to Org Alignment paid capabilities (unlimited drift reports and saved comparisons).
+ * Free users get one free report and keep today's per-component compare free.
+ */
+export const orgAlignmentAccessState = atom((get) => {
+  const ability = get(abilityState);
+  const hasPaidPlan = get(hasPaidPlanState);
+  const hasOrgAlignmentProAccess = ability.can('access', 'AnalysisTools') || hasPaidPlan;
+  return {
+    hasOrgAlignmentProAccess,
+    orgAlignmentShowUpgradeToPro: !hasOrgAlignmentProAccess && !get(isBrowserExtensionState) && !isDesktop() && !isCanvasApp(),
+  };
+});
+
 export const orgGroupsAsyncState = atom<Promise<OrgGroup[]> | OrgGroup[]>(fetchOrgGroups());
 // Unwrapped value to simplify derived state
 export const orgGroupsState = unwrap(orgGroupsAsyncState, (prev) => prev ?? []);
