@@ -16,6 +16,7 @@ Jetstream is a private Nx monorepo (React 19 + Vite web app, Express/Prisma API,
 - Prefer existing shared constants/enums over hard-coded strings (e.g. `TEAM_MEMBER_STATUS_ACTIVE`, `TeamStatusSchema.enum.ACTIVE`), and route paths via the `APP_ROUTES` constants from `@jetstream/shared/ui-router` — never hardcode route strings.
 - Import only via the `@jetstream/*` aliases in `tsconfig.base.json`; never deep cross-module imports. Nx `enforce-module-boundaries` already guards scope tags (scope:server/browser/shared/type-only).
 - UI is hand-built — this repo does NOT use `@salesforce/design-system-react`. Prefer SLDS CSS classes; use Emotion `css` where needed. State is jotai atoms.
+- Dropdowns use `ComboboxWithItems` (or `ComboboxWithItemsVirtual` for large lists) from `@jetstream/ui`. Flag new browser-native `<select>`/`<option>` elements.
 - Always use curly braces on `if` statements. Prefer verbose variable names (except `i` for index); avoid single-letter names.
 - Tests are Vitest, co-located in `__tests__/*.spec.ts`. Migrations are created with the Prisma CLI only.
 - **Access profiles gate every tool and write action.** A new page needs a `TOOL` key on its `APP_ROUTES` entry; a new create/update/delete/deploy/connect button needs `useOperationAccess('<key>')` with the control disabled and `deniedReason` in its tooltip. Flag a new write entry point that skips this.

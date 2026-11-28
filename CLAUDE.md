@@ -54,6 +54,8 @@ This project does NOT use `@salesforce/design-system-react`, all components were
 
 Prefer using Salesforce lightning design system CSS classes when applicable, but can use `import { css } from '@emotion/react'` where needed.
 
+For dropdowns, always use `ComboboxWithItems` from `@jetstream/ui` (or `ComboboxWithItemsVirtual` for very large lists) instead of a browser-native `<select>`/`<option>` element.
+
 ## Access profiles (team feature gating)
 
 Team admins can restrict members to an allow-list of tools and operations (`libs/types/src/lib/access-profile.types.ts`).
