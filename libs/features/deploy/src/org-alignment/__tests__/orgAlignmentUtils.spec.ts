@@ -15,6 +15,7 @@ import {
   buildChangeReviewMarkdown,
   buildDriftReportFlatRows,
   buildDriftReportWorkbookData,
+  buildFilePairsForComponent,
   buildTypeComparisonComponents,
   componentsToListMetadataMap,
   getOverwrittenTargetComponentsMap,
@@ -322,6 +323,30 @@ describe('orgAlignmentUtils', () => {
     expect(html).toContain('<h1>Org Alignment Drift Report</h1>');
     expect(html).toContain('<li><strong>ChangedCls</strong>: Different</li>');
     expect(html).not.toContain('SameCls');
+  });
+});
+
+describe('permission files with escaped characters', () => {
+  it('compares a reordered permission set as the same', () => {
+    const getPermissionSet = (userPermissions: string[]) =>
+      makeFileProps({
+        type: 'PermissionSet',
+        fullName: 'Sales',
+        fileName: 'permissionsets/Sales.permissionset',
+        content: `<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+  <label>Sales &amp; Marketing</label>
+${userPermissions.map((name) => `  <userPermissions>\n    <enabled>true</enabled>\n    <name>${name}</name>\n  </userPermissions>`).join('\n')}
+</PermissionSet>`,
+      });
+
+    const { allMatch } = buildFilePairsForComponent(
+      [getPermissionSet(['ApiEnabled', 'ViewSetup'])],
+      [getPermissionSet(['ViewSetup', 'ApiEnabled'])],
+      { normalizePermissionXml: true },
+    );
+
+    expect(allMatch).toBe(true);
   });
 });
 

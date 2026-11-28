@@ -1,7 +1,13 @@
 import { ListMetadataResult } from '@jetstream/types';
 import { describe, expect, it } from 'vitest';
 import { BUNDLE_RETRIEVE_CHUNK_SIZE, chunkListMetadataForRetrieve, DEFAULT_RETRIEVE_CHUNK_SIZE } from '../viewOrCompareMetadataUtils';
-import { compareMetadataContents, isPermissionXmlType, normalizeMetadataContent, normalizePermissionXmlContent } from '../xmlNormalizer';
+import {
+  compareMetadataContents,
+  getDisplayContent,
+  isPermissionXmlType,
+  normalizeMetadataContent,
+  normalizePermissionXmlContent,
+} from '../xmlNormalizer';
 
 function makeListItem(type: string, fullName: string): ListMetadataResult {
   return {
@@ -106,6 +112,30 @@ describe('xmlNormalizer', () => {
   it('never treats missing/null content as equal', () => {
     expect(compareMetadataContents(undefined, undefined)).toBe(false);
     expect(compareMetadataContents('abc', undefined)).toBe(false);
+  });
+});
+
+describe('permission XML with escaped characters', () => {
+  const getPermissionSet = (userPermissions: string[]) => `<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+  <label>Sales &amp; Marketing</label>
+  <description>Access for tiers &lt; 3</description>
+${userPermissions.map((name) => `  <userPermissions>\n    <enabled>true</enabled>\n    <name>${name}</name>\n  </userPermissions>`).join('\n')}
+</PermissionSet>`;
+  const permissionSet = getPermissionSet(['ApiEnabled', 'ViewSetup']);
+  const reorderedPermissionSet = getPermissionSet(['ViewSetup', 'ApiEnabled']);
+
+  it('treats reordered files as the same', () => {
+    expect(compareMetadataContents(permissionSet, reorderedPermissionSet, { metadataType: 'PermissionSet' })).toBe(true);
+  });
+
+  it('sorts the displayed content and unescapes it afterwards', () => {
+    const getFile = (content: string) => ({ content, type: 'PermissionSet', fileName: 'permissionsets/Sales.permissionset' });
+    const displayContent = getDisplayContent(getFile(permissionSet), true);
+
+    expect(displayContent).toBe(getDisplayContent(getFile(reorderedPermissionSet), true));
+    expect(displayContent).toContain('<label>Sales & Marketing</label>');
+    expect(displayContent).toContain('<description>Access for tiers < 3</description>');
   });
 });
 

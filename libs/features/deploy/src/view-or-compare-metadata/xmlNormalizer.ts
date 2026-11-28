@@ -194,10 +194,13 @@ export function getDisplayContent(
   file: Maybe<Pick<FilePropertiesWithContent, 'content' | 'type' | 'fileName'>>,
   normalizePermissionXml: boolean,
 ): string {
-  const rawContent = unSanitizeXml(file?.content || '');
-  return file && normalizePermissionXml
-    ? normalizeMetadataContent(rawContent, { metadataType: file.type, fileName: file.fileName, normalizePermissionXml: true })
-    : rawContent;
+  const rawContent = file?.content || '';
+  // Entities are unescaped last, the XML could not be parsed for sorting without them
+  return unSanitizeXml(
+    file && normalizePermissionXml
+      ? normalizeMetadataContent(rawContent, { metadataType: file.type, fileName: file.fileName, normalizePermissionXml: true })
+      : rawContent,
+  );
 }
 
 /**

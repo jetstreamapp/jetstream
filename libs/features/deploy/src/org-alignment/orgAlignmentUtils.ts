@@ -1,6 +1,6 @@
 import { getMetadataLabelFromFullName } from '@jetstream/connected-ui';
 import { escapeHtml, formatNumber } from '@jetstream/shared/ui-utils';
-import { getFullNameFromListMetadata, orderObjectsBy, unSanitizeXml } from '@jetstream/shared/utils';
+import { getFullNameFromListMetadata, orderObjectsBy } from '@jetstream/shared/utils';
 import { ListMetadataResult, OrgAlignmentRunSummaryCounts } from '@jetstream/types';
 import { FilePropertiesWithContent } from '../view-or-compare-metadata/viewOrCompareMetadataTypes';
 import { compareMetadataContents, isPermissionXmlType } from '../view-or-compare-metadata/xmlNormalizer';
@@ -405,8 +405,9 @@ export function buildFilePairsForComponent(
   const files: OrgAlignmentFilePair[] = allFileNames.map((fileName) => {
     const source = sourceByFileName.get(fileName);
     const target = targetByFileName.get(fileName);
-    const sourceContent = source?.content != null ? unSanitizeXml(source.content) : null;
-    const targetContent = target?.content != null ? unSanitizeXml(target.content) : null;
+    // Compared as retrieved: unescaping entities first would leave XML that cannot be parsed for normalization
+    const sourceContent = source?.content ?? null;
+    const targetContent = target?.content ?? null;
 
     if (sourceContent != null || targetContent != null) {
       hasReadableContent = true;

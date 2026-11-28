@@ -294,6 +294,9 @@ export const OrgAlignment: FunctionComponent = () => {
       }
       const { savedKey } = run;
       saveLastUsedOptions(run.options);
+      // Org A follows the globally selected org until it is chosen. The results belong to the org that was
+      // compared, so it is pinned here and switching orgs in the header no longer changes it.
+      setUserSelectedSourceOrg(run.sourceOrg);
 
       setSelectedComponentKeys(new Set());
       setStatusFilter('ALL');
