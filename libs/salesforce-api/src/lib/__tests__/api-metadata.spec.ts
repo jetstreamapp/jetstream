@@ -463,5 +463,54 @@ describe('ApiMetadata SOAP XML parsing and type handling', () => {
       expect(typeof result.details!.componentSuccesses[0].success).toBe('boolean');
       expect(result.details!.componentSuccesses[0].success).toBe(true);
     });
+
+    it('should parse runTestResult numFailures, numTestsRun, and totalTime from their respective fields', async () => {
+      const responseWithRunTestResult = `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns="http://soap.sforce.com/2006/04/metadata">
+  <soapenv:Body>
+    <checkDeployStatusResponse>
+      <result>
+        <done>true</done>
+        <success>false</success>
+        <status>Failed</status>
+        <numberComponentErrors>0</numberComponentErrors>
+        <numberComponentsDeployed>5</numberComponentsDeployed>
+        <numberComponentsTotal>5</numberComponentsTotal>
+        <numberTestErrors>1</numberTestErrors>
+        <numberTestsCompleted>12</numberTestsCompleted>
+        <numberTestsTotal>12</numberTestsTotal>
+        <details>
+          <componentSuccesses/>
+          <componentFailures/>
+          <runTestResult>
+            <numFailures>1</numFailures>
+            <numTestsRun>12</numTestsRun>
+            <totalTime>4567.89</totalTime>
+            <codeCoverage/>
+            <codeCoverageWarnings/>
+            <failures/>
+            <flowCoverage/>
+            <flowCoverageWarnings/>
+            <successes/>
+          </runTestResult>
+        </details>
+      </result>
+    </checkDeployStatusResponse>
+  </soapenv:Body>
+</soapenv:Envelope>`;
+
+      const mockFetch = createMockFetch({
+        '/services/Soap/m/65.0': responseWithRunTestResult,
+      });
+
+      const connection = createConnectionWithSoapParsing(mockFetch);
+      const apiMetadata = new ApiMetadata(connection);
+
+      const result = await apiMetadata.checkDeployStatus('0Af6g00000TestAAA', true);
+
+      expect(result.details?.runTestResult.numFailures).toBe(1);
+      expect(result.details?.runTestResult.numTestsRun).toBe(12);
+      expect(result.details?.runTestResult.totalTime).toBe(4567.89);
+    });
   });
 });

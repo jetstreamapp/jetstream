@@ -207,9 +207,9 @@ export function correctDeployMetadataResultTypes(results: DeployResult) {
       );
 
       if (results.details.runTestResult) {
-        results.details.runTestResult.numFailures = Number.parseInt(results.details.runTestResult.numFailures as any);
-        results.details.runTestResult.numTestsRun = Number.parseInt(results.details.runTestResult.numFailures as any);
-        results.details.runTestResult.totalTime = Number.parseFloat(results.details.runTestResult.numFailures as any);
+        results.details.runTestResult.numFailures = Number.parseInt(results.details.runTestResult.numFailures as any, 10);
+        results.details.runTestResult.numTestsRun = Number.parseInt(results.details.runTestResult.numTestsRun as any, 10);
+        results.details.runTestResult.totalTime = Number.parseFloat(results.details.runTestResult.totalTime as any);
 
         results.details.runTestResult.codeCoverage = ensureArray(results.details.runTestResult.codeCoverage).map((item) =>
           correctInvalidXmlResponseTypes(item),
