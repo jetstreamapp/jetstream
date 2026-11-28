@@ -821,7 +821,8 @@ function getChangeReviewSummary(context: OrgAlignmentExportContext): ChangeRevie
 /** Build a Markdown summary to paste into change-review docs, tickets or pull requests */
 export function buildChangeReviewMarkdown(context: OrgAlignmentExportContext): string {
   const { details, totals, typeHeaders, typeRows, differencesByType } = getChangeReviewSummary(context);
-  const escapeCell = (value: string) => value.replace(/\|/g, '\\|');
+  // Backslashes first, otherwise a value ending in one would un-escape the pipe that follows it
+  const escapeCell = (value: string) => value.replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
   const lines: string[] = [
     `# ${CHANGE_REVIEW_TITLE}`,
     '',
