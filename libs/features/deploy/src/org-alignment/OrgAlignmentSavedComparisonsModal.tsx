@@ -1,19 +1,15 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { OrgAlignmentSavedComparison, SalesforceOrgUi } from '@jetstream/types';
-import { Badge, EmptyState, Grid, Icon, Input, Modal, ScopedNotification, Textarea, UpgradeToProButton } from '@jetstream/ui';
-import { OrgLabelBadge, ProBadge } from '@jetstream/ui-core';
+import { Badge, EmptyState, Grid, Icon, Input, Modal, Textarea } from '@jetstream/ui';
+import { OrgLabelBadge } from '@jetstream/ui-core';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
 import { FunctionComponent, useState } from 'react';
-
-export const FREE_ORG_ALIGNMENT_SAVED_LIMIT = 1;
 
 export interface OrgAlignmentSavedComparisonsModalProps {
   mode: 'BROWSE' | 'SAVE';
   savedComparisons: OrgAlignmentSavedComparison[];
   orgsById: Record<string, SalesforceOrgUi>;
-  hasProAccess: boolean;
-  showUpgradeToPro: boolean;
   activeSavedKey: string | null;
   currentSourceOrg: SalesforceOrgUi | null;
   currentTargetOrg: SalesforceOrgUi | null;
@@ -29,8 +25,6 @@ export const OrgAlignmentSavedComparisonsModal: FunctionComponent<OrgAlignmentSa
   mode,
   savedComparisons,
   orgsById,
-  hasProAccess,
-  showUpgradeToPro,
   activeSavedKey,
   currentSourceOrg,
   currentTargetOrg,
@@ -50,11 +44,10 @@ export const OrgAlignmentSavedComparisonsModal: FunctionComponent<OrgAlignmentSa
   const [saving, setSaving] = useState(false);
 
   const isUpdatingExisting = Boolean(activeSaved);
-  const reachedFreeSaveLimit = !hasProAccess && !isUpdatingExisting && savedComparisons.length >= FREE_ORG_ALIGNMENT_SAVED_LIMIT;
 
   async function handleSaveSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!name.trim() || reachedFreeSaveLimit) {
+    if (!name.trim()) {
       return;
     }
     setSaving(true);
@@ -85,7 +78,7 @@ export const OrgAlignmentSavedComparisonsModal: FunctionComponent<OrgAlignmentSa
               type="submit"
               form="org-alignment-save-form"
               className="slds-button slds-button_brand"
-              disabled={!name.trim() || saving || reachedFreeSaveLimit}
+              disabled={!name.trim() || saving}
             >
               {isUpdatingExisting ? 'Update Comparison' : 'Save Comparison'}
             </button>
@@ -93,15 +86,6 @@ export const OrgAlignmentSavedComparisonsModal: FunctionComponent<OrgAlignmentSa
         }
         onClose={onClose}
       >
-        {reachedFreeSaveLimit && (
-          <ScopedNotification theme="warning" className="slds-m-bottom_small">
-            <div className="slds-m-bottom_x-small">
-              Free accounts can save {FREE_ORG_ALIGNMENT_SAVED_LIMIT} Org Alignment definition. Upgrade to Jetstream Pro for unlimited saved
-              comparisons.
-            </div>
-            {showUpgradeToPro && <UpgradeToProButton />}
-          </ScopedNotification>
-        )}
         <form id="org-alignment-save-form" onSubmit={handleSaveSubmit}>
           <Input id="org-alignment-save-name" label="Comparison Name" isRequired className="slds-m-bottom_small">
             <input
@@ -110,7 +94,6 @@ export const OrgAlignmentSavedComparisonsModal: FunctionComponent<OrgAlignmentSa
               className="slds-input"
               maxLength={120}
               value={name}
-              disabled={reachedFreeSaveLimit}
               onChange={(event) => setName(event.target.value)}
               placeholder="e.g. UAT vs Production (Core Metadata)"
             />
@@ -122,7 +105,6 @@ export const OrgAlignmentSavedComparisonsModal: FunctionComponent<OrgAlignmentSa
               rows={3}
               maxLength={250}
               value={description}
-              disabled={reachedFreeSaveLimit}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="e.g. Pre-release weekly drift check"
             />
@@ -134,12 +116,7 @@ export const OrgAlignmentSavedComparisonsModal: FunctionComponent<OrgAlignmentSa
 
   return (
     <Modal
-      header={
-        <Grid verticalAlign="center">
-          <span>Saved Comparisons ({formatNumber(savedComparisons.length)})</span>
-          {!hasProAccess && <ProBadge className="slds-m-left_x-small" />}
-        </Grid>
-      }
+      header={`Saved Comparisons (${formatNumber(savedComparisons.length)})`}
       tagline="Locally stored org alignment definitions. Load a definition or re-run it on demand."
       size="md"
       footer={
@@ -151,17 +128,6 @@ export const OrgAlignmentSavedComparisonsModal: FunctionComponent<OrgAlignmentSa
       }
       onClose={onClose}
     >
-      {!hasProAccess && (
-        <ScopedNotification theme="light" className="slds-m-bottom_small">
-          <Grid align="spread" verticalAlign="center" wrap>
-            <div className="slds-m-right_small">
-              Free accounts include {FREE_ORG_ALIGNMENT_SAVED_LIMIT} saved comparison. Upgrade to Jetstream Pro for unlimited saved
-              comparisons and drift reports.
-            </div>
-            {showUpgradeToPro && <UpgradeToProButton />}
-          </Grid>
-        </ScopedNotification>
-      )}
       {savedComparisons.length === 0 ? (
         <EmptyState
           headline="No saved comparisons yet"

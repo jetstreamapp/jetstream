@@ -53,15 +53,11 @@ export interface RunOrgAlignmentParams {
   includeManaged: boolean;
   normalizePermissionXml: boolean;
   skipRequestCache?: boolean;
-  /** Called when the comparison finishes, and again each time failed types are retried (`isRetry`) */
+  /** Called when the comparison finishes, and again each time failed types are retried */
   onComplete?: OrgAlignmentCompleteCallback;
 }
 
-export type OrgAlignmentCompleteCallback = (
-  summary: OrgAlignmentRunSummaryCounts,
-  results: OrgAlignmentTypeResult[],
-  details: { isRetry: boolean },
-) => void;
+export type OrgAlignmentCompleteCallback = (summary: OrgAlignmentRunSummaryCounts, results: OrgAlignmentTypeResult[]) => void;
 
 interface ActiveRunContext {
   sourceOrg: SalesforceOrgUi;
@@ -606,7 +602,7 @@ export function useOrgAlignmentCompare() {
         });
 
         const summary = aggregateSummaryCounts(typeResultsRef.current);
-        onComplete?.(summary, typeResultsRef.current, { isRetry: false });
+        onComplete?.(summary, typeResultsRef.current);
         notifyUser('Org alignment comparison finished', {
           body: `${summary.different} different, ${summary.onlyInSource} only in ${sourceOrg.label}, ${summary.onlyInTarget} only in ${targetOrg.label}`,
           tag: 'org-alignment',
@@ -670,7 +666,7 @@ export function useOrgAlignmentCompare() {
       } else {
         // The results changed, so the time of the report and anything saved from it are brought up to date
         setLastCompletedAt(new Date());
-        onCompleteRef.current?.(aggregateSummaryCounts(typeResultsRef.current), typeResultsRef.current, { isRetry: true });
+        onCompleteRef.current?.(aggregateSummaryCounts(typeResultsRef.current), typeResultsRef.current);
       }
 
       setProgress({

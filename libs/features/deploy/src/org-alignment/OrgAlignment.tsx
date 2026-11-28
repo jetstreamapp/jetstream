@@ -19,7 +19,6 @@ import {
   DisabledReasonButton,
   DropDown,
   EmptyState,
-  Grid,
   Icon,
   Page,
   PageHeader,
@@ -33,9 +32,8 @@ import {
   TabsRef,
   Toast,
   Tooltip,
-  UpgradeToProButton,
 } from '@jetstream/ui';
-import { ConfirmPageChange, RequireMetadataApiBanner } from '@jetstream/ui-core';
+import { ConfirmPageChange, ProFeaturePaywall, RequireMetadataApiBanner } from '@jetstream/ui-core';
 import {
   orgAlignmentAccessState,
   salesforceOrgsById,
@@ -46,14 +44,13 @@ import {
 import { hasDexieDb, orgAlignmentDb } from '@jetstream/ui/db';
 import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router';
 import DownloadPackageWithFileSelector from '../utils/DownloadPackageWithFileSelector';
 import { ALL_TYPES_FILTER, OrgAlignmentComponentsTable, STATUS_LABELS } from './OrgAlignmentComponentsTable';
 import OrgAlignmentDeployModal from './OrgAlignmentDeployModal';
 import OrgAlignmentDiffModal from './OrgAlignmentDiffModal';
 import { OrgAlignmentExportMenu } from './OrgAlignmentExportMenu';
 import { OrgAlignmentProgressBar } from './OrgAlignmentProgressBar';
-import OrgAlignmentSavedComparisonsModal, { FREE_ORG_ALIGNMENT_SAVED_LIMIT } from './OrgAlignmentSavedComparisonsModal';
+import OrgAlignmentSavedComparisonsModal from './OrgAlignmentSavedComparisonsModal';
 import { OrgAlignmentSetup } from './OrgAlignmentSetup';
 import { OrgAlignmentStatusCards } from './OrgAlignmentStatusCards';
 import { OrgAlignmentSummaryTable } from './OrgAlignmentSummaryTable';
@@ -114,33 +111,23 @@ function saveLastUsedOptions(options: OrgAlignmentComparisonOptions) {
   }
 }
 
-const FREE_REPORT_STORAGE_KEY = 'JETSTREAM_ORG_ALIGNMENT_FREE_REPORTS_USED';
-const FREE_REPORT_LIMIT = 1;
-
-function getFreeReportsUsedCount(): number {
-  try {
-    const raw = localStorage.getItem(FREE_REPORT_STORAGE_KEY);
-    const parsed = raw ? Number.parseInt(raw, 10) : 0;
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-  } catch {
-    return 0;
-  }
-}
-
-function incrementFreeReportsUsedCount(): number {
-  const next = getFreeReportsUsedCount() + 1;
-  try {
-    localStorage.setItem(FREE_REPORT_STORAGE_KEY, String(next));
-  } catch {
-    // ignore storage quota / privacy mode failures
-  }
-  return next;
-}
-
+/** Org Alignment is paid-only, see `orgAlignmentAccessState` */
 export const OrgAlignment: FunctionComponent = () => {
   useTitle(TITLES.ORG_ALIGNMENT);
+  const { hasOrgAlignmentAccess } = useAtomValue(orgAlignmentAccessState);
+  if (!hasOrgAlignmentAccess) {
+    return (
+      <ProFeaturePaywall
+        featureLabel="Org Alignment"
+        docsPath={APP_ROUTES.ORG_ALIGNMENT.DOCS}
+        description="Org Alignment compares the metadata of two orgs in one pass, shows what exists in only one org and what is different, and deploys the differences you choose in either direction, with a dependency check, a target backup and validation first. Comparing individual components in Deploy and Compare Metadata remains free."
+      />
+    );
+  }
+  return <OrgAlignmentPage />;
+};
 
-  const { hasOrgAlignmentProAccess, orgAlignmentShowUpgradeToPro } = useAtomValue(orgAlignmentAccessState);
+const OrgAlignmentPage: FunctionComponent = () => {
   const deployAccess = useOperationAccess('metadata.deploy');
 
   const allOrgs = useAtomValue(salesforceOrgsState);
@@ -160,7 +147,6 @@ export const OrgAlignment: FunctionComponent = () => {
   }));
   const { normalizePermissionXml } = comparisonOptions;
 
-  const [freeReportsUsed, setFreeReportsUsed] = useState<number>(() => getFreeReportsUsedCount());
   const [savedComparisons, setSavedComparisons] = useState<OrgAlignmentSavedComparison[]>([]);
   const [activeSavedKey, setActiveSavedKey] = useState<string | null>(null);
 
@@ -299,8 +285,7 @@ export const OrgAlignment: FunctionComponent = () => {
     [typeResults],
   );
 
-  const freeLimitReached = !hasOrgAlignmentProAccess && freeReportsUsed >= FREE_REPORT_LIMIT;
-  const canRun = Boolean(sourceOrg && targetOrg && sourceOrg.uniqueId !== targetOrg.uniqueId) && !progress.running && !freeLimitReached;
+  const canRun = Boolean(sourceOrg && targetOrg && sourceOrg.uniqueId !== targetOrg.uniqueId) && !progress.running;
 
   const executeComparison = useCallback(
     (run: OrgAlignmentRun = { sourceOrg, targetOrg, options: comparisonOptions, savedKey: activeSavedKey }) => {
@@ -327,11 +312,7 @@ export const OrgAlignment: FunctionComponent = () => {
         includeManaged: run.options.includeManaged,
         normalizePermissionXml: run.options.normalizePermissionXml,
         skipRequestCache: Boolean(run.skipRequestCache),
-        onComplete: (summary, _results, { isRetry }) => {
-          // Retrying the types that failed is part of the same report
-          if (!hasOrgAlignmentProAccess && !isRetry) {
-            setFreeReportsUsed(incrementFreeReportsUsedCount());
-          }
+        onComplete: (summary) => {
           if (savedKey && hasDexieDb()) {
             orgAlignmentDb
               .recordRunSummary(savedKey, summary, new Date())
@@ -341,7 +322,7 @@ export const OrgAlignment: FunctionComponent = () => {
         },
       });
     },
-    [activeSavedKey, comparisonOptions, hasOrgAlignmentProAccess, refreshSavedComparisons, runComparison, sourceOrg, targetOrg],
+    [activeSavedKey, comparisonOptions, refreshSavedComparisons, runComparison, sourceOrg, targetOrg],
   );
 
   function handleSourceOrgChange(org: SalesforceOrgUi) {
@@ -423,7 +404,7 @@ export const OrgAlignment: FunctionComponent = () => {
     setSelectedComponentKeys(new Set());
     resetComparison();
 
-    if (autoRun && resolvedSource && resolvedTarget && !freeLimitReached) {
+    if (autoRun && resolvedSource && resolvedTarget) {
       executeComparison({ sourceOrg: resolvedSource, targetOrg: resolvedTarget, options, savedKey: comparison.key });
     }
   }
@@ -544,9 +525,7 @@ export const OrgAlignment: FunctionComponent = () => {
   const downloadPackageOrg = downloadPackageFrom ? getDeployFromAndTo(sourceOrg, targetOrg, downloadPackageFrom).from : null;
   const downloadPackage = selectedMetadataToDownload[downloadPackageFrom ?? 'A_TO_B'];
   const deployTargetOrg = getDeployFromAndTo(sourceOrg, targetOrg, deployDirection).to;
-  const layoutKey = [showSetup, progress.running, progress.phase, hasOrgAlignmentProAccess, Boolean(fatalError), resultsFullScreen].join(
-    '-',
-  );
+  const layoutKey = [showSetup, progress.running, progress.phase, Boolean(fatalError), resultsFullScreen].join('-');
 
   let filterDescription: string | null = null;
   if (statusFilter !== 'ALL' || typeFilter !== ALL_TYPES_FILTER) {
@@ -557,12 +536,7 @@ export const OrgAlignment: FunctionComponent = () => {
     filterDescription = `${formatNumber(filteredComponents.length)} of ${formatNumber(allComponents.length)} components shown, filtered to ${activeFilters.join(' and ')}`;
   }
 
-  let savedComparisonRerunDisabledReason: string | null = null;
-  if (progress.running) {
-    savedComparisonRerunDisabledReason = 'Wait for the comparison in progress to finish, or cancel it';
-  } else if (freeLimitReached) {
-    savedComparisonRerunDisabledReason = 'You have used your free drift report, upgrade to Jetstream Pro to run more';
-  }
+  const savedComparisonRerunDisabledReason = progress.running ? 'Wait for the comparison in progress to finish, or cancel it' : null;
 
   let deployDisabledReason = deployAccess.deniedReason;
   if (deployAccess.allowed) {
@@ -709,8 +683,6 @@ export const OrgAlignment: FunctionComponent = () => {
           mode={savedModalMode}
           savedComparisons={savedComparisons}
           orgsById={orgsById}
-          hasProAccess={hasOrgAlignmentProAccess}
-          showUpgradeToPro={orgAlignmentShowUpgradeToPro}
           activeSavedKey={activeSavedKey}
           currentSourceOrg={sourceOrg}
           currentTargetOrg={targetOrg}
@@ -808,28 +780,6 @@ export const OrgAlignment: FunctionComponent = () => {
       </PageHeader>
 
       <div className="slds-p-around_small">
-        {!hasOrgAlignmentProAccess && (
-          <ScopedNotification theme={freeLimitReached ? 'warning' : 'light'} className="slds-m-bottom_small">
-            <Grid align="spread" verticalAlign="center" wrap>
-              <div className="slds-m-right_small">
-                {freeLimitReached ? (
-                  <span>
-                    You have used your {FREE_REPORT_LIMIT} free Org Alignment drift report. Upgrade to Jetstream Pro for unlimited org-wide
-                    drift reports and saved comparisons. Per-component compare in{' '}
-                    <Link to={APP_ROUTES.DEPLOY_METADATA.ROUTE}>Deploy and Compare Metadata</Link> remains free.
-                  </span>
-                ) : (
-                  <span>
-                    Org Alignment includes {FREE_REPORT_LIMIT} free org-wide drift report and {FREE_ORG_ALIGNMENT_SAVED_LIMIT} saved
-                    comparison. Upgrade to Jetstream Pro for unlimited reports and saved definitions.
-                  </span>
-                )}
-              </div>
-              {orgAlignmentShowUpgradeToPro && <UpgradeToProButton />}
-            </Grid>
-          </ScopedNotification>
-        )}
-
         <OrgAlignmentSetup
           expanded={showSetup}
           sourceOrg={sourceOrg}

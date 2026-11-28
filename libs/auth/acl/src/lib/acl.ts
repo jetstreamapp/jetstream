@@ -203,8 +203,8 @@ function getAbilityRules({ isBrowserExtension, isDesktop, isCanvasApp, canvasAcc
   if (user.entitlements.analysisTools || isBrowserExtension || isDesktop || isCanvasApp) {
     can('access', 'AnalysisTools');
   }
-  // Org Alignment's paid capabilities (unlimited drift reports, saved comparisons). Its own subject so that it can
-  // be granted or withheld on its own, there is no stored entitlement for it yet: desktop is a paid tier, and on
+  // Org Alignment is a paid-only tool. Its own subject so that it can be granted or withheld on its own, there is
+  // no stored entitlement for it yet: desktop is a paid tier, and on
   // the web an active paid plan grants it (see `orgAlignmentAccessState`). The extension and canvas apps work
   // with a single org and do not offer the feature.
   if (isDesktop) {

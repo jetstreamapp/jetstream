@@ -1,7 +1,7 @@
 import { TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useTitle } from '@jetstream/shared/ui-utils';
-import { AnalysisToolsPaywall, fromPermissionsState } from '@jetstream/ui-core';
+import { ProFeaturePaywall, fromPermissionsState } from '@jetstream/ui-core';
 import { analysisToolsAccessState, selectedOrgState, useFeatureFlag } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
@@ -83,7 +83,7 @@ export const PermissionAnalysis: FunctionComponent = () => {
     return <Navigate to={APP_ROUTES.HOME.ROUTE} replace />;
   }
   if (!hasAnalysisToolsAccess) {
-    return <AnalysisToolsPaywall featureLabel="Permission Analysis" docsPath={APP_ROUTES.PERMISSION_ANALYSIS.DOCS} />;
+    return <ProFeaturePaywall featureLabel="Permission Analysis" docsPath={APP_ROUTES.PERMISSION_ANALYSIS.DOCS} />;
   }
   return blockAnalysisWithoutSelections ? <Navigate to="." /> : <Outlet />;
 };

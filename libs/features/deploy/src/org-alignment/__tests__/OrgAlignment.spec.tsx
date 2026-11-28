@@ -28,10 +28,7 @@ vi.mock('@jetstream/ui/app-state', async () => {
   return {
     applicationCookieState: atom({ serverUrl: 'https://getjetstream.app', google_apiKey: '', google_appId: '', google_clientId: '' }),
     googleDriveAccessState: atom({ hasGoogleDriveAccess: false, googleShowUpgradeToPro: false }),
-    orgAlignmentAccessState: atom(() => ({
-      hasOrgAlignmentProAccess: uiState.hasProAccess,
-      orgAlignmentShowUpgradeToPro: !uiState.hasProAccess,
-    })),
+    orgAlignmentAccessState: atom(() => ({ hasOrgAlignmentAccess: uiState.hasProAccess })),
     salesforceOrgsState: atom([orgA, orgB]),
     salesforceOrgsById: atom({ 'org-a': orgA, 'org-b': orgB }),
     selectedOrgStateWithoutPlaceholder: atom(orgA),
@@ -57,7 +54,7 @@ vi.mock('@jetstream/ui-core', () => ({
     <div data-testid={`org-picker-${label}`}>{selectedOrg ? selectedOrg.label : 'None'}</div>
   ),
   OrgLabelBadge: ({ org }: { org: SalesforceOrgUi }) => <span>{org.label}</span>,
-  ProBadge: () => <span>Pro</span>,
+  ProFeaturePaywall: ({ featureLabel }: { featureLabel: string }) => <div>{featureLabel} is a paid feature</div>,
   RequireMetadataApiBanner: () => null,
 }));
 
@@ -67,7 +64,6 @@ describe('OrgAlignment', () => {
   beforeEach(() => {
     uiState.hasProAccess = true;
     uiState.deployAllowed = true;
-    localStorage.clear();
   });
 
   it('renders the Org Alignment page with org selectors and empty state', () => {
@@ -84,7 +80,7 @@ describe('OrgAlignment', () => {
     expect(screen.getByRole('button', { name: /Compare Orgs/i })).toHaveProperty('disabled', true);
   });
 
-  it('shows the free-tier banner when the user does not have Pro access', () => {
+  it('shows the paywall instead of the tool when the user does not have Pro access', () => {
     uiState.hasProAccess = false;
     render(
       <Provider>
@@ -94,6 +90,7 @@ describe('OrgAlignment', () => {
       </Provider>,
     );
 
-    expect(screen.getByText(/includes 1 free org-wide drift report/i)).toBeTruthy();
+    expect(screen.getByText('Org Alignment is a paid feature')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Compare Orgs/i })).toBeNull();
   });
 });
