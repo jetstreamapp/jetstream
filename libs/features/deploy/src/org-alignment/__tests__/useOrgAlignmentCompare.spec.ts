@@ -15,6 +15,8 @@ vi.mock('@jetstream/shared/data', () => ({
 vi.mock('@jetstream/connected-ui', async () => {
   return {
     COMMON_METADATA_TYPES: ['ApexClass', 'Profile'],
+    buildDescribeMetadataMap: ({ metadataObjects }: { metadataObjects: { xmlName: string }[] }) =>
+      Object.fromEntries(metadataObjects.map((item) => [item.xmlName, item])),
     METADATA_TYPES_TO_OMIT: new Set<string>(),
     getMetadataLabelFromFullName: (type: string) => type,
     fetchListMetadataForType: (...args: unknown[]) => fetchListMetadataForTypeMock(...args),
@@ -32,11 +34,12 @@ vi.mock('@jetstream/ui/app-state', async () => {
   };
 });
 
-vi.mock('../../view-or-compare-metadata/useViewOrCompareMetadata', () => ({
+vi.mock('../../view-or-compare-metadata/retrieveMetadataChunked', () => ({
   retrieveMetadataChunked: (...args: unknown[]) => retrieveMetadataChunkedMock(...args),
 }));
 
-import { MAX_TYPES_COMPARED_IN_PARALLEL, useOrgAlignmentCompare } from '../useOrgAlignmentCompare';
+import { OrgAlignmentTypeResult } from '../orgAlignmentTypes';
+import { getTypesToCompareAgain, MAX_TYPES_COMPARED_IN_PARALLEL, useOrgAlignmentCompare } from '../useOrgAlignmentCompare';
 
 const orgA = { uniqueId: 'org-a', label: 'Dev', username: 'dev@example.com' } as SalesforceOrgUi;
 const orgB = { uniqueId: 'org-b', label: 'Prod', username: 'prod@example.com' } as SalesforceOrgUi;
@@ -280,5 +283,22 @@ describe('useOrgAlignmentCompare', () => {
 
     expect(result.current.typeResults[0].executionStatus).toBe('complete');
     expect(result.current.typeResults[0].counts.same).toBe(1);
+  });
+});
+
+describe('getTypesToCompareAgain', () => {
+  const makeTypeResult = (type: string, executionStatus: OrgAlignmentTypeResult['executionStatus']) =>
+    ({ type, executionStatus }) as OrgAlignmentTypeResult;
+
+  it('includes the completed parent type and profiles that used the results of a retried type', () => {
+    const typeResults = [
+      makeTypeResult('CustomField', 'error'),
+      makeTypeResult('CustomObject', 'complete'),
+      makeTypeResult('Profile', 'complete'),
+      makeTypeResult('StaticResource', 'complete'),
+    ];
+    expect(getTypesToCompareAgain(['CustomField'], typeResults)).toEqual(['CustomObject', 'Profile']);
+    expect(getTypesToCompareAgain(['CustomObject'], typeResults)).toEqual(['Profile']);
+    expect(getTypesToCompareAgain(['StaticResource'], typeResults)).toEqual([]);
   });
 });

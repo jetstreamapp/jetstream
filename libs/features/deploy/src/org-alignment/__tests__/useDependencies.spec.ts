@@ -201,8 +201,8 @@ describe('useDependencies hook', () => {
     const { result } = renderHook(() =>
       useDependencies({
         deploySourceOrg: mockOrg,
-        selectedComponents: [fieldComp],
-        allSourceComponents: [fieldComp, objComp],
+        selectedKeys: new Set([fieldComp.key]),
+        comparedComponents: [fieldComp, objComp],
         targetInventoryByType: { CustomObject: [] },
         direction: 'A_TO_B',
       }),
@@ -213,7 +213,7 @@ describe('useDependencies hook', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(result.current.missingCount).toBe(1);
+    expect(result.current.findings.filter(({ severity }) => severity === 'missing')).toHaveLength(1);
     expect(result.current.findings[0].referencedName).toBe('Project__c');
   });
 
@@ -239,8 +239,8 @@ describe('useDependencies hook', () => {
     const { result } = renderHook(() =>
       useDependencies({
         deploySourceOrg: mockOrg,
-        selectedComponents: [mainClass],
-        allSourceComponents: [mainClass, helperClass],
+        selectedKeys: new Set([mainClass.key]),
+        comparedComponents: [mainClass, helperClass],
         targetInventoryByType: { ApexClass: [] },
         direction: 'A_TO_B',
       }),
@@ -294,16 +294,14 @@ describe('useDependencies hook', () => {
             ]
           : [makeListItem('CustomField', 'Project__c.Priority__c', '00N000000000009AAA')],
     }));
-    const onComponentsDiscovered = vi.fn();
     const mainClass = makeComponent('ApexClass', 'MainService', 'onlyInSource', '01p000000000001AAA');
 
     const { result } = renderHook(() =>
       useDependencies({
         deploySourceOrg: mockOrg,
         deployTargetOrg: targetOrg,
-        onComponentsDiscovered,
-        selectedComponents: [mainClass],
-        allSourceComponents: [mainClass],
+        selectedKeys: new Set([mainClass.key]),
+        comparedComponents: [mainClass],
         targetInventoryByType: { ApexClass: [] },
         direction: 'A_TO_B',
       }),
@@ -321,10 +319,9 @@ describe('useDependencies hook', () => {
       severity: 'missing',
       addableComponentKey: 'CustomField:Project__c.Status__c',
     });
-    expect(result.current.externalCount).toBe(0);
-    expect(onComponentsDiscovered).toHaveBeenCalledWith([
-      expect.objectContaining({ key: 'CustomField:Project__c.Status__c', status: 'onlyInSource' }),
-    ]);
+    expect(result.current.findings.filter(({ severity }) => severity === 'external')).toHaveLength(0);
+    // The missing field was not part of the comparison, it is offered as a component that only exists in the source org
+    expect(result.current.componentsByKey.get('CustomField:Project__c.Status__c')).toMatchObject({ status: 'onlyInSource' });
   });
 
   it('looks up the parent object of a selected field when custom objects were not compared', async () => {
@@ -343,18 +340,15 @@ describe('useDependencies hook', () => {
     const missingParentField = makeComponent('CustomField', 'Project__c.Status__c', 'onlyInSource', '00N000000000001AAA');
     const existingParentField = makeComponent('CustomField', 'Task__c.Status__c', 'onlyInSource', '00N000000000002AAA');
 
-    const { result, rerender } = renderHook(
-      ({ allSourceComponents }: { allSourceComponents: OrgAlignmentComponentItem[] }) =>
-        useDependencies({
-          deploySourceOrg: mockOrg,
-          deployTargetOrg: targetOrg,
-          onComponentsDiscovered: (components) => rerender({ allSourceComponents: [...allSourceComponents, ...components] }),
-          selectedComponents: [missingParentField, existingParentField],
-          allSourceComponents,
-          targetInventoryByType: {},
-          direction: 'A_TO_B',
-        }),
-      { initialProps: { allSourceComponents: [missingParentField, existingParentField] } },
+    const { result } = renderHook(() =>
+      useDependencies({
+        deploySourceOrg: mockOrg,
+        deployTargetOrg: targetOrg,
+        selectedKeys: new Set([missingParentField.key, existingParentField.key]),
+        comparedComponents: [missingParentField, existingParentField],
+        targetInventoryByType: {},
+        direction: 'A_TO_B',
+      }),
     );
 
     await waitFor(() => {

@@ -1,18 +1,11 @@
 import { css } from '@emotion/react';
 import { COMMON_METADATA_TYPES } from '@jetstream/connected-ui';
 import { TITLES } from '@jetstream/shared/constants';
+import { getLocalStore, hasLocalStore } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import {
-  formatNumber,
-  generateCsv,
-  isBrowserExtension,
-  isCanvasApp,
-  transformTabularDataToExcelStr,
-  useTitle,
-} from '@jetstream/shared/ui-utils';
+import { formatNumber, isBrowserExtension, isCanvasApp, useTitle } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import {
-  FileExtAllTypes,
   ListItem,
   ListMetadataResult,
   OrgAlignmentRunSummaryCounts,
@@ -23,11 +16,9 @@ import {
 } from '@jetstream/types';
 import {
   ButtonGroupContainer,
-  Checkbox,
   DisabledReasonButton,
   DropDown,
   EmptyState,
-  FileDownloadModal,
   Grid,
   Icon,
   Page,
@@ -35,27 +26,17 @@ import {
   PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
-  ProgressIndicator,
   RadioButton,
   RadioGroup,
   ScopedNotification,
-  Spinner,
   Tabs,
   TabsRef,
   Toast,
   Tooltip,
   UpgradeToProButton,
 } from '@jetstream/ui';
+import { ConfirmPageChange, RequireMetadataApiBanner } from '@jetstream/ui-core';
 import {
-  ConfirmPageChange,
-  fromJetstreamEvents,
-  GroupScopedOrgsCombobox,
-  OrgLabelBadge,
-  RequireMetadataApiBanner,
-} from '@jetstream/ui-core';
-import {
-  applicationCookieState,
-  googleDriveAccessState,
   orgAlignmentAccessState,
   salesforceOrgsById,
   salesforceOrgsState,
@@ -63,8 +44,6 @@ import {
   useOperationAccess,
 } from '@jetstream/ui/app-state';
 import { hasDexieDb, orgAlignmentDb } from '@jetstream/ui/db';
-import classNames from 'classnames';
-import copyToClipboard from 'copy-to-clipboard';
 import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router';
@@ -72,53 +51,71 @@ import DownloadPackageWithFileSelector from '../utils/DownloadPackageWithFileSel
 import { ALL_TYPES_FILTER, OrgAlignmentComponentsTable, STATUS_LABELS } from './OrgAlignmentComponentsTable';
 import OrgAlignmentDeployModal from './OrgAlignmentDeployModal';
 import OrgAlignmentDiffModal from './OrgAlignmentDiffModal';
+import { OrgAlignmentExportMenu } from './OrgAlignmentExportMenu';
+import { OrgAlignmentProgressBar } from './OrgAlignmentProgressBar';
 import OrgAlignmentSavedComparisonsModal, { FREE_ORG_ALIGNMENT_SAVED_LIMIT } from './OrgAlignmentSavedComparisonsModal';
+import { OrgAlignmentSetup } from './OrgAlignmentSetup';
+import { OrgAlignmentStatusCards } from './OrgAlignmentStatusCards';
 import { OrgAlignmentSummaryTable } from './OrgAlignmentSummaryTable';
 import OrgAlignmentTypeSelectorModal from './OrgAlignmentTypeSelectorModal';
 import {
+  OrgAlignmentComparisonOptions,
   OrgAlignmentComponentItem,
   OrgAlignmentDeployDirection,
   OrgAlignmentDiffStatus,
-  OrgAlignmentExportContext,
 } from './orgAlignmentTypes';
 import {
   aggregateSummaryCounts,
-  buildChangeReviewHtml,
-  buildChangeReviewMarkdown,
-  buildDriftReportFlatRows,
-  buildDriftReportWorkbookData,
   componentsToListMetadataMap,
+  getDeployFromAndTo,
   isComponentDeployableInDirection,
 } from './orgAlignmentUtils';
 import { useOrgAlignmentCompare } from './useOrgAlignmentCompare';
 
+/** Everything that defines a comparison run, the saved comparisons store the same values */
+interface OrgAlignmentRun {
+  sourceOrg: SalesforceOrgUi | null;
+  targetOrg: SalesforceOrgUi | null;
+  options: OrgAlignmentComparisonOptions;
+  savedKey: string | null;
+  /** Get the list of components from Salesforce again instead of using what Jetstream remembers */
+  skipRequestCache?: boolean;
+}
+
+const LAST_OPTIONS_STORAGE_KEY = 'ORG_ALIGNMENT_LAST_OPTIONS';
+const SELECTION_MODES: OrgAlignmentSelectionMode[] = ['common', 'all', 'custom'];
+
+/** The options of the last comparison, so the page opens with the metadata types the user works with */
+async function getLastUsedOptions(): Promise<OrgAlignmentComparisonOptions | null> {
+  if (!hasLocalStore()) {
+    return null;
+  }
+  try {
+    const saved = await getLocalStore().getItem<Partial<OrgAlignmentComparisonOptions>>(LAST_OPTIONS_STORAGE_KEY);
+    if (!saved?.selectionMode || !SELECTION_MODES.includes(saved.selectionMode) || !Array.isArray(saved.customMetadataTypes)) {
+      return null;
+    }
+    return {
+      selectionMode: saved.selectionMode,
+      customMetadataTypes: saved.customMetadataTypes,
+      includeManaged: Boolean(saved.includeManaged),
+      normalizePermissionXml: saved.normalizePermissionXml !== false,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveLastUsedOptions(options: OrgAlignmentComparisonOptions) {
+  if (hasLocalStore()) {
+    getLocalStore()
+      .setItem(LAST_OPTIONS_STORAGE_KEY, options)
+      .catch(() => undefined);
+  }
+}
+
 const FREE_REPORT_STORAGE_KEY = 'JETSTREAM_ORG_ALIGNMENT_FREE_REPORTS_USED';
 const FREE_REPORT_LIMIT = 1;
-
-const EXPORT_ACTION_XLSX = 'export-xlsx';
-const EXPORT_ACTION_CSV = 'export-csv';
-const EXPORT_ACTION_JSON = 'export-json';
-const EXPORT_ACTION_COPY_MARKDOWN = 'export-copy-markdown';
-const EXPORT_ACTION_COPY_HTML = 'export-copy-html';
-const EXPORT_ACTION_COPY_EXCEL = 'export-copy-excel';
-const EXPORT_ACTION_COPY_CSV = 'export-copy-csv';
-
-/** Copies rich text along with a plain text version for places that cannot accept formatted content */
-function copyRichTextToClipboard(html: string, plainText: string) {
-  copyToClipboard(html, {
-    format: 'text/html',
-    onCopy: (clipboardData) => {
-      if ('setData' in clipboardData) {
-        clipboardData.setData('text/plain', plainText);
-        return;
-      }
-      return new ClipboardItem({
-        'text/html': new Blob([html], { type: 'text/html' }),
-        'text/plain': new Blob([plainText], { type: 'text/plain' }),
-      });
-    },
-  });
-}
 
 function getFreeReportsUsedCount(): number {
   try {
@@ -144,8 +141,6 @@ export const OrgAlignment: FunctionComponent = () => {
   useTitle(TITLES.ORG_ALIGNMENT);
 
   const [isSingleOrgMode] = useState(() => isBrowserExtension() || isCanvasApp());
-  const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const { hasOrgAlignmentProAccess, orgAlignmentShowUpgradeToPro } = useAtomValue(orgAlignmentAccessState);
   const deployAccess = useOperationAccess('metadata.deploy');
 
@@ -158,11 +153,13 @@ export const OrgAlignment: FunctionComponent = () => {
   const sourceOrg = userSelectedSourceOrg === undefined ? (defaultSelectedOrg ?? null) : userSelectedSourceOrg;
   const setSourceOrg = setUserSelectedSourceOrg;
   const [targetOrg, setTargetOrg] = useState<SalesforceOrgUi | null>(null);
-  const [selectionMode, setSelectionMode] = useState<OrgAlignmentSelectionMode>('common');
-  const [customMetadataTypes, setCustomMetadataTypes] = useState<string[]>(() => [...COMMON_METADATA_TYPES]);
-  const [includeManaged, setIncludeManaged] = useState(false);
-  const [normalizePermissionXml, setNormalizePermissionXml] = useState(true);
-  const [skipRequestCache, setSkipRequestCache] = useState(false);
+  const [comparisonOptions, setComparisonOptions] = useState<OrgAlignmentComparisonOptions>(() => ({
+    selectionMode: 'common',
+    customMetadataTypes: [...COMMON_METADATA_TYPES],
+    includeManaged: false,
+    normalizePermissionXml: true,
+  }));
+  const { normalizePermissionXml } = comparisonOptions;
 
   const [freeReportsUsed, setFreeReportsUsed] = useState<number>(() => getFreeReportsUsedCount());
   const [savedComparisons, setSavedComparisons] = useState<OrgAlignmentSavedComparison[]>([]);
@@ -173,9 +170,10 @@ export const OrgAlignment: FunctionComponent = () => {
   const [activeDiffComponent, setActiveDiffComponent] = useState<OrgAlignmentComponentItem | null>(null);
   // Set while several selected components are being viewed together
   const [diffComponents, setDiffComponents] = useState<OrgAlignmentComponentItem[] | null>(null);
-  const [deployModalOpen, setDeployModalOpen] = useState(false);
-  const [deployModalComponents, setDeployModalComponents] = useState<OrgAlignmentComponentItem[]>([]);
-  const [deployModalDirection, setDeployModalDirection] = useState<OrgAlignmentDeployDirection>('A_TO_B');
+  const [deployModal, setDeployModal] = useState<{
+    components: OrgAlignmentComponentItem[];
+    direction: OrgAlignmentDeployDirection;
+  } | null>(null);
 
   const [deployDirection, setDeployDirection] = useState<OrgAlignmentDeployDirection>('A_TO_B');
   const [selectedComponentKeys, setSelectedComponentKeys] = useState<Set<string>>(() => new Set());
@@ -189,18 +187,6 @@ export const OrgAlignment: FunctionComponent = () => {
   const [resultsFullScreen, setResultsFullScreen] = useState(false);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [exportModalConfig, setExportModalConfig] = useState<{
-    open: boolean;
-    data: Record<string, unknown>[] | Record<string, unknown[]> | null;
-    allowedTypes: FileExtAllTypes[];
-    fileNameParts: string[];
-  }>({
-    open: false,
-    data: null,
-    allowedTypes: [],
-    fileNameParts: [],
-  });
-
   const tabsRef = useRef<TabsRef>(null);
 
   const {
@@ -246,6 +232,18 @@ export const OrgAlignment: FunctionComponent = () => {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    getLastUsedOptions().then((lastUsedOptions) => {
+      if (active && lastUsedOptions) {
+        setComparisonOptions(lastUsedOptions);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const targetOrgOptions = useMemo(
     () => (sourceOrg ? allOrgs.filter((org) => org.uniqueId !== sourceOrg.uniqueId) : allOrgs),
     [allOrgs, sourceOrg],
@@ -279,7 +277,7 @@ export const OrgAlignment: FunctionComponent = () => {
         if (typeResult.executionStatus !== 'complete') {
           continue;
         }
-        inventory[typeResult.type] = direction === 'A_TO_B' ? typeResult.targetListItems : typeResult.sourceListItems;
+        inventory[typeResult.type] = getDeployFromAndTo(typeResult.sourceListItems, typeResult.targetListItems, direction).to;
       }
       return inventory;
     },
@@ -290,25 +288,12 @@ export const OrgAlignment: FunctionComponent = () => {
   const canRun = Boolean(sourceOrg && targetOrg && sourceOrg.uniqueId !== targetOrg.uniqueId) && !progress.running && !freeLimitReached;
 
   const executeComparison = useCallback(
-    (override?: {
-      source: SalesforceOrgUi;
-      target: SalesforceOrgUi;
-      mode: OrgAlignmentSelectionMode;
-      types: string[];
-      managed: boolean;
-      normalize: boolean;
-      savedKey?: string | null;
-    }) => {
-      const activeSource = override?.source ?? sourceOrg;
-      const activeTarget = override?.target ?? targetOrg;
-      if (!activeSource || !activeTarget) {
+    (run: OrgAlignmentRun = { sourceOrg, targetOrg, options: comparisonOptions, savedKey: activeSavedKey }) => {
+      if (!run.sourceOrg || !run.targetOrg) {
         return;
       }
-      const mode = override?.mode ?? selectionMode;
-      const types = override?.types ?? customMetadataTypes;
-      const managed = override?.managed ?? includeManaged;
-      const normalize = override?.normalize ?? normalizePermissionXml;
-      const savedKeyForRun = override !== undefined ? override.savedKey : activeSavedKey;
+      const { savedKey } = run;
+      saveLastUsedOptions(run.options);
 
       setSelectedComponentKeys(new Set());
       setStatusFilter('ALL');
@@ -317,40 +302,40 @@ export const OrgAlignment: FunctionComponent = () => {
       setSetupCollapsed(true);
 
       runComparison({
-        sourceOrg: activeSource,
-        targetOrg: activeTarget,
-        selectionMode: mode,
-        selectedMetadataTypes: types,
-        includeManaged: managed,
-        normalizePermissionXml: normalize,
-        skipRequestCache,
+        sourceOrg: run.sourceOrg,
+        targetOrg: run.targetOrg,
+        selectionMode: run.options.selectionMode,
+        selectedMetadataTypes: run.options.customMetadataTypes,
+        includeManaged: run.options.includeManaged,
+        normalizePermissionXml: run.options.normalizePermissionXml,
+        skipRequestCache: Boolean(run.skipRequestCache),
         onComplete: (summary) => {
           if (!hasOrgAlignmentProAccess) {
             setFreeReportsUsed(incrementFreeReportsUsedCount());
           }
-          if (savedKeyForRun && hasDexieDb()) {
+          if (savedKey && hasDexieDb()) {
             orgAlignmentDb
-              .recordRunSummary(savedKeyForRun, summary, new Date())
+              .recordRunSummary(savedKey, summary, new Date())
               .then(refreshSavedComparisons)
               .catch(() => undefined);
           }
         },
       });
     },
-    [
-      activeSavedKey,
-      customMetadataTypes,
-      hasOrgAlignmentProAccess,
-      includeManaged,
-      normalizePermissionXml,
-      refreshSavedComparisons,
-      runComparison,
-      selectionMode,
-      skipRequestCache,
-      sourceOrg,
-      targetOrg,
-    ],
+    [activeSavedKey, comparisonOptions, hasOrgAlignmentProAccess, refreshSavedComparisons, runComparison, sourceOrg, targetOrg],
   );
+
+  function handleSourceOrgChange(org: SalesforceOrgUi) {
+    setSourceOrg(org);
+    setActiveSavedKey(null);
+    resetComparison();
+  }
+
+  function handleTargetOrgChange(org: SalesforceOrgUi) {
+    setTargetOrg(org);
+    setActiveSavedKey(null);
+    resetComparison();
+  }
 
   function handleSwapOrgs() {
     if (progress.running) {
@@ -366,7 +351,7 @@ export const OrgAlignment: FunctionComponent = () => {
   }
 
   function handleNormalizeToggle(enabled: boolean) {
-    setNormalizePermissionXml(enabled);
+    setComparisonOptions((previous) => ({ ...previous, normalizePermissionXml: enabled }));
     if (typeResults.length > 0) {
       recomputeNormalization(enabled);
     }
@@ -386,9 +371,9 @@ export const OrgAlignment: FunctionComponent = () => {
       sourceOrgLabel: sourceOrg.label,
       targetOrgId: targetOrg.uniqueId,
       targetOrgLabel: targetOrg.label,
-      selectionMode,
-      selectedMetadataTypes: selectionMode === 'custom' ? customMetadataTypes : [],
-      includeManaged,
+      selectionMode: comparisonOptions.selectionMode,
+      selectedMetadataTypes: comparisonOptions.selectionMode === 'custom' ? comparisonOptions.customMetadataTypes : [],
+      includeManaged: comparisonOptions.includeManaged,
       normalizePermissionXml,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
@@ -406,26 +391,21 @@ export const OrgAlignment: FunctionComponent = () => {
     const resolvedTarget = orgsById[comparison.targetOrgId] ?? null;
     setSourceOrg(resolvedSource);
     setTargetOrg(resolvedTarget);
-    setSelectionMode(comparison.selectionMode);
-    if (comparison.selectedMetadataTypes.length > 0) {
-      setCustomMetadataTypes(comparison.selectedMetadataTypes);
-    }
-    setIncludeManaged(comparison.includeManaged);
-    setNormalizePermissionXml(comparison.normalizePermissionXml);
+    const options: OrgAlignmentComparisonOptions = {
+      selectionMode: comparison.selectionMode,
+      // A saved comparison of common or all types has no list of its own, the current custom list is kept
+      customMetadataTypes:
+        comparison.selectedMetadataTypes.length > 0 ? comparison.selectedMetadataTypes : comparisonOptions.customMetadataTypes,
+      includeManaged: comparison.includeManaged,
+      normalizePermissionXml: comparison.normalizePermissionXml,
+    };
+    setComparisonOptions(options);
     setActiveSavedKey(comparison.key);
     setSelectedComponentKeys(new Set());
     resetComparison();
 
     if (autoRun && resolvedSource && resolvedTarget && !freeLimitReached) {
-      executeComparison({
-        source: resolvedSource,
-        target: resolvedTarget,
-        mode: comparison.selectionMode,
-        types: comparison.selectedMetadataTypes,
-        managed: comparison.includeManaged,
-        normalize: comparison.normalizePermissionXml,
-        savedKey: comparison.key,
-      });
+      executeComparison({ sourceOrg: resolvedSource, targetOrg: resolvedTarget, options, savedKey: comparison.key });
     }
   }
 
@@ -438,58 +418,6 @@ export const OrgAlignment: FunctionComponent = () => {
       setActiveSavedKey(null);
     }
     await refreshSavedComparisons();
-  }
-
-  function buildExportContext(): OrgAlignmentExportContext | null {
-    if (!sourceOrg || !targetOrg || typeResults.length === 0) {
-      return null;
-    }
-    return {
-      sourceOrg,
-      targetOrg,
-      generatedAt: lastCompletedAt ?? new Date(),
-      normalizePermissionXml,
-      includeManaged,
-      typeResults,
-    };
-  }
-
-  function handleExportAction(actionId: string) {
-    const context = buildExportContext();
-    if (!context) {
-      return;
-    }
-    const baseParts = ['org-alignment', context.sourceOrg.label, 'vs', context.targetOrg.label];
-    if (actionId === EXPORT_ACTION_XLSX) {
-      setExportModalConfig({
-        open: true,
-        data: buildDriftReportWorkbookData(context),
-        allowedTypes: ['xlsx'],
-        fileNameParts: baseParts,
-      });
-    } else if (actionId === EXPORT_ACTION_CSV) {
-      setExportModalConfig({
-        open: true,
-        data: buildDriftReportFlatRows(context, false),
-        allowedTypes: ['csv'],
-        fileNameParts: baseParts,
-      });
-    } else if (actionId === EXPORT_ACTION_JSON) {
-      setExportModalConfig({
-        open: true,
-        data: buildDriftReportFlatRows(context, false),
-        allowedTypes: ['json'],
-        fileNameParts: baseParts,
-      });
-    } else if (actionId === EXPORT_ACTION_COPY_MARKDOWN) {
-      copyToClipboard(buildChangeReviewMarkdown(context));
-    } else if (actionId === EXPORT_ACTION_COPY_HTML) {
-      copyRichTextToClipboard(buildChangeReviewHtml(context), buildChangeReviewMarkdown(context));
-    } else if (actionId === EXPORT_ACTION_COPY_EXCEL) {
-      copyToClipboard(transformTabularDataToExcelStr(buildDriftReportFlatRows(context, false)), { format: 'text/plain' });
-    } else if (actionId === EXPORT_ACTION_COPY_CSV) {
-      copyToClipboard(generateCsv(buildDriftReportFlatRows(context, false)), { format: 'text/plain' });
-    }
   }
 
   const handleViewComponentsOfType = useCallback((metadataType: string) => {
@@ -592,16 +520,12 @@ export const OrgAlignment: FunctionComponent = () => {
     if (!sourceOrg || !targetOrg || selectedDeployableComponents.length === 0) {
       return;
     }
-    setDeployModalComponents(selectedDeployableComponents);
-    setDeployModalDirection(deployDirection);
-    setDeployModalOpen(true);
+    setDeployModal({ components: selectedDeployableComponents, direction: deployDirection });
   }
 
   function handleDeploySingleFromDiff(component: OrgAlignmentComponentItem, direction: OrgAlignmentDeployDirection) {
     handleCloseDiff();
-    setDeployModalComponents([component]);
-    setDeployModalDirection(direction);
-    setDeployModalOpen(true);
+    setDeployModal({ components: [component], direction });
   }
 
   if (isSingleOrgMode) {
@@ -626,14 +550,11 @@ export const OrgAlignment: FunctionComponent = () => {
     );
   }
 
-  const progressPercent =
-    progress.totalTypes > 0 ? Math.round((progress.completedTypes / progress.totalTypes) * 100) : progress.running ? 10 : 0;
-
   const hasResults = typeResults.length > 0;
   const showSetup = !setupCollapsed || (!hasResults && !progress.running);
-  const downloadPackageOrg = downloadPackageFrom === 'A_TO_B' ? sourceOrg : targetOrg;
+  const downloadPackageOrg = downloadPackageFrom ? getDeployFromAndTo(sourceOrg, targetOrg, downloadPackageFrom).from : null;
   const downloadPackage = selectedMetadataToDownload[downloadPackageFrom ?? 'A_TO_B'];
-  const deployTargetOrg = deployDirection === 'A_TO_B' ? targetOrg : sourceOrg;
+  const deployTargetOrg = getDeployFromAndTo(sourceOrg, targetOrg, deployDirection).to;
   const layoutKey = [showSetup, progress.running, progress.phase, hasOrgAlignmentProAccess, Boolean(fatalError), resultsFullScreen].join(
     '-',
   );
@@ -654,29 +575,6 @@ export const OrgAlignment: FunctionComponent = () => {
         ? 'Select the components to deploy'
         : `None of the selected components are different or missing in ${deployTargetOrg?.label ?? 'the target org'}`;
   }
-
-  const statusCards: { status: OrgAlignmentDiffStatus; count: number; countClassName?: string; footnote?: string }[] = [
-    { status: 'different', count: summaryCounts.different, countClassName: 'slds-text-color_error' },
-    { status: 'onlyInSource', count: summaryCounts.onlyInSource },
-    { status: 'onlyInTarget', count: summaryCounts.onlyInTarget },
-    { status: 'same', count: summaryCounts.same, countClassName: 'slds-text-color_success' },
-    {
-      status: 'uncomparable',
-      count: summaryCounts.uncomparable,
-      countClassName: 'slds-text-color_weak',
-      footnote:
-        summaryCounts.managedSkipped + uncomparableTypesCount > 0
-          ? [
-              summaryCounts.managedSkipped > 0 ? `${formatNumber(summaryCounts.managedSkipped)} managed skipped` : null,
-              uncomparableTypesCount > 0
-                ? `${formatNumber(uncomparableTypesCount)} ${uncomparableTypesCount === 1 ? 'type' : 'types'} skipped`
-                : null,
-            ]
-              .filter(Boolean)
-              .join(', ')
-          : undefined,
-    },
-  ];
 
   const tabs: UiTabSection[] = [
     {
@@ -801,10 +699,9 @@ export const OrgAlignment: FunctionComponent = () => {
         <OrgAlignmentTypeSelectorModal
           sourceOrg={sourceOrg}
           targetOrg={targetOrg}
-          initialSelectedTypes={customMetadataTypes}
-          onApply={(selected) => {
-            setCustomMetadataTypes(selected);
-            setSelectionMode('custom');
+          initialSelectedTypes={comparisonOptions.customMetadataTypes}
+          onApply={(customMetadataTypes) => {
+            setComparisonOptions((previous) => ({ ...previous, selectionMode: 'custom', customMetadataTypes }));
             setTypeSelectorModalOpen(false);
           }}
           onClose={() => setTypeSelectorModalOpen(false)}
@@ -843,15 +740,15 @@ export const OrgAlignment: FunctionComponent = () => {
         />
       )}
 
-      {deployModalOpen && sourceOrg && targetOrg && (
+      {deployModal && sourceOrg && targetOrg && (
         <OrgAlignmentDeployModal
           sourceOrg={sourceOrg}
           targetOrg={targetOrg}
-          direction={deployModalDirection}
-          initialSelectedComponents={deployModalComponents}
+          direction={deployModal.direction}
+          initialSelectedComponents={deployModal.components}
           allComponents={allComponents}
-          destinationInventoryByType={getDestinationInventoryByType(deployModalDirection)}
-          onClose={() => setDeployModalOpen(false)}
+          destinationInventoryByType={getDestinationInventoryByType(deployModal.direction)}
+          onClose={() => setDeployModal(null)}
         />
       )}
 
@@ -862,24 +759,6 @@ export const OrgAlignment: FunctionComponent = () => {
           modalTagline={`${formatNumber(downloadPackage.count)} ${downloadPackage.count === 1 ? 'component' : 'components'} from ${downloadPackageOrg.label} will be included`}
           listMetadataItems={downloadPackage.listMetadataItems}
           onClose={() => setDownloadPackageFrom(null)}
-        />
-      )}
-
-      {exportModalConfig.open && exportModalConfig.data && sourceOrg && (
-        <FileDownloadModal
-          org={sourceOrg}
-          googleIntegrationEnabled={hasGoogleDriveAccess}
-          googleShowUpgradeToPro={googleShowUpgradeToPro}
-          google_apiKey={google_apiKey}
-          google_appId={google_appId}
-          google_clientId={google_clientId}
-          modalHeader="Export Org Alignment Drift Report"
-          data={exportModalConfig.data}
-          fileNameParts={exportModalConfig.fileNameParts}
-          allowedTypes={exportModalConfig.allowedTypes}
-          escapeCsvFormulas
-          onModalClose={() => setExportModalConfig({ open: false, data: null, allowedTypes: [], fileNameParts: [] })}
-          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
         />
       )}
 
@@ -905,57 +784,14 @@ export const OrgAlignment: FunctionComponent = () => {
                 <Icon type="utility" icon="save" className="slds-button__icon slds-button__icon_left" omitContainer />
                 {activeSavedKey ? 'Update Saved' : 'Save'}
               </button>
-              <DropDown
-                className="slds-button_last"
-                position="right"
-                buttonClassName="slds-button slds-button_neutral"
-                buttonContent={
-                  <span>
-                    <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                    Export Report
-                  </span>
-                }
+              <OrgAlignmentExportMenu
+                sourceOrg={sourceOrg}
+                targetOrg={targetOrg}
+                typeResults={typeResults}
+                generatedAt={lastCompletedAt}
+                normalizePermissionXml={normalizePermissionXml}
+                includeManaged={comparisonOptions.includeManaged}
                 disabled={!hasResults || progress.running}
-                items={[
-                  {
-                    id: EXPORT_ACTION_XLSX,
-                    subheader: 'Change-Review Exports',
-                    icon: { type: 'utility', icon: 'file' },
-                    value: 'Download Excel Workbook (.xlsx)',
-                  },
-                  {
-                    id: EXPORT_ACTION_CSV,
-                    icon: { type: 'utility', icon: 'download' },
-                    value: 'Download CSV (.csv)',
-                  },
-                  {
-                    id: EXPORT_ACTION_JSON,
-                    icon: { type: 'utility', icon: 'download' },
-                    value: 'Download JSON (.json)',
-                    trailingDivider: true,
-                  },
-                  {
-                    id: EXPORT_ACTION_COPY_MARKDOWN,
-                    icon: { type: 'utility', icon: 'copy_to_clipboard' },
-                    value: 'Copy Summary to Clipboard (Markdown)',
-                  },
-                  {
-                    id: EXPORT_ACTION_COPY_HTML,
-                    icon: { type: 'utility', icon: 'copy_to_clipboard' },
-                    value: 'Copy Summary to Clipboard (Rich Text)',
-                  },
-                  {
-                    id: EXPORT_ACTION_COPY_EXCEL,
-                    icon: { type: 'utility', icon: 'copy_to_clipboard' },
-                    value: 'Copy Components to Clipboard (Excel)',
-                  },
-                  {
-                    id: EXPORT_ACTION_COPY_CSV,
-                    icon: { type: 'utility', icon: 'copy_to_clipboard' },
-                    value: 'Copy Components to Clipboard (CSV)',
-                  },
-                ]}
-                onSelected={handleExportAction}
               />
             </ButtonGroupContainer>
 
@@ -997,153 +833,28 @@ export const OrgAlignment: FunctionComponent = () => {
           </ScopedNotification>
         )}
 
-        {!showSetup && sourceOrg && targetOrg && (
-          <Grid align="spread" verticalAlign="center" wrap className="slds-box slds-box_x-small slds-theme_default slds-m-bottom_small">
-            <Grid verticalAlign="center" wrap>
-              <span className="slds-text-title_caps slds-m-right_x-small">Source</span>
-              <OrgLabelBadge org={sourceOrg} />
-              <span className="slds-text-title_caps slds-m-left_medium slds-m-right_x-small">Target</span>
-              <OrgLabelBadge org={targetOrg} />
-              {lastCompletedAt && !progress.running && (
-                <span className="slds-m-left_medium slds-text-body_small slds-text-color_weak">
-                  Compared at {lastCompletedAt.toLocaleTimeString()}
-                </span>
-              )}
-            </Grid>
-            <button type="button" className="slds-button" disabled={progress.running} onClick={() => setSetupCollapsed(false)}>
-              Change Comparison
-              <Icon type="utility" icon="chevrondown" className="slds-button__icon slds-button__icon_right" omitContainer />
-            </button>
-          </Grid>
-        )}
-
-        {showSetup && (
-          <div className="slds-box slds-theme_default slds-m-bottom_small">
-            <Grid verticalAlign="end" wrap className="slds-gutters_small">
-              <div className="slds-col slds-size_1-of-1 slds-medium-size_5-of-12">
-                <GroupScopedOrgsCombobox
-                  label="Source Org"
-                  hideLabel={false}
-                  placeholder="Select the source org"
-                  orgs={sourceOrgOptions}
-                  selectedOrg={sourceOrg}
-                  disabled={progress.running}
-                  minWidth={0}
-                  onSelected={(org) => {
-                    setSourceOrg(org);
-                    setActiveSavedKey(null);
-                    resetComparison();
-                  }}
-                />
-              </div>
-              <div className="slds-col slds-grow-none slds-p-bottom_xxx-small">
-                <Tooltip id="org-alignment-swap-orgs" content="Swap the source and target orgs">
-                  <button
-                    type="button"
-                    className="slds-button slds-button_icon slds-button_icon-border-filled"
-                    aria-label="Swap the source and target orgs"
-                    disabled={progress.running || (!sourceOrg && !targetOrg)}
-                    onClick={handleSwapOrgs}
-                  >
-                    <Icon type="utility" icon="rotate" className="slds-button__icon" omitContainer />
-                  </button>
-                </Tooltip>
-              </div>
-              <div className="slds-col slds-size_1-of-1 slds-medium-size_5-of-12">
-                <GroupScopedOrgsCombobox
-                  label="Target Org"
-                  hideLabel={false}
-                  placeholder="Select the target org"
-                  orgs={targetOrgOptions}
-                  selectedOrg={targetOrg}
-                  disabled={progress.running}
-                  minWidth={0}
-                  onSelected={(org) => {
-                    setTargetOrg(org);
-                    setActiveSavedKey(null);
-                    resetComparison();
-                  }}
-                />
-              </div>
-              {hasResults && (
-                <div className="slds-col slds-grow-none slds-col_bump-left slds-p-bottom_xxx-small">
-                  <button type="button" className="slds-button" onClick={() => setSetupCollapsed(true)}>
-                    Hide
-                    <Icon type="utility" icon="up" className="slds-button__icon slds-button__icon_right" omitContainer />
-                  </button>
-                </div>
-              )}
-            </Grid>
-
-            <Grid align="spread" verticalAlign="center" wrap className="slds-m-top_small slds-p-top_small slds-border_top">
-              <Grid verticalAlign="center" wrap>
-                <span className="slds-text-title_caps slds-m-right_x-small">Metadata Types:</span>
-                <RadioGroup label="Metadata types" hideLabel isButtonGroup className="slds-m-right_x-small">
-                  <RadioButton
-                    name="org-alignment-scope"
-                    label={`Common (${COMMON_METADATA_TYPES.length})`}
-                    value="common"
-                    checked={selectionMode === 'common'}
-                    disabled={progress.running}
-                    onChange={() => setSelectionMode('common')}
-                  />
-                  <RadioButton
-                    name="org-alignment-scope"
-                    label="All"
-                    value="all"
-                    checked={selectionMode === 'all'}
-                    disabled={progress.running}
-                    onChange={() => setSelectionMode('all')}
-                  />
-                  <RadioButton
-                    name="org-alignment-scope"
-                    label={`Custom (${customMetadataTypes.length})`}
-                    value="custom"
-                    checked={selectionMode === 'custom'}
-                    disabled={progress.running}
-                    onChange={() => setSelectionMode('custom')}
-                  />
-                </RadioGroup>
-                <button
-                  type="button"
-                  className="slds-button slds-button_neutral"
-                  disabled={progress.running || !sourceOrg || !targetOrg}
-                  onClick={() => setTypeSelectorModalOpen(true)}
-                >
-                  Choose Types
-                </button>
-              </Grid>
-
-              <Grid verticalAlign="center" wrap>
-                <Checkbox
-                  id="org-alignment-normalize-xml"
-                  className="slds-m-right_medium"
-                  label="Ignore permission ordering"
-                  labelHelp="Salesforce returns the entries of profiles and permission sets in a different order in each org. Leave this on so that only real permission differences are reported."
-                  checked={normalizePermissionXml}
-                  onChange={handleNormalizeToggle}
-                />
-                <Checkbox
-                  id="org-alignment-include-managed"
-                  className="slds-m-right_medium"
-                  label="Include managed packages"
-                  labelHelp="Components from managed packages are skipped because Salesforce hides their content. Turn this on to list them anyway, they are shown as Not Compared."
-                  checked={includeManaged}
-                  disabled={progress.running}
-                  onChange={setIncludeManaged}
-                />
-                <Checkbox
-                  id="org-alignment-skip-cache"
-                  label="Refresh from Salesforce"
-                  labelHelp="Jetstream remembers which components each org has for a while to make comparisons faster. Turn this on if metadata was recently added, renamed or deleted and the results look out of date."
-                  checked={skipRequestCache}
-                  disabled={progress.running}
-                  onChange={setSkipRequestCache}
-                />
-              </Grid>
-            </Grid>
-          </div>
-        )}
+        <OrgAlignmentSetup
+          expanded={showSetup}
+          sourceOrg={sourceOrg}
+          targetOrg={targetOrg}
+          sourceOrgOptions={sourceOrgOptions}
+          targetOrgOptions={targetOrgOptions}
+          options={comparisonOptions}
+          canCompare={canRun}
+          isRunning={progress.running}
+          hasResults={hasResults}
+          lastCompletedAt={lastCompletedAt}
+          onExpandedChange={(expanded) => setSetupCollapsed(!expanded)}
+          onSourceOrgChange={handleSourceOrgChange}
+          onTargetOrgChange={handleTargetOrgChange}
+          onSwapOrgs={handleSwapOrgs}
+          onOptionsChange={(changes) => setComparisonOptions((previous) => ({ ...previous, ...changes }))}
+          onNormalizePermissionXmlChange={handleNormalizeToggle}
+          onRefreshAndCompare={() =>
+            executeComparison({ sourceOrg, targetOrg, options: comparisonOptions, savedKey: activeSavedKey, skipRequestCache: true })
+          }
+          onChooseTypes={() => setTypeSelectorModalOpen(true)}
+        />
 
         {fatalError && (
           <ScopedNotification theme="error" className="slds-m-bottom_small">
@@ -1151,70 +862,16 @@ export const OrgAlignment: FunctionComponent = () => {
           </ScopedNotification>
         )}
 
-        {(progress.running || progress.phase === 'canceled') && (
-          <div className="slds-box slds-theme_default slds-m-bottom_small">
-            <Grid align="spread" verticalAlign="center" className="slds-m-bottom_xx-small">
-              <Grid verticalAlign="center">
-                {progress.running && (
-                  <div
-                    className="slds-is-relative slds-m-right_small"
-                    css={css`
-                      width: 1.25rem;
-                      height: 1.25rem;
-                      /* Own stacking context, the spinner's z-index would otherwise put it above an open modal */
-                      z-index: 0;
-                    `}
-                  >
-                    <Spinner size="x-small" />
-                  </div>
-                )}
-                <strong>{progress.detailMessage || 'Comparing orgs...'}</strong>
-              </Grid>
-              <span className="slds-text-body_small slds-text-color_weak">
-                {formatNumber(progress.completedTypes)} / {formatNumber(progress.totalTypes)} types ({progressPercent}%)
-              </span>
-            </Grid>
-            <ProgressIndicator
-              label="Org alignment comparison progress"
-              currentValue={progressPercent}
-              isIndeterminate={progress.phase === 'describing'}
-            />
-          </div>
-        )}
+        <OrgAlignmentProgressBar progress={progress} />
 
         {hasResults && (
           <Fragment>
-            <div
-              className="slds-m-bottom_small"
-              css={css`
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-                gap: 0.5rem;
-              `}
-            >
-              {statusCards.map(({ status, count, countClassName, footnote }) => {
-                const isActive = statusFilter === status;
-                return (
-                  <button
-                    key={status}
-                    type="button"
-                    className="slds-box slds-box_x-small slds-theme_default slds-text-align_left cursor-pointer"
-                    css={css`
-                      ${isActive ? 'border-color: var(--slds-g-color-brand-base-50, #0176d3); box-shadow: 0 0 0 1px var(--slds-g-color-brand-base-50, #0176d3);' : ''}
-                    `}
-                    aria-pressed={isActive}
-                    title={isActive ? 'Show every status' : `Show the components that are ${STATUS_LABELS[status]}`}
-                    onClick={() => handleStatusCardClick(status)}
-                  >
-                    <div className="slds-text-title_caps slds-text-color_weak">{STATUS_LABELS[status]}</div>
-                    <Grid verticalAlign="end">
-                      <span className={classNames('slds-text-heading_medium', countClassName)}>{formatNumber(count)}</span>
-                      {footnote && <span className="slds-m-left_x-small slds-text-body_small slds-text-color_weak">{footnote}</span>}
-                    </Grid>
-                  </button>
-                );
-              })}
-            </div>
+            <OrgAlignmentStatusCards
+              summaryCounts={summaryCounts}
+              uncomparableTypesCount={uncomparableTypesCount}
+              activeStatus={statusFilter}
+              onStatusClick={handleStatusCardClick}
+            />
 
             <div
               className="slds-box slds-box_small slds-theme_default"

@@ -1,5 +1,10 @@
 import { css } from '@emotion/react';
-import { COMMON_METADATA_TYPES, getMetadataLabelFromFullName, METADATA_TYPES_TO_OMIT } from '@jetstream/connected-ui';
+import {
+  buildDescribeMetadataMap,
+  COMMON_METADATA_TYPES,
+  getMetadataLabelFromFullName,
+  METADATA_TYPES_TO_OMIT,
+} from '@jetstream/connected-ui';
 import { describeMetadata } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, orderValues } from '@jetstream/shared/utils';
@@ -7,7 +12,6 @@ import { SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Checkbox, Grid, Modal, ScopedNotification, SearchInput, Spinner, Tooltip } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useMemo, useState } from 'react';
 import { getMetadataTypeComparability } from './orgAlignmentMetadataClassification';
-import { buildDescribeMetadataMap } from './useOrgAlignmentCompare';
 
 export interface OrgAlignmentTypeSelectorModalProps {
   sourceOrg: SalesforceOrgUi;

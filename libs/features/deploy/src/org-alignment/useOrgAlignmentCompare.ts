@@ -1,4 +1,5 @@
 import {
+  buildDescribeMetadataMap,
   COMMON_METADATA_TYPES,
   fetchListMetadataForType,
   getMetadataLabelFromFullName,
@@ -10,7 +11,6 @@ import { describeMetadata } from '@jetstream/shared/data';
 import { useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, orderValues } from '@jetstream/shared/utils';
 import {
-  DescribeMetadataResult,
   ListMetadataResult,
   MetadataObject,
   OrgAlignmentRunSummaryCounts,
@@ -20,12 +20,13 @@ import {
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChunkedRetrieveOptions, retrieveMetadataChunked } from '../view-or-compare-metadata/useViewOrCompareMetadata';
+import { ChunkedRetrieveOptions, retrieveMetadataChunked } from '../view-or-compare-metadata/retrieveMetadataChunked';
 import { FilePropertiesWithContent } from '../view-or-compare-metadata/viewOrCompareMetadataTypes';
 import { isPermissionXmlType } from '../view-or-compare-metadata/xmlNormalizer';
 import {
   getMetadataTypeComparability,
   getProfileCompanions,
+  PROFILE_COMPANION_METADATA_TYPES,
   PROFILE_METADATA_TYPE,
   PROFILE_RETRIEVE_CHUNK_SIZE,
   PROFILE_TOO_LARGE_UNCOMPARABLE_REASON,
@@ -39,6 +40,7 @@ import {
   CONTAINER_PARENT_METADATA_TYPES,
   createEmptySummaryCounts,
   getComponentFilesByName,
+  getContainerParentType,
   setDiffListMetadata,
 } from './orgAlignmentUtils';
 
@@ -63,6 +65,16 @@ interface ActiveRunContext {
   targetDescribeMap: Record<string, MetadataObject>;
 }
 
+/**
+ * Listings are normally remembered for days. That is too long for a drift report, but remembering them for a
+ * while keeps it fast to compare again after adding a metadata type that was forgotten.
+ */
+const LIST_METADATA_CACHE_MAX_AGE_MS = 1000 * 60 * 60;
+
+function getListMetadataCacheOptions({ skipRequestCache }: Pick<ActiveRunContext, 'skipRequestCache'>) {
+  return { skipRequestCache, skipCacheIfOlderThan: Date.now() - LIST_METADATA_CACHE_MAX_AGE_MS };
+}
+
 const INITIAL_PROGRESS: OrgAlignmentProgress = {
   running: false,
   currentType: null,
@@ -71,45 +83,6 @@ const INITIAL_PROGRESS: OrgAlignmentProgress = {
   phase: 'idle',
   detailMessage: '',
 };
-
-/**
- * Flatten a DescribeMetadataResult into a lookup map of xmlName -> MetadataObject,
- * matching `useDescribeMetadata` (including folder types and childXmlNames).
- */
-export function buildDescribeMetadataMap(describeResult: DescribeMetadataResult): Record<string, MetadataObject> {
-  const itemMap: Record<string, MetadataObject> = {};
-  for (const item of describeResult.metadataObjects || []) {
-    if (!item) {
-      continue;
-    }
-    itemMap[item.xmlName] = item;
-    if (item.inFolder) {
-      itemMap[`${item.xmlName}Folder`] = {
-        ...item,
-        xmlName: `${item.xmlName}Folder`,
-        inFolder: false,
-        childXmlNames: [],
-      };
-      if (item.directoryName === 'email') {
-        itemMap['EmailFolder'] = {
-          ...item,
-          xmlName: 'EmailFolder',
-          inFolder: false,
-          childXmlNames: [],
-        };
-      }
-    }
-    if (Array.isArray(item.childXmlNames)) {
-      for (const childXmlName of item.childXmlNames) {
-        itemMap[childXmlName] = {
-          xmlName: childXmlName,
-          inFolder: false,
-        };
-      }
-    }
-  }
-  return itemMap;
-}
 
 function resolveMetadataTypesToCompare(
   selectionMode: OrgAlignmentSelectionMode,
@@ -167,13 +140,15 @@ export function getRetrieveOptionsForType(
   metadataType: string,
   side: OrgSide,
   typeResults: OrgAlignmentTypeResult[],
+  /** Listings of the types a profile refers to that are not part of the comparison, see `listProfileCompanionsNotCompared` */
+  companionsNotCompared: Record<string, ListMetadataResult[]> = {},
 ): { options: ChunkedRetrieveOptions; uncomparableReason?: string } {
   // Only the file contents are compared, the merged zip is never used
   const options: ChunkedRetrieveOptions = { buildZip: false };
   if (metadataType !== PROFILE_METADATA_TYPE) {
     return { options };
   }
-  const listItemsByType: Record<string, ListMetadataResult[]> = {};
+  const listItemsByType: Record<string, ListMetadataResult[]> = { ...companionsNotCompared };
   for (const { type, executionStatus, sourceListItems, targetListItems } of typeResults) {
     if (executionStatus === 'complete') {
       listItemsByType[type] = side === 'source' ? sourceListItems : targetListItems;
@@ -191,6 +166,62 @@ export function getRetrieveOptionsForType(
       includeFile: ({ type }) => type === PROFILE_METADATA_TYPE,
     },
   };
+}
+
+/**
+ * A profile is only returned completely alongside the objects, classes, pages etc. it refers to. When some of
+ * those types are not part of the comparison (or failed), they are listed here so the profiles still come back
+ * complete, otherwise profiles that differ only in that access would be reported as the same.
+ */
+async function listProfileCompanionsNotCompared(
+  context: ActiveRunContext,
+  typeResults: OrgAlignmentTypeResult[],
+): Promise<Record<OrgSide, Record<string, ListMetadataResult[]>>> {
+  const comparedTypes = new Set(typeResults.filter(({ executionStatus }) => executionStatus === 'complete').map(({ type }) => type));
+  const companions: Record<OrgSide, Record<string, ListMetadataResult[]>> = { source: {}, target: {} };
+  const listType = async (side: OrgSide, metadataType: string) => {
+    const describeItem = (side === 'source' ? context.sourceDescribeMap : context.targetDescribeMap)[metadataType];
+    if (!describeItem) {
+      return;
+    }
+    try {
+      const { items, error } = await fetchListMetadataForType(
+        side === 'source' ? context.sourceOrg : context.targetOrg,
+        { type: metadataType, inFolder: Boolean(describeItem.inFolder) },
+        getListMetadataCacheOptions(context),
+      );
+      if (!error && items?.length) {
+        companions[side][metadataType] = items;
+      }
+    } catch (ex) {
+      logger.warn('[ORG ALIGNMENT][PROFILE COMPANION ERROR]', metadataType, ex);
+    }
+  };
+  for (const metadataType of PROFILE_COMPANION_METADATA_TYPES) {
+    if (!comparedTypes.has(metadataType)) {
+      await Promise.all([listType('source', metadataType), listType('target', metadataType)]);
+    }
+  }
+  return companions;
+}
+
+/**
+ * Completed types that used the results of the types being retried and have to be compared again with them:
+ * the parent file of a child type, and profiles.
+ */
+export function getTypesToCompareAgain(retriedTypes: string[], typeResults: OrgAlignmentTypeResult[]): string[] {
+  const completedTypes = new Set(typeResults.filter(({ executionStatus }) => executionStatus === 'complete').map(({ type }) => type));
+  const typesToCompareAgain = new Set<string>();
+  for (const retriedType of retriedTypes) {
+    const parentType = getContainerParentType(retriedType);
+    if (parentType && completedTypes.has(parentType)) {
+      typesToCompareAgain.add(parentType);
+    }
+    if (PROFILE_COMPANION_METADATA_TYPES.has(retriedType) && completedTypes.has(PROFILE_METADATA_TYPE)) {
+      typesToCompareAgain.add(PROFILE_METADATA_TYPE);
+    }
+  }
+  return Array.from(typesToCompareAgain).filter((metadataType) => !retriedTypes.includes(metadataType));
 }
 
 /** Child components compared on their own are removed from their parent's file, see `removeSeparatelyComparedChildren` */
@@ -218,6 +249,8 @@ export function useOrgAlignmentCompare() {
   const canceledRef = useRef(false);
   const activeRunContextRef = useRef<ActiveRunContext | null>(null);
   const typeResultsRef = useRef<OrgAlignmentTypeResult[]>([]);
+  // Kept from the comparison so that opening a profile retrieves it the same way it was compared
+  const profileCompanionsRef = useRef<Record<OrgSide, Record<string, ListMetadataResult[]>>>({ source: {}, target: {} });
 
   const [typeResults, setTypeResults] = useState<OrgAlignmentTypeResult[]>([]);
   const [progress, setProgress] = useState<OrgAlignmentProgress>(INITIAL_PROGRESS);
@@ -272,10 +305,10 @@ export function useOrgAlignmentCompare() {
 
       const [sourceListResult, targetListResult] = await Promise.all([
         sourceHasType
-          ? fetchListMetadataForType(context.sourceOrg, { type: metadataType, inFolder }, { skipRequestCache: context.skipRequestCache })
+          ? fetchListMetadataForType(context.sourceOrg, { type: metadataType, inFolder }, getListMetadataCacheOptions(context))
           : Promise.resolve({ items: [] as ListMetadataResult[] }),
         targetHasType
-          ? fetchListMetadataForType(context.targetOrg, { type: metadataType, inFolder }, { skipRequestCache: context.skipRequestCache })
+          ? fetchListMetadataForType(context.targetOrg, { type: metadataType, inFolder }, getListMetadataCacheOptions(context))
           : Promise.resolve({ items: [] as ListMetadataResult[] }),
       ]);
 
@@ -292,8 +325,18 @@ export function useOrgAlignmentCompare() {
       let sourceRetrievedFiles: FilePropertiesWithContent[] = [];
       let targetRetrievedFiles: FilePropertiesWithContent[] = [];
 
-      const sourceRetrieveConfig = getRetrieveOptionsForType(metadataType, 'source', typeResultsRef.current);
-      const targetRetrieveConfig = getRetrieveOptionsForType(metadataType, 'target', typeResultsRef.current);
+      const profileCompanions =
+        metadataType === PROFILE_METADATA_TYPE && setDiff.candidates.length > 0
+          ? await listProfileCompanionsNotCompared(context, typeResultsRef.current)
+          : { source: {}, target: {} };
+      if (isStaleOrCanceled()) {
+        throw new Error(JOB_CANCELED_ERROR_MESSAGE);
+      }
+      if (metadataType === PROFILE_METADATA_TYPE) {
+        profileCompanionsRef.current = profileCompanions;
+      }
+      const sourceRetrieveConfig = getRetrieveOptionsForType(metadataType, 'source', typeResultsRef.current, profileCompanions.source);
+      const targetRetrieveConfig = getRetrieveOptionsForType(metadataType, 'target', typeResultsRef.current, profileCompanions.target);
       const uncomparableReason = sourceRetrieveConfig.uncomparableReason ?? targetRetrieveConfig.uncomparableReason;
 
       if (setDiff.candidates.length > 0 && !uncomparableReason) {
@@ -344,7 +387,8 @@ export function useOrgAlignmentCompare() {
       }));
 
       const { components, counts } = buildTypeComparisonComponents(metadataType, setDiff, sourceRetrievedFiles, targetRetrievedFiles, {
-        normalizePermissionXml: context.normalizePermissionXml,
+        // The setting can be toggled while a run is in progress, which only updates the active context
+        normalizePermissionXml: activeRunContextRef.current?.normalizePermissionXml ?? context.normalizePermissionXml,
         uncomparableReason,
         ...getComponentFileOptions(metadataType, typeResultsRef.current),
       });
@@ -423,6 +467,20 @@ export function useOrgAlignmentCompare() {
     },
     [processSingleType, updateTypeResult],
   );
+
+  /** Marks the types that were waiting or in progress when a run was canceled, so they can be retried */
+  const markInFlightTypesCanceled = useCallback(() => {
+    replaceTypeResults((previous) =>
+      previous.map((entry) =>
+        entry.executionStatus === 'pending' ||
+        entry.executionStatus === 'listing' ||
+        entry.executionStatus === 'retrieving' ||
+        entry.executionStatus === 'comparing'
+          ? { ...entry, executionStatus: 'canceled' as const, progressMessage: undefined }
+          : entry,
+      ),
+    );
+  }, [replaceTypeResults]);
 
   const runComparison = useCallback(
     async ({
@@ -513,16 +571,7 @@ export function useOrgAlignmentCompare() {
         }
 
         if (canceledRef.current) {
-          replaceTypeResults((previous) =>
-            previous.map((entry) =>
-              entry.executionStatus === 'pending' ||
-              entry.executionStatus === 'listing' ||
-              entry.executionStatus === 'retrieving' ||
-              entry.executionStatus === 'comparing'
-                ? { ...entry, executionStatus: 'canceled' as const, progressMessage: undefined }
-                : entry,
-            ),
-          );
+          markInFlightTypesCanceled();
           setProgress((prev) => ({
             ...prev,
             running: false,
@@ -572,7 +621,7 @@ export function useOrgAlignmentCompare() {
         });
       }
     },
-    [notifyUser, processTypes, replaceTypeResults],
+    [markInFlightTypesCanceled, notifyUser, processTypes],
   );
 
   const retryTypes = useCallback(
@@ -583,7 +632,8 @@ export function useOrgAlignmentCompare() {
       }
       const runId = ++runIdRef.current;
       canceledRef.current = false;
-      const targets = typeResultsRef.current.filter(({ type }) => metadataTypes.includes(type));
+      const typesToCompare = new Set([...metadataTypes, ...getTypesToCompareAgain(metadataTypes, typeResultsRef.current)]);
+      const targets = typeResultsRef.current.filter(({ type }) => typesToCompare.has(type));
       if (targets.length === 0) {
         return;
       }
@@ -603,6 +653,10 @@ export function useOrgAlignmentCompare() {
         return;
       }
 
+      if (canceledRef.current) {
+        markInFlightTypesCanceled();
+      }
+
       setProgress({
         running: false,
         currentType: null,
@@ -612,7 +666,7 @@ export function useOrgAlignmentCompare() {
         detailMessage: canceledRef.current ? 'Retry canceled' : 'Retry complete',
       });
     },
-    [processTypes],
+    [markInFlightTypesCanceled, processTypes],
   );
 
   const cancelComparison = useCallback(() => {
@@ -685,7 +739,12 @@ export function useOrgAlignmentCompare() {
           return [];
         }
         // A profile that is too large to retrieve completely is still shown, with whatever Salesforce returns for it alone
-        const { options, uncomparableReason } = getRetrieveOptionsForType(component.type, side, typeResultsRef.current);
+        const { options, uncomparableReason } = getRetrieveOptionsForType(
+          component.type,
+          side,
+          typeResultsRef.current,
+          profileCompanionsRef.current[side],
+        );
         const { fileProperties } = await retrieveMetadataChunked(
           org,
           { [component.type]: [item] },

@@ -5,28 +5,22 @@ import { getErrorMessage, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { OrgAlignmentComponentItem, OrgAlignmentDependencyFinding } from './orgAlignmentTypes';
-import { getComponentKey, getNormalizedListItemName } from './orgAlignmentUtils';
+import {
+  OrgAlignmentComponentItem,
+  OrgAlignmentDependencyFinding,
+  OrgAlignmentDeployDirection,
+  OrgAlignmentDiffStatus,
+} from './orgAlignmentTypes';
+import {
+  CUSTOM_OBJECT_CHILD_METADATA_TYPES,
+  getComponentKey,
+  getDeployFromAndTo,
+  getDeployFromItem,
+  getNormalizedListItemName,
+} from './orgAlignmentUtils';
 
 const DEPENDENCY_QUERY_ID_BATCH_SIZE = 40;
 const DEPENDENCY_QUERY_MAX_OFFSET = 2000;
-
-/**
- * Metadata types whose `fullName` uses `ObjectApiName.ComponentName` and therefore structurally
- * depend on their parent CustomObject existing in the destination org.
- */
-const CUSTOM_OBJECT_CHILD_TYPES = new Set([
-  'BusinessProcess',
-  'CompactLayout',
-  'CustomField',
-  'FieldSet',
-  'Index',
-  'ListView',
-  'RecordType',
-  'SharingReason',
-  'ValidationRule',
-  'WebLink',
-]);
 
 /**
  * Folder-based metadata types whose `fullName` uses `FolderName/ComponentName`.
@@ -119,7 +113,7 @@ export function findStructuralDependencies(
 
   for (const component of selectedComponents) {
     // 1. CustomField / ValidationRule / RecordType / etc. -> parent CustomObject
-    if (CUSTOM_OBJECT_CHILD_TYPES.has(component.type) && component.fullName.includes('.')) {
+    if (CUSTOM_OBJECT_CHILD_METADATA_TYPES.has(component.type) && component.fullName.includes('.')) {
       const [objectName] = component.fullName.split('.');
       if (objectName && isCustomObjectApiName(objectName)) {
         const parentKey = getComponentKey('CustomObject', objectName);
@@ -328,7 +322,7 @@ export function getParentCustomObjectKeys(selectedComponents: OrgAlignmentCompon
   const parentKeys = new Set<string>();
   for (const { type, fullName } of selectedComponents) {
     const [objectName] = fullName.split('.');
-    if (CUSTOM_OBJECT_CHILD_TYPES.has(type) && fullName.includes('.') && isCustomObjectApiName(objectName)) {
+    if (CUSTOM_OBJECT_CHILD_METADATA_TYPES.has(type) && fullName.includes('.') && isCustomObjectApiName(objectName)) {
       parentKeys.add(getComponentKey('CustomObject', objectName));
     }
   }
@@ -378,7 +372,7 @@ async function listMetadataTypeInBothOrgs(
 export function getComponentsMissingFromTarget(
   records: ToolingDependencyRecord[],
   listedTypes: Record<string, ListedMetadataType>,
-  direction: 'A_TO_B' | 'B_TO_A',
+  direction: OrgAlignmentDeployDirection,
   /** Components that are required without Salesforce reporting a reference, e.g. the parent object of a field */
   requiredComponentKeys = new Set<string>(),
 ): OrgAlignmentComponentItem[] {
@@ -399,11 +393,10 @@ export function getComponentsMissingFromTarget(
         type: metadataType,
         typeLabel: getMetadataLabelFromFullName(metadataType),
         fullName,
-        // The component only exists in the org being deployed from, which is the target org when deploying B to A
-        status: direction === 'A_TO_B' ? 'onlyInSource' : 'onlyInTarget',
+        // The component only exists in the org being deployed from
+        status: getDeployFromAndTo<OrgAlignmentDiffStatus>('onlyInSource', 'onlyInTarget', direction).from,
         isManaged: false,
-        sourceItem: direction === 'A_TO_B' ? item : undefined,
-        targetItem: direction === 'A_TO_B' ? undefined : item,
+        ...getDeployFromAndTo({ sourceItem: item }, { targetItem: item }, direction).from,
         files: [],
         filesLoaded: false,
       });
@@ -435,41 +428,185 @@ function buildToolingDependenciesSoql(componentIds: string[]): string {
   });
 }
 
+/** Salesforce ids are 15 or 18 alphanumeric characters, list items of some metadata types have no usable id */
+const isSalesforceId = (id?: string | null): id is string => !!id && /^[a-zA-Z0-9]{15,18}$/.test(id);
+
+interface DependencyCheckParams {
+  deploySourceOrg: SalesforceOrgUi;
+  deployTargetOrg?: SalesforceOrgUi | null;
+  selectedComponents: OrgAlignmentComponentItem[];
+  componentsByKey: Map<string, OrgAlignmentComponentItem>;
+  targetInventoryByType: Record<string, ListMetadataResult[]>;
+  direction: OrgAlignmentDeployDirection;
+  /** Types already looked up, added to as more are needed so that changing the selection does not list them again */
+  listedTypesCache: Record<string, ListedMetadataType | null>;
+  isStale: () => boolean;
+}
+
+interface DependencyCheckResult {
+  findings: OrgAlignmentDependencyFinding[];
+  /** Referenced components that are missing from the target org and were not part of the comparison */
+  discoveredComponents: OrgAlignmentComponentItem[];
+  /** What the target org has for the types that were looked up */
+  listedTargetInventory: Record<string, ListMetadataResult[]>;
+  errorMessage: string | null;
+}
+
+/**
+ * Asks Salesforce what the selected components refer to, looks up the referenced types that were not compared
+ * and classifies every reference. Resolves with null when the check was superseded.
+ */
+async function checkDependencies({
+  deploySourceOrg,
+  deployTargetOrg,
+  selectedComponents,
+  componentsByKey,
+  targetInventoryByType,
+  direction,
+  listedTypesCache,
+  isStale,
+}: DependencyCheckParams): Promise<DependencyCheckResult | null> {
+  const selectedComponentById = new Map<string, OrgAlignmentComponentItem>();
+  for (const component of selectedComponents) {
+    const listItemId = getDeployFromItem(component, direction)?.id;
+    if (isSalesforceId(listItemId)) {
+      selectedComponentById.set(listItemId, component);
+    }
+  }
+
+  const records: ToolingDependencyRecord[] = [];
+  let errorMessage: string | null = null;
+  for (const idChunk of splitArrayToMaxSize(Array.from(selectedComponentById.keys()), DEPENDENCY_QUERY_ID_BATCH_SIZE)) {
+    if (isStale()) {
+      return null;
+    }
+    try {
+      const response = await queryAllWithCacheUsingOffset<ToolingDependencyRecord>(
+        deploySourceOrg,
+        buildToolingDependenciesSoql(idChunk),
+        true,
+        DEPENDENCY_QUERY_MAX_OFFSET,
+      );
+      records.push(...(response.queryResults.records || []));
+    } catch (ex) {
+      logger.warn('[ORG ALIGNMENT][DEPENDENCIES][TOOLING ERROR]', ex);
+      errorMessage = getErrorMessage(ex);
+    }
+  }
+
+  // Referenced types that were not compared are listed in both orgs so they can be checked instead of left unverified
+  const parentObjectKeys = getParentCustomObjectKeys(selectedComponents);
+  if (deployTargetOrg) {
+    const referencedTypes = getReferencedTypesToList(records, targetInventoryByType);
+    if (parentObjectKeys.size > 0 && !targetInventoryByType.CustomObject) {
+      referencedTypes.push('CustomObject');
+    }
+    const typesToList = Array.from(new Set(referencedTypes)).filter((metadataType) => listedTypesCache[metadataType] === undefined);
+    const listedResults = await Promise.all(
+      typesToList.map((metadataType) => listMetadataTypeInBothOrgs(metadataType, deploySourceOrg, deployTargetOrg)),
+    );
+    typesToList.forEach((metadataType, i) => {
+      listedTypesCache[metadataType] = listedResults[i];
+    });
+  }
+  if (isStale()) {
+    return null;
+  }
+
+  const listedTypes: Record<string, ListedMetadataType> = {};
+  for (const [metadataType, listedType] of Object.entries(listedTypesCache)) {
+    if (listedType && !targetInventoryByType[metadataType]) {
+      listedTypes[metadataType] = listedType;
+    }
+  }
+
+  const discoveredComponents = getComponentsMissingFromTarget(records, listedTypes, direction, parentObjectKeys).filter(
+    ({ key }) => !componentsByKey.has(key),
+  );
+  const allComponentsByKey = new Map(componentsByKey);
+  discoveredComponents.forEach((component) => allComponentsByKey.set(component.key, component));
+
+  const targetInventory = { ...targetInventoryByType };
+  const listedTargetInventory: Record<string, ListMetadataResult[]> = {};
+  const sourceItemNameById = new Map<string, string>();
+  for (const [metadataType, { sourceItems, targetItems }] of Object.entries(listedTypes)) {
+    targetInventory[metadataType] = targetItems;
+    listedTargetInventory[metadataType] = targetItems;
+    sourceItems.forEach((item) => item.id && sourceItemNameById.set(getShortId(item.id), getNormalizedListItemName(item)));
+  }
+  for (const component of componentsByKey.values()) {
+    const listItemId = getDeployFromItem(component, direction)?.id;
+    if (listItemId) {
+      sourceItemNameById.set(getShortId(listItemId), component.fullName);
+    }
+  }
+
+  return {
+    findings: analyzeToolingDependencies(
+      selectedComponents,
+      records,
+      allComponentsByKey,
+      targetInventory,
+      selectedComponentById,
+      sourceItemNameById,
+    ),
+    discoveredComponents,
+    listedTargetInventory,
+    errorMessage,
+  };
+}
+
+/** Structural findings first, then the references Salesforce reported that were not already flagged, most severe first */
+function combineFindings(structuralFindings: OrgAlignmentDependencyFinding[], toolingFindings: OrgAlignmentDependencyFinding[]) {
+  const getPairKey = ({ sourceComponentKey, referencedType, referencedName }: OrgAlignmentDependencyFinding) =>
+    `${sourceComponentKey}->${referencedType}:${referencedName}`;
+  const seenPairs = new Set(structuralFindings.map(getPairKey));
+  const combined = [...structuralFindings];
+  for (const finding of toolingFindings) {
+    if (!seenPairs.has(getPairKey(finding))) {
+      seenPairs.add(getPairKey(finding));
+      combined.push(finding);
+    }
+  }
+  const severityOrder: Record<OrgAlignmentDependencyFinding['severity'], number> = { missing: 0, differs: 1, external: 2 };
+  return combined.sort(
+    (first, second) =>
+      severityOrder[first.severity] - severityOrder[second.severity] || first.referencedName.localeCompare(second.referencedName),
+  );
+}
+
 export interface UseDependenciesOptions {
   deploySourceOrg: SalesforceOrgUi | null;
   /** When provided, referenced types that were not part of the comparison are looked up in both orgs */
   deployTargetOrg?: SalesforceOrgUi | null;
-  /** Called with referenced components that are missing from the target org and were not part of the comparison */
-  onComponentsDiscovered?: (components: OrgAlignmentComponentItem[]) => void;
-  selectedComponents: OrgAlignmentComponentItem[];
-  allSourceComponents: OrgAlignmentComponentItem[];
+  /** Keys of the components chosen for the deployment */
+  selectedKeys: ReadonlySet<string>;
+  /** Every component of the comparison */
+  comparedComponents: OrgAlignmentComponentItem[];
   targetInventoryByType: Record<string, ListMetadataResult[]>;
-  /** Whether the selected components are deployed A -> B (use sourceItem.id) or B -> A (use targetItem.id) */
-  direction: 'A_TO_B' | 'B_TO_A';
+  direction: OrgAlignmentDeployDirection;
   enabled?: boolean;
 }
 
 /**
- * Best-effort pre-deploy dependency hook.
- * Checks the user's selected components against both:
- * 1. The destination org's `listMetadata` inventory (structural parent/folder checks)
- * 2. Salesforce's Tooling `MetadataComponentDependency` API on the deploy source org
+ * Best-effort pre-deploy dependency check of the selected components against:
+ * 1. What exists in the org being deployed to (parent object and folder checks)
+ * 2. Salesforce's Tooling `MetadataComponentDependency` API on the org being deployed from
  *
- * Results are always labelled best-effort and never block deployment.
+ * Dependencies that were not part of the comparison are added to the components the hook returns, so that they
+ * can be selected like any other. Results never block deployment.
  */
 export function useDependencies({
   deploySourceOrg,
   deployTargetOrg,
-  onComponentsDiscovered,
-  selectedComponents,
-  allSourceComponents,
+  selectedKeys,
+  comparedComponents,
   targetInventoryByType,
   direction,
   enabled = true,
 }: UseDependenciesOptions) {
   const isMounted = useRef(true);
   const requestIdRef = useRef(0);
-  // Types looked up for the dependency check, kept so that changing the selection does not list them again
   const listedTypesRef = useRef<Record<string, ListedMetadataType | null>>({});
 
   const [loading, setLoading] = useState(false);
@@ -477,8 +614,8 @@ export function useDependencies({
   const [toolingApiError, setToolingApiError] = useState<string | null>(null);
   const [checkedAt, setCheckedAt] = useState<Date | null>(null);
   const [recheckCounter, setRecheckCounter] = useState(0);
-  // What the target org has for the types that were looked up by the dependency check
   const [listedTargetInventory, setListedTargetInventory] = useState<Record<string, ListMetadataResult[]>>({});
+  const [discoveredComponents, setDiscoveredComponents] = useState<OrgAlignmentComponentItem[]>([]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -487,250 +624,105 @@ export function useDependencies({
     };
   }, []);
 
-  const allSourceComponentsByKey = useMemo(
-    () => new Map(allSourceComponents.map((component) => [component.key, component])),
-    [allSourceComponents],
+  const componentsByKey = useMemo(() => {
+    const byKey = new Map(comparedComponents.map((component) => [component.key, component]));
+    discoveredComponents.forEach((component) => !byKey.has(component.key) && byKey.set(component.key, component));
+    return byKey;
+  }, [comparedComponents, discoveredComponents]);
+
+  const selectedComponents = useMemo(
+    () =>
+      Array.from(selectedKeys)
+        .map((key) => componentsByKey.get(key))
+        .filter((component): component is OrgAlignmentComponentItem => Boolean(component)),
+    [componentsByKey, selectedKeys],
   );
 
   const structuralFindings = useMemo(
     () =>
       enabled
-        ? findStructuralDependencies(selectedComponents, allSourceComponentsByKey, { ...listedTargetInventory, ...targetInventoryByType })
+        ? findStructuralDependencies(selectedComponents, componentsByKey, { ...listedTargetInventory, ...targetInventoryByType })
         : [],
-    [allSourceComponentsByKey, enabled, listedTargetInventory, selectedComponents, targetInventoryByType],
+    [componentsByKey, enabled, listedTargetInventory, selectedComponents, targetInventoryByType],
   );
 
-  const selectedSignature = useMemo(
-    () =>
-      selectedComponents
-        .map(({ key }) => key)
-        .sort()
-        .join('|'),
-    [selectedComponents],
-  );
+  const selectedSignature = useMemo(() => Array.from(selectedKeys).sort().join('|'), [selectedKeys]);
 
-  // Keep latest snapshots in refs so the effect only re-queries Salesforce when the org, direction,
-  // enabled flag, selected component keys, or explicit recheck counter actually change.
-  const latestInputsRef = useRef({
-    deploySourceOrg,
-    deployTargetOrg,
-    onComponentsDiscovered,
-    selectedComponents,
-    allSourceComponentsByKey,
-    targetInventoryByType,
-    direction,
-  });
-
+  // The latest inputs are read from a ref so that Salesforce is only asked again when the org, direction,
+  // selection or recheck counter change, not every time one of these objects is rebuilt
+  const latestInputsRef = useRef({ deploySourceOrg, deployTargetOrg, selectedComponents, componentsByKey, targetInventoryByType });
   useEffect(() => {
-    latestInputsRef.current = {
-      deploySourceOrg,
-      deployTargetOrg,
-      onComponentsDiscovered,
-      selectedComponents,
-      allSourceComponentsByKey,
-      targetInventoryByType,
-      direction,
-    };
+    latestInputsRef.current = { deploySourceOrg, deployTargetOrg, selectedComponents, componentsByKey, targetInventoryByType };
   });
+
+  const hasQueryableSelection =
+    enabled &&
+    Boolean(deploySourceOrg?.uniqueId) &&
+    selectedComponents.some((component) => isSalesforceId(getDeployFromItem(component, direction)?.id));
 
   useEffect(() => {
     const requestId = ++requestIdRef.current;
-    const {
-      deploySourceOrg: currentSourceOrg,
-      deployTargetOrg: currentTargetOrg,
-      onComponentsDiscovered: currentOnComponentsDiscovered,
-      selectedComponents: currentSelected,
-      allSourceComponentsByKey: currentAllByKey,
-      targetInventoryByType: currentTargetInventory,
-      direction: currentDirection,
-    } = latestInputsRef.current;
-
-    if (!enabled || !currentSourceOrg?.uniqueId || currentSelected.length === 0) {
+    const { deploySourceOrg: currentSourceOrg, ...currentInputs } = latestInputsRef.current;
+    if (!hasQueryableSelection || !currentSourceOrg) {
       return;
     }
+    const isStale = () => !isMounted.current || requestIdRef.current !== requestId;
 
-    const componentIdToSelectedComponent = new Map<string, OrgAlignmentComponentItem>();
-    for (const component of currentSelected) {
-      const listItem = currentDirection === 'A_TO_B' ? component.sourceItem : component.targetItem;
-      // Salesforce metadata Ids are 15 or 18 alphanumeric characters
-      if (listItem?.id && /^[a-zA-Z0-9]{15,18}$/.test(listItem.id)) {
-        componentIdToSelectedComponent.set(listItem.id, component);
-      }
-    }
-
-    const componentIds = Array.from(componentIdToSelectedComponent.keys());
-    if (componentIds.length === 0) {
-      return;
-    }
-
-    const runQuery = async () => {
+    const runCheck = async () => {
       setLoading(true);
       setToolingApiError(null);
       try {
-        const allRecords: ToolingDependencyRecord[] = [];
-        let partialError: string | null = null;
-
-        for (const idChunk of splitArrayToMaxSize(componentIds, DEPENDENCY_QUERY_ID_BATCH_SIZE)) {
-          if (!isMounted.current || requestIdRef.current !== requestId) {
-            return;
-          }
-          try {
-            const response = await queryAllWithCacheUsingOffset<ToolingDependencyRecord>(
-              currentSourceOrg,
-              buildToolingDependenciesSoql(idChunk),
-              true,
-              DEPENDENCY_QUERY_MAX_OFFSET,
-            );
-            allRecords.push(...(response.queryResults.records || []));
-          } catch (ex) {
-            logger.warn('[ORG ALIGNMENT][DEPENDENCIES][TOOLING ERROR]', ex);
-            partialError = getErrorMessage(ex);
-          }
-        }
-
-        if (!isMounted.current || requestIdRef.current !== requestId) {
+        const result = await checkDependencies({
+          ...currentInputs,
+          deploySourceOrg: currentSourceOrg,
+          direction,
+          listedTypesCache: listedTypesRef.current,
+          isStale,
+        });
+        if (!result || isStale()) {
           return;
         }
-
-        // Referenced types that were not compared are listed in both orgs so they can be checked instead of left unverified
-        const parentObjectKeys = getParentCustomObjectKeys(currentSelected);
-        if (currentTargetOrg) {
-          const referencedTypes = getReferencedTypesToList(allRecords, currentTargetInventory);
-          if (parentObjectKeys.size > 0 && !currentTargetInventory.CustomObject) {
-            referencedTypes.push('CustomObject');
-          }
-          const typesToList = Array.from(new Set(referencedTypes)).filter(
-            (metadataType) => listedTypesRef.current[metadataType] === undefined,
-          );
-          const listedResults = await Promise.all(
-            typesToList.map((metadataType) => listMetadataTypeInBothOrgs(metadataType, currentSourceOrg, currentTargetOrg)),
-          );
-          typesToList.forEach((metadataType, i) => {
-            listedTypesRef.current[metadataType] = listedResults[i];
-          });
-          if (!isMounted.current || requestIdRef.current !== requestId) {
-            return;
-          }
+        if (result.discoveredComponents.length > 0) {
+          setDiscoveredComponents((previous) => [...previous, ...result.discoveredComponents]);
         }
-
-        const listedTypes: Record<string, ListedMetadataType> = {};
-        for (const [metadataType, listedType] of Object.entries(listedTypesRef.current)) {
-          if (listedType && !currentTargetInventory[metadataType]) {
-            listedTypes[metadataType] = listedType;
-          }
-        }
-
-        const discoveredComponents = getComponentsMissingFromTarget(allRecords, listedTypes, currentDirection, parentObjectKeys);
-        const allByKey = new Map(currentAllByKey);
-        discoveredComponents.forEach((component) => {
-          if (!allByKey.has(component.key)) {
-            allByKey.set(component.key, component);
-          }
-        });
-
-        const targetInventory = { ...currentTargetInventory };
-        const sourceItemNameById = new Map<string, string>();
-        for (const [metadataType, { sourceItems, targetItems }] of Object.entries(listedTypes)) {
-          targetInventory[metadataType] = targetItems;
-          sourceItems.forEach((item) => item.id && sourceItemNameById.set(getShortId(item.id), getNormalizedListItemName(item)));
-        }
-        for (const component of currentAllByKey.values()) {
-          const listItem = currentDirection === 'A_TO_B' ? component.sourceItem : component.targetItem;
-          if (listItem?.id) {
-            sourceItemNameById.set(getShortId(listItem.id), component.fullName);
-          }
-        }
-
-        const analyzed = analyzeToolingDependencies(
-          currentSelected,
-          allRecords,
-          allByKey,
-          targetInventory,
-          componentIdToSelectedComponent,
-          sourceItemNameById,
-        );
-        if (discoveredComponents.length > 0) {
-          currentOnComponentsDiscovered?.(discoveredComponents);
-        }
-        setListedTargetInventory(
-          Object.fromEntries(Object.entries(listedTypes).map(([metadataType, { targetItems }]) => [metadataType, targetItems])),
-        );
-        setToolingFindings(analyzed);
-        setToolingApiError(partialError);
+        setListedTargetInventory(result.listedTargetInventory);
+        setToolingFindings(result.findings);
+        setToolingApiError(result.errorMessage);
         setCheckedAt(new Date());
       } catch (ex) {
-        if (!isMounted.current || requestIdRef.current !== requestId) {
+        if (isStale()) {
           return;
         }
         logger.warn('[ORG ALIGNMENT][DEPENDENCIES][ERROR]', ex);
         setToolingApiError(getErrorMessage(ex));
         setToolingFindings([]);
       } finally {
-        if (isMounted.current && requestIdRef.current === requestId) {
+        if (!isStale()) {
           setLoading(false);
         }
       }
     };
 
-    void Promise.resolve().then(runQuery);
-  }, [deploySourceOrg?.uniqueId, direction, enabled, recheckCounter, selectedSignature]);
+    void Promise.resolve().then(runCheck);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deploySourceOrg?.uniqueId, direction, hasQueryableSelection, recheckCounter, selectedSignature]);
 
   const recheck = useCallback(() => {
     setRecheckCounter((count) => count + 1);
   }, []);
 
-  const hasQueryableSelection = useMemo(
-    () =>
-      enabled &&
-      Boolean(deploySourceOrg?.uniqueId) &&
-      selectedComponents.some((component) => {
-        const listItem = direction === 'A_TO_B' ? component.sourceItem : component.targetItem;
-        return Boolean(listItem?.id && /^[a-zA-Z0-9]{15,18}$/.test(listItem.id));
-      }),
-    [deploySourceOrg?.uniqueId, direction, enabled, selectedComponents],
+  const findings = useMemo(
+    () => combineFindings(structuralFindings, hasQueryableSelection ? toolingFindings : []),
+    [hasQueryableSelection, structuralFindings, toolingFindings],
   );
 
-  // Combine structural + Tooling API findings, deduplicating when both flag the same (source -> referenced) pair
-  const activeToolingFindings = useMemo(() => (hasQueryableSelection ? toolingFindings : []), [hasQueryableSelection, toolingFindings]);
-  const activeToolingApiError = hasQueryableSelection ? toolingApiError : null;
-
-  const findings = useMemo(() => {
-    const combined: OrgAlignmentDependencyFinding[] = [...structuralFindings];
-    const seenPairs = new Set(
-      structuralFindings.map((finding) => `${finding.sourceComponentKey}->${finding.referencedType}:${finding.referencedName}`),
-    );
-    for (const finding of activeToolingFindings) {
-      const pairKey = `${finding.sourceComponentKey}->${finding.referencedType}:${finding.referencedName}`;
-      if (!seenPairs.has(pairKey)) {
-        seenPairs.add(pairKey);
-        combined.push(finding);
-      }
-    }
-    const severityOrder: Record<OrgAlignmentDependencyFinding['severity'], number> = {
-      missing: 0,
-      differs: 1,
-      external: 2,
-    };
-    return combined.sort((first, second) => {
-      const severityDiff = severityOrder[first.severity] - severityOrder[second.severity];
-      if (severityDiff !== 0) {
-        return severityDiff;
-      }
-      return first.referencedName.localeCompare(second.referencedName);
-    });
-  }, [activeToolingFindings, structuralFindings]);
-
-  const missingCount = useMemo(() => findings.filter(({ severity }) => severity === 'missing').length, [findings]);
-  const differsCount = useMemo(() => findings.filter(({ severity }) => severity === 'differs').length, [findings]);
-  const externalCount = useMemo(() => findings.filter(({ severity }) => severity === 'external').length, [findings]);
-
   return {
+    /** Every component of the comparison plus the dependencies that were found outside of it */
+    componentsByKey,
+    selectedComponents,
     loading: hasQueryableSelection && loading,
     findings,
-    missingCount,
-    differsCount,
-    externalCount,
-    toolingApiError: activeToolingApiError,
+    toolingApiError: hasQueryableSelection ? toolingApiError : null,
     checkedAt,
     recheck,
   };

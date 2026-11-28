@@ -341,7 +341,7 @@ export async function getFullFolderPathByFolderDeveloperName(
  */
 export async function fetchListMetadataForType(
   selectedOrg: SalesforceOrgUi,
-  query: ListMetadataQueryExtended,
+  query: Pick<ListMetadataResultItem, 'type' | 'folder' | 'inFolder'> | ListMetadataQueryExtended,
   options: {
     skipRequestCache?: boolean;
     skipCacheIfOlderThan?: number;
@@ -466,24 +466,9 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
         setListMetadataItems(newMetadataItems);
 
         for (const item of itemsToProcess) {
-          const { type, inFolder } = item;
+          const { type } = item;
           try {
-            let responseItem: ListMetadataResultItem;
-            if (inFolder) {
-              // handle additional fetches required if type is in folder
-              responseItem = await fetchListMetadataForItemsInFolder(selectedOrg, item, skipRequestCache, skipCacheIfOlderThan);
-            } else {
-              responseItem = await fetchListMetadata(selectedOrg, item, skipRequestCache, skipCacheIfOlderThan);
-            }
-
-            // Ensure nested folders have the full path in their name
-            if (item.type.endsWith('Folder')) {
-              await mutateFullNameForFolderToIncludeFullPath(selectedOrg, responseItem);
-            }
-
-            if (responseItem?.items) {
-              responseItem.items = dedupeListMetadataItems(responseItem.items);
-            }
+            const responseItem = await fetchListMetadataForType(selectedOrg, item, { skipRequestCache, skipCacheIfOlderThan });
 
             if (!isMounted.current) {
               break;
@@ -530,7 +515,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
    */
   const loadListMetadataItem = useCallback(
     async (item: ListMetadataResultItem) => {
-      const { type, inFolder } = item;
+      const { type } = item;
       try {
         setListMetadataItems((previousItems) =>
           previousItems && previousItems[type]
@@ -541,22 +526,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
             : previousItems,
         );
 
-        let responseItem: ListMetadataResultItem;
-        if (inFolder) {
-          // handle additional fetches required if type is in folder
-          responseItem = await fetchListMetadataForItemsInFolder(selectedOrg, item, true);
-        } else {
-          responseItem = await fetchListMetadata(selectedOrg, item, true);
-        }
-
-        // Ensure nested folders have the full path in their name
-        if (item.type.endsWith('Folder')) {
-          await mutateFullNameForFolderToIncludeFullPath(selectedOrg, responseItem);
-        }
-
-        if (responseItem?.items) {
-          responseItem.items = dedupeListMetadataItems(responseItem.items);
-        }
+        const responseItem = await fetchListMetadataForType(selectedOrg, item, { skipRequestCache: true });
 
         if (!isMounted.current) {
           return;

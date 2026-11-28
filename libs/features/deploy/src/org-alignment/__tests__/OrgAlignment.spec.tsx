@@ -38,6 +38,7 @@ vi.mock('@jetstream/ui/app-state', async () => {
     salesforceOrgsState: atom([orgA, orgB]),
     salesforceOrgsById: atom({ 'org-a': orgA, 'org-b': orgB }),
     selectedOrgStateWithoutPlaceholder: atom(orgA),
+    selectSkipFrontdoorAuth: atom(false),
     useOperationAccess: () => ({
       allowed: uiState.deployAllowed,
       deniedReason: uiState.deployAllowed ? undefined : 'Deploy not allowed',

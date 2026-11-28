@@ -199,6 +199,16 @@ const CONTAINER_FILES_BY_PARENT_TYPE: Record<string, ContainerFileDefinition> = 
   },
 };
 
+/** Types whose `fullName` is `ObjectApiName.ComponentName` and that are stored in the file of their object */
+export const CUSTOM_OBJECT_CHILD_METADATA_TYPES = new Set(Object.values(CONTAINER_FILES_BY_PARENT_TYPE.CustomObject.childTypeByTag));
+
+/** The parent type whose file holds components of `childType`, e.g. CustomObject for CustomField */
+export function getContainerParentType(childType: string): string | undefined {
+  return Object.keys(CONTAINER_FILES_BY_PARENT_TYPE).find((parentType) =>
+    Object.values(CONTAINER_FILES_BY_PARENT_TYPE[parentType].childTypeByTag).includes(childType),
+  );
+}
+
 /** Parent types that must be compared after their child types, see `removeSeparatelyComparedChildren` */
 export const CONTAINER_PARENT_METADATA_TYPES = new Set(Object.keys(CONTAINER_FILES_BY_PARENT_TYPE));
 
@@ -263,34 +273,35 @@ export function removeSeparatelyComparedChildren(
 }
 
 /**
- * Extract the single XML block matching `<fullName>{childName}</fullName>` from a parent container
- * file (such as `objects/Account.object`) so comparing `Account.MyField__c` diffs only that field
- * rather than every sibling field on the same object.
+ * Split a parent container file (such as `objects/Account.object`) into the XML of each child held in
+ * `childTagName` elements, keyed by the child's `fullName`. Comparing `Account.MyField__c` then diffs only that
+ * field rather than every sibling field on the same object. Returns null if the file cannot be parsed.
  */
-export function extractChildMetadataXmlBlock(parentXml: string, childTagName: string, childFullName: string): string | null {
-  if (!parentXml || typeof DOMParser === 'undefined') {
+export function getChildMetadataXmlBlocks(parentXml: string, childTagName: string): Map<string, string> | null {
+  if (!parentXml || typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
     return null;
   }
   try {
-    const document = new DOMParser().parseFromString(parentXml, 'application/xml');
-    if (document.getElementsByTagName('parsererror').length > 0) {
+    const xmlDocument = new DOMParser().parseFromString(parentXml, 'application/xml');
+    if (xmlDocument.getElementsByTagName('parsererror').length > 0) {
       return null;
     }
-    const candidates = document.getElementsByTagName(childTagName);
-    for (let i = 0; i < candidates.length; i++) {
-      const element = candidates[i];
-      const fullNameEl = element.getElementsByTagName('fullName')[0];
-      if (fullNameEl?.textContent?.trim() === childFullName) {
-        if (typeof XMLSerializer !== 'undefined') {
-          return new XMLSerializer().serializeToString(element);
-        }
-        return element.outerHTML || null;
+    const serializer = new XMLSerializer();
+    const blocksByName = new Map<string, string>();
+    for (const element of Array.from(xmlDocument.getElementsByTagName(childTagName))) {
+      const childName = element.getElementsByTagName('fullName')[0]?.textContent?.trim();
+      if (childName && !blocksByName.has(childName)) {
+        blocksByName.set(childName, serializer.serializeToString(element));
       }
     }
+    return blocksByName;
   } catch {
     return null;
   }
-  return null;
+}
+
+export function extractChildMetadataXmlBlock(parentXml: string, childTagName: string, childFullName: string): string | null {
+  return getChildMetadataXmlBlocks(parentXml, childTagName)?.get(childFullName) ?? null;
 }
 
 export function groupRetrievedFilesByComponent(
@@ -344,10 +355,14 @@ export function groupRetrievedFilesByComponent(
     if (childTagName) {
       const matchingCandidates = candidatesByParentPrefix.get(file.fullName) ?? candidatesByParentPrefix.get(componentName);
       if (matchingCandidates?.length) {
+        // Parsed once per parent file, an object can hold hundreds of the fields being compared
+        const childBlocksByName = file.content ? getChildMetadataXmlBlocks(file.content, childTagName) : null;
         for (const candidateName of matchingCandidates) {
           const dotIndex = candidateName.indexOf('.');
           const childLocalName = dotIndex > 0 ? candidateName.slice(dotIndex + 1) : candidateName;
-          const extractedXml = file.content ? extractChildMetadataXmlBlock(file.content, childTagName, childLocalName) : null;
+          const extractedXml = childBlocksByName?.get(childLocalName);
+          // A child that is not in the file is left without content and reported as not compared,
+          // comparing the whole parent file instead would report differences that belong to its siblings
           if (extractedXml) {
             addFile(candidateName, {
               ...file,
@@ -356,8 +371,6 @@ export function groupRetrievedFilesByComponent(
               fileName: `${file.fileName}#${childLocalName}`,
               content: extractedXml,
             });
-          } else {
-            addFile(candidateName, file);
           }
         }
         continue;
@@ -616,46 +629,50 @@ export function isComponentDeployableInDirection(
   if (component.isManaged || component.status === 'uncomparable') {
     return false;
   }
-  if (direction === 'A_TO_B') {
-    return Boolean(component.sourceItem) && (component.status === 'different' || component.status === 'onlyInSource');
+  const onlyInFromOrgStatus = getDeployFromAndTo('onlyInSource', 'onlyInTarget', direction).from;
+  return Boolean(getDeployFromItem(component, direction)) && (component.status === 'different' || component.status === onlyInFromOrgStatus);
+}
+
+type ComponentListItems = Pick<OrgAlignmentComponentItem, 'sourceItem' | 'targetItem'>;
+
+/** Which of the two orgs (or anything else kept per org) is deployed from and which is deployed to */
+export function getDeployFromAndTo<T>(source: T, target: T, direction: OrgAlignmentDeployDirection): { from: T; to: T } {
+  return direction === 'A_TO_B' ? { from: source, to: target } : { from: target, to: source };
+}
+
+/** The component as it is listed in the org being deployed from */
+export function getDeployFromItem(component: ComponentListItems, direction: OrgAlignmentDeployDirection) {
+  return getDeployFromAndTo(component.sourceItem, component.targetItem, direction).from;
+}
+
+/** The component as it is listed in the org being deployed to, undefined when it does not exist there yet */
+export function getDeployToItem(component: ComponentListItems, direction: OrgAlignmentDeployDirection) {
+  return getDeployFromAndTo(component.sourceItem, component.targetItem, direction).to;
+}
+
+function groupListItemsByType(
+  components: OrgAlignmentComponentItem[],
+  getListItem: (component: OrgAlignmentComponentItem) => ListMetadataResult | undefined,
+): Record<string, ListMetadataResult[]> {
+  const itemsByType: Record<string, ListMetadataResult[]> = {};
+  for (const component of components) {
+    const item = getListItem(component);
+    if (item) {
+      itemsByType[component.type] = itemsByType[component.type] ?? [];
+      itemsByType[component.type].push(item);
+    }
   }
-  return Boolean(component.targetItem) && (component.status === 'different' || component.status === 'onlyInTarget');
+  return itemsByType;
 }
 
-/** Convert selected alignment components into the `Record<type, ListMetadataResult[]>` shape used by deploy APIs */
-export function componentsToListMetadataMap(
-  components: OrgAlignmentComponentItem[],
-  direction: OrgAlignmentDeployDirection,
-): Record<string, ListMetadataResult[]> {
-  return components.reduce<Record<string, ListMetadataResult[]>>((output, component) => {
-    const item = direction === 'A_TO_B' ? component.sourceItem : component.targetItem;
-    if (!item) {
-      return output;
-    }
-    output[component.type] = output[component.type] ?? [];
-    output[component.type].push(item);
-    return output;
-  }, {});
+/** The selected components as they exist in the org being deployed from, in the shape used by the retrieve and deploy APIs */
+export function componentsToListMetadataMap(components: OrgAlignmentComponentItem[], direction: OrgAlignmentDeployDirection) {
+  return groupListItemsByType(components, (component) => getDeployFromItem(component, direction));
 }
 
-/**
- * Return the subset of selected components that already exist on the destination org
- * (and would therefore be overwritten during deployment), formatted as a listMetadata map
- * suitable for retrieving a target backup package.
- */
-export function getOverwrittenTargetComponentsMap(
-  components: OrgAlignmentComponentItem[],
-  direction: OrgAlignmentDeployDirection,
-): Record<string, ListMetadataResult[]> {
-  return components.reduce<Record<string, ListMetadataResult[]>>((output, component) => {
-    const existingTargetItem = direction === 'A_TO_B' ? component.targetItem : component.sourceItem;
-    if (!existingTargetItem) {
-      return output;
-    }
-    output[component.type] = output[component.type] ?? [];
-    output[component.type].push(existingTargetItem);
-    return output;
-  }, {});
+/** The selected components that already exist in the org being deployed to and would be overwritten, used for the backup */
+export function getOverwrittenTargetComponentsMap(components: OrgAlignmentComponentItem[], direction: OrgAlignmentDeployDirection) {
+  return groupListItemsByType(components, (component) => getDeployToItem(component, direction));
 }
 
 export function getStatusLabel(status: OrgAlignmentComponentItem['status'], sourceOrgLabel: string, targetOrgLabel: string): string {

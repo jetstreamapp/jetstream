@@ -1,181 +1,26 @@
-import { JOB_CANCELED_ERROR_MESSAGE, METADATA_TYPES_WITH_FOLDERS } from '@jetstream/shared/constants';
-import { getPackageXml, retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
-import { pollRetrieveMetadataResultsUntilDone, useBrowserNotifications } from '@jetstream/shared/ui-utils';
+import { JOB_CANCELED_ERROR_MESSAGE } from '@jetstream/shared/constants';
+import { useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { TreeItems } from '@jetstream/ui';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { useAtom } from 'jotai';
 import JSZip from 'jszip';
-import isString from 'lodash/isString';
-import { useCallback, useEffect, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import { retrieveMetadataChunked } from './retrieveMetadataChunked';
 import { FileItemMetadata, FilePropertiesWithContent, OrgType } from './viewOrCompareMetadataTypes';
-import { buildTree, chunkListMetadataForRetrieve, populateFileContents } from './viewOrCompareMetadataUtils';
+import { buildTree } from './viewOrCompareMetadataUtils';
 
 type LoadStatus = 'Not Started' | 'Loading' | 'Success' | 'Failed';
 
-export interface ChunkedRetrieveProgress {
-  completedChunks: number;
-  totalChunks: number;
-}
-
-export interface ChunkedRetrieveOptions {
-  maxComponentsPerChunk?: number;
-  isCanceled?: () => boolean;
-  onChecked?: () => void;
-  onChunkProgress?: (progress: ChunkedRetrieveProgress) => void;
-  /**
-   * Components added to every chunk on top of the chunk's own. Salesforce only returns the parts of a profile
-   * that relate to other components in the same retrieve, so profiles are retrieved alongside those components.
-   */
-  includeWithEveryChunk?: Record<string, ListMetadataResult[]>;
-  /** Only files that pass are returned and have their content read, e.g. to drop the files of `includeWithEveryChunk` */
-  includeFile?: (file: FilePropertiesWithContent) => boolean;
-  /** Set to false when only `fileProperties` is needed, the merged zip is then left empty */
-  buildZip?: boolean;
-}
-
-/**
- * Retrieve metadata in chunks sized well below Salesforce's 10,000-file retrieve limit,
- * merging zip files and fileProperties across chunks. Supports cancellation between and during polls.
- */
-export async function retrieveMetadataChunked(
-  org: SalesforceOrgUi,
-  selectedMetadata: Record<string, ListMetadataResult[]>,
-  options: ChunkedRetrieveOptions = {},
-): Promise<{ zip: JSZip; fileProperties: FilePropertiesWithContent[] }> {
-  const { maxComponentsPerChunk, isCanceled, onChecked, onChunkProgress, includeWithEveryChunk, includeFile, buildZip = true } = options;
-  const chunks = chunkListMetadataForRetrieve(selectedMetadata, maxComponentsPerChunk);
-  const mergedZip = new JSZip();
-  const mergedFileProperties: FilePropertiesWithContent[] = [];
-  const seenFileNames = new Set<string>();
-
-  if (chunks.length === 0) {
-    return { zip: mergedZip, fileProperties: mergedFileProperties };
-  }
-
-  for (let i = 0; i < chunks.length; i++) {
-    if (isCanceled?.()) {
-      throw new Error(JOB_CANCELED_ERROR_MESSAGE);
-    }
-    onChunkProgress?.({ completedChunks: i, totalChunks: chunks.length });
-
-    const { id } = await retrieveMetadataFromListMetadata(
-      org,
-      includeWithEveryChunk ? { ...includeWithEveryChunk, ...chunks[i] } : chunks[i],
-    );
-    if (isCanceled?.()) {
-      throw new Error(JOB_CANCELED_ERROR_MESSAGE);
-    }
-
-    const results = await pollRetrieveMetadataResultsUntilDone(org, id, {
-      isCanceled,
-      onChecked: () => {
-        onChecked?.();
-      },
-    });
-
-    if (isCanceled?.()) {
-      throw new Error(JOB_CANCELED_ERROR_MESSAGE);
-    }
-
-    if (!isString(results.zipFile)) {
-      throw new Error(results.errorMessage || 'No data was returned from Salesforce');
-    }
-
-    const chunkZip = await JSZip.loadAsync(results.zipFile, { base64: true });
-    const chunkFiles: FilePropertiesWithContent[] = (results.fileProperties || [])
-      .map((file) => {
-        // Folders don't have a suffix in the fileProperties response, but there is an associated file, so we must add the extension
-        if (METADATA_TYPES_WITH_FOLDERS.has(file.type) && file.fileName.includes('/') && !file.fileName.includes('.')) {
-          return { ...file, fileName: `${file.fileName}-meta.xml` };
-        }
-        return { ...file };
-      })
-      .filter((file) => !includeFile || includeFile(file));
-
-    await populateFileContents(chunkZip, chunkFiles);
-
-    for (const file of chunkFiles) {
-      if (file.fileName === 'package.xml' && seenFileNames.has('package.xml')) {
-        continue;
-      }
-      if (!seenFileNames.has(file.fileName)) {
-        seenFileNames.add(file.fileName);
-        mergedFileProperties.push(file);
-      }
-    }
-
-    const zipEntries: Array<{ path: string; entry: JSZip.JSZipObject }> = [];
-    if (buildZip) {
-      chunkZip.forEach((relativePath, entry) => {
-        if (!entry.dir) {
-          zipEntries.push({ path: relativePath, entry });
-        }
-      });
-    }
-    await Promise.all(
-      zipEntries.map(async ({ path, entry }) => {
-        if (path === 'package.xml' && mergedZip.file('package.xml')) {
-          return;
-        }
-        const content = await entry.async('uint8array');
-        mergedZip.file(path, content);
-      }),
-    );
-
-    onChunkProgress?.({ completedChunks: i + 1, totalChunks: chunks.length });
-  }
-
-  // When multiple chunks were merged, replace the single-chunk package.xml with a combined manifest
-  // so the resulting zip is complete and deployable (e.g. for target org backups).
-  if (buildZip && chunks.length > 1 && !isCanceled?.()) {
-    try {
-      const combinedPackageXml = await getPackageXml(org, selectedMetadata);
-      mergedZip.file('package.xml', combinedPackageXml);
-    } catch {
-      // Keep the first chunk's package.xml if generating a combined manifest fails
-    }
-  }
-
-  return { zip: mergedZip, fileProperties: mergedFileProperties };
-}
-
-/**
- * Filter a target org retrieve request down to items that also exist in the target org's
- * listMetadata results so we avoid retrieving components known to be absent from the target.
- */
-export function filterMetadataToTargetCandidates(
-  selectedMetadata: Record<string, ListMetadataResult[]>,
-  targetListMetadata?: Record<string, ListMetadataResult[]> | null,
-): Record<string, ListMetadataResult[]> {
-  if (!targetListMetadata) {
-    return selectedMetadata;
-  }
-  const filtered: Record<string, ListMetadataResult[]> = {};
-  for (const [metadataType, sourceItems] of Object.entries(selectedMetadata)) {
-    const targetItems = targetListMetadata[metadataType];
-    if (!targetItems?.length) {
-      continue;
-    }
-    const targetFullNames = new Set(targetItems.map(({ fullName }) => fullName));
-    const candidates = sourceItems.filter(({ fullName }) => targetFullNames.has(fullName));
-    if (candidates.length > 0) {
-      filtered[metadataType] = candidates;
-    }
-  }
-  return filtered;
-}
-
 type Action =
-  | { type: 'FETCH'; payload: { which: OrgType; normalizePermissionXml: boolean } }
+  | { type: 'FETCH'; payload: { which: OrgType } }
   | { type: 'LAST_CHECKED'; payload: { which: OrgType } }
   | {
       type: 'FETCH_SUCCESS';
-      payload: { which: OrgType; data: JSZip; fileProperties: FilePropertiesWithContent[]; normalizePermissionXml: boolean };
+      payload: { which: OrgType; data: JSZip; fileProperties: FilePropertiesWithContent[] };
     }
-  | { type: 'FETCH_ERROR'; payload: { which: OrgType; error: string } }
-  | { type: 'REBUILD_TREE'; payload: { normalizePermissionXml: boolean } };
+  | { type: 'FETCH_ERROR'; payload: { which: OrgType; error: string } };
 
 interface State {
   sourceLoading: boolean;
@@ -191,8 +36,6 @@ interface State {
   targetResults: JSZip | null;
   targetResultFiles: FilePropertiesWithContent[] | null;
   targetError?: string | null;
-
-  files: TreeItems<FileItemMetadata | null>[];
 }
 
 function reducer(state: State, action: Action): State {
@@ -212,19 +55,15 @@ function reducer(state: State, action: Action): State {
           targetResultFiles: null,
         };
       } else {
-        let files = state.files;
-        // if target org was changed, clear out prior target comparison data
-        if (state.targetResults) {
-          files = buildTree(state.sourceResultFiles, undefined, { normalizePermissionXml: action.payload.normalizePermissionXml });
-        }
+        // The files of a previous target org are cleared so the tree stops showing a comparison with it
         return {
           ...state,
           targetLoading: true,
           targetStatus: 'Loading',
           targetLastChecked: new Date(),
           targetResults: null,
+          targetResultFiles: null,
           targetError: null,
-          files,
         };
       }
     }
@@ -249,9 +88,6 @@ function reducer(state: State, action: Action): State {
           sourceStatus: 'Success',
           sourceResults: action.payload.data,
           sourceResultFiles: action.payload.fileProperties,
-          files: buildTree(action.payload.fileProperties, state.targetResultFiles, {
-            normalizePermissionXml: action.payload.normalizePermissionXml,
-          }),
           sourceLastChecked: null,
         };
       } else {
@@ -261,9 +97,6 @@ function reducer(state: State, action: Action): State {
           targetStatus: 'Success',
           targetResults: action.payload.data,
           targetResultFiles: action.payload.fileProperties,
-          files: buildTree(state.sourceResultFiles, action.payload.fileProperties, {
-            normalizePermissionXml: action.payload.normalizePermissionXml,
-          }),
           targetLastChecked: null,
         };
       }
@@ -286,13 +119,6 @@ function reducer(state: State, action: Action): State {
           targetLastChecked: null,
         };
       }
-    case 'REBUILD_TREE':
-      return {
-        ...state,
-        files: buildTree(state.sourceResultFiles, state.targetResultFiles, {
-          normalizePermissionXml: action.payload.normalizePermissionXml,
-        }),
-      };
     default:
       throw new Error('Invalid action');
   }
@@ -301,18 +127,9 @@ function reducer(state: State, action: Action): State {
 export interface UseViewOrCompareMetadataOptions {
   selectedMetadata: Record<string, ListMetadataResult[]>;
   normalizePermissionXml?: boolean;
-  /**
-   * Optional target org listMetadata results. When provided, target retrieves only request
-   * components that exist in the target org (candidate set-diff) rather than every selected item.
-   */
-  targetListMetadata?: Record<string, ListMetadataResult[]> | null;
 }
 
-export function useViewOrCompareMetadata({
-  selectedMetadata,
-  normalizePermissionXml = true,
-  targetListMetadata,
-}: UseViewOrCompareMetadataOptions) {
+export function useViewOrCompareMetadata({ selectedMetadata, normalizePermissionXml = true }: UseViewOrCompareMetadataOptions) {
   const isMounted = useRef(true);
 
   const [
@@ -329,7 +146,6 @@ export function useViewOrCompareMetadata({
       targetResults,
       targetResultFiles,
       targetError,
-      files,
     },
     dispatch,
   ] = useReducer(reducer, {
@@ -345,7 +161,6 @@ export function useViewOrCompareMetadata({
     targetResultFiles: null,
     targetError: null,
     targetLastChecked: null,
-    files: [],
   });
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const { notifyUser } = useBrowserNotifications(serverUrl);
@@ -357,23 +172,17 @@ export function useViewOrCompareMetadata({
     };
   }, []);
 
-  useEffect(() => {
-    if (sourceResultFiles) {
-      dispatch({ type: 'REBUILD_TREE', payload: { normalizePermissionXml } });
-    }
-  }, [normalizePermissionXml, sourceResultFiles]);
+  const files = useMemo<TreeItems<FileItemMetadata | null>[]>(
+    () => (sourceResultFiles ? buildTree(sourceResultFiles, targetResultFiles, { normalizePermissionXml }) : []),
+    [normalizePermissionXml, sourceResultFiles, targetResultFiles],
+  );
 
   const fetchMetadata = useCallback(
     async (org: SalesforceOrgUi, which: OrgType) => {
-      dispatch({ type: 'FETCH', payload: { which, normalizePermissionXml } });
+      dispatch({ type: 'FETCH', payload: { which } });
 
       try {
-        const metadataToRetrieve =
-          which === 'TARGET' && targetListMetadata
-            ? filterMetadataToTargetCandidates(selectedMetadata, targetListMetadata)
-            : selectedMetadata;
-
-        const { zip: salesforcePackage, fileProperties } = await retrieveMetadataChunked(org, metadataToRetrieve, {
+        const { zip: salesforcePackage, fileProperties } = await retrieveMetadataChunked(org, selectedMetadata, {
           isCanceled: () => !isMounted.current,
           onChecked: () => {
             if (isMounted.current) {
@@ -385,7 +194,7 @@ export function useViewOrCompareMetadata({
         if (isMounted.current) {
           dispatch({
             type: 'FETCH_SUCCESS',
-            payload: { which, data: salesforcePackage, fileProperties, normalizePermissionXml },
+            payload: { which, data: salesforcePackage, fileProperties },
           });
           notifyUser('Your metadata is ready to view', { tag: 'view-or-compare' });
         }
@@ -397,7 +206,7 @@ export function useViewOrCompareMetadata({
         dispatch({ type: 'FETCH_ERROR', payload: { which, error: getErrorMessage(ex) } });
       }
     },
-    [normalizePermissionXml, notifyUser, selectedMetadata, targetListMetadata],
+    [notifyUser, selectedMetadata],
   );
 
   return {

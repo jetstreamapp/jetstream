@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { getOrgType, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { decodeURIComponentSafe, isProductionOrg } from '@jetstream/shared/utils';
+import { isProductionOrg } from '@jetstream/shared/utils';
 import { ChangeSet, DeployOptions, ListItem, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
   ariaDisabledButtonProps,
@@ -18,8 +18,9 @@ import {
 import { OrgLabelBadge } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 import DeployMetadataOptions from '../utils/DeployMetadataOptions';
+import { DeploymentSummaryList, getDeploymentSummaryItems } from '../utils/DeploymentSummaryList';
 import { useChangesetList } from '../utils/useChangesetList';
 
 const DISABLED_OPTIONS = new Set<keyof DeployOptions>([
@@ -62,7 +63,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
   const [selectedChangeset, setSelectedChangeset] = useState<ChangeSet | null>(null);
   // FIXME: show hasError on page somewhere
   const { loadPackages, loading, changesetPackages, hasError, errorMessage } = useChangesetList(selectedOrg, initialPackages);
-  const [selectedMetadataList, setSelectedMetadataList] = useState<string[]>();
+  const summaryItems = useMemo(() => getDeploymentSummaryItems(selectedMetadata), [selectedMetadata]);
   const [deployOptions, setDeployOptions] = useState<DeployOptions>(() => ({
     allowMissingFiles: true,
     autoUpdatePackage: true,
@@ -82,17 +83,6 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
   useNonInitialEffect(() => {
     onSelection(changesetPackage);
   }, [changesetPackage, onSelection]);
-
-  useEffect(() => {
-    if (selectedMetadata) {
-      setSelectedMetadataList(
-        Object.keys(selectedMetadata).reduce((output: string[], key) => {
-          selectedMetadata[key].forEach((item) => output.push(`${key}: ${decodeURIComponentSafe(item.fullName)}`));
-          return output;
-        }, []),
-      );
-    }
-  }, [selectedMetadata]);
 
   function handleSelection(selectedItem: ListItem<string, ChangeSet>) {
     setChangesetPackage(selectedItem.value || '');
@@ -266,25 +256,11 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
             </div>
           </GridCol>
           <GridCol className="slds-p-left_x-small" size={6} sizeLarge={4}>
-            {Array.isArray(selectedMetadataList) && (
-              <div>
-                <h3 className="slds-text-heading_small slds-p-left_small">Selected Items ({selectedMetadataList.length})</h3>
-                <ul
-                  className="slds-has-dividers_bottom-space"
-                  css={css`
-                    max-height: ${(modalBodyRef.current?.clientHeight || 300) - 50}px;
-                    overflow-y: scroll;
-                    overflow-x: auto;
-                  `}
-                >
-                  {selectedMetadataList.map((item) => (
-                    <li key={item} className="slds-item">
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <DeploymentSummaryList
+              heading="Selected Items"
+              items={summaryItems}
+              maxHeight={`${(modalBodyRef.current?.clientHeight || 300) - 50}px`}
+            />
           </GridCol>
         </Grid>
       </div>

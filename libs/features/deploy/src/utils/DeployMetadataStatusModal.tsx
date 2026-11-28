@@ -42,6 +42,8 @@ export interface DeployMetadataStatusModalProps {
   hideModal?: boolean;
   // return a string to translate statuses into values
   getStatusValue: (value: DeployMetadataStatus) => string;
+  /** Offered once a validation has succeeded, so the user can deploy what was just validated without starting over */
+  afterValidationAction?: { label: string; onClick: () => void };
   onGoBack?: () => void;
   onClose: () => void;
   onDownload?: (deployResults: DeployResult, deploymentUrl: string) => void;
@@ -65,10 +67,12 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
   statusUrls,
   hideModal,
   getStatusValue,
+  afterValidationAction,
   onGoBack,
   onClose,
   onDownload,
 }) => {
+  const validationSucceeded = !loading && !!results?.done && !!results.checkOnly && results.status === 'Succeeded';
   // The status column updates in place as the deployment is polled and the tabs switch on their own —
   // mirror the visible outcome into a live region
   let statusAnnouncement = '';
@@ -139,9 +143,20 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
                 Go Back
               </button>
             )}
-            <button className="slds-button slds-button_brand" onClick={() => onClose()} disabled={loading}>
-              Close
-            </button>
+            {afterValidationAction && validationSucceeded ? (
+              <Fragment>
+                <button className="slds-button slds-button_neutral" onClick={() => onClose()}>
+                  Close
+                </button>
+                <button className="slds-button slds-button_brand" onClick={afterValidationAction.onClick}>
+                  {afterValidationAction.label}
+                </button>
+              </Fragment>
+            ) : (
+              <button className="slds-button slds-button_brand" onClick={() => onClose()} disabled={loading}>
+                Close
+              </button>
+            )}
           </Grid>
         </Grid>
       }

@@ -1,6 +1,7 @@
 import { ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { describe, expect, it } from 'vitest';
 import { FilePropertiesWithContent } from '../../view-or-compare-metadata/viewOrCompareMetadataTypes';
+import { mergeMetadataXmlFiles } from '../../view-or-compare-metadata/viewOrCompareMetadataUtils';
 import {
   getMetadataTypeComparability,
   getProfileCompanions,
@@ -17,6 +18,7 @@ import {
   buildTypeComparisonComponents,
   componentsToListMetadataMap,
   getOverwrittenTargetComponentsMap,
+  groupRetrievedFilesByComponent,
   isComponentDeployableInDirection,
   removeSeparatelyComparedChildren,
   setDiffListMetadata,
@@ -469,5 +471,42 @@ describe('getProfileCompanions', () => {
     // Fields are returned inside their object's file and do not count towards the limit
     const fields = classes.map((item) => ({ ...item, type: 'CustomField' }));
     expect(getProfileCompanions({ CustomField: fields })).not.toBeNull();
+  });
+});
+
+describe('child components whose parent file is split across retrieve chunks', () => {
+  const getObjectFile = (fieldNames: string[]) =>
+    makeFileProps({
+      type: 'CustomObject',
+      fullName: 'Account',
+      fileName: 'objects/Account.object',
+      content: [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">',
+        ...fieldNames.map((fieldName) => `    <fields><fullName>${fieldName}</fullName><label>${fieldName}</label></fields>`),
+        '</CustomObject>',
+      ].join('\n'),
+    });
+
+  it('combines both versions of the file so every child keeps its own content', () => {
+    const merged = mergeMetadataXmlFiles(getObjectFile(['First__c']).content as string, getObjectFile(['Second__c']).content as string);
+    const filesByComponent = groupRetrievedFilesByComponent(
+      [{ ...getObjectFile([]), content: merged as string }],
+      new Set(['Account.First__c', 'Account.Second__c']),
+      'CustomField',
+    );
+    expect(filesByComponent.get('Account.First__c')?.[0].content).toContain('<label>First__c</label>');
+    expect(filesByComponent.get('Account.Second__c')?.[0].content).toContain('<label>Second__c</label>');
+    expect(filesByComponent.get('Account.Second__c')?.[0].content).not.toContain('First__c');
+  });
+
+  it('leaves a child that is missing from the parent file without content instead of comparing the whole parent', () => {
+    const filesByComponent = groupRetrievedFilesByComponent(
+      [getObjectFile(['First__c'])],
+      new Set(['Account.First__c', 'Account.Missing__c']),
+      'CustomField',
+    );
+    expect(filesByComponent.has('Account.First__c')).toBe(true);
+    expect(filesByComponent.has('Account.Missing__c')).toBe(false);
   });
 });

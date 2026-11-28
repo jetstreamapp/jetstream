@@ -28,6 +28,45 @@ export function getRetrieveChunkSizeForType(metadataType: string): number {
 }
 
 /**
+ * Combine two versions of the same metadata XML file that came back from different retrieve chunks.
+ * Files such as `objects/Account.object` or `labels/CustomLabels.labels` only contain the children that were
+ * requested, so each chunk returns the same path with a different set of children.
+ * Returns null when either version cannot be parsed.
+ */
+export function mergeMetadataXmlFiles(existingXml: string, incomingXml: string): string | null {
+  if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
+    return null;
+  }
+  try {
+    const parser = new DOMParser();
+    const existingDocument = parser.parseFromString(existingXml, 'application/xml');
+    const incomingDocument = parser.parseFromString(incomingXml, 'application/xml');
+    const existingRoot = existingDocument.documentElement;
+    const incomingRoot = incomingDocument.documentElement;
+    const hasParseError = [existingDocument, incomingDocument].some(
+      (xmlDocument) => xmlDocument.getElementsByTagName('parsererror').length > 0,
+    );
+    if (hasParseError || !existingRoot || !incomingRoot || existingRoot.localName !== incomingRoot.localName) {
+      return null;
+    }
+    const serializer = new XMLSerializer();
+    const existingChildren = new Set(Array.from(existingRoot.children).map((element) => serializer.serializeToString(element)));
+    let addedCount = 0;
+    for (const element of Array.from(incomingRoot.children)) {
+      if (!existingChildren.has(serializer.serializeToString(element))) {
+        existingRoot.appendChild(existingDocument.createTextNode('    '));
+        existingRoot.appendChild(existingDocument.importNode(element, true));
+        existingRoot.appendChild(existingDocument.createTextNode('\n'));
+        addedCount += 1;
+      }
+    }
+    return addedCount === 0 ? existingXml : `<?xml version="1.0" encoding="UTF-8"?>\n${serializer.serializeToString(existingRoot)}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Split a `Record<type, ListMetadataResult[]>` payload into retrieve-safe chunks that stay well
  * below Salesforce's 10,000-file retrieve limit. Bundle types get smaller per-chunk limits.
  */

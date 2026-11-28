@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { useDisposables } from '@jetstream/shared/ui-utils';
-import { delay, getErrorMessage, unSanitizeXml } from '@jetstream/shared/utils';
+import { delay, getErrorMessage } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -24,7 +24,7 @@ import { Fragment, FunctionComponent, useEffect, useMemo, useRef, useState } fro
 import ViewOrCompareMetadataEditorSummary from '../view-or-compare-metadata/ViewOrCompareMetadataEditorSummary';
 import { FileItemMetadata } from '../view-or-compare-metadata/viewOrCompareMetadataTypes';
 import { getEditorLanguage } from '../view-or-compare-metadata/viewOrCompareMetadataUtils';
-import { isPermissionXmlType, normalizeMetadataContent } from '../view-or-compare-metadata/xmlNormalizer';
+import { getDisplayContent, isPermissionXmlType } from '../view-or-compare-metadata/xmlNormalizer';
 import { STATUS_LABELS } from './OrgAlignmentComponentsTable';
 import { OrgAlignmentComponentItem, OrgAlignmentDeployDirection, OrgAlignmentDiffStatus } from './orgAlignmentTypes';
 import { isComponentDeployableInDirection } from './orgAlignmentUtils';
@@ -144,33 +144,14 @@ export const OrgAlignmentDiffModal: FunctionComponent<OrgAlignmentDiffModalProps
     return fileProps ? getEditorLanguage(fileProps) : 'xml';
   }, [activeFilePair]);
 
-  const sourceContent = useMemo(() => {
-    if (!activeFilePair?.source?.content) {
-      return '';
-    }
-    const raw = unSanitizeXml(activeFilePair.source.content);
-    return normalizePermissionXml
-      ? normalizeMetadataContent(raw, {
-          metadataType: activeFilePair.source.type,
-          fileName: activeFilePair.source.fileName,
-          normalizePermissionXml: true,
-        })
-      : raw;
-  }, [activeFilePair, normalizePermissionXml]);
-
-  const targetContent = useMemo(() => {
-    if (!activeFilePair?.target?.content) {
-      return '';
-    }
-    const raw = unSanitizeXml(activeFilePair.target.content);
-    return normalizePermissionXml
-      ? normalizeMetadataContent(raw, {
-          metadataType: activeFilePair.target.type,
-          fileName: activeFilePair.target.fileName,
-          normalizePermissionXml: true,
-        })
-      : raw;
-  }, [activeFilePair, normalizePermissionXml]);
+  const sourceContent = useMemo(
+    () => getDisplayContent(activeFilePair?.source, normalizePermissionXml),
+    [activeFilePair, normalizePermissionXml],
+  );
+  const targetContent = useMemo(
+    () => getDisplayContent(activeFilePair?.target, normalizePermissionXml),
+    [activeFilePair, normalizePermissionXml],
+  );
 
   const summaryTreeItem = useMemo<Maybe<TreeItems<FileItemMetadata>>>(() => {
     if (!activeFilePair) {

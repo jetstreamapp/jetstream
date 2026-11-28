@@ -1,3 +1,6 @@
+import { unSanitizeXml } from '@jetstream/shared/utils';
+import { Maybe } from '@jetstream/types';
+import { FilePropertiesWithContent } from './viewOrCompareMetadataTypes';
 /**
  * Canonical XML normalization for Salesforce Profile and Permission Set metadata.
  *
@@ -181,6 +184,20 @@ export function normalizeMetadataContent(content: string | undefined | null, opt
     return normalizePermissionXmlContent(content);
   }
   return content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+}
+
+/**
+ * File content as shown in the editors. With `normalizePermissionXml` profiles and permission sets are sorted so
+ * that both sides line up, otherwise the content is shown exactly as Salesforce returned it.
+ */
+export function getDisplayContent(
+  file: Maybe<Pick<FilePropertiesWithContent, 'content' | 'type' | 'fileName'>>,
+  normalizePermissionXml: boolean,
+): string {
+  const rawContent = unSanitizeXml(file?.content || '');
+  return file && normalizePermissionXml
+    ? normalizeMetadataContent(rawContent, { metadataType: file.type, fileName: file.fileName, normalizePermissionXml: true })
+    : rawContent;
 }
 
 /**

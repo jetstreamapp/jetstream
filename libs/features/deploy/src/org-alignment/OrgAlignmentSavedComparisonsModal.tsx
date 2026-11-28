@@ -219,7 +219,7 @@ export const OrgAlignmentSavedComparisonsModal: FunctionComponent<OrgAlignmentSa
                             ? 'All comparable types'
                             : `${formatNumber(comparison.selectedMetadataTypes.length)} custom types`}
                         {comparison.lastRunAt && (
-                          <span> · Last run {formatDistanceToNow(new Date(comparison.lastRunAt), { addSuffix: true })}</span>
+                          <span>, last run {formatDistanceToNow(new Date(comparison.lastRunAt), { addSuffix: true })}</span>
                         )}
                       </div>
                       {comparison.lastRunSummary && (
@@ -228,10 +228,10 @@ export const OrgAlignmentSavedComparisonsModal: FunctionComponent<OrgAlignmentSa
                             {formatNumber(comparison.lastRunSummary.different)} different
                           </Badge>
                           <Badge type="light" className="slds-m-right_xx-small">
-                            {formatNumber(comparison.lastRunSummary.onlyInSource)} only in A
+                            {formatNumber(comparison.lastRunSummary.onlyInSource)} only in source
                           </Badge>
                           <Badge type="light" className="slds-m-right_xx-small">
-                            {formatNumber(comparison.lastRunSummary.onlyInTarget)} only in B
+                            {formatNumber(comparison.lastRunSummary.onlyInTarget)} only in target
                           </Badge>
                           <Badge type="success">{formatNumber(comparison.lastRunSummary.same)} same</Badge>
                         </div>

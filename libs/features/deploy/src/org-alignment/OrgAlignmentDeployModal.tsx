@@ -19,13 +19,14 @@ import {
 import { fromJetstreamEvents, OrgLabelBadge } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { Fragment, FunctionComponent, useCallback, useMemo, useState } from 'react';
+import { Fragment, FunctionComponent, useMemo, useState } from 'react';
 import DeployMetadataToOrgStatusModal from '../deploy-to-different-org/DeployMetadataToOrgStatusModal';
 import DeployMetadataOptions from '../utils/DeployMetadataOptions';
+import { DeploymentSummaryList } from '../utils/DeploymentSummaryList';
 import { getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
-import { retrieveMetadataChunked } from '../view-or-compare-metadata/useViewOrCompareMetadata';
+import { retrieveMetadataChunked } from '../view-or-compare-metadata/retrieveMetadataChunked';
 import { OrgAlignmentComponentItem, OrgAlignmentDependencyFinding, OrgAlignmentDeployDirection } from './orgAlignmentTypes';
-import { componentsToListMetadataMap, getOverwrittenTargetComponentsMap } from './orgAlignmentUtils';
+import { componentsToListMetadataMap, getDeployFromAndTo, getDeployToItem, getOverwrittenTargetComponentsMap } from './orgAlignmentUtils';
 import { useDependencies } from './useDependencies';
 
 const DISABLED_OPTIONS = new Set<keyof DeployOptions>(['allowMissingFiles', 'autoUpdatePackage', 'purgeOnDelete', 'singlePackage']);
@@ -54,8 +55,7 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
 
-  const deploySourceOrg = direction === 'A_TO_B' ? sourceOrg : targetOrg;
-  const deployTargetOrg = direction === 'A_TO_B' ? targetOrg : sourceOrg;
+  const { from: deploySourceOrg, to: deployTargetOrg } = getDeployFromAndTo(sourceOrg, targetOrg, direction);
   const isTargetProduction = getOrgType(deployTargetOrg) === 'Production';
 
   const [step, setStep] = useState<'DEPENDENCIES' | 'BACKUP_AND_OPTIONS' | 'DEPLOY'>('DEPENDENCIES');
@@ -64,9 +64,11 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
   const [reviewKeys, setReviewKeys] = useState<string[]>(() => initialSelectedComponents.map(({ key }) => key));
 
   const [backupLoading, setBackupLoading] = useState(false);
-  const [backupCompleted, setBackupCompleted] = useState(false);
+  // The overwritten components covered by the downloaded backup or by the acknowledgment, so that
+  // selecting more components afterwards requires a new backup or acknowledgment
+  const [backedUpKeys, setBackedUpKeys] = useState<Set<string> | null>(null);
   const [backupError, setBackupError] = useState<string | null>(null);
-  const [acknowledgeWithoutBackup, setAcknowledgeWithoutBackup] = useState(false);
+  const [acknowledgedKeys, setAcknowledgedKeys] = useState<Set<string> | null>(null);
 
   // Default to Validate Only (checkOnly: true) so users validate before syncing
   const [deployOptions, setDeployOptions] = useState<DeployOptions>({
@@ -86,30 +88,22 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState(false);
   const [deployResultsData, setDeployResultsData] = useState<Record<string, unknown[]>>();
 
-  // Dependencies that were not part of the comparison, found by the dependency check so they can be added to the deployment
-  const [discoveredComponents, setDiscoveredComponents] = useState<OrgAlignmentComponentItem[]>([]);
-  const componentsAndDependencies = useMemo(() => {
-    const comparedKeys = new Set(allComponents.map(({ key }) => key));
-    return [...allComponents, ...discoveredComponents.filter(({ key }) => !comparedKeys.has(key))];
-  }, [allComponents, discoveredComponents]);
-
-  const handleComponentsDiscovered = useCallback((components: OrgAlignmentComponentItem[]) => {
-    setDiscoveredComponents((previous) => {
-      const knownKeys = new Set(previous.map(({ key }) => key));
-      const newComponents = components.filter(({ key }) => !knownKeys.has(key));
-      return newComponents.length > 0 ? [...previous, ...newComponents] : previous;
-    });
-  }, []);
-
-  const allComponentsByKey = useMemo(() => new Map(componentsAndDependencies.map((item) => [item.key, item])), [componentsAndDependencies]);
-
-  const selectedComponents = useMemo(
-    () =>
-      Array.from(selectedKeys)
-        .map((key) => allComponentsByKey.get(key))
-        .filter((item): item is OrgAlignmentComponentItem => Boolean(item)),
-    [allComponentsByKey, selectedKeys],
-  );
+  const {
+    componentsByKey: allComponentsByKey,
+    selectedComponents,
+    loading: dependenciesLoading,
+    findings: dependencyFindings,
+    toolingApiError,
+    recheck: recheckDependencies,
+  } = useDependencies({
+    deploySourceOrg,
+    deployTargetOrg,
+    selectedKeys,
+    comparedComponents: allComponents,
+    targetInventoryByType: destinationInventoryByType,
+    direction,
+    enabled: step === 'DEPENDENCIES',
+  });
 
   const selectedMetadataMap = useMemo(() => componentsToListMetadataMap(selectedComponents, direction), [direction, selectedComponents]);
 
@@ -118,26 +112,14 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
     [direction, selectedComponents],
   );
 
-  const overwrittenCount = useMemo(
-    () => Object.values(overwrittenTargetMap).reduce((total, items) => total + items.length, 0),
+  const overwrittenTargetKeys = useMemo(
+    () => Object.entries(overwrittenTargetMap).flatMap(([type, items]) => items.map(({ fullName }) => `${type}:${fullName}`)),
     [overwrittenTargetMap],
   );
+  const overwrittenCount = overwrittenTargetKeys.length;
 
-  const {
-    loading: dependenciesLoading,
-    findings: dependencyFindings,
-    toolingApiError,
-    recheck: recheckDependencies,
-  } = useDependencies({
-    deploySourceOrg,
-    deployTargetOrg,
-    onComponentsDiscovered: handleComponentsDiscovered,
-    selectedComponents,
-    allSourceComponents: componentsAndDependencies,
-    targetInventoryByType: destinationInventoryByType,
-    direction,
-    enabled: step === 'DEPENDENCIES',
-  });
+  const backupCompleted = !!backedUpKeys && overwrittenTargetKeys.every((key) => backedUpKeys.has(key));
+  const acknowledgeWithoutBackup = !!acknowledgedKeys && overwrittenTargetKeys.every((key) => acknowledgedKeys.has(key));
 
   // A dependency is listed once, along with every selected component that requires it
   const dependencyGroups = useMemo(() => {
@@ -201,8 +183,9 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
   }
 
   async function handleDownloadTargetBackup() {
+    const keysToBackUp = new Set(overwrittenTargetKeys);
     if (overwrittenCount === 0) {
-      setBackupCompleted(true);
+      setBackedUpKeys(keysToBackUp);
       return;
     }
     setBackupLoading(true);
@@ -212,7 +195,7 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
       const buffer = await zip.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE', compressionOptions: { level: 5 } });
       const filename = `${getFilename(deployTargetOrg, ['org-alignment-backup'])}.zip`;
       saveFile(buffer, filename, MIME_TYPES.ZIP);
-      setBackupCompleted(true);
+      setBackedUpKeys(keysToBackUp);
     } catch (ex) {
       setBackupError(getErrorMessage(ex));
     } finally {
@@ -230,6 +213,16 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
     }
     setDeployRunId((previous) => previous + 1);
     setStep('DEPLOY');
+  }
+
+  /** From a successful validation: deploys right away, unless a backup of what will be overwritten is still owed */
+  function handleDeployAfterValidation() {
+    if (backupSatisfied) {
+      handleStartDeploy(false);
+      return;
+    }
+    handleSwitchToActualDeploy();
+    setStep('BACKUP_AND_OPTIONS');
   }
 
   function handleSwitchToActualDeploy() {
@@ -259,6 +252,14 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
           destinationOrg={deployTargetOrg}
           selectedMetadata={selectedMetadataMap}
           deployOptions={deployOptions}
+          afterValidationAction={
+            deployAccess.allowed
+              ? {
+                  label: backupSatisfied ? `Deploy to ${deployTargetOrg.label}` : 'Continue to Deploy',
+                  onClick: handleDeployAfterValidation,
+                }
+              : undefined
+          }
           onGoBack={() => setStep('BACKUP_AND_OPTIONS')}
           onClose={onClose}
           onDownload={handleDeployResultsDownload}
@@ -353,7 +354,7 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
                     {typeLabel} ({items.length})
                   </div>
                   {items.map((item) => {
-                    const willOverwrite = direction === 'A_TO_B' ? Boolean(item.targetItem) : Boolean(item.sourceItem);
+                    const willOverwrite = Boolean(getDeployToItem(item, direction));
                     return (
                       <div key={item.key} className="slds-p-vertical_xxx-small">
                         <Checkbox
@@ -592,7 +593,7 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
                   id="org-alignment-skip-backup-ack"
                   label="I already have a backup or accept deploying without downloading a target backup"
                   checked={acknowledgeWithoutBackup}
-                  onChange={setAcknowledgeWithoutBackup}
+                  onChange={(checked) => setAcknowledgedKeys(checked ? new Set(overwrittenTargetKeys) : null)}
                 />
               )}
             </div>
@@ -624,31 +625,18 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
         </GridCol>
 
         <GridCol size={12} sizeLarge={6} className="slds-p-left_medium">
-          <h3 className="slds-text-heading_small slds-m-bottom_x-small">
-            Deployment Summary ({formatNumber(selectedComponents.length)} components)
-          </h3>
-          <div
-            className="slds-box slds-box_x-small slds-scrollable_y"
-            css={css`
-              max-height: 44vh;
-            `}
-          >
-            <ul className="slds-has-dividers_bottom">
-              {selectedComponents.map((component) => {
-                const willOverwrite = direction === 'A_TO_B' ? Boolean(component.targetItem) : Boolean(component.sourceItem);
-                return (
-                  <li key={component.key} className="slds-item slds-p-vertical_xx-small">
-                    <Grid align="spread" verticalAlign="center">
-                      <span>
-                        <strong>{component.type}</strong>: {component.fullName}
-                      </span>
-                      <Badge type={willOverwrite ? 'warning' : 'light'}>{willOverwrite ? 'Overwrite' : 'New'}</Badge>
-                    </Grid>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+          <DeploymentSummaryList
+            heading="Deployment Summary"
+            maxHeight="44vh"
+            items={selectedComponents.map((component) => {
+              const willOverwrite = Boolean(getDeployToItem(component, direction));
+              return {
+                type: component.type,
+                fullName: component.fullName,
+                trailingContent: <Badge type={willOverwrite ? 'warning' : 'light'}>{willOverwrite ? 'Overwrite' : 'New'}</Badge>,
+              };
+            })}
+          />
         </GridCol>
       </Grid>
     </Modal>

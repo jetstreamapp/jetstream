@@ -1,4 +1,4 @@
-import { ListMetadataResult, OrgAlignmentRunSummaryCounts, SalesforceOrgUi } from '@jetstream/types';
+import { ListMetadataResult, OrgAlignmentRunSummaryCounts, OrgAlignmentSelectionMode, SalesforceOrgUi } from '@jetstream/types';
 import { FilePropertiesWithContent } from '../view-or-compare-metadata/viewOrCompareMetadataTypes';
 
 export type OrgAlignmentDiffStatus = 'onlyInSource' | 'onlyInTarget' | 'different' | 'same' | 'uncomparable';
@@ -14,6 +14,15 @@ export type OrgAlignmentTypeExecutionStatus =
   | 'uncomparable';
 
 export type OrgAlignmentDeployDirection = 'A_TO_B' | 'B_TO_A';
+
+/** What the user chose to compare and how, kept together because a saved comparison restores all of it */
+export interface OrgAlignmentComparisonOptions {
+  selectionMode: OrgAlignmentSelectionMode;
+  /** Only used when `selectionMode` is custom */
+  customMetadataTypes: string[];
+  includeManaged: boolean;
+  normalizePermissionXml: boolean;
+}
 
 export interface OrgAlignmentFilePair {
   fileName: string;
