@@ -46,7 +46,7 @@ const createScratchOrg = createRoute(routeDefinition.createScratchOrg.validators
  * Connect a scratch org that was requested through Jetstream by redeeming the authorization code Salesforce stored on
  * its ScratchOrgInfo record. The desktop app is a public client, so the exchange is made without a client secret.
  */
-const connectScratchOrg = createRoute(routeDefinition.connectScratchOrg.validators, async ({ params, jetstreamConn }) => {
+const connectScratchOrg = createRoute(routeDefinition.connectScratchOrg.validators, async ({ params, jetstreamConn, org: devHubOrg }) => {
   try {
     const connectedApp = getConnectedApp();
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -72,7 +72,11 @@ const connectScratchOrg = createRoute(routeDefinition.connectScratchOrg.validato
       enableLogging: false,
     });
 
-    const salesforceOrg = await initConnectionFromOAuthResponse({ jetstreamConn: scratchOrgConn });
+    const salesforceOrg = await initConnectionFromOAuthResponse({
+      jetstreamConn: scratchOrgConn,
+      // Keep the scratch org next to its Dev Hub
+      orgGroupId: devHubOrg?.jetstreamOrganizationId,
+    });
     return handleJsonResponse({ ...salesforceOrg, accessToken: undefined });
   } catch (ex) {
     return handleErrorResponse(ex);

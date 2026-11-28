@@ -608,12 +608,11 @@ export function deleteOrgGroupAndAllOrgs(id: string) {
 
 export function moveSalesforceOrgToJetstreamOrg({ orgGroupId, uniqueId }: { uniqueId: string; orgGroupId: string | null }) {
   const jetstreamOrganizations = getOrgGroups().map((org) => {
+    // Removed everywhere first, so that an org that is already in its group is not listed there twice
+    org.orgs = org.orgs.filter((org) => org.uniqueId !== uniqueId);
     if (org.id === orgGroupId) {
       org.orgs.push({ uniqueId });
-    } else {
-      org.orgs = org.orgs.filter((org) => org.uniqueId !== uniqueId);
     }
-    org.orgs = Array.from(new Set(org.orgs));
     return org;
   });
 
