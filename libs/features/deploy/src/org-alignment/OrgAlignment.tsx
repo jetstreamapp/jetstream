@@ -167,9 +167,11 @@ export const OrgAlignment: FunctionComponent = () => {
 
   const [typeSelectorModalOpen, setTypeSelectorModalOpen] = useState(false);
   const [savedModalMode, setSavedModalMode] = useState<'BROWSE' | 'SAVE' | null>(null);
-  const [activeDiffComponent, setActiveDiffComponent] = useState<OrgAlignmentComponentItem | null>(null);
+  // Components being viewed are kept by key and read from the results, so that their status and files stay
+  // current when the content is retrieved or the comparison is re-evaluated while the modal is open
+  const [activeDiffKey, setActiveDiffKey] = useState<string | null>(null);
   // Set while several selected components are being viewed together
-  const [diffComponents, setDiffComponents] = useState<OrgAlignmentComponentItem[] | null>(null);
+  const [diffComponentKeys, setDiffComponentKeys] = useState<string[] | null>(null);
   const [deployModal, setDeployModal] = useState<{
     components: OrgAlignmentComponentItem[];
     direction: OrgAlignmentDeployDirection;
@@ -258,6 +260,20 @@ export const OrgAlignment: FunctionComponent = () => {
 
   const allComponents = useMemo(() => typeResults.flatMap((typeResult) => typeResult.components), [typeResults]);
 
+  const { activeDiffComponent, diffComponents } = useMemo(() => {
+    if (!activeDiffKey) {
+      return { activeDiffComponent: null, diffComponents: null };
+    }
+    const componentsByKey = new Map(allComponents.map((component) => [component.key, component]));
+    return {
+      activeDiffComponent: componentsByKey.get(activeDiffKey) ?? null,
+      diffComponents:
+        diffComponentKeys
+          ?.map((key) => componentsByKey.get(key))
+          .filter((component): component is OrgAlignmentComponentItem => Boolean(component)) ?? null,
+    };
+  }, [activeDiffKey, allComponents, diffComponentKeys]);
+
   const failedTypeNames = useMemo(
     () =>
       typeResults.filter(({ executionStatus }) => executionStatus === 'error' || executionStatus === 'canceled').map(({ type }) => type),
@@ -312,8 +328,9 @@ export const OrgAlignment: FunctionComponent = () => {
         includeManaged: run.options.includeManaged,
         normalizePermissionXml: run.options.normalizePermissionXml,
         skipRequestCache: Boolean(run.skipRequestCache),
-        onComplete: (summary) => {
-          if (!hasOrgAlignmentProAccess) {
+        onComplete: (summary, _results, { isRetry }) => {
+          // Retrying the types that failed is part of the same report
+          if (!hasOrgAlignmentProAccess && !isRetry) {
             setFreeReportsUsed(incrementFreeReportsUsedCount());
           }
           if (savedKey && hasDexieDb()) {
@@ -491,9 +508,9 @@ export const OrgAlignment: FunctionComponent = () => {
     [selectedComponents],
   );
 
-  const handleViewComponent = useCallback((component: OrgAlignmentComponentItem) => {
-    setDiffComponents(null);
-    setActiveDiffComponent(component);
+  const handleViewComponent = useCallback(({ key }: OrgAlignmentComponentItem) => {
+    setDiffComponentKeys(null);
+    setActiveDiffKey(key);
   }, []);
 
   function handleViewSelected() {
@@ -502,21 +519,13 @@ export const OrgAlignment: FunctionComponent = () => {
     }
     // Same order as the tree in the modal, which groups the components by type
     const componentsToView = orderObjectsBy(selectedViewableComponents, ['typeLabel', 'fullName']);
-    setDiffComponents(componentsToView.length > 1 ? componentsToView : null);
-    setActiveDiffComponent(componentsToView[0]);
-  }
-
-  function handleSelectDiffComponent(componentKey: string) {
-    // Looked up again so that a component whose content was already retrieved is not retrieved a second time
-    const component = allComponents.find(({ key }) => key === componentKey);
-    if (component) {
-      setActiveDiffComponent(component);
-    }
+    setDiffComponentKeys(componentsToView.length > 1 ? componentsToView.map(({ key }) => key) : null);
+    setActiveDiffKey(componentsToView[0].key);
   }
 
   function handleCloseDiff() {
-    setDiffComponents(null);
-    setActiveDiffComponent(null);
+    setDiffComponentKeys(null);
+    setActiveDiffKey(null);
   }
 
   function handleOpenDeploySelected() {
@@ -569,6 +578,13 @@ export const OrgAlignment: FunctionComponent = () => {
       typeFilter !== ALL_TYPES_FILTER ? (typeResults.find(({ type }) => type === typeFilter)?.typeLabel ?? typeFilter) : null,
     ].filter(Boolean);
     filterDescription = `${formatNumber(filteredComponents.length)} of ${formatNumber(allComponents.length)} components shown, filtered to ${activeFilters.join(' and ')}`;
+  }
+
+  let savedComparisonRerunDisabledReason: string | null = null;
+  if (progress.running) {
+    savedComparisonRerunDisabledReason = 'Wait for the comparison in progress to finish, or cancel it';
+  } else if (freeLimitReached) {
+    savedComparisonRerunDisabledReason = 'You have used your free drift report, upgrade to Jetstream Pro to run more';
   }
 
   let deployDisabledReason = deployAccess.deniedReason;
@@ -721,6 +737,7 @@ export const OrgAlignment: FunctionComponent = () => {
           activeSavedKey={activeSavedKey}
           currentSourceOrg={sourceOrg}
           currentTargetOrg={targetOrg}
+          rerunDisabledReason={savedComparisonRerunDisabledReason}
           onSave={handleSaveComparison}
           onLoad={handleLoadSavedComparison}
           onDelete={handleDeleteSavedComparison}
@@ -732,7 +749,7 @@ export const OrgAlignment: FunctionComponent = () => {
         <OrgAlignmentDiffModal
           component={activeDiffComponent}
           components={diffComponents ?? undefined}
-          onSelectComponent={handleSelectDiffComponent}
+          onSelectComponent={setActiveDiffKey}
           sourceOrg={sourceOrg}
           targetOrg={targetOrg}
           normalizePermissionXml={normalizePermissionXml}

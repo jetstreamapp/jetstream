@@ -18,6 +18,7 @@ import {
   buildFilePairsForComponent,
   buildTypeComparisonComponents,
   componentsToListMetadataMap,
+  getChildMetadataXmlBlocks,
   getOverwrittenTargetComponentsMap,
   groupRetrievedFilesByComponent,
   isComponentDeployableInDirection,
@@ -533,5 +534,71 @@ describe('child components whose parent file is split across retrieve chunks', (
     );
     expect(filesByComponent.has('Account.First__c')).toBe(true);
     expect(filesByComponent.has('Account.Missing__c')).toBe(false);
+  });
+});
+
+describe('folder metadata types', () => {
+  it('compares each folder on its own instead of collapsing a folder type into one component', () => {
+    const sourceItems = [
+      makeListItem({ type: 'ReportFolder', fullName: 'Sales/' }),
+      makeListItem({ type: 'ReportFolder', fullName: 'Service/' }),
+      makeListItem({ type: 'ReportFolder', fullName: 'SourceOnly/' }),
+    ];
+    const targetItems = [
+      makeListItem({ type: 'ReportFolder', fullName: 'Service/' }),
+      makeListItem({ type: 'ReportFolder', fullName: 'Sales/' }),
+    ];
+
+    const setDiff = setDiffListMetadata(sourceItems, targetItems);
+
+    expect(setDiff.candidates.map(({ fullName }) => fullName)).toEqual(['Sales/', 'Service/']);
+    expect(setDiff.candidates.every(({ fullName, source, target }) => source.fullName === fullName && target.fullName === fullName)).toBe(
+      true,
+    );
+    expect(setDiff.onlyInSource.map(({ fullName }) => fullName)).toEqual(['SourceOnly/']);
+  });
+
+  it('matches retrieved folder files, which have no trailing slash, to the folders they were listed as', () => {
+    const setDiff = setDiffListMetadata(
+      [makeListItem({ type: 'ReportFolder', fullName: 'Sales/' }), makeListItem({ type: 'ReportFolder', fullName: 'Service/' })],
+      [makeListItem({ type: 'ReportFolder', fullName: 'Sales/' }), makeListItem({ type: 'ReportFolder', fullName: 'Service/' })],
+    );
+    const getFolderFile = (type: string, fullName: string, content: string) =>
+      makeFileProps({ type, fullName, fileName: `reports/${fullName}-meta.xml`, content });
+
+    // Salesforce reports the folder with the type of its content, the folder type is covered as well
+    const { components, counts } = buildTypeComparisonComponents(
+      'ReportFolder',
+      setDiff,
+      [getFolderFile('Report', 'Sales', '<ReportFolder><name>Sales</name></ReportFolder>'), getFolderFile('ReportFolder', 'Service', 'a')],
+      [getFolderFile('Report', 'Sales', '<ReportFolder><name>Sales</name></ReportFolder>'), getFolderFile('ReportFolder', 'Service', 'b')],
+    );
+
+    expect(counts).toMatchObject({ same: 1, different: 1, uncomparable: 0 });
+    expect(components.map(({ fullName, status }) => [fullName, status])).toEqual([
+      ['Sales/', 'same'],
+      ['Service/', 'different'],
+    ]);
+    expect(groupRetrievedFilesByComponent([getFolderFile('Report', 'Sales', 'a')], new Set(['Sales/'])).has('Sales/')).toBe(true);
+  });
+});
+
+describe('getChildMetadataXmlBlocks', () => {
+  it('only reads the direct children of the file, the same tag names are used deeper down', () => {
+    const objectXml = `<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <compactLayouts>
+        <fullName>Summary</fullName>
+        <fields>Name</fields>
+    </compactLayouts>
+    <fields>
+        <valueSet><valueSetDefinition><value><fullName>Nested</fullName></value></valueSetDefinition></valueSet>
+        <fullName>Status__c</fullName>
+    </fields>
+</CustomObject>`;
+
+    const blocks = getChildMetadataXmlBlocks(objectXml, 'fields');
+
+    expect(Array.from(blocks?.keys() ?? [])).toEqual(['Status__c']);
   });
 });

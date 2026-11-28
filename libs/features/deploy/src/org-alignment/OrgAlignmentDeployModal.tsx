@@ -19,12 +19,13 @@ import {
 import { fromJetstreamEvents, OrgLabelBadge } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { Fragment, FunctionComponent, useMemo, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 import DeployMetadataToOrgStatusModal from '../deploy-to-different-org/DeployMetadataToOrgStatusModal';
 import DeployMetadataOptions from '../utils/DeployMetadataOptions';
 import { DeploymentSummaryList } from '../utils/DeploymentSummaryList';
 import { getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
 import { retrieveMetadataChunked } from '../view-or-compare-metadata/retrieveMetadataChunked';
+import { PROFILE_METADATA_TYPE } from './orgAlignmentMetadataClassification';
 import { OrgAlignmentComponentItem, OrgAlignmentDependencyFinding, OrgAlignmentDeployDirection } from './orgAlignmentTypes';
 import { componentsToListMetadataMap, getDeployFromAndTo, getDeployToItem, getOverwrittenTargetComponentsMap } from './orgAlignmentUtils';
 import { useDependencies } from './useDependencies';
@@ -52,6 +53,7 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
   onClose,
 }) => {
   const deployAccess = useOperationAccess('metadata.deploy');
+  const isMounted = useRef(true);
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
 
@@ -62,6 +64,13 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set(initialSelectedComponents.map(({ key }) => key)));
   // Everything offered for review. Unchecked components stay listed so they can be checked again.
   const [reviewKeys, setReviewKeys] = useState<string[]>(() => initialSelectedComponents.map(({ key }) => key));
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const [backupLoading, setBackupLoading] = useState(false);
   // The overwritten components covered by the downloaded backup or by the acknowledgment, so that
@@ -191,15 +200,23 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
     setBackupLoading(true);
     setBackupError(null);
     try {
-      const { zip } = await retrieveMetadataChunked(deployTargetOrg, overwrittenTargetMap);
+      const { zip } = await retrieveMetadataChunked(deployTargetOrg, overwrittenTargetMap, { isCanceled: () => !isMounted.current });
       const buffer = await zip.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE', compressionOptions: { level: 5 } });
+      // Closing the modal abandons the backup, a file must not be saved after the user has moved on
+      if (!isMounted.current) {
+        return;
+      }
       const filename = `${getFilename(deployTargetOrg, ['org-alignment-backup'])}.zip`;
       saveFile(buffer, filename, MIME_TYPES.ZIP);
       setBackedUpKeys(keysToBackUp);
     } catch (ex) {
-      setBackupError(getErrorMessage(ex));
+      if (isMounted.current) {
+        setBackupError(getErrorMessage(ex));
+      }
     } finally {
-      setBackupLoading(false);
+      if (isMounted.current) {
+        setBackupLoading(false);
+      }
     }
   }
 
@@ -284,6 +301,17 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
     );
   }
 
+  // Salesforce only includes the parts of a profile that relate to the other components of the same request, so
+  // a deployment (and its backup) carries less of a profile than the comparison, which retrieves all of it
+  const profileNotice = selectedComponents.some(({ type }) => type === PROFILE_METADATA_TYPE) && (
+    <ScopedNotification theme="warning" className="slds-m-bottom_small">
+      <strong>Profiles are deployed partially.</strong> Salesforce only deploys a profile's access to objects, fields, Apex classes,
+      Visualforce pages, tabs, layouts, record types, apps and flows for the components that are part of this deployment. Other differences
+      shown in the comparison are not deployed, and the target backup is limited in the same way. Include the related components to deploy
+      their access, and compare again afterwards to confirm the result.
+    </ScopedNotification>
+  );
+
   const directionTagline = (
     <div className="slds-align_absolute-center">
       <span>Deploying from</span>
@@ -337,6 +365,7 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
         }
         onClose={onClose}
       >
+        {profileNotice}
         <Grid wrap>
           <GridCol size={12} sizeLarge={5} className="slds-p-right_small slds-border_right">
             <h3 className="slds-text-heading_small slds-m-bottom_x-small">
@@ -547,6 +576,7 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
           a target backup and run validation before deploying.
         </ScopedNotification>
       )}
+      {profileNotice}
 
       <Grid wrap>
         <GridCol size={12} sizeLarge={6} className="slds-p-right_medium slds-border_right">

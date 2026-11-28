@@ -247,6 +247,7 @@ async function fetchListMetadataForItemsInFolder(
         selectedOrg,
         currFolderItem.map((folder) => ({ type, folder })),
         skipRequestCache,
+        skipCacheIfOlderThan,
       );
 
       // replace fullName with full path for reports

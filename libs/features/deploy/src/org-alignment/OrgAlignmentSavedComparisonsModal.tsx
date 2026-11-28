@@ -17,6 +17,8 @@ export interface OrgAlignmentSavedComparisonsModalProps {
   activeSavedKey: string | null;
   currentSourceOrg: SalesforceOrgUi | null;
   currentTargetOrg: SalesforceOrgUi | null;
+  /** Why a saved comparison cannot be run right now, e.g. another comparison is in progress */
+  rerunDisabledReason?: string | null;
   onSave: (payload: { key?: string; name: string; description?: string }) => Promise<void>;
   onLoad: (comparison: OrgAlignmentSavedComparison, autoRun: boolean) => void;
   onDelete: (key: string) => Promise<void>;
@@ -32,6 +34,7 @@ export const OrgAlignmentSavedComparisonsModal: FunctionComponent<OrgAlignmentSa
   activeSavedKey,
   currentSourceOrg,
   currentTargetOrg,
+  rerunDisabledReason,
   onSave,
   onLoad,
   onDelete,
@@ -241,8 +244,8 @@ export const OrgAlignmentSavedComparisonsModal: FunctionComponent<OrgAlignmentSa
                       <button
                         type="button"
                         className="slds-button slds-button_brand slds-m-right_xx-small"
-                        disabled={missingOrg}
-                        title={missingOrg ? 'Reconnect missing orgs before running' : 'Load and run comparison now'}
+                        disabled={missingOrg || Boolean(rerunDisabledReason)}
+                        title={missingOrg ? 'Reconnect missing orgs before running' : rerunDisabledReason || 'Load and run comparison now'}
                         onClick={() => {
                           onLoad(comparison, true);
                           onClose();

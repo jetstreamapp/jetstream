@@ -28,12 +28,26 @@ export function getComponentKey(metadataType: string, fullName: string): string 
   return `${metadataType}:${fullName}`;
 }
 
+/**
+ * Listings of some types are remembered for days. That is too long for a drift report, but remembering them for
+ * a while keeps it fast to compare again after adding a metadata type that was forgotten.
+ */
+export const LIST_METADATA_CACHE_MAX_AGE_MS = 1000 * 60 * 60;
+
+/**
+ * The name a component is compared by. `getFullNameFromListMetadata` replaces the name of a folder
+ * (e.g. `ReportFolder`) with its metadata type, which is what a package manifest needs but would turn every
+ * folder of a type into the same component here.
+ */
+function getComparableFullName(metadataType: string, fullName: string, namespace: ListMetadataResult['namespacePrefix']): string {
+  if (metadataType.endsWith('Folder')) {
+    return fullName;
+  }
+  return getFullNameFromListMetadata({ fullName, metadataType, namespace });
+}
+
 export function getNormalizedListItemName(item: Pick<ListMetadataResult, 'fullName' | 'namespacePrefix' | 'type'>): string {
-  return getFullNameFromListMetadata({
-    fullName: item.fullName,
-    metadataType: item.type,
-    namespace: item.namespacePrefix,
-  });
+  return getComparableFullName(item.type, item.fullName, item.namespacePrefix);
 }
 
 export interface ListMetadataSetDiffResult {
@@ -150,11 +164,7 @@ export function resolveLogicalComponentName(
       return pathParts[1];
     }
   }
-  return getFullNameFromListMetadata({
-    fullName: file.fullName,
-    metadataType: file.type,
-    namespace: file.namespacePrefix,
-  });
+  return getComparableFullName(file.type, file.fullName, file.namespacePrefix);
 }
 
 interface ContainerFileDefinition {
@@ -288,8 +298,14 @@ export function getChildMetadataXmlBlocks(parentXml: string, childTagName: strin
     }
     const serializer = new XMLSerializer();
     const blocksByName = new Map<string, string>();
-    for (const element of Array.from(xmlDocument.getElementsByTagName(childTagName))) {
-      const childName = element.getElementsByTagName('fullName')[0]?.textContent?.trim();
+    // Direct children only: the same tag names are used deeper in the file, e.g. the `fields` of a compact layout
+    for (const element of Array.from(xmlDocument.documentElement?.children ?? [])) {
+      if (element.localName !== childTagName) {
+        continue;
+      }
+      const childName = Array.from(element.children)
+        .find((childElement) => childElement.localName === 'fullName')
+        ?.textContent?.trim();
       if (childName && !blocksByName.has(childName)) {
         blocksByName.set(childName, serializer.serializeToString(element));
       }
@@ -341,9 +357,11 @@ export function groupRetrievedFilesByComponent(
       continue;
     }
     let componentName = resolveLogicalComponentName(file);
-    // Fallback to raw fullName if namespace-prefixed resolution didn't match a known candidate
-    if (!candidateNames.has(componentName) && candidateNames.has(file.fullName)) {
-      componentName = file.fullName;
+    if (!candidateNames.has(componentName)) {
+      // Fallback to the raw fullName if namespace-prefixed resolution didn't match a known candidate.
+      // Folders are listed with a trailing slash (`MyFolder/`) but retrieved without one.
+      const matchingName = [file.fullName, `${componentName}/`, `${file.fullName}/`].find((name) => candidateNames.has(name));
+      componentName = matchingName ?? componentName;
     }
 
     if (candidateNames.has(componentName)) {

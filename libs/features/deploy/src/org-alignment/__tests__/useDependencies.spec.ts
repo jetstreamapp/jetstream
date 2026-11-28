@@ -1,6 +1,6 @@
 /* eslint-disable import/first -- vi.mock calls must be evaluated before the modules they intercept are imported */
 import { ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const queryAllWithCacheUsingOffsetMock = vi.fn();
@@ -17,7 +17,13 @@ vi.mock('@jetstream/connected-ui', () => ({
 }));
 
 import { OrgAlignmentComponentItem } from '../orgAlignmentTypes';
-import { analyzeToolingDependencies, findStructuralDependencies, ToolingDependencyRecord, useDependencies } from '../useDependencies';
+import {
+  analyzeToolingDependencies,
+  findStructuralDependencies,
+  getAddableComponentsByKey,
+  ToolingDependencyRecord,
+  useDependencies,
+} from '../useDependencies';
 
 function makeListItem(type: string, fullName: string, id = '01p000000000001AAA'): ListMetadataResult {
   return {
@@ -362,5 +368,98 @@ describe('useDependencies hook', () => {
       referencedName: 'Project__c',
       addableComponentKey: 'CustomObject:Project__c',
     });
+  });
+
+  it('does not offer managed or uncomparable components, or ones missing from the org being deployed from', () => {
+    const managedObject = { ...makeComponent('CustomObject', 'pkg__Thing__c', 'uncomparable'), isManaged: true };
+    const uncomparableObject = makeComponent('CustomObject', 'Broken__c', 'uncomparable');
+    const sourceOnlyObject = makeComponent('CustomObject', 'Project__c', 'onlyInSource');
+    const componentsByKey = new Map([managedObject, uncomparableObject, sourceOnlyObject].map((component) => [component.key, component]));
+
+    expect(Array.from(getAddableComponentsByKey(componentsByKey, 'A_TO_B').keys())).toEqual([sourceOnlyObject.key]);
+    // Deploying the other way, the object does not exist in the org being deployed from
+    expect(getAddableComponentsByKey(componentsByKey, 'B_TO_A').size).toBe(0);
+  });
+
+  it('reports the managed parent object of a selected field as missing without offering to add it', async () => {
+    queryAllWithCacheUsingOffsetMock.mockResolvedValue({ queryResults: { records: [] } });
+    const field = makeComponent('CustomField', 'pkg__Thing__c.Status__c', 'onlyInSource', '00N000000000001AAA');
+    const managedObject = { ...makeComponent('CustomObject', 'pkg__Thing__c', 'uncomparable'), isManaged: true };
+
+    const { result } = renderHook(() =>
+      useDependencies({
+        deploySourceOrg: mockOrg,
+        selectedKeys: new Set([field.key]),
+        comparedComponents: [field, managedObject],
+        targetInventoryByType: { CustomObject: [] },
+        direction: 'A_TO_B',
+      }),
+    );
+
+    await waitFor(() => expect(result.current.checkedAt).not.toBeNull());
+    expect(result.current.findings).toHaveLength(1);
+    expect(result.current.findings[0]).toMatchObject({ referencedName: 'pkg__Thing__c', severity: 'missing' });
+    expect(result.current.findings[0].addableComponentKey).toBeUndefined();
+  });
+
+  it('looks up the parent object of components that have no Salesforce id', async () => {
+    const targetOrg = { uniqueId: 'org-b', label: 'Production' } as SalesforceOrgUi;
+    fetchListMetadataForTypeMock.mockImplementation(async (org: SalesforceOrgUi) => ({
+      error: null,
+      items: org.uniqueId === 'org-a' ? [makeListItem('CustomObject', 'Project__c', '01I000000000001AAA')] : [],
+    }));
+    const listView = makeComponent('ListView', 'Project__c.All', 'onlyInSource', '');
+
+    const { result } = renderHook(() =>
+      useDependencies({
+        deploySourceOrg: mockOrg,
+        deployTargetOrg: targetOrg,
+        selectedKeys: new Set([listView.key]),
+        comparedComponents: [listView],
+        targetInventoryByType: {},
+        direction: 'A_TO_B',
+      }),
+    );
+
+    await waitFor(() => expect(result.current.findings[0]?.severity).toBe('missing'));
+    expect(queryAllWithCacheUsingOffsetMock).not.toHaveBeenCalled();
+    expect(result.current.findings[0]).toMatchObject({ referencedName: 'Project__c', addableComponentKey: 'CustomObject:Project__c' });
+  });
+
+  it('lists a type again on recheck when it could not be listed before, without using remembered listings', async () => {
+    queryAllWithCacheUsingOffsetMock.mockResolvedValue({ queryResults: { records: [] } });
+    const targetOrg = { uniqueId: 'org-b', label: 'Production' } as SalesforceOrgUi;
+    fetchListMetadataForTypeMock.mockResolvedValue({ error: 'Request failed', items: [] });
+    const field = makeComponent('CustomField', 'Project__c.Status__c', 'onlyInSource', '00N000000000001AAA');
+    const selectedKeys = new Set([field.key]);
+    const comparedComponents = [field];
+    const targetInventoryByType = {};
+
+    const { result } = renderHook(() =>
+      useDependencies({
+        deploySourceOrg: mockOrg,
+        deployTargetOrg: targetOrg,
+        selectedKeys,
+        comparedComponents,
+        targetInventoryByType,
+        direction: 'A_TO_B',
+      }),
+    );
+
+    await waitFor(() => expect(result.current.checkedAt).not.toBeNull());
+    expect(result.current.findings[0]).toMatchObject({ referencedName: 'Project__c', severity: 'external' });
+    expect(fetchListMetadataForTypeMock).toHaveBeenCalledTimes(2);
+    expect(fetchListMetadataForTypeMock.mock.calls[0][2]).toMatchObject({ skipRequestCache: false });
+    expect(fetchListMetadataForTypeMock.mock.calls[0][2].skipCacheIfOlderThan).toBeGreaterThan(0);
+
+    fetchListMetadataForTypeMock.mockImplementation(async (org: SalesforceOrgUi) => ({
+      error: null,
+      items: org.uniqueId === 'org-a' ? [makeListItem('CustomObject', 'Project__c', '01I000000000001AAA')] : [],
+    }));
+    act(() => result.current.recheck());
+
+    await waitFor(() => expect(result.current.findings[0]?.severity).toBe('missing'));
+    expect(fetchListMetadataForTypeMock).toHaveBeenCalledTimes(4);
+    expect(fetchListMetadataForTypeMock.mock.calls[2][2]).toMatchObject({ skipRequestCache: true });
   });
 });

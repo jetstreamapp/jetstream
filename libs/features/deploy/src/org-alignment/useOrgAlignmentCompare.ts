@@ -41,6 +41,7 @@ import {
   createEmptySummaryCounts,
   getComponentFilesByName,
   getContainerParentType,
+  LIST_METADATA_CACHE_MAX_AGE_MS,
   setDiffListMetadata,
 } from './orgAlignmentUtils';
 
@@ -52,8 +53,15 @@ export interface RunOrgAlignmentParams {
   includeManaged: boolean;
   normalizePermissionXml: boolean;
   skipRequestCache?: boolean;
-  onComplete?: (summary: OrgAlignmentRunSummaryCounts, results: OrgAlignmentTypeResult[]) => void;
+  /** Called when the comparison finishes, and again each time failed types are retried (`isRetry`) */
+  onComplete?: OrgAlignmentCompleteCallback;
 }
+
+export type OrgAlignmentCompleteCallback = (
+  summary: OrgAlignmentRunSummaryCounts,
+  results: OrgAlignmentTypeResult[],
+  details: { isRetry: boolean },
+) => void;
 
 interface ActiveRunContext {
   sourceOrg: SalesforceOrgUi;
@@ -64,12 +72,6 @@ interface ActiveRunContext {
   sourceDescribeMap: Record<string, MetadataObject>;
   targetDescribeMap: Record<string, MetadataObject>;
 }
-
-/**
- * Listings are normally remembered for days. That is too long for a drift report, but remembering them for a
- * while keeps it fast to compare again after adding a metadata type that was forgotten.
- */
-const LIST_METADATA_CACHE_MAX_AGE_MS = 1000 * 60 * 60;
 
 function getListMetadataCacheOptions({ skipRequestCache }: Pick<ActiveRunContext, 'skipRequestCache'>) {
   return { skipRequestCache, skipCacheIfOlderThan: Date.now() - LIST_METADATA_CACHE_MAX_AGE_MS };
@@ -248,6 +250,7 @@ export function useOrgAlignmentCompare() {
   const runIdRef = useRef(0);
   const canceledRef = useRef(false);
   const activeRunContextRef = useRef<ActiveRunContext | null>(null);
+  const onCompleteRef = useRef<OrgAlignmentCompleteCallback | undefined>(undefined);
   const typeResultsRef = useRef<OrgAlignmentTypeResult[]>([]);
   // Kept from the comparison so that opening a profile retrieves it the same way it was compared
   const profileCompanionsRef = useRef<Record<OrgSide, Record<string, ListMetadataResult[]>>>({ source: {}, target: {} });
@@ -495,6 +498,7 @@ export function useOrgAlignmentCompare() {
     }: RunOrgAlignmentParams) => {
       const runId = ++runIdRef.current;
       canceledRef.current = false;
+      onCompleteRef.current = onComplete;
       setFatalError(null);
       setTypeResults([]);
       typeResultsRef.current = [];
@@ -594,7 +598,7 @@ export function useOrgAlignmentCompare() {
         });
 
         const summary = aggregateSummaryCounts(typeResultsRef.current);
-        onComplete?.(summary, typeResultsRef.current);
+        onComplete?.(summary, typeResultsRef.current, { isRetry: false });
         notifyUser('Org alignment comparison finished', {
           body: `${summary.different} different, ${summary.onlyInSource} only in ${sourceOrg.label}, ${summary.onlyInTarget} only in ${targetOrg.label}`,
           tag: 'org-alignment',
@@ -655,6 +659,10 @@ export function useOrgAlignmentCompare() {
 
       if (canceledRef.current) {
         markInFlightTypesCanceled();
+      } else {
+        // The results changed, so the time of the report and anything saved from it are brought up to date
+        setLastCompletedAt(new Date());
+        onCompleteRef.current?.(aggregateSummaryCounts(typeResultsRef.current), typeResultsRef.current, { isRetry: true });
       }
 
       setProgress({
@@ -733,6 +741,7 @@ export function useOrgAlignmentCompare() {
       if (!context || component.filesLoaded) {
         return component;
       }
+      const runId = runIdRef.current;
 
       const retrieveFromOrg = async (org: SalesforceOrgUi, item: ListMetadataResult | undefined, side: OrgSide) => {
         if (!item) {
@@ -774,6 +783,11 @@ export function useOrgAlignmentCompare() {
         filesLoaded: true,
       };
 
+      // The files belong to the comparison they were requested for, which may have been replaced in the meantime
+      if (!isMounted.current || runIdRef.current !== runId) {
+        return updatedComponent;
+      }
+
       updateTypeResult(component.type, (prev) => ({
         ...prev,
         components: prev.components.map((entry) => (entry.key === component.key ? updatedComponent : entry)),
@@ -788,6 +802,7 @@ export function useOrgAlignmentCompare() {
     runIdRef.current += 1;
     canceledRef.current = true;
     activeRunContextRef.current = null;
+    onCompleteRef.current = undefined;
     typeResultsRef.current = [];
     setTypeResults([]);
     setProgress(INITIAL_PROGRESS);

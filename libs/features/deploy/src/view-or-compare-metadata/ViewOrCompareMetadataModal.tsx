@@ -220,7 +220,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
 
   function handleExport() {
     if (targetOrg && sourceResultFiles && targetResultFiles) {
-      const exportData = generateExport(sourceResultFiles, targetResultFiles);
+      const exportData = generateExport(sourceResultFiles, targetResultFiles, { normalizePermissionXml });
       setDownloadFileModalConfig({
         open: true,
         org: sourceOrg,

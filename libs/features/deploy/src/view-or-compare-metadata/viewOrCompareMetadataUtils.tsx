@@ -297,7 +297,11 @@ export function getDeployMetadataFromComparisonTree(files: TreeItems<FileItemMet
     .filter((item) => item.type);
 }
 
-export function generateExport(sourceResultFiles: FilePropertiesWithContent[], targetResultFiles: FilePropertiesWithContent[]) {
+export function generateExport(
+  sourceResultFiles: FilePropertiesWithContent[],
+  targetResultFiles: FilePropertiesWithContent[],
+  options: { normalizePermissionXml?: boolean } = {},
+) {
   const targetFiles = groupByFlat(targetResultFiles || [], 'fileName');
   return orderObjectsBy(sourceResultFiles, 'fullName')
     .filter(({ fileName }) => fileName !== 'package.xml')
@@ -307,7 +311,7 @@ export function generateExport(sourceResultFiles: FilePropertiesWithContent[], t
         Type: source.type,
         Name: source.fullName,
         'Exists In Target Org': !!target,
-        'Content Matches': compare(source, targetFiles) ? 'TRUE' : 'FALSE',
+        'Content Matches': compare(source, targetFiles, options) ? 'TRUE' : 'FALSE',
         'File Name': source.fileName,
         'Source Created By': source.createdByName,
         'Source Created Date': source.createdDate,

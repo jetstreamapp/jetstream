@@ -78,7 +78,7 @@ export interface OrgAlignmentDiffModalProps {
 }
 
 export const OrgAlignmentDiffModal: FunctionComponent<OrgAlignmentDiffModalProps> = ({
-  component: initialComponent,
+  component,
   components,
   onSelectComponent,
   sourceOrg,
@@ -93,48 +93,43 @@ export const OrgAlignmentDiffModal: FunctionComponent<OrgAlignmentDiffModalProps
   const diffEditorRef = useRef<editor.IStandaloneDiffEditor | null>(null);
   const { addDisposable } = useDisposables();
 
-  const [component, setComponent] = useState<OrgAlignmentComponentItem>(initialComponent);
-  const [loading, setLoading] = useState(!initialComponent.filesLoaded);
+  // The component is always the current one from the comparison results: its files arrive there once they are
+  // retrieved, and its status follows the Normalize Permission XML setting
+  const [shownComponentKey, setShownComponentKey] = useState(component.key);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
   const [swapped, setSwapped] = useState(false);
   const [hideUnchangedRegions, setHideUnchangedRegions] = useState(false);
+  const loading = !component.filesLoaded && !loadError;
 
   // Choosing another component reuses the open modal, so everything that belongs to the previous one is reset
-  if (initialComponent.key !== component.key) {
-    setComponent(initialComponent);
-    setLoading(!initialComponent.filesLoaded);
+  if (component.key !== shownComponentKey) {
+    setShownComponentKey(component.key);
     setLoadError(null);
     setSelectedFileIndex(0);
   }
 
+  const latestComponentRef = useRef(component);
+  useEffect(() => {
+    latestComponentRef.current = component;
+  });
+
+  // Only the key and whether the files are loaded matter here, the component itself is replaced whenever the
+  // results change and its content must not be retrieved again each time
   useEffect(() => {
     if (component.filesLoaded) {
       return;
     }
     let active = true;
-    onLoadComponentFiles(component)
-      .then((loaded) => {
-        if (active) {
-          setLoadError(null);
-          setComponent(loaded);
-          setSelectedFileIndex(0);
-        }
-      })
-      .catch((ex) => {
-        if (active) {
-          setLoadError(getErrorMessage(ex));
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setLoading(false);
-        }
-      });
+    onLoadComponentFiles(latestComponentRef.current).catch((ex) => {
+      if (active) {
+        setLoadError(getErrorMessage(ex));
+      }
+    });
     return () => {
       active = false;
     };
-  }, [component, onLoadComponentFiles]);
+  }, [component.key, component.filesLoaded, onLoadComponentFiles]);
 
   const componentTreeItems = useMemo(() => (components && components.length > 1 ? getComponentTreeItems(components) : null), [components]);
 

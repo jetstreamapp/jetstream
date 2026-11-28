@@ -17,6 +17,7 @@ import {
   getDeployFromAndTo,
   getDeployFromItem,
   getNormalizedListItemName,
+  LIST_METADATA_CACHE_MAX_AGE_MS,
 } from './orgAlignmentUtils';
 
 const DEPENDENCY_QUERY_ID_BATCH_SIZE = 40;
@@ -98,8 +99,26 @@ function buildTargetNameLookup(targetInventoryByType: Record<string, ListMetadat
 }
 
 /**
+ * The components that can be added to a deployment in the chosen direction: managed package components and
+ * components that could not be compared are never deployed, and a component has to exist in the org being
+ * deployed from.
+ */
+export function getAddableComponentsByKey(
+  componentsByKey: ReadonlyMap<string, OrgAlignmentComponentItem>,
+  direction: OrgAlignmentDeployDirection,
+): Map<string, OrgAlignmentComponentItem> {
+  return new Map(
+    Array.from(componentsByKey).filter(
+      ([, component]) => !component.isManaged && component.status !== 'uncomparable' && Boolean(getDeployFromItem(component, direction)),
+    ),
+  );
+}
+
+/**
  * Structural pre-deploy dependency checks derived purely from component names and the destination
  * org's `listMetadata` inventory (works even when the Tooling dependency API has gaps).
+ *
+ * `allSourceComponentsByKey` are the components that may be offered to be added, see `getAddableComponentsByKey`.
  */
 export function findStructuralDependencies(
   selectedComponents: OrgAlignmentComponentItem[],
@@ -349,11 +368,14 @@ async function listMetadataTypeInBothOrgs(
   metadataType: string,
   deploySourceOrg: SalesforceOrgUi,
   deployTargetOrg: SalesforceOrgUi,
+  skipRequestCache: boolean,
 ): Promise<ListedMetadataType | null> {
   try {
+    // Same limit as the comparison, a dependency deployed a moment ago must not be reported as missing for days
+    const cacheOptions = { skipRequestCache, skipCacheIfOlderThan: Date.now() - LIST_METADATA_CACHE_MAX_AGE_MS };
     const [sourceResult, targetResult] = await Promise.all([
-      fetchListMetadataForType(deploySourceOrg, { type: metadataType, inFolder: false }),
-      fetchListMetadataForType(deployTargetOrg, { type: metadataType, inFolder: false }),
+      fetchListMetadataForType(deploySourceOrg, { type: metadataType, inFolder: false }, cacheOptions),
+      fetchListMetadataForType(deployTargetOrg, { type: metadataType, inFolder: false }, cacheOptions),
     ]);
     if (sourceResult.error || targetResult.error) {
       return null;
@@ -440,6 +462,8 @@ interface DependencyCheckParams {
   direction: OrgAlignmentDeployDirection;
   /** Types already looked up, added to as more are needed so that changing the selection does not list them again */
   listedTypesCache: Record<string, ListedMetadataType | null>;
+  /** Ask Salesforce again instead of using a remembered listing, set when the user asks for a recheck */
+  skipRequestCache: boolean;
   isStale: () => boolean;
 }
 
@@ -464,6 +488,7 @@ async function checkDependencies({
   targetInventoryByType,
   direction,
   listedTypesCache,
+  skipRequestCache,
   isStale,
 }: DependencyCheckParams): Promise<DependencyCheckResult | null> {
   const selectedComponentById = new Map<string, OrgAlignmentComponentItem>();
@@ -479,6 +504,10 @@ async function checkDependencies({
   for (const idChunk of splitArrayToMaxSize(Array.from(selectedComponentById.keys()), DEPENDENCY_QUERY_ID_BATCH_SIZE)) {
     if (isStale()) {
       return null;
+    }
+    // Nothing selected has an id, Salesforce cannot be asked about it
+    if (idChunk.length === 0) {
+      continue;
     }
     try {
       const response = await queryAllWithCacheUsingOffset<ToolingDependencyRecord>(
@@ -503,7 +532,7 @@ async function checkDependencies({
     }
     const typesToList = Array.from(new Set(referencedTypes)).filter((metadataType) => listedTypesCache[metadataType] === undefined);
     const listedResults = await Promise.all(
-      typesToList.map((metadataType) => listMetadataTypeInBothOrgs(metadataType, deploySourceOrg, deployTargetOrg)),
+      typesToList.map((metadataType) => listMetadataTypeInBothOrgs(metadataType, deploySourceOrg, deployTargetOrg, skipRequestCache)),
     );
     typesToList.forEach((metadataType, i) => {
       listedTypesCache[metadataType] = listedResults[i];
@@ -525,6 +554,7 @@ async function checkDependencies({
   );
   const allComponentsByKey = new Map(componentsByKey);
   discoveredComponents.forEach((component) => allComponentsByKey.set(component.key, component));
+  const addableComponentsByKey = getAddableComponentsByKey(allComponentsByKey, direction);
 
   const targetInventory = { ...targetInventoryByType };
   const listedTargetInventory: Record<string, ListMetadataResult[]> = {};
@@ -545,7 +575,7 @@ async function checkDependencies({
     findings: analyzeToolingDependencies(
       selectedComponents,
       records,
-      allComponentsByKey,
+      addableComponentsByKey,
       targetInventory,
       selectedComponentById,
       sourceItemNameById,
@@ -608,6 +638,7 @@ export function useDependencies({
   const isMounted = useRef(true);
   const requestIdRef = useRef(0);
   const listedTypesRef = useRef<Record<string, ListedMetadataType | null>>({});
+  const skipRequestCacheRef = useRef(false);
 
   const [loading, setLoading] = useState(false);
   const [toolingFindings, setToolingFindings] = useState<OrgAlignmentDependencyFinding[]>([]);
@@ -641,9 +672,12 @@ export function useDependencies({
   const structuralFindings = useMemo(
     () =>
       enabled
-        ? findStructuralDependencies(selectedComponents, componentsByKey, { ...listedTargetInventory, ...targetInventoryByType })
+        ? findStructuralDependencies(selectedComponents, getAddableComponentsByKey(componentsByKey, direction), {
+            ...listedTargetInventory,
+            ...targetInventoryByType,
+          })
         : [],
-    [componentsByKey, enabled, listedTargetInventory, selectedComponents, targetInventoryByType],
+    [componentsByKey, direction, enabled, listedTargetInventory, selectedComponents, targetInventoryByType],
   );
 
   const selectedSignature = useMemo(() => Array.from(selectedKeys).sort().join('|'), [selectedKeys]);
@@ -655,20 +689,39 @@ export function useDependencies({
     latestInputsRef.current = { deploySourceOrg, deployTargetOrg, selectedComponents, componentsByKey, targetInventoryByType };
   });
 
+  // Salesforce can only be asked about components that have an id. Without one there is still something to look
+  // up when the parent objects of the selection were not part of the comparison.
   const hasQueryableSelection =
     enabled &&
     Boolean(deploySourceOrg?.uniqueId) &&
-    selectedComponents.some((component) => isSalesforceId(getDeployFromItem(component, direction)?.id));
+    (selectedComponents.some((component) => isSalesforceId(getDeployFromItem(component, direction)?.id)) ||
+      (Boolean(deployTargetOrg) && !targetInventoryByType.CustomObject && getParentCustomObjectKeys(selectedComponents).size > 0));
+
+  // What was looked up belongs to one pair of orgs and one direction
+  const lookupScope = `${deploySourceOrg?.uniqueId}:${deployTargetOrg?.uniqueId}:${direction}`;
+  const lookupScopeRef = useRef(lookupScope);
 
   useEffect(() => {
     const requestId = ++requestIdRef.current;
     const { deploySourceOrg: currentSourceOrg, ...currentInputs } = latestInputsRef.current;
-    if (!hasQueryableSelection || !currentSourceOrg) {
-      return;
+    const scopeChanged = lookupScopeRef.current !== lookupScope;
+    if (scopeChanged) {
+      lookupScopeRef.current = lookupScope;
+      listedTypesRef.current = {};
     }
     const isStale = () => !isMounted.current || requestIdRef.current !== requestId;
 
     const runCheck = async () => {
+      if (scopeChanged) {
+        setDiscoveredComponents([]);
+        setListedTargetInventory({});
+        setToolingFindings([]);
+      }
+      if (!hasQueryableSelection || !currentSourceOrg) {
+        return;
+      }
+      const skipRequestCache = skipRequestCacheRef.current;
+      skipRequestCacheRef.current = false;
       setLoading(true);
       setToolingApiError(null);
       try {
@@ -677,6 +730,7 @@ export function useDependencies({
           deploySourceOrg: currentSourceOrg,
           direction,
           listedTypesCache: listedTypesRef.current,
+          skipRequestCache,
           isStale,
         });
         if (!result || isStale()) {
@@ -705,9 +759,12 @@ export function useDependencies({
 
     void Promise.resolve().then(runCheck);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deploySourceOrg?.uniqueId, direction, hasQueryableSelection, recheckCounter, selectedSignature]);
+  }, [direction, hasQueryableSelection, lookupScope, recheckCounter, selectedSignature]);
 
   const recheck = useCallback(() => {
+    // Everything is looked up again, including the types that could not be listed the last time
+    listedTypesRef.current = {};
+    skipRequestCacheRef.current = true;
     setRecheckCounter((count) => count + 1);
   }, []);
 

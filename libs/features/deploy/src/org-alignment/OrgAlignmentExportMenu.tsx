@@ -1,11 +1,11 @@
 import { generateCsv, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
 import { FileExtAllTypes, SalesforceOrgUi } from '@jetstream/types';
-import { DropDown, FileDownloadModal, Icon } from '@jetstream/ui';
+import { DropDown, FileDownloadModal, fireToast, Icon } from '@jetstream/ui';
 import { fromJetstreamEvents } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import copyToClipboard from 'copy-to-clipboard';
 import { useAtomValue } from 'jotai';
-import { Fragment, FunctionComponent, useMemo, useState } from 'react';
+import { Fragment, FunctionComponent, useState } from 'react';
 import { OrgAlignmentExportContext, OrgAlignmentTypeResult } from './orgAlignmentTypes';
 import {
   buildChangeReviewHtml,
@@ -70,20 +70,24 @@ export const OrgAlignmentExportMenu: FunctionComponent<OrgAlignmentExportMenuPro
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [fileDownload, setFileDownload] = useState<FileDownload | null>(null);
 
-  const exportContext = useMemo<OrgAlignmentExportContext | null>(
-    () =>
-      sourceOrg && targetOrg && typeResults.length > 0
-        ? { sourceOrg, targetOrg, generatedAt: generatedAt ?? new Date(), normalizePermissionXml, includeManaged, typeResults }
-        : null,
-    [generatedAt, includeManaged, normalizePermissionXml, sourceOrg, targetOrg, typeResults],
-  );
+  const canExport = Boolean(sourceOrg && targetOrg && typeResults.length > 0);
 
   function handleExportAction(actionId: string) {
-    const context = exportContext;
-    if (!context) {
+    if (!sourceOrg || !targetOrg || typeResults.length === 0) {
       return;
     }
+    const context: OrgAlignmentExportContext = {
+      sourceOrg,
+      targetOrg,
+      generatedAt: generatedAt ?? new Date(),
+      normalizePermissionXml,
+      includeManaged,
+      typeResults,
+    };
     const fileNameParts = ['org-alignment', context.sourceOrg.label, 'vs', context.targetOrg.label];
+    // The menu closes without any other sign that something was copied
+    const confirmCopied = (copied: 'Summary' | 'Components') => fireToast({ message: `${copied} copied to clipboard`, type: 'success' });
+
     if (actionId === EXPORT_ACTION_XLSX) {
       setFileDownload({ data: buildDriftReportWorkbookData(context), allowedTypes: ['xlsx'], fileNameParts });
     } else if (actionId === EXPORT_ACTION_CSV) {
@@ -92,12 +96,16 @@ export const OrgAlignmentExportMenu: FunctionComponent<OrgAlignmentExportMenuPro
       setFileDownload({ data: buildDriftReportFlatRows(context, false), allowedTypes: ['json'], fileNameParts });
     } else if (actionId === EXPORT_ACTION_COPY_MARKDOWN) {
       copyToClipboard(buildChangeReviewMarkdown(context));
+      confirmCopied('Summary');
     } else if (actionId === EXPORT_ACTION_COPY_HTML) {
       copyRichTextToClipboard(buildChangeReviewHtml(context), buildChangeReviewMarkdown(context));
+      confirmCopied('Summary');
     } else if (actionId === EXPORT_ACTION_COPY_EXCEL) {
       copyToClipboard(transformTabularDataToExcelStr(buildDriftReportFlatRows(context, false)), { format: 'text/plain' });
+      confirmCopied('Components');
     } else if (actionId === EXPORT_ACTION_COPY_CSV) {
       copyToClipboard(generateCsv(buildDriftReportFlatRows(context, false)), { format: 'text/plain' });
+      confirmCopied('Components');
     }
   }
 
@@ -130,7 +138,7 @@ export const OrgAlignmentExportMenu: FunctionComponent<OrgAlignmentExportMenuPro
             Export Report
           </span>
         }
-        disabled={disabled || !exportContext}
+        disabled={disabled || !canExport}
         items={[
           {
             id: EXPORT_ACTION_XLSX,
