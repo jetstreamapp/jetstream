@@ -1,4 +1,9 @@
-import { SCRATCH_ORG_NOT_REACHABLE_MESSAGE, ScratchOrgCreateRequestSchema, ScratchOrgInfoIdParamsSchema } from '@jetstream/api-types';
+import {
+  SCRATCH_ORG_NOT_REACHABLE_MESSAGE,
+  SCRATCH_ORG_PASSWORDLESS_REFUSED_MESSAGE,
+  ScratchOrgCreateRequestSchema,
+  ScratchOrgInfoIdParamsSchema,
+} from '@jetstream/api-types';
 import {
   ApiConnection,
   createScratchOrgInfo,
@@ -101,6 +106,8 @@ async function exchangeAuthCode(authCode: string, loginUrl: string) {
     if (ex instanceof ScratchOrgAuthCodeExchangeError && ex.isUnreachable) {
       throw new Error(`${SCRATCH_ORG_NOT_REACHABLE_MESSAGE}, new scratch orgs can take a few minutes to become available.`);
     }
-    throw new Error(`Salesforce did not accept the scratch org's authorization code. ${getErrorMessage(ex)}`);
+    throw new Error(
+      `${SCRATCH_ORG_PASSWORDLESS_REFUSED_MESSAGE}, Salesforce did not accept its authorization code. ${getErrorMessage(ex)}`,
+    );
   }
 }

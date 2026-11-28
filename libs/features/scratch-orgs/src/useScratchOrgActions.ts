@@ -1,4 +1,4 @@
-import { SCRATCH_ORG_NOT_REACHABLE_MESSAGE } from '@jetstream/api-types';
+import { SCRATCH_ORG_NOT_REACHABLE_MESSAGE, SCRATCH_ORG_PASSWORDLESS_REFUSED_MESSAGE } from '@jetstream/api-types';
 import { logger } from '@jetstream/shared/client-logger';
 import { connectScratchOrg, deleteOrg, getOrgs } from '@jetstream/shared/data';
 import { delay, getErrorMessage } from '@jetstream/shared/utils';
@@ -39,9 +39,14 @@ function getAbandonedMessage({ scratchOrg: { orgName, settings, objectSettings }
   }
 }
 
-/** A scratch org that cannot be reached yet can be tried again, every other refusal to connect it is final */
-export function isNotReachableYet(ex: unknown): boolean {
+/** A scratch org that cannot be reached yet can be tried again */
+function isNotReachableYet(ex: unknown): boolean {
   return getErrorMessage(ex).startsWith(SCRATCH_ORG_NOT_REACHABLE_MESSAGE);
+}
+
+/** Salesforce will never let this app connect the scratch org without a password, only the password login is left */
+export function isPasswordlessRefused(ex: unknown): boolean {
+  return getErrorMessage(ex).startsWith(SCRATCH_ORG_PASSWORDLESS_REFUSED_MESSAGE);
 }
 
 /** Ids of the rows that an action is running for, so that the row can show it and block a second click */

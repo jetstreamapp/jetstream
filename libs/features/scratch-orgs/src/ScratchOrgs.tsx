@@ -43,7 +43,7 @@ import ScratchOrgsTable from './components/ScratchOrgsTable';
 import { MAX_SCRATCH_ORGS } from './scratch-org-data.utils';
 import type { PendingScratchOrg, ScratchOrgConnectedApp, ScratchOrgRow } from './scratch-org.types';
 import { getScratchOrgLoginOrigin, toScratchOrgRows } from './scratch-org.utils';
-import { isNotReachableYet, useScratchOrgActions } from './useScratchOrgActions';
+import { isPasswordlessRefused, useScratchOrgActions } from './useScratchOrgActions';
 import { useScratchOrgs } from './useScratchOrgs';
 
 const HEIGHT_BUFFER = 170;
@@ -201,8 +201,9 @@ const ScratchOrgsForDevHub: FunctionComponent<ScratchOrgsForDevHubProps> = ({
         fireToast({ type: 'success', message: `${OrgName || SignupUsername || 'The scratch org'} is connected to Jetstream.` });
       } catch (ex) {
         fireToast({ type: 'error', message: getErrorMessage(ex) });
-        if (!isNotReachableYet(ex)) {
-          // Asking again gets the same answer, so the row offers the password login instead
+        if (isPasswordlessRefused(ex)) {
+          // Asking again gets the same answer, so the row offers the password login instead.
+          // Any other failure (network, server, session) is worth retrying, so the row keeps offering Connect.
           setPasswordlessRefusedIds((priorIds) => new Set(priorIds).add(Id));
         }
       }

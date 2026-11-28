@@ -1,4 +1,4 @@
-import { SCRATCH_ORG_NOT_REACHABLE_MESSAGE } from '@jetstream/api-types';
+import { SCRATCH_ORG_NOT_REACHABLE_MESSAGE, SCRATCH_ORG_PASSWORDLESS_REFUSED_MESSAGE } from '@jetstream/api-types';
 import { connectScratchOrg, deleteOrg, getOrgs } from '@jetstream/shared/data';
 import type { SalesforceOrgUi, ScratchOrgInfoRecord } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { deleteScratchOrg } from '../scratch-org-data.utils';
 import { deployScratchOrgSettings } from '../scratch-org-settings.utils';
 import type { PendingScratchOrg } from '../scratch-org.types';
-import { useScratchOrgActions } from '../useScratchOrgActions';
+import { isPasswordlessRefused, useScratchOrgActions } from '../useScratchOrgActions';
 
 vi.mock('@jetstream/shared/data', () => ({ connectScratchOrg: vi.fn(), deleteOrg: vi.fn(), getOrgs: vi.fn() }));
 vi.mock('@jetstream/ui', () => ({ fireToast: vi.fn() }));
@@ -248,5 +248,16 @@ describe('useScratchOrgActions', () => {
 
     await expect(result.current.remove({ Id: SCRATCH_ORG_INFO_ID, Status: 'Active' }, [scratchOrg])).rejects.toThrow('insufficient access');
     expect(deleteOrg).not.toHaveBeenCalled();
+  });
+});
+
+describe('isPasswordlessRefused', () => {
+  it('is true only for refusals that asking again cannot change', () => {
+    expect(
+      isPasswordlessRefused(new Error(`${SCRATCH_ORG_PASSWORDLESS_REFUSED_MESSAGE}, Salesforce did not accept its authorization code.`)),
+    ).toBe(true);
+    expect(isPasswordlessRefused(new Error(`${SCRATCH_ORG_NOT_REACHABLE_MESSAGE}, new scratch orgs can take a few minutes.`))).toBe(false);
+    expect(isPasswordlessRefused(new Error('Failed to fetch'))).toBe(false);
+    expect(isPasswordlessRefused(new Error('Request failed with status code 503'))).toBe(false);
   });
 });

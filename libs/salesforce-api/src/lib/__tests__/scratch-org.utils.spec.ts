@@ -1,4 +1,4 @@
-import { ScratchOrgCreateRequestSchema } from '@jetstream/api-types';
+import { SCRATCH_ORG_PASSWORDLESS_REFUSED_MESSAGE, ScratchOrgCreateRequestSchema } from '@jetstream/api-types';
 import { describe, expect, it, vi } from 'vitest';
 import type { ApiConnection } from '../connection';
 import {
@@ -191,6 +191,18 @@ describe('getScratchOrgAuthRequest', () => {
   it('refuses a scratch org that was requested with our consumer key but another callback', () => {
     const record = buildAuthRecord({ ConnectedAppCallbackUrl: 'https://evil.example.com/callback' });
     expect(getScratchOrgAuthRequest(record, CONNECTED_APP).blocker).toContain('different application');
+  });
+
+  it('marks the refusals that only a password login gets past', () => {
+    const otherApp = buildAuthRecord({ ConnectedAppConsumerKey: 'PlatformCLI' });
+    expect(getScratchOrgAuthRequest(otherApp, CONNECTED_APP).blocker).toMatch(new RegExp(`^${SCRATCH_ORG_PASSWORDLESS_REFUSED_MESSAGE}`));
+    expect(getScratchOrgAuthRequest(buildAuthRecord({ AuthCode: null }), CONNECTED_APP).blocker).toMatch(
+      new RegExp(`^${SCRATCH_ORG_PASSWORDLESS_REFUSED_MESSAGE}`),
+    );
+    // Not final: the status changes once Salesforce finishes
+    expect(getScratchOrgAuthRequest(buildAuthRecord({ Status: 'Creating' }), CONNECTED_APP).blocker).not.toMatch(
+      new RegExp(`^${SCRATCH_ORG_PASSWORDLESS_REFUSED_MESSAGE}`),
+    );
   });
 
   it('refuses a scratch org without an auth code or a valid login url', () => {

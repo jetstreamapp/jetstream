@@ -1,4 +1,4 @@
-import type { ScratchOrgCreateRequest } from '@jetstream/api-types';
+import { SCRATCH_ORG_PASSWORDLESS_REFUSED_MESSAGE, type ScratchOrgCreateRequest } from '@jetstream/api-types';
 import { SFDC_MY_DOMAIN_LOGIN_URL_REGEX } from '@jetstream/shared/constants';
 import type { ScratchOrgInfoStatus } from '@jetstream/types';
 import type { ApiConnection } from './connection';
@@ -125,13 +125,12 @@ export function getScratchOrgAuthRequest(
   }
   if (record.ConnectedAppConsumerKey !== connectedApp.consumerKey || record.ConnectedAppCallbackUrl !== connectedApp.callbackUrl) {
     return {
-      blocker:
-        'This scratch org was created with a different application, so it can only be connected here by logging in with its username and password.',
+      blocker: `${SCRATCH_ORG_PASSWORDLESS_REFUSED_MESSAGE}, it was created with a different application. Log in with its username and password to connect it here.`,
     };
   }
   const loginUrl = getScratchOrgAuthLoginUrl(record);
   if (!record.AuthCode) {
-    return { blocker: 'Salesforce did not provide an authorization code for this scratch org.' };
+    return { blocker: `${SCRATCH_ORG_PASSWORDLESS_REFUSED_MESSAGE}, Salesforce did not provide an authorization code for it.` };
   }
   if (!loginUrl) {
     return { blocker: 'This scratch org does not have a valid login url.' };

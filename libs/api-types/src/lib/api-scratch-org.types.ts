@@ -23,6 +23,13 @@ export const SCRATCH_ORG_DEFAULT_DURATION_DAYS = 7;
  */
 export const SCRATCH_ORG_NOT_REACHABLE_MESSAGE = 'The scratch org is not reachable yet';
 
+/**
+ * Starts every message for a scratch org that Salesforce will never let this app connect without a password: it was
+ * requested by another app, or its single-use authorization code is gone or was refused. The client then offers the
+ * password login instead. Any other failure (network, server, session) leaves the passwordless connection on offer.
+ */
+export const SCRATCH_ORG_PASSWORDLESS_REFUSED_MESSAGE = 'This scratch org cannot be connected without a password';
+
 const SalesforceIdSchema = z.string().regex(/^[a-zA-Z0-9]{15}(?:[a-zA-Z0-9]{3})?$/, 'Must be a 15 or 18 character Salesforce id');
 
 const optionalTrimmedString = (maxLength: number) =>
