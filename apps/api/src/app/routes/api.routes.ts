@@ -84,6 +84,7 @@ routes.get('/heartbeat', async (req: express.Request, res: express.Response) => 
       environment: ENV.ENVIRONMENT,
       stage: ENV.STAGE,
       defaultApiVersion: `v${ENV.SFDC_API_VERSION}`,
+      sfdcCallbackUrl: ENV.SFDC_CALLBACK_URL,
       google_appId: ENV.GOOGLE_APP_ID || 'unset',
       google_apiKey: ENV.GOOGLE_API_KEY || 'unset',
       google_clientId: ENV.GOOGLE_CLIENT_ID || 'unset',

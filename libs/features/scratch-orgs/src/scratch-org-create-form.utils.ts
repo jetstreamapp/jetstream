@@ -6,6 +6,7 @@ import {
 } from '@jetstream/api-types';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import type { SalesforceOrgUi } from '@jetstream/types';
+import isNil from 'lodash/isNil';
 import isPlainObject from 'lodash/isPlainObject';
 import isString from 'lodash/isString';
 import { z } from 'zod';
@@ -89,7 +90,7 @@ export function parseSettingsJson(settingsJson: string): {
     if (Object.keys(unknownKeys).length) {
       throw new Error(`Only "settings" and "objectSettings" are allowed here, found "${Object.keys(unknownKeys).join('", "')}"`);
     }
-    if ((settings && !isPlainObject(settings)) || (objectSettings && !isPlainObject(objectSettings))) {
+    if ([settings, objectSettings].some((section) => !isNil(section) && !isPlainObject(section))) {
       throw new Error('"settings" and "objectSettings" must be JSON objects');
     }
     const parsedSettings = (settings as ScratchOrgSettings) ?? null;

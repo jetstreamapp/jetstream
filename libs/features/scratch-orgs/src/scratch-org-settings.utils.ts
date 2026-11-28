@@ -25,6 +25,19 @@ function isValidElementName(name: string): boolean {
   return /^[A-Za-z_][A-Za-z0-9_.-]*$/.test(name);
 }
 
+/** Names anywhere below a setting that cannot be an element, which would otherwise be left out of what is deployed */
+function getInvalidNestedNames(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.flatMap(getInvalidNestedNames);
+  }
+  if (!isPlainObject(value)) {
+    return [];
+  }
+  return Object.entries(value as Record<string, unknown>).flatMap(([name, child]) =>
+    isValidElementName(name) ? getInvalidNestedNames(child) : [name],
+  );
+}
+
 function toXmlElements(name: string, value: unknown, depth: number): string[] {
   if (value === undefined || value === null || !isValidElementName(name)) {
     return [];
@@ -65,6 +78,10 @@ export function getScratchOrgSettingsProblems(
         problems.push(`"${name}" in ${section} is not a valid name`);
       } else if (!isPlainObject(value)) {
         problems.push(`"${name}" in ${section} must be an object`);
+      } else {
+        getInvalidNestedNames(value).forEach((nestedName) => {
+          problems.push(`"${nestedName}" in ${section} > ${name} is not a valid name`);
+        });
       }
     });
   });

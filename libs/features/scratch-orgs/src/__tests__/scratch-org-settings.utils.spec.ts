@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildScratchOrgSettingsPackage, hasScratchOrgSettings } from '../scratch-org-settings.utils';
+import { buildScratchOrgSettingsPackage, getScratchOrgSettingsProblems, hasScratchOrgSettings } from '../scratch-org-settings.utils';
+import type { ScratchOrgObjectSettings } from '../scratch-org.types';
 
 describe('hasScratchOrgSettings', () => {
   it('is true when either kind of setting is present', () => {
@@ -7,6 +8,38 @@ describe('hasScratchOrgSettings', () => {
     expect(hasScratchOrgSettings({}, {})).toBe(false);
     expect(hasScratchOrgSettings({ mobileSettings: {} }, null)).toBe(true);
     expect(hasScratchOrgSettings(null, { account: { sharingModel: 'private' } })).toBe(true);
+  });
+});
+
+describe('getScratchOrgSettingsProblems', () => {
+  it('has nothing to report for settings that can be deployed', () => {
+    expect(
+      getScratchOrgSettingsProblems(
+        { securitySettings: { passwordPolicies: { minimumPasswordLength: 'TenCharacters' } } },
+        { account: { sharingModel: 'private' } },
+      ),
+    ).toEqual([]);
+  });
+
+  it('reports sections that are not valid names or objects', () => {
+    expect(getScratchOrgSettingsProblems({ 'bad name': {}, mobileSettings: true }, null)).toEqual([
+      '"bad name" in settings is not a valid name',
+      '"mobileSettings" in settings must be an object',
+    ]);
+  });
+
+  it('reports invalid names at any depth, which would otherwise be left out of the deployment', () => {
+    expect(
+      getScratchOrgSettingsProblems(
+        { securitySettings: { passwordPolicies: { 'minimum length': 8 }, networkAccess: [{ 'ip range': '10.0.0.0' }] } },
+        // From user supplied JSON, so it is not limited to the keys of the type
+        { account: { 'sharing model': 'private' } } as ScratchOrgObjectSettings,
+      ),
+    ).toEqual([
+      '"minimum length" in settings > securitySettings is not a valid name',
+      '"ip range" in settings > securitySettings is not a valid name',
+      '"sharing model" in objectSettings > account is not a valid name',
+    ]);
   });
 });
 

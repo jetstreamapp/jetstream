@@ -26,6 +26,7 @@ router.get('/api/heartbeat', async () => {
     appInfo: getDefaultAppState({
       serverUrl: ENV.SERVER_URL,
       environment: ENV.ENVIRONMENT,
+      sfdcCallbackUrl: ENV.DESKTOP_SFDC_CALLBACK_URL,
     }),
   };
   return handleJsonResponse(result);

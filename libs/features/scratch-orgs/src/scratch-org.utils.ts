@@ -111,19 +111,56 @@ export function formatDateValue(value: string | null | undefined, dateFormat: st
   return Number.isNaN(date.getTime()) ? null : formatDate(date, dateFormat);
 }
 
-const OAUTH_CALLBACK_PATH = '/oauth/sfdc/callback';
-const DESKTOP_OAUTH_CALLBACK_URL = `jetstream://addOrg${OAUTH_CALLBACK_PATH}`;
+/** @returns the origin of a scratch org's login url, which is all the login flow accepts, or null when there is none to use */
+export function getScratchOrgLoginOrigin(loginUrl: Maybe<string>): string | null {
+  if (!loginUrl) {
+    return null;
+  }
+  try {
+    const { origin, protocol } = new URL(loginUrl);
+    return protocol === 'https:' ? origin : null;
+  } catch {
+    return null;
+  }
+}
+
+const DESKTOP_CALLBACK_PROTOCOL = 'jetstream:';
 
 /**
- * Jetstream requests scratch orgs with its own OAuth callback, which is the Jetstream server's on the web and a
- * `jetstream://` deep link on desktop.
- * @param serverUrl the Jetstream server the user is on, e.g. `https://getjetstream.app`
+ * The other Jetstream app that a scratch org was requested for. This only words the explanation for why a password
+ * is needed, so it is recognized loosely: the desktop app by its deep link, the web app by the server it is hosted on.
  */
-export function getCreatedWith({ ConnectedAppCallbackUrl }: ScratchOrgInfoRecord, serverUrl: string): ScratchOrgConnectedApp | null {
-  if (ConnectedAppCallbackUrl === DESKTOP_OAUTH_CALLBACK_URL) {
-    return 'desktop';
+function getOtherConnectedApp(
+  callbackUrl: string,
+  { connectedApp, serverUrl }: Pick<ScratchOrgRowOptions, 'connectedApp' | 'serverUrl'>,
+): ScratchOrgConnectedApp | null {
+  try {
+    const { protocol, origin } = new URL(callbackUrl);
+    if (connectedApp === 'web') {
+      return protocol === DESKTOP_CALLBACK_PROTOCOL ? 'desktop' : null;
+    }
+    return origin === new URL(serverUrl).origin ? 'web' : null;
+  } catch {
+    return null;
   }
-  return ConnectedAppCallbackUrl === `${serverUrl.replace(/\/+$/, '')}${OAUTH_CALLBACK_PATH}` ? 'web' : null;
+}
+
+/**
+ * The Jetstream app a scratch org was requested for. Salesforce stores the OAuth callback of the connected app that
+ * requested it, and the app the user is in reports the callback it requests scratch orgs with (`callbackUrl`), so a
+ * match is exactly the scratch orgs this app can connect without a password.
+ */
+export function getCreatedWith(
+  { ConnectedAppCallbackUrl }: ScratchOrgInfoRecord,
+  { connectedApp, callbackUrl, serverUrl }: Pick<ScratchOrgRowOptions, 'connectedApp' | 'callbackUrl' | 'serverUrl'>,
+): ScratchOrgConnectedApp | null {
+  if (!ConnectedAppCallbackUrl) {
+    return null;
+  }
+  if (ConnectedAppCallbackUrl === callbackUrl) {
+    return connectedApp;
+  }
+  return getOtherConnectedApp(ConnectedAppCallbackUrl, { connectedApp, serverUrl });
 }
 
 const CONNECTED_APP_LABELS: Record<ScratchOrgConnectedApp, string> = {
@@ -149,7 +186,9 @@ export function getLoginGuidance(createdWith: ScratchOrgConnectedApp | null, con
 export interface ScratchOrgRowOptions {
   /** The Jetstream app the user is in */
   connectedApp: ScratchOrgConnectedApp;
-  /** The Jetstream server the user is on, its OAuth callback identifies the scratch orgs requested on the web */
+  /** The OAuth callback this app requests scratch orgs with, as reported by its server. Nothing can be matched without it */
+  callbackUrl: Maybe<string>;
+  /** The Jetstream server the user is on */
   serverUrl: string;
   /** Ids of the ScratchOrgInfo records whose passwordless connection Salesforce refused, they fall back to a password */
   passwordlessRefusedIds?: ReadonlySet<string>;
@@ -159,11 +198,11 @@ export interface ScratchOrgRowOptions {
 export function toScratchOrgRows(
   records: ScratchOrgInfoRecord[],
   orgs: SalesforceOrgUi[],
-  { connectedApp, serverUrl, passwordlessRefusedIds, now = new Date() }: ScratchOrgRowOptions,
+  { connectedApp, callbackUrl, serverUrl, passwordlessRefusedIds, now = new Date() }: ScratchOrgRowOptions,
 ): ScratchOrgRow[] {
   return records.map((record) => {
     const displayStatus = getDisplayStatus(record, now);
-    const createdWith = getCreatedWith(record, serverUrl);
+    const createdWith = getCreatedWith(record, { connectedApp, callbackUrl, serverUrl });
     // A deleted scratch org's id is never reused, but its connections in Jetstream are dead either way
     const connectedOrgs = displayStatus === 'Deleted' ? [] : findConnectedOrgs(record, orgs);
     return {

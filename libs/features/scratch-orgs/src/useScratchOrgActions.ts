@@ -25,6 +25,20 @@ interface PendingEntry {
   step: PendingScratchOrgStep;
 }
 
+/** What to tell the user about a scratch org whose follow-up work ended early, which depends on how far it got */
+function getAbandonedMessage({ scratchOrg: { orgName, settings, objectSettings }, step }: PendingEntry): string {
+  switch (step) {
+    case 'creating':
+      return `Jetstream stopped waiting for "${orgName}". Salesforce is still creating it, connect it from the Scratch Orgs page once it is active.`;
+    case 'connecting': {
+      const settingsNote = hasScratchOrgSettings(settings, objectSettings) ? ' Its settings were not deployed.' : '';
+      return `Jetstream stopped waiting for "${orgName}". Salesforce created it, connect it from the Scratch Orgs page if it is not in your list of orgs.${settingsNote}`;
+    }
+    case 'deploying-settings':
+      return `Scratch org "${orgName}" is connected, but Jetstream stopped waiting for its settings to deploy.`;
+  }
+}
+
 /** A scratch org that cannot be reached yet can be tried again, every other refusal to connect it is final */
 export function isNotReachableYet(ex: unknown): boolean {
   return getErrorMessage(ex).startsWith(SCRATCH_ORG_NOT_REACHABLE_MESSAGE);
@@ -99,15 +113,9 @@ export function useScratchOrgActions(devHubOrg: SalesforceOrgUi, records: Scratc
   // Pending work belongs to the Dev Hub it was started on
   useEffect(() => {
     return () => {
-      const abandonedNames = Object.values(pendingRef.current)
+      Object.values(pendingRef.current)
         .filter(({ scratchOrg }) => scratchOrg.connect)
-        .map(({ scratchOrg }) => `"${scratchOrg.orgName}"`);
-      if (abandonedNames.length) {
-        fireToast({
-          type: 'warning',
-          message: `Jetstream stopped waiting for ${abandonedNames.join(', ')}. Salesforce is still creating it, connect it from the Scratch Orgs page once it is active.`,
-        });
-      }
+        .forEach((abandonedEntry) => fireToast({ type: 'warning', message: getAbandonedMessage(abandonedEntry) }));
       setPending({});
       resetConnecting();
       resetDeleting();
@@ -209,7 +217,7 @@ export function useScratchOrgActions(devHubOrg: SalesforceOrgUi, records: Scratc
 
   const finishPendingScratchOrg = useCallback(
     async ({ scratchOrgInfoId, orgName, connect: shouldConnect, settings, objectSettings }: PendingScratchOrg) => {
-      // The Dev Hub switch already told the user that the wait was over
+      // Leaving the page or the Dev Hub already told the user where the work ended, so nothing more is started or reported
       const isAbandoned = createAbandonCheck();
       const setStep = (step: PendingScratchOrgStep) => {
         if (!isAbandoned()) {
@@ -239,19 +247,26 @@ export function useScratchOrgActions(devHubOrg: SalesforceOrgUi, records: Scratc
           }
           return;
         }
+        if (isAbandoned()) {
+          return;
+        }
         if (hasScratchOrgSettings(settings, objectSettings)) {
           setStep('deploying-settings');
           try {
             await deployScratchOrgSettings(scratchOrg, { settings, objectSettings, apiVersion: defaultApiVersion.replace('v', '') });
           } catch (ex) {
-            fireToast({
-              type: 'warning',
-              message: `Scratch org "${orgName}" was created and connected, but its settings could not be deployed. ${getErrorMessage(ex)}`,
-            });
+            if (!isAbandoned()) {
+              fireToast({
+                type: 'warning',
+                message: `Scratch org "${orgName}" was created and connected, but its settings could not be deployed. ${getErrorMessage(ex)}`,
+              });
+            }
             return;
           }
         }
-        fireToast({ type: 'success', message: `Scratch org "${orgName}" is ready and connected to Jetstream.` });
+        if (!isAbandoned()) {
+          fireToast({ type: 'success', message: `Scratch org "${orgName}" is ready and connected to Jetstream.` });
+        }
       } finally {
         if (!isAbandoned()) {
           stopTracking(scratchOrgInfoId);

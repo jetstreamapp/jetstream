@@ -196,6 +196,28 @@ describe('useScratchOrgActions', () => {
     expect(connectScratchOrg).not.toHaveBeenCalled();
   });
 
+  it('starts and reports nothing more for a scratch org that was being connected when the Dev Hub was switched', async () => {
+    let finishConnecting: (org: SalesforceOrgUi) => void = () => undefined;
+    vi.mocked(connectScratchOrg).mockReturnValue(new Promise((resolve) => (finishConnecting = resolve)));
+    const { result, rerender } = renderActions();
+
+    act(() => result.current.trackPendingScratchOrg(buildPending({ settings: { mobileSettings: {} } })));
+    rerender({ org: devHubOrg, records: [buildRecord('Active')] });
+    await waitFor(() => expect(result.current.pendingSteps).toEqual({ [SCRATCH_ORG_INFO_ID]: 'connecting' }));
+
+    rerender({ org: otherDevHubOrg, records: [] });
+    await act(async () => finishConnecting(scratchOrg));
+
+    expect(deployScratchOrgSettings).not.toHaveBeenCalled();
+    expect(getToasts()).toEqual([
+      {
+        type: 'warning',
+        message:
+          'Jetstream stopped waiting for "Feature Spike". Salesforce created it, connect it from the Scratch Orgs page if it is not in your list of orgs. Its settings were not deployed.',
+      },
+    ]);
+  });
+
   it('keeps pending work when the Dev Hub object is replaced by a refetch of the orgs', async () => {
     const { result, rerender } = renderActions([buildRecord('Creating')]);
 

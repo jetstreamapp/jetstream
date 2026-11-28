@@ -34,7 +34,7 @@ import {
 } from '@jetstream/ui/app-state';
 import { formatDate } from 'date-fns/format';
 import { useAtomValue, useSetAtom } from 'jotai';
-import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import CreateScratchOrgModal from './components/CreateScratchOrgModal';
 import ScratchOrgDetailPanel from './components/ScratchOrgDetailPanel';
@@ -42,7 +42,7 @@ import ScratchOrgLimits from './components/ScratchOrgLimits';
 import ScratchOrgsTable from './components/ScratchOrgsTable';
 import { MAX_SCRATCH_ORGS } from './scratch-org-data.utils';
 import type { PendingScratchOrg, ScratchOrgConnectedApp, ScratchOrgRow } from './scratch-org.types';
-import { toScratchOrgRows } from './scratch-org.utils';
+import { getScratchOrgLoginOrigin, toScratchOrgRows } from './scratch-org.utils';
 import { isNotReachableYet, useScratchOrgActions } from './useScratchOrgActions';
 import { useScratchOrgs } from './useScratchOrgs';
 
@@ -67,12 +67,48 @@ export interface ScratchOrgsProps {
   onAddOrgHandlerFn?: AddOrgHandlerFn;
 }
 
-export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = ({ connectedApp, onAddOrgHandlerFn = addOrg }) => {
+export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = (props) => {
   useTitle(TITLES.SCRATCH_ORGS);
-  const navigate = useNavigate();
   const devHubOrg = useAtomValue(selectedOrgState);
+  // These are how the user likes to see the list, so they outlive a switch to another Dev Hub
+  const [includeDeleted, setIncludeDeleted] = useState(false);
+  const [onlyMine, setOnlyMine] = useState(false);
+
+  // Everything else on the page (selection, search, pending work) describes one Dev Hub's scratch orgs, and starts over with the next
+  return (
+    <ScratchOrgsForDevHub
+      key={devHubOrg.uniqueId}
+      {...props}
+      devHubOrg={devHubOrg}
+      includeDeleted={includeDeleted}
+      onlyMine={onlyMine}
+      onIncludeDeletedChange={setIncludeDeleted}
+      onOnlyMineChange={setOnlyMine}
+    />
+  );
+};
+
+interface ScratchOrgsForDevHubProps extends ScratchOrgsProps {
+  devHubOrg: SalesforceOrgUi;
+  includeDeleted: boolean;
+  onlyMine: boolean;
+  onIncludeDeletedChange: (includeDeleted: boolean) => void;
+  onOnlyMineChange: (onlyMine: boolean) => void;
+}
+
+const ScratchOrgsForDevHub: FunctionComponent<ScratchOrgsForDevHubProps> = ({
+  connectedApp,
+  onAddOrgHandlerFn = addOrg,
+  devHubOrg,
+  includeDeleted,
+  onlyMine,
+  onIncludeDeletedChange,
+  onOnlyMineChange,
+}) => {
+  const navigate = useNavigate();
+  const isMounted = useRef(true);
   const orgs = useAtomValue(salesforceOrgsState);
-  const { serverUrl } = useAtomValue(applicationCookieState);
+  const { serverUrl, sfdcCallbackUrl } = useAtomValue(applicationCookieState);
   const setSelectedOrgId = useSetAtom(selectedOrgIdState);
   const setActiveOrgGroup = useSetAtom(ActiveOrgGroupState);
   const createAccess = useOperationAccess('records.write');
@@ -80,8 +116,6 @@ export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = ({ connectedApp,
   const connectAccess = useOperationAccess('orgs.connect');
   const deployAccess = useOperationAccess('metadata.deploy');
 
-  const [includeDeleted, setIncludeDeleted] = useState(false);
-  const [onlyMine, setOnlyMine] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -103,8 +137,8 @@ export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = ({ connectedApp,
   );
 
   const rows = useMemo(
-    () => toScratchOrgRows(records, orgs, { connectedApp, serverUrl, passwordlessRefusedIds }),
-    [records, orgs, connectedApp, serverUrl, passwordlessRefusedIds],
+    () => toScratchOrgRows(records, orgs, { connectedApp, callbackUrl: sfdcCallbackUrl, serverUrl, passwordlessRefusedIds }),
+    [records, orgs, connectedApp, sfdcCallbackUrl, serverUrl, passwordlessRefusedIds],
   );
   const filteredRows = useMemo(() => {
     const ownRows = onlyMine ? rows.filter(({ CreatedById }) => CreatedById?.slice(0, 15) === devHubOrg.userId?.slice(0, 15)) : rows;
@@ -112,18 +146,28 @@ export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = ({ connectedApp,
   }, [devHubOrg.userId, onlyMine, rows, searchTerm]);
   const selectedRow = useMemo(() => rows.find(({ Id }) => Id === selectedId) ?? null, [rows, selectedId]);
 
-  // The selection, filters and pagination describe the prior Dev Hub's scratch orgs
   useEffect(() => {
-    setSelectedId(null);
-    setPasswordlessRefusedIds(new Set());
-    setCreateModalOpen(false);
-    setSearchTerm('');
-    setVisibleCount(PAGE_SIZE);
-  }, [devHubOrg.uniqueId]);
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
-  useEffect(() => {
+  /** A different set of rows starts from its first page */
+  function handleSearchTermChange(value: string) {
+    setSearchTerm(value);
     setVisibleCount(PAGE_SIZE);
-  }, [includeDeleted, onlyMine, searchTerm]);
+  }
+
+  function handleOnlyMineChange(value: boolean) {
+    onOnlyMineChange(value);
+    setVisibleCount(PAGE_SIZE);
+  }
+
+  function handleIncludeDeletedChange(value: boolean) {
+    onIncludeDeletedChange(value);
+    setVisibleCount(PAGE_SIZE);
+  }
 
   // A scratch org that left the list (deleted elsewhere, or filtered out) should not reopen its panel later
   useEffect(() => {
@@ -134,12 +178,20 @@ export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = ({ connectedApp,
 
   const handleCreated = useCallback(
     (pendingScratchOrg: PendingScratchOrg) => {
+      if (!isMounted.current) {
+        // The user moved to another Dev Hub (or page) while the request was sent, so nothing here can follow it up
+        fireToast({
+          type: 'info',
+          message: `Scratch org "${pendingScratchOrg.orgName}" was requested from ${devHubOrg.label || devHubOrg.username}, Salesforce is creating it.`,
+        });
+        return;
+      }
       setCreateModalOpen(false);
       trackPendingScratchOrg(pendingScratchOrg);
       fireToast({ type: 'info', message: `Scratch org "${pendingScratchOrg.orgName}" was requested, Salesforce is creating it.` });
       refresh();
     },
-    [refresh, trackPendingScratchOrg],
+    [devHubOrg.label, devHubOrg.username, refresh, trackPendingScratchOrg],
   );
 
   const handleConnect = useCallback(
@@ -161,14 +213,16 @@ export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = ({ connectedApp,
   /** Standard OAuth login for scratch orgs that were created by another tool, the user needs to know the password */
   const handleConnectWithPassword = useCallback(
     ({ LoginUrl, SignupUsername }: ScratchOrgRow) => {
-      if (!LoginUrl) {
-        fireToast({ type: 'error', message: 'This scratch org does not have a login url.' });
+      // The login flow only accepts an origin, and Salesforce does not promise that this is one
+      const loginUrl = getScratchOrgLoginOrigin(LoginUrl);
+      if (!loginUrl) {
+        fireToast({ type: 'error', message: 'This scratch org does not have a valid login url.' });
         return;
       }
       onAddOrgHandlerFn(
         {
           serverUrl,
-          loginUrl: LoginUrl,
+          loginUrl,
           loginHint: SignupUsername ?? undefined,
           orgGroupId: devHubOrg.jetstreamOrganizationId,
         },
@@ -308,14 +362,19 @@ export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = ({ connectedApp,
                   max-width: 24rem;
                 `}
               >
-                <SearchInput id="scratch-org-search" placeholder="Search scratch orgs" value={searchTerm} onChange={setSearchTerm} />
+                <SearchInput
+                  id="scratch-org-search"
+                  placeholder="Search scratch orgs"
+                  value={searchTerm}
+                  onChange={handleSearchTermChange}
+                />
               </div>
-              <Checkbox id="scratch-org-only-mine" label="Created by me" checked={onlyMine} onChange={setOnlyMine} />
+              <Checkbox id="scratch-org-only-mine" label="Created by me" checked={onlyMine} onChange={handleOnlyMineChange} />
               <Checkbox
                 id="scratch-org-include-deleted"
                 label="Show deleted and expired"
                 checked={includeDeleted}
-                onChange={setIncludeDeleted}
+                onChange={handleIncludeDeletedChange}
               />
               {lastChecked && (
                 <span className="slds-text-body_small slds-text-color_weak slds-col_bump-left" title="The list refreshes automatically">

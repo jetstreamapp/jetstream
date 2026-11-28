@@ -140,6 +140,21 @@ describe('deleteScratchOrg', () => {
     expect(sobjectOperation).toHaveBeenCalledWith(devHubOrg, 'ScratchOrgInfo', 'delete', { ids: ['2SR000000000001AAA'] });
   });
 
+  it('treats a status it could not read as active, so the request of a live scratch org is never deleted', async () => {
+    mockQueryRecords([{ Id: '2Sc000000000001AAA' }]);
+
+    await deleteScratchOrg(devHubOrg, { Id: '2SR000000000001AAA' });
+
+    expect(sobjectOperation).toHaveBeenCalledTimes(1);
+    expect(sobjectOperation).toHaveBeenCalledWith(devHubOrg, 'ActiveScratchOrg', 'delete', { ids: ['2Sc000000000001AAA'] });
+  });
+
+  it('has nothing to delete for a scratch org that was already deleted', async () => {
+    await expect(deleteScratchOrg(devHubOrg, { Id: '2SR000000000001AAA', Status: 'Deleted' })).rejects.toThrow('already deleted');
+    expect(query).not.toHaveBeenCalled();
+    expect(sobjectOperation).not.toHaveBeenCalled();
+  });
+
   it('surfaces the reason Salesforce refused the delete', async () => {
     mockQueryRecords([{ Id: '2Sc000000000001AAA' }]);
     vi.mocked(sobjectOperation).mockResolvedValue([

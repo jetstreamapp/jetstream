@@ -115,13 +115,17 @@ export async function fetchScratchOrgLimits(devHubOrg: SalesforceOrgUi): Promise
  *
  * A scratch org that never became active (it failed, or is stuck being created) has no ActiveScratchOrg, so its
  * ScratchOrgInfo request is deleted instead. That is never done for one that did become active: without its
- * ActiveScratchOrg the org would live on with nothing in the Dev Hub pointing at it.
+ * ActiveScratchOrg the org would live on with nothing in the Dev Hub pointing at it. A status that could not be read
+ * (the user has no access to the field) is treated as active for that reason.
  */
 export async function deleteScratchOrg(
   devHubOrg: SalesforceOrgUi,
   { Id: scratchOrgInfoId, Status }: Pick<ScratchOrgInfoRecord, 'Id' | 'Status'>,
 ): Promise<void> {
-  if (Status !== 'Active') {
+  if (Status === 'Deleted') {
+    throw new Error('This scratch org was already deleted.');
+  }
+  if (Status === 'New' || Status === 'Creating' || Status === 'Error') {
     assertAllSucceeded(
       await sobjectOperation<'delete'>(devHubOrg, 'ScratchOrgInfo', 'delete', { ids: [scratchOrgInfoId] }),
       'Salesforce was unable to remove the scratch org request.',

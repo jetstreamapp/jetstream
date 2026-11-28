@@ -56,6 +56,16 @@ describe('parseSettingsJson', () => {
     expect(parseSettingsJson('[]').error).toBe('Settings must be a JSON object');
     expect(parseSettingsJson('{"features": []}').error).toBe('Only "settings" and "objectSettings" are allowed here, found "features"');
     expect(parseSettingsJson('{"settings": []}').error).toBe('"settings" and "objectSettings" must be JSON objects');
+    expect(parseSettingsJson('{"objectSettings": "account"}').error).toBe('"settings" and "objectSettings" must be JSON objects');
+  });
+
+  it.each(['false', '0', '""'])('does not let %s pass as a section with nothing in it', (value) => {
+    expect(parseSettingsJson(`{"settings": ${value}}`).error).toBe('"settings" and "objectSettings" must be JSON objects');
+    expect(parseSettingsJson(`{"objectSettings": ${value}}`).error).toBe('"settings" and "objectSettings" must be JSON objects');
+  });
+
+  it('treats a null section as left out', () => {
+    expect(parseSettingsJson('{"settings": null, "objectSettings": null}')).toEqual({ settings: null, objectSettings: null, error: null });
   });
 });
 
