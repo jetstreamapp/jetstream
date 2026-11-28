@@ -363,3 +363,111 @@ export async function salesforceLoginJwtBearer({
 
   return body;
 }
+
+/** The access token is sent to the instance url from here on, so it has to be a Salesforce host */
+function isSalesforceHttpsUrl(value: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(value);
+    return protocol === 'https:' && hostname.endsWith('.salesforce.com');
+  } catch {
+    return false;
+  }
+}
+
+const ScratchOrgTokenResponseSchema = z.object({
+  access_token: z.string().min(1),
+  refresh_token: z.string().min(1).optional(),
+  instance_url: z.string().refine(isSalesforceHttpsUrl),
+  // Identity url, e.g. https://login.salesforce.com/id/<organizationId>/<userId>
+  id: z.url(),
+});
+
+const SCRATCH_ORG_TOKEN_REQUEST_TIMEOUT_MS = 30_000;
+
+export class ScratchOrgAuthCodeExchangeError extends Error {
+  constructor(
+    message: string,
+    /**
+     * True when Salesforce did not give an answer (it could not be reached, or the request timed out), so the exchange
+     * is worth attempting again. The code is almost certainly unspent, but a response lost in transit cannot be ruled
+     * out. False when Salesforce answered and refused the code, which is final.
+     */
+    public readonly isUnreachable: boolean,
+    public readonly error?: string,
+  ) {
+    super(message);
+    this.name = 'ScratchOrgAuthCodeExchangeError';
+  }
+}
+
+/**
+ * Exchange the `AuthCode` Salesforce stores on a ScratchOrgInfo record for tokens.
+ *
+ * When a scratch org is requested with our connected app's consumer key and callback url, the signup process
+ * pre-authorizes that app for the scratch org's admin user and issues an authorization code. No user ever visits the
+ * authorize endpoint, so there is no state, nonce or PKCE verifier to validate; the code is bound to the client id and
+ * redirect uri that were sent when the scratch org was requested.
+ *
+ * This is the same exchange the Salesforce CLI performs after `sf org create scratch`.
+ */
+export async function salesforceOauthExchangeScratchOrgAuthCode({
+  clientId,
+  clientSecret,
+  loginUrl,
+  redirectUri,
+  authCode,
+  fetchFn = fetch,
+}: OauthCallbackParams & { authCode: string; fetchFn?: typeof fetch }) {
+  const { authServer } = getSalesforceAuthClientAndServer({ clientId, clientSecret, loginUrl });
+
+  const body = new URLSearchParams({
+    grant_type: 'authorization_code',
+    code: authCode,
+    client_id: clientId,
+    redirect_uri: redirectUri,
+  });
+  if (clientSecret) {
+    body.set('client_secret', clientSecret);
+  }
+
+  let response: Response;
+  try {
+    response = await fetchFn(authServer.token_endpoint as string, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+      body,
+      // The login url is taken from a Salesforce record, never follow it anywhere else
+      redirect: 'error',
+      signal: AbortSignal.timeout(SCRATCH_ORG_TOKEN_REQUEST_TIMEOUT_MS),
+    });
+  } catch (ex) {
+    throw new ScratchOrgAuthCodeExchangeError(ex instanceof Error ? ex.message : 'Unable to reach Salesforce', true);
+  }
+
+  const responseBody: unknown = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const { error, error_description } = z
+      .object({ error: z.string().optional(), error_description: z.string().optional() })
+      .catch({})
+      .parse(responseBody);
+    throw new ScratchOrgAuthCodeExchangeError(
+      error_description || error || `Salesforce rejected the authorization code (${response.status})`,
+      // A My Domain that is still being provisioned can answer from the edge before the org does
+      response.status >= 500,
+      error,
+    );
+  }
+
+  const tokenResponse = ScratchOrgTokenResponseSchema.safeParse(responseBody);
+  if (!tokenResponse.success) {
+    throw new ScratchOrgAuthCodeExchangeError('Salesforce returned an unexpected response to the token request', false);
+  }
+  const { access_token, refresh_token, instance_url, id } = tokenResponse.data;
+  const [userId, organizationId] = new URL(id).pathname.split('/').filter(Boolean).reverse();
+  if (!userId || !organizationId) {
+    throw new ScratchOrgAuthCodeExchangeError('The token response did not identify the scratch org user', false);
+  }
+
+  return { access_token, refresh_token, instanceUrl: instance_url, userId, organizationId };
+}

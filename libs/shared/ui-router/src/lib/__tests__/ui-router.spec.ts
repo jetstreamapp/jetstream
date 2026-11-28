@@ -1,5 +1,5 @@
 import { ACCESS_PROFILE_TOOL_KEYS } from '@jetstream/types';
-import { APP_ROUTES, getAccessProfileToolForPath, isPathAllowedByAccessProfile } from '../ui-router';
+import { APP_ROUTES, getAccessProfileToolForPath, isPathAllowedByAccessProfile, ORG_CONNECTION_TOOL_PATHS } from '../ui-router';
 
 describe('getAccessProfileToolForPath', () => {
   it('returns the tool for a route and its child routes', () => {
@@ -49,5 +49,11 @@ describe('isPathAllowedByAccessProfile', () => {
     expect(isPathAllowedByAccessProfile('/query/results', canAccessTool)).toBe(true);
     expect(isPathAllowedByAccessProfile('/load', canAccessTool)).toBe(false);
     expect(canAccessTool).toHaveBeenCalledWith('load');
+  });
+});
+
+describe('ORG_CONNECTION_TOOL_PATHS', () => {
+  it('lists the tools that are left out where Jetstream is tied to a single org', () => {
+    expect(Array.from(ORG_CONNECTION_TOOL_PATHS)).toEqual(['/scratch-orgs']);
   });
 });

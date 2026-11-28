@@ -1,5 +1,6 @@
 import { AppAbility, canAccessTool } from '@jetstream/acl';
-import { APP_ROUTES, isPathAllowedByAccessProfile } from '@jetstream/shared/ui-router';
+import { APP_ROUTES, isPathAllowedByAccessProfile, ORG_CONNECTION_TOOL_PATHS } from '@jetstream/shared/ui-router';
+import { isBrowserExtension, isCanvasApp } from '@jetstream/shared/ui-utils';
 import type { NavbarItemConfig } from '@jetstream/ui';
 import { abilityState, useFeatureFlag } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
@@ -22,11 +23,25 @@ function filterNavbarItemsByAccessProfile(items: NavbarItemConfig[], ability: Ap
   });
 }
 
+/**
+ * Removes the tools that connect other orgs where Jetstream is tied to the org it was opened from
+ */
+function filterNavbarItemsBySurface(items: NavbarItemConfig[]): NavbarItemConfig[] {
+  if (!isBrowserExtension() && !isCanvasApp()) {
+    return items;
+  }
+  return items.map((item) =>
+    item.type === 'menu'
+      ? { ...item, items: item.items.filter((menuItem) => !('path' in menuItem) || !ORG_CONNECTION_TOOL_PATHS.has(menuItem.path)) }
+      : item,
+  );
+}
+
 export function useHeaderNavbarItems(): NavbarItemConfig[] {
   const analysisToolsEnabled = useFeatureFlag('analysis-tools');
   const ability = useAtomValue(abilityState);
   return useMemo<NavbarItemConfig[]>(
-    () => filterNavbarItemsByAccessProfile(navbarItems(analysisToolsEnabled), ability),
+    () => filterNavbarItemsByAccessProfile(filterNavbarItemsBySurface(navbarItems(analysisToolsEnabled)), ability),
     [analysisToolsEnabled, ability],
   );
 }
@@ -194,6 +209,13 @@ function navbarItems(analysisToolsEnabled: boolean): NavbarItemConfig[] {
           search: APP_ROUTES.DEBUG_LOG_VIEWER.SEARCH_PARAM,
           title: APP_ROUTES.DEBUG_LOG_VIEWER.DESCRIPTION,
           label: APP_ROUTES.DEBUG_LOG_VIEWER.TITLE,
+        },
+        {
+          id: 'scratch-orgs',
+          path: APP_ROUTES.SCRATCH_ORGS.ROUTE,
+          search: APP_ROUTES.SCRATCH_ORGS.SEARCH_PARAM,
+          title: APP_ROUTES.SCRATCH_ORGS.DESCRIPTION,
+          label: APP_ROUTES.SCRATCH_ORGS.TITLE,
         },
         {
           id: 'sobject-export',

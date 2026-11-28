@@ -144,6 +144,11 @@ export interface ApplicationState {
   environment: Environment;
   stage: Stage;
   defaultApiVersion: string;
+  /**
+   * The OAuth callback of the connected app this app connects orgs with. Salesforce stores it on the scratch orgs
+   * requested with that connected app, which is how they are recognized. Not set by apps that cannot connect orgs.
+   */
+  sfdcCallbackUrl?: string;
   google_appId: string;
   google_apiKey: string;
   google_clientId: string;
@@ -333,7 +338,7 @@ export interface SalesforceOrgUi {
   expirationScheduledFor?: Maybe<string>;
 }
 
-export type SalesforceOrgUiType = 'Sandbox' | 'Developer' | 'Production';
+export type SalesforceOrgUiType = 'Sandbox' | 'Scratch' | 'Developer' | 'Production';
 
 export interface GenericRequestPayload {
   url: string;

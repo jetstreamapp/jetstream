@@ -12,6 +12,7 @@ export * from './lib/salesforce/metadata.types';
 export * from './lib/salesforce/misc.types';
 export * from './lib/salesforce/query.types';
 export * from './lib/salesforce/record.types';
+export * from './lib/salesforce/scratch-org.types';
 export * from './lib/salesforce/sobject.types';
 export * from './lib/salesforce/tooling.types';
 export * from './lib/socket.types';

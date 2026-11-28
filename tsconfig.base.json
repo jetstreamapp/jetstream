@@ -49,6 +49,7 @@
       "@jetstream/feature/query": ["./libs/features/query/src/index.ts"],
       "@jetstream/feature/record-type-manager": ["./libs/features/record-type-manager/src/index.ts"],
       "@jetstream/feature/salesforce-api": ["./libs/features/salesforce-api/src/index.ts"],
+      "@jetstream/feature/scratch-orgs": ["./libs/features/scratch-orgs/src/index.ts"],
       "@jetstream/feature/sobject-export": ["./libs/features/sobject-export/src/index.ts"],
       "@jetstream/feature/teams": ["./libs/features/teams/src/index.ts"],
       "@jetstream/feature/update-records": ["./libs/features/update-records/src/index.ts"],

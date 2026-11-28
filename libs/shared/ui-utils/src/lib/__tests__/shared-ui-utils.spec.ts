@@ -1,3 +1,4 @@
+import type { SalesforceOrgUi } from '@jetstream/types';
 import { openWorkbook } from '@jetstreamapp/simple-excel';
 import { inflateRawSync } from 'node:zlib';
 import { tracker } from '../errorTracker';
@@ -8,6 +9,7 @@ import {
   focusPreviousTabbableBefore,
   formatNumber,
   getExcelColumnWidths,
+  getOrgType,
   getSkippedColumnsMessage,
   parseFile,
   prepareExcelFile,
@@ -543,5 +545,23 @@ describe('focusPreviousTabbableBefore', () => {
   it('reports when there is nothing before it', () => {
     document.body.innerHTML = `<div id="editor"></div><button id="after">after</button>`;
     expect(focusPreviousTabbableBefore(document.getElementById('editor'))).toBe(false);
+  });
+});
+
+describe('getOrgType', () => {
+  const buildOrg = (org: Partial<SalesforceOrgUi>) =>
+    ({ uniqueId: '00D-005', instanceUrl: 'https://acme.my.salesforce.com', ...org }) as SalesforceOrgUi;
+
+  it('tells a scratch org apart from a sandbox by its My Domain host', () => {
+    expect(getOrgType(buildOrg({ orgIsSandbox: true, instanceUrl: 'https://speed-computing-9099-dev-ed.scratch.my.salesforce.com' }))).toBe(
+      'Scratch',
+    );
+    expect(getOrgType(buildOrg({ orgIsSandbox: true, instanceUrl: 'https://acme--uat.sandbox.my.salesforce.com' }))).toBe('Sandbox');
+  });
+
+  it('reports production and developer edition orgs', () => {
+    expect(getOrgType(buildOrg({ orgOrganizationType: 'Developer Edition' }))).toBe('Developer');
+    expect(getOrgType(buildOrg({ orgOrganizationType: 'Enterprise Edition' }))).toBe('Production');
+    expect(getOrgType(null)).toBeUndefined();
   });
 });

@@ -414,8 +414,7 @@ const handleAddOrgEvent: MainIpcHandler<'addOrg'> = async (event, payload) => {
 
       const salesforceOrg = await initConnectionFromOAuthResponse({
         jetstreamConn,
-        // FIXME:
-        // jetstreamOrganizationId,
+        orgGroupId: payload.orgGroupId,
       });
 
       event.sender.send(IpcEventChannel.orgAdded, salesforceOrg);

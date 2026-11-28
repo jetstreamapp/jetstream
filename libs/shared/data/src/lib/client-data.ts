@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { READ_METADATA_MAX_FULL_NAMES } from '@jetstream/api-types';
+import { READ_METADATA_MAX_FULL_NAMES, type ScratchOrgCreateRequestInput } from '@jetstream/api-types';
 import type {
   LoginActivityUserFacing,
   LoginConfiguration,
@@ -74,6 +74,7 @@ import {
   SalesforceApiRequest,
   SalesforceCanvasOrg,
   SalesforceOrgUi,
+  ScratchOrgCreateResponse,
   SobjectCollectionResponse,
   SobjectOperation,
   SoqlQueryFormatOptions,
@@ -1249,6 +1250,26 @@ export async function getPackageXml(
   otherFields: Record<string, string> = {},
 ): Promise<string> {
   return handleRequest({ method: 'POST', url: `/api/metadata/package-xml`, data: { metadata, otherFields } }, { org }).then(
+    unwrapResponseIgnoreCache,
+  );
+}
+
+/**
+ * Request a scratch org from a Dev Hub. Salesforce creates it asynchronously, poll the ScratchOrgInfo record for the outcome.
+ */
+export async function createScratchOrg(
+  devHubOrg: SalesforceOrgUi,
+  request: ScratchOrgCreateRequestInput,
+): Promise<ScratchOrgCreateResponse> {
+  return handleRequest({ method: 'POST', url: `/api/scratch-orgs`, data: request }, { org: devHubOrg }).then(unwrapResponseIgnoreCache);
+}
+
+/**
+ * Connect a scratch org that was created through Jetstream, no password is needed.
+ * The returned org needs to be added to the list of orgs.
+ */
+export async function connectScratchOrg(devHubOrg: SalesforceOrgUi, scratchOrgInfoId: string): Promise<SalesforceOrgUi> {
+  return handleRequest({ method: 'POST', url: `/api/scratch-orgs/${scratchOrgInfoId}/connect` }, { org: devHubOrg }).then(
     unwrapResponseIgnoreCache,
   );
 }

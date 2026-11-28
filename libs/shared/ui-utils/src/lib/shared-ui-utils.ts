@@ -1151,8 +1151,19 @@ export function getOrgUrlParams(org: SalesforceOrgUi, additionalParams: { [param
   });
 }
 
+/**
+ * Salesforce reports a scratch org as a sandbox, the only thing that tells them apart is the My Domain host
+ * (`*.scratch.my.salesforce.com`)
+ */
+function isScratchOrgUrl(instanceUrl: Maybe<string>): boolean {
+  return !!instanceUrl && /\.scratch\.my\./i.test(instanceUrl);
+}
+
 export function getOrgType(org: Maybe<SalesforceOrgUi>): SalesforceOrgUiType | undefined {
   if (org?.uniqueId) {
+    if (isScratchOrgUrl(org.instanceUrl)) {
+      return 'Scratch';
+    }
     if (org.orgIsSandbox) {
       return 'Sandbox';
     }

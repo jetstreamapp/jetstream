@@ -25,6 +25,7 @@ type RouteKey =
   | 'OBJECT_EXPORT'
   | 'SALESFORCE_API'
   | 'PLATFORM_EVENT_MONITOR'
+  | 'SCRATCH_ORGS'
   | 'FEEDBACK_SUPPORT'
   | 'PROFILE'
   | 'TEAM_DASHBOARD'
@@ -41,6 +42,11 @@ interface RouteItem {
   NEW_UNTIL?: number;
   /** Team access profile tool that grants this route, routes without one are always available */
   TOOL?: AccessProfileToolKey;
+  /**
+   * The tool connects other orgs to Jetstream, so it is left out of the browser extension and the canvas app,
+   * which only ever work with the org they are opened from.
+   */
+  MANAGES_ORG_CONNECTIONS?: boolean;
 }
 
 type RouteMap = Record<RouteKey, RouteItem>;
@@ -229,6 +235,15 @@ export const APP_ROUTES: RouteMap = {
     TITLE: 'Salesforce API',
     DESCRIPTION: 'Interact with the Salesforce API',
   },
+  SCRATCH_ORGS: {
+    TOOL: 'scratch-orgs',
+    MANAGES_ORG_CONNECTIONS: true,
+    ...getRoutePath('/scratch-orgs'),
+    DOCS: 'https://docs.getjetstream.app/developer/scratch-orgs',
+    TITLE: 'Scratch Orgs',
+    DESCRIPTION: 'View, create, log in to and delete the scratch orgs of your Dev Hub',
+    NEW_UNTIL: new Date(2027, 1, 28, 23, 59, 59).getTime(), // February 28, 2027
+  },
   PLATFORM_EVENT_MONITOR: {
     TOOL: 'platform-events',
     ...getRoutePath('/platform-event-monitor'),
@@ -297,3 +312,10 @@ export function isPathAllowedByAccessProfile(pathname: string, canAccessTool: (t
   const tool = getAccessProfileToolForPath(pathname);
   return !tool || canAccessTool(tool);
 }
+
+/** Paths of the tools that are not offered where Jetstream is tied to a single org (browser extension, canvas app) */
+export const ORG_CONNECTION_TOOL_PATHS: ReadonlySet<string> = new Set(
+  Object.values(APP_ROUTES)
+    .filter(({ MANAGES_ORG_CONNECTIONS }) => MANAGES_ORG_CONNECTIONS)
+    .map(({ ROUTE }) => ROUTE),
+);

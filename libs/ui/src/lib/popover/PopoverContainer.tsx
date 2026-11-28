@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { FloatingPortal, autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/react';
+import { FloatingPortal, autoUpdate, flip, offset, shift, size, useFloating } from '@floating-ui/react';
 import { HTMLAttributes, ReactNode, forwardRef, useCallback, useEffect } from 'react';
 import { usePortalContext } from '../modal/PortalContext';
 
@@ -20,6 +20,12 @@ export interface PopoverContainerProps extends Omit<HTMLAttributes<HTMLDivElemen
    * width of its positioned ancestor, so content that is allowed to wrap never grows it past that.
    */
   width?: string;
+  /**
+   * Make the popover at least as wide as the reference element (and never narrower than minWidth).
+   * A popover in a portal has no positioned ancestor to take its width from, so without this it is
+   * capped at maxWidth even when the input it belongs to is much wider.
+   */
+  matchReferenceWidth?: boolean;
   children: ReactNode;
 }
 
@@ -37,6 +43,7 @@ export const PopoverContainer = forwardRef<HTMLElement, PopoverContainerProps>(
       minWidth = '15rem',
       maxWidth = '20rem',
       width,
+      matchReferenceWidth = false,
       children,
       ...rest
     },
@@ -46,7 +53,24 @@ export const PopoverContainer = forwardRef<HTMLElement, PopoverContainerProps>(
     const { refs, floatingStyles, update } = useFloating({
       open: isOpen,
       placement: 'bottom-start',
-      middleware: [offset(1.75), flip(), shift({ padding: 8 })],
+      middleware: [
+        offset(1.75),
+        flip(),
+        shift({ padding: 8 }),
+        ...(matchReferenceWidth
+          ? [
+              size({
+                apply({ rects, elements }) {
+                  // Inline styles so they win over the min/max width of the css below
+                  Object.assign(elements.floating.style, {
+                    minWidth: `max(${minWidth}, ${rects.reference.width}px)`,
+                    maxWidth: `max(${maxWidth}, ${rects.reference.width}px)`,
+                  });
+                },
+              }),
+            ]
+          : []),
+      ],
       whileElementsMounted: autoUpdate,
       elements: {
         reference: referenceElement,

@@ -98,6 +98,7 @@ const sidebar = {
         'developer/anonymous-apex',
         'developer/apex-tests',
         'developer/debug-logs',
+        'developer/scratch-orgs',
         'developer/export-object-metadata',
         'developer/salesforce-api',
         'developer/platform-events',

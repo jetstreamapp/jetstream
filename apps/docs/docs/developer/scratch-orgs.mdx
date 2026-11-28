@@ -1,0 +1,127 @@
+---
+id: scratch-orgs
+title: Manage Salesforce Scratch Orgs
+description: View, create, log in to and delete the scratch orgs of your Dev Hub from Jetstream, and manage their users and passwords.
+keywords:
+  [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    scratch org,
+    scratch orgs,
+    dev hub,
+    salesforce dx,
+    create scratch org,
+    delete scratch org,
+    scratch org password,
+    scratch org definition file,
+  ]
+sidebar_label: Scratch Orgs
+slug: /developer/scratch-orgs
+---
+
+See every scratch org in your Dev Hub, create new ones, log in to them without a password, manage their users, and delete them when you are done. No Salesforce CLI required.
+
+:::note
+
+Scratch Orgs is available in the Jetstream web and desktop applications. It is not available in the browser extension or the Salesforce canvas app, which only work with the org they are opened from.
+
+:::
+
+## Choosing a Dev Hub
+
+Select your Dev Hub from the org dropdown at the top of the page. A Dev Hub is a production, Developer Edition or trial org that has [Dev Hub enabled in Setup](https://help.salesforce.com/s/articleView?id=sf.sfdx_setup_enable_devhub.htm&type=5).
+
+Your Salesforce user needs access to the **Scratch Org Infos** and **Active Scratch Orgs** objects, which comes with the System Administrator profile or the Salesforce DX permissions.
+
+If the selected org is not a Dev Hub, Jetstream tells you so and nothing else on the page is available.
+
+## Viewing scratch orgs
+
+The list shows every active scratch org in the Dev Hub, including ones created with the Salesforce CLI or by a CI system. For each one you see its name and username, status, when it expires, its edition, who created it and when.
+
+- Scratch orgs that expire within two days are highlighted.
+- Use the search box to filter the list, or **Created by me** to only see your own.
+- **Show deleted and expired** adds the scratch orgs that no longer exist.
+- The bars at the top show how many of the Dev Hub's **active** and **daily** scratch org allocations are in use.
+
+The list refreshes on its own, so scratch orgs created or deleted elsewhere show up without reloading the page. Select a scratch org's name to see all of its details.
+
+## Creating a scratch org
+
+Select **New Scratch Org**, choose an edition and how many days the scratch org should live (1 to 30), and select **Create Scratch Org**. Salesforce creates the org in the background, which usually takes a minute or two. The scratch org shows as **Creating** in the list until it is ready.
+
+### Using a definition file
+
+If you have a [scratch org definition file](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file.htm) such as `config/project-scratch-def.json`, choose it at the top of the form. Jetstream fills in the form from the file, and you can adjust anything before creating the scratch org.
+
+The `settings` and `objectSettings` of the file are shown under **Advanced Options** and are deployed to the scratch org once it is connected, the same as the Salesforce CLI does. Anything in the file that Jetstream does not support is listed so that nothing is dropped without you knowing.
+
+### Connecting automatically
+
+Leave **Connect to Jetstream when it is ready** checked and the new scratch org is added to your Jetstream orgs as soon as Salesforce has created it. No password is needed.
+
+:::tip
+
+Keep the Scratch Orgs page open until the scratch org is ready. If you leave, the scratch org is still created, and you can connect it from the list afterwards, but the settings from your definition file are not deployed.
+
+:::
+
+## Logging in to a scratch org
+
+Scratch orgs do not come with a password you know, so how you log in depends on where the scratch org was created.
+
+### Scratch orgs created with Jetstream
+
+Select **Connect** and the scratch org is added to Jetstream, no password required. Once it is connected:
+
+- **Open** logs you in to the scratch org in Salesforce.
+- **Switch to This Org** makes it the active org, so you can use every other Jetstream tool with it.
+
+### Scratch orgs created somewhere else
+
+Salesforce only allows the tool that created a scratch org to log in to it without a password. For a scratch org that was created with the Salesforce CLI or another tool, select **Connect with Password** and log in with its username and password.
+
+The passwordless connection also only works once. If you remove a scratch org's connection from Jetstream and connect it again, Salesforce refuses, and Jetstream then offers **Connect with Password** for it. Generate a password for its user before you remove the connection.
+
+If you do not have a password, generate one with the Salesforce CLI on the computer the scratch org was created from:
+
+```bash
+sf org generate password --target-org <username>
+```
+
+### Scratch orgs created with a different Jetstream app
+
+Jetstream on the web and the Jetstream desktop app are separate applications to Salesforce, so a scratch org can only be connected without a password in the one it was created with. The other one offers **Connect with Password** and tells you where the scratch org came from.
+
+## Managing users
+
+Open a connected scratch org's details to see its users.
+
+- **New User** creates a user with the profile you choose. Leave **Generate a password** checked to get credentials you can hand to someone else.
+- **Generate Password** sets a new random password for an existing user and shows it to you.
+
+:::caution
+
+Jetstream never stores passwords. A generated password is shown once, so copy it before closing the window. You can always generate a new one.
+
+:::
+
+## Deleting a scratch org
+
+Select the delete button on a scratch org, or **Delete Scratch Org** in its details. The scratch org and everything in it is permanently deleted, and it stops counting against the Dev Hub's active scratch org limit. If the scratch org was connected to Jetstream, that connection is removed too.
+
+A scratch org that failed to create can be removed from the list the same way.
+
+## Team access
+
+For teams that use [access profiles](../team-management/access-profiles), the **Scratch Orgs** tool can be turned on or off like any other tool. The actions on the page follow the operations in the member's profile:
+
+| Action                                        | Operation                                |
+| --------------------------------------------- | ---------------------------------------- |
+| Create a scratch org, create users, passwords | Create and update records                |
+| Delete a scratch org                          | Delete records                           |
+| Connect a scratch org to Jetstream            | Connect Salesforce orgs                  |
+| Deploy the settings of a definition file      | Deploy metadata and change configuration |
+
+A member without **Deploy metadata and change configuration** can still create a scratch org from a definition file, but its `settings` and `objectSettings` are not deployed. Jetstream says so before the scratch org is created.

@@ -2,13 +2,14 @@ import { ApiConnection, ApiRequestError } from '@jetstream/salesforce-api';
 import { ERROR_MESSAGES } from '@jetstream/shared/constants';
 import { Maybe, SalesforceOrgUi, SObjectOrganization } from '@jetstream/types';
 import logger from 'electron-log';
-import { createOrUpdateSalesforceOrg, encryptTokenPortable } from './persistence.service';
+import { createOrUpdateSalesforceOrg, encryptTokenPortable, getOrgGroups } from './persistence.service';
 
 export async function initConnectionFromOAuthResponse({
   jetstreamConn,
   orgGroupId,
 }: {
   jetstreamConn: ApiConnection;
+  /** The org group to place the org in, which is the one the user was in when they connected it */
   orgGroupId?: Maybe<string>;
 }) {
   const identity = await jetstreamConn.org.identity();
@@ -51,17 +52,9 @@ export async function initConnectionFromOAuthResponse({
     orgTrialExpirationDate: companyInfoRecord?.TrialExpirationDate,
   };
 
-  if (orgGroupId) {
-    // TODO: figure out org storage and organizations
-    // try {
-    //   salesforceOrgUi.jetstreamOrganizationId = (await jetstreamOrganizationsDb.findById({ id: jetstreamOrganizationId, userId })).id;
-    // } catch (ex) {
-    //   logger.warn(
-    //     { userId, jetstreamOrganizationId, err: ex },
-    //     'Error getting jetstream org with provided id %s',
-    //     getErrorMessage(ex)
-    //   );
-    // }
+  // A group that no longer exists is ignored. An org that is reconnected without a group stays in the one it is in.
+  if (orgGroupId && getOrgGroups().some(({ id }) => id === orgGroupId)) {
+    salesforceOrgUi.jetstreamOrganizationId = orgGroupId;
   }
 
   const salesforceOrg = await createOrUpdateSalesforceOrg(salesforceOrgUi);

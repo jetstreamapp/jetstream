@@ -275,6 +275,7 @@ export const TITLES = {
   CREATE_OBJ_FIELD: 'Create Fields | Jetstream',
   DATA_HISTORY: 'Data History | Jetstream',
   DEBUG_LOGS: 'Debug Logs | Jetstream',
+  SCRATCH_ORGS: 'Scratch Orgs | Jetstream',
   DEPLOY_METADATA: 'Deploy Metadata | Jetstream',
   EXPORT_OBJECT_METADATA: 'Export Object Metadata | Jetstream',
   FEEDBACK: 'Feedback | Jetstream',
