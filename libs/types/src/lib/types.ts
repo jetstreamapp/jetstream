@@ -333,7 +333,7 @@ export interface SalesforceOrgUi {
   expirationScheduledFor?: Maybe<string>;
 }
 
-export type SalesforceOrgUiType = 'Sandbox' | 'Developer' | 'Production';
+export type SalesforceOrgUiType = 'Sandbox' | 'Scratch' | 'Developer' | 'Production';
 
 export interface GenericRequestPayload {
   url: string;
