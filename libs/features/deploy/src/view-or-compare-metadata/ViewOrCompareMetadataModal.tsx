@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { isBrowserExtension, isCanvasApp, useDisposables, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { delay, unSanitizeXml } from '@jetstream/shared/utils';
+import { delay } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { FileExtAllTypes, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Checkbox, FileDownloadModal, Modal, Spinner, TreeItems } from '@jetstream/ui';
@@ -17,6 +17,7 @@ import ViewOrCompareMetadataSidebar from './ViewOrCompareMetadataSidebar';
 import { useViewOrCompareMetadata } from './useViewOrCompareMetadata';
 import { DeployFromCompareMetadataItem, EditorType, FileItemMetadata, OrgType } from './viewOrCompareMetadataTypes';
 import { generateExport, getDeployMetadataFromComparisonTree, getEditorLanguage } from './viewOrCompareMetadataUtils';
+import { getDisplayContent } from './xmlNormalizer';
 
 export interface ViewOrCompareMetadataModalProps {
   sourceOrg: SalesforceOrgUi;
@@ -40,6 +41,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
   const [editorType, setEditorType] = useState<EditorType>('SOURCE');
   const [swapped, setSwapped] = useState(false);
   const [hideUnchangedRegions, setHideUnchangedRegions] = useState(false);
+  const [normalizePermissionXml, setNormalizePermissionXml] = useState(true);
 
   const [downloadFileModalConfig, setDownloadFileModalConfig] = useState<{
     open: boolean;
@@ -84,7 +86,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
     targetResultFiles,
     targetError,
     files,
-  } = useViewOrCompareMetadata({ selectedMetadata });
+  } = useViewOrCompareMetadata({ selectedMetadata, normalizePermissionXml });
 
   // fetch source metadata on load
   useEffect(() => {
@@ -96,7 +98,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
       // TODO: can we cache previously used files to avoid async operation?
       if (currentActiveFile.meta?.source && sourceResults) {
         try {
-          setActiveSourceContent(unSanitizeXml(currentActiveFile.meta.source.content || ''));
+          setActiveSourceContent(getDisplayContent(currentActiveFile.meta.source, normalizePermissionXml));
           setActiveFileType(getEditorLanguage(currentActiveFile.meta.source));
         } catch (ex) {
           // failed
@@ -105,14 +107,14 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
       }
       if (targetResults) {
         try {
-          setActiveTargetContent(unSanitizeXml(currentActiveFile.meta?.target?.content || ''));
+          setActiveTargetContent(getDisplayContent(currentActiveFile.meta?.target, normalizePermissionXml));
         } catch (ex) {
           // failed
           logger.warn('[VIEW OR COMPARE][FILE LOAD ERROR][TARGET]', ex);
         }
       }
     },
-    [sourceResults, targetResults],
+    [normalizePermissionXml, sourceResults, targetResults],
   );
 
   useEffect(() => {
@@ -218,7 +220,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
 
   function handleExport() {
     if (targetOrg && sourceResultFiles && targetResultFiles) {
-      const exportData = generateExport(sourceResultFiles, targetResultFiles);
+      const exportData = generateExport(sourceResultFiles, targetResultFiles, { normalizePermissionXml });
       setDownloadFileModalConfig({
         open: true,
         org: sourceOrg,
@@ -353,6 +355,14 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
                                 toggleHideUnchangedRegions(diffEditorRef.current);
                               }
                             }}
+                            className="slds-m-bottom_x-small"
+                          />
+                          <Checkbox
+                            id="normalize-permission-xml"
+                            label="Normalize Permission XML"
+                            labelHelp="Sort Profile and Permission Set XML elements before comparing to remove noisy ordering differences."
+                            checked={normalizePermissionXml}
+                            onChange={setNormalizePermissionXml}
                             className="slds-m-bottom_x-small"
                           />
                         </div>

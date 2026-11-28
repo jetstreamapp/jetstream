@@ -16,6 +16,7 @@ type RouteKey =
   | 'PERMISSION_ANALYSIS'
   | 'DATA_ANALYSIS'
   | 'DEPLOY_METADATA'
+  | 'ORG_ALIGNMENT'
   | 'CREATE_FIELDS'
   | 'FORMULA_EVALUATOR'
   | 'RECORD_TYPE_MANAGER'
@@ -39,6 +40,13 @@ interface RouteItem {
   TITLE: string;
   DESCRIPTION: string;
   NEW_UNTIL?: number;
+  /** Paid (Jetstream Pro) feature, marked with a Pro badge where the tool is listed */
+  REQUIRES_PRO?: boolean;
+  /**
+   * Works across two connected orgs. The browser extension and the Canvas app only ever have one org, so the
+   * route is not registered there and is left out wherever tools are listed.
+   */
+  REQUIRES_MULTIPLE_ORGS?: boolean;
   /** Team access profile tool that grants this route, routes without one are always available */
   TOOL?: AccessProfileToolKey;
 }
@@ -170,6 +178,16 @@ export const APP_ROUTES: RouteMap = {
     DOCS: 'https://docs.getjetstream.app/deploy-metadata',
     TITLE: 'Deploy and Compare Metadata',
     DESCRIPTION: 'Move metadata between orgs, compare metadata between orgs, import/export metadata',
+  },
+  ORG_ALIGNMENT: {
+    TOOL: 'deploy-metadata',
+    ...getRoutePath('/org-alignment'),
+    DOCS: 'https://docs.getjetstream.app/deploy-metadata',
+    TITLE: 'Org Alignment',
+    DESCRIPTION: 'Compare two orgs for metadata drift and deploy chosen differences in either direction',
+    NEW_UNTIL: new Date(2027, 0, 31, 23, 59, 59).getTime(), // January 31, 2027
+    REQUIRES_PRO: true,
+    REQUIRES_MULTIPLE_ORGS: true,
   },
   CREATE_FIELDS: {
     TOOL: 'create-fields',

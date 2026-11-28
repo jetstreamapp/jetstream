@@ -1,7 +1,7 @@
 import { TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useTitle } from '@jetstream/shared/ui-utils';
-import { AnalysisToolsPaywall } from '@jetstream/ui-core';
+import { ProFeaturePaywall } from '@jetstream/ui-core';
 import { analysisToolsAccessState, useFeatureFlag } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent } from 'react';
@@ -19,7 +19,7 @@ export const DataAnalysis: FunctionComponent = () => {
     return <Navigate to={APP_ROUTES.HOME.ROUTE} replace />;
   }
   if (!hasAnalysisToolsAccess) {
-    return <AnalysisToolsPaywall featureLabel="Field Usage Analysis" docsPath={APP_ROUTES.DATA_ANALYSIS.DOCS} />;
+    return <ProFeaturePaywall featureLabel="Field Usage Analysis" docsPath={APP_ROUTES.DATA_ANALYSIS.DOCS} />;
   }
   return <Outlet />;
 };

@@ -277,6 +277,14 @@ describe('acl', () => {
         const ability = getUserAbility({ user, isBrowserExtension: true });
         expect(ability.can('read', 'Profile')).toBe(false);
       });
+
+      it('should grant Org Alignment on desktop only, independently of the analysis tools entitlement', () => {
+        expect(getUserAbility({ user, isDesktop: true }).can('access', 'OrgAlignment')).toBe(true);
+        expect(getUserAbility({ user, isBrowserExtension: true }).can('access', 'OrgAlignment')).toBe(false);
+        expect(getUserAbility({ user, isCanvasApp: true }).can('access', 'OrgAlignment')).toBe(false);
+        const userWithAnalysisTools = { ...user, entitlements: { ...entitlements, analysisTools: true } };
+        expect(getUserAbility({ user: userWithAnalysisTools }).can('access', 'OrgAlignment')).toBe(false);
+      });
     });
 
     describe('access profiles', () => {

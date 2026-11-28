@@ -8,6 +8,7 @@ import type {
   DataHistoryConfigItem,
   DataHistoryItem,
   LoadSavedMappingItem,
+  OrgAlignmentSavedComparison,
   QueryHistoryItem,
   QueryHistoryObject,
   RecentHistoryItem,
@@ -50,6 +51,7 @@ export type DexieDb = Dexie & {
   data_history: EntityTable<DataHistoryItem, 'key'>;
   data_history_config: EntityTable<DataHistoryConfigItem, 'key'>;
   automation_control_history: EntityTable<AutomationControlHistoryEntry, 'key'>;
+  org_alignment_comparisons: EntityTable<OrgAlignmentSavedComparison, 'key'>;
   /** Local changes to syncable tables that the server has not accepted yet - one entry per record */
   _sync_outbox: EntityTable<SyncOutboxEntry, 'key'>;
   /** The server revision this device last received (or had accepted) for each synced record */
@@ -132,6 +134,10 @@ export const LocalOnlyTables = {
   automation_control_history: {
     name: 'automation_control_history',
     keyPrefix: 'ach',
+  },
+  org_alignment_comparisons: {
+    name: 'org_alignment_comparisons',
+    keyPrefix: 'oac',
   },
 } as const;
 
@@ -253,6 +259,11 @@ function applySchema(db: DexieDb) {
     _sync_outbox: 'key',
     _sync_meta: 'key',
     _sync_state: 'id',
+  });
+
+  /** Saved Org Alignment comparison definitions - local-only, re-run by hand */
+  db.version(8).stores({
+    org_alignment_comparisons: 'key,updatedAt,[sourceOrgId+targetOrgId]',
   });
 }
 

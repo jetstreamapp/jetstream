@@ -1,9 +1,121 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
+import { groupByFlat, orderObjectsBy, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { ListMetadataResult } from '@jetstream/types';
 import { Tooltip, TreeItems } from '@jetstream/ui';
 import classNames from 'classnames';
 import JSZip from 'jszip';
 import { DeployFromCompareMetadataItem, FileItemMetadata, FilePropertiesWithContent } from './viewOrCompareMetadataTypes';
+import { compareMetadataContents } from './xmlNormalizer';
+
+/**
+ * Salesforce Metadata API retrieve() enforces a hard limit of 10,000 files / 39 MB per request.
+ * Many components expand to 2+ files (source + -meta.xml), and bundles (LWC, Aura, Experience)
+ * can contain dozens of files per component, so we chunk conservatively well below the ceiling.
+ */
+export const DEFAULT_RETRIEVE_CHUNK_SIZE = 500;
+export const BUNDLE_RETRIEVE_CHUNK_SIZE = 100;
+
+export const MULTI_FILE_BUNDLE_METADATA_TYPES = new Set([
+  'AuraDefinitionBundle',
+  'ExperienceBundle',
+  'LightningComponentBundle',
+  'LwcBundle',
+  'WaveTemplateBundle',
+]);
+
+export function getRetrieveChunkSizeForType(metadataType: string): number {
+  return MULTI_FILE_BUNDLE_METADATA_TYPES.has(metadataType) ? BUNDLE_RETRIEVE_CHUNK_SIZE : DEFAULT_RETRIEVE_CHUNK_SIZE;
+}
+
+/**
+ * Combine two versions of the same metadata XML file that came back from different retrieve chunks.
+ * Files such as `objects/Account.object` or `labels/CustomLabels.labels` only contain the children that were
+ * requested, so each chunk returns the same path with a different set of children.
+ * Returns null when either version cannot be parsed.
+ */
+export function mergeMetadataXmlFiles(existingXml: string, incomingXml: string): string | null {
+  if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
+    return null;
+  }
+  try {
+    const parser = new DOMParser();
+    const existingDocument = parser.parseFromString(existingXml, 'application/xml');
+    const incomingDocument = parser.parseFromString(incomingXml, 'application/xml');
+    const existingRoot = existingDocument.documentElement;
+    const incomingRoot = incomingDocument.documentElement;
+    const hasParseError = [existingDocument, incomingDocument].some(
+      (xmlDocument) => xmlDocument.getElementsByTagName('parsererror').length > 0,
+    );
+    if (hasParseError || !existingRoot || !incomingRoot || existingRoot.localName !== incomingRoot.localName) {
+      return null;
+    }
+    const serializer = new XMLSerializer();
+    const existingChildren = new Set(Array.from(existingRoot.children).map((element) => serializer.serializeToString(element)));
+    let addedCount = 0;
+    for (const element of Array.from(incomingRoot.children)) {
+      if (!existingChildren.has(serializer.serializeToString(element))) {
+        existingRoot.appendChild(existingDocument.createTextNode('    '));
+        existingRoot.appendChild(existingDocument.importNode(element, true));
+        existingRoot.appendChild(existingDocument.createTextNode('\n'));
+        addedCount += 1;
+      }
+    }
+    return addedCount === 0 ? existingXml : `<?xml version="1.0" encoding="UTF-8"?>\n${serializer.serializeToString(existingRoot)}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Split a `Record<type, ListMetadataResult[]>` payload into retrieve-safe chunks that stay well
+ * below Salesforce's 10,000-file retrieve limit. Bundle types get smaller per-chunk limits.
+ */
+export function chunkListMetadataForRetrieve(
+  selectedMetadata: Record<string, ListMetadataResult[]>,
+  maxComponentsPerChunk = DEFAULT_RETRIEVE_CHUNK_SIZE,
+): Record<string, ListMetadataResult[]>[] {
+  const chunks: Record<string, ListMetadataResult[]>[] = [];
+  let currentChunk: Record<string, ListMetadataResult[]> = {};
+  let currentWeight = 0;
+
+  const flushChunk = () => {
+    if (Object.keys(currentChunk).length > 0) {
+      chunks.push(currentChunk);
+      currentChunk = {};
+      currentWeight = 0;
+    }
+  };
+
+  for (const [metadataType, items] of Object.entries(selectedMetadata)) {
+    if (!items?.length) {
+      continue;
+    }
+    const typeLimit = Math.min(maxComponentsPerChunk, getRetrieveChunkSizeForType(metadataType));
+    // Bundle components carry higher file weight so mixing them with other types stays safe
+    const weightPerItem = MULTI_FILE_BUNDLE_METADATA_TYPES.has(metadataType)
+      ? Math.max(1, Math.ceil(maxComponentsPerChunk / typeLimit))
+      : 1;
+
+    if (items.length > typeLimit) {
+      flushChunk();
+      for (const slice of splitArrayToMaxSize(items, typeLimit)) {
+        chunks.push({ [metadataType]: slice });
+      }
+      continue;
+    }
+
+    const typeWeight = items.length * weightPerItem;
+    if (currentWeight > 0 && currentWeight + typeWeight > maxComponentsPerChunk) {
+      flushChunk();
+    }
+
+    currentChunk[metadataType] = items;
+    currentWeight += typeWeight;
+  }
+
+  flushChunk();
+  return chunks;
+}
 
 export function getEditorLanguage({ fileName, type }: FilePropertiesWithContent) {
   if (type === 'ApexClass' || type === 'ApexTrigger') {
@@ -51,6 +163,7 @@ async function getFileContent(data: JSZip, fileProperties: FilePropertiesWithCon
 export function buildTree(
   sourceResultFiles: FilePropertiesWithContent[] | null,
   targetResultFiles?: FilePropertiesWithContent[] | null,
+  options: { normalizePermissionXml?: boolean } = {},
 ): TreeItems<FileItemMetadata | null>[] {
   const targetFiles = groupByFlat(targetResultFiles || [], 'fileName');
 
@@ -76,7 +189,7 @@ export function buildTree(
               source: sourceFile,
               target: targetFiles[sourceFile.fileName],
               targetHasLoaded: !!targetResultFiles,
-              sourceAndTargetMatch: compare(sourceFile, targetFiles),
+              sourceAndTargetMatch: compare(sourceFile, targetFiles, options),
             };
           } else {
             // set different id for folders
@@ -125,16 +238,21 @@ function getTreeLabel(id: string, name: string, meta: FileItemMetadata | null): 
   return name;
 }
 
-export function compare(sourceFile: FilePropertiesWithContent, targetFiles: Record<string, FilePropertiesWithContent>) {
-  let match = sourceFile.content === targetFiles[sourceFile.fileName]?.content;
-  if (!match && sourceFile.content && targetFiles[sourceFile.fileName]?.content) {
-    try {
-      match = sourceFile.content.trim() === targetFiles[sourceFile.fileName]?.content?.trim();
-    } catch {
-      // ignore failure
-    }
+export function compare(
+  sourceFile: FilePropertiesWithContent,
+  targetFiles: Record<string, FilePropertiesWithContent>,
+  options: { normalizePermissionXml?: boolean } = {},
+) {
+  const targetFile = targetFiles[sourceFile.fileName];
+  if (sourceFile.content == null && targetFile?.content == null) {
+    // Preserve legacy behavior when target file exists without readable content, while filterUnchangedFiles guards unreadable items
+    return sourceFile.content === targetFile?.content;
   }
-  return match;
+  return compareMetadataContents(sourceFile.content, targetFile?.content, {
+    metadataType: sourceFile.type,
+    fileName: sourceFile.fileName,
+    normalizePermissionXml: options.normalizePermissionXml ?? true,
+  });
 }
 
 /**
@@ -179,7 +297,11 @@ export function getDeployMetadataFromComparisonTree(files: TreeItems<FileItemMet
     .filter((item) => item.type);
 }
 
-export function generateExport(sourceResultFiles: FilePropertiesWithContent[], targetResultFiles: FilePropertiesWithContent[]) {
+export function generateExport(
+  sourceResultFiles: FilePropertiesWithContent[],
+  targetResultFiles: FilePropertiesWithContent[],
+  options: { normalizePermissionXml?: boolean } = {},
+) {
   const targetFiles = groupByFlat(targetResultFiles || [], 'fileName');
   return orderObjectsBy(sourceResultFiles, 'fullName')
     .filter(({ fileName }) => fileName !== 'package.xml')
@@ -189,16 +311,16 @@ export function generateExport(sourceResultFiles: FilePropertiesWithContent[], t
         Type: source.type,
         Name: source.fullName,
         'Exists In Target Org': !!target,
-        'Content Matches': compare(source, targetFiles) ? 'TRUE' : 'FALSE',
+        'Content Matches': compare(source, targetFiles, options) ? 'TRUE' : 'FALSE',
         'File Name': source.fileName,
         'Source Created By': source.createdByName,
         'Source Created Date': source.createdDate,
-        'Source Last Modified By': source.createdByName,
-        'Source Last Modified Date': source.createdDate,
+        'Source Last Modified By': source.lastModifiedByName,
+        'Source Last Modified Date': source.lastModifiedDate,
         'Target Created By': target?.createdByName,
         'Target Created Date': target?.createdDate,
-        'Target Last Modified By': target?.createdByName,
-        'Target Last Modified Date': target?.createdDate,
+        'Target Last Modified By': target?.lastModifiedByName,
+        'Target Last Modified Date': target?.lastModifiedDate,
       };
     });
 }

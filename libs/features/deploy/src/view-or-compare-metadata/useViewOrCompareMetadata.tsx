@@ -1,23 +1,25 @@
-import { METADATA_TYPES_WITH_FOLDERS } from '@jetstream/shared/constants';
-import { retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
-import { pollRetrieveMetadataResultsUntilDone, useBrowserNotifications } from '@jetstream/shared/ui-utils';
+import { JOB_CANCELED_ERROR_MESSAGE } from '@jetstream/shared/constants';
+import { useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { TreeItems } from '@jetstream/ui';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { useAtom } from 'jotai';
 import JSZip from 'jszip';
-import isString from 'lodash/isString';
-import { useCallback, useEffect, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import { retrieveMetadataChunked } from './retrieveMetadataChunked';
 import { FileItemMetadata, FilePropertiesWithContent, OrgType } from './viewOrCompareMetadataTypes';
-import { buildTree, populateFileContents } from './viewOrCompareMetadataUtils';
+import { buildTree } from './viewOrCompareMetadataUtils';
 
 type LoadStatus = 'Not Started' | 'Loading' | 'Success' | 'Failed';
 
 type Action =
   | { type: 'FETCH'; payload: { which: OrgType } }
   | { type: 'LAST_CHECKED'; payload: { which: OrgType } }
-  | { type: 'FETCH_SUCCESS'; payload: { which: OrgType; data: JSZip; fileProperties: FilePropertiesWithContent[] } }
+  | {
+      type: 'FETCH_SUCCESS';
+      payload: { which: OrgType; data: JSZip; fileProperties: FilePropertiesWithContent[] };
+    }
   | { type: 'FETCH_ERROR'; payload: { which: OrgType; error: string } };
 
 interface State {
@@ -34,10 +36,6 @@ interface State {
   targetResults: JSZip | null;
   targetResultFiles: FilePropertiesWithContent[] | null;
   targetError?: string | null;
-
-  files: TreeItems<FileItemMetadata | null>[];
-
-  // fatalError?: string | null;
 }
 
 function reducer(state: State, action: Action): State {
@@ -57,19 +55,15 @@ function reducer(state: State, action: Action): State {
           targetResultFiles: null,
         };
       } else {
-        let files = state.files;
-        // if target org was changed, clear out prior target comparison data
-        if (state.targetResults) {
-          files = buildTree(state.sourceResultFiles, undefined);
-        }
+        // The files of a previous target org are cleared so the tree stops showing a comparison with it
         return {
           ...state,
           targetLoading: true,
           targetStatus: 'Loading',
           targetLastChecked: new Date(),
           targetResults: null,
+          targetResultFiles: null,
           targetError: null,
-          files,
         };
       }
     }
@@ -94,7 +88,6 @@ function reducer(state: State, action: Action): State {
           sourceStatus: 'Success',
           sourceResults: action.payload.data,
           sourceResultFiles: action.payload.fileProperties,
-          files: buildTree(action.payload.fileProperties, state.targetResultFiles),
           sourceLastChecked: null,
         };
       } else {
@@ -104,7 +97,6 @@ function reducer(state: State, action: Action): State {
           targetStatus: 'Success',
           targetResults: action.payload.data,
           targetResultFiles: action.payload.fileProperties,
-          files: buildTree(state.sourceResultFiles, action.payload.fileProperties),
           targetLastChecked: null,
         };
       }
@@ -132,14 +124,12 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-/**
- * Give an org and a changeset name
- * Retrieve and re-deploy the metadata to the org while adding to a changeset
- *
- * @param selectedOrg
- * @param changesetName
- */
-export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadata: Record<string, ListMetadataResult[]> }) {
+export interface UseViewOrCompareMetadataOptions {
+  selectedMetadata: Record<string, ListMetadataResult[]>;
+  normalizePermissionXml?: boolean;
+}
+
+export function useViewOrCompareMetadata({ selectedMetadata, normalizePermissionXml = true }: UseViewOrCompareMetadataOptions) {
   const isMounted = useRef(true);
 
   const [
@@ -156,7 +146,6 @@ export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadat
       targetResults,
       targetResultFiles,
       targetError,
-      files,
     },
     dispatch,
   ] = useReducer(reducer, {
@@ -172,7 +161,6 @@ export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadat
     targetResultFiles: null,
     targetError: null,
     targetLastChecked: null,
-    files: [],
   });
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const { notifyUser } = useBrowserNotifications(serverUrl);
@@ -184,14 +172,18 @@ export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadat
     };
   }, []);
 
+  const files = useMemo<TreeItems<FileItemMetadata | null>[]>(
+    () => (sourceResultFiles ? buildTree(sourceResultFiles, targetResultFiles, { normalizePermissionXml }) : []),
+    [normalizePermissionXml, sourceResultFiles, targetResultFiles],
+  );
+
   const fetchMetadata = useCallback(
     async (org: SalesforceOrgUi, which: OrgType) => {
       dispatch({ type: 'FETCH', payload: { which } });
 
       try {
-        const id = (await retrieveMetadataFromListMetadata(org, selectedMetadata)).id;
-
-        const results = await pollRetrieveMetadataResultsUntilDone(org, id, {
+        const { zip: salesforcePackage, fileProperties } = await retrieveMetadataChunked(org, selectedMetadata, {
+          isCanceled: () => !isMounted.current,
           onChecked: () => {
             if (isMounted.current) {
               dispatch({ type: 'LAST_CHECKED', payload: { which } });
@@ -200,25 +192,16 @@ export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadat
         });
 
         if (isMounted.current) {
-          if (isString(results.zipFile)) {
-            const salesforcePackage = await JSZip.loadAsync(results.zipFile, { base64: true });
-            // Add folder file extension so that the metadata shows up
-            (results.fileProperties || []).forEach((file) => {
-              // Folders don't have a suffix in the fileProperties response, but there is an associated file, so we must add the extension
-              if (METADATA_TYPES_WITH_FOLDERS.has(file.type) && file.fileName.includes('/') && !file.fileName.includes('.')) {
-                file.fileName = `${file.fileName}-meta.xml`;
-              }
-            });
-
-            await populateFileContents(salesforcePackage, results.fileProperties || []);
-
-            dispatch({ type: 'FETCH_SUCCESS', payload: { which, data: salesforcePackage, fileProperties: results.fileProperties } });
-            notifyUser('Your metadata is ready to view', { tag: 'view-or-compare' });
-          } else {
-            throw new Error(results.errorMessage || 'No data was returned from Salesforce');
-          }
+          dispatch({
+            type: 'FETCH_SUCCESS',
+            payload: { which, data: salesforcePackage, fileProperties },
+          });
+          notifyUser('Your metadata is ready to view', { tag: 'view-or-compare' });
         }
       } catch (ex) {
+        if (!isMounted.current || getErrorMessage(ex) === JOB_CANCELED_ERROR_MESSAGE) {
+          return;
+        }
         notifyUser('There was an error obtaining metadata', { body: getErrorMessage(ex), tag: 'view-or-compare' });
         dispatch({ type: 'FETCH_ERROR', payload: { which, error: getErrorMessage(ex) } });
       }

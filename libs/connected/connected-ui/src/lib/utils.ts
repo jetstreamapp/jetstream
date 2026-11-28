@@ -1,3 +1,5 @@
+import { DescribeMetadataResult, MetadataObject } from '@jetstream/types';
+
 export const METADATA_TYPES_TO_OMIT = new Set([
   'AssignmentRules', // use AssignmentRule instead
   'AutoResponseRule', // use AutoResponseRules instead
@@ -272,4 +274,44 @@ export const METADATA_LABEL_MAP = {
 
 export function getMetadataLabelFromFullName(fullName: string): string {
   return METADATA_LABEL_MAP[fullName as keyof typeof METADATA_LABEL_MAP] || fullName;
+}
+
+/**
+ * Flatten a DescribeMetadataResult into a lookup map of xmlName -> MetadataObject. Folder types and child types
+ * are not returned as their own entries by Salesforce, so they are added here.
+ */
+export function buildDescribeMetadataMap(describeResult: DescribeMetadataResult): Record<string, MetadataObject> {
+  const itemMap: Record<string, MetadataObject> = {};
+  for (const item of describeResult.metadataObjects || []) {
+    if (!item) {
+      continue;
+    }
+    itemMap[item.xmlName] = item;
+    if (item.inFolder) {
+      itemMap[`${item.xmlName}Folder`] = {
+        ...item,
+        xmlName: `${item.xmlName}Folder`,
+        inFolder: false,
+        childXmlNames: [],
+      };
+      // EmailTemplate is stored in "EmailFolder" (classic templates) as well as "EmailTemplateFolder" (lightning templates)
+      if (item.directoryName === 'email') {
+        itemMap['EmailFolder'] = {
+          ...item,
+          xmlName: 'EmailFolder',
+          inFolder: false,
+          childXmlNames: [],
+        };
+      }
+    }
+    if (Array.isArray(item.childXmlNames)) {
+      for (const childXmlName of item.childXmlNames) {
+        itemMap[childXmlName] = {
+          xmlName: childXmlName,
+          inFolder: false,
+        };
+      }
+    }
+  }
+  return itemMap;
 }

@@ -1,6 +1,5 @@
 export * from './analysis/permission-analysis-viewer-badge.styles';
 export * from './analysis/PermissionAnalysisHistoryModal';
-export * from './app/AnalysisToolsPaywall';
 export * from './app/AppHome/AppHome';
 export * from './app/AppHome/AppHomeReadOnlyUser';
 export * from './app/AppLoading';
@@ -16,6 +15,7 @@ export * from './app/HeaderDonatePopover';
 export * from './app/HeaderHelpPopover';
 export * from './app/HeaderNavbar';
 export * from './app/HeaderUpdateNotification';
+export * from './app/ProFeaturePaywall';
 // HeaderWhatsNewPopover is intentionally NOT re-exported here. It is lazy-loaded inside HeaderNavbar
 // (via dynamic import) so the release-notes data is code-split out of the main bundle; a barrel
 // re-export would pull it back into the eager graph and defeat the split.

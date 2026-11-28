@@ -418,6 +418,16 @@ export const analysisToolsAccessState = atom((get) => {
   };
 });
 
+/**
+ * Access to the paid-only Org Alignment tool. Per-component compare in Deploy and Compare Metadata stays free.
+ *
+ * Granted by the `OrgAlignment` ability (desktop) OR any active paid plan. It is deliberately independent of
+ * the Analysis Tools entitlement, so a trial of one never changes access to the other.
+ */
+export const orgAlignmentAccessState = atom((get) => ({
+  hasOrgAlignmentAccess: get(abilityState).can('access', 'OrgAlignment') || get(hasPaidPlanState),
+}));
+
 export const orgGroupsAsyncState = atom<Promise<OrgGroup[]> | OrgGroup[]>(fetchOrgGroups());
 // Unwrapped value to simplify derived state
 export const orgGroupsState = unwrap(orgGroupsAsyncState, (prev) => prev ?? []);

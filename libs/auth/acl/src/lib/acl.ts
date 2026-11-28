@@ -24,7 +24,7 @@ type OperationActions = 'perform';
 type OperationSubjects = 'Operation' | { type: 'Operation'; key: AccessProfileOperationKey };
 
 type EntitlementActions = 'access';
-type EntitlementSubjects = 'GoogleDrive' | 'ChromeExtension' | 'Desktop' | 'RecordSync' | 'AnalysisTools';
+type EntitlementSubjects = 'GoogleDrive' | 'ChromeExtension' | 'Desktop' | 'RecordSync' | 'AnalysisTools' | 'OrgAlignment';
 
 type TeamActions = 'read' | 'update';
 type TeamSubjects = 'Team' | 'TeamMember' | { type: 'TeamMember'; role: TeamMemberRole };
@@ -202,6 +202,13 @@ function getAbilityRules({ isBrowserExtension, isDesktop, isCanvasApp, canvasAcc
   // Analysis Tools (Field Usage + Permission Analysis) are paid-only; desktop/extension/canvas are paid tiers.
   if (user.entitlements.analysisTools || isBrowserExtension || isDesktop || isCanvasApp) {
     can('access', 'AnalysisTools');
+  }
+  // Org Alignment is a paid-only tool. Its own subject so that it can be granted or withheld on its own, there is
+  // no stored entitlement for it yet: desktop is a paid tier, and on
+  // the web an active paid plan grants it (see `orgAlignmentAccessState`). The extension and canvas apps work
+  // with a single org and do not offer the feature.
+  if (isDesktop) {
+    can('access', 'OrgAlignment');
   }
 
   return rules;

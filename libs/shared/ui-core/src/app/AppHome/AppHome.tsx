@@ -2,6 +2,7 @@ import { css } from '@emotion/react';
 import { canAccessTool } from '@jetstream/acl';
 import { IconName, IconType } from '@jetstream/icon-factory';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
+import { isBrowserExtension, isCanvasApp } from '@jetstream/shared/ui-utils';
 import { FeatureFlagKey } from '@jetstream/types';
 import { Badge, Icon, ScopedNotification } from '@jetstream/ui';
 import { abilityState, analysisToolsAccessState, featureFlagsState } from '@jetstream/ui/app-state';
@@ -57,7 +58,13 @@ const HOME_ITEMS: HomeCard[] = [
   {
     title: 'Deploy',
     icon: { type: 'standard', icon: 'asset_relationship' },
-    items: [APP_ROUTES.DEPLOY_METADATA, APP_ROUTES.CREATE_FIELDS, APP_ROUTES.RECORD_TYPE_MANAGER, APP_ROUTES.FORMULA_EVALUATOR],
+    items: [
+      APP_ROUTES.DEPLOY_METADATA,
+      APP_ROUTES.ORG_ALIGNMENT,
+      APP_ROUTES.CREATE_FIELDS,
+      APP_ROUTES.RECORD_TYPE_MANAGER,
+      APP_ROUTES.FORMULA_EVALUATOR,
+    ],
   },
   {
     title: 'Developer Tools',
@@ -84,9 +91,15 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
   const featureFlags = useAtomValue(featureFlagsState);
   const ability = useAtomValue(abilityState);
   const { hasAnalysisToolsAccess } = useAtomValue(analysisToolsAccessState);
+  const isSingleOrgMode = isBrowserExtension() || isCanvasApp();
   // Tools outside the member's team access profile are removed, along with any card left empty
   const visibleHomeItems = HOME_ITEMS.filter((card) => !card.flag || featureFlags[card.flag])
-    .map((card) => ({ ...card, items: card.items.filter(({ TOOL }) => !TOOL || canAccessTool(ability, TOOL)) }))
+    .map((card) => ({
+      ...card,
+      items: card.items.filter(
+        ({ TOOL, REQUIRES_MULTIPLE_ORGS }) => (!TOOL || canAccessTool(ability, TOOL)) && !(REQUIRES_MULTIPLE_ORGS && isSingleOrgMode),
+      ),
+    }))
     .filter((card) => card.items.length > 0);
   return (
     <div
@@ -201,7 +214,7 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
                   </h3>
                   <div className="slds-tile__detail slds-p-bottom_small">
                     <dl className="slds-list_vertical slds-wrap">
-                      {card.items.map(({ DESCRIPTION, ROUTE, SEARCH_PARAM, TITLE, DOCS, NEW_UNTIL }) => (
+                      {card.items.map(({ DESCRIPTION, ROUTE, SEARCH_PARAM, TITLE, DOCS, NEW_UNTIL, REQUIRES_PRO }) => (
                         <Fragment key={ROUTE}>
                           <dt
                             className="slds-item_label slds-text-color_weak slds-truncate slds-p-top_small"
@@ -221,6 +234,7 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
                                 NEW
                               </Badge>
                             )}
+                            {REQUIRES_PRO && <ProBadge className="slds-m-left_xx-small" />}
                           </dt>
                           <dd className="slds-item_detail">{DESCRIPTION}</dd>
                           {/* Docs stay visible while locked — someone deciding whether to upgrade needs to read what the feature does. */}

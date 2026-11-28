@@ -1,13 +1,12 @@
-import { css } from '@emotion/react';
 import { getOrgType, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { decodeURIComponentSafe } from '@jetstream/shared/utils';
 import { DeployOptions, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal, ScopedNotification } from '@jetstream/ui';
 import { GroupScopedOrgsCombobox, OrgLabelBadge } from '@jetstream/ui-core';
 import { salesforceOrgsOmitSelectedState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 import DeployMetadataOptions from '../utils/DeployMetadataOptions';
+import { DeploymentSummaryList, getDeploymentSummaryItems } from '../utils/DeploymentSummaryList';
 
 const DISABLED_OPTIONS = new Set<keyof DeployOptions>(['allowMissingFiles', 'autoUpdatePackage', 'purgeOnDelete', 'singlePackage']);
 
@@ -35,7 +34,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
   onDeploy,
 }) => {
   const modalBodyRef = useRef<HTMLDivElement>(null);
-  const [selectedMetadataList, setSelectedMetadataList] = useState<string[]>();
+  const summaryItems = useMemo(() => getDeploymentSummaryItems(selectedMetadata), [selectedMetadata]);
   const orgs = useAtomValue(salesforceOrgsOmitSelectedState);
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi | undefined>(initialSelectedDestinationOrg);
   const [isConfigValid, setIsConfigValid] = useState(true);
@@ -56,17 +55,6 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
   useNonInitialEffect(() => {
     onSelection?.(deployOptions);
   }, [deployOptions, onSelection]);
-
-  useEffect(() => {
-    if (selectedMetadata) {
-      setSelectedMetadataList(
-        Object.keys(selectedMetadata).reduce((output: string[], key) => {
-          selectedMetadata[key].forEach((item) => output.push(`${key}: ${decodeURIComponentSafe(item.fullName)}`));
-          return output;
-        }, []),
-      );
-    }
-  }, [selectedMetadata]);
 
   useEffect(() => {
     if (!destinationOrg) {
@@ -136,25 +124,11 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
             </div>
           </GridCol>
           <GridCol className="slds-p-left_x-small" size={6} sizeLarge={4}>
-            {Array.isArray(selectedMetadataList) && (
-              <div>
-                <h3 className="slds-text-heading_small slds-p-left_small">Selected Items ({selectedMetadataList.length})</h3>
-                <ul
-                  className="slds-has-dividers_bottom-space"
-                  css={css`
-                    max-height: ${(modalBodyRef.current?.clientHeight || 300) - 50}px;
-                    overflow-y: scroll;
-                    overflow-x: auto;
-                  `}
-                >
-                  {selectedMetadataList.map((item) => (
-                    <li key={item} className="slds-item">
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <DeploymentSummaryList
+              heading="Selected Items"
+              items={summaryItems}
+              maxHeight={`${(modalBodyRef.current?.clientHeight || 300) - 50}px`}
+            />
           </GridCol>
         </Grid>
       </div>
