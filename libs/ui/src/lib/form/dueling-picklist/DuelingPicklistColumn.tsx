@@ -107,7 +107,7 @@ export const DuelingPicklistColumn = forwardRef<DuelingPicklistColumnRef, Duelin
     const [announcement, setAnnouncement] = useState('');
     // Option to focus once it is rendered. Focus is only ever moved in response to the keyboard,
     // otherwise a re-render would steal focus from whatever else the user is typing in.
-    const pendingFocusValue = useRef<string | null>(null);
+    const [pendingFocusValue, setPendingFocusValue] = useState<string | null>(null);
     // Set when the next focus must not select the option: a click decides the selection itself (a Ctrl/Cmd click
     // would otherwise toggle off what focus just selected), and Ctrl/Cmd + arrow moves focus without selecting.
     const skipSelectOnFocus = useRef(false);
@@ -128,22 +128,22 @@ export const DuelingPicklistColumn = forwardRef<DuelingPicklistColumnRef, Duelin
     const activeIndex = Math.min(cursor, Math.max(visibleItems.length - 1, 0));
 
     useEffect(() => {
-      if (pendingFocusValue.current === null) {
+      if (pendingFocusValue === null) {
         return;
       }
-      const index = visibleItems.findIndex(({ value }) => value === pendingFocusValue.current);
+      const index = visibleItems.findIndex(({ value }) => value === pendingFocusValue);
       if (index < 0) {
         // Moved in from the other column and not rendered yet
         return;
       }
-      pendingFocusValue.current = null;
+      setPendingFocusValue(null);
       if (index !== cursor) {
         setCursor(index);
       }
       const option = listRef.current?.querySelectorAll<HTMLElement>('[role="option"]')[index];
       option?.focus();
       option?.scrollIntoView?.({ block: 'nearest' });
-    });
+    }, [pendingFocusValue, visibleItems, cursor]);
 
     useImperativeHandle<DuelingPicklistColumnRef, DuelingPicklistColumnRef>(ref, () => ({
       moveSelection() {
@@ -157,8 +157,9 @@ export const DuelingPicklistColumn = forwardRef<DuelingPicklistColumnRef, Duelin
       focusItems(values: string[]) {
         // The moved options may not match the filter, they must be visible to be focused
         setFilter('');
-        setSelectedValues((priorValues) => [...priorValues, ...values]);
-        pendingFocusValue.current = values[0] ?? null;
+        // What arrives becomes the selection, so that moving it straight back does not take along what was selected before
+        setSelectedValues(values);
+        setPendingFocusValue(values[0] ?? null);
       },
     }));
 
@@ -176,7 +177,7 @@ export const DuelingPicklistColumn = forwardRef<DuelingPicklistColumnRef, Duelin
     }
 
     function focusOption(index: number) {
-      pendingFocusValue.current = visibleItems[index].value;
+      setPendingFocusValue(visibleItems[index].value);
       setCursor(index);
     }
 
@@ -190,7 +191,7 @@ export const DuelingPicklistColumn = forwardRef<DuelingPicklistColumnRef, Duelin
       if (disabled) {
         return;
       }
-      pendingFocusValue.current = null;
+      setPendingFocusValue(null);
       skipSelectOnFocus.current = false;
       let newSelectedItems = [item];
       if (event.shiftKey && selectedItems.length > 0) {
@@ -243,7 +244,7 @@ export const DuelingPicklistColumn = forwardRef<DuelingPicklistColumnRef, Duelin
       if (disabled || !visibleItems.length) {
         return;
       }
-      pendingFocusValue.current = null;
+      setPendingFocusValue(null);
       const focusedItem = visibleItems[activeIndex];
       const arrowTargetIndex = getArrowTargetIndex(event);
       const isMoveKey =
@@ -297,7 +298,7 @@ export const DuelingPicklistColumn = forwardRef<DuelingPicklistColumnRef, Duelin
       if (isReorderMode && onMoveWithinList && (isArrowUpKey(event) || isArrowDownKey(event))) {
         // The focused option is part of what moves, so focus has to follow it to its new position
         trapEvent(event);
-        pendingFocusValue.current = focusedItem.value;
+        setPendingFocusValue(focusedItem.value);
         onMoveWithinList(selectedItems, isArrowUpKey(event) ? 'UP' : 'DOWN');
         return;
       }

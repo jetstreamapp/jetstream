@@ -112,6 +112,22 @@ describe('DuelingPicklist', () => {
     expect(document.activeElement?.textContent).toBe('Apple');
   });
 
+  test('what is moved in with the keyboard replaces the selection that was waiting in the other list', async () => {
+    const user = userEvent.setup();
+    render(<TestPicklist initialSelectedItems={['cherry']} />);
+
+    await user.click(within(screen.getByRole('listbox', { name: 'Selected' })).getByRole('option', { name: 'Cherry' }));
+    await user.click(within(screen.getByRole('listbox', { name: 'Available' })).getByRole('option', { name: 'Apple' }));
+    await user.keyboard('{Control>}{ArrowRight}{/Control}');
+
+    expect(getOptionLabels('Selected')).toEqual(['Cherry', 'Apple']);
+    expect(getSelectedLabels('Selected')).toEqual(['Apple']);
+
+    // Moving it straight back takes only what was just moved
+    await user.keyboard('{Control>}{ArrowLeft}{/Control}');
+    expect(getOptionLabels('Selected')).toEqual(['Cherry']);
+  });
+
   test('the move button moves the selection, clears it and keeps focus on the button', async () => {
     const user = userEvent.setup();
     render(<TestPicklist />);
