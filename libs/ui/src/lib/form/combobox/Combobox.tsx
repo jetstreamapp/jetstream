@@ -535,6 +535,8 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                     minWidth={dropdownWidth?.minWidth}
                     maxWidth={dropdownWidth?.maxWidth}
                     width={dropdownWidth ? 'max-content' : undefined}
+                    // Not in a portal the panel is fluid, which pins it to the input width through its positioned ancestor
+                    matchReferenceWidth={usePortal && !dropdownWidth}
                     id={listId}
                     role="listbox"
                     aria-labelledby={`${id}-label`}
