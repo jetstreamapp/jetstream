@@ -3,6 +3,7 @@ import { SCRATCH_ORG_RELEASES } from '@jetstream/api-types';
 import isBoolean from 'lodash/isBoolean';
 import isPlainObject from 'lodash/isPlainObject';
 import isString from 'lodash/isString';
+import { getScratchOrgFeatureKey, parseScratchOrgFeature } from './scratch-org-features';
 import type { ParsedScratchOrgDefinition, ScratchOrgObjectSettings, ScratchOrgSettings } from './scratch-org.types';
 
 /** Definition file options that map to a string field on the request */
@@ -38,9 +39,10 @@ export function parseFeatures(features: unknown): string[] {
     .map((feature) => feature.trim())
     .filter(Boolean)
     .forEach((feature) => {
-      // Feature names are not case sensitive, keep the first spelling
-      if (!uniqueFeatures.has(feature.toLowerCase())) {
-        uniqueFeatures.set(feature.toLowerCase(), feature);
+      // A feature is identified by its name, so the same feature with another value is a duplicate. The first one is kept.
+      const featureKey = getScratchOrgFeatureKey(parseScratchOrgFeature(feature).name);
+      if (!uniqueFeatures.has(featureKey)) {
+        uniqueFeatures.set(featureKey, feature);
       }
     });
   return Array.from(uniqueFeatures.values());

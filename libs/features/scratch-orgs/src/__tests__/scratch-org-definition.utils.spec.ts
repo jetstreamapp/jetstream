@@ -16,6 +16,10 @@ describe('parseFeatures', () => {
     expect(parseFeatures(['Communities', '', 'communities', 42, null])).toEqual(['Communities']);
     expect(parseFeatures(undefined)).toEqual([]);
   });
+
+  it('treats the same feature with another value as a duplicate', () => {
+    expect(parseFeatures(['MaxApexCodeSize:10', 'maxapexcodesize:20', 'Communities'])).toEqual(['MaxApexCodeSize:10', 'Communities']);
+  });
 });
 
 describe('parseScratchOrgDefinition', () => {

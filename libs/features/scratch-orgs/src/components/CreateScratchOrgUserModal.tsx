@@ -1,8 +1,8 @@
 import { css } from '@emotion/react';
 import { getErrorMessage } from '@jetstream/shared/utils';
-import type { SalesforceOrgUi } from '@jetstream/types';
-import { Checkbox, fireToast, Grid, GridCol, Input, Modal, ScopedNotification, Select, Spinner } from '@jetstream/ui';
-import { FormEvent, FunctionComponent, useEffect, useId, useState } from 'react';
+import type { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { Checkbox, ComboboxWithItems, fireToast, Grid, GridCol, Input, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
+import { FormEvent, FunctionComponent, useEffect, useId, useMemo, useState } from 'react';
 import { createScratchOrgUser, fetchScratchOrgProfiles, setScratchOrgUserPassword } from '../scratch-org-data.utils';
 import type { GeneratedCredentials, ScratchOrgProfileRecord } from '../scratch-org.types';
 import { generatePassword } from '../scratch-org.utils';
@@ -41,6 +41,7 @@ export const CreateScratchOrgUserModal: FunctionComponent<CreateScratchOrgUserMo
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // The org object is replaced whenever the list of orgs is refetched, which must not reset the chosen profile
   useEffect(() => {
     let isActive = true;
     fetchScratchOrgProfiles(scratchOrg)
@@ -55,10 +56,16 @@ export const CreateScratchOrgUserModal: FunctionComponent<CreateScratchOrgUserMo
     return () => {
       isActive = false;
     };
-  }, [scratchOrg]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scratchOrg.uniqueId]);
 
   const emailError = email && !EMAIL_REGEX.test(email.trim()) ? 'Enter a valid email address' : null;
   const usernameError = username && !EMAIL_REGEX.test(username.trim()) ? 'A username must be in the format of an email address' : null;
+  const profileListItems = useMemo(
+    (): ListItem[] => profiles.map(({ Id, Name, UserLicense }) => ({ id: Id, label: Name, secondaryLabel: UserLicense?.Name, value: Id })),
+    [profiles],
+  );
+
   const isValid = !!lastName.trim() && !!email.trim() && !!username.trim() && !!profileId && !emailError && !usernameError;
 
   async function handleSubmit(event: FormEvent) {
@@ -188,23 +195,19 @@ export const CreateScratchOrgUserModal: FunctionComponent<CreateScratchOrgUserMo
             </Input>
           </GridCol>
           <GridCol size={12}>
-            <Select id={`${formId}-profile`} label="Profile" isRequired>
-              <select
-                id={`${formId}-profile`}
-                className="slds-select"
-                value={profileId}
-                required
-                disabled={loadingProfiles}
-                onChange={(event) => setProfileId(event.target.value)}
-              >
-                {profiles.map(({ Id, Name, UserLicense }) => (
-                  <option key={Id} value={Id}>
-                    {Name}
-                    {UserLicense?.Name ? ` (${UserLicense.Name})` : ''}
-                  </option>
-                ))}
-              </select>
-            </Select>
+            <ComboboxWithItems
+              comboboxProps={{
+                label: 'Profile',
+                isRequired: true,
+                disabled: loadingProfiles,
+                itemLength: 10,
+                usePortal: true,
+              }}
+              items={profileListItems}
+              selectedItemId={profileId}
+              selectedItemLabelFn={({ label, secondaryLabel }) => (secondaryLabel ? `${label} (${secondaryLabel})` : label)}
+              onSelected={(item) => setProfileId(item.id)}
+            />
           </GridCol>
           <GridCol size={12} className="slds-m-top_small">
             <Checkbox

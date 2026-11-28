@@ -1,11 +1,9 @@
 import { css } from '@emotion/react';
 import type { SalesforceOrgUi } from '@jetstream/types';
 import { CopyToClipboard, DisabledReasonButton, Grid, Icon, Panel, SalesforceLogin, ScopedNotification, Spinner } from '@jetstream/ui';
-import { formatDate } from 'date-fns/format';
-import { parseISO } from 'date-fns/parseISO';
 import { FunctionComponent, ReactNode } from 'react';
 import type { ScratchOrgRow } from '../scratch-org.types';
-import { getExpirationLabel, getSignupErrorMessage } from '../scratch-org.utils';
+import { formatDateValue, getExpirationLabel, getSignupErrorMessage } from '../scratch-org.utils';
 import type { PendingScratchOrgStep } from '../useScratchOrgActions';
 import ScratchOrgStatusBadge from './ScratchOrgStatusBadge';
 import ScratchOrgUsers from './ScratchOrgUsers';
@@ -30,13 +28,8 @@ function getGeneratePasswordCommand(username: string): string {
   return `sf org generate password --target-org ${username}`;
 }
 
-function formatDateValue(value: string | null | undefined, dateFormat: string): string | null {
-  if (!value) {
-    return null;
-  }
-  const date = parseISO(value);
-  return Number.isNaN(date.getTime()) ? null : formatDate(date, dateFormat);
-}
+/** Labels are the same size as their value, the weight and muted color are what tell them apart */
+const DETAIL_LABEL_CLASS_NAME = 'slds-text-title slds-text-color_weak text-bold';
 
 const DetailItem: FunctionComponent<{ label: string; copyValue?: string | null; children?: ReactNode }> = ({
   label,
@@ -53,13 +46,13 @@ const DetailItem: FunctionComponent<{ label: string; copyValue?: string | null; 
         min-width: 0;
       `}
     >
-      <dt className="slds-text-title slds-truncate">{label}</dt>
+      <dt className={`${DETAIL_LABEL_CLASS_NAME} slds-truncate`}>{label}</dt>
       <dd>
         <Grid verticalAlign="center" noWrap>
           <span className="slds-truncate" title={typeof children === 'string' ? children : undefined}>
             {children}
           </span>
-          {copyValue && <CopyToClipboard className="slds-m-left_xx-small" content={copyValue} size="x-small" />}
+          {copyValue && <CopyToClipboard className="slds-m-left_xx-small" content={copyValue} size="small" />}
         </Grid>
       </dd>
     </div>
@@ -183,7 +176,7 @@ export const ScratchOrgDetailPanel: FunctionComponent<ScratchOrgDetailPanelProps
                     <CopyToClipboard
                       className="slds-m-left_xx-small"
                       content={getGeneratePasswordCommand(row.SignupUsername)}
-                      size="x-small"
+                      size="small"
                     />
                   </Grid>
                 </>
@@ -227,13 +220,13 @@ export const ScratchOrgDetailPanel: FunctionComponent<ScratchOrgDetailPanelProps
 
           {row.Features && (
             <div className="slds-m-bottom_x-small">
-              <div className="slds-text-title">Features</div>
-              <div className="slds-text-body_small">{row.Features.split(';').join(', ')}</div>
+              <div className={DETAIL_LABEL_CLASS_NAME}>Features</div>
+              <div>{row.Features.split(';').join(', ')}</div>
             </div>
           )}
           {row.Description && (
             <div className="slds-m-bottom_x-small">
-              <div className="slds-text-title">Description</div>
+              <div className={DETAIL_LABEL_CLASS_NAME}>Description</div>
               <div>{row.Description}</div>
             </div>
           )}

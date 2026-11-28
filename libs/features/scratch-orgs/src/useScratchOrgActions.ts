@@ -7,7 +7,7 @@ import { fireToast } from '@jetstream/ui';
 import { deleteAllHistoryRecords } from '@jetstream/ui-core';
 import { applicationCookieState, salesforceOrgsState } from '@jetstream/ui/app-state';
 import { useAtomValue, useSetAtom } from 'jotai';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deleteScratchOrg } from './scratch-org-data.utils';
 import { deployScratchOrgSettings, hasScratchOrgSettings } from './scratch-org-settings.utils';
 import type { PendingScratchOrg } from './scratch-org.types';
@@ -19,8 +19,35 @@ const MAX_CONNECT_ATTEMPTS = 12;
 
 export type PendingScratchOrgStep = 'creating' | 'connecting' | 'deploying-settings';
 
+/** A scratch org that was requested from this page, and how far along the work that follows its creation is */
+interface PendingEntry {
+  scratchOrg: PendingScratchOrg;
+  step: PendingScratchOrgStep;
+}
+
 function isNotReachableYet(ex: unknown): boolean {
   return getErrorMessage(ex).startsWith(SCRATCH_ORG_NOT_REACHABLE_MESSAGE);
+}
+
+/** Ids of the rows that an action is running for, so that the row can show it and block a second click */
+function useBusyIds() {
+  const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
+
+  const setBusy = useCallback((id: string, isBusy: boolean) => {
+    setBusyIds((priorIds) => {
+      const ids = new Set(priorIds);
+      if (isBusy) {
+        ids.add(id);
+      } else {
+        ids.delete(id);
+      }
+      return ids;
+    });
+  }, []);
+
+  const reset = useCallback(() => setBusyIds(new Set()), []);
+
+  return { busyIds, setBusy, reset };
 }
 
 /**
@@ -37,20 +64,29 @@ export function useScratchOrgActions(devHubOrg: SalesforceOrgUi, records: Scratc
   const devHubOrgRef = useRef(devHubOrg);
   const { defaultApiVersion } = useAtomValue(applicationCookieState);
   const setOrgs = useSetAtom(salesforceOrgsState);
-  const [pendingScratchOrgs, setPendingScratchOrgs] = useState<PendingScratchOrg[]>([]);
-  const pendingScratchOrgsRef = useRef(pendingScratchOrgs);
-  const [pendingSteps, setPendingSteps] = useState<Record<string, PendingScratchOrgStep>>({});
-  const [connectingIds, setConnectingIds] = useState<Set<string>>(new Set());
-  /** Pending scratch orgs whose post-create work has started, so a later poll does not start it again */
+  /** Keyed by the id of the ScratchOrgInfo */
+  const [pending, setPending] = useState<Record<string, PendingEntry>>({});
+  const pendingRef = useRef(pending);
+  const { busyIds: connectingIds, setBusy: setConnecting, reset: resetConnecting } = useBusyIds();
+  const { busyIds: deletingIds, setBusy: setDeleting, reset: resetDeleting } = useBusyIds();
+  /**
+   * Pending scratch orgs whose post-create work has started, so a later poll does not start it again.
+   * Not derived from the step: the list can be polled again before the step that marks the start is committed.
+   */
   const startedIds = useRef(new Set<string>());
+
+  const pendingSteps = useMemo(
+    () => Object.fromEntries(Object.entries(pending).map(([scratchOrgInfoId, { step }]) => [scratchOrgInfoId, step])),
+    [pending],
+  );
 
   useEffect(() => {
     devHubOrgRef.current = devHubOrg;
   }, [devHubOrg]);
 
   useEffect(() => {
-    pendingScratchOrgsRef.current = pendingScratchOrgs;
-  }, [pendingScratchOrgs]);
+    pendingRef.current = pending;
+  }, [pending]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -62,30 +98,29 @@ export function useScratchOrgActions(devHubOrg: SalesforceOrgUi, records: Scratc
   // Pending work belongs to the Dev Hub it was started on
   useEffect(() => {
     return () => {
-      const abandonedScratchOrgs = pendingScratchOrgsRef.current.filter(({ connect }) => connect);
-      if (abandonedScratchOrgs.length) {
+      const abandonedNames = Object.values(pendingRef.current)
+        .filter(({ scratchOrg }) => scratchOrg.connect)
+        .map(({ scratchOrg }) => `"${scratchOrg.orgName}"`);
+      if (abandonedNames.length) {
         fireToast({
           type: 'warning',
-          message: `Jetstream stopped waiting for ${abandonedScratchOrgs.map(({ orgName }) => `"${orgName}"`).join(', ')}. Salesforce is still creating it, connect it from the Scratch Orgs page once it is active.`,
+          message: `Jetstream stopped waiting for ${abandonedNames.join(', ')}. Salesforce is still creating it, connect it from the Scratch Orgs page once it is active.`,
         });
       }
-      setPendingScratchOrgs([]);
-      setPendingSteps({});
-      setConnectingIds(new Set());
+      setPending({});
+      resetConnecting();
+      resetDeleting();
       startedIds.current = new Set();
     };
-  }, [devHubOrg.uniqueId]);
+  }, [devHubOrg.uniqueId, resetConnecting, resetDeleting]);
 
-  const setConnecting = useCallback((scratchOrgInfoId: string, isConnecting: boolean) => {
-    setConnectingIds((priorIds) => {
-      const ids = new Set(priorIds);
-      if (isConnecting) {
-        ids.add(scratchOrgInfoId);
-      } else {
-        ids.delete(scratchOrgInfoId);
-      }
-      return ids;
-    });
+  /**
+   * Work that outlives a request (waiting for a scratch org, deploying its settings) is abandoned when the user
+   * leaves the page or switches to another Dev Hub. Call this when the work starts, then the returned check as it goes.
+   */
+  const createAbandonCheck = useCallback(() => {
+    const devHubOrgId = devHubOrgRef.current.uniqueId;
+    return () => !isMounted.current || devHubOrgRef.current.uniqueId !== devHubOrgId;
   }, []);
 
   /**
@@ -106,9 +141,7 @@ export function useScratchOrgActions(devHubOrg: SalesforceOrgUi, records: Scratc
    */
   const connect = useCallback(
     async (scratchOrgInfoId: string, { waitUntilReachable = false }: { waitUntilReachable?: boolean } = {}): Promise<SalesforceOrgUi> => {
-      const devHubOrgId = devHubOrgRef.current.uniqueId;
-      // Leaving the page or switching to another Dev Hub ends the wait
-      const isAbandoned = () => !isMounted.current || devHubOrgRef.current.uniqueId !== devHubOrgId;
+      const isAbandoned = createAbandonCheck();
       setConnecting(scratchOrgInfoId, true);
       try {
         for (let attempt = 1; ; attempt++) {
@@ -133,48 +166,58 @@ export function useScratchOrgActions(devHubOrg: SalesforceOrgUi, records: Scratc
         }
       }
     },
-    [refetchOrgs, setConnecting],
+    [createAbandonCheck, refetchOrgs, setConnecting],
   );
 
   /** Delete a scratch org from the Dev Hub, along with its (now useless) connections in Jetstream */
   const remove = useCallback(
     async (scratchOrg: Pick<ScratchOrgInfoRecord, 'Id' | 'Status'>, connectedOrgs: SalesforceOrgUi[]) => {
-      await deleteScratchOrg(devHubOrgRef.current, scratchOrg);
-      for (const connectedOrg of connectedOrgs) {
-        try {
-          await deleteOrg(connectedOrg);
-          deleteAllHistoryRecords(connectedOrg);
-        } catch (ex) {
-          // The scratch org is gone either way, a stale connection can be removed from the org list
-          logger.warn('[SCRATCH ORG] Unable to remove the connection of a deleted scratch org', getErrorMessage(ex));
+      const isAbandoned = createAbandonCheck();
+      setDeleting(scratchOrg.Id, true);
+      try {
+        await deleteScratchOrg(devHubOrgRef.current, scratchOrg);
+        for (const connectedOrg of connectedOrgs) {
+          try {
+            await deleteOrg(connectedOrg);
+            deleteAllHistoryRecords(connectedOrg);
+          } catch (ex) {
+            // The scratch org is gone either way, a stale connection can be removed from the org list
+            logger.warn('[SCRATCH ORG] Unable to remove the connection of a deleted scratch org', getErrorMessage(ex));
+          }
+        }
+        if (connectedOrgs.length) {
+          await refetchOrgs();
+        }
+        await refresh();
+      } finally {
+        if (!isAbandoned()) {
+          setDeleting(scratchOrg.Id, false);
         }
       }
-      if (connectedOrgs.length) {
-        await refetchOrgs();
-      }
-      await refresh();
     },
-    [refetchOrgs, refresh],
+    [createAbandonCheck, refetchOrgs, refresh, setDeleting],
   );
 
-  const trackPendingScratchOrg = useCallback((pendingScratchOrg: PendingScratchOrg) => {
-    setPendingScratchOrgs((priorItems) => [...priorItems, pendingScratchOrg]);
-    setPendingSteps((priorSteps) => ({ ...priorSteps, [pendingScratchOrg.scratchOrgInfoId]: 'creating' }));
+  const trackPendingScratchOrg = useCallback((scratchOrg: PendingScratchOrg) => {
+    setPending((priorPending) => ({ ...priorPending, [scratchOrg.scratchOrgInfoId]: { scratchOrg, step: 'creating' } }));
   }, []);
 
   const stopTracking = useCallback((scratchOrgInfoId: string) => {
-    setPendingScratchOrgs((priorItems) => priorItems.filter((item) => item.scratchOrgInfoId !== scratchOrgInfoId));
-    setPendingSteps(({ [scratchOrgInfoId]: _finished, ...remainingSteps }) => remainingSteps);
+    setPending(({ [scratchOrgInfoId]: _finished, ...remaining }) => remaining);
   }, []);
 
   const finishPendingScratchOrg = useCallback(
     async ({ scratchOrgInfoId, orgName, connect: shouldConnect, settings, objectSettings }: PendingScratchOrg) => {
-      const devHubOrgId = devHubOrgRef.current.uniqueId;
       // The Dev Hub switch already told the user that the wait was over
-      const isAbandoned = () => !isMounted.current || devHubOrgRef.current.uniqueId !== devHubOrgId;
+      const isAbandoned = createAbandonCheck();
       const setStep = (step: PendingScratchOrgStep) => {
         if (!isAbandoned()) {
-          setPendingSteps((priorSteps) => ({ ...priorSteps, [scratchOrgInfoId]: step }));
+          // Nothing to update once it is no longer tracked
+          setPending((priorPending) =>
+            priorPending[scratchOrgInfoId]
+              ? { ...priorPending, [scratchOrgInfoId]: { ...priorPending[scratchOrgInfoId], step } }
+              : priorPending,
+          );
         }
       };
       try {
@@ -214,12 +257,12 @@ export function useScratchOrgActions(devHubOrg: SalesforceOrgUi, records: Scratc
         }
       }
     },
-    [connect, defaultApiVersion, stopTracking],
+    [connect, createAbandonCheck, defaultApiVersion, stopTracking],
   );
 
   // Pick up pending scratch orgs once Salesforce reports the outcome of the signup
   useEffect(() => {
-    pendingScratchOrgs.forEach((pendingScratchOrg) => {
+    Object.values(pending).forEach(({ scratchOrg: pendingScratchOrg }) => {
       const { scratchOrgInfoId, orgName } = pendingScratchOrg;
       const record = records.find(({ Id }) => Id.slice(0, 15) === scratchOrgInfoId.slice(0, 15));
       if (!record || startedIds.current.has(scratchOrgInfoId)) {
@@ -234,7 +277,7 @@ export function useScratchOrgActions(devHubOrg: SalesforceOrgUi, records: Scratc
         stopTracking(scratchOrgInfoId);
       }
     });
-  }, [finishPendingScratchOrg, pendingScratchOrgs, records, stopTracking]);
+  }, [finishPendingScratchOrg, pending, records, stopTracking]);
 
-  return { connect, remove, refetchOrgs, trackPendingScratchOrg, pendingSteps, connectingIds };
+  return { connect, remove, refetchOrgs, trackPendingScratchOrg, pendingSteps, connectingIds, deletingIds };
 }

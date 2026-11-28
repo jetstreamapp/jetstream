@@ -1,19 +1,12 @@
 import { css } from '@emotion/react';
-import {
-  SCRATCH_ORG_DEFAULT_DURATION_DAYS,
-  SCRATCH_ORG_EDITIONS,
-  SCRATCH_ORG_MAX_DURATION_DAYS,
-  SCRATCH_ORG_MIN_DURATION_DAYS,
-  SCRATCH_ORG_RELEASES,
-  ScratchOrgCreateRequestInput,
-  ScratchOrgCreateRequestSchema,
-} from '@jetstream/api-types';
+import { SCRATCH_ORG_MAX_DURATION_DAYS, SCRATCH_ORG_MIN_DURATION_DAYS } from '@jetstream/api-types';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { createScratchOrg } from '@jetstream/shared/data';
 import { getErrorMessage } from '@jetstream/shared/utils';
-import type { InputReadFileContent, SalesforceOrgUi } from '@jetstream/types';
+import type { InputReadFileContent, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import {
   Checkbox,
+  ComboboxWithItems,
   FileSelector,
   Grid,
   GridCol,
@@ -22,25 +15,33 @@ import {
   NumberStepperInput,
   ScopedNotification,
   Section,
-  Select,
   Spinner,
   Textarea,
 } from '@jetstream/ui';
-import isPlainObject from 'lodash/isPlainObject';
 import isString from 'lodash/isString';
+import kebabCase from 'lodash/kebabCase';
 import { FormEvent, FunctionComponent, useId, useMemo, useState } from 'react';
-import { z } from 'zod';
-import { parseFeatures, parseScratchOrgDefinition } from '../scratch-org-definition.utils';
-import { getScratchOrgSettingsProblems, hasScratchOrgSettings } from '../scratch-org-settings.utils';
-import type { DevHubScratchOrgLimits, PendingScratchOrg, ScratchOrgObjectSettings, ScratchOrgSettings } from '../scratch-org.types';
+import {
+  applyDefinitionToCreateScratchOrgForm,
+  CreateScratchOrgFormState,
+  getInitialCreateScratchOrgForm,
+  isFromShapeOrSnapshot,
+  validateCreateScratchOrgForm,
+} from '../scratch-org-create-form.utils';
+import { parseScratchOrgDefinition } from '../scratch-org-definition.utils';
+import { hasScratchOrgSettings } from '../scratch-org-settings.utils';
+import type { DevHubScratchOrgLimits, PendingScratchOrg } from '../scratch-org.types';
+import { useScratchOrgInfoPicklists } from '../useScratchOrgInfoPicklists';
+import { ScratchOrgFeaturesInput } from './ScratchOrgFeaturesInput';
 
 /** Vertical rhythm between the rows of the form, the grid only spaces its columns */
 const FORM_GRID_STYLES = css`
   row-gap: 0.75rem;
 `;
 
-/** Value of the release picklist that leaves the choice to Salesforce (the Dev Hub's own release) */
-const DEFAULT_RELEASE = '';
+/** List items need a non-empty id, so the option that leaves a choice to the Dev Hub gets one of its own */
+const SAME_AS_DEV_HUB_ITEM_ID = 'default';
+const SAME_AS_DEV_HUB_ITEM: ListItem = { id: SAME_AS_DEV_HUB_ITEM_ID, label: 'Same as Dev Hub', value: '' };
 
 export interface CreateScratchOrgModalProps {
   devHubOrg: SalesforceOrgUi;
@@ -53,98 +54,47 @@ export interface CreateScratchOrgModalProps {
   onCreated: (pendingScratchOrg: PendingScratchOrg) => void;
 }
 
-interface FormState {
-  orgName: string;
-  edition: string;
-  durationDays: number;
-  adminEmail: string;
-  description: string;
-  features: string;
-  hasSampleData: boolean;
-  release: string;
-  country: string;
-  language: string;
-  username: string;
-  namespace: string;
-  sourceOrg: string;
-  snapshot: string;
-  /** JSON object with the optional `settings` and `objectSettings` of a definition file */
-  settingsJson: string;
+/** Fields of the form that are edited as plain text */
+type TextFieldName = {
+  [Field in keyof CreateScratchOrgFormState]: CreateScratchOrgFormState[Field] extends string ? Field : never;
+}[keyof CreateScratchOrgFormState];
+
+interface FormTextFieldProps {
+  id: string;
+  label: string;
+  labelHelp?: string;
+  value: string;
+  error?: string;
+  type?: string;
+  maxLength: number;
+  placeholder?: string;
+  onChange: (value: string) => void;
 }
 
-type FormErrors = Partial<Record<keyof FormState, string>>;
-
-function getInitialState(devHubOrg: SalesforceOrgUi): FormState {
-  return {
-    orgName: '',
-    edition: 'Developer',
-    durationDays: SCRATCH_ORG_DEFAULT_DURATION_DAYS,
-    adminEmail: devHubOrg.email || '',
-    description: '',
-    features: '',
-    hasSampleData: false,
-    release: DEFAULT_RELEASE,
-    country: '',
-    language: '',
-    username: '',
-    namespace: '',
-    sourceOrg: '',
-    snapshot: '',
-    settingsJson: '',
-  };
-}
-
-function parseSettingsJson(settingsJson: string): {
-  settings: ScratchOrgSettings | null;
-  objectSettings: ScratchOrgObjectSettings | null;
-  error: string | null;
-} {
-  if (!settingsJson.trim()) {
-    return { settings: null, objectSettings: null, error: null };
-  }
-  try {
-    const value: unknown = JSON.parse(settingsJson);
-    if (!isPlainObject(value)) {
-      throw new Error('Settings must be a JSON object');
-    }
-    const { settings, objectSettings, ...unknownKeys } = value as Record<string, unknown>;
-    if (Object.keys(unknownKeys).length) {
-      throw new Error(`Only "settings" and "objectSettings" are allowed here, found "${Object.keys(unknownKeys).join('", "')}"`);
-    }
-    if ((settings && !isPlainObject(settings)) || (objectSettings && !isPlainObject(objectSettings))) {
-      throw new Error('"settings" and "objectSettings" must be JSON objects');
-    }
-    const parsedSettings = (settings as ScratchOrgSettings) ?? null;
-    const parsedObjectSettings = (objectSettings as ScratchOrgObjectSettings) ?? null;
-    const [problem] = getScratchOrgSettingsProblems(parsedSettings, parsedObjectSettings);
-    if (problem) {
-      throw new Error(problem);
-    }
-    return { settings: parsedSettings, objectSettings: parsedObjectSettings, error: null };
-  } catch (ex) {
-    return { settings: null, objectSettings: null, error: ex instanceof SyntaxError ? 'Settings are not valid JSON' : getErrorMessage(ex) };
-  }
-}
-
-function toRequest(form: FormState): ScratchOrgCreateRequestInput {
-  return {
-    orgName: form.orgName,
-    // An org shape or snapshot determines the edition
-    edition: form.sourceOrg.trim() || form.snapshot.trim() ? undefined : form.edition,
-    durationDays: form.durationDays,
-    adminEmail: form.adminEmail.trim() || undefined,
-    description: form.description,
-    features: parseFeatures(form.features),
-    hasSampleData: form.hasSampleData || undefined,
-    release: SCRATCH_ORG_RELEASES.find((release) => release === form.release),
-    country: form.country,
-    language: form.language,
-    username: form.username.trim() || undefined,
-    namespace: form.namespace,
-    sourceOrg: form.sourceOrg.trim() || undefined,
-    snapshot: form.snapshot,
-  };
-}
+const FormTextField: FunctionComponent<FormTextFieldProps> = ({
+  id,
+  label,
+  labelHelp,
+  value,
+  error,
+  type,
+  maxLength,
+  placeholder,
+  onChange,
+}) => (
+  <Input id={id} label={label} labelHelp={labelHelp} hasError={!!error} errorMessage={error}>
+    <input
+      id={id}
+      className="slds-input"
+      type={type}
+      value={value}
+      maxLength={maxLength}
+      placeholder={placeholder}
+      autoComplete="off"
+      onChange={(event) => onChange(event.target.value)}
+    />
+  </Input>
+);
 
 export const CreateScratchOrgModal: FunctionComponent<CreateScratchOrgModalProps> = ({
   devHubOrg,
@@ -155,7 +105,7 @@ export const CreateScratchOrgModal: FunctionComponent<CreateScratchOrgModalProps
   onCreated,
 }) => {
   const formId = useId();
-  const [form, setForm] = useState<FormState>(() => getInitialState(devHubOrg));
+  const [form, setForm] = useState(() => getInitialCreateScratchOrgForm(devHubOrg));
   const [connect, setConnect] = useState(!connectDeniedReason);
   const [definitionFilename, setDefinitionFilename] = useState<string | null>(null);
   const [definitionWarnings, setDefinitionWarnings] = useState<string[]>([]);
@@ -163,38 +113,34 @@ export const CreateScratchOrgModal: FunctionComponent<CreateScratchOrgModalProps
   const [showErrors, setShowErrors] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { picklists, loading: loadingPicklists } = useScratchOrgInfoPicklists(devHubOrg);
 
-  const parsedSettings = useMemo(() => parseSettingsJson(form.settingsJson), [form.settingsJson]);
-  const hasSettings = hasScratchOrgSettings(parsedSettings.settings, parsedSettings.objectSettings);
+  const { request, errors, settings, objectSettings } = useMemo(() => validateCreateScratchOrgForm(form), [form]);
+  const hasSettings = hasScratchOrgSettings(settings, objectSettings);
   const canDeploySettings = connect && !settingsDeniedReason;
   const settingsIgnoredReason = !hasSettings
     ? null
     : (settingsDeniedReason ??
       (connect ? null : 'Settings are only deployed when the scratch org is connected to Jetstream, the settings below will be ignored.'));
 
-  const { request, errors } = useMemo(() => {
-    const result = ScratchOrgCreateRequestSchema.safeParse(toRequest(form));
-    const fieldErrors: FormErrors = {};
-    if (!result.success) {
-      Object.entries(z.flattenError(result.error).fieldErrors).forEach(([field, messages]) => {
-        fieldErrors[field as keyof FormState] = (messages as string[] | undefined)?.[0];
-      });
-    }
-    if (parsedSettings.error) {
-      fieldErrors.settingsJson = parsedSettings.error;
-    }
-    return { request: result.success ? toRequest(form) : null, errors: fieldErrors };
-  }, [form, parsedSettings.error]);
-
-  const isValid = !!request && !Object.keys(errors).length;
   const hasNoRemainingScratchOrgs = limits.active?.remaining === 0 || limits.daily?.remaining === 0;
 
-  function setField<K extends keyof FormState>(field: K, value: FormState[K]) {
+  function setField<K extends keyof CreateScratchOrgFormState>(field: K, value: CreateScratchOrgFormState[K]) {
     setForm((priorForm) => ({ ...priorForm, [field]: value }));
   }
 
-  function getError(field: keyof FormState) {
+  function getError(field: keyof CreateScratchOrgFormState) {
     return showErrors ? errors[field] : undefined;
+  }
+
+  /** What every text field has in common, `transform` adjusts what was typed before it is stored */
+  function getTextFieldProps(field: TextFieldName, transform: (value: string) => string = (value) => value) {
+    return {
+      id: `${formId}-${kebabCase(field)}`,
+      value: form[field],
+      error: getError(field),
+      onChange: (value: string) => setField(field, transform(value)),
+    };
   }
 
   function handleDefinitionFile({ filename, content }: InputReadFileContent) {
@@ -204,26 +150,8 @@ export const CreateScratchOrgModal: FunctionComponent<CreateScratchOrgModalProps
       if (!isString(content)) {
         throw new Error('The definition file could not be read as text.');
       }
-      const { request: definition, settings, objectSettings, warnings } = parseScratchOrgDefinition(content);
-      setForm((priorForm) => ({
-        ...priorForm,
-        orgName: definition.orgName ?? priorForm.orgName,
-        edition: definition.edition ?? priorForm.edition,
-        adminEmail: isString(definition.adminEmail) ? definition.adminEmail : priorForm.adminEmail,
-        description: definition.description ?? priorForm.description,
-        features: definition.features ? definition.features.join(', ') : priorForm.features,
-        hasSampleData: definition.hasSampleData ?? priorForm.hasSampleData,
-        release: definition.release ?? priorForm.release,
-        country: definition.country ?? priorForm.country,
-        language: definition.language ?? priorForm.language,
-        username: isString(definition.username) ? definition.username : priorForm.username,
-        namespace: definition.namespace ?? priorForm.namespace,
-        sourceOrg: definition.sourceOrg ?? priorForm.sourceOrg,
-        snapshot: definition.snapshot ?? priorForm.snapshot,
-        settingsJson: hasScratchOrgSettings(settings, objectSettings)
-          ? JSON.stringify({ ...(settings ? { settings } : {}), ...(objectSettings ? { objectSettings } : {}) }, null, 2)
-          : priorForm.settingsJson,
-      }));
+      const { warnings, ...definition } = parseScratchOrgDefinition(content);
+      setForm((priorForm) => applyDefinitionToCreateScratchOrgForm(priorForm, definition));
       setDefinitionFilename(filename);
       setDefinitionWarnings(warnings);
     } catch (ex) {
@@ -235,7 +163,7 @@ export const CreateScratchOrgModal: FunctionComponent<CreateScratchOrgModalProps
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setShowErrors(true);
-    if (!isValid || !request || saving) {
+    if (!request || saving) {
       return;
     }
     setSaving(true);
@@ -246,8 +174,8 @@ export const CreateScratchOrgModal: FunctionComponent<CreateScratchOrgModalProps
         scratchOrgInfoId: id,
         orgName: form.orgName.trim() || 'Company',
         connect,
-        settings: canDeploySettings ? parsedSettings.settings : null,
-        objectSettings: canDeploySettings ? parsedSettings.objectSettings : null,
+        settings: canDeploySettings ? settings : null,
+        objectSettings: canDeploySettings ? objectSettings : null,
       });
     } catch (ex) {
       setErrorMessage(getErrorMessage(ex));
@@ -255,11 +183,32 @@ export const CreateScratchOrgModal: FunctionComponent<CreateScratchOrgModalProps
     }
   }
 
-  const isFromShapeOrSnapshot = !!form.sourceOrg.trim() || !!form.snapshot.trim();
-  // Editions Salesforce adds later can still be used through a definition file
-  const editions = SCRATCH_ORG_EDITIONS.some((edition) => edition === form.edition)
-    ? SCRATCH_ORG_EDITIONS
-    : [...SCRATCH_ORG_EDITIONS, form.edition];
+  const fromShapeOrSnapshot = isFromShapeOrSnapshot(form);
+  // The lists come from the Dev Hub. A value from a definition file that is not on a list stays selectable,
+  // so that it is visible what will be sent and the Dev Hub is what accepts or rejects it.
+  const editionListItems = useMemo((): ListItem[] => {
+    const editions = picklists.editions.includes(form.edition) ? picklists.editions : [...picklists.editions, form.edition];
+    return editions.map((edition) => ({ id: edition, label: edition, value: edition }));
+  }, [picklists.editions, form.edition]);
+
+  const releaseListItems = useMemo(
+    (): ListItem[] => [SAME_AS_DEV_HUB_ITEM, ...picklists.releases.map((release) => ({ id: release, label: release, value: release }))],
+    [picklists.releases],
+  );
+  const selectedReleaseItemId = releaseListItems.some(({ id }) => id === form.release) ? form.release : SAME_AS_DEV_HUB_ITEM_ID;
+
+  const languageListItems = useMemo((): ListItem[] | null => {
+    if (!picklists.languages) {
+      return null;
+    }
+    const languages = picklists.languages.map(({ value, label }) => ({ id: value, label, secondaryLabel: value, value }));
+    const hasSelectedLanguage = !form.language || languages.some(({ id }) => id === form.language);
+    return [
+      SAME_AS_DEV_HUB_ITEM,
+      ...languages,
+      ...(hasSelectedLanguage ? [] : [{ id: form.language, label: form.language, value: form.language }]),
+    ];
+  }, [picklists.languages, form.language]);
 
   return (
     <Modal
@@ -288,7 +237,7 @@ export const CreateScratchOrgModal: FunctionComponent<CreateScratchOrgModalProps
             {errorMessage}
           </ScopedNotification>
         )}
-        {showErrors && !isValid && (
+        {showErrors && !request && (
           // Some of the fields are in the collapsed advanced options, so the problems are listed here as well
           <ScopedNotification theme="error" className="slds-m-bottom_small">
             <ul className="slds-list_dotted">
@@ -336,41 +285,25 @@ export const CreateScratchOrgModal: FunctionComponent<CreateScratchOrgModalProps
 
         <Grid gutters wrap className="slds-m-top_small" css={FORM_GRID_STYLES}>
           <GridCol size={12} sizeMedium={6}>
-            <Input id={`${formId}-org-name`} label="Org Name" hasError={!!getError('orgName')} errorMessage={getError('orgName')}>
-              <input
-                id={`${formId}-org-name`}
-                className="slds-input"
-                value={form.orgName}
-                placeholder="Company"
-                maxLength={80}
-                autoComplete="off"
-                onChange={(event) => setField('orgName', event.target.value)}
-              />
-            </Input>
+            <FormTextField {...getTextFieldProps('orgName')} label="Org Name" placeholder="Company" maxLength={80} />
           </GridCol>
           <GridCol size={12} sizeMedium={6}>
-            <Select
-              id={`${formId}-edition`}
-              label="Edition"
-              isRequired={!isFromShapeOrSnapshot}
-              hasError={!!getError('edition')}
-              errorMessage={getError('edition')}
-              helpText={isFromShapeOrSnapshot ? 'Determined by the org shape or snapshot' : undefined}
-            >
-              <select
-                id={`${formId}-edition`}
-                className="slds-select"
-                value={form.edition}
-                disabled={isFromShapeOrSnapshot}
-                onChange={(event) => setField('edition', event.target.value)}
-              >
-                {editions.map((edition) => (
-                  <option key={edition} value={edition}>
-                    {edition}
-                  </option>
-                ))}
-              </select>
-            </Select>
+            <ComboboxWithItems
+              comboboxProps={{
+                label: 'Edition',
+                isRequired: !fromShapeOrSnapshot,
+                disabled: fromShapeOrSnapshot,
+                hasError: !!getError('edition'),
+                errorMessage: getError('edition'),
+                helpText: fromShapeOrSnapshot ? 'Determined by the org shape or snapshot' : undefined,
+                loading: loadingPicklists,
+                itemLength: 10,
+                usePortal: true,
+              }}
+              items={editionListItems}
+              selectedItemId={form.edition}
+              onSelected={(item) => setField('edition', item.value)}
+            />
           </GridCol>
           <GridCol size={12} sizeMedium={6}>
             <NumberStepperInput
@@ -387,79 +320,38 @@ export const CreateScratchOrgModal: FunctionComponent<CreateScratchOrgModalProps
             />
           </GridCol>
           <GridCol size={12} sizeMedium={6}>
-            <Select
-              id={`${formId}-release`}
-              label="Release"
-              labelHelp="Preview and Previous are only available around a Salesforce release."
-            >
-              <select
-                id={`${formId}-release`}
-                className="slds-select"
-                value={form.release}
-                onChange={(event) => setField('release', event.target.value)}
-              >
-                <option value={DEFAULT_RELEASE}>Same as Dev Hub</option>
-                {SCRATCH_ORG_RELEASES.map((release) => (
-                  <option key={release} value={release}>
-                    {release}
-                  </option>
-                ))}
-              </select>
-            </Select>
+            <ComboboxWithItems
+              comboboxProps={{
+                label: 'Release',
+                labelHelp: 'Preview and Previous are only available around a Salesforce release.',
+                itemLength: 5,
+                usePortal: true,
+              }}
+              items={releaseListItems}
+              selectedItemId={selectedReleaseItemId}
+              onSelected={(item) => setField('release', item.value)}
+            />
           </GridCol>
           <GridCol size={12}>
-            <Input
-              id={`${formId}-admin-email`}
+            <FormTextField
+              {...getTextFieldProps('adminEmail')}
               label="Admin Email"
               labelHelp="Email address of the scratch org's admin user. Defaults to the Dev Hub user's email."
-              hasError={!!getError('adminEmail')}
-              errorMessage={getError('adminEmail')}
-            >
-              <input
-                id={`${formId}-admin-email`}
-                className="slds-input"
-                type="email"
-                value={form.adminEmail}
-                maxLength={255}
-                autoComplete="off"
-                onChange={(event) => setField('adminEmail', event.target.value)}
-              />
-            </Input>
+              type="email"
+              maxLength={255}
+            />
           </GridCol>
           <GridCol size={12}>
-            <Textarea
+            <ScratchOrgFeaturesInput
               id={`${formId}-features`}
-              label="Features"
-              labelHelp="Add-on features to enable, such as Communities, ServiceCloud or MultiCurrency. Separate features with a comma."
+              features={form.features}
               hasError={!!getError('features')}
               errorMessage={getError('features')}
-            >
-              <textarea
-                id={`${formId}-features`}
-                className="slds-textarea"
-                value={form.features}
-                rows={2}
-                placeholder="EnableSetPasswordInApi, Communities"
-                onChange={(event) => setField('features', event.target.value)}
-              />
-            </Textarea>
+              onChange={(features) => setField('features', features)}
+            />
           </GridCol>
           <GridCol size={12}>
-            <Input
-              id={`${formId}-description`}
-              label="Description"
-              hasError={!!getError('description')}
-              errorMessage={getError('description')}
-            >
-              <input
-                id={`${formId}-description`}
-                className="slds-input"
-                value={form.description}
-                maxLength={2000}
-                autoComplete="off"
-                onChange={(event) => setField('description', event.target.value)}
-              />
-            </Input>
+            <FormTextField {...getTextFieldProps('description')} label="Description" maxLength={2000} />
           </GridCol>
           <GridCol size={12} className="slds-m-top_small">
             <Checkbox
@@ -486,113 +378,70 @@ export const CreateScratchOrgModal: FunctionComponent<CreateScratchOrgModalProps
         <Section id={`${formId}-advanced`} label="Advanced Options" initialExpanded={false} className="slds-m-top_medium">
           <Grid gutters wrap css={FORM_GRID_STYLES}>
             <GridCol size={12} sizeMedium={6}>
-              <Input
-                id={`${formId}-username`}
+              <FormTextField
+                {...getTextFieldProps('username')}
                 label="Username"
                 labelHelp="Username of the admin user. Salesforce generates one when this is blank."
-                hasError={!!getError('username')}
-                errorMessage={getError('username')}
-              >
-                <input
-                  id={`${formId}-username`}
-                  className="slds-input"
-                  value={form.username}
-                  maxLength={80}
-                  autoComplete="off"
-                  onChange={(event) => setField('username', event.target.value)}
-                />
-              </Input>
+                maxLength={80}
+              />
             </GridCol>
             <GridCol size={12} sizeMedium={6}>
-              <Input
-                id={`${formId}-namespace`}
+              <FormTextField
+                {...getTextFieldProps('namespace')}
                 label="Namespace"
                 labelHelp="A namespace that is linked to this Dev Hub."
-                hasError={!!getError('namespace')}
-                errorMessage={getError('namespace')}
-              >
-                <input
-                  id={`${formId}-namespace`}
-                  className="slds-input"
-                  value={form.namespace}
-                  maxLength={15}
-                  autoComplete="off"
-                  onChange={(event) => setField('namespace', event.target.value)}
-                />
-              </Input>
+                maxLength={15}
+              />
             </GridCol>
             <GridCol size={12} sizeMedium={6}>
-              <Input
-                id={`${formId}-country`}
+              <FormTextField
+                {...getTextFieldProps('country', (value) => value.toUpperCase())}
                 label="Country"
                 labelHelp="Two character ISO country code, e.g. US. Defaults to the Dev Hub's country."
-                hasError={!!getError('country')}
-                errorMessage={getError('country')}
-              >
-                <input
-                  id={`${formId}-country`}
-                  className="slds-input"
-                  value={form.country}
-                  maxLength={2}
-                  autoComplete="off"
-                  onChange={(event) => setField('country', event.target.value.toUpperCase())}
-                />
-              </Input>
+                maxLength={2}
+              />
             </GridCol>
             <GridCol size={12} sizeMedium={6}>
-              <Input
-                id={`${formId}-language`}
-                label="Language"
-                labelHelp="Language code, e.g. en_US. Defaults to the Dev Hub's language."
-                hasError={!!getError('language')}
-                errorMessage={getError('language')}
-              >
-                <input
-                  id={`${formId}-language`}
-                  className="slds-input"
-                  value={form.language}
+              {languageListItems ? (
+                <ComboboxWithItems
+                  comboboxProps={{
+                    label: 'Language',
+                    labelHelp: 'Default language of the scratch org.',
+                    hasError: !!getError('language'),
+                    errorMessage: getError('language'),
+                    itemLength: 10,
+                    usePortal: true,
+                  }}
+                  items={languageListItems}
+                  selectedItemId={form.language || SAME_AS_DEV_HUB_ITEM_ID}
+                  selectedItemLabelFn={({ label, secondaryLabel }) => (secondaryLabel ? `${label} (${secondaryLabel})` : label)}
+                  onSelected={(item) => setField('language', item.value)}
+                />
+              ) : (
+                <FormTextField
+                  {...getTextFieldProps('language')}
+                  label="Language"
+                  labelHelp="Language code, e.g. en_US. Defaults to the Dev Hub's language."
                   maxLength={10}
-                  autoComplete="off"
-                  onChange={(event) => setField('language', event.target.value)}
                 />
-              </Input>
+              )}
             </GridCol>
             <GridCol size={12} sizeMedium={6}>
-              <Input
-                id={`${formId}-source-org`}
+              <FormTextField
+                {...getTextFieldProps('sourceOrg')}
                 label="Org Shape Source Org Id"
                 labelHelp="Create the scratch org from the org shape of this org (15 or 18 character org id)."
-                hasError={!!getError('sourceOrg')}
-                errorMessage={getError('sourceOrg')}
-              >
-                <input
-                  id={`${formId}-source-org`}
-                  className="slds-input"
-                  value={form.sourceOrg}
-                  maxLength={18}
-                  autoComplete="off"
-                  placeholder="00D..."
-                  onChange={(event) => setField('sourceOrg', event.target.value)}
-                />
-              </Input>
+                placeholder="00D..."
+                maxLength={18}
+              />
             </GridCol>
             <GridCol size={12} sizeMedium={6}>
-              <Input
-                id={`${formId}-snapshot`}
+              <FormTextField
+                {...getTextFieldProps('snapshot')}
                 label="Snapshot"
                 labelHelp="Create the scratch org from a scratch org snapshot with this name."
-                hasError={!!getError('snapshot')}
-                errorMessage={getError('snapshot')}
-              >
-                <input
-                  id={`${formId}-snapshot`}
-                  className="slds-input"
-                  value={form.snapshot}
-                  maxLength={255}
-                  autoComplete="off"
-                  onChange={(event) => setField('snapshot', event.target.value)}
-                />
-              </Input>
+                maxLength={255}
+              />
             </GridCol>
             <GridCol size={12}>
               <Textarea

@@ -1,5 +1,6 @@
 import type { Maybe, SalesforceOrgUi, ScratchOrgInfoRecord } from '@jetstream/types';
 import { differenceInCalendarDays } from 'date-fns/differenceInCalendarDays';
+import { formatDate } from 'date-fns/format';
 import { parseISO } from 'date-fns/parseISO';
 import type { ScratchOrgDisplayStatus, ScratchOrgRow } from './scratch-org.types';
 
@@ -92,9 +93,22 @@ export function findConnectedOrgs({ ScratchOrg }: ScratchOrgInfoRecord, orgs: Sa
   return orgs.filter(({ organizationId }) => organizationId?.slice(0, 15) === scratchOrgId);
 }
 
+/** A scratch org can be connected as several of its users, the user it was created with is the one to open it as */
+function pickPreferredOrg(connectedOrgs: SalesforceOrgUi[], { SignupUsername }: ScratchOrgInfoRecord): SalesforceOrgUi | null {
+  return connectedOrgs.find(({ username }) => username === SignupUsername) ?? connectedOrgs[0] ?? null;
+}
+
 export function findConnectedOrg(record: ScratchOrgInfoRecord, orgs: SalesforceOrgUi[]): SalesforceOrgUi | null {
-  const connectedOrgs = findConnectedOrgs(record, orgs);
-  return connectedOrgs.find(({ username }) => username === record.SignupUsername) ?? connectedOrgs[0] ?? null;
+  return pickPreferredOrg(findConnectedOrgs(record, orgs), record);
+}
+
+/** @returns null for a missing or unreadable date, so that the field can be left out */
+export function formatDateValue(value: string | null | undefined, dateFormat: string): string | null {
+  if (!value) {
+    return null;
+  }
+  const date = parseISO(value);
+  return Number.isNaN(date.getTime()) ? null : formatDate(date, dateFormat);
 }
 
 /** Jetstream requests scratch orgs with its own OAuth callback, on the web (`/oauth/sfdc/callback`) and on desktop (`jetstream://`) */
@@ -115,7 +129,7 @@ export function toScratchOrgRows(records: ScratchOrgInfoRecord[], orgs: Salesfor
       displayStatus,
       daysRemaining: displayStatus === 'Active' || displayStatus === 'Expired' ? getDaysRemaining(record.ExpirationDate, now) : null,
       createdByName: record.CreatedBy?.Name ?? null,
-      connectedOrg: connectedOrgs.find(({ username }) => username === record.SignupUsername) ?? connectedOrgs[0] ?? null,
+      connectedOrg: pickPreferredOrg(connectedOrgs, record),
       connectedOrgs,
       createdWithJetstream: isCreatedWithJetstream(record),
     };

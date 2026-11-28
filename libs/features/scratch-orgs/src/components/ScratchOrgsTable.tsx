@@ -1,11 +1,9 @@
 import { css } from '@emotion/react';
 import { Badge, DisabledReasonButton, Icon, SalesforceLogin, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
-import { formatDate } from 'date-fns/format';
-import { parseISO } from 'date-fns/parseISO';
-import { FunctionComponent } from 'react';
+import { FunctionComponent, MouseEvent } from 'react';
 import type { ScratchOrgRow } from '../scratch-org.types';
-import { EXPIRING_SOON_DAYS, getExpirationLabel } from '../scratch-org.utils';
+import { EXPIRING_SOON_DAYS, formatDateValue, getExpirationLabel } from '../scratch-org.utils';
 import type { PendingScratchOrgStep } from '../useScratchOrgActions';
 import ScratchOrgStatusBadge from './ScratchOrgStatusBadge';
 
@@ -24,12 +22,25 @@ export interface ScratchOrgsTableProps {
   onDelete: (row: ScratchOrgRow) => void;
 }
 
-function formatDateValue(value: string | null | undefined, dateFormat: string): string {
-  if (!value) {
-    return '';
+const ROW_STYLES = css`
+  cursor: pointer;
+`;
+
+/**
+ * Whether a click on a row is meant for the row itself, rather than for one of the controls in it.
+ * The name stays a button so that the details can be opened with the keyboard, the row click is a larger target for the mouse.
+ */
+function isRowClick(event: MouseEvent<HTMLTableRowElement>): boolean {
+  const target = event.target as Element;
+  // Tooltips and menus are rendered in a portal, their clicks bubble here through React without being inside of the row
+  if (!event.currentTarget.contains(target)) {
+    return false;
   }
-  const date = parseISO(value);
-  return Number.isNaN(date.getTime()) ? '' : formatDate(date, dateFormat);
+  if (target.closest('button, a, input, select, textarea, [role="button"], [role="menuitem"]')) {
+    return false;
+  }
+  // Dragging over a row to select its text ends with a click as well
+  return !window.getSelection()?.toString();
 }
 
 export const ScratchOrgsTable: FunctionComponent<ScratchOrgsTableProps> = ({
@@ -96,6 +107,8 @@ export const ScratchOrgsTable: FunctionComponent<ScratchOrgsTableProps> = ({
               className={classNames('slds-hint-parent', { 'slds-is-selected': selectedId === Id })}
               aria-current={selectedId === Id ? 'true' : undefined}
               data-testid={`scratch-org-${Id}`}
+              css={ROW_STYLES}
+              onClick={(event) => isRowClick(event) && onSelect(row)}
             >
               <th scope="row">
                 <button

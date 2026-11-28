@@ -84,13 +84,12 @@ export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = ({ onAddOrgHandl
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
   const { records, limits, hasMore, loading, refreshing, errorMessage, isNotDevHub, lastChecked, refresh } = useScratchOrgs(
     devHubOrg,
     includeDeleted,
   );
-  const { connect, remove, refetchOrgs, trackPendingScratchOrg, pendingSteps, connectingIds } = useScratchOrgActions(
+  const { connect, remove, refetchOrgs, trackPendingScratchOrg, pendingSteps, connectingIds, deletingIds } = useScratchOrgActions(
     devHubOrg,
     records,
     refresh,
@@ -109,7 +108,6 @@ export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = ({ onAddOrgHandl
     setCreateModalOpen(false);
     setSearchTerm('');
     setVisibleCount(PAGE_SIZE);
-    setDeletingIds(new Set());
   }, [devHubOrg.uniqueId]);
 
   useEffect(() => {
@@ -171,30 +169,31 @@ export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = ({ onAddOrgHandl
   const handleDelete = useCallback(
     async ({ Id, Status, OrgName, SignupUsername, displayStatus, connectedOrgs }: ScratchOrgRow) => {
       const name = OrgName || SignupUsername || 'this scratch org';
+      // Bold so that it is obvious which scratch org is about to be deleted
+      const nameInBold = OrgName || SignupUsername ? <strong>{name}</strong> : name;
       const confirmed = await ConfirmationModalPromise({
         header: 'Delete Scratch Org',
         content:
-          displayStatus === 'Error'
-            ? `Remove the failed request for ${name} from the Dev Hub?`
-            : `Delete ${name}${SignupUsername && OrgName ? ` (${SignupUsername})` : ''}? The scratch org and everything in it is permanently deleted, this cannot be undone.${connectedOrgs.length ? ' Its connection is removed from Jetstream as well.' : ''}`,
+          displayStatus === 'Error' ? (
+            <>Remove the failed request for {nameInBold} from the Dev Hub?</>
+          ) : (
+            <>
+              Delete {nameInBold}
+              {SignupUsername && OrgName ? ` (${SignupUsername})` : ''}? The scratch org and everything in it is permanently deleted, this
+              cannot be undone.{connectedOrgs.length ? ' Its connection is removed from Jetstream as well.' : ''}
+            </>
+          ),
         confirm: 'Delete',
       });
       if (!confirmed) {
         return;
       }
-      setDeletingIds((priorIds) => new Set(priorIds).add(Id));
       try {
         await remove({ Id, Status }, connectedOrgs);
         setSelectedId((priorId) => (priorId === Id ? null : priorId));
         fireToast({ type: 'success', message: `${name} was deleted.` });
       } catch (ex) {
         fireToast({ type: 'error', message: `Unable to delete ${name}. ${getErrorMessage(ex)}` });
-      } finally {
-        setDeletingIds((priorIds) => {
-          const ids = new Set(priorIds);
-          ids.delete(Id);
-          return ids;
-        });
       }
     },
     [remove],
