@@ -102,6 +102,8 @@ const SalesforceApi = lazy(() => import('@jetstream/feature/salesforce-api').the
 
 const DebugLogViewer = lazy(() => import('@jetstream/feature/debug-log-viewer').then((module) => ({ default: module.DebugLogViewer })));
 
+const ScratchOrgs = lazy(() => import('@jetstream/feature/scratch-orgs').then((module) => ({ default: module.ScratchOrgs })));
+
 const SObjectExport = lazy(() => import('@jetstream/feature/sobject-export').then((module) => ({ default: module.SObjectExport })));
 
 const PlatformEventMonitor = lazy(() =>
@@ -319,6 +321,14 @@ export const AppRoutes = () => {
           element={
             <OrgSelectionRequired>
               <ApexTestRunner />
+            </OrgSelectionRequired>
+          }
+        />
+        <Route
+          path={APP_ROUTES.SCRATCH_ORGS.ROUTE}
+          element={
+            <OrgSelectionRequired>
+              <ScratchOrgs onAddOrgHandlerFn={addDesktopOrg} />
             </OrgSelectionRequired>
           }
         />

@@ -43,6 +43,7 @@ const testCases = [
       { link: 'Anonymous Apex', path: '/apex' },
       { link: 'Apex Test Runner', path: '/apex-tests' },
       { link: 'View Debug Logs', path: '/debug-logs' },
+      { link: 'Scratch Orgs', path: '/scratch-orgs' },
       { link: 'Export Object Metadata', path: '/object-export' },
       { link: 'Salesforce API', path: '/salesforce-api' },
       { link: 'Platform Events', path: '/platform-event-monitor' },

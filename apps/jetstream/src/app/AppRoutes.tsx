@@ -99,6 +99,8 @@ const MassUpdateRecordsDeployment = lazy(() =>
 const AnonymousApex = lazy(() => import('@jetstream/feature/anon-apex').then((module) => ({ default: module.AnonymousApex })));
 const ApexTestRunner = lazy(() => import('@jetstream/feature/apex-test-runner').then((module) => ({ default: module.ApexTestRunner })));
 
+const ScratchOrgs = lazy(() => import('@jetstream/feature/scratch-orgs').then((module) => ({ default: module.ScratchOrgs })));
+
 const SalesforceApi = lazy(() => import('@jetstream/feature/salesforce-api').then((module) => ({ default: module.SalesforceApi })));
 
 const DebugLogViewer = lazy(() => import('@jetstream/feature/debug-log-viewer').then((module) => ({ default: module.DebugLogViewer })));
@@ -304,6 +306,14 @@ export const AppRoutes = () => {
             element={
               <OrgSelectionRequired>
                 <ApexTestRunner />
+              </OrgSelectionRequired>
+            }
+          />
+          <Route
+            path={APP_ROUTES.SCRATCH_ORGS.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <ScratchOrgs />
               </OrgSelectionRequired>
             }
           />

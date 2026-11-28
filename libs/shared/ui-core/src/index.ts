@@ -85,6 +85,7 @@ export * from './orgs/OrgWelcomeInstructions';
 export * from './orgs/useOrgExpiration';
 export * from './orgs/useOrgPermissions';
 export * from './orgs/useUpdateOrgs';
+export { deleteAllHistoryRecords } from './orgs/useUpdateOrgs';
 export * from './query/QueryHistory/QueryHistory';
 export * from './query/RestoreQuery/RestoreQuery';
 export * from './query/RestoreQuery/useQueryRestore';

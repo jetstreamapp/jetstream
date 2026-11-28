@@ -13,6 +13,7 @@ import { routeDefinition as metadataToolingController } from './sf-metadata-tool
 import { routeDefinition as miscController } from './sf-misc.desktop.controller';
 import { routeDefinition as queryController } from './sf-query.desktop.controller';
 import { routeDefinition as recordController } from './sf-record.desktop.controller';
+import { routeDefinition as scratchOrgController } from './sf-scratch-org.desktop.controller';
 import { routeDefinition as userController } from './user.desktop.controller';
 
 const router = new Router<(req: RequestOptions) => Promise<Response>>();
@@ -106,6 +107,14 @@ router.post('/api/request-manual', miscController.salesforceRequestManual.contro
  */
 router.post('/api/record/upload', recordController.binaryUpload.controllerFn());
 router.post('/api/record/:operation/:sobject', recordController.recordOperation.controllerFn());
+
+/**
+ * ************************************
+ * scratchOrgController Routes
+ * ************************************
+ */
+router.post('/api/scratch-orgs', scratchOrgController.createScratchOrg.controllerFn());
+router.post('/api/scratch-orgs/:scratchOrgInfoId/connect', scratchOrgController.connectScratchOrg.controllerFn());
 
 /**
  * ************************************

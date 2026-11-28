@@ -11,7 +11,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Observable } from 'rxjs';
 import { fromJetstreamEvents } from '..';
 
-async function deleteAllHistoryRecords(org: SalesforceOrgUi) {
+/** Clears everything stored in the browser for an org that is no longer connected */
+export async function deleteAllHistoryRecords(org: SalesforceOrgUi) {
   try {
     await queryHistoryDb.deleteAllQueryHistoryForOrgExceptFavorites(org);
   } catch (ex) {

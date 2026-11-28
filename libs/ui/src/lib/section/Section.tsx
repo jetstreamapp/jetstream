@@ -32,6 +32,8 @@ export const Section: FunctionComponent<SectionProps> = ({
     <div className={classNames('slds-section', { 'slds-is-open': expanded, 'slds-box slds-box_xx-small': !noBorder }, className)}>
       <h3 className="slds-section__title">
         <button
+          // Never submit a form the section is placed in
+          type="button"
           aria-controls={id}
           aria-expanded={expanded}
           className="slds-button slds-section__title-action"

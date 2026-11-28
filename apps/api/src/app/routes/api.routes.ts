@@ -15,6 +15,7 @@ import { routeDefinition as metadataToolingController } from '../controllers/sf-
 import { routeDefinition as miscController } from '../controllers/sf-misc.controller';
 import { routeDefinition as queryController } from '../controllers/sf-query.controller';
 import { routeDefinition as recordController } from '../controllers/sf-record.controller';
+import { routeDefinition as scratchOrgController } from '../controllers/sf-scratch-org.controller';
 import { routeDefinition as stepUpAuthController } from '../controllers/step-up-auth.controller';
 import { routeDefinition as testController } from '../controllers/test.controller';
 import * as userFeedbackController from '../controllers/user-feedback.controller';
@@ -243,6 +244,16 @@ routes.post('/request-manual', dfr, miscController.salesforceRequestManual.contr
 // handle multipart/form-data for binary uploads
 routes.post('/record/upload', dfr, recordController.binaryUpload.controllerFn());
 routes.post('/record/:operation/:sobject', dfr, recordController.recordOperation.controllerFn());
+
+/**
+ * ************************************
+ * scratchOrgController Routes
+ * The Dev Hub is the org on the request. Listing, deleting and user management go through the generic
+ * query, record and request routes, these two exist because they need the connected app's credentials.
+ * ************************************
+ */
+routes.post('/scratch-orgs', dfr, scratchOrgController.createScratchOrg.controllerFn());
+routes.post('/scratch-orgs/:scratchOrgInfoId/connect', verifyWebAppAllowed, dfr, scratchOrgController.connectScratchOrg.controllerFn());
 
 /**
  * ************************************

@@ -2,6 +2,7 @@ import { css } from '@emotion/react';
 import { canAccessTool } from '@jetstream/acl';
 import { IconName, IconType } from '@jetstream/icon-factory';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
+import { isBrowserExtension, isCanvasApp } from '@jetstream/shared/ui-utils';
 import { FeatureFlagKey } from '@jetstream/types';
 import { Badge, Icon, ScopedNotification } from '@jetstream/ui';
 import { abilityState, analysisToolsAccessState, featureFlagsState } from '@jetstream/ui/app-state';
@@ -66,6 +67,7 @@ const HOME_ITEMS: HomeCard[] = [
       APP_ROUTES.ANON_APEX,
       APP_ROUTES.APEX_TESTS,
       APP_ROUTES.DEBUG_LOG_VIEWER,
+      APP_ROUTES.SCRATCH_ORGS,
       APP_ROUTES.OBJECT_EXPORT,
       APP_ROUTES.SALESFORCE_API,
       APP_ROUTES.PLATFORM_EVENT_MONITOR,
@@ -84,9 +86,16 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
   const featureFlags = useAtomValue(featureFlagsState);
   const ability = useAtomValue(abilityState);
   const { hasAnalysisToolsAccess } = useAtomValue(analysisToolsAccessState);
+  // Tools that connect other orgs make no sense where Jetstream is tied to the org it was opened from
+  const isSingleOrgSurface = isBrowserExtension() || isCanvasApp();
   // Tools outside the member's team access profile are removed, along with any card left empty
   const visibleHomeItems = HOME_ITEMS.filter((card) => !card.flag || featureFlags[card.flag])
-    .map((card) => ({ ...card, items: card.items.filter(({ TOOL }) => !TOOL || canAccessTool(ability, TOOL)) }))
+    .map((card) => ({
+      ...card,
+      items: card.items.filter(
+        ({ TOOL, MANAGES_ORG_CONNECTIONS }) => (!TOOL || canAccessTool(ability, TOOL)) && !(MANAGES_ORG_CONNECTIONS && isSingleOrgSurface),
+      ),
+    }))
     .filter((card) => card.items.length > 0);
   return (
     <div

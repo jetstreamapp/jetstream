@@ -212,6 +212,9 @@
       "path": "./libs/features/apex-test-runner"
     },
     {
+      "path": "./libs/features/scratch-orgs"
+    },
+    {
       "path": "./libs/admin/types"
     },
     {

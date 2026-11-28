@@ -1,0 +1,8 @@
+{
+  "name": "features-scratch-orgs",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/features/scratch-orgs/src",
+  "projectType": "library",
+  "tags": ["scope:browser"],
+  "targets": {}
+}

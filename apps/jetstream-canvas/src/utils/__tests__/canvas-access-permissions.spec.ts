@@ -18,6 +18,9 @@ const CONTROLLER_SOURCE = readFileSync(new URL('classes/JetstreamPageController.
  */
 const OPERATIONS_WITHOUT_PERMISSION = ['orgs.connect', 'history.sync'];
 
+/** Tools that connect other orgs are not offered in canvas for the same reason, so they have no custom permission either */
+const TOOLS_WITHOUT_PERMISSION = ['scratch-orgs'];
+
 function parseApexStringMap(mapName: string): Map<string, string> {
   const mapBody = CONTROLLER_SOURCE.match(new RegExp(`${mapName}\\s*=\\s*new Map<String, String>\\{([^}]*)\\}`))?.[1];
   if (!mapBody) {
@@ -34,8 +37,9 @@ describe('canvas custom permissions', () => {
   const toolPermissions = parseApexStringMap('TOOL_PERMISSIONS');
   const operationPermissions = parseApexStringMap('OPERATION_PERMISSIONS');
 
-  it('maps every tool key, and only tool keys', () => {
-    expect([...toolPermissions.keys()].sort()).toEqual([...ACCESS_PROFILE_TOOL_KEYS].sort());
+  it('maps every tool key that applies to canvas, and only those', () => {
+    const expectedTools = ACCESS_PROFILE_TOOL_KEYS.filter((key) => !TOOLS_WITHOUT_PERMISSION.includes(key));
+    expect([...toolPermissions.keys()].sort()).toEqual([...expectedTools].sort());
   });
 
   it('maps every operation key that applies to canvas, and only those', () => {

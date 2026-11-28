@@ -35,6 +35,7 @@ export const ACCESS_PROFILE_TOOL_KEYS = [
   'object-export',
   'salesforce-api',
   'platform-events',
+  'scratch-orgs',
 ] as const;
 
 export const ACCESS_PROFILE_OPERATION_KEYS = [
@@ -220,6 +221,13 @@ export const ACCESS_PROFILE_TOOLS: AccessProfileToolDefinition[] = [
     requiredOperations: [],
   },
   {
+    key: 'scratch-orgs',
+    label: 'Scratch Orgs',
+    description: 'View, create, connect and delete the scratch orgs of a Dev Hub, and manage their users',
+    group: 'developer',
+    requiredOperations: [],
+  },
+  {
     key: 'salesforce-api',
     label: 'Salesforce API',
     description: 'Send any request to the Salesforce REST API',
@@ -234,12 +242,12 @@ export const ACCESS_PROFILE_OPERATIONS: AccessProfileOperationDefinition[] = [
     key: 'records.write',
     label: 'Create and update records',
     description:
-      'Inline and bulk edits in query results, record edit and clone, insert, update and upsert loads, and publishing platform events',
+      'Inline and bulk edits in query results, record edit and clone, insert, update and upsert loads, publishing platform events, and creating scratch orgs and their users',
   },
   {
     key: 'records.delete',
     label: 'Delete records',
-    description: 'Delete and undelete from query results, delete loads and purging debug logs',
+    description: 'Delete and undelete from query results, delete loads, purging debug logs and deleting scratch orgs',
   },
   {
     key: 'metadata.deploy',
@@ -250,7 +258,7 @@ export const ACCESS_PROFILE_OPERATIONS: AccessProfileOperationDefinition[] = [
   {
     key: 'orgs.connect',
     label: 'Connect Salesforce orgs',
-    description: 'Add new Salesforce orgs to Jetstream',
+    description: 'Add new Salesforce orgs to Jetstream, including scratch orgs',
   },
   {
     key: 'history.sync',

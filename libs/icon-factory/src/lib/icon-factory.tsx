@@ -32,6 +32,7 @@ import StandardIcon_Customers from './icons/standard/Customers';
 import StandardIcon_DataStreams from './icons/standard/DataStreams';
 import StandardIcon_EmployeeOrganization from './icons/standard/EmployeeOrganization';
 import StandardIcon_Entity from './icons/standard/Entity';
+import StandardIcon_EnvironmentHub from './icons/standard/EnvironmentHub';
 import StandardIcon_Events from './icons/standard/Events';
 import StandardIcon_Feed from './icons/standard/Feed';
 import StandardIcon_Feedback from './icons/standard/Feedback';
@@ -227,6 +228,7 @@ const standardIcons = {
   data_streams: StandardIcon_DataStreams,
   employee_organization: StandardIcon_EmployeeOrganization,
   entity: StandardIcon_Entity,
+  environment_hub: StandardIcon_EnvironmentHub,
   events: StandardIcon_Events,
   feed: StandardIcon_Feed,
   feedback: StandardIcon_Feedback,
