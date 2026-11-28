@@ -7,6 +7,12 @@ import type { Maybe, SalesforceOrgUi, ScratchOrgInfoRecord } from '@jetstream/ty
  */
 export type ScratchOrgDisplayStatus = 'Active' | 'Creating' | 'Error' | 'Expired' | 'Deleted';
 
+/**
+ * Jetstream's web and desktop apps each have a connected app. A scratch org is requested for one of them, and
+ * Salesforce only lets that one connect to the scratch org without a password.
+ */
+export type ScratchOrgConnectedApp = 'web' | 'desktop';
+
 export interface ScratchOrgRow extends ScratchOrgInfoRecord {
   displayStatus: ScratchOrgDisplayStatus;
   /** Whole days until the scratch org expires, negative once it has */
@@ -17,10 +23,15 @@ export interface ScratchOrgRow extends ScratchOrgInfoRecord {
   /** Every connection to this scratch org, there is one per user that was connected */
   connectedOrgs: SalesforceOrgUi[];
   /**
-   * Scratch orgs requested through Jetstream can be connected without a password. This is a hint for which action to
-   * offer, the server decides whether the connection is actually allowed.
+   * The Jetstream app this scratch org was requested for, null when another tool (e.g. the Salesforce CLI) created it.
+   * This is a hint for which action to offer, the server decides whether a connection is actually allowed.
    */
-  createdWithJetstream: boolean;
+  createdWith: ScratchOrgConnectedApp | null;
+  /**
+   * Whether to offer the passwordless connection: the scratch org was requested for the app the user is in, and
+   * Salesforce has not already refused it (the authorization code only works once).
+   */
+  canConnectWithoutPassword: boolean;
 }
 
 export interface DevHubScratchOrgLimits {

@@ -328,7 +328,7 @@ export const AppRoutes = () => {
           path={APP_ROUTES.SCRATCH_ORGS.ROUTE}
           element={
             <OrgSelectionRequired>
-              <ScratchOrgs onAddOrgHandlerFn={addDesktopOrg} />
+              <ScratchOrgs connectedApp="desktop" onAddOrgHandlerFn={addDesktopOrg} />
             </OrgSelectionRequired>
           }
         />

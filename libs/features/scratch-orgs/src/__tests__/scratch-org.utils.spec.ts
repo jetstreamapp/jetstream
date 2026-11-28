@@ -3,17 +3,19 @@ import { describe, expect, it } from 'vitest';
 import {
   findConnectedOrg,
   generatePassword,
+  getCreatedWith,
   getDaysRemaining,
   getDisplayStatus,
   getExpirationLabel,
+  getLoginGuidance,
   getSignupErrorMessage,
   getUserAlias,
-  isCreatedWithJetstream,
   toScratchOrgRows,
 } from '../scratch-org.utils';
 
 // Local time, the same as the date-only expiration dates are read in, so the tests pass in every timezone
 const NOW = new Date(2026, 10, 27, 12);
+const SERVER_URL = 'https://getjetstream.app';
 
 function buildOrg(overrides: Partial<SalesforceOrgUi>): SalesforceOrgUi {
   return {
@@ -97,15 +99,35 @@ describe('findConnectedOrg', () => {
   });
 });
 
-describe('isCreatedWithJetstream', () => {
-  it('recognizes the web and desktop callbacks', () => {
-    expect(isCreatedWithJetstream({ Id: '1', ConnectedAppCallbackUrl: 'https://getjetstream.app/oauth/sfdc/callback' })).toBe(true);
-    expect(isCreatedWithJetstream({ Id: '1', ConnectedAppCallbackUrl: 'jetstream://addOrg/oauth/sfdc/callback' })).toBe(true);
+describe('getCreatedWith', () => {
+  it('tells the web and desktop callbacks apart', () => {
+    expect(getCreatedWith({ Id: '1', ConnectedAppCallbackUrl: 'https://getjetstream.app/oauth/sfdc/callback' }, SERVER_URL)).toBe('web');
+    expect(getCreatedWith({ Id: '1', ConnectedAppCallbackUrl: 'jetstream://addOrg/oauth/sfdc/callback' }, SERVER_URL)).toBe('desktop');
+    expect(getCreatedWith({ Id: '1', ConnectedAppCallbackUrl: 'https://getjetstream.app/oauth/sfdc/callback' }, `${SERVER_URL}/`)).toBe(
+      'web',
+    );
   });
 
   it('does not claim scratch orgs created by the Salesforce CLI', () => {
-    expect(isCreatedWithJetstream({ Id: '1', ConnectedAppCallbackUrl: 'http://localhost:1717/OauthRedirect' })).toBe(false);
-    expect(isCreatedWithJetstream({ Id: '1' })).toBe(false);
+    expect(getCreatedWith({ Id: '1', ConnectedAppCallbackUrl: 'http://localhost:1717/OauthRedirect' }, SERVER_URL)).toBeNull();
+    expect(getCreatedWith({ Id: '1' }, SERVER_URL)).toBeNull();
+  });
+
+  it('does not claim a callback that only looks like the one of Jetstream', () => {
+    expect(getCreatedWith({ Id: '1', ConnectedAppCallbackUrl: 'https://example.com/oauth/sfdc/callback' }, SERVER_URL)).toBeNull();
+    expect(getCreatedWith({ Id: '1', ConnectedAppCallbackUrl: 'jetstream://other/oauth/sfdc/callback' }, SERVER_URL)).toBeNull();
+  });
+});
+
+describe('getLoginGuidance', () => {
+  it('explains that another tool created the scratch org', () => {
+    expect(getLoginGuidance(null, 'web')).toContain('created outside of Jetstream');
+    expect(getLoginGuidance(null, 'web')).toContain('To connect it here');
+  });
+
+  it('names the Jetstream app that can connect without a password', () => {
+    expect(getLoginGuidance('desktop', 'web')).toContain('requested for the Jetstream desktop app');
+    expect(getLoginGuidance('web', 'desktop')).toContain('requested for the Jetstream web app');
   });
 });
 
@@ -125,7 +147,7 @@ describe('toScratchOrgRows', () => {
         },
       ],
       [org],
-      NOW,
+      { connectedApp: 'web', serverUrl: SERVER_URL, now: NOW },
     );
 
     expect(row).toMatchObject({
@@ -133,15 +155,42 @@ describe('toScratchOrgRows', () => {
       daysRemaining: 2,
       createdByName: 'Ada Lovelace',
       connectedOrg: org,
-      createdWithJetstream: true,
+      createdWith: 'web',
+      canConnectWithoutPassword: true,
     });
+  });
+
+  it('only offers the passwordless connection in the app the scratch org was requested for', () => {
+    const records = [
+      { Id: 'web', Status: 'Active' as const, ConnectedAppCallbackUrl: 'https://getjetstream.app/oauth/sfdc/callback' },
+      { Id: 'desktop', Status: 'Active' as const, ConnectedAppCallbackUrl: 'jetstream://addOrg/oauth/sfdc/callback' },
+      { Id: 'cli', Status: 'Active' as const, ConnectedAppCallbackUrl: 'http://localhost:1717/OauthRedirect' },
+    ];
+    const getConnectableIds = (options: Parameters<typeof toScratchOrgRows>[2]) =>
+      toScratchOrgRows(records, [], options)
+        .filter(({ canConnectWithoutPassword }) => canConnectWithoutPassword)
+        .map(({ Id }) => Id);
+
+    expect(getConnectableIds({ connectedApp: 'web', serverUrl: SERVER_URL, now: NOW })).toEqual(['web']);
+    expect(getConnectableIds({ connectedApp: 'desktop', serverUrl: SERVER_URL, now: NOW })).toEqual(['desktop']);
+  });
+
+  it('falls back to a password once Salesforce refused the passwordless connection', () => {
+    const [row] = toScratchOrgRows(
+      [{ Id: '1', Status: 'Active', ConnectedAppCallbackUrl: 'https://getjetstream.app/oauth/sfdc/callback' }],
+      [],
+      { connectedApp: 'web', serverUrl: SERVER_URL, passwordlessRefusedIds: new Set(['1']), now: NOW },
+    );
+
+    expect(row).toMatchObject({ createdWith: 'web', canConnectWithoutPassword: false });
+    expect(getLoginGuidance(row.createdWith, 'web')).toContain('no longer possible');
   });
 
   it('does not report a deleted scratch org as connected', () => {
     const [row] = toScratchOrgRows(
       [{ Id: '1', Status: 'Deleted', ScratchOrg: '00D000000000001', ExpirationDate: '2026-11-29' }],
       [buildOrg({})],
-      NOW,
+      { connectedApp: 'web', serverUrl: SERVER_URL, now: NOW },
     );
 
     expect(row.connectedOrg).toBeNull();

@@ -2,7 +2,7 @@ import type { Maybe, SalesforceOrgUi, ScratchOrgInfoRecord } from '@jetstream/ty
 import { differenceInCalendarDays } from 'date-fns/differenceInCalendarDays';
 import { formatDate } from 'date-fns/format';
 import { parseISO } from 'date-fns/parseISO';
-import type { ScratchOrgDisplayStatus, ScratchOrgRow } from './scratch-org.types';
+import type { ScratchOrgConnectedApp, ScratchOrgDisplayStatus, ScratchOrgRow } from './scratch-org.types';
 
 /** Scratch orgs expiring within this many days are called out */
 export const EXPIRING_SOON_DAYS = 2;
@@ -111,17 +111,59 @@ export function formatDateValue(value: string | null | undefined, dateFormat: st
   return Number.isNaN(date.getTime()) ? null : formatDate(date, dateFormat);
 }
 
-/** Jetstream requests scratch orgs with its own OAuth callback, on the web (`/oauth/sfdc/callback`) and on desktop (`jetstream://`) */
-export function isCreatedWithJetstream({ ConnectedAppCallbackUrl }: ScratchOrgInfoRecord): boolean {
-  return (
-    !!ConnectedAppCallbackUrl &&
-    (ConnectedAppCallbackUrl.startsWith('jetstream://') || ConnectedAppCallbackUrl.endsWith('/oauth/sfdc/callback'))
-  );
+const OAUTH_CALLBACK_PATH = '/oauth/sfdc/callback';
+const DESKTOP_OAUTH_CALLBACK_URL = `jetstream://addOrg${OAUTH_CALLBACK_PATH}`;
+
+/**
+ * Jetstream requests scratch orgs with its own OAuth callback, which is the Jetstream server's on the web and a
+ * `jetstream://` deep link on desktop.
+ * @param serverUrl the Jetstream server the user is on, e.g. `https://getjetstream.app`
+ */
+export function getCreatedWith({ ConnectedAppCallbackUrl }: ScratchOrgInfoRecord, serverUrl: string): ScratchOrgConnectedApp | null {
+  if (ConnectedAppCallbackUrl === DESKTOP_OAUTH_CALLBACK_URL) {
+    return 'desktop';
+  }
+  return ConnectedAppCallbackUrl === `${serverUrl.replace(/\/+$/, '')}${OAUTH_CALLBACK_PATH}` ? 'web' : null;
 }
 
-export function toScratchOrgRows(records: ScratchOrgInfoRecord[], orgs: SalesforceOrgUi[], now = new Date()): ScratchOrgRow[] {
+const CONNECTED_APP_LABELS: Record<ScratchOrgConnectedApp, string> = {
+  web: 'Jetstream web app',
+  desktop: 'Jetstream desktop app',
+};
+
+/**
+ * Why the passwordless connection is not offered for a scratch org, and what to do instead.
+ * @param connectedApp the app the user is in
+ */
+export function getLoginGuidance(createdWith: ScratchOrgConnectedApp | null, connectedApp: ScratchOrgConnectedApp): string {
+  const logInHere = 'To connect it here, log in with its username and password.';
+  if (!createdWith) {
+    return `This scratch org was created outside of Jetstream, and Salesforce only lets the tool that created a scratch org log in to it without a password. ${logInHere}`;
+  }
+  if (createdWith === connectedApp) {
+    return `Salesforce only lets a scratch org be connected without a password once, and that is no longer possible for this one. ${logInHere}`;
+  }
+  return `This scratch org was requested for the ${CONNECTED_APP_LABELS[createdWith]}, which is the only place it can be connected without a password. ${logInHere}`;
+}
+
+export interface ScratchOrgRowOptions {
+  /** The Jetstream app the user is in */
+  connectedApp: ScratchOrgConnectedApp;
+  /** The Jetstream server the user is on, its OAuth callback identifies the scratch orgs requested on the web */
+  serverUrl: string;
+  /** Ids of the ScratchOrgInfo records whose passwordless connection Salesforce refused, they fall back to a password */
+  passwordlessRefusedIds?: ReadonlySet<string>;
+  now?: Date;
+}
+
+export function toScratchOrgRows(
+  records: ScratchOrgInfoRecord[],
+  orgs: SalesforceOrgUi[],
+  { connectedApp, serverUrl, passwordlessRefusedIds, now = new Date() }: ScratchOrgRowOptions,
+): ScratchOrgRow[] {
   return records.map((record) => {
     const displayStatus = getDisplayStatus(record, now);
+    const createdWith = getCreatedWith(record, serverUrl);
     // A deleted scratch org's id is never reused, but its connections in Jetstream are dead either way
     const connectedOrgs = displayStatus === 'Deleted' ? [] : findConnectedOrgs(record, orgs);
     return {
@@ -131,7 +173,8 @@ export function toScratchOrgRows(records: ScratchOrgInfoRecord[], orgs: Salesfor
       createdByName: record.CreatedBy?.Name ?? null,
       connectedOrg: pickPreferredOrg(connectedOrgs, record),
       connectedOrgs,
-      createdWithJetstream: isCreatedWithJetstream(record),
+      createdWith,
+      canConnectWithoutPassword: createdWith === connectedApp && !passwordlessRefusedIds?.has(record.Id),
     };
   });
 }

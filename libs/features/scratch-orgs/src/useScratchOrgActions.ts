@@ -25,7 +25,8 @@ interface PendingEntry {
   step: PendingScratchOrgStep;
 }
 
-function isNotReachableYet(ex: unknown): boolean {
+/** A scratch org that cannot be reached yet can be tried again, every other refusal to connect it is final */
+export function isNotReachableYet(ex: unknown): boolean {
   return getErrorMessage(ex).startsWith(SCRATCH_ORG_NOT_REACHABLE_MESSAGE);
 }
 

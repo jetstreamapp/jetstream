@@ -2,14 +2,16 @@ import { css } from '@emotion/react';
 import { Badge, DisabledReasonButton, Icon, SalesforceLogin, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent, MouseEvent } from 'react';
-import type { ScratchOrgRow } from '../scratch-org.types';
-import { EXPIRING_SOON_DAYS, formatDateValue, getExpirationLabel } from '../scratch-org.utils';
+import type { ScratchOrgConnectedApp, ScratchOrgRow } from '../scratch-org.types';
+import { EXPIRING_SOON_DAYS, formatDateValue, getExpirationLabel, getLoginGuidance } from '../scratch-org.utils';
 import type { PendingScratchOrgStep } from '../useScratchOrgActions';
 import ScratchOrgStatusBadge from './ScratchOrgStatusBadge';
 
 export interface ScratchOrgsTableProps {
   rows: ScratchOrgRow[];
   selectedId: string | null;
+  /** The Jetstream app this is */
+  connectedApp: ScratchOrgConnectedApp;
   serverUrl: string;
   pendingSteps: Record<string, PendingScratchOrgStep>;
   connectingIds: Set<string>;
@@ -46,6 +48,7 @@ function isRowClick(event: MouseEvent<HTMLTableRowElement>): boolean {
 export const ScratchOrgsTable: FunctionComponent<ScratchOrgsTableProps> = ({
   rows,
   selectedId,
+  connectedApp,
   serverUrl,
   pendingSteps,
   connectingIds,
@@ -183,15 +186,15 @@ export const ScratchOrgsTable: FunctionComponent<ScratchOrgsTableProps> = ({
                     disabled={!!connectDeniedReason || isConnecting}
                     disabledReason={connectDeniedReason}
                     tooltip={
-                      row.createdWithJetstream
+                      row.canConnectWithoutPassword
                         ? 'Connect this scratch org to Jetstream, no password required'
-                        : 'This scratch org was created outside of Jetstream, log in with its username and password to connect it'
+                        : getLoginGuidance(row.createdWith, connectedApp)
                     }
                     tooltipOpenDelay={500}
-                    onClick={() => (row.createdWithJetstream ? onConnect(row) : onConnectWithPassword(row))}
+                    onClick={() => (row.canConnectWithoutPassword ? onConnect(row) : onConnectWithPassword(row))}
                   >
                     {isConnecting && <Spinner size="x-small" />}
-                    {row.createdWithJetstream ? 'Connect' : 'Connect with Password'}
+                    {row.canConnectWithoutPassword ? 'Connect' : 'Connect with Password'}
                   </DisabledReasonButton>
                 )}
               </td>

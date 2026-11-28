@@ -41,9 +41,9 @@ import ScratchOrgDetailPanel from './components/ScratchOrgDetailPanel';
 import ScratchOrgLimits from './components/ScratchOrgLimits';
 import ScratchOrgsTable from './components/ScratchOrgsTable';
 import { MAX_SCRATCH_ORGS } from './scratch-org-data.utils';
-import type { PendingScratchOrg, ScratchOrgRow } from './scratch-org.types';
+import type { PendingScratchOrg, ScratchOrgConnectedApp, ScratchOrgRow } from './scratch-org.types';
 import { toScratchOrgRows } from './scratch-org.utils';
-import { useScratchOrgActions } from './useScratchOrgActions';
+import { isNotReachableYet, useScratchOrgActions } from './useScratchOrgActions';
 import { useScratchOrgs } from './useScratchOrgs';
 
 const HEIGHT_BUFFER = 170;
@@ -61,11 +61,13 @@ const FILTER_FIELDS: (keyof ScratchOrgRow)[] = [
 ];
 
 export interface ScratchOrgsProps {
+  /** The Jetstream app the page is in, which decides the scratch orgs that can be connected without a password */
+  connectedApp: ScratchOrgConnectedApp;
   /** How a scratch org that was created outside of Jetstream is connected with its password, the desktop app has its own flow */
   onAddOrgHandlerFn?: AddOrgHandlerFn;
 }
 
-export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = ({ onAddOrgHandlerFn = addOrg }) => {
+export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = ({ connectedApp, onAddOrgHandlerFn = addOrg }) => {
   useTitle(TITLES.SCRATCH_ORGS);
   const navigate = useNavigate();
   const devHubOrg = useAtomValue(selectedOrgState);
@@ -84,6 +86,11 @@ export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = ({ onAddOrgHandl
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  /**
+   * Scratch orgs whose passwordless connection Salesforce refused. The authorization code works once, so one that was
+   * connected before and then removed from Jetstream can only come back with a password.
+   */
+  const [passwordlessRefusedIds, setPasswordlessRefusedIds] = useState<ReadonlySet<string>>(() => new Set());
 
   const { records, limits, hasMore, loading, refreshing, errorMessage, isNotDevHub, lastChecked, refresh } = useScratchOrgs(
     devHubOrg,
@@ -95,7 +102,10 @@ export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = ({ onAddOrgHandl
     refresh,
   );
 
-  const rows = useMemo(() => toScratchOrgRows(records, orgs), [records, orgs]);
+  const rows = useMemo(
+    () => toScratchOrgRows(records, orgs, { connectedApp, serverUrl, passwordlessRefusedIds }),
+    [records, orgs, connectedApp, serverUrl, passwordlessRefusedIds],
+  );
   const filteredRows = useMemo(() => {
     const ownRows = onlyMine ? rows.filter(({ CreatedById }) => CreatedById?.slice(0, 15) === devHubOrg.userId?.slice(0, 15)) : rows;
     return searchTerm ? ownRows.filter(multiWordObjectFilter(FILTER_FIELDS, searchTerm)) : ownRows;
@@ -105,6 +115,7 @@ export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = ({ onAddOrgHandl
   // The selection, filters and pagination describe the prior Dev Hub's scratch orgs
   useEffect(() => {
     setSelectedId(null);
+    setPasswordlessRefusedIds(new Set());
     setCreateModalOpen(false);
     setSearchTerm('');
     setVisibleCount(PAGE_SIZE);
@@ -138,6 +149,10 @@ export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = ({ onAddOrgHandl
         fireToast({ type: 'success', message: `${OrgName || SignupUsername || 'The scratch org'} is connected to Jetstream.` });
       } catch (ex) {
         fireToast({ type: 'error', message: getErrorMessage(ex) });
+        if (!isNotReachableYet(ex)) {
+          // Asking again gets the same answer, so the row offers the password login instead
+          setPasswordlessRefusedIds((priorIds) => new Set(priorIds).add(Id));
+        }
       }
     },
     [connect],
@@ -225,6 +240,7 @@ export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = ({ onAddOrgHandl
       )}
       <ScratchOrgDetailPanel
         row={selectedRow}
+        connectedApp={connectedApp}
         serverUrl={serverUrl}
         pendingStep={selectedRow ? pendingSteps[selectedRow.Id] : undefined}
         isConnecting={!!selectedRow && connectingIds.has(selectedRow.Id)}
@@ -343,6 +359,7 @@ export const ScratchOrgs: FunctionComponent<ScratchOrgsProps> = ({ onAddOrgHandl
               <ScratchOrgsTable
                 rows={visibleRows}
                 selectedId={selectedId}
+                connectedApp={connectedApp}
                 serverUrl={serverUrl}
                 pendingSteps={pendingSteps}
                 connectingIds={connectingIds}

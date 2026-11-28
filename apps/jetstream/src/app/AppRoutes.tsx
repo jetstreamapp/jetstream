@@ -313,7 +313,7 @@ export const AppRoutes = () => {
             path={APP_ROUTES.SCRATCH_ORGS.ROUTE}
             element={
               <OrgSelectionRequired>
-                <ScratchOrgs />
+                <ScratchOrgs connectedApp="web" />
               </OrgSelectionRequired>
             }
           />

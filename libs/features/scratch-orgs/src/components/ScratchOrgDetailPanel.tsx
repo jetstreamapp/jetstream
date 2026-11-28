@@ -2,14 +2,16 @@ import { css } from '@emotion/react';
 import type { SalesforceOrgUi } from '@jetstream/types';
 import { CopyToClipboard, DisabledReasonButton, Grid, Icon, Panel, SalesforceLogin, ScopedNotification, Spinner } from '@jetstream/ui';
 import { FunctionComponent, ReactNode } from 'react';
-import type { ScratchOrgRow } from '../scratch-org.types';
-import { formatDateValue, getExpirationLabel, getSignupErrorMessage } from '../scratch-org.utils';
+import type { ScratchOrgConnectedApp, ScratchOrgRow } from '../scratch-org.types';
+import { formatDateValue, getExpirationLabel, getLoginGuidance, getSignupErrorMessage } from '../scratch-org.utils';
 import type { PendingScratchOrgStep } from '../useScratchOrgActions';
 import ScratchOrgStatusBadge from './ScratchOrgStatusBadge';
 import ScratchOrgUsers from './ScratchOrgUsers';
 
 export interface ScratchOrgDetailPanelProps {
   row: ScratchOrgRow | null;
+  /** The Jetstream app this is */
+  connectedApp: ScratchOrgConnectedApp;
   serverUrl: string;
   pendingStep?: PendingScratchOrgStep;
   isConnecting: boolean;
@@ -61,6 +63,7 @@ const DetailItem: FunctionComponent<{ label: string; copyValue?: string | null; 
 
 export const ScratchOrgDetailPanel: FunctionComponent<ScratchOrgDetailPanelProps> = ({
   row,
+  connectedApp,
   serverUrl,
   pendingStep,
   isConnecting,
@@ -134,10 +137,10 @@ export const ScratchOrgDetailPanel: FunctionComponent<ScratchOrgDetailPanelProps
                   className="slds-button slds-button_brand slds-is-relative"
                   disabled={!!connectDeniedReason || isConnecting}
                   disabledReason={connectDeniedReason}
-                  onClick={() => (row.createdWithJetstream ? onConnect(row) : onConnectWithPassword(row))}
+                  onClick={() => (row.canConnectWithoutPassword ? onConnect(row) : onConnectWithPassword(row))}
                 >
                   {isConnecting && <Spinner size="x-small" />}
-                  {row.createdWithJetstream ? 'Connect to Jetstream' : 'Connect with Password'}
+                  {row.canConnectWithoutPassword ? 'Connect to Jetstream' : 'Connect with Password'}
                 </DisabledReasonButton>
               )}
               <DisabledReasonButton
@@ -152,19 +155,17 @@ export const ScratchOrgDetailPanel: FunctionComponent<ScratchOrgDetailPanelProps
             </Grid>
           )}
 
-          {row.displayStatus === 'Active' && !row.connectedOrg && !pendingStep && row.createdWithJetstream && (
+          {row.displayStatus === 'Active' && !row.connectedOrg && !pendingStep && row.canConnectWithoutPassword && (
             <p className="slds-text-color_weak slds-m-bottom_medium">
               This scratch org was created with Jetstream, so it can be connected without a password. Once it is connected you can open it
               in Salesforce, manage its users and generate passwords.
             </p>
           )}
-          {row.displayStatus === 'Active' && !row.connectedOrg && !pendingStep && !row.createdWithJetstream && (
+          {row.displayStatus === 'Active' && !row.connectedOrg && !pendingStep && !row.canConnectWithoutPassword && (
             <div className="slds-box slds-box_x-small slds-theme_shade slds-m-bottom_medium">
-              <p>
-                This scratch org was created outside of Jetstream, and Salesforce only lets the tool that created a scratch org log in to it
-                without a password. To connect it, log in with its username and password.
-              </p>
-              {row.SignupUsername && (
+              <p>{getLoginGuidance(row.createdWith, connectedApp)}</p>
+              {/* Only the Salesforce CLI can set a password for a scratch org that it created */}
+              {!row.createdWith && row.SignupUsername && (
                 <>
                   <p className="slds-m-top_x-small">
                     No password? Generate one with the Salesforce CLI on the computer the scratch org was created from:

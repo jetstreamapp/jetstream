@@ -82,11 +82,17 @@ Select **Connect** and the scratch org is added to Jetstream, no password requir
 
 Salesforce only allows the tool that created a scratch org to log in to it without a password. For a scratch org that was created with the Salesforce CLI or another tool, select **Connect with Password** and log in with its username and password.
 
+The passwordless connection also only works once. If you remove a scratch org's connection from Jetstream and connect it again, Salesforce refuses, and Jetstream then offers **Connect with Password** for it. Generate a password for its user before you remove the connection.
+
 If you do not have a password, generate one with the Salesforce CLI on the computer the scratch org was created from:
 
 ```bash
 sf org generate password --target-org <username>
 ```
+
+### Scratch orgs created with a different Jetstream app
+
+Jetstream on the web and the Jetstream desktop app are separate applications to Salesforce, so a scratch org can only be connected without a password in the one it was created with. The other one offers **Connect with Password** and tells you where the scratch org came from.
 
 ## Managing users
 
@@ -111,8 +117,11 @@ A scratch org that failed to create can be removed from the list the same way.
 
 For teams that use [access profiles](../team-management/access-profiles), the **Scratch Orgs** tool can be turned on or off like any other tool. The actions on the page follow the operations in the member's profile:
 
-| Action                                        | Operation                 |
-| --------------------------------------------- | ------------------------- |
-| Create a scratch org, create users, passwords | Create and update records |
-| Delete a scratch org                          | Delete records            |
-| Connect a scratch org to Jetstream            | Connect Salesforce orgs   |
+| Action                                        | Operation                                |
+| --------------------------------------------- | ---------------------------------------- |
+| Create a scratch org, create users, passwords | Create and update records                |
+| Delete a scratch org                          | Delete records                           |
+| Connect a scratch org to Jetstream            | Connect Salesforce orgs                  |
+| Deploy the settings of a definition file      | Deploy metadata and change configuration |
+
+A member without **Deploy metadata and change configuration** can still create a scratch org from a definition file, but its `settings` and `objectSettings` are not deployed. Jetstream says so before the scratch org is created.
