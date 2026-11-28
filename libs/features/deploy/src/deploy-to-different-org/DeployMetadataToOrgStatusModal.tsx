@@ -17,6 +17,8 @@ export interface DeployMetadataToOrgStatusModalProps {
   hideModal: boolean;
   /** Offered once a validation has succeeded */
   afterValidationAction?: { label: string; onClick: () => void };
+  /** Called once a validation has succeeded, may be called again with the same outcome */
+  onValidationSucceeded?: () => void;
   onGoBack: () => void;
   onClose: () => void;
   onDownload: (deployResults: DeployResult, deploymentUrl: string) => void;
@@ -29,6 +31,7 @@ export const DeployMetadataToOrgStatusModal: FunctionComponent<DeployMetadataToO
   deployOptions,
   hideModal,
   afterValidationAction,
+  onValidationSucceeded,
   onGoBack,
   onClose,
   onDownload,
@@ -85,6 +88,7 @@ export const DeployMetadataToOrgStatusModal: FunctionComponent<DeployMetadataToO
       hideModal={hideModal}
       getStatusValue={getStatusValue}
       afterValidationAction={afterValidationAction}
+      onValidationSucceeded={onValidationSucceeded}
       onGoBack={onGoBack}
       onClose={onClose}
       onDownload={onDownload}

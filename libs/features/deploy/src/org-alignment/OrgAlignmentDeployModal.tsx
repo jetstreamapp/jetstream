@@ -19,7 +19,7 @@ import {
 import { fromJetstreamEvents, OrgLabelBadge } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { Fragment, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DeployMetadataToOrgStatusModal from '../deploy-to-different-org/DeployMetadataToOrgStatusModal';
 import DeployMetadataOptions from '../utils/DeployMetadataOptions';
 import { DeploymentSummaryList } from '../utils/DeploymentSummaryList';
@@ -93,7 +93,9 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
   });
   const [deployRunId, setDeployRunId] = useState(0);
   const [optionsResetKey, setOptionsResetKey] = useState(0);
-  const [hasRunValidation, setHasRunValidation] = useState(false);
+  // Only a validation that succeeded: going back from a failed one must not suggest it is safe to deploy
+  const [validationSucceeded, setValidationSucceeded] = useState(false);
+  const handleValidationSucceeded = useCallback(() => setValidationSucceeded(true), []);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState(false);
   const [deployResultsData, setDeployResultsData] = useState<Record<string, unknown[]>>();
 
@@ -167,6 +169,8 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
   );
 
   function toggleSelectedKey(key: string, checked: boolean) {
+    // What was validated is no longer what would be deployed
+    setValidationSucceeded(false);
     setSelectedKeys((previous) => {
       const next = new Set(previous);
       if (checked) {
@@ -179,6 +183,7 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
   }
 
   function includeComponents(componentKeys: string[]) {
+    setValidationSucceeded(false);
     setSelectedKeys((previous) => new Set([...previous, ...componentKeys]));
     setReviewKeys((previous) => Array.from(new Set([...previous, ...componentKeys])));
   }
@@ -225,8 +230,9 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
     if (typeof overrideCheckOnly === 'boolean') {
       setDeployOptions((previous) => ({ ...previous, checkOnly: overrideCheckOnly }));
     }
+    // The outcome of an earlier validation says nothing about the one that is starting
     if (nextCheckOnly) {
-      setHasRunValidation(true);
+      setValidationSucceeded(false);
     }
     setDeployRunId((previous) => previous + 1);
     setStep('DEPLOY');
@@ -277,6 +283,7 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
                 }
               : undefined
           }
+          onValidationSucceeded={handleValidationSucceeded}
           onGoBack={() => setStep('BACKUP_AND_OPTIONS')}
           onClose={onClose}
           onDownload={handleDeployResultsDownload}
@@ -630,10 +637,10 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
           )}
 
           <h3 className="slds-text-heading_small slds-m-bottom_x-small">2. Validation &amp; Deployment Options</h3>
-          {hasRunValidation && deployOptions.checkOnly ? (
+          {validationSucceeded && deployOptions.checkOnly ? (
             <ScopedNotification theme="success" className="slds-m-bottom_x-small">
               <Grid align="spread" verticalAlign="center" wrap>
-                <span className="slds-m-right_x-small">Validation complete? Ready to switch to an actual deployment.</span>
+                <span className="slds-m-right_x-small">Validation succeeded. Ready to switch to an actual deployment?</span>
                 <button type="button" className="slds-button slds-button_neutral" onClick={handleSwitchToActualDeploy}>
                   Switch to Deploy
                 </button>

@@ -178,6 +178,8 @@ export function getRetrieveOptionsForType(
 async function listProfileCompanionsNotCompared(
   context: ActiveRunContext,
   typeResults: OrgAlignmentTypeResult[],
+  /** Checked between types so that a canceled comparison stops listing, the result is discarded by the caller */
+  isCanceled: () => boolean,
 ): Promise<Record<OrgSide, Record<string, ListMetadataResult[]>>> {
   const comparedTypes = new Set(typeResults.filter(({ executionStatus }) => executionStatus === 'complete').map(({ type }) => type));
   const companions: Record<OrgSide, Record<string, ListMetadataResult[]>> = { source: {}, target: {} };
@@ -200,6 +202,9 @@ async function listProfileCompanionsNotCompared(
     }
   };
   for (const metadataType of PROFILE_COMPANION_METADATA_TYPES) {
+    if (isCanceled()) {
+      break;
+    }
     if (!comparedTypes.has(metadataType)) {
       await Promise.all([listType('source', metadataType), listType('target', metadataType)]);
     }
@@ -328,9 +333,12 @@ export function useOrgAlignmentCompare() {
       let sourceRetrievedFiles: FilePropertiesWithContent[] = [];
       let targetRetrievedFiles: FilePropertiesWithContent[] = [];
 
+      // Also needed for profiles that only exist in one org: nothing is retrieved for them now, but they are
+      // retrieved when opened and would be shown without most of their access
+      const hasProfilesToShow = setDiff.candidates.length > 0 || setDiff.onlyInSource.length > 0 || setDiff.onlyInTarget.length > 0;
       const profileCompanions =
-        metadataType === PROFILE_METADATA_TYPE && setDiff.candidates.length > 0
-          ? await listProfileCompanionsNotCompared(context, typeResultsRef.current)
+        metadataType === PROFILE_METADATA_TYPE && hasProfilesToShow
+          ? await listProfileCompanionsNotCompared(context, typeResultsRef.current, isStaleOrCanceled)
           : { source: {}, target: {} };
       if (isStaleOrCanceled()) {
         throw new Error(JOB_CANCELED_ERROR_MESSAGE);

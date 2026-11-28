@@ -108,18 +108,22 @@ function formatAttributes(element: Element): string {
   return attrs.map(({ name, value }) => ` ${name}="${escapeXmlAttribute(value)}"`).join('');
 }
 
-function getElementSortKey(element: Element): string {
+/**
+ * Repeating permission blocks sort by the object, field, class etc. they refer to and everything else by tag
+ * name. The content itself is the tie breaker so that the order never depends on the order in the file.
+ */
+function getElementSortKey(element: Element, canonicalContent: string): string {
   const tagName = element.tagName;
   const keyTags = PERMISSION_BLOCK_SORT_KEY_TAGS[tagName];
   if (keyTags) {
     const semanticParts = keyTags.map((keyTag) => getDirectChildText(element, keyTag));
-    return `${tagName}\u0000${semanticParts.join('\u0000')}\u0000${serializeCanonicalElement(element, 0)}`;
+    return `${tagName}\u0000${semanticParts.join('\u0000')}\u0000${canonicalContent}`;
   }
-  return `${tagName}\u0000${serializeCanonicalElement(element, 0)}`;
+  return `${tagName}\u0000${canonicalContent}`;
 }
 
-function serializeCanonicalElement(element: Element, depth: number): string {
-  const indent = INDENT.repeat(depth);
+/** The element as indented lines, starting at no indentation so the same lines serve as the sort key of the element */
+function getCanonicalElementLines(element: Element): string[] {
   const tagName = element.tagName;
   const attributes = formatAttributes(element);
   const childElements = getDirectChildElements(element);
@@ -127,19 +131,28 @@ function serializeCanonicalElement(element: Element, depth: number): string {
   if (childElements.length === 0) {
     const textContent = (element.textContent ?? '').trim();
     if (!textContent) {
-      return `${indent}<${tagName}${attributes}/>`;
+      return [`<${tagName}${attributes}/>`];
     }
-    return `${indent}<${tagName}${attributes}>${escapeXmlText(textContent)}</${tagName}>`;
+    // Text may span lines, it is kept as one entry so that its own line breaks are never indented
+    return [`<${tagName}${attributes}>${escapeXmlText(textContent)}</${tagName}>`];
   }
 
-  // Sort child elements deterministically: repeating permission blocks by semantic key,
-  // and inner scalar fields by tag name so property ordering differences never cause noisy diffs.
-  const sortedChildren = [...childElements].sort((first, second) => {
-    return getElementSortKey(first).localeCompare(getElementSortKey(second));
+  // Every child is serialized once and its sort key is built from that. A large profile has thousands of
+  // children, serializing them again for each comparison of the sort froze the page for seconds.
+  const children = childElements.map((child) => {
+    const lines = getCanonicalElementLines(child);
+    return { lines, sortKey: getElementSortKey(child, lines.join('\n')) };
   });
+  children.sort((first, second) => first.sortKey.localeCompare(second.sortKey));
 
-  const renderedChildren = sortedChildren.map((child) => serializeCanonicalElement(child, depth + 1)).join('\n');
-  return `${indent}<${tagName}${attributes}>\n${renderedChildren}\n${indent}</${tagName}>`;
+  const lines = [`<${tagName}${attributes}>`];
+  for (const child of children) {
+    for (const line of child.lines) {
+      lines.push(`${INDENT}${line}`);
+    }
+  }
+  lines.push(`</${tagName}>`);
+  return lines;
 }
 
 /**
@@ -157,7 +170,7 @@ export function normalizePermissionXmlContent(xmlContent: string): string {
     if (document.getElementsByTagName('parsererror').length > 0 || !document.documentElement) {
       return normalizedLineEndings;
     }
-    const serializedRoot = serializeCanonicalElement(document.documentElement, 0);
+    const serializedRoot = getCanonicalElementLines(document.documentElement).join('\n');
     return `<?xml version="1.0" encoding="UTF-8"?>\n${serializedRoot}`;
   } catch {
     return normalizedLineEndings;

@@ -193,6 +193,49 @@ describe('useOrgAlignmentCompare', () => {
     expect(sourceOptions.includeFile({ type: 'Profile' })).toBe(true);
   });
 
+  it('retrieves a profile that only exists in one org together with the components it refers to when it is opened', async () => {
+    describeMetadataMock.mockResolvedValue({
+      data: {
+        metadataObjects: [
+          { xmlName: 'ApexClass', inFolder: false, childXmlNames: [] },
+          { xmlName: 'Profile', inFolder: false, childXmlNames: [] },
+        ],
+      },
+    });
+    fetchListMetadataForTypeMock.mockImplementation(async (org: SalesforceOrgUi, { type }: { type: string }) => {
+      if (type === 'Profile') {
+        return { items: org.uniqueId === 'org-a' ? [makeListItem('Profile', 'Sales')] : [] };
+      }
+      return { items: [makeListItem('ApexClass', 'SharedCls')] };
+    });
+    retrieveMetadataChunkedMock.mockResolvedValue({ zip: new JSZip(), fileProperties: [] });
+
+    const { result } = renderHook(() => useOrgAlignmentCompare());
+    await act(async () => {
+      await result.current.runComparison({
+        sourceOrg: orgA,
+        targetOrg: orgB,
+        selectionMode: 'custom',
+        selectedMetadataTypes: ['Profile'],
+        includeManaged: false,
+        normalizePermissionXml: true,
+      });
+    });
+
+    // Nothing to compare, the profile is not in both orgs
+    expect(retrieveMetadataChunkedMock).not.toHaveBeenCalled();
+    const [profile] = result.current.typeResults[0].components;
+    expect(profile).toMatchObject({ fullName: 'Sales', status: 'onlyInSource' });
+
+    await act(async () => {
+      await result.current.loadComponentFilesOnDemand(profile);
+    });
+
+    expect(retrieveMetadataChunkedMock).toHaveBeenCalledTimes(1);
+    const [, , options] = retrieveMetadataChunkedMock.mock.calls[0];
+    expect(options.includeWithEveryChunk.ApexClass.map(({ fullName }: ListMetadataResult) => fullName)).toEqual(['SharedCls']);
+  });
+
   it('compares a few types at a time and leaves profiles until every other type is done', async () => {
     const otherTypes = ['ApexClass', 'ApexPage', 'ApexTrigger', 'Flow', 'Layout'];
     describeMetadataMock.mockResolvedValue({

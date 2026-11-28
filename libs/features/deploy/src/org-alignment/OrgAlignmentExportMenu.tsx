@@ -1,4 +1,4 @@
-import { generateCsv, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
+import { copyRecordsToClipboard } from '@jetstream/shared/ui-utils';
 import { FileExtAllTypes, SalesforceOrgUi } from '@jetstream/types';
 import { DropDown, FileDownloadModal, fireToast, Icon } from '@jetstream/ui';
 import { fromJetstreamEvents } from '@jetstream/ui-core';
@@ -22,21 +22,36 @@ const EXPORT_ACTION_COPY_HTML = 'export-copy-html';
 const EXPORT_ACTION_COPY_EXCEL = 'export-copy-excel';
 const EXPORT_ACTION_COPY_CSV = 'export-copy-csv';
 
-/** Copies rich text along with a plain text version for places that cannot accept formatted content */
-function copyRichTextToClipboard(html: string, plainText: string) {
-  copyToClipboard(html, {
-    format: 'text/html',
-    onCopy: (clipboardData) => {
-      if ('setData' in clipboardData) {
-        clipboardData.setData('text/plain', plainText);
-        return;
-      }
-      return new ClipboardItem({
-        'text/html': new Blob([html], { type: 'text/html' }),
-        'text/plain': new Blob([plainText], { type: 'text/plain' }),
-      });
-    },
-  });
+/**
+ * Copies rich text along with a plain text version for places that cannot accept formatted content.
+ * Resolves to whether the copy landed, the clipboard is not always available (e.g. inside an iframe).
+ */
+async function copyRichTextToClipboard(html: string, plainText: string): Promise<boolean> {
+  try {
+    return await copyToClipboard(html, {
+      format: 'text/html',
+      onCopy: (clipboardData) => {
+        if ('setData' in clipboardData) {
+          clipboardData.setData('text/plain', plainText);
+          return;
+        }
+        return new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([plainText], { type: 'text/plain' }),
+        });
+      },
+    });
+  } catch {
+    return false;
+  }
+}
+
+async function copyPlainTextToClipboard(text: string): Promise<boolean> {
+  try {
+    return await copyToClipboard(text, { format: 'text/plain' });
+  } catch {
+    return false;
+  }
 }
 
 interface FileDownload {
@@ -72,7 +87,7 @@ export const OrgAlignmentExportMenu: FunctionComponent<OrgAlignmentExportMenuPro
 
   const canExport = Boolean(sourceOrg && targetOrg && typeResults.length > 0);
 
-  function handleExportAction(actionId: string) {
+  async function handleExportAction(actionId: string) {
     if (!sourceOrg || !targetOrg || typeResults.length === 0) {
       return;
     }
@@ -85,8 +100,14 @@ export const OrgAlignmentExportMenu: FunctionComponent<OrgAlignmentExportMenuPro
       typeResults,
     };
     const fileNameParts = ['org-alignment', context.sourceOrg.label, 'vs', context.targetOrg.label];
-    // The menu closes without any other sign that something was copied
-    const confirmCopied = (copied: 'Summary' | 'Components') => fireToast({ message: `${copied} copied to clipboard`, type: 'success' });
+    // The menu closes without any other sign of whether something was copied
+    const reportCopyResult = async (copied: 'Summary' | 'Components', copyResult: Promise<boolean>) => {
+      if (await copyResult) {
+        fireToast({ message: `${copied} copied to clipboard`, type: 'success' });
+      } else {
+        fireToast({ message: 'Unable to copy to the clipboard. Download the report instead.', type: 'error' });
+      }
+    };
 
     if (actionId === EXPORT_ACTION_XLSX) {
       setFileDownload({ data: buildDriftReportWorkbookData(context), allowedTypes: ['xlsx'], fileNameParts });
@@ -95,17 +116,13 @@ export const OrgAlignmentExportMenu: FunctionComponent<OrgAlignmentExportMenuPro
     } else if (actionId === EXPORT_ACTION_JSON) {
       setFileDownload({ data: buildDriftReportFlatRows(context, false), allowedTypes: ['json'], fileNameParts });
     } else if (actionId === EXPORT_ACTION_COPY_MARKDOWN) {
-      copyToClipboard(buildChangeReviewMarkdown(context));
-      confirmCopied('Summary');
+      await reportCopyResult('Summary', copyPlainTextToClipboard(buildChangeReviewMarkdown(context)));
     } else if (actionId === EXPORT_ACTION_COPY_HTML) {
-      copyRichTextToClipboard(buildChangeReviewHtml(context), buildChangeReviewMarkdown(context));
-      confirmCopied('Summary');
+      await reportCopyResult('Summary', copyRichTextToClipboard(buildChangeReviewHtml(context), buildChangeReviewMarkdown(context)));
     } else if (actionId === EXPORT_ACTION_COPY_EXCEL) {
-      copyToClipboard(transformTabularDataToExcelStr(buildDriftReportFlatRows(context, false)), { format: 'text/plain' });
-      confirmCopied('Components');
+      await reportCopyResult('Components', copyRecordsToClipboard(buildDriftReportFlatRows(context, false), 'excel'));
     } else if (actionId === EXPORT_ACTION_COPY_CSV) {
-      copyToClipboard(generateCsv(buildDriftReportFlatRows(context, false)), { format: 'text/plain' });
-      confirmCopied('Components');
+      await reportCopyResult('Components', copyRecordsToClipboard(buildDriftReportFlatRows(context, false), 'csv'));
     }
   }
 

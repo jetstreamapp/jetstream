@@ -44,6 +44,8 @@ export interface DeployMetadataStatusModalProps {
   getStatusValue: (value: DeployMetadataStatus) => string;
   /** Offered once a validation has succeeded, so the user can deploy what was just validated without starting over */
   afterValidationAction?: { label: string; onClick: () => void };
+  /** Called once a validation has succeeded, may be called again with the same outcome */
+  onValidationSucceeded?: () => void;
   onGoBack?: () => void;
   onClose: () => void;
   onDownload?: (deployResults: DeployResult, deploymentUrl: string) => void;
@@ -68,11 +70,17 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
   hideModal,
   getStatusValue,
   afterValidationAction,
+  onValidationSucceeded,
   onGoBack,
   onClose,
   onDownload,
 }) => {
   const validationSucceeded = !loading && !!results?.done && !!results.checkOnly && results.status === 'Succeeded';
+  useEffect(() => {
+    if (validationSucceeded) {
+      onValidationSucceeded?.();
+    }
+  }, [onValidationSucceeded, validationSucceeded]);
   // The status column updates in place as the deployment is polled and the tabs switch on their own —
   // mirror the visible outcome into a live region
   let statusAnnouncement = '';

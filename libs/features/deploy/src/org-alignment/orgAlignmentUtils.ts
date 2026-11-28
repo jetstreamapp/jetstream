@@ -234,7 +234,8 @@ const PARENT_CONTAINER_CHILD_TAG: Record<string, string> = Object.fromEntries(
  * reported once against the field instead of also marking its object as different.
  *
  * Children that are not part of the comparison (e.g. standard fields, which Salesforce does not list) stay in
- * the parent so they are still compared. Returns the original content if it cannot be parsed.
+ * the parent so they are still compared. Returns the original content if it cannot be parsed or `parentType`
+ * does not hold other components.
  */
 export function removeSeparatelyComparedChildren(
   parentXml: string,
@@ -252,7 +253,6 @@ export function removeSeparatelyComparedChildren(
     if (!root || xmlDocument.getElementsByTagName('parsererror').length > 0) {
       return parentXml;
     }
-    let removedCount = 0;
     for (const element of Array.from(root.children)) {
       const childType = container.childTypeByTag[element.localName];
       const childName = Array.from(element.children)
@@ -265,17 +265,17 @@ export function removeSeparatelyComparedChildren(
       if (!separatelyComparedKeys.has(getComponentKey(childType, childFullName))) {
         continue;
       }
-      // Take the indentation that followed the element with it so no blank line is left behind
-      const nextSibling = element.nextSibling;
-      if (nextSibling?.nodeType === 3 && !nextSibling.textContent?.trim()) {
-        nextSibling.remove();
+      // Take the line break and indentation in front of the element with it. That is the element's own line
+      // wherever it sits, removing what follows instead would leave the closing tag of the parent indented
+      // when the last child is removed.
+      const previousSibling = element.previousSibling;
+      if (previousSibling?.nodeType === 3 && !previousSibling.textContent?.trim()) {
+        previousSibling.remove();
       }
       element.remove();
-      removedCount += 1;
     }
-    if (removedCount === 0) {
-      return parentXml;
-    }
+    // Serialized even when nothing was removed: the other org's copy may have had children removed, and the
+    // serializer does not write entities and empty elements the way Salesforce does, which would be a difference
     return `<?xml version="1.0" encoding="UTF-8"?>\n${new XMLSerializer().serializeToString(root)}`;
   } catch {
     return parentXml;

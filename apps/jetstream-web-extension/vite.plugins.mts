@@ -65,7 +65,6 @@ const PLACEHOLDER_PAGES = [
   'permission-analysis',
   'data-analysis',
   'deploy-metadata',
-  'org-alignment',
   'create-fields',
   'formula-evaluator',
   'record-type-manager',

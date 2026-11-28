@@ -3,7 +3,7 @@ import { COMMON_METADATA_TYPES } from '@jetstream/connected-ui';
 import { TITLES } from '@jetstream/shared/constants';
 import { getLocalStore, hasLocalStore } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { formatNumber, isBrowserExtension, isCanvasApp, useTitle } from '@jetstream/shared/ui-utils';
+import { formatNumber, useTitle } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import {
   ListItem,
@@ -140,7 +140,6 @@ function incrementFreeReportsUsedCount(): number {
 export const OrgAlignment: FunctionComponent = () => {
   useTitle(TITLES.ORG_ALIGNMENT);
 
-  const [isSingleOrgMode] = useState(() => isBrowserExtension() || isCanvasApp());
   const { hasOrgAlignmentProAccess, orgAlignmentShowUpgradeToPro } = useAtomValue(orgAlignmentAccessState);
   const deployAccess = useOperationAccess('metadata.deploy');
 
@@ -538,28 +537,6 @@ export const OrgAlignment: FunctionComponent = () => {
   function handleDeploySingleFromDiff(component: OrgAlignmentComponentItem, direction: OrgAlignmentDeployDirection) {
     handleCloseDiff();
     setDeployModal({ components: [component], direction });
-  }
-
-  if (isSingleOrgMode) {
-    return (
-      <Page testId="org-alignment-page">
-        <PageHeader>
-          <PageHeaderRow>
-            <PageHeaderTitle
-              icon={{ type: 'standard', icon: 'asset_relationship' }}
-              label="Org Alignment"
-              docsPath={APP_ROUTES.ORG_ALIGNMENT.DOCS}
-            />
-          </PageHeaderRow>
-        </PageHeader>
-        <div className="slds-p-around_large">
-          <EmptyState
-            headline="Org Alignment requires two connected Salesforce orgs"
-            subHeading="Open Jetstream on the web or desktop application to compare metadata across two orgs and deploy differences in either direction."
-          />
-        </div>
-      </Page>
-    );
   }
 
   const hasResults = typeResults.length > 0;

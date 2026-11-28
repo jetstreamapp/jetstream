@@ -84,7 +84,7 @@ export const MAX_PROFILE_COMPANIONS_WITH_FILES = 4000;
 export const PROFILE_RETRIEVE_CHUNK_SIZE = 50;
 
 export const PROFILE_TOO_LARGE_UNCOMPARABLE_REASON =
-  'Profiles are only complete when retrieved together with the objects, classes, pages, tabs and layouts they refer to, and these orgs have too many to retrieve in one request. Compare fewer metadata types to compare profiles.';
+  'Profiles are only complete when retrieved together with the objects, classes, pages, tabs and layouts they refer to, and these orgs have too many of them to retrieve in one request.';
 
 /**
  * Every component a profile can refer to, from the listings of the metadata types already compared.

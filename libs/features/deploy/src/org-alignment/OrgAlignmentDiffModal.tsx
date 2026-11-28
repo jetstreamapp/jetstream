@@ -110,8 +110,10 @@ export const OrgAlignmentDiffModal: FunctionComponent<OrgAlignmentDiffModalProps
   }
 
   const latestComponentRef = useRef(component);
+  const hideUnchangedRegionsRef = useRef(hideUnchangedRegions);
   useEffect(() => {
     latestComponentRef.current = component;
+    hideUnchangedRegionsRef.current = hideUnchangedRegions;
   });
 
   // Only the key and whether the files are loaded matter here, the component itself is replaced whenever the
@@ -182,7 +184,8 @@ export const OrgAlignmentDiffModal: FunctionComponent<OrgAlignmentDiffModalProps
     addDisposable(
       ed.onDidUpdateDiff(() => {
         ed.revealPosition({ column: 1, lineNumber: 1 });
-        if (hideUnchangedRegions) {
+        // Read from a ref: this listener is registered once and outlives the value it was created with
+        if (hideUnchangedRegionsRef.current) {
           toggleHideUnchangedRegions(ed);
         } else {
           const lineChanges = ed.getLineChanges();

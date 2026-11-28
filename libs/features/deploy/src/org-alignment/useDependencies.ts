@@ -5,6 +5,7 @@ import { getErrorMessage, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getMetadataTypeComparability, isManagedListMetadataItem } from './orgAlignmentMetadataClassification';
 import {
   OrgAlignmentComponentItem,
   OrgAlignmentDependencyFinding,
@@ -402,12 +403,19 @@ export function getComponentsMissingFromTarget(
   const referencedIds = new Set(records.map(({ RefMetadataComponentId }) => getShortId(RefMetadataComponentId || '')));
 
   for (const [metadataType, { sourceItems, targetItems }] of Object.entries(listedTypes)) {
+    // Credentials, certificates, settings etc. are org specific. They are still listed so that one missing from
+    // the target org is reported, but it has to be set up there by hand rather than deployed from here.
+    if (!getMetadataTypeComparability(metadataType).comparable) {
+      continue;
+    }
     const targetNames = new Set(targetItems.map(getNormalizedListItemName));
     for (const item of sourceItems) {
       const fullName = getNormalizedListItemName(item);
       const key = getComponentKey(metadataType, fullName);
       const isRequired = requiredComponentKeys.has(key) || (!!item.id && referencedIds.has(getShortId(item.id)));
-      if (!isRequired || item.namespacePrefix || targetNames.has(fullName)) {
+      // A packaging org lists its own managed components without a namespace prefix
+      const isManaged = !!item.namespacePrefix || isManagedListMetadataItem(item);
+      if (!isRequired || isManaged || targetNames.has(fullName)) {
         continue;
       }
       componentsByKey.set(key, {

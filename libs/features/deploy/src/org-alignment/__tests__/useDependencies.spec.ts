@@ -21,6 +21,7 @@ import {
   analyzeToolingDependencies,
   findStructuralDependencies,
   getAddableComponentsByKey,
+  getComponentsMissingFromTarget,
   ToolingDependencyRecord,
   useDependencies,
 } from '../useDependencies';
@@ -379,6 +380,78 @@ describe('useDependencies hook', () => {
     expect(Array.from(getAddableComponentsByKey(componentsByKey, 'A_TO_B').keys())).toEqual([sourceOnlyObject.key]);
     // Deploying the other way, the object does not exist in the org being deployed from
     expect(getAddableComponentsByKey(componentsByKey, 'B_TO_A').size).toBe(0);
+  });
+
+  it("does not turn a packaging org's own managed components into deployable ones", () => {
+    const records: ToolingDependencyRecord[] = [
+      {
+        MetadataComponentId: '01p000000000001AAA',
+        MetadataComponentName: 'MainService',
+        MetadataComponentType: 'ApexClass',
+        RefMetadataComponentId: '01p000000000002AAA',
+        RefMetadataComponentName: 'ReleasedHelper',
+        RefMetadataComponentType: 'ApexClass',
+      },
+      {
+        MetadataComponentId: '01p000000000001AAA',
+        MetadataComponentName: 'MainService',
+        MetadataComponentType: 'ApexClass',
+        RefMetadataComponentId: '01p000000000003AAA',
+        RefMetadataComponentName: 'LocalHelper',
+        RefMetadataComponentType: 'ApexClass',
+      },
+    ];
+    const sourceItems: ListMetadataResult[] = [
+      // Managed without a namespace prefix, as listed by the org the package is developed in
+      { ...makeListItem('ApexClass', 'ReleasedHelper', '01p000000000002AAA'), manageableState: 'released', namespacePrefix: null },
+      { ...makeListItem('ApexClass', 'LocalHelper', '01p000000000003AAA'), manageableState: 'unmanaged' },
+    ];
+
+    const components = getComponentsMissingFromTarget(records, { ApexClass: { sourceItems, targetItems: [] } }, 'A_TO_B');
+    expect(components.map(({ key }) => key)).toEqual(['ApexClass:LocalHelper']);
+  });
+
+  it('reports a missing credential without offering to deploy it', async () => {
+    queryAllWithCacheUsingOffsetMock.mockResolvedValue({
+      queryResults: {
+        records: [
+          {
+            MetadataComponentId: '01p000000000001AAA',
+            MetadataComponentName: 'MainService',
+            MetadataComponentType: 'ApexClass',
+            RefMetadataComponentId: '0XA000000000001',
+            RefMetadataComponentName: 'Billing_API',
+            RefMetadataComponentType: 'NamedCredential',
+          },
+        ],
+      },
+    });
+    const targetOrg = { uniqueId: 'org-b', label: 'Production' } as SalesforceOrgUi;
+    fetchListMetadataForTypeMock.mockImplementation(async (org: SalesforceOrgUi) => ({
+      error: null,
+      items: org.uniqueId === 'org-a' ? [makeListItem('NamedCredential', 'Billing_API', '0XA000000000001AAA')] : [],
+    }));
+    const mainClass = makeComponent('ApexClass', 'MainService', 'onlyInSource', '01p000000000001AAA');
+
+    const { result } = renderHook(() =>
+      useDependencies({
+        deploySourceOrg: mockOrg,
+        deployTargetOrg: targetOrg,
+        selectedKeys: new Set([mainClass.key]),
+        comparedComponents: [mainClass],
+        targetInventoryByType: { ApexClass: [] },
+        direction: 'A_TO_B',
+      }),
+    );
+
+    await waitFor(() => expect(result.current.findings).toHaveLength(1));
+    expect(result.current.findings[0]).toMatchObject({
+      referencedType: 'NamedCredential',
+      referencedName: 'Billing_API',
+      severity: 'missing',
+    });
+    expect(result.current.findings[0].addableComponentKey).toBeUndefined();
+    expect(result.current.componentsByKey.has('NamedCredential:Billing_API')).toBe(false);
   });
 
   it('reports the managed parent object of a selected field as missing without offering to add it', async () => {

@@ -381,9 +381,38 @@ describe('parent files with separately compared children', () => {
     expect(output).toContain('<description>Accounts</description>');
   });
 
-  it('leaves the content alone when nothing is compared separately or the type is not a parent', () => {
+  it('keeps every child when nothing is compared separately', () => {
+    const output = removeSeparatelyComparedChildren(getObjectXml('Label', 'Accounts'), 'CustomObject', 'Account', new Set());
+    expect(output).toContain('Custom__c');
+    expect(output).toContain('Industry');
+  });
+
+  it('writes a file the same way whether or not a child was removed from it', () => {
+    const getXml = (fields: string[]) =>
+      [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">',
+        // Entities and empty elements are not written by the serializer the way Salesforce writes them
+        '    <description>Sales &quot;accounts&quot; &amp; partners</description>',
+        '    <enableFeeds></enableFeeds>',
+        ...fields,
+        '</CustomObject>',
+      ].join('\n');
+    const customField = ['    <fields>', '        <fullName>Custom__c</fullName>', '        <label>Custom</label>', '    </fields>'];
+    const standardField = ['    <fields>', '        <fullName>Industry</fullName>', '    </fields>'];
+    const separatelyComparedKeys = new Set(['CustomField:Account.Custom__c']);
+    const strip = (xml: string) => removeSeparatelyComparedChildren(xml, 'CustomObject', 'Account', separatelyComparedKeys);
+
+    // The custom field only exists in one org, as the last, the first and the only child after the properties
+    expect(strip(getXml([...standardField, ...customField]))).toBe(strip(getXml(standardField)));
+    expect(strip(getXml([...customField, ...standardField]))).toBe(strip(getXml(standardField)));
+    expect(strip(getXml(customField))).toBe(strip(getXml([])));
+    // The closing tag is not left indented by the line of the removed child
+    expect(strip(getXml(customField))).toMatch(/[^\s]\n<\/CustomObject>$/);
+  });
+
+  it('leaves the content alone when the type is not a parent or the file cannot be parsed', () => {
     const xml = getObjectXml('Label', 'Accounts');
-    expect(removeSeparatelyComparedChildren(xml, 'CustomObject', 'Account', new Set())).toBe(xml);
     expect(removeSeparatelyComparedChildren(xml, 'ApexClass', 'Account', new Set(['CustomField:Account.Custom__c']))).toBe(xml);
     expect(removeSeparatelyComparedChildren('<not-xml', 'CustomObject', 'Account', new Set(['CustomField:Account.Custom__c']))).toBe(
       '<not-xml',

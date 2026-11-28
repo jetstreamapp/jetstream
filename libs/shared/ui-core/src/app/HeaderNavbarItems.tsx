@@ -1,5 +1,6 @@
 import { AppAbility, canAccessTool } from '@jetstream/acl';
 import { APP_ROUTES, isPathAllowedByAccessProfile } from '@jetstream/shared/ui-router';
+import { isBrowserExtension, isCanvasApp } from '@jetstream/shared/ui-utils';
 import type { NavbarItemConfig } from '@jetstream/ui';
 import { abilityState, useFeatureFlag } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
@@ -26,12 +27,12 @@ export function useHeaderNavbarItems(): NavbarItemConfig[] {
   const analysisToolsEnabled = useFeatureFlag('analysis-tools');
   const ability = useAtomValue(abilityState);
   return useMemo<NavbarItemConfig[]>(
-    () => filterNavbarItemsByAccessProfile(navbarItems(analysisToolsEnabled), ability),
+    () => filterNavbarItemsByAccessProfile(navbarItems(analysisToolsEnabled, isBrowserExtension() || isCanvasApp()), ability),
     [analysisToolsEnabled, ability],
   );
 }
 
-function navbarItems(analysisToolsEnabled: boolean): NavbarItemConfig[] {
+function navbarItems(analysisToolsEnabled: boolean, isSingleOrgMode: boolean): NavbarItemConfig[] {
   return [
     {
       id: 'home',
@@ -146,13 +147,18 @@ function navbarItems(analysisToolsEnabled: boolean): NavbarItemConfig[] {
           title: APP_ROUTES.DEPLOY_METADATA.DESCRIPTION,
           label: APP_ROUTES.DEPLOY_METADATA.TITLE,
         },
-        {
-          id: 'org-alignment',
-          path: APP_ROUTES.ORG_ALIGNMENT.ROUTE,
-          search: APP_ROUTES.ORG_ALIGNMENT.SEARCH_PARAM,
-          title: APP_ROUTES.ORG_ALIGNMENT.DESCRIPTION,
-          label: APP_ROUTES.ORG_ALIGNMENT.TITLE,
-        },
+        // Compares two orgs, which the browser extension and the Canvas app never have
+        ...(isSingleOrgMode
+          ? []
+          : [
+              {
+                id: 'org-alignment',
+                path: APP_ROUTES.ORG_ALIGNMENT.ROUTE,
+                search: APP_ROUTES.ORG_ALIGNMENT.SEARCH_PARAM,
+                title: APP_ROUTES.ORG_ALIGNMENT.DESCRIPTION,
+                label: APP_ROUTES.ORG_ALIGNMENT.TITLE,
+              },
+            ]),
         {
           id: 'deploy-sobject-metadata',
           path: APP_ROUTES.CREATE_FIELDS.ROUTE,

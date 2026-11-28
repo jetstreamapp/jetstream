@@ -421,14 +421,16 @@ export const analysisToolsAccessState = atom((get) => {
 /**
  * Access to Org Alignment paid capabilities (unlimited drift reports and saved comparisons).
  * Free users get one free report and keep today's per-component compare free.
+ *
+ * Granted by its own `OrgAlignment` entitlement OR any active paid plan. It is deliberately independent of
+ * the Analysis Tools entitlement, so a trial of one never changes access to the other.
  */
 export const orgAlignmentAccessState = atom((get) => {
-  const ability = get(abilityState);
-  const hasPaidPlan = get(hasPaidPlanState);
-  const hasOrgAlignmentProAccess = ability.can('access', 'AnalysisTools') || hasPaidPlan;
+  const hasOrgAlignmentProAccess = get(abilityState).can('access', 'OrgAlignment') || get(hasPaidPlanState);
   return {
     hasOrgAlignmentProAccess,
-    orgAlignmentShowUpgradeToPro: !hasOrgAlignmentProAccess && !get(isBrowserExtensionState) && !isDesktop() && !isCanvasApp(),
+    // Desktop is a paid tier and granted via ability, so the upgrade prompt is only ever needed on the web
+    orgAlignmentShowUpgradeToPro: !hasOrgAlignmentProAccess && !isDesktop(),
   };
 });
 
