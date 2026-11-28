@@ -40,6 +40,8 @@ interface RouteItem {
   TITLE: string;
   DESCRIPTION: string;
   NEW_UNTIL?: number;
+  /** Paid (Jetstream Pro) feature, marked with a Pro badge where the tool is listed */
+  REQUIRES_PRO?: boolean;
   /** Team access profile tool that grants this route, routes without one are always available */
   TOOL?: AccessProfileToolKey;
 }
@@ -178,6 +180,8 @@ export const APP_ROUTES: RouteMap = {
     DOCS: 'https://docs.getjetstream.app/deploy-metadata',
     TITLE: 'Org Alignment',
     DESCRIPTION: 'Compare two orgs for metadata drift and deploy chosen differences in either direction',
+    NEW_UNTIL: new Date(2027, 0, 31, 23, 59, 59).getTime(), // January 31, 2027
+    REQUIRES_PRO: true,
   },
   CREATE_FIELDS: {
     TOOL: 'create-fields',

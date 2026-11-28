@@ -20,15 +20,25 @@ import {
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { retrieveMetadataChunked } from '../view-or-compare-metadata/useViewOrCompareMetadata';
+import { ChunkedRetrieveOptions, retrieveMetadataChunked } from '../view-or-compare-metadata/useViewOrCompareMetadata';
 import { FilePropertiesWithContent } from '../view-or-compare-metadata/viewOrCompareMetadataTypes';
-import { getMetadataTypeComparability } from './orgAlignmentMetadataClassification';
+import { isPermissionXmlType } from '../view-or-compare-metadata/xmlNormalizer';
+import {
+  getMetadataTypeComparability,
+  getProfileCompanions,
+  PROFILE_METADATA_TYPE,
+  PROFILE_RETRIEVE_CHUNK_SIZE,
+  PROFILE_TOO_LARGE_UNCOMPARABLE_REASON,
+} from './orgAlignmentMetadataClassification';
 import { OrgAlignmentComponentItem, OrgAlignmentProgress, OrgAlignmentTypeResult } from './orgAlignmentTypes';
 import {
   aggregateSummaryCounts,
   buildFilePairsForComponent,
   buildTypeComparisonComponents,
+  ComponentFileOptions,
+  CONTAINER_PARENT_METADATA_TYPES,
   createEmptySummaryCounts,
+  getComponentFilesByName,
   setDiffListMetadata,
 } from './orgAlignmentUtils';
 
@@ -118,7 +128,85 @@ function resolveMetadataTypesToCompare(
 }
 
 /**
- * Orchestrates org-wide metadata alignment one type at a time:
+ * Types are compared in an order that lets later types use what earlier ones found:
+ * parent files (e.g. CustomObject) come after the child types they contain, and profiles come last because
+ * they are retrieved together with every component they refer to.
+ */
+export function getTypeProcessingRank(metadataType: string): number {
+  if (metadataType === PROFILE_METADATA_TYPE) {
+    return 2;
+  }
+  return CONTAINER_PARENT_METADATA_TYPES.has(metadataType) ? 1 : 0;
+}
+
+/**
+ * How many types are compared at the same time. Every type makes requests to both orgs, and Salesforce only
+ * serves a few slow requests per org at once (5 on Developer Edition and trial orgs).
+ */
+export const MAX_TYPES_COMPARED_IN_PARALLEL = 3;
+
+/** Types of the same rank do not depend on each other and can be compared in parallel */
+export function groupTypesByProcessingRank<T extends { type: string }>(typeEntries: T[]): T[][] {
+  const groupsByRank = new Map<number, T[]>();
+  for (const typeEntry of typeEntries) {
+    const rank = getTypeProcessingRank(typeEntry.type);
+    groupsByRank.set(rank, [...(groupsByRank.get(rank) ?? []), typeEntry]);
+  }
+  return Array.from(groupsByRank.entries())
+    .sort(([rankA], [rankB]) => rankA - rankB)
+    .map(([, group]) => group);
+}
+
+type OrgSide = 'source' | 'target';
+
+/**
+ * How one metadata type must be retrieved from one org, given the types compared so far.
+ * `uncomparableReason` is set when the type cannot be retrieved completely.
+ */
+export function getRetrieveOptionsForType(
+  metadataType: string,
+  side: OrgSide,
+  typeResults: OrgAlignmentTypeResult[],
+): { options: ChunkedRetrieveOptions; uncomparableReason?: string } {
+  // Only the file contents are compared, the merged zip is never used
+  const options: ChunkedRetrieveOptions = { buildZip: false };
+  if (metadataType !== PROFILE_METADATA_TYPE) {
+    return { options };
+  }
+  const listItemsByType: Record<string, ListMetadataResult[]> = {};
+  for (const { type, executionStatus, sourceListItems, targetListItems } of typeResults) {
+    if (executionStatus === 'complete') {
+      listItemsByType[type] = side === 'source' ? sourceListItems : targetListItems;
+    }
+  }
+  const companions = getProfileCompanions(listItemsByType);
+  if (!companions) {
+    return { options, uncomparableReason: PROFILE_TOO_LARGE_UNCOMPARABLE_REASON };
+  }
+  return {
+    options: {
+      ...options,
+      maxComponentsPerChunk: PROFILE_RETRIEVE_CHUNK_SIZE,
+      includeWithEveryChunk: companions,
+      includeFile: ({ type }) => type === PROFILE_METADATA_TYPE,
+    },
+  };
+}
+
+/** Child components compared on their own are removed from their parent's file, see `removeSeparatelyComparedChildren` */
+export function getComponentFileOptions(metadataType: string, typeResults: OrgAlignmentTypeResult[]): ComponentFileOptions {
+  if (!CONTAINER_PARENT_METADATA_TYPES.has(metadataType)) {
+    return {};
+  }
+  const separatelyComparedKeys = new Set<string>();
+  for (const { components } of typeResults) {
+    components.forEach(({ key }) => separatelyComparedKeys.add(key));
+  }
+  return { separatelyComparedKeys };
+}
+
+/**
+ * Orchestrates org-wide metadata alignment, a few types at a time:
  * 1. Describes both orgs and classifies uncomparable types explicitly.
  * 2. Calls `listMetadata` on Org A and Org B and computes a set-diff first.
  * 3. Retrieves ONLY candidates present in both orgs using chunked retrieves (safe under 10,000 files).
@@ -147,23 +235,24 @@ export function useOrgAlignmentCompare() {
     };
   }, []);
 
-  const updateTypeResult = useCallback((metadataType: string, updater: (prev: OrgAlignmentTypeResult) => OrgAlignmentTypeResult) => {
-    setTypeResults((previous) => {
-      const next = previous.map((entry) => (entry.type === metadataType ? updater(entry) : entry));
-      typeResultsRef.current = next;
-      return next;
-    });
+  /**
+   * The ref is the source of truth and is updated synchronously, so a type that has just finished is always
+   * visible to the next type that is processed (profiles and parent files depend on the earlier results).
+   */
+  const replaceTypeResults = useCallback((getNext: (previous: OrgAlignmentTypeResult[]) => OrgAlignmentTypeResult[]) => {
+    typeResultsRef.current = getNext(typeResultsRef.current);
+    setTypeResults(typeResultsRef.current);
   }, []);
 
+  const updateTypeResult = useCallback(
+    (metadataType: string, updater: (prev: OrgAlignmentTypeResult) => OrgAlignmentTypeResult) => {
+      replaceTypeResults((previous) => previous.map((entry) => (entry.type === metadataType ? updater(entry) : entry)));
+    },
+    [replaceTypeResults],
+  );
+
   const processSingleType = useCallback(
-    async (
-      metadataType: string,
-      inFolder: boolean,
-      context: ActiveRunContext,
-      runId: number,
-      index: number,
-      total: number,
-    ): Promise<void> => {
+    async (metadataType: string, inFolder: boolean, context: ActiveRunContext, runId: number): Promise<void> => {
       const isStaleOrCanceled = () => !isMounted.current || canceledRef.current || runIdRef.current !== runId;
       const typeLabel = getMetadataLabelFromFullName(metadataType);
 
@@ -176,11 +265,6 @@ export function useOrgAlignmentCompare() {
         executionStatus: 'listing',
         errorMessage: undefined,
         progressMessage: 'Listing metadata in both orgs...',
-      }));
-      setProgress((prev) => ({
-        ...prev,
-        currentType: metadataType,
-        detailMessage: `Listing ${typeLabel} (${index + 1} of ${total})...`,
       }));
 
       const sourceHasType = Boolean(context.sourceDescribeMap[metadataType]);
@@ -208,18 +292,17 @@ export function useOrgAlignmentCompare() {
       let sourceRetrievedFiles: FilePropertiesWithContent[] = [];
       let targetRetrievedFiles: FilePropertiesWithContent[] = [];
 
-      if (setDiff.candidates.length > 0) {
+      const sourceRetrieveConfig = getRetrieveOptionsForType(metadataType, 'source', typeResultsRef.current);
+      const targetRetrieveConfig = getRetrieveOptionsForType(metadataType, 'target', typeResultsRef.current);
+      const uncomparableReason = sourceRetrieveConfig.uncomparableReason ?? targetRetrieveConfig.uncomparableReason;
+
+      if (setDiff.candidates.length > 0 && !uncomparableReason) {
         updateTypeResult(metadataType, (prev) => ({
           ...prev,
           executionStatus: 'retrieving',
           sourceListItems,
           targetListItems,
           progressMessage: `Retrieving ${setDiff.candidates.length} shared ${typeLabel} candidates...`,
-        }));
-        setProgress((prev) => ({
-          ...prev,
-          currentType: metadataType,
-          detailMessage: `Retrieving ${setDiff.candidates.length} shared ${typeLabel} (${index + 1} of ${total})...`,
         }));
 
         const sourceCandidatePayload: Record<string, ListMetadataResult[]> = {
@@ -231,16 +314,17 @@ export function useOrgAlignmentCompare() {
 
         const [sourceRetrieve, targetRetrieve] = await Promise.all([
           retrieveMetadataChunked(context.sourceOrg, sourceCandidatePayload, {
+            ...sourceRetrieveConfig.options,
             isCanceled: isStaleOrCanceled,
             onChunkProgress: ({ completedChunks, totalChunks }) => {
               if (!isStaleOrCanceled() && totalChunks > 1) {
-                const chunkLabel = `Retrieving ${typeLabel} — chunk ${Math.min(completedChunks + 1, totalChunks)} of ${totalChunks}`;
+                const chunkLabel = `Retrieving ${typeLabel}, chunk ${Math.min(completedChunks + 1, totalChunks)} of ${totalChunks}`;
                 updateTypeResult(metadataType, (prev) => ({ ...prev, progressMessage: chunkLabel }));
-                setProgress((prev) => ({ ...prev, detailMessage: chunkLabel }));
               }
             },
           }),
           retrieveMetadataChunked(context.targetOrg, targetCandidatePayload, {
+            ...targetRetrieveConfig.options,
             isCanceled: isStaleOrCanceled,
           }),
         ]);
@@ -261,6 +345,8 @@ export function useOrgAlignmentCompare() {
 
       const { components, counts } = buildTypeComparisonComponents(metadataType, setDiff, sourceRetrievedFiles, targetRetrievedFiles, {
         normalizePermissionXml: context.normalizePermissionXml,
+        uncomparableReason,
+        ...getComponentFileOptions(metadataType, typeResultsRef.current),
       });
 
       updateTypeResult(metadataType, (prev) => ({
@@ -275,6 +361,67 @@ export function useOrgAlignmentCompare() {
       }));
     },
     [updateTypeResult],
+  );
+
+  /**
+   * Compares the types a few at a time, one rank after the other, and resolves with how many were processed.
+   * A type that fails is marked as failed and does not stop the others.
+   */
+  const processTypes = useCallback(
+    async (typeEntries: OrgAlignmentTypeResult[], context: ActiveRunContext, runId: number): Promise<number> => {
+      const isStaleOrCanceled = () => !isMounted.current || canceledRef.current || runIdRef.current !== runId;
+      const activeTypeLabels = new Set<string>();
+      let completedCount = 0;
+
+      const reportProgress = () => {
+        if (isStaleOrCanceled()) {
+          return;
+        }
+        setProgress((prev) => ({
+          ...prev,
+          completedTypes: completedCount,
+          detailMessage: activeTypeLabels.size > 0 ? `Comparing ${Array.from(activeTypeLabels).join(', ')}...` : prev.detailMessage,
+        }));
+      };
+
+      for (const group of groupTypesByProcessingRank(typeEntries)) {
+        const queue = [...group];
+        const processQueue = async () => {
+          while (!isStaleOrCanceled()) {
+            const typeEntry = queue.shift();
+            if (!typeEntry) {
+              return;
+            }
+            activeTypeLabels.add(typeEntry.typeLabel);
+            reportProgress();
+            try {
+              await processSingleType(typeEntry.type, typeEntry.inFolder, context, runId);
+            } catch (ex) {
+              if (getErrorMessage(ex) === JOB_CANCELED_ERROR_MESSAGE || isStaleOrCanceled()) {
+                return;
+              }
+              logger.warn('[ORG ALIGNMENT][TYPE ERROR]', typeEntry.type, ex);
+              updateTypeResult(typeEntry.type, (prev) => ({
+                ...prev,
+                executionStatus: 'error',
+                errorMessage: getErrorMessage(ex),
+                progressMessage: undefined,
+              }));
+            } finally {
+              activeTypeLabels.delete(typeEntry.typeLabel);
+            }
+            completedCount += 1;
+            reportProgress();
+          }
+        };
+        await Promise.all(Array.from({ length: Math.min(MAX_TYPES_COMPARED_IN_PARALLEL, group.length) }, processQueue));
+        if (isStaleOrCanceled()) {
+          break;
+        }
+      }
+      return completedCount;
+    },
+    [processSingleType, updateTypeResult],
   );
 
   const runComparison = useCallback(
@@ -359,53 +506,23 @@ export function useOrgAlignmentCompare() {
           detailMessage: `Preparing to compare ${comparableTypes.length} metadata types...`,
         });
 
-        let completedCount = 0;
-
-        for (let i = 0; i < comparableTypes.length; i++) {
-          const typeEntry = comparableTypes[i];
-          if (isStaleOrCanceled()) {
-            break;
-          }
-          try {
-            await processSingleType(typeEntry.type, typeEntry.inFolder, context, runId, i, comparableTypes.length);
-          } catch (ex) {
-            if (getErrorMessage(ex) === JOB_CANCELED_ERROR_MESSAGE || isStaleOrCanceled()) {
-              break;
-            }
-            logger.warn('[ORG ALIGNMENT][TYPE ERROR]', typeEntry.type, ex);
-            updateTypeResult(typeEntry.type, (prev) => ({
-              ...prev,
-              executionStatus: 'error',
-              errorMessage: getErrorMessage(ex),
-              progressMessage: undefined,
-            }));
-          }
-          completedCount += 1;
-          if (!isStaleOrCanceled()) {
-            setProgress((prev) => ({
-              ...prev,
-              completedTypes: completedCount,
-            }));
-          }
-        }
+        const completedCount = await processTypes(comparableTypes, context, runId);
 
         if (!isMounted.current || runIdRef.current !== runId) {
           return;
         }
 
         if (canceledRef.current) {
-          setTypeResults((previous) => {
-            const next = previous.map((entry) =>
+          replaceTypeResults((previous) =>
+            previous.map((entry) =>
               entry.executionStatus === 'pending' ||
               entry.executionStatus === 'listing' ||
               entry.executionStatus === 'retrieving' ||
               entry.executionStatus === 'comparing'
                 ? { ...entry, executionStatus: 'canceled' as const, progressMessage: undefined }
                 : entry,
-            );
-            typeResultsRef.current = next;
-            return next;
-          });
+            ),
+          );
           setProgress((prev) => ({
             ...prev,
             running: false,
@@ -455,7 +572,7 @@ export function useOrgAlignmentCompare() {
         });
       }
     },
-    [notifyUser, processSingleType, updateTypeResult],
+    [notifyUser, processTypes, replaceTypeResults],
   );
 
   const retryTypes = useCallback(
@@ -480,30 +597,7 @@ export function useOrgAlignmentCompare() {
         detailMessage: `Retrying ${targets.length} metadata type${targets.length === 1 ? '' : 's'}...`,
       });
 
-      let completedCount = 0;
-      for (let i = 0; i < targets.length; i++) {
-        const typeEntry = targets[i];
-        if (!isMounted.current || canceledRef.current || runIdRef.current !== runId) {
-          break;
-        }
-        try {
-          await processSingleType(typeEntry.type, typeEntry.inFolder, context, runId, i, targets.length);
-        } catch (ex) {
-          if (getErrorMessage(ex) === JOB_CANCELED_ERROR_MESSAGE || canceledRef.current) {
-            break;
-          }
-          updateTypeResult(typeEntry.type, (prev) => ({
-            ...prev,
-            executionStatus: 'error',
-            errorMessage: getErrorMessage(ex),
-            progressMessage: undefined,
-          }));
-        }
-        completedCount += 1;
-        if (isMounted.current && !canceledRef.current && runIdRef.current === runId) {
-          setProgress((prev) => ({ ...prev, completedTypes: completedCount }));
-        }
-      }
+      const completedCount = await processTypes(targets, context, runId);
 
       if (!isMounted.current || runIdRef.current !== runId) {
         return;
@@ -518,7 +612,7 @@ export function useOrgAlignmentCompare() {
         detailMessage: canceledRef.current ? 'Retry canceled' : 'Retry complete',
       });
     },
-    [processSingleType, updateTypeResult],
+    [processTypes],
   );
 
   const cancelComparison = useCallback(() => {
@@ -533,58 +627,51 @@ export function useOrgAlignmentCompare() {
    * Re-evaluate match flags on already-retrieved components when the user toggles XML normalization,
    * avoiding any redundant Salesforce API calls.
    */
-  const recomputeNormalization = useCallback((normalizePermissionXml: boolean) => {
-    if (activeRunContextRef.current) {
-      activeRunContextRef.current = { ...activeRunContextRef.current, normalizePermissionXml };
-    }
-    setTypeResults((previous) => {
-      const next = previous.map((typeResult) => {
-        if (typeResult.executionStatus !== 'complete') {
-          return typeResult;
-        }
-        const counts = {
-          ...createEmptySummaryCounts(),
-          managedSkipped: typeResult.counts.managedSkipped,
-        };
-        const components = typeResult.components.map((component) => {
-          if (component.status === 'onlyInSource') {
-            counts.onlyInSource += 1;
-            return component;
+  const recomputeNormalization = useCallback(
+    (normalizePermissionXml: boolean) => {
+      if (activeRunContextRef.current) {
+        activeRunContextRef.current = { ...activeRunContextRef.current, normalizePermissionXml };
+      }
+      replaceTypeResults((previous) =>
+        previous.map((typeResult) => {
+          if (typeResult.executionStatus !== 'complete') {
+            return typeResult;
           }
-          if (component.status === 'onlyInTarget') {
-            counts.onlyInTarget += 1;
-            return component;
-          }
-          if (component.isManaged || !component.filesLoaded || component.files.length === 0) {
-            counts.uncomparable += 1;
-            return component;
-          }
-          const sourceFiles = component.files.map(({ source }) => source).filter((file): file is NonNullable<typeof file> => Boolean(file));
-          const targetFiles = component.files.map(({ target }) => target).filter((file): file is NonNullable<typeof file> => Boolean(file));
-          const { files, allMatch, hasReadableContent } = buildFilePairsForComponent(sourceFiles, targetFiles, {
-            normalizePermissionXml,
+          const counts = {
+            ...createEmptySummaryCounts(),
+            managedSkipped: typeResult.counts.managedSkipped,
+          };
+          const countByStatus = (status: OrgAlignmentComponentItem['status']) => {
+            counts[status] += 1;
+          };
+          const components = typeResult.components.map((component) => {
+            const isCompared = component.status === 'same' || component.status === 'different';
+            // Normalization only changes the outcome for permission files, and only they keep their content once compared
+            if (!isCompared || !component.filesLoaded || component.files.length === 0 || !isPermissionXmlType(component.type)) {
+              countByStatus(component.status);
+              return component;
+            }
+            const sourceFiles = component.files
+              .map(({ source }) => source)
+              .filter((file): file is NonNullable<typeof file> => Boolean(file));
+            const targetFiles = component.files
+              .map(({ target }) => target)
+              .filter((file): file is NonNullable<typeof file> => Boolean(file));
+            const { files, allMatch } = buildFilePairsForComponent(sourceFiles, targetFiles, { normalizePermissionXml });
+            const status = allMatch ? ('same' as const) : ('different' as const);
+            countByStatus(status);
+            return { ...component, files, status };
           });
-          if (!hasReadableContent) {
-            counts.uncomparable += 1;
-            return { ...component, files, status: 'uncomparable' as const };
-          }
-          if (allMatch) {
-            counts.same += 1;
-            return { ...component, files, status: 'same' as const };
-          }
-          counts.different += 1;
-          return { ...component, files, status: 'different' as const };
-        });
-        return { ...typeResult, components, counts };
-      });
-      typeResultsRef.current = next;
-      return next;
-    });
-  }, []);
+          return { ...typeResult, components, counts };
+        }),
+      );
+    },
+    [replaceTypeResults],
+  );
 
   /**
-   * Lazily retrieve file contents for an `onlyInSource` or `onlyInTarget` component when a user
-   * opens it in the diff viewer, caching the retrieved files onto the component row.
+   * Lazily retrieve file contents for a component that has none (one-sided components, and matching ones whose
+   * content was released) when a user opens it in the diff viewer, caching the retrieved files onto the component row.
    */
   const loadComponentFilesOnDemand = useCallback(
     async (component: OrgAlignmentComponentItem): Promise<OrgAlignmentComponentItem> => {
@@ -593,17 +680,31 @@ export function useOrgAlignmentCompare() {
         return component;
       }
 
-      const [sourceResult, targetResult] = await Promise.all([
-        component.sourceItem
-          ? retrieveMetadataChunked(context.sourceOrg, { [component.type]: [component.sourceItem] })
-          : Promise.resolve({ fileProperties: [] }),
-        component.targetItem
-          ? retrieveMetadataChunked(context.targetOrg, { [component.type]: [component.targetItem] })
-          : Promise.resolve({ fileProperties: [] }),
-      ]);
+      const retrieveFromOrg = async (org: SalesforceOrgUi, item: ListMetadataResult | undefined, side: OrgSide) => {
+        if (!item) {
+          return [];
+        }
+        // A profile that is too large to retrieve completely is still shown, with whatever Salesforce returns for it alone
+        const { options, uncomparableReason } = getRetrieveOptionsForType(component.type, side, typeResultsRef.current);
+        const { fileProperties } = await retrieveMetadataChunked(
+          org,
+          { [component.type]: [item] },
+          uncomparableReason ? { buildZip: false } : options,
+        );
+        const componentNames = new Set([component.fullName]);
+        const filesByComponent = getComponentFilesByName(
+          fileProperties,
+          componentNames,
+          component.type,
+          getComponentFileOptions(component.type, typeResultsRef.current),
+        );
+        return filesByComponent.get(component.fullName) ?? [];
+      };
 
-      const sourceFiles = sourceResult.fileProperties.filter(({ fileName }) => fileName !== 'package.xml');
-      const targetFiles = targetResult.fileProperties.filter(({ fileName }) => fileName !== 'package.xml');
+      const [sourceFiles, targetFiles] = await Promise.all([
+        retrieveFromOrg(context.sourceOrg, component.sourceItem, 'source'),
+        retrieveFromOrg(context.targetOrg, component.targetItem, 'target'),
+      ]);
       const { files } = buildFilePairsForComponent(sourceFiles, targetFiles, {
         normalizePermissionXml: context.normalizePermissionXml,
       });

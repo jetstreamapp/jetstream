@@ -207,7 +207,7 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
                   </h3>
                   <div className="slds-tile__detail slds-p-bottom_small">
                     <dl className="slds-list_vertical slds-wrap">
-                      {card.items.map(({ DESCRIPTION, ROUTE, SEARCH_PARAM, TITLE, DOCS, NEW_UNTIL }) => (
+                      {card.items.map(({ DESCRIPTION, ROUTE, SEARCH_PARAM, TITLE, DOCS, NEW_UNTIL, REQUIRES_PRO }) => (
                         <Fragment key={ROUTE}>
                           <dt
                             className="slds-item_label slds-text-color_weak slds-truncate slds-p-top_small"
@@ -227,6 +227,7 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
                                 NEW
                               </Badge>
                             )}
+                            {REQUIRES_PRO && <ProBadge className="slds-m-left_xx-small" />}
                           </dt>
                           <dd className="slds-item_detail">{DESCRIPTION}</dd>
                           {/* Docs stay visible while locked — someone deciding whether to upgrade needs to read what the feature does. */}

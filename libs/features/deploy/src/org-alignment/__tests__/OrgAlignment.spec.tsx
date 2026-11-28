@@ -83,7 +83,7 @@ describe('OrgAlignment', () => {
     );
 
     expect(screen.getByText('Org Alignment')).toBeTruthy();
-    expect(screen.getByText('Pick two orgs to run a drift report')).toBeTruthy();
+    expect(screen.getByText('Choose two orgs to compare')).toBeTruthy();
     expect(screen.getByRole('button', { name: /Compare Orgs/i })).toHaveProperty('disabled', true);
   });
 

@@ -24,6 +24,15 @@ export interface ChunkedRetrieveOptions {
   isCanceled?: () => boolean;
   onChecked?: () => void;
   onChunkProgress?: (progress: ChunkedRetrieveProgress) => void;
+  /**
+   * Components added to every chunk on top of the chunk's own. Salesforce only returns the parts of a profile
+   * that relate to other components in the same retrieve, so profiles are retrieved alongside those components.
+   */
+  includeWithEveryChunk?: Record<string, ListMetadataResult[]>;
+  /** Only files that pass are returned and have their content read, e.g. to drop the files of `includeWithEveryChunk` */
+  includeFile?: (file: FilePropertiesWithContent) => boolean;
+  /** Set to false when only `fileProperties` is needed, the merged zip is then left empty */
+  buildZip?: boolean;
 }
 
 /**
@@ -35,7 +44,7 @@ export async function retrieveMetadataChunked(
   selectedMetadata: Record<string, ListMetadataResult[]>,
   options: ChunkedRetrieveOptions = {},
 ): Promise<{ zip: JSZip; fileProperties: FilePropertiesWithContent[] }> {
-  const { maxComponentsPerChunk, isCanceled, onChecked, onChunkProgress } = options;
+  const { maxComponentsPerChunk, isCanceled, onChecked, onChunkProgress, includeWithEveryChunk, includeFile, buildZip = true } = options;
   const chunks = chunkListMetadataForRetrieve(selectedMetadata, maxComponentsPerChunk);
   const mergedZip = new JSZip();
   const mergedFileProperties: FilePropertiesWithContent[] = [];
@@ -51,7 +60,10 @@ export async function retrieveMetadataChunked(
     }
     onChunkProgress?.({ completedChunks: i, totalChunks: chunks.length });
 
-    const { id } = await retrieveMetadataFromListMetadata(org, chunks[i]);
+    const { id } = await retrieveMetadataFromListMetadata(
+      org,
+      includeWithEveryChunk ? { ...includeWithEveryChunk, ...chunks[i] } : chunks[i],
+    );
     if (isCanceled?.()) {
       throw new Error(JOB_CANCELED_ERROR_MESSAGE);
     }
@@ -72,13 +84,15 @@ export async function retrieveMetadataChunked(
     }
 
     const chunkZip = await JSZip.loadAsync(results.zipFile, { base64: true });
-    const chunkFiles: FilePropertiesWithContent[] = (results.fileProperties || []).map((file) => {
-      // Folders don't have a suffix in the fileProperties response, but there is an associated file, so we must add the extension
-      if (METADATA_TYPES_WITH_FOLDERS.has(file.type) && file.fileName.includes('/') && !file.fileName.includes('.')) {
-        return { ...file, fileName: `${file.fileName}-meta.xml` };
-      }
-      return { ...file };
-    });
+    const chunkFiles: FilePropertiesWithContent[] = (results.fileProperties || [])
+      .map((file) => {
+        // Folders don't have a suffix in the fileProperties response, but there is an associated file, so we must add the extension
+        if (METADATA_TYPES_WITH_FOLDERS.has(file.type) && file.fileName.includes('/') && !file.fileName.includes('.')) {
+          return { ...file, fileName: `${file.fileName}-meta.xml` };
+        }
+        return { ...file };
+      })
+      .filter((file) => !includeFile || includeFile(file));
 
     await populateFileContents(chunkZip, chunkFiles);
 
@@ -93,11 +107,13 @@ export async function retrieveMetadataChunked(
     }
 
     const zipEntries: Array<{ path: string; entry: JSZip.JSZipObject }> = [];
-    chunkZip.forEach((relativePath, entry) => {
-      if (!entry.dir) {
-        zipEntries.push({ path: relativePath, entry });
-      }
-    });
+    if (buildZip) {
+      chunkZip.forEach((relativePath, entry) => {
+        if (!entry.dir) {
+          zipEntries.push({ path: relativePath, entry });
+        }
+      });
+    }
     await Promise.all(
       zipEntries.map(async ({ path, entry }) => {
         if (path === 'package.xml' && mergedZip.file('package.xml')) {
@@ -113,7 +129,7 @@ export async function retrieveMetadataChunked(
 
   // When multiple chunks were merged, replace the single-chunk package.xml with a combined manifest
   // so the resulting zip is complete and deployable (e.g. for target org backups).
-  if (chunks.length > 1 && !isCanceled?.()) {
+  if (buildZip && chunks.length > 1 && !isCanceled?.()) {
     try {
       const combinedPackageXml = await getPackageXml(org, selectedMetadata);
       mergedZip.file('package.xml', combinedPackageXml);

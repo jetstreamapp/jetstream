@@ -14,16 +14,17 @@ import {
   Modal,
   ScopedNotification,
   Spinner,
+  Tooltip,
 } from '@jetstream/ui';
 import { fromJetstreamEvents, OrgLabelBadge } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, useOperationAccess } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { Fragment, FunctionComponent, useMemo, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useMemo, useState } from 'react';
 import DeployMetadataToOrgStatusModal from '../deploy-to-different-org/DeployMetadataToOrgStatusModal';
 import DeployMetadataOptions from '../utils/DeployMetadataOptions';
 import { getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
 import { retrieveMetadataChunked } from '../view-or-compare-metadata/useViewOrCompareMetadata';
-import { OrgAlignmentComponentItem, OrgAlignmentDeployDirection } from './orgAlignmentTypes';
+import { OrgAlignmentComponentItem, OrgAlignmentDependencyFinding, OrgAlignmentDeployDirection } from './orgAlignmentTypes';
 import { componentsToListMetadataMap, getOverwrittenTargetComponentsMap } from './orgAlignmentUtils';
 import { useDependencies } from './useDependencies';
 
@@ -59,6 +60,8 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
 
   const [step, setStep] = useState<'DEPENDENCIES' | 'BACKUP_AND_OPTIONS' | 'DEPLOY'>('DEPENDENCIES');
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set(initialSelectedComponents.map(({ key }) => key)));
+  // Everything offered for review. Unchecked components stay listed so they can be checked again.
+  const [reviewKeys, setReviewKeys] = useState<string[]>(() => initialSelectedComponents.map(({ key }) => key));
 
   const [backupLoading, setBackupLoading] = useState(false);
   const [backupCompleted, setBackupCompleted] = useState(false);
@@ -83,7 +86,22 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState(false);
   const [deployResultsData, setDeployResultsData] = useState<Record<string, unknown[]>>();
 
-  const allComponentsByKey = useMemo(() => new Map(allComponents.map((item) => [item.key, item])), [allComponents]);
+  // Dependencies that were not part of the comparison, found by the dependency check so they can be added to the deployment
+  const [discoveredComponents, setDiscoveredComponents] = useState<OrgAlignmentComponentItem[]>([]);
+  const componentsAndDependencies = useMemo(() => {
+    const comparedKeys = new Set(allComponents.map(({ key }) => key));
+    return [...allComponents, ...discoveredComponents.filter(({ key }) => !comparedKeys.has(key))];
+  }, [allComponents, discoveredComponents]);
+
+  const handleComponentsDiscovered = useCallback((components: OrgAlignmentComponentItem[]) => {
+    setDiscoveredComponents((previous) => {
+      const knownKeys = new Set(previous.map(({ key }) => key));
+      const newComponents = components.filter(({ key }) => !knownKeys.has(key));
+      return newComponents.length > 0 ? [...previous, ...newComponents] : previous;
+    });
+  }, []);
+
+  const allComponentsByKey = useMemo(() => new Map(componentsAndDependencies.map((item) => [item.key, item])), [componentsAndDependencies]);
 
   const selectedComponents = useMemo(
     () =>
@@ -108,19 +126,42 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
   const {
     loading: dependenciesLoading,
     findings: dependencyFindings,
-    missingCount,
-    differsCount,
-    externalCount,
     toolingApiError,
     recheck: recheckDependencies,
   } = useDependencies({
     deploySourceOrg,
+    deployTargetOrg,
+    onComponentsDiscovered: handleComponentsDiscovered,
     selectedComponents,
-    allSourceComponents: allComponents,
+    allSourceComponents: componentsAndDependencies,
     targetInventoryByType: destinationInventoryByType,
     direction,
     enabled: step === 'DEPENDENCIES',
   });
+
+  // A dependency is listed once, along with every selected component that requires it
+  const dependencyGroups = useMemo(() => {
+    const groupsByDependency = new Map<
+      string,
+      { finding: OrgAlignmentDependencyFinding; addableComponentKey?: string; requiredBy: string[] }
+    >();
+    // Findings are ordered by severity, so the first one of a dependency is the most severe
+    for (const finding of dependencyFindings) {
+      const dependencyKey = `${finding.referencedType}:${finding.referencedName}`;
+      const group = groupsByDependency.get(dependencyKey) ?? { finding, requiredBy: [] };
+      groupsByDependency.set(dependencyKey, group);
+      group.addableComponentKey = group.addableComponentKey ?? finding.addableComponentKey;
+      const requiredBy = `${finding.sourceComponentType}: ${finding.sourceComponentName}`;
+      if (!group.requiredBy.includes(requiredBy)) {
+        group.requiredBy.push(requiredBy);
+      }
+    }
+    return Array.from(groupsByDependency.values());
+  }, [dependencyFindings]);
+
+  const missingCount = dependencyGroups.filter(({ finding }) => finding.severity === 'missing').length;
+  const differsCount = dependencyGroups.filter(({ finding }) => finding.severity === 'differs').length;
+  const externalCount = dependencyGroups.filter(({ finding }) => finding.severity === 'external').length;
 
   const addableMissingKeys = useMemo(
     () =>
@@ -146,12 +187,17 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
     });
   }
 
+  function includeComponents(componentKeys: string[]) {
+    setSelectedKeys((previous) => new Set([...previous, ...componentKeys]));
+    setReviewKeys((previous) => Array.from(new Set([...previous, ...componentKeys])));
+  }
+
   function handleIncludeDependency(componentKey: string) {
-    setSelectedKeys((previous) => new Set([...previous, componentKey]));
+    includeComponents([componentKey]);
   }
 
   function handleIncludeAllMissing() {
-    setSelectedKeys((previous) => new Set([...previous, ...addableMissingKeys]));
+    includeComponents(addableMissingKeys);
   }
 
   async function handleDownloadTargetBackup() {
@@ -251,15 +297,18 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
   );
 
   if (step === 'DEPENDENCIES') {
-    const groupedSelection = selectedComponents.reduce<Record<string, OrgAlignmentComponentItem[]>>((acc, item) => {
-      acc[item.typeLabel] = acc[item.typeLabel] || [];
-      acc[item.typeLabel].push(item);
+    const groupedSelection = reviewKeys.reduce<Record<string, OrgAlignmentComponentItem[]>>((acc, key) => {
+      const item = allComponentsByKey.get(key);
+      if (item) {
+        acc[item.typeLabel] = acc[item.typeLabel] || [];
+        acc[item.typeLabel].push(item);
+      }
       return acc;
     }, {});
 
     return (
       <Modal
-        header="Pre-Deploy Review & Dependencies (Step 1 of 2)"
+        header="Review Components and Dependencies (Step 1 of 2)"
         tagline={directionTagline}
         size="lg"
         closeOnBackdropClick={false}
@@ -270,7 +319,7 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
               {formatNumber(overwrittenCount)} will overwrite existing metadata in {deployTargetOrg.label})
             </div>
             <Grid>
-              <button type="button" className="slds-button slds-button_neutral" onClick={onClose}>
+              <button type="button" className="slds-button slds-button_neutral slds-m-right_x-small" onClick={onClose}>
                 Cancel
               </button>
               <DisabledReasonButton
@@ -314,9 +363,18 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
                           label={
                             <span>
                               <span>{item.fullName}</span>
-                              <Badge type={willOverwrite ? 'warning' : 'light'} className="slds-m-left_x-small">
-                                {willOverwrite ? 'Overwrite' : 'New'}
-                              </Badge>
+                              <Tooltip
+                                id={`align-deploy-impact-${item.key}`}
+                                content={
+                                  willOverwrite
+                                    ? `Already exists in ${deployTargetOrg.label}. Deploying replaces it with the version from ${deploySourceOrg.label}. You can download a backup on the next step.`
+                                    : `Does not exist in ${deployTargetOrg.label} and will be created.`
+                                }
+                              >
+                                <Badge type={willOverwrite ? 'warning' : 'light'} className="slds-m-left_x-small">
+                                  {willOverwrite ? 'Overwrite' : 'New'}
+                                </Badge>
+                              </Tooltip>
                             </span>
                           }
                         />
@@ -354,15 +412,14 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
             </Grid>
 
             <ScopedNotification theme="light" className="slds-m-bottom_small">
-              <strong>Best-effort check:</strong> Uses Salesforce&apos;s Tooling <code>MetadataComponentDependency</code> API and the target
-              org&apos;s metadata list. Dynamic references, formulas, or types outside this comparison may not be detected, and false
-              positives are possible. Always validate before deploying.
+              Salesforce cannot identify every dependency, so this check may miss some and may flag others that are not required. Validate
+              the deployment first to be sure.
             </ScopedNotification>
 
             {toolingApiError && (
               <ScopedNotification theme="warning" className="slds-m-bottom_small">
-                Tooling dependency API returned a warning ({toolingApiError}). Structural checks against the target org list are still shown
-                below.
+                Salesforce could not be asked about dependencies ({toolingApiError}). The results below only cover parent objects and
+                folders.
               </ScopedNotification>
             )}
 
@@ -390,11 +447,11 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
                         {formatNumber(differsCount)} differs in target
                       </Badge>
                     )}
-                    {externalCount > 0 && <Badge type="light">{formatNumber(externalCount)} external / unverified</Badge>}
+                    {externalCount > 0 && <Badge type="light">{formatNumber(externalCount)} could not be checked</Badge>}
                   </div>
                   <ul className="slds-has-dividers_bottom-space">
-                    {dependencyFindings.map((finding) => (
-                      <li key={finding.key} className="slds-item slds-p-vertical_x-small">
+                    {dependencyGroups.map(({ finding, addableComponentKey, requiredBy }) => (
+                      <li key={`${finding.referencedType}:${finding.referencedName}`} className="slds-item slds-p-vertical_x-small">
                         <Grid align="spread" verticalAlign="start">
                           <div className="slds-grow slds-m-right_small">
                             <div>
@@ -406,21 +463,29 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
                                   ? 'Missing in Target'
                                   : finding.severity === 'differs'
                                     ? 'Differs in Target'
-                                    : 'Verify'}
+                                    : finding.referencedNamespace
+                                      ? 'Managed Package'
+                                      : 'Not Checked'}
                               </Badge>
                               <strong>
                                 {finding.referencedType}: {finding.referencedName}
                               </strong>
                             </div>
+                            <div className="slds-text-body_small slds-text-color_weak slds-m-top_xxx-small">{finding.message}</div>
                             <div className="slds-text-body_small slds-text-color_weak slds-m-top_xxx-small">
-                              Required by {finding.sourceComponentType}: {finding.sourceComponentName} — {finding.message}
+                              Required by:
+                              <ul className="slds-list_dotted">
+                                {requiredBy.map((requiredByLabel) => (
+                                  <li key={requiredByLabel}>{requiredByLabel}</li>
+                                ))}
+                              </ul>
                             </div>
                           </div>
-                          {finding.addableComponentKey && !selectedKeys.has(finding.addableComponentKey) && (
+                          {addableComponentKey && !selectedKeys.has(addableComponentKey) && (
                             <button
                               type="button"
                               className="slds-button slds-button_neutral"
-                              onClick={() => handleIncludeDependency(finding.addableComponentKey as string)}
+                              onClick={() => handleIncludeDependency(addableComponentKey)}
                             >
                               Add
                             </button>
@@ -451,7 +516,7 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
             Back to Dependencies
           </button>
           <Grid>
-            <button type="button" className="slds-button slds-button_neutral" onClick={onClose}>
+            <button type="button" className="slds-button slds-button_neutral slds-m-right_x-small" onClick={onClose}>
               Cancel
             </button>
             <DisabledReasonButton
@@ -477,8 +542,8 @@ export const OrgAlignmentDeployModal: FunctionComponent<OrgAlignmentDeployModalP
     >
       {isTargetProduction && (
         <ScopedNotification theme="warning" className="slds-m-bottom_small">
-          <strong>Production target org:</strong> {deployTargetOrg.label} is a Production org. Validate Only is enabled by default —
-          download a target backup and run validation before deploying.
+          <strong>Production target org:</strong> {deployTargetOrg.label} is a Production org. Validate Only is enabled by default. Download
+          a target backup and run validation before deploying.
         </ScopedNotification>
       )}
 

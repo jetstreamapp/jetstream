@@ -36,7 +36,7 @@ vi.mock('../../view-or-compare-metadata/useViewOrCompareMetadata', () => ({
   retrieveMetadataChunked: (...args: unknown[]) => retrieveMetadataChunkedMock(...args),
 }));
 
-import { useOrgAlignmentCompare } from '../useOrgAlignmentCompare';
+import { MAX_TYPES_COMPARED_IN_PARALLEL, useOrgAlignmentCompare } from '../useOrgAlignmentCompare';
 
 const orgA = { uniqueId: 'org-a', label: 'Dev', username: 'dev@example.com' } as SalesforceOrgUi;
 const orgB = { uniqueId: 'org-b', label: 'Prod', username: 'prod@example.com' } as SalesforceOrgUi;
@@ -144,6 +144,89 @@ describe('useOrgAlignmentCompare', () => {
       same: 0,
     });
     expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('compares profiles last and retrieves them together with the components they refer to', async () => {
+    describeMetadataMock.mockResolvedValue({
+      data: {
+        metadataObjects: [
+          { xmlName: 'ApexClass', inFolder: false, childXmlNames: [] },
+          { xmlName: 'Profile', inFolder: false, childXmlNames: [] },
+        ],
+      },
+    });
+    fetchListMetadataForTypeMock.mockImplementation(async (org: SalesforceOrgUi, { type }: { type: string }) => ({
+      items:
+        type === 'Profile'
+          ? [makeListItem('Profile', 'Admin')]
+          : [makeListItem('ApexClass', 'SharedCls'), makeListItem('ApexClass', org.uniqueId === 'org-a' ? 'OnlyInA' : 'OnlyInB')],
+    }));
+    retrieveMetadataChunkedMock.mockResolvedValue({ zip: new JSZip(), fileProperties: [] });
+
+    const { result } = renderHook(() => useOrgAlignmentCompare());
+    await act(async () => {
+      await result.current.runComparison({
+        sourceOrg: orgA,
+        targetOrg: orgB,
+        selectionMode: 'custom',
+        selectedMetadataTypes: ['Profile', 'ApexClass'],
+        includeManaged: false,
+        normalizePermissionXml: true,
+      });
+    });
+
+    const retrievedTypes = retrieveMetadataChunkedMock.mock.calls.map(([, metadata]) => Object.keys(metadata)[0]);
+    expect(retrievedTypes).toEqual(['ApexClass', 'ApexClass', 'Profile', 'Profile']);
+
+    const [sourceOrg, , sourceOptions] = retrieveMetadataChunkedMock.mock.calls[2];
+    const [, , targetOptions] = retrieveMetadataChunkedMock.mock.calls[3];
+    expect(sourceOrg.uniqueId).toBe('org-a');
+    const getCompanionNames = (options: { includeWithEveryChunk: Record<string, ListMetadataResult[]> }) =>
+      options.includeWithEveryChunk.ApexClass.map(({ fullName }) => fullName);
+    // Each org is asked for its own classes, including the ones the other org does not have
+    expect(getCompanionNames(sourceOptions)).toEqual(['SharedCls', 'OnlyInA']);
+    expect(getCompanionNames(targetOptions)).toEqual(['SharedCls', 'OnlyInB']);
+    expect(sourceOptions.includeFile({ type: 'ApexClass' })).toBe(false);
+    expect(sourceOptions.includeFile({ type: 'Profile' })).toBe(true);
+  });
+
+  it('compares a few types at a time and leaves profiles until every other type is done', async () => {
+    const otherTypes = ['ApexClass', 'ApexPage', 'ApexTrigger', 'Flow', 'Layout'];
+    describeMetadataMock.mockResolvedValue({
+      data: { metadataObjects: ['Profile', ...otherTypes].map((xmlName) => ({ xmlName, inFolder: false, childXmlNames: [] })) },
+    });
+    const typesInProgress = new Set<string>();
+    const finishedTypes = new Set<string>();
+    let mostTypesInProgress = 0;
+    let otherTypesFinishedBeforeProfile = 0;
+    fetchListMetadataForTypeMock.mockImplementation(async (_org: SalesforceOrgUi, { type }: { type: string }) => {
+      if (type === 'Profile') {
+        otherTypesFinishedBeforeProfile = finishedTypes.size;
+      }
+      typesInProgress.add(type);
+      mostTypesInProgress = Math.max(mostTypesInProgress, typesInProgress.size);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      typesInProgress.delete(type);
+      finishedTypes.add(type);
+      return { items: [] };
+    });
+
+    const { result } = renderHook(() => useOrgAlignmentCompare());
+    await act(async () => {
+      await result.current.runComparison({
+        sourceOrg: orgA,
+        targetOrg: orgB,
+        selectionMode: 'custom',
+        selectedMetadataTypes: ['Profile', ...otherTypes],
+        includeManaged: false,
+        normalizePermissionXml: true,
+      });
+    });
+
+    expect(mostTypesInProgress).toBe(MAX_TYPES_COMPARED_IN_PARALLEL);
+    expect(otherTypesFinishedBeforeProfile).toBe(otherTypes.length);
+    expect(result.current.typeResults.every(({ executionStatus }) => executionStatus === 'complete')).toBe(true);
+    expect(result.current.progress.completedTypes).toBe(otherTypes.length + 1);
   });
 
   it('captures per-type errors and supports retrying only failed types', async () => {

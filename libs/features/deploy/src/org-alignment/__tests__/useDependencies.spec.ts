@@ -5,8 +5,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const queryAllWithCacheUsingOffsetMock = vi.fn();
 
+const fetchListMetadataForTypeMock = vi.fn();
+
 vi.mock('@jetstream/shared/data', () => ({
   queryAllWithCacheUsingOffset: (...args: unknown[]) => queryAllWithCacheUsingOffsetMock(...args),
+}));
+
+vi.mock('@jetstream/connected-ui', () => ({
+  fetchListMetadataForType: (...args: unknown[]) => fetchListMetadataForTypeMock(...args),
+  getMetadataLabelFromFullName: (metadataType: string) => metadataType,
 }));
 
 import { OrgAlignmentComponentItem } from '../orgAlignmentTypes';
@@ -182,6 +189,7 @@ describe('useDependencies hook', () => {
 
   beforeEach(() => {
     queryAllWithCacheUsingOffsetMock.mockReset();
+    fetchListMetadataForTypeMock.mockReset();
   });
 
   it('merges structural and Tooling API findings and gracefully preserves structural findings on Tooling failure', async () => {
@@ -249,6 +257,116 @@ describe('useDependencies hook', () => {
       referencedName: 'HelperClass',
       severity: 'missing',
       addableComponentKey: 'ApexClass:HelperClass',
+    });
+  });
+
+  it('looks up referenced types that were not compared and offers the ones missing from the target org', async () => {
+    queryAllWithCacheUsingOffsetMock.mockResolvedValue({
+      queryResults: {
+        records: [
+          {
+            MetadataComponentId: '01p000000000001AAA',
+            MetadataComponentName: 'MainService',
+            MetadataComponentType: 'ApexClass',
+            RefMetadataComponentId: '00N000000000001',
+            RefMetadataComponentName: 'Status',
+            RefMetadataComponentType: 'CustomField',
+          },
+          {
+            MetadataComponentId: '01p000000000001AAA',
+            MetadataComponentName: 'MainService',
+            MetadataComponentType: 'ApexClass',
+            RefMetadataComponentId: '00N000000000002',
+            RefMetadataComponentName: 'Priority',
+            RefMetadataComponentType: 'CustomField',
+          },
+        ],
+      },
+    });
+    const targetOrg = { uniqueId: 'org-b', label: 'Production' } as SalesforceOrgUi;
+    fetchListMetadataForTypeMock.mockImplementation(async (org: SalesforceOrgUi) => ({
+      error: null,
+      items:
+        org.uniqueId === 'org-a'
+          ? [
+              makeListItem('CustomField', 'Project__c.Status__c', '00N000000000001AAA'),
+              makeListItem('CustomField', 'Project__c.Priority__c', '00N000000000002AAA'),
+            ]
+          : [makeListItem('CustomField', 'Project__c.Priority__c', '00N000000000009AAA')],
+    }));
+    const onComponentsDiscovered = vi.fn();
+    const mainClass = makeComponent('ApexClass', 'MainService', 'onlyInSource', '01p000000000001AAA');
+
+    const { result } = renderHook(() =>
+      useDependencies({
+        deploySourceOrg: mockOrg,
+        deployTargetOrg: targetOrg,
+        onComponentsDiscovered,
+        selectedComponents: [mainClass],
+        allSourceComponents: [mainClass],
+        targetInventoryByType: { ApexClass: [] },
+        direction: 'A_TO_B',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.findings).toHaveLength(1);
+    });
+
+    // The field that exists in the target org is verified and not reported, the missing one can be added
+    expect(result.current.findings[0]).toMatchObject({
+      referencedType: 'CustomField',
+      referencedName: 'Project__c.Status__c',
+      severity: 'missing',
+      addableComponentKey: 'CustomField:Project__c.Status__c',
+    });
+    expect(result.current.externalCount).toBe(0);
+    expect(onComponentsDiscovered).toHaveBeenCalledWith([
+      expect.objectContaining({ key: 'CustomField:Project__c.Status__c', status: 'onlyInSource' }),
+    ]);
+  });
+
+  it('looks up the parent object of a selected field when custom objects were not compared', async () => {
+    queryAllWithCacheUsingOffsetMock.mockResolvedValue({ queryResults: { records: [] } });
+    const targetOrg = { uniqueId: 'org-b', label: 'Production' } as SalesforceOrgUi;
+    fetchListMetadataForTypeMock.mockImplementation(async (org: SalesforceOrgUi) => ({
+      error: null,
+      items:
+        org.uniqueId === 'org-a'
+          ? [
+              makeListItem('CustomObject', 'Project__c', '01I000000000001AAA'),
+              makeListItem('CustomObject', 'Task__c', '01I000000000002AAA'),
+            ]
+          : [makeListItem('CustomObject', 'Task__c', '01I000000000009AAA')],
+    }));
+    const missingParentField = makeComponent('CustomField', 'Project__c.Status__c', 'onlyInSource', '00N000000000001AAA');
+    const existingParentField = makeComponent('CustomField', 'Task__c.Status__c', 'onlyInSource', '00N000000000002AAA');
+
+    const { result, rerender } = renderHook(
+      ({ allSourceComponents }: { allSourceComponents: OrgAlignmentComponentItem[] }) =>
+        useDependencies({
+          deploySourceOrg: mockOrg,
+          deployTargetOrg: targetOrg,
+          onComponentsDiscovered: (components) => rerender({ allSourceComponents: [...allSourceComponents, ...components] }),
+          selectedComponents: [missingParentField, existingParentField],
+          allSourceComponents,
+          targetInventoryByType: {},
+          direction: 'A_TO_B',
+        }),
+      { initialProps: { allSourceComponents: [missingParentField, existingParentField] } },
+    );
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.findings[0]?.severity).toBe('missing');
+    });
+
+    expect(result.current.findings).toHaveLength(1);
+    expect(result.current.findings[0]).toMatchObject({
+      referencedType: 'CustomObject',
+      referencedName: 'Project__c',
+      addableComponentKey: 'CustomObject:Project__c',
     });
   });
 });

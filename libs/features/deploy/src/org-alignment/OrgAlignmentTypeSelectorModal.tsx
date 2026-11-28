@@ -85,6 +85,18 @@ export const OrgAlignmentTypeSelectorModal: FunctionComponent<OrgAlignmentTypeSe
     });
   }
 
+  const filteredSelectedCount = useMemo(() => filteredTypes.filter((type) => selectedSet.has(type)).length, [filteredTypes, selectedSet]);
+  const allFilteredSelected = filteredTypes.length > 0 && filteredSelectedCount === filteredTypes.length;
+
+  /** Applies to the types matching the filter only, anything selected outside of the filter is left alone */
+  function toggleAllFiltered(checked: boolean) {
+    setSelectedSet((previous) => {
+      const next = new Set(previous);
+      filteredTypes.forEach((type) => (checked ? next.add(type) : next.delete(type)));
+      return next;
+    });
+  }
+
   function handleSelectCommon() {
     const availableSet = new Set(availableTypes);
     setSelectedSet(
@@ -103,7 +115,7 @@ export const OrgAlignmentTypeSelectorModal: FunctionComponent<OrgAlignmentTypeSe
   return (
     <Modal
       header="Select Metadata Types to Compare"
-      tagline="Choose which metadata types to include in your drift report. Uncomparable types are marked and skipped automatically."
+      tagline="Choose the metadata types to compare. Types marked Not Compared are specific to each org and are skipped automatically."
       size="md"
       footer={
         <Grid align="spread" verticalAlign="center">
@@ -148,7 +160,7 @@ export const OrgAlignmentTypeSelectorModal: FunctionComponent<OrgAlignmentTypeSe
               Common
             </button>
             <button type="button" className="slds-button slds-button_neutral" onClick={handleSelectAllComparable} disabled={loading}>
-              All Comparable
+              All
             </button>
             <button type="button" className="slds-button slds-button_neutral" onClick={handleClear} disabled={loading}>
               Clear
@@ -165,6 +177,22 @@ export const OrgAlignmentTypeSelectorModal: FunctionComponent<OrgAlignmentTypeSe
         >
           {filteredTypes.length === 0 && !loading && (
             <div className="slds-p-around_medium slds-text-align_center slds-text-color_weak">No metadata types match your filter.</div>
+          )}
+          {filteredTypes.length > 0 && (
+            <div className="slds-p-vertical_xx-small slds-border_bottom">
+              <Checkbox
+                id="org-alignment-type-select-all"
+                label={
+                  searchTerm.trim()
+                    ? `Select all ${formatNumber(filteredTypes.length)} matching types`
+                    : `Select all ${formatNumber(filteredTypes.length)} types`
+                }
+                checked={allFilteredSelected}
+                indeterminate={filteredSelectedCount > 0 && !allFilteredSelected}
+                disabled={loading}
+                onChange={toggleAllFiltered}
+              />
+            </div>
           )}
           <ul className="slds-has-dividers_bottom">
             {filteredTypes.map((type) => {
@@ -186,7 +214,7 @@ export const OrgAlignmentTypeSelectorModal: FunctionComponent<OrgAlignmentTypeSe
                     />
                     {!comparability.comparable && (
                       <Tooltip id={`uncomparable-type-tip-${type}`} content={comparability.reason || 'Cannot be compared reliably'}>
-                        <Badge type="light">Uncomparable</Badge>
+                        <Badge type="light">Not Compared</Badge>
                       </Tooltip>
                     )}
                   </Grid>

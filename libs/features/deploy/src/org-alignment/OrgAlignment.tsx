@@ -1,10 +1,19 @@
 import { css } from '@emotion/react';
 import { COMMON_METADATA_TYPES } from '@jetstream/connected-ui';
-import { MIME_TYPES, TITLES } from '@jetstream/shared/constants';
+import { TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { formatNumber, getFilenameWithoutOrg, isBrowserExtension, isCanvasApp, saveFile, useTitle } from '@jetstream/shared/ui-utils';
+import {
+  formatNumber,
+  generateCsv,
+  isBrowserExtension,
+  isCanvasApp,
+  transformTabularDataToExcelStr,
+  useTitle,
+} from '@jetstream/shared/ui-utils';
+import { orderObjectsBy } from '@jetstream/shared/utils';
 import {
   FileExtAllTypes,
+  ListItem,
   ListMetadataResult,
   OrgAlignmentRunSummaryCounts,
   OrgAlignmentSavedComparison,
@@ -13,7 +22,6 @@ import {
   UiTabSection,
 } from '@jetstream/types';
 import {
-  Badge,
   ButtonGroupContainer,
   Checkbox,
   DisabledReasonButton,
@@ -31,7 +39,6 @@ import {
   RadioButton,
   RadioGroup,
   ScopedNotification,
-  SearchInput,
   Spinner,
   Tabs,
   TabsRef,
@@ -44,7 +51,6 @@ import {
   fromJetstreamEvents,
   GroupScopedOrgsCombobox,
   OrgLabelBadge,
-  ProBadge,
   RequireMetadataApiBanner,
 } from '@jetstream/ui-core';
 import {
@@ -57,13 +63,17 @@ import {
   useOperationAccess,
 } from '@jetstream/ui/app-state';
 import { hasDexieDb, orgAlignmentDb } from '@jetstream/ui/db';
+import classNames from 'classnames';
 import copyToClipboard from 'copy-to-clipboard';
 import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router';
+import DownloadPackageWithFileSelector from '../utils/DownloadPackageWithFileSelector';
+import { ALL_TYPES_FILTER, OrgAlignmentComponentsTable, STATUS_LABELS } from './OrgAlignmentComponentsTable';
 import OrgAlignmentDeployModal from './OrgAlignmentDeployModal';
 import OrgAlignmentDiffModal from './OrgAlignmentDiffModal';
 import OrgAlignmentSavedComparisonsModal, { FREE_ORG_ALIGNMENT_SAVED_LIMIT } from './OrgAlignmentSavedComparisonsModal';
+import { OrgAlignmentSummaryTable } from './OrgAlignmentSummaryTable';
 import OrgAlignmentTypeSelectorModal from './OrgAlignmentTypeSelectorModal';
 import {
   OrgAlignmentComponentItem,
@@ -73,10 +83,11 @@ import {
 } from './orgAlignmentTypes';
 import {
   aggregateSummaryCounts,
+  buildChangeReviewHtml,
   buildChangeReviewMarkdown,
   buildDriftReportFlatRows,
   buildDriftReportWorkbookData,
-  getStatusLabel,
+  componentsToListMetadataMap,
   isComponentDeployableInDirection,
 } from './orgAlignmentUtils';
 import { useOrgAlignmentCompare } from './useOrgAlignmentCompare';
@@ -87,8 +98,27 @@ const FREE_REPORT_LIMIT = 1;
 const EXPORT_ACTION_XLSX = 'export-xlsx';
 const EXPORT_ACTION_CSV = 'export-csv';
 const EXPORT_ACTION_JSON = 'export-json';
-const EXPORT_ACTION_MD_DOWNLOAD = 'export-md-download';
-const EXPORT_ACTION_MD_COPY = 'export-md-copy';
+const EXPORT_ACTION_COPY_MARKDOWN = 'export-copy-markdown';
+const EXPORT_ACTION_COPY_HTML = 'export-copy-html';
+const EXPORT_ACTION_COPY_EXCEL = 'export-copy-excel';
+const EXPORT_ACTION_COPY_CSV = 'export-copy-csv';
+
+/** Copies rich text along with a plain text version for places that cannot accept formatted content */
+function copyRichTextToClipboard(html: string, plainText: string) {
+  copyToClipboard(html, {
+    format: 'text/html',
+    onCopy: (clipboardData) => {
+      if ('setData' in clipboardData) {
+        clipboardData.setData('text/plain', plainText);
+        return;
+      }
+      return new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([plainText], { type: 'text/plain' }),
+      });
+    },
+  });
+}
 
 function getFreeReportsUsedCount(): number {
   try {
@@ -141,6 +171,8 @@ export const OrgAlignment: FunctionComponent = () => {
   const [typeSelectorModalOpen, setTypeSelectorModalOpen] = useState(false);
   const [savedModalMode, setSavedModalMode] = useState<'BROWSE' | 'SAVE' | null>(null);
   const [activeDiffComponent, setActiveDiffComponent] = useState<OrgAlignmentComponentItem | null>(null);
+  // Set while several selected components are being viewed together
+  const [diffComponents, setDiffComponents] = useState<OrgAlignmentComponentItem[] | null>(null);
   const [deployModalOpen, setDeployModalOpen] = useState(false);
   const [deployModalComponents, setDeployModalComponents] = useState<OrgAlignmentComponentItem[]>([]);
   const [deployModalDirection, setDeployModalDirection] = useState<OrgAlignmentDeployDirection>('A_TO_B');
@@ -148,10 +180,13 @@ export const OrgAlignment: FunctionComponent = () => {
   const [deployDirection, setDeployDirection] = useState<OrgAlignmentDeployDirection>('A_TO_B');
   const [selectedComponentKeys, setSelectedComponentKeys] = useState<Set<string>>(() => new Set());
   const [statusFilter, setStatusFilter] = useState<'ALL' | OrgAlignmentDiffStatus>('ALL');
-  const [typeFilter, setTypeFilter] = useState<string>('ALL');
+  const [typeFilter, setTypeFilter] = useState<string>(ALL_TYPES_FILTER);
   const [componentSearch, setComponentSearch] = useState('');
-  const [typeSummarySearch, setTypeSummarySearch] = useState('');
-  const [hideIdenticalTypes, setHideIdenticalTypes] = useState(false);
+  // The setup section is collapsed once a comparison starts so the results get the room
+  const [setupCollapsed, setSetupCollapsed] = useState(false);
+  // Which org the selected components are being downloaded from, A_TO_B is the source org
+  const [downloadPackageFrom, setDownloadPackageFrom] = useState<OrgAlignmentDeployDirection | null>(null);
+  const [resultsFullScreen, setResultsFullScreen] = useState(false);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [exportModalConfig, setExportModalConfig] = useState<{
@@ -277,7 +312,9 @@ export const OrgAlignment: FunctionComponent = () => {
 
       setSelectedComponentKeys(new Set());
       setStatusFilter('ALL');
-      setTypeFilter('ALL');
+      setTypeFilter(ALL_TYPES_FILTER);
+      setComponentSearch('');
+      setSetupCollapsed(true);
 
       runComparison({
         sourceOrg: activeSource,
@@ -333,20 +370,6 @@ export const OrgAlignment: FunctionComponent = () => {
     if (typeResults.length > 0) {
       recomputeNormalization(enabled);
     }
-  }
-
-  function handleDirectionChange(nextDirection: OrgAlignmentDeployDirection) {
-    setDeployDirection(nextDirection);
-    // Keep only selected components that are valid in the newly chosen direction
-    setSelectedComponentKeys((previous) => {
-      const next = new Set<string>();
-      for (const component of allComponents) {
-        if (previous.has(component.key) && isComponentDeployableInDirection(component, nextDirection)) {
-          next.add(component.key);
-        }
-      }
-      return next;
-    });
   }
 
   async function handleSaveComparison(payload: { key?: string; name: string; description?: string }) {
@@ -458,97 +481,111 @@ export const OrgAlignment: FunctionComponent = () => {
         allowedTypes: ['json'],
         fileNameParts: baseParts,
       });
-    } else if (actionId === EXPORT_ACTION_MD_DOWNLOAD) {
-      const markdown = buildChangeReviewMarkdown(context);
-      saveFile(markdown, `${getFilenameWithoutOrg(baseParts)}.md`, MIME_TYPES.PLAN_TEXT);
-      setToastMessage('Downloaded Markdown change-review summary');
-    } else if (actionId === EXPORT_ACTION_MD_COPY) {
-      const markdown = buildChangeReviewMarkdown(context);
-      copyToClipboard(markdown);
-      setToastMessage('Copied Markdown change-review summary to clipboard');
+    } else if (actionId === EXPORT_ACTION_COPY_MARKDOWN) {
+      copyToClipboard(buildChangeReviewMarkdown(context));
+    } else if (actionId === EXPORT_ACTION_COPY_HTML) {
+      copyRichTextToClipboard(buildChangeReviewHtml(context), buildChangeReviewMarkdown(context));
+    } else if (actionId === EXPORT_ACTION_COPY_EXCEL) {
+      copyToClipboard(transformTabularDataToExcelStr(buildDriftReportFlatRows(context, false)), { format: 'text/plain' });
+    } else if (actionId === EXPORT_ACTION_COPY_CSV) {
+      copyToClipboard(generateCsv(buildDriftReportFlatRows(context, false)), { format: 'text/plain' });
     }
   }
 
-  function handleInspectType(metadataType: string) {
+  const handleViewComponentsOfType = useCallback((metadataType: string) => {
     setTypeFilter(metadataType);
     setStatusFilter('ALL');
+    setComponentSearch('');
+    tabsRef.current?.changeTab('components');
+  }, []);
+
+  /** The summary cards double as the status filter, choosing the active one again clears it */
+  function handleStatusCardClick(status: OrgAlignmentDiffStatus) {
+    setStatusFilter((previous) => (previous === status ? 'ALL' : status));
+    setTypeFilter(ALL_TYPES_FILTER);
     tabsRef.current?.changeTab('components');
   }
 
-  function handleKpiClick(filter: 'ALL' | OrgAlignmentDiffStatus) {
-    setStatusFilter(filter);
-    tabsRef.current?.changeTab('components');
+  function handleClearFilters() {
+    setStatusFilter('ALL');
+    setTypeFilter(ALL_TYPES_FILTER);
+    setComponentSearch('');
   }
 
-  const filteredTypeResults = useMemo(() => {
-    const query = typeSummarySearch.trim().toLowerCase();
-    return typeResults.filter((entry) => {
-      if (
-        hideIdenticalTypes &&
-        entry.executionStatus === 'complete' &&
-        entry.counts.different === 0 &&
-        entry.counts.onlyInSource === 0 &&
-        entry.counts.onlyInTarget === 0
-      ) {
-        return false;
-      }
-      if (!query) {
-        return true;
-      }
-      return entry.type.toLowerCase().includes(query) || entry.typeLabel.toLowerCase().includes(query);
-    });
-  }, [hideIdenticalTypes, typeResults, typeSummarySearch]);
-
-  const filteredComponents = useMemo(() => {
-    const query = componentSearch.trim().toLowerCase();
-    return allComponents.filter((component) => {
-      if (statusFilter !== 'ALL' && component.status !== statusFilter) {
-        return false;
-      }
-      if (typeFilter !== 'ALL' && component.type !== typeFilter) {
-        return false;
-      }
-      if (query) {
-        return (
-          component.fullName.toLowerCase().includes(query) ||
-          component.type.toLowerCase().includes(query) ||
-          component.typeLabel.toLowerCase().includes(query)
-        );
-      }
-      return true;
-    });
-  }, [allComponents, componentSearch, statusFilter, typeFilter]);
-
-  const visibleDeployableComponents = useMemo(
-    () => filteredComponents.filter((component) => isComponentDeployableInDirection(component, deployDirection)),
-    [deployDirection, filteredComponents],
+  const componentsMatchingStatus = useMemo(
+    () => (statusFilter === 'ALL' ? allComponents : allComponents.filter(({ status }) => status === statusFilter)),
+    [allComponents, statusFilter],
   );
 
-  const selectedDeployableComponents = useMemo(
+  const filteredComponents = useMemo(
+    () => (typeFilter === ALL_TYPES_FILTER ? componentsMatchingStatus : componentsMatchingStatus.filter(({ type }) => type === typeFilter)),
+    [componentsMatchingStatus, typeFilter],
+  );
+
+  // Counts follow the status filter so the list never offers a type that would show nothing unexpectedly
+  const typeFilterItems = useMemo<ListItem[]>(() => {
+    const countByType = new Map<string, number>();
+    for (const { type } of componentsMatchingStatus) {
+      countByType.set(type, (countByType.get(type) ?? 0) + 1);
+    }
+    return [
+      { id: ALL_TYPES_FILTER, value: ALL_TYPES_FILTER, label: `All Types (${formatNumber(componentsMatchingStatus.length)})` },
+      ...typeResults
+        .filter(({ components }) => components.length > 0)
+        .map(({ type, typeLabel }) => ({ id: type, value: type, label: `${typeLabel} (${formatNumber(countByType.get(type) ?? 0)})` })),
+    ];
+  }, [componentsMatchingStatus, typeResults]);
+
+  const selectedComponents = useMemo(
     () => allComponents.filter((component) => selectedComponentKeys.has(component.key)),
     [allComponents, selectedComponentKeys],
   );
 
-  function toggleComponentSelection(key: string, checked: boolean) {
-    setSelectedComponentKeys((previous) => {
-      const next = new Set(previous);
-      if (checked) {
-        next.add(key);
-      } else {
-        next.delete(key);
-      }
-      return next;
-    });
+  const selectedDeployableComponents = useMemo(
+    () => selectedComponents.filter((component) => isComponentDeployableInDirection(component, deployDirection)),
+    [deployDirection, selectedComponents],
+  );
+
+  // Everything selected that exists in each org, whether or not it is different
+  const selectedMetadataToDownload = useMemo(() => {
+    const getDownload = (direction: OrgAlignmentDeployDirection) => {
+      const listMetadataItems = componentsToListMetadataMap(selectedComponents, direction);
+      return { listMetadataItems, count: Object.values(listMetadataItems).reduce((total, items) => total + items.length, 0) };
+    };
+    return { A_TO_B: getDownload('A_TO_B'), B_TO_A: getDownload('B_TO_A') };
+  }, [selectedComponents]);
+
+  const selectedViewableComponents = useMemo(
+    () => selectedComponents.filter(({ status }) => status !== 'uncomparable'),
+    [selectedComponents],
+  );
+
+  const handleViewComponent = useCallback((component: OrgAlignmentComponentItem) => {
+    setDiffComponents(null);
+    setActiveDiffComponent(component);
+  }, []);
+
+  function handleViewSelected() {
+    if (selectedViewableComponents.length === 0) {
+      return;
+    }
+    // Same order as the tree in the modal, which groups the components by type
+    const componentsToView = orderObjectsBy(selectedViewableComponents, ['typeLabel', 'fullName']);
+    setDiffComponents(componentsToView.length > 1 ? componentsToView : null);
+    setActiveDiffComponent(componentsToView[0]);
   }
 
-  function handleSelectAllVisible() {
-    setSelectedComponentKeys((previous) => {
-      const next = new Set(previous);
-      for (const component of visibleDeployableComponents) {
-        next.add(component.key);
-      }
-      return next;
-    });
+  function handleSelectDiffComponent(componentKey: string) {
+    // Looked up again so that a component whose content was already retrieved is not retrieved a second time
+    const component = allComponents.find(({ key }) => key === componentKey);
+    if (component) {
+      setActiveDiffComponent(component);
+    }
+  }
+
+  function handleCloseDiff() {
+    setDiffComponents(null);
+    setActiveDiffComponent(null);
   }
 
   function handleOpenDeploySelected() {
@@ -561,7 +598,7 @@ export const OrgAlignment: FunctionComponent = () => {
   }
 
   function handleDeploySingleFromDiff(component: OrgAlignmentComponentItem, direction: OrgAlignmentDeployDirection) {
-    setActiveDiffComponent(null);
+    handleCloseDiff();
     setDeployModalComponents([component]);
     setDeployModalDirection(direction);
     setDeployModalOpen(true);
@@ -593,386 +630,158 @@ export const OrgAlignment: FunctionComponent = () => {
     progress.totalTypes > 0 ? Math.round((progress.completedTypes / progress.totalTypes) * 100) : progress.running ? 10 : 0;
 
   const hasResults = typeResults.length > 0;
-  const sourceLabel = sourceOrg?.label || 'Org A';
-  const targetLabel = targetOrg?.label || 'Org B';
+  const showSetup = !setupCollapsed || (!hasResults && !progress.running);
+  const downloadPackageOrg = downloadPackageFrom === 'A_TO_B' ? sourceOrg : targetOrg;
+  const downloadPackage = selectedMetadataToDownload[downloadPackageFrom ?? 'A_TO_B'];
+  const deployTargetOrg = deployDirection === 'A_TO_B' ? targetOrg : sourceOrg;
+  const layoutKey = [showSetup, progress.running, progress.phase, hasOrgAlignmentProAccess, Boolean(fatalError), resultsFullScreen].join(
+    '-',
+  );
+
+  let filterDescription: string | null = null;
+  if (statusFilter !== 'ALL' || typeFilter !== ALL_TYPES_FILTER) {
+    const activeFilters = [
+      statusFilter !== 'ALL' ? STATUS_LABELS[statusFilter] : null,
+      typeFilter !== ALL_TYPES_FILTER ? (typeResults.find(({ type }) => type === typeFilter)?.typeLabel ?? typeFilter) : null,
+    ].filter(Boolean);
+    filterDescription = `${formatNumber(filteredComponents.length)} of ${formatNumber(allComponents.length)} components shown, filtered to ${activeFilters.join(' and ')}`;
+  }
+
+  let deployDisabledReason = deployAccess.deniedReason;
+  if (deployAccess.allowed) {
+    deployDisabledReason =
+      selectedComponents.length === 0
+        ? 'Select the components to deploy'
+        : `None of the selected components are different or missing in ${deployTargetOrg?.label ?? 'the target org'}`;
+  }
+
+  const statusCards: { status: OrgAlignmentDiffStatus; count: number; countClassName?: string; footnote?: string }[] = [
+    { status: 'different', count: summaryCounts.different, countClassName: 'slds-text-color_error' },
+    { status: 'onlyInSource', count: summaryCounts.onlyInSource },
+    { status: 'onlyInTarget', count: summaryCounts.onlyInTarget },
+    { status: 'same', count: summaryCounts.same, countClassName: 'slds-text-color_success' },
+    {
+      status: 'uncomparable',
+      count: summaryCounts.uncomparable,
+      countClassName: 'slds-text-color_weak',
+      footnote:
+        summaryCounts.managedSkipped + uncomparableTypesCount > 0
+          ? [
+              summaryCounts.managedSkipped > 0 ? `${formatNumber(summaryCounts.managedSkipped)} managed skipped` : null,
+              uncomparableTypesCount > 0
+                ? `${formatNumber(uncomparableTypesCount)} ${uncomparableTypesCount === 1 ? 'type' : 'types'} skipped`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(', ')
+          : undefined,
+    },
+  ];
 
   const tabs: UiTabSection[] = [
     {
       id: 'summary',
-      title: `Summary by Type (${formatNumber(typeResults.length)})`,
-      titleText: 'Summary by Type',
+      title: `By Type (${formatNumber(typeResults.length)})`,
+      titleText: 'By Type',
       content: (
-        <div>
-          <Grid align="spread" verticalAlign="center" wrap className="slds-m-bottom_small">
-            <Grid verticalAlign="center" wrap>
-              <div className="slds-m-right_small">
-                <SearchInput
-                  id="org-alignment-type-summary-search"
-                  placeholder="Filter metadata types..."
-                  value={typeSummarySearch}
-                  onChange={(value) => setTypeSummarySearch(value || '')}
-                />
-              </div>
-              <Checkbox
-                id="org-alignment-hide-identical-types"
-                label="Hide Identical / Empty Types"
-                checked={hideIdenticalTypes}
-                onChange={setHideIdenticalTypes}
-              />
-            </Grid>
-            {failedTypeNames.length > 0 && !progress.running && (
-              <button type="button" className="slds-button slds-button_neutral" onClick={() => retryTypes(failedTypeNames)}>
-                <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-                Retry {formatNumber(failedTypeNames.length)} Incomplete {failedTypeNames.length === 1 ? 'Type' : 'Types'}
-              </button>
-            )}
-          </Grid>
-
-          <div className="slds-scrollable_x">
-            <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
-              <thead>
-                <tr className="slds-line-height_reset">
-                  <th scope="col">Metadata Type</th>
-                  <th scope="col">Status</th>
-                  <th scope="col" className="slds-text-align_right">
-                    Different
-                  </th>
-                  <th scope="col" className="slds-text-align_right">
-                    Only in {sourceLabel}
-                  </th>
-                  <th scope="col" className="slds-text-align_right">
-                    Only in {targetLabel}
-                  </th>
-                  <th scope="col" className="slds-text-align_right">
-                    Same
-                  </th>
-                  <th scope="col" className="slds-text-align_right">
-                    Skipped / Uncomp.
-                  </th>
-                  <th scope="col" className="slds-text-align_right">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTypeResults.map((entry) => {
-                  const isActive =
-                    entry.executionStatus === 'listing' || entry.executionStatus === 'retrieving' || entry.executionStatus === 'comparing';
-                  const skippedTotal = entry.counts.uncomparable + entry.counts.managedSkipped;
-                  return (
-                    <tr key={entry.type}>
-                      <td>
-                        <strong>{entry.typeLabel}</strong>
-                        {entry.typeLabel !== entry.type && (
-                          <span className="slds-text-body_small slds-text-color_weak slds-m-left_xx-small">({entry.type})</span>
-                        )}
-                      </td>
-                      <td>
-                        {isActive && <span className="slds-text-color_weak">{entry.progressMessage || 'Processing...'}</span>}
-                        {entry.executionStatus === 'pending' && <Badge type="light">Pending</Badge>}
-                        {entry.executionStatus === 'complete' && <Badge type="success">Complete</Badge>}
-                        {entry.executionStatus === 'canceled' && <Badge type="warning">Canceled</Badge>}
-                        {entry.executionStatus === 'uncomparable' && (
-                          <Tooltip id={`summary-uncomp-${entry.type}`} content={entry.uncomparableReason || 'Cannot be compared reliably'}>
-                            <Badge type="light">Uncomparable</Badge>
-                          </Tooltip>
-                        )}
-                        {entry.executionStatus === 'error' && (
-                          <Tooltip id={`summary-err-${entry.type}`} content={entry.errorMessage || 'Failed to compare this type'}>
-                            <Badge type="error">Failed</Badge>
-                          </Tooltip>
-                        )}
-                      </td>
-                      <td className="slds-text-align_right">
-                        {entry.counts.different > 0 ? (
-                          <Badge type="warning">{formatNumber(entry.counts.different)}</Badge>
-                        ) : (
-                          formatNumber(entry.counts.different)
-                        )}
-                      </td>
-                      <td className="slds-text-align_right">{formatNumber(entry.counts.onlyInSource)}</td>
-                      <td className="slds-text-align_right">{formatNumber(entry.counts.onlyInTarget)}</td>
-                      <td className="slds-text-align_right">{formatNumber(entry.counts.same)}</td>
-                      <td className="slds-text-align_right">
-                        {skippedTotal > 0 ? (
-                          <Tooltip
-                            id={`summary-skip-${entry.type}`}
-                            content={`${formatNumber(entry.counts.uncomparable)} uncomparable, ${formatNumber(entry.counts.managedSkipped)} managed skipped`}
-                          >
-                            <span>{formatNumber(skippedTotal)}</span>
-                          </Tooltip>
-                        ) : (
-                          '0'
-                        )}
-                      </td>
-                      <td className="slds-text-align_right">
-                        {entry.executionStatus === 'complete' && entry.components.length > 0 && (
-                          <button type="button" className="slds-button slds-button_neutral" onClick={() => handleInspectType(entry.type)}>
-                            Inspect
-                          </button>
-                        )}
-                        {(entry.executionStatus === 'error' || entry.executionStatus === 'canceled') && !progress.running && (
-                          <button type="button" className="slds-button slds-button_neutral" onClick={() => retryTypes([entry.type])}>
-                            Retry
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {filteredTypeResults.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="slds-text-align_center slds-p-around_medium slds-text-color_weak">
-                      No metadata types match your filter.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <OrgAlignmentSummaryTable
+          typeResults={typeResults}
+          incompleteTypes={failedTypeNames}
+          isRunning={progress.running}
+          layoutKey={layoutKey}
+          onViewComponents={handleViewComponentsOfType}
+          onRetry={retryTypes}
+        />
       ),
     },
     {
       id: 'components',
-      title: `Components & Deploy (${formatNumber(allComponents.length)})`,
-      titleText: 'Components & Deploy',
+      title: `Components (${formatNumber(allComponents.length)})`,
+      titleText: 'Components',
       content: (
-        <div>
-          <Grid align="spread" verticalAlign="center" wrap className="slds-box slds-box_x-small slds-theme_shade slds-m-bottom_small">
-            <Grid verticalAlign="center" wrap>
-              <span className="slds-text-title_caps slds-m-right_x-small">Deploy Direction:</span>
-              <RadioGroup label="Deploy direction" hideLabel isButtonGroup>
+        <OrgAlignmentComponentsTable
+          components={filteredComponents}
+          typeFilterItems={typeFilterItems}
+          typeFilter={typeFilter}
+          filterDescription={filterDescription}
+          searchTerm={componentSearch}
+          selectedKeys={selectedComponentKeys}
+          layoutKey={layoutKey}
+          onTypeFilterChange={setTypeFilter}
+          onSearchTermChange={setComponentSearch}
+          onClearFilters={handleClearFilters}
+          onSelectedKeysChange={setSelectedComponentKeys}
+          onView={handleViewComponent}
+          actions={
+            <Fragment>
+              <span className="slds-text-body_small slds-text-color_weak slds-m-right_small">
+                {formatNumber(selectedComponents.length)} selected
+              </span>
+              <RadioGroup label="Deploy direction" hideLabel isButtonGroup className="slds-m-right_x-small">
                 <RadioButton
                   name="org-alignment-deploy-direction"
-                  label={`${sourceLabel} → ${targetLabel}`}
+                  label="Source to Target"
                   value="A_TO_B"
                   checked={deployDirection === 'A_TO_B'}
-                  onChange={() => handleDirectionChange('A_TO_B')}
+                  onChange={() => setDeployDirection('A_TO_B')}
                 />
                 <RadioButton
                   name="org-alignment-deploy-direction"
-                  label={`${targetLabel} → ${sourceLabel}`}
+                  label="Target to Source"
                   value="B_TO_A"
                   checked={deployDirection === 'B_TO_A'}
-                  onChange={() => handleDirectionChange('B_TO_A')}
+                  onChange={() => setDeployDirection('B_TO_A')}
                 />
               </RadioGroup>
-            </Grid>
-            <Grid verticalAlign="center">
-              <span className="slds-text-body_small slds-text-color_weak slds-m-right_small">
-                {formatNumber(selectedDeployableComponents.length)} selected
-              </span>
+              <button
+                type="button"
+                className="slds-button slds-button_neutral slds-m-right_x-small"
+                title="View and compare the selected components"
+                disabled={selectedViewableComponents.length === 0}
+                onClick={handleViewSelected}
+              >
+                <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
+                View Selected
+              </button>
+              <DropDown
+                className="slds-m-right_x-small"
+                position="right"
+                buttonClassName="slds-button slds-button_neutral"
+                buttonContent={
+                  <span>
+                    <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Download Package
+                  </span>
+                }
+                disabled={selectedMetadataToDownload.A_TO_B.count + selectedMetadataToDownload.B_TO_A.count === 0}
+                items={[
+                  {
+                    id: 'A_TO_B',
+                    value: `From Source Org (${formatNumber(selectedMetadataToDownload.A_TO_B.count)})`,
+                    title: sourceOrg?.label,
+                    disabled: selectedMetadataToDownload.A_TO_B.count === 0,
+                  },
+                  {
+                    id: 'B_TO_A',
+                    value: `From Target Org (${formatNumber(selectedMetadataToDownload.B_TO_A.count)})`,
+                    title: targetOrg?.label,
+                    disabled: selectedMetadataToDownload.B_TO_A.count === 0,
+                  },
+                ]}
+                onSelected={(id) => setDownloadPackageFrom(id as OrgAlignmentDeployDirection)}
+              />
               <DisabledReasonButton
                 className="slds-button slds-button_brand"
                 disabled={!deployAccess.allowed || selectedDeployableComponents.length === 0}
-                disabledReason={
-                  !deployAccess.allowed ? deployAccess.deniedReason : 'Select at least one differing or one-sided component to deploy'
-                }
+                disabledReason={deployDisabledReason}
                 onClick={handleOpenDeploySelected}
               >
                 <Icon type="utility" icon="share" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Review &amp; Deploy ({formatNumber(selectedDeployableComponents.length)})
               </DisabledReasonButton>
-            </Grid>
-          </Grid>
-
-          <Grid align="spread" verticalAlign="center" wrap className="slds-m-bottom_small">
-            <Grid verticalAlign="center" wrap>
-              <div className="slds-m-right_x-small slds-m-bottom_xx-small">
-                <RadioGroup label="Filter by status" hideLabel isButtonGroup>
-                  <RadioButton
-                    name="org-alignment-status-filter"
-                    label="All"
-                    value="ALL"
-                    checked={statusFilter === 'ALL'}
-                    onChange={() => setStatusFilter('ALL')}
-                  />
-                  <RadioButton
-                    name="org-alignment-status-filter"
-                    label={`Different (${formatNumber(summaryCounts.different)})`}
-                    value="different"
-                    checked={statusFilter === 'different'}
-                    onChange={() => setStatusFilter('different')}
-                  />
-                  <RadioButton
-                    name="org-alignment-status-filter"
-                    label={`Only in A (${formatNumber(summaryCounts.onlyInSource)})`}
-                    value="onlyInSource"
-                    checked={statusFilter === 'onlyInSource'}
-                    onChange={() => setStatusFilter('onlyInSource')}
-                  />
-                  <RadioButton
-                    name="org-alignment-status-filter"
-                    label={`Only in B (${formatNumber(summaryCounts.onlyInTarget)})`}
-                    value="onlyInTarget"
-                    checked={statusFilter === 'onlyInTarget'}
-                    onChange={() => setStatusFilter('onlyInTarget')}
-                  />
-                  <RadioButton
-                    name="org-alignment-status-filter"
-                    label={`Same (${formatNumber(summaryCounts.same)})`}
-                    value="same"
-                    checked={statusFilter === 'same'}
-                    onChange={() => setStatusFilter('same')}
-                  />
-                  <RadioButton
-                    name="org-alignment-status-filter"
-                    label={`Uncomp. (${formatNumber(summaryCounts.uncomparable)})`}
-                    value="uncomparable"
-                    checked={statusFilter === 'uncomparable'}
-                    onChange={() => setStatusFilter('uncomparable')}
-                  />
-                </RadioGroup>
-              </div>
-              <div className="slds-m-right_x-small slds-m-bottom_xx-small">
-                <select
-                  aria-label="Filter by metadata type"
-                  className="slds-select"
-                  value={typeFilter}
-                  onChange={(event) => setTypeFilter(event.target.value)}
-                >
-                  <option value="ALL">All Types ({formatNumber(typeResults.length)})</option>
-                  {typeResults
-                    .filter(({ components }) => components.length > 0)
-                    .map(({ type, typeLabel, components }) => (
-                      <option key={type} value={type}>
-                        {typeLabel} ({formatNumber(components.length)})
-                      </option>
-                    ))}
-                </select>
-              </div>
-              <div className="slds-m-bottom_xx-small">
-                <SearchInput
-                  id="org-alignment-component-search"
-                  placeholder="Search components..."
-                  value={componentSearch}
-                  onChange={(value) => setComponentSearch(value || '')}
-                />
-              </div>
-            </Grid>
-            <Grid verticalAlign="center">
-              <button
-                type="button"
-                className="slds-button slds-button_neutral slds-m-right_xx-small"
-                disabled={visibleDeployableComponents.length === 0}
-                onClick={handleSelectAllVisible}
-              >
-                Select Visible ({formatNumber(visibleDeployableComponents.length)})
-              </button>
-              <button
-                type="button"
-                className="slds-button slds-button_neutral"
-                disabled={selectedComponentKeys.size === 0}
-                onClick={() => setSelectedComponentKeys(new Set())}
-              >
-                Clear
-              </button>
-            </Grid>
-          </Grid>
-
-          <div className="slds-scrollable_x">
-            <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
-              <thead>
-                <tr className="slds-line-height_reset">
-                  <th scope="col" style={{ width: '2.5rem' }}>
-                    <span className="slds-assistive-text">Select</span>
-                  </th>
-                  <th scope="col">Type</th>
-                  <th scope="col">Component</th>
-                  <th scope="col">Drift Status</th>
-                  <th scope="col">{sourceLabel} Modified</th>
-                  <th scope="col">{targetLabel} Modified</th>
-                  <th scope="col" className="slds-text-align_right">
-                    Diff
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredComponents.slice(0, 500).map((component) => {
-                  const deployable = isComponentDeployableInDirection(component, deployDirection);
-                  const statusLabel = getStatusLabel(component.status, sourceLabel, targetLabel);
-                  const badgeType =
-                    component.status === 'different'
-                      ? 'warning'
-                      : component.status === 'same'
-                        ? 'success'
-                        : component.status === 'onlyInSource' || component.status === 'onlyInTarget'
-                          ? 'inverse'
-                          : 'light';
-
-                  return (
-                    <tr key={component.key}>
-                      <td>
-                        <Checkbox
-                          id={`select-comp-${component.key}`}
-                          label={`Select ${component.fullName}`}
-                          hideLabel
-                          disabled={!deployable}
-                          checked={selectedComponentKeys.has(component.key)}
-                          onChange={(checked) => toggleComponentSelection(component.key, checked)}
-                        />
-                      </td>
-                      <td>{component.typeLabel}</td>
-                      <td>
-                        <strong>{component.fullName}</strong>
-                        {component.isManaged && (
-                          <Badge type="light" className="slds-m-left_xx-small">
-                            Managed
-                          </Badge>
-                        )}
-                      </td>
-                      <td>
-                        {component.uncomparableReason ? (
-                          <Tooltip id={`comp-status-${component.key}`} content={component.uncomparableReason}>
-                            <Badge type={badgeType}>{statusLabel}</Badge>
-                          </Tooltip>
-                        ) : (
-                          <Badge type={badgeType}>{statusLabel}</Badge>
-                        )}
-                      </td>
-                      <td className="slds-text-body_small slds-text-color_weak">
-                        {component.sourceItem?.lastModifiedDate
-                          ? `${component.sourceItem.lastModifiedByName || 'Unknown'} · ${new Date(component.sourceItem.lastModifiedDate).toLocaleDateString()}`
-                          : '—'}
-                      </td>
-                      <td className="slds-text-body_small slds-text-color_weak">
-                        {component.targetItem?.lastModifiedDate
-                          ? `${component.targetItem.lastModifiedByName || 'Unknown'} · ${new Date(component.targetItem.lastModifiedDate).toLocaleDateString()}`
-                          : '—'}
-                      </td>
-                      <td className="slds-text-align_right">
-                        {component.status !== 'uncomparable' && (
-                          <button
-                            type="button"
-                            className="slds-button slds-button_neutral"
-                            onClick={() => setActiveDiffComponent(component)}
-                          >
-                            <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
-                            {component.status === 'onlyInSource' || component.status === 'onlyInTarget' ? 'View' : 'Diff'}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {filteredComponents.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="slds-text-align_center slds-p-around_medium slds-text-color_weak">
-                      No components match your filters.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-            {filteredComponents.length > 500 && (
-              <div className="slds-p-around_small slds-text-body_small slds-text-color_weak slds-text-align_center">
-                Showing first 500 of {formatNumber(filteredComponents.length)} matching components. Narrow your search or type filter to see
-                more, or export the full drift report.
-              </div>
-            )}
-          </div>
-        </div>
+            </Fragment>
+          }
+        />
       ),
     },
   ];
@@ -1021,15 +830,16 @@ export const OrgAlignment: FunctionComponent = () => {
 
       {activeDiffComponent && sourceOrg && targetOrg && (
         <OrgAlignmentDiffModal
-          key={activeDiffComponent.key}
           component={activeDiffComponent}
+          components={diffComponents ?? undefined}
+          onSelectComponent={handleSelectDiffComponent}
           sourceOrg={sourceOrg}
           targetOrg={targetOrg}
           normalizePermissionXml={normalizePermissionXml}
           onNormalizePermissionXmlChange={handleNormalizeToggle}
           onLoadComponentFiles={loadComponentFilesOnDemand}
           onDeploySingle={handleDeploySingleFromDiff}
-          onClose={() => setActiveDiffComponent(null)}
+          onClose={handleCloseDiff}
         />
       )}
 
@@ -1042,6 +852,16 @@ export const OrgAlignment: FunctionComponent = () => {
           allComponents={allComponents}
           destinationInventoryByType={getDestinationInventoryByType(deployModalDirection)}
           onClose={() => setDeployModalOpen(false)}
+        />
+      )}
+
+      {downloadPackageFrom && downloadPackageOrg && (
+        <DownloadPackageWithFileSelector
+          type="package"
+          selectedOrg={downloadPackageOrg}
+          modalTagline={`${formatNumber(downloadPackage.count)} ${downloadPackage.count === 1 ? 'component' : 'components'} from ${downloadPackageOrg.label} will be included`}
+          listMetadataItems={downloadPackage.listMetadataItems}
+          onClose={() => setDownloadPackageFrom(null)}
         />
       )}
 
@@ -1068,7 +888,6 @@ export const OrgAlignment: FunctionComponent = () => {
           <PageHeaderTitle
             icon={{ type: 'standard', icon: 'asset_relationship' }}
             label="Org Alignment"
-            titleDropDown={<ProBadge className="slds-m-left_x-small" />}
             docsPath={APP_ROUTES.ORG_ALIGNMENT.DOCS}
           />
           <PageHeaderActions colType="actions" buttonType="separate">
@@ -1089,6 +908,7 @@ export const OrgAlignment: FunctionComponent = () => {
               <DropDown
                 className="slds-button_last"
                 position="right"
+                buttonClassName="slds-button slds-button_neutral"
                 buttonContent={
                   <span>
                     <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
@@ -1115,15 +935,24 @@ export const OrgAlignment: FunctionComponent = () => {
                     trailingDivider: true,
                   },
                   {
-                    id: EXPORT_ACTION_MD_COPY,
-                    subheader: 'Meeting Summary (Markdown)',
+                    id: EXPORT_ACTION_COPY_MARKDOWN,
                     icon: { type: 'utility', icon: 'copy_to_clipboard' },
-                    value: 'Copy Markdown Summary',
+                    value: 'Copy Summary to Clipboard (Markdown)',
                   },
                   {
-                    id: EXPORT_ACTION_MD_DOWNLOAD,
-                    icon: { type: 'utility', icon: 'download' },
-                    value: 'Download Markdown (.md)',
+                    id: EXPORT_ACTION_COPY_HTML,
+                    icon: { type: 'utility', icon: 'copy_to_clipboard' },
+                    value: 'Copy Summary to Clipboard (Rich Text)',
+                  },
+                  {
+                    id: EXPORT_ACTION_COPY_EXCEL,
+                    icon: { type: 'utility', icon: 'copy_to_clipboard' },
+                    value: 'Copy Components to Clipboard (Excel)',
+                  },
+                  {
+                    id: EXPORT_ACTION_COPY_CSV,
+                    icon: { type: 'utility', icon: 'copy_to_clipboard' },
+                    value: 'Copy Components to Clipboard (CSV)',
                   },
                 ]}
                 onSelected={handleExportAction}
@@ -1168,123 +997,153 @@ export const OrgAlignment: FunctionComponent = () => {
           </ScopedNotification>
         )}
 
-        <div className="slds-box slds-theme_default slds-m-bottom_small">
-          <Grid verticalAlign="end" wrap className="slds-gutters_small">
-            <div className="slds-col slds-size_1-of-1 slds-medium-size_5-of-12">
-              <GroupScopedOrgsCombobox
-                label="Org A (Source / Baseline)"
-                hideLabel={false}
-                placeholder="Select Org A"
-                orgs={sourceOrgOptions}
-                selectedOrg={sourceOrg}
-                disabled={progress.running}
-                minWidth={0}
-                onSelected={(org) => {
-                  setSourceOrg(org);
-                  setActiveSavedKey(null);
-                  resetComparison();
-                }}
-              />
-            </div>
-            <div className="slds-col slds-grow-none slds-p-bottom_xxx-small">
-              <Tooltip id="org-alignment-swap-orgs" content="Swap Org A and Org B">
+        {!showSetup && sourceOrg && targetOrg && (
+          <Grid align="spread" verticalAlign="center" wrap className="slds-box slds-box_x-small slds-theme_default slds-m-bottom_small">
+            <Grid verticalAlign="center" wrap>
+              <span className="slds-text-title_caps slds-m-right_x-small">Source</span>
+              <OrgLabelBadge org={sourceOrg} />
+              <span className="slds-text-title_caps slds-m-left_medium slds-m-right_x-small">Target</span>
+              <OrgLabelBadge org={targetOrg} />
+              {lastCompletedAt && !progress.running && (
+                <span className="slds-m-left_medium slds-text-body_small slds-text-color_weak">
+                  Compared at {lastCompletedAt.toLocaleTimeString()}
+                </span>
+              )}
+            </Grid>
+            <button type="button" className="slds-button" disabled={progress.running} onClick={() => setSetupCollapsed(false)}>
+              Change Comparison
+              <Icon type="utility" icon="chevrondown" className="slds-button__icon slds-button__icon_right" omitContainer />
+            </button>
+          </Grid>
+        )}
+
+        {showSetup && (
+          <div className="slds-box slds-theme_default slds-m-bottom_small">
+            <Grid verticalAlign="end" wrap className="slds-gutters_small">
+              <div className="slds-col slds-size_1-of-1 slds-medium-size_5-of-12">
+                <GroupScopedOrgsCombobox
+                  label="Source Org"
+                  hideLabel={false}
+                  placeholder="Select the source org"
+                  orgs={sourceOrgOptions}
+                  selectedOrg={sourceOrg}
+                  disabled={progress.running}
+                  minWidth={0}
+                  onSelected={(org) => {
+                    setSourceOrg(org);
+                    setActiveSavedKey(null);
+                    resetComparison();
+                  }}
+                />
+              </div>
+              <div className="slds-col slds-grow-none slds-p-bottom_xxx-small">
+                <Tooltip id="org-alignment-swap-orgs" content="Swap the source and target orgs">
+                  <button
+                    type="button"
+                    className="slds-button slds-button_icon slds-button_icon-border-filled"
+                    aria-label="Swap the source and target orgs"
+                    disabled={progress.running || (!sourceOrg && !targetOrg)}
+                    onClick={handleSwapOrgs}
+                  >
+                    <Icon type="utility" icon="rotate" className="slds-button__icon" omitContainer />
+                  </button>
+                </Tooltip>
+              </div>
+              <div className="slds-col slds-size_1-of-1 slds-medium-size_5-of-12">
+                <GroupScopedOrgsCombobox
+                  label="Target Org"
+                  hideLabel={false}
+                  placeholder="Select the target org"
+                  orgs={targetOrgOptions}
+                  selectedOrg={targetOrg}
+                  disabled={progress.running}
+                  minWidth={0}
+                  onSelected={(org) => {
+                    setTargetOrg(org);
+                    setActiveSavedKey(null);
+                    resetComparison();
+                  }}
+                />
+              </div>
+              {hasResults && (
+                <div className="slds-col slds-grow-none slds-col_bump-left slds-p-bottom_xxx-small">
+                  <button type="button" className="slds-button" onClick={() => setSetupCollapsed(true)}>
+                    Hide
+                    <Icon type="utility" icon="up" className="slds-button__icon slds-button__icon_right" omitContainer />
+                  </button>
+                </div>
+              )}
+            </Grid>
+
+            <Grid align="spread" verticalAlign="center" wrap className="slds-m-top_small slds-p-top_small slds-border_top">
+              <Grid verticalAlign="center" wrap>
+                <span className="slds-text-title_caps slds-m-right_x-small">Metadata Types:</span>
+                <RadioGroup label="Metadata types" hideLabel isButtonGroup className="slds-m-right_x-small">
+                  <RadioButton
+                    name="org-alignment-scope"
+                    label={`Common (${COMMON_METADATA_TYPES.length})`}
+                    value="common"
+                    checked={selectionMode === 'common'}
+                    disabled={progress.running}
+                    onChange={() => setSelectionMode('common')}
+                  />
+                  <RadioButton
+                    name="org-alignment-scope"
+                    label="All"
+                    value="all"
+                    checked={selectionMode === 'all'}
+                    disabled={progress.running}
+                    onChange={() => setSelectionMode('all')}
+                  />
+                  <RadioButton
+                    name="org-alignment-scope"
+                    label={`Custom (${customMetadataTypes.length})`}
+                    value="custom"
+                    checked={selectionMode === 'custom'}
+                    disabled={progress.running}
+                    onChange={() => setSelectionMode('custom')}
+                  />
+                </RadioGroup>
                 <button
                   type="button"
-                  className="slds-button slds-button_icon slds-button_icon-border-filled"
-                  aria-label="Swap Org A and Org B"
-                  disabled={progress.running || (!sourceOrg && !targetOrg)}
-                  onClick={handleSwapOrgs}
+                  className="slds-button slds-button_neutral"
+                  disabled={progress.running || !sourceOrg || !targetOrg}
+                  onClick={() => setTypeSelectorModalOpen(true)}
                 >
-                  <Icon type="utility" icon="switch" className="slds-button__icon" omitContainer />
+                  Choose Types
                 </button>
-              </Tooltip>
-            </div>
-            <div className="slds-col slds-size_1-of-1 slds-medium-size_5-of-12">
-              <GroupScopedOrgsCombobox
-                label="Org B (Compare Against)"
-                hideLabel={false}
-                placeholder="Select Org B"
-                orgs={targetOrgOptions}
-                selectedOrg={targetOrg}
-                disabled={progress.running}
-                minWidth={0}
-                onSelected={(org) => {
-                  setTargetOrg(org);
-                  setActiveSavedKey(null);
-                  resetComparison();
-                }}
-              />
-            </div>
-          </Grid>
+              </Grid>
 
-          <Grid align="spread" verticalAlign="center" wrap className="slds-m-top_small slds-p-top_small slds-border_top">
-            <Grid verticalAlign="center" wrap>
-              <span className="slds-text-title_caps slds-m-right_x-small">Metadata Scope:</span>
-              <RadioGroup label="Metadata scope" hideLabel isButtonGroup className="slds-m-right_x-small">
-                <RadioButton
-                  name="org-alignment-scope"
-                  label={`Common (${COMMON_METADATA_TYPES.length})`}
-                  value="common"
-                  checked={selectionMode === 'common'}
-                  disabled={progress.running}
-                  onChange={() => setSelectionMode('common')}
+              <Grid verticalAlign="center" wrap>
+                <Checkbox
+                  id="org-alignment-normalize-xml"
+                  className="slds-m-right_medium"
+                  label="Ignore permission ordering"
+                  labelHelp="Salesforce returns the entries of profiles and permission sets in a different order in each org. Leave this on so that only real permission differences are reported."
+                  checked={normalizePermissionXml}
+                  onChange={handleNormalizeToggle}
                 />
-                <RadioButton
-                  name="org-alignment-scope"
-                  label="All Comparable"
-                  value="all"
-                  checked={selectionMode === 'all'}
+                <Checkbox
+                  id="org-alignment-include-managed"
+                  className="slds-m-right_medium"
+                  label="Include managed packages"
+                  labelHelp="Components from managed packages are skipped because Salesforce hides their content. Turn this on to list them anyway, they are shown as Not Compared."
+                  checked={includeManaged}
                   disabled={progress.running}
-                  onChange={() => setSelectionMode('all')}
+                  onChange={setIncludeManaged}
                 />
-                <RadioButton
-                  name="org-alignment-scope"
-                  label={`Custom (${customMetadataTypes.length})`}
-                  value="custom"
-                  checked={selectionMode === 'custom'}
+                <Checkbox
+                  id="org-alignment-skip-cache"
+                  label="Refresh from Salesforce"
+                  labelHelp="Jetstream remembers which components each org has for a while to make comparisons faster. Turn this on if metadata was recently added, renamed or deleted and the results look out of date."
+                  checked={skipRequestCache}
                   disabled={progress.running}
-                  onChange={() => setSelectionMode('custom')}
+                  onChange={setSkipRequestCache}
                 />
-              </RadioGroup>
-              <button
-                type="button"
-                className="slds-button slds-button_neutral"
-                disabled={progress.running || !sourceOrg || !targetOrg}
-                onClick={() => setTypeSelectorModalOpen(true)}
-              >
-                Choose Types...
-              </button>
+              </Grid>
             </Grid>
-
-            <Grid verticalAlign="center" wrap>
-              <Checkbox
-                id="org-alignment-normalize-xml"
-                className="slds-m-right_medium"
-                label="Normalize Profile & PermSet XML"
-                labelHelp="Sort Profile and Permission Set XML child elements before comparing to remove ordering noise."
-                checked={normalizePermissionXml}
-                onChange={handleNormalizeToggle}
-              />
-              <Checkbox
-                id="org-alignment-include-managed"
-                className="slds-m-right_medium"
-                label="Show Managed (Uncomparable)"
-                labelHelp="By default managed package components are skipped. Enable to list them explicitly as Uncomparable."
-                checked={includeManaged}
-                disabled={progress.running}
-                onChange={setIncludeManaged}
-              />
-              <Checkbox
-                id="org-alignment-skip-cache"
-                label="Bypass Cache"
-                labelHelp="Fetch fresh metadata lists directly from Salesforce instead of using cached listMetadata results."
-                checked={skipRequestCache}
-                disabled={progress.running}
-                onChange={setSkipRequestCache}
-              />
-            </Grid>
-          </Grid>
-        </div>
+          </div>
+        )}
 
         {fatalError && (
           <ScopedNotification theme="error" className="slds-m-bottom_small">
@@ -1302,6 +1161,8 @@ export const OrgAlignment: FunctionComponent = () => {
                     css={css`
                       width: 1.25rem;
                       height: 1.25rem;
+                      /* Own stacking context, the spinner's z-index would otherwise put it above an open modal */
+                      z-index: 0;
                     `}
                   >
                     <Spinner size="x-small" />
@@ -1327,74 +1188,66 @@ export const OrgAlignment: FunctionComponent = () => {
               className="slds-m-bottom_small"
               css={css`
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
                 gap: 0.5rem;
               `}
             >
-              <button
-                type="button"
-                className="slds-box slds-box_small slds-theme_default slds-text-align_left cursor-pointer"
-                onClick={() => handleKpiClick('different')}
-              >
-                <div className="slds-text-title_caps slds-text-color_weak">Different</div>
-                <div className="slds-text-heading_large slds-text-color_error">{formatNumber(summaryCounts.different)}</div>
-              </button>
-              <button
-                type="button"
-                className="slds-box slds-box_small slds-theme_default slds-text-align_left cursor-pointer"
-                onClick={() => handleKpiClick('onlyInSource')}
-              >
-                <div className="slds-text-title_caps slds-text-color_weak slds-truncate" title={`Only in ${sourceLabel}`}>
-                  Only in {sourceLabel}
-                </div>
-                <div className="slds-text-heading_large">{formatNumber(summaryCounts.onlyInSource)}</div>
-              </button>
-              <button
-                type="button"
-                className="slds-box slds-box_small slds-theme_default slds-text-align_left cursor-pointer"
-                onClick={() => handleKpiClick('onlyInTarget')}
-              >
-                <div className="slds-text-title_caps slds-text-color_weak slds-truncate" title={`Only in ${targetLabel}`}>
-                  Only in {targetLabel}
-                </div>
-                <div className="slds-text-heading_large">{formatNumber(summaryCounts.onlyInTarget)}</div>
-              </button>
-              <button
-                type="button"
-                className="slds-box slds-box_small slds-theme_default slds-text-align_left cursor-pointer"
-                onClick={() => handleKpiClick('same')}
-              >
-                <div className="slds-text-title_caps slds-text-color_weak">Same</div>
-                <div className="slds-text-heading_large slds-text-color_success">{formatNumber(summaryCounts.same)}</div>
-              </button>
-              <button
-                type="button"
-                className="slds-box slds-box_small slds-theme_default slds-text-align_left cursor-pointer"
-                onClick={() => handleKpiClick('uncomparable')}
-              >
-                <div className="slds-text-title_caps slds-text-color_weak">Uncomparable / Skipped</div>
-                <div className="slds-text-heading_large slds-text-color_weak">
-                  {formatNumber(summaryCounts.uncomparable + summaryCounts.managedSkipped)}
-                </div>
-                {uncomparableTypesCount > 0 && (
-                  <div className="slds-text-body_small slds-text-color_weak">
-                    +{formatNumber(uncomparableTypesCount)} skipped {uncomparableTypesCount === 1 ? 'type' : 'types'}
-                  </div>
-                )}
-              </button>
+              {statusCards.map(({ status, count, countClassName, footnote }) => {
+                const isActive = statusFilter === status;
+                return (
+                  <button
+                    key={status}
+                    type="button"
+                    className="slds-box slds-box_x-small slds-theme_default slds-text-align_left cursor-pointer"
+                    css={css`
+                      ${isActive ? 'border-color: var(--slds-g-color-brand-base-50, #0176d3); box-shadow: 0 0 0 1px var(--slds-g-color-brand-base-50, #0176d3);' : ''}
+                    `}
+                    aria-pressed={isActive}
+                    title={isActive ? 'Show every status' : `Show the components that are ${STATUS_LABELS[status]}`}
+                    onClick={() => handleStatusCardClick(status)}
+                  >
+                    <div className="slds-text-title_caps slds-text-color_weak">{STATUS_LABELS[status]}</div>
+                    <Grid verticalAlign="end">
+                      <span className={classNames('slds-text-heading_medium', countClassName)}>{formatNumber(count)}</span>
+                      {footnote && <span className="slds-m-left_x-small slds-text-body_small slds-text-color_weak">{footnote}</span>}
+                    </Grid>
+                  </button>
+                );
+              })}
             </div>
 
-            {sourceOrg && targetOrg && (
-              <div className="slds-m-bottom_x-small slds-text-body_small slds-text-color_weak slds-grid slds-grid_vertical-align-center slds-wrap">
-                <span className="slds-m-right_xx-small">Comparing:</span>
-                <OrgLabelBadge org={sourceOrg} />
-                <span className="slds-m-horizontal_xx-small">vs</span>
-                <OrgLabelBadge org={targetOrg} />
-                {lastCompletedAt && <span className="slds-m-left_small">· Completed at {lastCompletedAt.toLocaleTimeString()}</span>}
+            <div
+              className="slds-box slds-box_small slds-theme_default"
+              css={css`
+                position: relative;
+                ${resultsFullScreen ? 'position: fixed; inset: 0; z-index: 200; border-radius: 0; overflow: auto;' : ''}
+              `}
+            >
+              <div
+                css={css`
+                  position: absolute;
+                  top: 0.5rem;
+                  right: 0.75rem;
+                  z-index: 1;
+                `}
+              >
+                <Tooltip ariaRole="label" content={resultsFullScreen ? 'Exit full screen' : 'View the results in full screen'}>
+                  <button
+                    type="button"
+                    className="slds-button slds-button_icon slds-button_icon-border-filled"
+                    aria-pressed={resultsFullScreen}
+                    onClick={() => setResultsFullScreen((previous) => !previous)}
+                  >
+                    <Icon
+                      type="utility"
+                      icon={resultsFullScreen ? 'contract_alt' : 'expand_alt'}
+                      className="slds-button__icon"
+                      omitContainer
+                      title={resultsFullScreen ? 'Exit full screen' : 'View the results in full screen'}
+                    />
+                  </button>
+                </Tooltip>
               </div>
-            )}
-
-            <div className="slds-box slds-box_small slds-theme_default">
               <Tabs ref={tabsRef} initialActiveId="summary" tabs={tabs} />
             </div>
           </Fragment>
@@ -1403,8 +1256,8 @@ export const OrgAlignment: FunctionComponent = () => {
         {!hasResults && !progress.running && (
           <div className="slds-box slds-theme_default slds-p-around_large">
             <EmptyState
-              headline="Pick two orgs to run a drift report"
-              subHeading="Jetstream compares metadata lists across both orgs first, retrieves only shared candidates in chunks, highlights differences and one-sided items, and lets you validate, back up, and deploy in either direction."
+              headline="Choose two orgs to compare"
+              subHeading="Jetstream finds the metadata that exists in only one org and the metadata that is different between them. Review the differences, then validate, back up and deploy your changes in either direction."
             />
           </div>
         )}

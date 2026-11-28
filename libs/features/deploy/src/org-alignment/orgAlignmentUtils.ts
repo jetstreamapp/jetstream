@@ -1,9 +1,9 @@
 import { getMetadataLabelFromFullName } from '@jetstream/connected-ui';
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { escapeHtml, formatNumber } from '@jetstream/shared/ui-utils';
 import { getFullNameFromListMetadata, orderObjectsBy, unSanitizeXml } from '@jetstream/shared/utils';
 import { ListMetadataResult, OrgAlignmentRunSummaryCounts } from '@jetstream/types';
 import { FilePropertiesWithContent } from '../view-or-compare-metadata/viewOrCompareMetadataTypes';
-import { compareMetadataContents } from '../view-or-compare-metadata/xmlNormalizer';
+import { compareMetadataContents, isPermissionXmlType } from '../view-or-compare-metadata/xmlNormalizer';
 import { isManagedListMetadataItem, MANAGED_COMPONENT_UNCOMPARABLE_REASON } from './orgAlignmentMetadataClassification';
 import {
   OrgAlignmentComponentItem,
@@ -157,31 +157,110 @@ export function resolveLogicalComponentName(
   });
 }
 
+interface ContainerFileDefinition {
+  /** XML element name to the metadata type stored in that element */
+  childTypeByTag: Record<string, string>;
+  /** true when the child fullName is `Parent.Child` (e.g. `Account.Field__c`), false when it is just `Child` */
+  childNameIncludesParent: boolean;
+}
+
 /**
- * Child metadata types that Salesforce returns nested inside a parent container XML file
- * (e.g. `objects/Account.object` or `workflows/Account.workflow`) rather than standalone files.
- * Maps the Metadata API child type to the repeating XML tag name inside the parent file.
+ * Parent metadata types whose file (e.g. `objects/Account.object`) also holds components that are listed and
+ * compared on their own (e.g. each CustomField).
  */
-const PARENT_CONTAINER_CHILD_TAG: Record<string, string> = {
-  BusinessProcess: 'businessProcesses',
-  CompactLayout: 'compactLayouts',
-  CustomField: 'fields',
-  CustomLabel: 'labels',
-  FieldSet: 'fieldSets',
-  Index: 'indexes',
-  ListView: 'listViews',
-  RecordType: 'recordTypes',
-  SharingReason: 'sharingReasons',
-  ValidationRule: 'validationRules',
-  WebLink: 'webLinks',
-  WorkflowAlert: 'alerts',
-  WorkflowFieldUpdate: 'fieldUpdates',
-  WorkflowKnowledgePublish: 'knowledgePublishes',
-  WorkflowOutboundMessage: 'outboundMessages',
-  WorkflowRule: 'rules',
-  WorkflowSend: 'send',
-  WorkflowTask: 'tasks',
+const CONTAINER_FILES_BY_PARENT_TYPE: Record<string, ContainerFileDefinition> = {
+  CustomObject: {
+    childNameIncludesParent: true,
+    childTypeByTag: {
+      businessProcesses: 'BusinessProcess',
+      compactLayouts: 'CompactLayout',
+      fields: 'CustomField',
+      fieldSets: 'FieldSet',
+      indexes: 'Index',
+      listViews: 'ListView',
+      recordTypes: 'RecordType',
+      sharingReasons: 'SharingReason',
+      validationRules: 'ValidationRule',
+      webLinks: 'WebLink',
+    },
+  },
+  CustomLabels: { childNameIncludesParent: false, childTypeByTag: { labels: 'CustomLabel' } },
+  Workflow: {
+    childNameIncludesParent: true,
+    childTypeByTag: {
+      alerts: 'WorkflowAlert',
+      fieldUpdates: 'WorkflowFieldUpdate',
+      knowledgePublishes: 'WorkflowKnowledgePublish',
+      outboundMessages: 'WorkflowOutboundMessage',
+      rules: 'WorkflowRule',
+      send: 'WorkflowSend',
+      tasks: 'WorkflowTask',
+    },
+  },
 };
+
+/** Parent types that must be compared after their child types, see `removeSeparatelyComparedChildren` */
+export const CONTAINER_PARENT_METADATA_TYPES = new Set(Object.keys(CONTAINER_FILES_BY_PARENT_TYPE));
+
+/** Child metadata type to the repeating XML tag that holds it inside its parent's file */
+const PARENT_CONTAINER_CHILD_TAG: Record<string, string> = Object.fromEntries(
+  Object.values(CONTAINER_FILES_BY_PARENT_TYPE).flatMap(({ childTypeByTag }) =>
+    Object.entries(childTypeByTag).map(([tagName, childType]) => [childType, tagName]),
+  ),
+);
+
+/**
+ * Remove the child components that are compared on their own from a parent file, so that a changed field is
+ * reported once against the field instead of also marking its object as different.
+ *
+ * Children that are not part of the comparison (e.g. standard fields, which Salesforce does not list) stay in
+ * the parent so they are still compared. Returns the original content if it cannot be parsed.
+ */
+export function removeSeparatelyComparedChildren(
+  parentXml: string,
+  parentType: string,
+  parentName: string,
+  separatelyComparedKeys: Pick<ReadonlySet<string>, 'has'>,
+): string {
+  const container = CONTAINER_FILES_BY_PARENT_TYPE[parentType];
+  if (!container || !parentXml || typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
+    return parentXml;
+  }
+  try {
+    const xmlDocument = new DOMParser().parseFromString(parentXml, 'application/xml');
+    const root = xmlDocument.documentElement;
+    if (!root || xmlDocument.getElementsByTagName('parsererror').length > 0) {
+      return parentXml;
+    }
+    let removedCount = 0;
+    for (const element of Array.from(root.children)) {
+      const childType = container.childTypeByTag[element.localName];
+      const childName = Array.from(element.children)
+        .find((childElement) => childElement.localName === 'fullName')
+        ?.textContent?.trim();
+      if (!childType || !childName) {
+        continue;
+      }
+      const childFullName = container.childNameIncludesParent ? `${parentName}.${childName}` : childName;
+      if (!separatelyComparedKeys.has(getComponentKey(childType, childFullName))) {
+        continue;
+      }
+      // Take the indentation that followed the element with it so no blank line is left behind
+      const nextSibling = element.nextSibling;
+      if (nextSibling?.nodeType === 3 && !nextSibling.textContent?.trim()) {
+        nextSibling.remove();
+      }
+      element.remove();
+      removedCount += 1;
+    }
+    if (removedCount === 0) {
+      return parentXml;
+    }
+    return `<?xml version="1.0" encoding="UTF-8"?>\n${new XMLSerializer().serializeToString(root)}`;
+  } catch {
+    return parentXml;
+  }
+}
 
 /**
  * Extract the single XML block matching `<fullName>{childName}</fullName>` from a parent container
@@ -339,6 +418,53 @@ export function buildFilePairsForComponent(
   return { files, allMatch, hasReadableContent };
 }
 
+export interface ComponentFileOptions {
+  /**
+   * `type:fullName` of every component compared on its own. When provided, those components are removed from
+   * the file of their parent (see `removeSeparatelyComparedChildren`).
+   */
+  separatelyComparedKeys?: Pick<ReadonlySet<string>, 'has'>;
+}
+
+export interface BuildTypeComparisonOptions extends ComponentFileOptions {
+  normalizePermissionXml?: boolean;
+  /** Shown for components in both orgs that have no retrieved content, when the default reason does not apply */
+  uncomparableReason?: string;
+}
+
+/**
+ * Content of matching components is released once compared, a large org would otherwise hold every file of
+ * every component in memory. It is retrieved again if the user opens the component.
+ * Permission types keep theirs because toggling XML normalization re-compares them without another retrieve.
+ */
+function keepContentOfMatchingComponents(metadataType: string) {
+  return isPermissionXmlType(metadataType);
+}
+
+/** Group retrieved files by the component they belong to, ready to be compared or shown */
+export function getComponentFilesByName(
+  files: FilePropertiesWithContent[],
+  componentNames: Set<string>,
+  metadataType: string,
+  { separatelyComparedKeys }: ComponentFileOptions = {},
+): Map<string, FilePropertiesWithContent[]> {
+  const filesByComponent = groupRetrievedFilesByComponent(files, componentNames, metadataType);
+  if (!separatelyComparedKeys || !CONTAINER_PARENT_METADATA_TYPES.has(metadataType)) {
+    return filesByComponent;
+  }
+  for (const [componentName, componentFiles] of filesByComponent) {
+    filesByComponent.set(
+      componentName,
+      componentFiles.map((file) =>
+        file.content
+          ? { ...file, content: removeSeparatelyComparedChildren(file.content, metadataType, componentName, separatelyComparedKeys) }
+          : file,
+      ),
+    );
+  }
+  return filesByComponent;
+}
+
 /**
  * Assemble complete component comparison rows and summary counts for a single metadata type
  * from its set-diff result and retrieved candidate files.
@@ -348,12 +474,13 @@ export function buildTypeComparisonComponents(
   setDiff: ListMetadataSetDiffResult,
   sourceRetrievedFiles: FilePropertiesWithContent[],
   targetRetrievedFiles: FilePropertiesWithContent[],
-  options: { normalizePermissionXml?: boolean } = {},
+  options: BuildTypeComparisonOptions = {},
 ): { components: OrgAlignmentComponentItem[]; counts: OrgAlignmentRunSummaryCounts } {
   const typeLabel = getMetadataLabelFromFullName(metadataType);
   const candidateNames = new Set(setDiff.candidates.map(({ fullName }) => fullName));
-  const sourceFilesByComponent = groupRetrievedFilesByComponent(sourceRetrievedFiles, candidateNames, metadataType);
-  const targetFilesByComponent = groupRetrievedFilesByComponent(targetRetrievedFiles, candidateNames, metadataType);
+  const sourceFilesByComponent = getComponentFilesByName(sourceRetrievedFiles, candidateNames, metadataType, options);
+  const targetFilesByComponent = getComponentFilesByName(targetRetrievedFiles, candidateNames, metadataType, options);
+  const contentNotReturnedReason = options.uncomparableReason ?? 'Metadata content was not returned by Salesforce during retrieve.';
 
   const components: OrgAlignmentComponentItem[] = [];
   const counts = createEmptySummaryCounts();
@@ -404,7 +531,7 @@ export function buildTypeComparisonComponents(
         typeLabel,
         fullName,
         status: 'uncomparable',
-        uncomparableReason: 'Metadata content was not returned by Salesforce during retrieve.',
+        uncomparableReason: contentNotReturnedReason,
         isManaged: false,
         sourceItem: source,
         targetItem: target,
@@ -422,8 +549,7 @@ export function buildTypeComparisonComponents(
         isManaged: false,
         sourceItem: source,
         targetItem: target,
-        files,
-        filesLoaded: true,
+        ...(keepContentOfMatchingComponents(metadataType) ? { files, filesLoaded: true } : { files: [], filesLoaded: false }),
       });
     } else {
       counts.different += 1;
@@ -543,7 +669,7 @@ export function getStatusLabel(status: OrgAlignmentComponentItem['status'], sour
     case 'same':
       return 'Same';
     case 'uncomparable':
-      return 'Uncomparable';
+      return 'Not Compared';
     default:
       return status;
   }
@@ -566,7 +692,7 @@ export function buildDriftReportFlatRows(context: OrgAlignmentExportContext, onl
         Status: getStatusLabel(component.status, sourceOrg.label, targetOrg.label),
         'Status Code': component.status,
         'Managed Component': component.isManaged ? 'Yes' : 'No',
-        Notes: component.uncomparableReason ?? '',
+        'Reason Not Compared': component.uncomparableReason ?? '',
         [`${sourceOrg.label} Last Modified By`]: component.sourceItem?.lastModifiedByName ?? '',
         [`${sourceOrg.label} Last Modified Date`]: component.sourceItem?.lastModifiedDate
           ? new Date(component.sourceItem.lastModifiedDate).toISOString()
@@ -624,65 +750,112 @@ export function buildDriftReportWorkbookData(context: OrgAlignmentExportContext)
   };
 }
 
-/** Build a clean Markdown summary ready to paste into change-review docs, Jira, Confluence, or Slack */
-export function buildChangeReviewMarkdown(context: OrgAlignmentExportContext): string {
+interface ChangeReviewSummary {
+  details: [label: string, value: string][];
+  totals: [label: string, count: number][];
+  typeHeaders: string[];
+  typeRows: string[][];
+  differencesByType: { heading: string; components: { fullName: string; statusLabel: string }[] }[];
+}
+
+const CHANGE_REVIEW_TITLE = 'Org Alignment Drift Report';
+
+/** The content of the clipboard summary, rendered as Markdown or as rich text */
+function getChangeReviewSummary(context: OrgAlignmentExportContext): ChangeReviewSummary {
   const { sourceOrg, targetOrg, generatedAt, normalizePermissionXml, typeResults } = context;
   const totals = aggregateSummaryCounts(typeResults);
+  return {
+    details: [
+      ['Source Org', `${sourceOrg.label} (${sourceOrg.username})`],
+      ['Target Org', `${targetOrg.label} (${targetOrg.username})`],
+      ['Generated', generatedAt.toLocaleString()],
+      ['Ignore Permission Ordering', normalizePermissionXml ? 'Yes' : 'No'],
+    ],
+    totals: [
+      ['Different', totals.different],
+      [`Only in ${sourceOrg.label}`, totals.onlyInSource],
+      [`Only in ${targetOrg.label}`, totals.onlyInTarget],
+      ['Same', totals.same],
+      ['Not Compared', totals.uncomparable],
+      ['Managed Skipped', totals.managedSkipped],
+    ],
+    typeHeaders: ['Metadata Type', 'Status', 'Different', `Only in ${sourceOrg.label}`, `Only in ${targetOrg.label}`, 'Same', 'Notes'],
+    typeRows: typeResults.map(({ type, typeLabel, executionStatus, counts, uncomparableReason, errorMessage }) => [
+      `${typeLabel} (${type})`,
+      executionStatus,
+      formatNumber(counts.different),
+      formatNumber(counts.onlyInSource),
+      formatNumber(counts.onlyInTarget),
+      formatNumber(counts.same),
+      uncomparableReason ?? errorMessage ?? '',
+    ]),
+    differencesByType: typeResults
+      .map(({ type, typeLabel, components }) => ({
+        heading: `${typeLabel} (${type})`,
+        components: components
+          .filter(({ status }) => status === 'different' || status === 'onlyInSource' || status === 'onlyInTarget')
+          .map(({ fullName, status }) => ({ fullName, statusLabel: getStatusLabel(status, sourceOrg.label, targetOrg.label) })),
+      }))
+      .filter(({ components }) => components.length > 0),
+  };
+}
+
+/** Build a Markdown summary to paste into change-review docs, tickets or pull requests */
+export function buildChangeReviewMarkdown(context: OrgAlignmentExportContext): string {
+  const { details, totals, typeHeaders, typeRows, differencesByType } = getChangeReviewSummary(context);
+  const escapeCell = (value: string) => value.replace(/\|/g, '\\|');
   const lines: string[] = [
-    `# Org Alignment Drift Report`,
+    `# ${CHANGE_REVIEW_TITLE}`,
     '',
-    `- **Org A:** ${sourceOrg.label} (${sourceOrg.username})`,
-    `- **Org B:** ${targetOrg.label} (${targetOrg.username})`,
-    `- **Generated:** ${generatedAt.toLocaleString()}`,
-    `- **Permission XML Normalization:** ${normalizePermissionXml ? 'Enabled' : 'Disabled'}`,
+    ...details.map(([label, value]) => `- **${label}:** ${value}`),
     '',
     '## Overall Summary',
     '',
-    `| Category | Count |`,
-    `| --- | ---: |`,
-    `| Different | ${formatNumber(totals.different)} |`,
-    `| Only in ${sourceOrg.label} | ${formatNumber(totals.onlyInSource)} |`,
-    `| Only in ${targetOrg.label} | ${formatNumber(totals.onlyInTarget)} |`,
-    `| Same | ${formatNumber(totals.same)} |`,
-    `| Uncomparable | ${formatNumber(totals.uncomparable)} |`,
-    `| Managed Skipped | ${formatNumber(totals.managedSkipped)} |`,
+    '| Category | Count |',
+    '| --- | ---: |',
+    ...totals.map(([label, count]) => `| ${escapeCell(label)} | ${formatNumber(count)} |`),
     '',
     '## Summary by Metadata Type',
     '',
-    `| Metadata Type | Status | Different | Only in ${sourceOrg.label} | Only in ${targetOrg.label} | Same | Notes |`,
-    `| --- | --- | ---: | ---: | ---: | ---: | --- |`,
+    `| ${typeHeaders.map(escapeCell).join(' | ')} |`,
+    '| --- | --- | ---: | ---: | ---: | ---: | --- |',
+    ...typeRows.map((row) => `| ${row.map(escapeCell).join(' | ')} |`),
   ];
 
-  for (const typeResult of typeResults) {
-    const notes = (typeResult.uncomparableReason ?? typeResult.errorMessage ?? '').replace(/\|/g, '\\|');
-    lines.push(
-      `| ${typeResult.typeLabel} (\`${typeResult.type}\`) | ${typeResult.executionStatus} | ${typeResult.counts.different} | ${typeResult.counts.onlyInSource} | ${typeResult.counts.onlyInTarget} | ${typeResult.counts.same} | ${notes} |`,
-    );
-  }
-
-  const driftingTypes = typeResults.filter(
-    (typeResult) => typeResult.counts.different > 0 || typeResult.counts.onlyInSource > 0 || typeResult.counts.onlyInTarget > 0,
-  );
-
-  if (driftingTypes.length > 0) {
-    lines.push('', '## Drift Details for Change Review', '');
-    for (const typeResult of driftingTypes) {
-      lines.push(`### ${typeResult.typeLabel} (\`${typeResult.type}\`)`, '');
-      const driftingComponents = typeResult.components.filter(
-        ({ status }) => status === 'different' || status === 'onlyInSource' || status === 'onlyInTarget',
-      );
-      for (const component of driftingComponents) {
-        const badge =
-          component.status === 'different'
-            ? 'Different'
-            : component.status === 'onlyInSource'
-              ? `Only in ${sourceOrg.label}`
-              : `Only in ${targetOrg.label}`;
-        lines.push(`- **${component.fullName}** — ${badge}`);
-      }
-      lines.push('');
+  if (differencesByType.length > 0) {
+    lines.push('', '## Differences', '');
+    for (const { heading, components } of differencesByType) {
+      lines.push(`### ${heading}`, '', ...components.map(({ fullName, statusLabel }) => `- **${fullName}**: ${statusLabel}`), '');
     }
   }
 
   return lines.join('\n');
+}
+
+/** Build the same summary as rich text (HTML), which keeps its tables when pasted into documents and email */
+export function buildChangeReviewHtml(context: OrgAlignmentExportContext): string {
+  const { details, totals, typeHeaders, typeRows, differencesByType } = getChangeReviewSummary(context);
+  const getRow = (cells: string[], tag: 'td' | 'th' = 'td') =>
+    `<tr>${cells.map((cell) => `<${tag}>${escapeHtml(cell)}</${tag}>`).join('')}</tr>`;
+  const getTable = (headers: string[], rows: string[][]) =>
+    `<table border="1" cellpadding="4" cellspacing="0">${getRow(headers, 'th')}${rows.map((row) => getRow(row)).join('')}</table>`;
+
+  return [
+    `<h1>${escapeHtml(CHANGE_REVIEW_TITLE)}</h1>`,
+    `<ul>${details.map(([label, value]) => `<li><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</li>`).join('')}</ul>`,
+    '<h2>Overall Summary</h2>',
+    getTable(
+      ['Category', 'Count'],
+      totals.map(([label, count]) => [label, formatNumber(count)]),
+    ),
+    '<h2>Summary by Metadata Type</h2>',
+    getTable(typeHeaders, typeRows),
+    ...(differencesByType.length > 0 ? ['<h2>Differences</h2>'] : []),
+    ...differencesByType.map(
+      ({ heading, components }) =>
+        `<h3>${escapeHtml(heading)}</h3><ul>${components
+          .map(({ fullName, statusLabel }) => `<li><strong>${escapeHtml(fullName)}</strong>: ${escapeHtml(statusLabel)}</li>`)
+          .join('')}</ul>`,
+    ),
+  ].join('');
 }

@@ -1,10 +1,16 @@
 import { ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { describe, expect, it } from 'vitest';
 import { FilePropertiesWithContent } from '../../view-or-compare-metadata/viewOrCompareMetadataTypes';
-import { getMetadataTypeComparability, isManagedListMetadataItem } from '../orgAlignmentMetadataClassification';
+import {
+  getMetadataTypeComparability,
+  getProfileCompanions,
+  isManagedListMetadataItem,
+  MAX_PROFILE_COMPANIONS_WITH_FILES,
+} from '../orgAlignmentMetadataClassification';
 import { OrgAlignmentTypeResult } from '../orgAlignmentTypes';
 import {
   aggregateSummaryCounts,
+  buildChangeReviewHtml,
   buildChangeReviewMarkdown,
   buildDriftReportFlatRows,
   buildDriftReportWorkbookData,
@@ -12,6 +18,7 @@ import {
   componentsToListMetadataMap,
   getOverwrittenTargetComponentsMap,
   isComponentDeployableInDirection,
+  removeSeparatelyComparedChildren,
   setDiffListMetadata,
 } from '../orgAlignmentUtils';
 
@@ -254,7 +261,7 @@ describe('orgAlignmentUtils', () => {
     expect(backupMap.ApexClass.map(({ fullName }) => fullName)).toEqual(['DiffCls']);
   });
 
-  it('builds workbook, flat rows, and Markdown change-review exports', () => {
+  it('builds workbook, flat rows, and clipboard summary exports', () => {
     const setDiff = setDiffListMetadata(
       [makeListItem({ type: 'ApexClass', fullName: 'ChangedCls' }), makeListItem({ type: 'ApexClass', fullName: 'SameCls' })],
       [makeListItem({ type: 'ApexClass', fullName: 'ChangedCls' }), makeListItem({ type: 'ApexClass', fullName: 'SameCls' })],
@@ -306,7 +313,161 @@ describe('orgAlignmentUtils', () => {
 
     const markdown = buildChangeReviewMarkdown(context);
     expect(markdown).toContain('# Org Alignment Drift Report');
-    expect(markdown).toContain('ChangedCls');
-    expect(markdown).not.toContain('- **SameCls**');
+    expect(markdown).toContain('- **ChangedCls**: Different');
+    expect(markdown).not.toContain('SameCls');
+
+    const html = buildChangeReviewHtml(context);
+    expect(html).toContain('<h1>Org Alignment Drift Report</h1>');
+    expect(html).toContain('<li><strong>ChangedCls</strong>: Different</li>');
+    expect(html).not.toContain('SameCls');
+  });
+});
+
+describe('parent files with separately compared children', () => {
+  const getObjectXml = (customFieldLabel: string, description: string) =>
+    [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">',
+      `    <description>${description}</description>`,
+      '    <fields>',
+      '        <fullName>Custom__c</fullName>',
+      `        <label>${customFieldLabel}</label>`,
+      '    </fields>',
+      '    <fields>',
+      '        <fullName>Industry</fullName>',
+      '        <trackFeedHistory>false</trackFeedHistory>',
+      '    </fields>',
+      '</CustomObject>',
+    ].join('\n');
+
+  it('removes only the children that are compared on their own', () => {
+    const output = removeSeparatelyComparedChildren(
+      getObjectXml('Label', 'Accounts'),
+      'CustomObject',
+      'Account',
+      new Set(['CustomField:Account.Custom__c']),
+    );
+    expect(output).not.toContain('Custom__c');
+    // Standard fields are not listed as components, so they stay with the object
+    expect(output).toContain('Industry');
+    expect(output).toContain('<description>Accounts</description>');
+  });
+
+  it('leaves the content alone when nothing is compared separately or the type is not a parent', () => {
+    const xml = getObjectXml('Label', 'Accounts');
+    expect(removeSeparatelyComparedChildren(xml, 'CustomObject', 'Account', new Set())).toBe(xml);
+    expect(removeSeparatelyComparedChildren(xml, 'ApexClass', 'Account', new Set(['CustomField:Account.Custom__c']))).toBe(xml);
+    expect(removeSeparatelyComparedChildren('<not-xml', 'CustomObject', 'Account', new Set(['CustomField:Account.Custom__c']))).toBe(
+      '<not-xml',
+    );
+  });
+
+  it('does not report an object as different when only a separately compared field changed', () => {
+    const setDiff = setDiffListMetadata(
+      [makeListItem({ type: 'CustomObject', fullName: 'Account' })],
+      [makeListItem({ type: 'CustomObject', fullName: 'Account' })],
+    );
+    const getFiles = (customFieldLabel: string, description: string) => [
+      makeFileProps({
+        type: 'CustomObject',
+        fullName: 'Account',
+        fileName: 'objects/Account.object',
+        content: getObjectXml(customFieldLabel, description),
+      }),
+    ];
+    const separatelyComparedKeys = new Set(['CustomField:Account.Custom__c']);
+
+    const fieldChanged = buildTypeComparisonComponents('CustomObject', setDiff, getFiles('One', 'Accounts'), getFiles('Two', 'Accounts'), {
+      separatelyComparedKeys,
+    });
+    expect(fieldChanged.components[0].status).toBe('same');
+
+    const objectChanged = buildTypeComparisonComponents('CustomObject', setDiff, getFiles('One', 'Accounts'), getFiles('One', 'Changed'), {
+      separatelyComparedKeys,
+    });
+    expect(objectChanged.components[0].status).toBe('different');
+
+    // Without the field being compared on its own, its change still has to surface somewhere
+    const fieldNotCompared = buildTypeComparisonComponents(
+      'CustomObject',
+      setDiff,
+      getFiles('One', 'Accounts'),
+      getFiles('Two', 'Accounts'),
+    );
+    expect(fieldNotCompared.components[0].status).toBe('different');
+  });
+});
+
+describe('content kept after comparing', () => {
+  const getFiles = (type: string, fileName: string, content: string) => [makeFileProps({ type, fullName: 'Item', fileName, content })];
+
+  it('releases the content of matching components and keeps it for different ones', () => {
+    const setDiff = setDiffListMetadata(
+      [makeListItem({ type: 'ApexClass', fullName: 'Item' })],
+      [makeListItem({ type: 'ApexClass', fullName: 'Item' })],
+    );
+    const same = buildTypeComparisonComponents(
+      'ApexClass',
+      setDiff,
+      getFiles('ApexClass', 'classes/Item.cls', 'class Item {}'),
+      getFiles('ApexClass', 'classes/Item.cls', 'class Item {}'),
+    );
+    expect(same.components[0]).toMatchObject({ status: 'same', files: [], filesLoaded: false });
+
+    const different = buildTypeComparisonComponents(
+      'ApexClass',
+      setDiff,
+      getFiles('ApexClass', 'classes/Item.cls', 'class Item {}'),
+      getFiles('ApexClass', 'classes/Item.cls', 'class Item { Integer value; }'),
+    );
+    expect(different.components[0]).toMatchObject({ status: 'different', filesLoaded: true });
+    expect(different.components[0].files).toHaveLength(1);
+  });
+
+  it('keeps the content of matching permission files so normalization can be toggled without another retrieve', () => {
+    const setDiff = setDiffListMetadata(
+      [makeListItem({ type: 'Profile', fullName: 'Item' })],
+      [makeListItem({ type: 'Profile', fullName: 'Item' })],
+    );
+    const xml = '<Profile><custom>false</custom></Profile>';
+    const { components } = buildTypeComparisonComponents(
+      'Profile',
+      setDiff,
+      getFiles('Profile', 'profiles/Item.profile', xml),
+      getFiles('Profile', 'profiles/Item.profile', xml),
+    );
+    expect(components[0]).toMatchObject({ status: 'same', filesLoaded: true });
+    expect(components[0].files).toHaveLength(1);
+  });
+
+  it('uses the provided reason when content was deliberately not retrieved', () => {
+    const setDiff = setDiffListMetadata(
+      [makeListItem({ type: 'Profile', fullName: 'Item' })],
+      [makeListItem({ type: 'Profile', fullName: 'Item' })],
+    );
+    const { components } = buildTypeComparisonComponents('Profile', setDiff, [], [], { uncomparableReason: 'Too many' });
+    expect(components[0]).toMatchObject({ status: 'uncomparable', uncomparableReason: 'Too many' });
+  });
+});
+
+describe('getProfileCompanions', () => {
+  it('returns the components profiles refer to and ignores other types', () => {
+    const companions = getProfileCompanions({
+      ApexClass: [makeListItem({ type: 'ApexClass', fullName: 'One' })],
+      CustomField: [makeListItem({ type: 'CustomField', fullName: 'Account.One__c' })],
+      Report: [makeListItem({ type: 'Report', fullName: 'Folder/One' })],
+      Layout: [],
+    });
+    expect(Object.keys(companions ?? {})).toEqual(['ApexClass', 'CustomField']);
+  });
+
+  it('returns null when there are too many companions to retrieve in one request', () => {
+    const classes = Array.from({ length: MAX_PROFILE_COMPANIONS_WITH_FILES + 1 }, (_, i) =>
+      makeListItem({ type: 'ApexClass', fullName: `Class${i}` }),
+    );
+    expect(getProfileCompanions({ ApexClass: classes })).toBeNull();
+    // Fields are returned inside their object's file and do not count towards the limit
+    const fields = classes.map((item) => ({ ...item, type: 'CustomField' }));
+    expect(getProfileCompanions({ CustomField: fields })).not.toBeNull();
   });
 });

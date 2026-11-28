@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { OrgAlignmentSavedComparison, SalesforceOrgUi } from '@jetstream/types';
-import { Badge, EmptyState, Grid, Icon, Input, Modal, ScopedNotification, UpgradeToProButton } from '@jetstream/ui';
+import { Badge, EmptyState, Grid, Icon, Input, Modal, ScopedNotification, Textarea, UpgradeToProButton } from '@jetstream/ui';
 import { OrgLabelBadge, ProBadge } from '@jetstream/ui-core';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
 import { FunctionComponent, useState } from 'react';
@@ -112,18 +112,18 @@ export const OrgAlignmentSavedComparisonsModal: FunctionComponent<OrgAlignmentSa
               placeholder="e.g. UAT vs Production (Core Metadata)"
             />
           </Input>
-          <Input id="org-alignment-save-description" label="Notes (optional)">
-            <input
+          <Textarea id="org-alignment-save-description" label="Notes (optional)">
+            <textarea
               id="org-alignment-save-description"
-              type="text"
-              className="slds-input"
+              className="slds-textarea"
+              rows={3}
               maxLength={250}
               value={description}
               disabled={reachedFreeSaveLimit}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="e.g. Pre-release weekly drift check"
             />
-          </Input>
+          </Textarea>
         </form>
       </Modal>
     );

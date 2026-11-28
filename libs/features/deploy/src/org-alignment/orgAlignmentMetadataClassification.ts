@@ -52,3 +52,55 @@ export function isManagedListMetadataItem(item: Pick<ListMetadataResult, 'manage
 
 export const MANAGED_COMPONENT_UNCOMPARABLE_REASON =
   'Managed package components have hidden or package-controlled source in Salesforce and cannot be compared or deployed directly.';
+
+export const PROFILE_METADATA_TYPE = 'Profile';
+
+/**
+ * Salesforce only returns the parts of a profile (object, field, class, page, tab, layout, record type and app
+ * access) that relate to other components named in the same retrieve request. Profiles are retrieved together
+ * with every component of these types so that the whole profile is compared.
+ */
+export const PROFILE_COMPANION_METADATA_TYPES = new Set([
+  'ApexClass',
+  'ApexPage',
+  'CustomApplication',
+  'CustomField',
+  'CustomObject',
+  'CustomPermission',
+  'CustomTab',
+  'ExternalDataSource',
+  'Flow',
+  'Layout',
+  'RecordType',
+]);
+
+/** Companions that are returned inside their object's file and so do not add to the retrieved file count */
+const PROFILE_COMPANION_TYPES_WITHOUT_FILES = new Set(['CustomField', 'RecordType']);
+
+/** Above this the retrieve would exceed Salesforce's 10,000 file limit (Apex is two files per component) */
+export const MAX_PROFILE_COMPANIONS_WITH_FILES = 4000;
+
+/** Profiles are large and each chunk also retrieves every companion, so they are retrieved a few at a time */
+export const PROFILE_RETRIEVE_CHUNK_SIZE = 50;
+
+export const PROFILE_TOO_LARGE_UNCOMPARABLE_REASON =
+  'Profiles are only complete when retrieved together with the objects, classes, pages, tabs and layouts they refer to, and these orgs have too many to retrieve in one request. Compare fewer metadata types to compare profiles.';
+
+/**
+ * Every component a profile can refer to, from the listings of the metadata types already compared.
+ * Returns null when there are too many to retrieve alongside the profiles in one request.
+ */
+export function getProfileCompanions(listItemsByType: Record<string, ListMetadataResult[]>): Record<string, ListMetadataResult[]> | null {
+  const companions: Record<string, ListMetadataResult[]> = {};
+  let companionsWithFiles = 0;
+  for (const [metadataType, items] of Object.entries(listItemsByType)) {
+    if (!PROFILE_COMPANION_METADATA_TYPES.has(metadataType) || items.length === 0) {
+      continue;
+    }
+    companions[metadataType] = items;
+    if (!PROFILE_COMPANION_TYPES_WITHOUT_FILES.has(metadataType)) {
+      companionsWithFiles += items.length;
+    }
+  }
+  return companionsWithFiles > MAX_PROFILE_COMPANIONS_WITH_FILES ? null : companions;
+}
